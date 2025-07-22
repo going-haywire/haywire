@@ -257,7 +257,7 @@ TBD - More research is needed to figure out how this can be handled.
 
 ### Compilation of graph
 
-(Alternative to compile: Assemble, reassemble, rebuild, generate, realize, unfold, frame, re-constitute, reframe, mold, stitch, link, integrate, chain, couple, hook, rewire, bind, tether, tie, leash, strap, thread, entangle, intertwine, interweave, interlace, interlock, interconnect, weave, bundle, stack, pack, heap, heapify, bushel, bundle, splice, lash, tie, rig)
+(Alternative to compile: bootstrap, Assemble, reassemble, rebuild, generate, realize, unfold, frame, re-constitute, reframe, mold, stitch, link, integrate, chain, couple, hook, rewire, bind, tether, tie, leash, strap, thread, entangle, intertwine, interweave, interlace, interlock, interconnect, weave, bundle, stack, pack, heap, heapify, bushel, bundle, splice, lash, tie, rig)
 
 Lets first focus on a complete compilation of a graph. This happens when a graph is loaded from a file.
 
@@ -267,21 +267,31 @@ These are the (rough) steps necessary to get an executable flow.
 
 * Checking for graph validity
   * Node checking:
-    * Checking for validity of node-types
-    * Checking for multiples of the same event-nodes
-    * Checking for source and sink nodes inside graph-nodes
-* Clearing all connections that are stored inside pins.
-* Storing control-flow connections in their respective outlet-pins. This is because the control-flow propagates in the direction from control-pin-outlet to control-pin-inlet. The next-to-be-executed-node control-pin-inlet doesn't need to know with what node it is connected. The VM takes care of this.
-* Storing data-flow connections in their respective inlet-pins. This is because the data-flow is generated from a backpropagation from the data-pin-inlets of its respective control-node. the data-pin-outlets doesn't need to know with which inlet-pins it is connected at the time of compilation. once the data-flow is created though, the inlet-pins "know" where to send their results. (this mechanism is not yet clear)
+    * Checking for validity of node-types (see chapter of node types for details)
+    * Checking for multiples of the same event-nodes (not allowed since undefined which control-flow is should have precedence)
+    * Checking for source and sink nodes inside graph-nodes (required to be functional)
+* Clearing all connections that are stored inside pins. (clean house)
+* Storing control-flow connections in their respective outlet-pins. This is because the control-flow propagates in the direction from control-pin-outlet to control-pin-inlet. The next-to-be-executed-controlnode control-pin-inlet doesn't need to know with what node it is connected. It is actually allowed to be connected to multiple nodes. Once the node is executed, the VM will inform the from where the control-flow came from.
+* Storing data-flow connections in their respective inlet-pins. This is because the data-flow is generated through backpropagation from the data-pin-inlets of its respective control-node. the data-pin-outlets doesn't need to know with which inlet-pins it is connected to at the time of compilation. once the data-flow is created though, the outlet-pins "know" where to send their results. (this mechanism is not yet defined and can benefit from a suitable solution)
 * Stepping through each control-node:
     * its data-pin-inlet dependencies are separated into a localized data-graph (containing only nodes and connections that influence the data-pin-inlets of the control-node in focus).
-    * Checking for loops in the data-graph
-    * the data-graph is sorted into a predefined sequence of execution called a localized data-flow.
-    * the localized data-flow is stored within the control-node
-* It does so iteratively with each graph-as-a-node as well.
-* It identifies
+    * Checking for loops in the data-graph (not allowed with the exception of loops that contain a control-node)
+    * the data-graph is sorted into a predefined sequence of executions called a localized data-flow.
+    * the localized data-flow is stored within the control-node, ready to be executed.
+* It does all of it iteratively with each graph-node as well.
+* It identifies the event-nodes and makes them available for hooking it up with the execution mechanism of the whole haystack.
 
 
-## Possible first implementations:
+## Inspirations
+
+
+## Question to the model:
+- [ ] What works with this spec?
+- [ ] What does this specification desperately need to clarify the goal?
+- [ ] What is the best way to implement this?
+- [ ] Check the compilation steps for missing requirements and generation steps.
+
+
+## Possible first implementations (Notes for later):
 
 https://docs.haystack.deepset.ai/docs/intro
