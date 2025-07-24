@@ -173,13 +173,13 @@ These are the basic building blocks of a Haywire graph:
   Event-nodes are a special kind of Control-nodes used to trigger execution within the graph. They are defined by having no pin-inlets at all. With the exception of the Source-node, Event-nodes are not allowed inside of Graph-nodes.
 
 - **Output-nodes**
-  Output-nodes are a special kind of Control-nodes used to terminate execution within the graph. They are defined by having no pin-outlets at all. With the exception of the Sink-node, output-nodes are not allowed inside of Graph-nodes.
+  Output-nodes are a special kind of Control-nodes used to terminate execution within the Graph. They are defined by having no pin-outlets at all. With the exception of the Sink-node, output-nodes are not allowed inside of Graph-nodes.
 
 - **Source-node**
-  The Source-node is a special kind of Event-node used to enter the graph. The Source-node's pin-outlets are dynamically configured by its parent Graph-node defined pin-inlets.
+  The Source-node is a special kind of Event-node used only inside Graph-nodes to start the execution of the Graph-node. The Source-node's pin-outlets are dynamically configured by its Graph-node defined pin-inlets.
 
 - **Sink-node**
-  The Sink-node is a special kind of output-node used to exit the graph. It is defined by having no pin-outlets at all. The Sink-node's pin-inlets are dynamically configured by its parent Graph-node defined pin-outlets.
+  The Sink-node is a special kind of output-node used to only inside Graph-nodes to exit the execution of the Graph-node. The Sink-node's pin-inlets are dynamically configured by its Graph-node defined pin-outlets.
 
 ### Parameters
 Parameters configure the behaviour / functionality of the node. They are read only during evaluation.
@@ -187,6 +187,7 @@ Parameters configure the behaviour / functionality of the node. They are read on
 - Parameters can only be of specified datatypes that makes them editable through the user interface.
 - Their values are set on creation or changed via the user interface
 - Their settings can have an effect on the node's appearance (But that opens a can of worms)
+  - They can enable/disable DataIns, DataOuts and other Parameters.
 - They have **no** default value
 - They **can** have pin-outlets but have **no** pin-inlets.
 - They are only read accessible by the internal Worker-function
@@ -208,17 +209,32 @@ DataIns are used receive data into a node.
 - DataIns are of specified datatypes.
 - DataIns can have a default value that can be set on creation or by the user via the user interface.
 - They are only read accessible by the internal Worker-function
-- They can be directly set by data-pin-inlets.
+- They can be directly set by Data-pin-inlets.
 - When a Graph is stored to file, only the default value is stored.
 
 ### DataOuts
 DataOuts are used to send data out of a node.
 
-- DataOuts are be of specified datatypes.
+- DataOuts are of specified datatypes.
 - DataOuts are **required** to be set by the internal Worker-function. This assures a consistent behavior.
 - They are only write accessible by the internal Worker-function.
 
 **The implementation of DataOuts is not yet defined.**
+
+### Overview of Nodes Configurables
+
+| Types          | Function        | Default | Stores  | Inlets | Outlets | Visible  | Enable   |
+| -------------- | --------------- | ------- | ------- | ------ | ------- | -------- | -------- |
+| Parameters     | Configuration   |   no    | value   |   no   |  maybe  |  on/off  |  on/off  |
+| Variables      | Runtime Storage |   yes   | default |   no   |   no    |  off     |  on      |
+| DataIns        | Input Data      |   yes   | default |   yes  |   no    |  on/off  |  on/off  |
+| DataOuts       | Output Data     |   no    |  none   |   no   |   yes   |  on/off  |  on/off  |
+
+none = can not be set / has no effect
+Default = has default value
+Stores = data that is stored to file and is loaded.
+Visible = can be set by the user to be visible in the node UI.
+Enable = can be set to be on/off by a Parameter.
 
 ### Pins
 
