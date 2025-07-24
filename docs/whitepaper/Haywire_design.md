@@ -77,20 +77,20 @@ Haywires uses an event-driven model:
 
 ## The Graph
 
-The Haywire graph is a data structure that describes the flow of data and control between nodes. As such, it is a collection of Parameters, Variables, and instantiations of Nodes, Connections, Subgraphs and Abstractions. All are described further down in their respective sections.
+The Haywire Graph is a data structure that describes the flow of data and control between nodes. As such, it is a collection of Parameters, Variables, Connections and instantiations of Nodes and Graph-nodes. All are described further down in their respective sections.
 
 - A Graph can contain multiple disconnected node-trees that are assembled into individual Flows.
 - A Graph cannot be executed directly. Only Flows can be executed.
 
 ### The Graph-node: A graph is also a node
 
-A graph can be treated like a node and thus can be used as such within another graph: a Graph-node.
+A Graph can be treated like a node and thus can be used as such within another graph: a Graph-node.
 
 There are three different ways a Graph-node can be implemented:
 
-- **Subgraph** is a graph that is used only once and inside its parent graph.
-- **Abstraction** is a graph that can be used in multiple instances within its parent graph.
-- **Module** is a graph that can be used in multiple instances within any graph.
+- **Subgraph** is a graph that is used only once and inside its parent Graph.
+- **Abstraction** is a graph that can be used in multiple instances within its parent Graph.
+- **Module** is a graph that can be used in multiple instances within any Graph.
 
 **Subgraphs** and **Abstractions** are stored with their parent graphs. **Modules** are stored on the local file system and are treated like custom nodes.
 
@@ -106,9 +106,9 @@ There are three types of connections:
 
 - **Control-connections** are used to control the flow of execution between nodes.
 - **Data-connections** are used to transfer data between nodes.
-- **Callback-connections** are used to trigger an Event-node from another flow. Contrary to Control- and Data-connections, Callback-connections are only used during the Assembly step to connect flows through events.
+- **Callback-connections** are used to trigger an Event-node from another Flow. Contrary to Control- and Data-connections, Callback-connections are only used during the Assembly step to connect Flows through events.
 
-A connection is simple data structure that contains the outlet-pins node-id and pin-id and the inlets-pin node-id and pin-id.
+A connection is a simple data structure that contains the outlet-pins node-id and pin-id and the inlets-pin node-id and pin-id.
 
 ### Cycles
 
@@ -122,10 +122,9 @@ Cycles are connections between nodes that form a loop.
 
 Flows are used to organize and execute a sequence of nodes. A Flow is assembled by the Assembler from a Graph. A Flow has always at least one Event-node as an entry point.
 
-Each Flow keeps a reference of the Graph it is assembled from and uses its instantiations of Nodes, Subgraphs etc to execute/evaluate the nodes. Thus, during the Interpretation of a Flow, the Graph is used as the database of the Flow. Once the Interpretation is finished, the Graph is reset to its default state.
+Each Flow keeps a reference of the Graph it is assembled from and uses the Graphs instantiations of Nodes, Subgraphs etc to execute/evaluate the nodes. Thus, during the Interpretation of a Flow, the Graph is used as the database of the Flow. Once the Interpretation is finished, the Graphs nodes are reset to their default state.
 
 ### Control-flow vs Data-flow
-
 Haywire uses a Control- (also known as an Execution-) flow model in combination with a Data-flow model.
 
 - Control-connections specify the order of operations
@@ -133,44 +132,41 @@ Haywire uses a Control- (also known as an Execution-) flow model in combination 
 - The graph that is discribed by the Control-connections is called Control-graph and assembled into the Control-flow
 - the graph that is discribed by the Data-connections is called Data-graph and assembled into a Data-flow
 
-During the Assembly, the control-graph is traversed and the Control-flow is assembled. From each Control-node, the Data-graph is traversed and the localized Data-flow is assembled.
+During the Assembly, the Control-connections are traversed and the Control-flow is assembled. Then from each Control-node, the Data-graph is traversed and the localized Data-flow is assembled.
 
 ### Control-flow
-
 - Start at Event-nodes (BeginPlay, Tick, InputAction, etc.)
 - Follow Control-connections from Control-node to Control-node
 - Each control connection is essentially a "goto next instruction"
 
 ### localized Data-flow: localized dependency resolution
-
 - Analyze the local graph around an Control-node to identify a local node-related dependency tree of Data-nodes
 - Create evaluation sequence based on these data dependencies called a localized Data-flow
 - Everytime a Control-node is executed, its localized Data-flow is evaluated.
 
 ## The node
-
 A Haywire node is arguably the most central element of the system. A node consists of
 
 - **Parameters** to configure its behavior. Has default values can be overridden by the user. Are read only accessible by the Worker-function.
 - **Variables** to maintain or orchestrate its functionality. Can be read and written by the Worker-function.
+- **DataIns** and **DataOuts** to store data to and from other nodes.
 - **Pins** to connect to and from other nodes.
 - **Worker-function** that contains its main logic.
 
 ### Node Types
-
 These are the basic building blocks of a Haywire graph:
 
 - **Control-nodes**
-  Control-nodes are nodes that are used to control the flow of execution within the graph. They are defined by having both at least one Control-pin-inlet and one Control-pin-outlet.
+  Control-nodes are nodes that are generally used to control the flow of execution within the graph. They are defined by having both at least one Control-pin-inlet and one Control-pin-outlet.
 
 - **Data-nodes**
   Data-nodes are nodes that are used to process data within the graph. They are defined by having no Control-pins at all.
 
 - **Graph-nodes**
-  Graph-nodes are nodes that are used to encapsulate a subgraph within the graph. They can have Control-pins and/or Data-pins, Thus they can come on two flavors: **control-Graph-nodes** and **Data-graph-nodes**. Like their siblings, **Control-node** and **Data-node**, they are compiled and executed in the same fashion. Like other nodes, they can have variables.
+  Graph-nodes are nodes that are used to encapsulate a subgraph within the graph. They can have Control-pins and/or Data-pins, Thus they can come on two flavors: **Control-graph-nodes** and **Data-graph-nodes**. Like their siblings, **Control-node** and **Data-node**, they are assembled and executed/evaluated in the same fashion. Like other nodes, they can have variables.
 
 - **Event-nodes**
-  Event-nodes are a special kind of Control-nodes used to trigger execution within the graph. They are defined by having no pin-inlets at all. With the exception of the Source-node, Event-nodes are not allowed inside of Graph-nodes.
+  Event-nodes are a special kind of Control-nodes used to trigger execution within the Graph. They are defined by having no pin-inlets at all. With the exception of the Source-node, Event-nodes are not allowed inside of Graph-nodes.
 
 - **Output-nodes**
   Output-nodes are a special kind of Control-nodes used to terminate execution within the Graph. They are defined by having no pin-outlets at all. With the exception of the Sink-node, output-nodes are not allowed inside of Graph-nodes.
@@ -182,13 +178,13 @@ These are the basic building blocks of a Haywire graph:
   The Sink-node is a special kind of output-node used to only inside Graph-nodes to exit the execution of the Graph-node. The Sink-node's pin-inlets are dynamically configured by its Graph-node defined pin-outlets.
 
 ### Parameters
-Parameters configure the behaviour / functionality of the node. They are read only during evaluation.
+Parameters configure the behaviour / functionality of the node. They are read-only during evaluation.
 
 - Parameters can only be of specified datatypes that makes them editable through the user interface.
-- Their values are set on creation or changed via the user interface
-- Their settings can have an effect on the node's appearance (But that opens a can of worms)
-  - They can enable/disable DataIns, DataOuts and other Parameters.
 - They have **no** default value
+- Their values are set on creation or changed via the user interface
+- Their settings can have an effect on the node's appearance
+  - They can enable/disable DataIns, DataOuts and other Parameters.
 - They **can** have pin-outlets but have **no** pin-inlets.
 - They are only read accessible by the internal Worker-function
 - When a Graph is stored to file, the value is stored.
@@ -210,6 +206,7 @@ DataIns are used receive data into a node.
 - DataIns can have a default value that can be set on creation or by the user via the user interface.
 - They are only read accessible by the internal Worker-function
 - They can be directly set by Data-pin-inlets.
+- They can be set to required or optional to be connected to a Data-pin-outlet.
 - When a Graph is stored to file, only the default value is stored.
 
 ### DataOuts
@@ -223,27 +220,28 @@ DataOuts are used to send data out of a node.
 
 ### Overview of Nodes Configurables
 
-| Types          | Function        | Default | Stores  | Inlets | Outlets | Visible  | Enable   |
-| -------------- | --------------- | ------- | ------- | ------ | ------- | -------- | -------- |
-| Parameters     | Configuration   |   no    | value   |   no   |  maybe  |  on/off  |  on/off  |
-| Variables      | Runtime Storage |   yes   | default |   no   |   no    |  off     |  on      |
-| DataIns        | Input Data      |   yes   | default |   yes  |   no    |  on/off  |  on/off  |
-| DataOuts       | Output Data     |   no    |  none   |   no   |   yes   |  on/off  |  on/off  |
+| Types          | Function        | Default | Stores  | Inlets | Outlets | Visible  | Enable   | Required |
+| -------------- | --------------- | ------- | ------- | ------ | ------- | -------- | -------- | -------- |
+| Parameters     | Configuration   |   no    | value   |   no   |  maybe  |  on/off  |  on/off  |  None    |
+| Variables      | Runtime Storage |   yes   | default |   no   |   no    |  off     |  on      |  None    |
+| DataIns        | Input Data      |   yes   | default |   yes  |   no    |  on/off  |  on/off  |  Maybe   |
+| DataOuts       | Output Data     |   no    |  none   |   no   |   yes   |  on/off  |  on/off  |  None    |
 
 none = can not be set / has no effect
 Default = has default value
 Stores = data that is stored to file and is loaded.
 Visible = can be set by the user to be visible in the node UI.
 Enable = can be set to be on/off by a Parameter.
+Required = can be set to be required.
 
 ### Pins
 
 Pins are the way to connect to and from a node. Pins have a selection of different settings that define their behaviour:
 
-- **flow-type** defines if it is a control or data pin
-- **socket-type** defines if the pin is an inlet (for getting event/data in) or an outlet (for sending event/data out)
-- **data-type** defines the data type the pin is associated with. And which other pins a pin can connect or not connect to.
-- **link-type** defines how many connections can be made on the pin. This is either one or many.
+- **Flow-type** defines if it is a control, data or callback pin
+- **Socket-type** defines if the pin is an inlet (for getting event/data in) or an outlet (for sending event/data out)
+- **Data-type** defines the data type the pin is associated with. And which other pins a pin can connect or not connect to.
+- **Link-type** defines how many connections can be made on the pin. This is either one or many.
 
 The following table shows the only admissible pin configurations:
 
@@ -257,28 +255,24 @@ The following table shows the only admissible pin configurations:
 | Callback-pin outlet | call | outlet | type | many     |
 
 #### Explanation to link-types
-
-- **Control-pin-outlet** can only have one link, since it must be clear which the next node is that needs to be executed.
+- **Control-pin-outlet** can have only one link, since it must be clear which the next node is that needs to be executed.
 - **Control-pin-inlet** can have many links, since there might be mulitple execution paths that lead to this node.
 - **Data-pin-outlet** can have many links, since multiple nodes might be interested in this data
 - **Data-pin-inlet** there are two link-types possible, depending on the needed data. in case of many the provided data is in form of a list of values in the specified data-type.
 - **Callback-pin-inlet** can have multiple links, since multiple Event-nodes can require the same callback.
 - **Callback-pin-outlet** can have multiple links, since the Event-node might be interested in multiple callbacks.
 
-#### Data-pin inlet
-Data-pin-inlets have default values that can be set by the user.
-
 ### Worker-function
 
 This is where the real work is done. Each node, no matter of type, has one Worker-function. However, depending of the type of the node, the Worker-function is called through different mechanisms.
 
-The Worker-function has access to the nodes internal Parameters (read only), Variables, the Data-pin-inlets values and is able to set the Data-pin-outlets.
+The Worker-function has access to the nodes internal Parameters, Variables, DataIns and is able to set the DataOuts.
 
-It returns status information that is interpreted differently depending on the execution mechanism.
+It returns status information that is interpreted differently depending on the execution/evaluation mechanism.
 
 #### Worker-function for Control-nodes
 
-The VM follows the Control-pins from node to node. To recap quickly: During the Assembly of the Graph, the connections, which are stored within the graph, are transfered to the respective pins. After Assembly of the Graph, there is a Control-flow containing each connected Control-node (TBD).
+The VM follows the Control-pins from node to node. To recap quickly: During the Assembly of the Graph, the connections, which are stored within the graph, are transfered to the respective pins. After Assembly of the Graph, there is a Control-flow containing a reference to each connected Control-node (TBD).
 
 0. After the VM executed the previous Control-node, its return value indicates which Control-pin-outlet it has to follow. This identifies the next to be executed Control-node.
 
@@ -415,6 +409,7 @@ We assume:
 
 - [ ] What is the best mechanism to propagate the data-outlets to the connected data-inlets?
 - [ ] What is best mechanism to define a custom node?
+- [ ] What is the best way to structure a Control-Flow?
 
 ## Question to the model:
 
