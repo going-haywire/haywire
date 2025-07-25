@@ -358,7 +358,9 @@ We assume:
 
 - graph is loaded from a file.
 - graph loads its dependencies.
+- validation to check for recursive dependencies.
 - graph is instantiated.
+
 
 #### Graph Validation
 
@@ -404,12 +406,44 @@ We assume:
 - The Interpreter is responsible for running the individual Flows in their own Threads.
 - It is responsible for piping external events to trigger the Flows that have matching Event-nodes.
 
+## Execution
+
+### Flow Execution
+Each Flow has a Scheduler that manages the execution of the Flow. It makes sure that the Flow is executed from the Event-node that matches the trigger type.
+
+Once a Flow is executed, the scheduler locks the Flow for exclusive execution. All other Triggers are queued inside the Trigger-queue until the Flow is finished.
+
+Depending on the Trigger-queue's configuration, the Trigger-queue can be configured to either block or drop incoming events.
+
+#### Control Flow Execution
+When a Flow is executed, it creates two stacks:
+
+* The first stack is the Done-stack, which contains the nodes that have been executed.
+* The second stack is the Loopback-stack, which contains the Loopback-nodes.
+
+Once a Control-node is executed, VM pushes it onto the Done-stack, and if its a Loopback-node, its pushed onto the Loopback-stack.
+
+Loopback-nodes are Control-nodes that have one or multiple execution branches that have to come back to the node to continue. Loopback-nodes are designated as such by a flag.
+
+Once a branch finds its end without an Output-node (which would end the Flow), the VM checks the Loopback-stack for any Loopback-nodes that are waiting for the branch to complete. If there are no Loopback-nodes waiting, the Flow is considered complete.
+
+If there are Loopback-nodes waiting, the VM gets the last one out of the stack and removes all the nodes in the Done-stack up to the Loopback-node.
+
+It then continues executing the Flow from the Loopback-node.
+
+If there are cycles in the Control-Flow that spiral into infinity, the Done-stack will eventually overflow, causing the VM to throw an error.
 
 ## Question to Florian:
 
+
 - [ ] What is the best mechanism to propagate the data-outlets to the connected data-inlets?
 - [ ] What is best mechanism to define a custom node?
-- [ ] What is the best way to structure a Control-Flow?
+- [ ] What is the best way to structure a Control-Flow? -> Partiallly answered within execution chapter
+- [ ] Should Flows be allowed to run in parallel?
+  - [ ] That would mean that each Flow needs its own reference to the Graph.
+  - [ ] Only Graphs containing one Flow can run in parallel.
+  - [ ] They have to be designed to be truly stateless.
+
 
 ## Question to the model:
 
