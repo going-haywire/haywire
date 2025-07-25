@@ -415,6 +415,8 @@ Once a Flow is executed, the scheduler locks the Flow for exclusive execution. A
 
 Depending on the Trigger-queue's configuration, the Trigger-queue can be configured to either block or drop incoming events.
 
+-> To Be Deterimend if Flows should allowed to be executed in parallel...
+
 #### Control Flow Execution
 When a Flow is executed, it creates two stacks:
 
@@ -437,12 +439,14 @@ If there are cycles in the Control-Flow that spiral into infinity, the Done-stac
 
 
 - [ ] What is the best mechanism to propagate the data-outlets to the connected data-inlets?
+  - [ ] This problem is related to the Get node for Variables. The Get node would benefit from a mechanism that indicates whether its Variable has changed since the last time it was accessed.
 - [ ] What is best mechanism to define a custom node?
 - [ ] What is the best way to structure a Control-Flow? -> Partiallly answered within execution chapter
 - [ ] Should Flows be allowed to run in parallel?
   - [ ] That would mean that each Flow needs its own reference to the Graph.
   - [ ] Only Graphs containing one Flow can run in parallel.
   - [ ] They have to be designed to be truly stateless.
+  - [ ] What would be the best architecture to cover both parallel and sequential execution?
 
 
 ## Question to the model:
