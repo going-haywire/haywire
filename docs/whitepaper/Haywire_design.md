@@ -111,7 +111,6 @@ There are three types of connections:
 A connection is a simple data structure that contains the outlet-pins node-id and pin-id and the inlets-pin node-id and pin-id.
 
 ### Cycles
-
 Cycles are connections between nodes that form a loop.
 
 - Cycles are allowed for Control-connections.
@@ -119,7 +118,6 @@ Cycles are connections between nodes that form a loop.
   - There is an exception though: if the data-connection-cycle is passing through a Control-node, it is allowed. This is because Control-nodes are not evaluated within a localized data flow.
 
 ## Flows
-
 Flows are used to organize and execute a sequence of nodes. A Flow is assembled by the Assembler from a Graph. A Flow has always at least one Event-node as an entry point.
 
 Each Flow keeps a reference of the Graph it is assembled from and uses the Graphs instantiations of Nodes, Subgraphs etc to execute/evaluate the nodes. Thus, during the Interpretation of a Flow, the Graph is used as the database of the Flow. Once the Interpretation is finished, the Graphs nodes are reset to their default state.
@@ -176,6 +174,9 @@ These are the basic building blocks of a Haywire graph:
 
 - **Sink-node**
   The Sink-node is a special kind of output-node used to only inside Graph-nodes to exit the execution of the Graph-node. The Sink-node's pin-inlets are dynamically configured by its Graph-node defined pin-outlets.
+
+- **Loopback-node**
+  The Loopback-node is a Control-node that tells the VM to loop back execution within the Control-flow to itself if the branch ends without an Output-node. Loopback-nodes are for example For-Loops, While-Loops, Sequences and other Control-flow constructs that allow *sequential* branching of the Control-flow. Switches or If-Statements are not Loopback-nodes since they do *conditional* branching.
 
 ### Parameters
 Parameters configure the behaviour / functionality of the node. They are read-only during evaluation.
@@ -235,7 +236,6 @@ Enable = can be set to be on/off by a Parameter.
 Required = can be set to be required.
 
 ### Pins
-
 Pins are the way to connect to and from a node. Pins have a selection of different settings that define their behaviour:
 
 - **Flow-type** defines if it is a control, data or callback pin
@@ -263,7 +263,6 @@ The following table shows the only admissible pin configurations:
 - **Callback-pin-outlet** can have multiple links, since the Event-node might be interested in multiple callbacks.
 
 ### Worker-function
-
 This is where the real work is done. Each node, no matter of type, has one Worker-function. However, depending of the type of the node, the Worker-function is called through different mechanisms.
 
 The Worker-function has access to the nodes internal Parameters, Variables, DataIns and is able to set the DataOuts.
@@ -271,7 +270,6 @@ The Worker-function has access to the nodes internal Parameters, Variables, Data
 It returns status information that is interpreted differently depending on the execution/evaluation mechanism.
 
 #### Worker-function for Control-nodes
-
 The VM follows the Control-pins from node to node. To recap quickly: During the Assembly of the Graph, the connections, which are stored within the graph, are transfered to the respective pins. After Assembly of the Graph, there is a Control-flow containing a reference to each connected Control-node (TBD).
 
 0. After the VM executed the previous Control-node, its return value indicates which Control-pin-outlet it has to follow. This identifies the next to be executed Control-node.
@@ -295,7 +293,6 @@ The VM follows the Control-pins from node to node. To recap quickly: During the 
 6. ...and repeats above process..
 
 #### Worker-function for Data-nodes
-
 To recap quickly: After Assembly of the graph, there is a localized Data-flow for each Control-node. A localized Data-flow is nothing but a sorted list of the Data-nodes that need to be evaluated in sequence to get the values for the Data-pin-inlets of the Control-node.
 
 Before the execution of the Worker-function of a Control-node, its localized Data-flow is **required** to be evaluated first.
@@ -306,19 +303,14 @@ Before the Data-node's Worker-function is called, it checks first if any of its 
 
 1. If this is the case:
 1. then it runs the Worker-function. It provides a reference to
-
-
-    * **A global context**: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.
-    * **A local context**: The local context comes in form of a dict and gives access to the local graph and its variables.
+  * **A global context**: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.
+  * **A local context**: The local context comes in form of a dict and gives access to the local graph and its variables.
 
 2. Within the Worker-function at the end of its process,
-
-
-    * it updates the Data-pin-outlets so its connected downstream Data-pin-inlets are set to dirty (value has changed).
+  * it updates the Data-pin-outlets so its connected downstream Data-pin-inlets are set to dirty (value has changed).
 
 2. If there are no dirty inlets:
-
-- the Worker-function is not called. And no outlets are updated.
+  * the Worker-function is not called. And no outlets are updated.
 
 3. The sequence hopps to the next Data-node.
 
@@ -328,8 +320,145 @@ Before the Data-node's Worker-function is called, it checks first if any of its 
 
 TBD - More research is needed to figure out how this can be handled.
 
-## Callback-connections
+### The body of a Node
+The node in Haywire can be created in different ways. It can be loaded from a file (JSON) or created programmatically. It can be defined by a tightly programmed Subclass of the Node class. Or a flexibly configurable Subclass defined by user information.
 
+There will be nodes with a clear set of Parameters, Variables, DataIns and DataOuts. Or a dynamic node like "Switch on String", that has only one fixed Parameter to be set: the number of switch values it listens to. When this number is raised, new Parameters are dynamically created to be set and to configure the behaviour of the node, adding DataIns and DataOuts depending on the configuration.
+
+This needs a function that is called when a Parameter is changed that has the power to change the behaviour of the node.
+
+
+```Python
+class HaywireMeta(type):
+    """
+    Meta class for the HaywireNode class. Makes node declaration objects available in the class's scope
+    """
+    Parameters = []
+    Variables = []
+    ControlIns = []
+    ControlOuts = []
+    DataIns = []
+    DataOuts = []
+
+@abstractNode
+class HaywireNode(object, metaclass=HaywireMeta):
+
+    def __init__(self, node_id, graph):
+        self.graph = graph
+        self.node_id = node_id
+        self.node_name = 'Node_NAME'
+        self.node_display_name = 'Node Name'
+        self.node_description = 'Node Description'
+        self.node_library_module = 'Custom'
+        self.node_library_name = 'Custom'
+        self.node_library_url = 'https://haywire.io/docs/node-help'
+        self.node_version = '0.0.0'
+        self.node_author = 'Customer'
+        self.node_author_url = 'https://customer.org'
+        self.help_md = None
+        self.help_url = None
+        self.is_control_node = False # Set_automatically()
+        self.is_data_node = True # Set_automatically()
+        self.is_loopback_node = False
+        self.is_muted = False
+        self.can_be_muted = False
+        self.mute_connection = ['control_in_ID', 'control_out_ID']
+        self.ui_default_color = '#FFFFFF'
+        self.ui_custom_color = '#000000'
+        self.ui_posX = 0
+        self.ui_posY = 0
+        self.ui_width = 100
+        self.ui_height = 100
+        self.ui_width_min = -1
+        self.ui_height_min = -1
+        self.ui_collapsed = False
+        self.ui_pinned = False
+        self.ui_icon = None
+        self.ui_component = 'default'
+        self.allows_variables = False
+
+
+class BaseNode(HaywireNode):
+
+    def __init__(self, *args, **kwargs):
+        super(BaseNode, self).__init__(*args, **kwargs)
+        self.node_name = 'Node_NAME'
+        self.node_library_module = 'Custom'
+        self.node_library_name = 'Custom'
+        self.node_library_url = 'https://haywire.io/docs/node-help'
+        self.node_version = '0.0.0'
+        self.node_author = 'Customer'
+        self.node_display_name = 'Node Name'
+        self.node_description = 'Node Description'
+        self.help_md = './node_id/node_help.md'
+        self.help_url = 'https://haywire.io/docs/node-help'
+
+    def _on_parameter_changed(self, parameter):
+        # Implement logic to handle parameter changes
+        pass
+
+    # defining Parameters
+    Parameter(
+        name: 'Parameter Name',
+        id: 'parameter_id',
+        description: 'Parameter Description',
+        datatype: Datatype,
+        value: value,
+        callback: self._on_parameter_changed,
+        is_visible: True,
+        is_enabled: True,
+        has_pin_outlet: False)
+
+    # defining Control inlets
+    ControlIns(
+        name: 'Control In Name',
+        id: 'control_in_ID',
+        description: 'Control Description')
+
+    # defining Control outlets
+    ControlOuts (
+        name: 'Control Out Name',
+        id: 'control_out_ID',
+        description: 'Control Description')
+
+    # defining Data inlets
+    DataIns(
+        name: 'Data Name',
+        id: 'data_in_ID',
+        description: 'Data Description',
+        datatype: DataType,
+        datastruct: DataStruct,
+        is_visible: True,
+        is_enabled: True,
+        default: default)
+
+    # defining Data outlets
+    DataOuts(
+        name: 'Data Name',
+        id: 'data_out_ID',
+        description: 'Data Description',
+        datatype: DataType,
+        datastruct: DataStruct,
+        is_visible: True,
+        is_enabled: True)
+
+
+    # defining worker function
+    def worker(self, global_data: dict, local_data: dict, control_node_id: str, control_pin_outlet_id: str):
+        # Implement your worker logic here
+        # ...
+
+        return {
+            global_data: global_data,
+            local_data: local_data,
+            node_id: node_id,
+            node_pin_id: node_pin_id
+        }
+
+
+
+
+## Callback-connections
 Callbacks are used to notify other nodes about events that have occurred. With the Hayire system, it is the mechanism that allows from within executed Flows to trigger other Flows within the same Graph.
 
 Lets first disentangle the concepts of triggers, Events-nodes, Control-connections and Callbacks. In the context of Haywire,
@@ -345,7 +474,6 @@ On first sight, this seems to be counter-intuitive, why should an Event-node hav
 Also, an Event-node can by definition have no pin-inlets.
 
 ## Assembly
-
 As mentioned, Graphs core entity consist of Nodes and Connections. The Assembly converts a Graph into executable Flows. This is realized with the creation of a new data structure that can be executed (Flow) rather than be describtive (Graph)
 
 - The Graph is analyzed to identify execution paths, starting at Event-nodes and following Control-pins
@@ -361,9 +489,7 @@ We assume:
 - validation to check for recursive dependencies.
 - graph is instantiated.
 
-
 #### Graph Validation
-
 - Checking for graph validity
   - Node checking:
     - Checking for validity of node-types (see chapter of node types for details)
@@ -371,23 +497,19 @@ We assume:
     - Checking for source and sink nodes inside Graph-nodes (required to be functional)
 
 #### Graph Cleaning
-
 - Clearing all connections that are stored inside pins. (clean house)
 
 #### Graph Preprocessing
-
 - Storing Control-flow connections in their respective outlet-pins. This is because the Control-flow propagates in the direction from Control-pin-outlet to Control-pin-inlet. The next-to-be-executed-controlnode Control-pin-inlet doesn't need to know with what node it is connected. It is actually allowed to be connected to multiple nodes. Once the node is executed, the VM will inform the from where the Control-flow came from.
 - Storing Data-flow connections in their respective inlet-pins. This is because the Data-flow is assembled through backpropagation from the Data-pin-inlets of its respective Control-node. the Data-pin-outlets doesn't need to know with which inlet-pins it is connected to at the time of Assembly. once the Data-flow is created though, the outlet-pins "know" where to send their results. (this mechanism is not yet defined and can benefit from a suitable solution)
 
 #### Flow identification
-
-- Identifies different Flows with the Graph.
-  - A Flow needs at least one Event-node
-  - A Flow is considered separate from another Flow when there is no connection (control or data) between their respective nodes-trees.
-    - The only exception is the callback-connection.
+- Identifies different Control-flows with the Graph.
+  - A Control-flows needs at least one Event-node
+  - A Control-flows is considered separate from another Control-flows when there is no connection (control or data) between their respective nodes-trees.
+    - The only exception here is the callback-connection.
 
 #### Flow assembly
-
 - Stepping through each Control-node:
   - its Data-pin-inlet dependencies are separated into a localized Data-graph (containing only nodes and connections that influence the Data-pin-inlets of the Control-node in focus).
   - Checking for loops in the Data-graph (not allowed with the exception of loops that contain a Control-node)
@@ -396,13 +518,11 @@ We assume:
 - It does all of it iteratively with each Graph-node as well.
 - It identifies the Event-nodes and makes them available for hooking it up with the execution mechanism of the whole haystack.
 
-#### Just-In-Time Assembly
-
-- This happens whenever a connection is edited. (For a future implementation)
-  - This is the case if a node is deleted, but when the node is added.
+#### Just-In-Time Assembly (For a future implementation)
+- This happens whenever a connection is edited.
+  - This can be the case if a node is deleted, but not when a node is added.
 
 ## Interpreter
-
 - The Interpreter is responsible for running the individual Flows in their own Threads.
 - It is responsible for piping external events to trigger the Flows that have matching Event-nodes.
 
