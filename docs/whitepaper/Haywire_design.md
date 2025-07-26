@@ -320,12 +320,207 @@ Before the Data-node's Worker-function is called, it checks first if any of its 
 
 TBD - More research is needed to figure out how this can be handled.
 
+
+# General Implementation
+
+
+
+# Python Implementation
+
+## Examples of other node systems:
+
+### Data-types
+
+#### ComfyUI
+has just a enumeration of data types:
+
+https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/comfy_types/node_typing.py
+
+and it doesn't validate its adherence from node to node.
+
+### Toplogical Sorting Implementations:
+
+ComfyUI: https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_execution/graph.py
+
+### Custom nodes:
+
+Definition of base classes and data types for custom nodes:
+ComfyUI: https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/comfy_types/node_typing.py
+
+Example of implementation of custom nodes:
+ComfyUI: https://github.com/comfyanonymous/ComfyUI/blob/master/custom_nodes/example_node.py.example
+
+ComfyUI has a realtively simple way of defining a node:
+
+* It defines the inputs, each identifiable by a name, through `def INPUT_TYPES(cls):`
+  * with this functionit can calculate the values for the inputs, being enumerations for selections etc.
+  * it returns a dictionary, separated by required and optional, of the inputs exposed through pins
+    * containing the name, data type, and a default value.
+    * this defines the values the executable function expects.
+* It defines the name of the executable function
+* It defines the outputs by creating a tuple with the datatypes
+  * the executable function is expected to return this values in the exact order
+* It defines the executable function
+  * with its expected arguments
+  * with the return values in a tuple following the structure defined for the outputs
+* It allows the definition of VALIDATE_INPUTS method to check if the inputs are valid
+* It allows the definition of IS_CHANGED to check if an input that doesn't come from another node (i.e. filesystem) has changed
+
+Example
+```python
+class LoadVideo(ComfyNodeABC):
+    @classmethod
+    def INPUT_TYPES(cls):
+        input_dir = folder_paths.get_input_directory()
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        files = folder_paths.filter_files_content_types(files, ["video"])
+        return {"required":
+                    {"file": (sorted(files), {"video_upload": True})},
+                }
+
+    CATEGORY = "image/video"
+
+    RETURN_TYPES = (IO.VIDEO,)
+    FUNCTION = "load_video"
+    def load_video(self, file):
+        video_path = folder_paths.get_annotated_filepath(file)
+        return (VideoFromFile(video_path),)
+
+    @classmethod
+    def IS_CHANGED(cls, file):
+        video_path = folder_paths.get_annotated_filepath(file)
+        mod_time = os.path.getmtime(video_path)
+        # Instead of hashing the file, we can just use the modification time to avoid
+        # rehashing large files.
+        return mod_time
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, file):
+        if not folder_paths.exists_annotated_filepath(file):
+            return "Invalid video file: {}".format(file)
+
+        return True
+```
+or here a more complicated example: https://github.com/comfyanonymous/ComfyUI/blob/0621d73a9c56fdc9e79aad87ed260135639bca50/nodes.py#L1518
+
+
+### Lazy Evaluation
+
+ComfyUI: https://docs.comfy.org/custom-nodes/backend/lazy_evaluation
+
+ComfyUI has a feature for DataIns called Lazy Evaluation. This feature can make the evaluation of the Data-Flow more efficient by excluding unnecessary computations. ComfyUI follows a classical Data-Flow Evaluation model by backprogation, so quite different to how Haywire executes/evaluates the Flow.
+
+Nevertheles, the current Haywire specification has the localized Data-Flow, which is evaluated in a strict order. Before the Control-node is executed, the current specification requires that the localized Data-Flow is evaluated.
+
+So, in theory it is possible to expand on this: The assembler is responsible for generating the localized Data-Flow for each Control-node. If DataIns have a lazy evaluation flag and the Data-Flows can be lazyily evaluated, the VirtualMachine that lazily evaluates the Data-Flow would need some additional information beforehand. ComfyUI has the method `def check_lazy_status(self, args)` that is called before its Inlets are evaluated. In Haywire, the VirtualMachine can use such a method to determine if the localized Data-Flow can be evaluated lazily or not. If this is the case, depending on which DataIns are required, only certain steps of the localized Data-Flow need to be evaluated. Though the algorithm involved is not yet understood and **needs further research**.
+
+This has not highest priority, since lazy evaluation would only involve Data-Nodes, which should **not** be computationally heavy to evaluate and therefore should not pose to be a serious bottleneck.
+
+Conclusion: This feature is mostly interesting for node-graphs that evaluate the graph in a backpropagation manner and expects heavy computations in some nodes (which Haywire is not).
+
+### registering, finding and instantiating a node
+
+#### ComfyUI
+
+Module Import (__init__.py)
+
+Location: custom_nodes/<node_package>/__init__.py
+```python
+# __init__.py is executed when Comfy attempts to import the module
+NODE_CLASS_MAPPINGS = {
+    "MyCustomNode": MyCustomNode,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "MyCustomNode": "My Custom Node Display Name"
+}
+```
+
+Process:
+
+* ComfyUI scans the custom_nodes directory
+* Imports each module's __init__.py
+* Extracts NODE_CLASS_MAPPINGS to register available node classes
+* Builds internal registry of available node types
+
+---
+
+Location: execution.py → Node class constructors
+```python
+# ComfyUI instantiates nodes as needed
+class_type = node["class_type"]
+class_def = nodes.NODE_CLASS_MAPPINGS[class_type]
+obj = class_def()  # Node instance created
+```
+* Nodes are instantiated when first needed during execution
+* Node __init__() method is called
+* Instance is cached for reuse within the workflow
+
+---
+
+Location: execution.py → Node's main function
+
+https://github.com/comfyanonymous/ComfyUI/blob/0621d73a9c56fdc9e79aad87ed260135639bca50/execution.py#L217C1-L234C1
+```python
+f = getattr(obj, func)
+if inspect.iscoroutinefunction(f):
+    async def async_wrapper(f, prompt_id, unique_id, list_index, args):
+        with CurrentNodeContext(prompt_id, unique_id, list_index):
+            return await f(**args)
+    task = asyncio.create_task(async_wrapper(f, prompt_id, unique_id, index, args=inputs))
+    # Give the task a chance to execute without yielding
+    await asyncio.sleep(0)
+    if task.done():
+        result = task.result()
+        results.append(result)
+    else:
+        results.append(task)
+else:
+    with CurrentNodeContext(prompt_id, unique_id, index):
+        result = f(**inputs)
+    results.append(result)
+```
+* `f = getattr(obj, func)` gets the function name that needs to be executed
+* if the function has a `async` decorator, it is executed asynchronously
+  * `async_wrapper` creates the instance of the function that can be executed asynchronously
+  * `task = asyncio.create_task(` creates the task with the function and arguments
+* otherwise it is a simple synchronous execution (which is almost always the case within comfyIU)
+
+---
+
+its not clear to me how comfyUI from here propagates the results to the output pins and then to the next nodes..
+
+### Flow generation
+
+#### ComfyUI
+
+Location: execution.py → DynamicPrompt → ExecutionList
+
+```python
+# Workflow is converted to execution order
+prompt = validate_prompt(workflow_json)
+dynprompt = DynamicPrompt(prompt)
+execution_list = dynprompt.get_execution_list()
+```
+
+
 ### The body of a Node
+
+on way to find and instantiate a mode:
+
+```python
+# ComfyUI instantiates nodes as needed
+class_type = node["class_type"]
+class_def = nodes.NODE_CLASS_MAPPINGS[class_type]
+obj = class_def()  # Node instance created
+```
+
 The node in Haywire can be created in different ways. It can be loaded from a file (JSON) or created programmatically. It can be defined by a tightly programmed Subclass of the Node class. Or a flexibly configurable Subclass defined by user information.
 
 There will be nodes with a clear set of Parameters, Variables, DataIns and DataOuts. Or a dynamic node like "Switch on String", that has only one fixed Parameter to be set: the number of switch values it listens to. When this number is raised, new Parameters are dynamically created to be set and to configure the behaviour of the node, adding DataIns and DataOuts depending on the configuration.
 
 This needs a function that is called when a Parameter is changed that has the power to change the behaviour of the node.
+
 
 
 ```Python
@@ -346,11 +541,10 @@ class HaywireNode(object, metaclass=HaywireMeta):
     def __init__(self, node_id, graph):
         self.graph = graph
         self.node_id = node_id
-        self.node_name = 'Node_NAME'
         self.node_display_name = 'Node Name'
         self.node_description = 'Node Description'
-        self.node_library_module = 'Custom'
-        self.node_library_name = 'Custom'
+        self.node_name = '3rdParty.custom.Node_NAME'
+        self.node_library_name = '3rdPartyLibrary'
         self.node_library_url = 'https://haywire.io/docs/node-help'
         self.node_version = '0.0.0'
         self.node_author = 'Customer'
