@@ -77,7 +77,7 @@ Haywires uses an event-driven model:
 
 ## The Graph
 
-The Haywire Graph is a data structure that describes the flow of data and control between nodes. As such, it is a collection of Parameters, Variables, Connections and instantiations of Nodes and Graph-nodes. All are described further down in their respective sections.
+The Haywire Graph is a data structure that describes the flow of data and control between nodes. As such, it is a collection of Settings, Parameters, Variables, Connections and instantiations of Nodes and Graph-nodes. All are described further down in their respective sections.
 
 - A Graph can contain multiple disconnected node-trees that are assembled into individual Flows.
 - A Graph cannot be executed directly. Only Flows can be executed.
@@ -100,15 +100,47 @@ Requirements:
 
 - A Graph-node **must** contain one Source-node and one Sink-node and **cannot** have any other Event- or Output-nodes.
 
-## Connections
+## On Connections, Edges, Links and Pipes
+To distinguish clearly between the visual representation of a Graph and the functional representation of a Flow, Haywire makes a clear distinction between the two on the level of connections, too. And in order to keep terms clear, when "connection(s)" is used in this text it is meant in a colloquial manner, while Edges, Links, and Pipes are used to describe the effective data representation of the connections. So pay attention to the context in which "connections" are used:
 
-There are three types of connections:
+On the Graph level, the connections between the Control- and Data-nodes describe also Edges.
+On the Control-Flow level, the connections between the Control-nodes describe also Links.
+On the Data-Flow level, the connections between the Data-nodes describe also Pipes.
 
-- **Control-connections** are used to control the flow of execution between nodes.
-- **Data-connections** are used to transfer data between nodes.
-- **Callback-connections** are used to trigger an Event-node from another Flow. Contrary to Control- and Data-connections, Callback-connections are only used during the Assembly step to connect Flows through events.
+Links and Pipes come only into existence during the Assembly step and are only used in the orchestration of Control- and Data-Flows.
 
-A connection is a simple data structure that contains the outlet-pins node-id and pin-id and the inlets-pin node-id and pin-id.
+To summarize, for each Edge there is either a corresponding Link or Pipe and all of them can be called "connections".
+
+### Edges
+Edges define the connections between nodes in a Graph.
+
+There are three types of edges:
+
+- **Control-edges** are used to control the flow of execution between nodes.
+- **Data-edges** are used to transfer data between nodes.
+- **Callback-edges** are used to trigger an Event-node from another Flow. Contrary to Control- and Data-edges, Callback-edges are only used during the Assembly step to connect Flows through events.
+
+An Edge is a simple data structure that contains the
+* output-node's
+  * node-id
+  * outlet-pin-id
+  * outlet-pin-data-type
+* input-node's
+  * node-id
+  * inlet-pin-id
+  * inlet-pin-data-type
+
+Usually, only pins of the same type can be connected. But Haywire allows for connection between Data-pins of different types if there are compatible adapters available. For Control-pins, there are no data-types and such restrictions are not necessary.
+
+### Control-edges -> Links
+TBD
+
+### Data-edges -> Pipes
+After the Assembly Process, each Data-pin-outlet that has one/many connections will hold the same number of Pipes. Each Pipe holds within it self the reference to the connected Data-pin-inlet's value. If the outlet-pin-data-type is different from the inlet-pin-data-type, the Pipe also contains an adapter that will automatically transform the data.
+
+The idea: when the nodes worker function is finished and the data-pin-outlet is set, all its containing Pipes will be updated with the new value and automatically cascade the change to the connected data-pin-inlets and set them to dirty.
+
+If an adapter is not available, the Editor should have shown an error when the edge was created. At the latest, the Assembly Process would have thrown an error, too.
 
 ### Cycles
 Cycles are connections between nodes that form a loop.
@@ -145,8 +177,8 @@ During the Assembly, the Control-connections are traversed and the Control-flow 
 ## The node
 A Haywire node is arguably the most central element of the system. A node consists of
 
-- **Parameters** to configure its behavior. Has default values can be overridden by the user. Are read only accessible by the Worker-function.
-- **Variables** to maintain or orchestrate its functionality. Can be read and written by the Worker-function.
+- **Settings** configure the structure / behaviour / functionality of the node
+- **Parameters** to configure its behavior.
 - **DataIns** and **DataOuts** to store data to and from other nodes.
 - **Pins** to connect to and from other nodes.
 - **Worker-function** that contains its main logic.
@@ -175,40 +207,82 @@ These are the basic building blocks of a Haywire graph:
 - **Sink-node**
   The Sink-node is a special kind of output-node used to only inside Graph-nodes to exit the execution of the Graph-node. The Sink-node's pin-inlets are dynamically configured by its Graph-node defined pin-outlets.
 
-- **Loopback-node**
-  The Loopback-node is a Control-node that tells the VM to loop back execution within the Control-flow to itself if the branch ends without an Output-node. Loopback-nodes are for example For-Loops, While-Loops, Sequences and other Control-flow constructs that allow *sequential* branching of the Control-flow. Switches or If-Statements are not Loopback-nodes since they do *conditional* branching.
+- **Loopback-node** Flag
+  The Loopback-node is a Control-node with a flag that tells the VM to loop back execution within the Control-flow to itself if the branch ends without an Output-node. Loopback-nodes are for example For-Loops, While-Loops, Sequences and other Control-flow constructs that allow *sequential* branching of the Control-flow. Switches or If-Statements are not Loopback-nodes since they do *conditional* branching.
 
-### Parameters
-Parameters configure the behaviour / functionality of the node. They are read-only during evaluation.
-
-- Parameters can only be of specified datatypes that makes them editable through the user interface.
-- They have **no** default value
-- Their values are set on creation or changed via the user interface
-- Their settings can have an effect on the node's appearance
-  - They can enable/disable DataIns, DataOuts and other Parameters.
-- They **can** have pin-outlets but have **no** pin-inlets.
-- They are only read accessible by the internal Worker-function
-- When a Graph is stored to file, the value is stored.
 
 ### Variables
-Variables are used to enhance functionality of the node.
+Only Graphs have Variables. Variables are used to enhance functionality of the Graph and allow statefullness between nodes and execution runs.
 
 - Variables can be of specified datatypes.
 - Variables have a default value that can be set on creation or by the user via the user interface.
 - They are read/write accessible by the internal Worker-function
-- For Graph-node its Variables are made accessible to its child nodes so they can be manipulated by getter and setter nodes.
-- They are not directly accessible by pins. (only inside a Graph-node via getter or setter nodes and their respective pins)
-- When a Graph is stored to file, only the default value is stored.
+- When a Graph is stored to file, only its settings and the default value are stored.
 
-### DataIns
-DataIns are used receive data into a node.
+The reason nodes have no Variables is because they are not meant to be stateful. Nodes are meant to be stateless and their output should only depend on their input. There are exeception though, like the Loopback-nodes that need to be stateful to function properly.
 
-- DataIns are of specified datatypes.
-- DataIns can have a default value that can be set on creation or by the user via the user interface.
+### Settings
+Settings define the structure / behaviour / functionality of the node.
+
+- Settings can only be of datatypes that makes them editable through the user interface.
+- Change of settings will trigger a reconfiguration of the node and reevaluation of all the Connections.
+  - This can be used to add/remove/enable/disable Settings, Parameters, DataIns, DataOuts.
+  - This can also lead to a removal of Connections that are not compatible with the new settings.
+- They have no pins.
+- They are only not meant to be accessed by the internal Worker-function
+
+### Parameters
+Parameters are values that can be set or changed only by the user through the user interface. For usecases where control through pin-inlet's are **not** desired.
+
+- Parameters can only be of datatypes that makes them editable through the user interface.
+- They have **no** default value
+- They have no pins.
+- They are only read accessible by the internal Worker-function
+- When a Graph is stored to file, the value is stored.
+
+### Inlets & Outlets & Pins
+
+#### Pins
+Pins are the visual icon to connect to and from a node. Pins have a selection of different settings that define their behaviour:
+
+- **Flow-type** defines if it is a control, data or callback pin
+- **Socket-type** defines if the pin is an inlet (for getting event/data in) or an outlet (for sending event/data out)
+- **Data-type** defines the data type the pin is associated with. And which other pins a pin can connect or not connect to.
+- **Coupling-type** defines how many connections can be made on the pin. This is either one or many.
+
+The following table shows the only admissible pin configurations:
+
+| Types               | Flow | Socket | Data | Coupling |
+| ------------------- | ---- | ------ | ---- | -------- |
+| Control-pin inlet   | ctrl | inlet  | --   | many     |
+| Control-pin outlet  | ctrl | outlet | --   | one      |
+| Data-pin inlet      | data | inlet  | type | one/many |
+| Data-pin outlet     | data | outlet | type | many     |
+| Callback-pin inlet  | call | inlet  | type | many     |
+| Callback-pin outlet | call | outlet | type | many     |
+
+#### Explanation to connection-types
+- **Control-pin-outlet** can have only one coupling, since it must be clear which the next node is that needs to be executed.
+- **Control-pin-inlet** can have many couplings, since there might be mulitple execution paths that lead to this node.
+- **Data-pin-outlet** can have many couplings, since multiple nodes might be interested in this data
+- **Data-pin-inlet** there are two coupling-types possible, depending on the needed data. in case of many the provided data is in form of a list of values in the specified data-type.
+- **Callback-pin-inlet** can have many couplings, since multiple Event-nodes can require the same callback.
+- **Callback-pin-outlet** can have many couplings, since the Event-node might be interested in multiple callbacks.
+
+#### Control Inlets
+Inlets are used execute Control-flow.
+
+#### Data Inlets
+Inlets are used to receive data.
+
+- Inlets are of specified data_types and data_categories.
+- Inlets can have a default value that can be set on creation or by the user via the user interface.
 - They are only read accessible by the internal Worker-function
 - They can be directly set by Data-pin-inlets.
 - They can be set to required or optional to be connected to a Data-pin-outlet.
+- If the inlet is set to required, no widget is displayed.
 - When a Graph is stored to file, only the default value is stored.
+- If the Inlet has a data-type that can be edited via UI, the UI-Widget is displayed and is in effect a virtually attached Data source and sets the Data-pin-inlet like a Data-pin-outlet would.
 
 ### DataOuts
 DataOuts are used to send data out of a node.
@@ -223,10 +297,10 @@ DataOuts are used to send data out of a node.
 
 | Types          | Function        | Default | Stores  | Inlets | Outlets | Visible  | Enable   | Required |
 | -------------- | --------------- | ------- | ------- | ------ | ------- | -------- | -------- | -------- |
-| Parameters     | Configuration   |   no    | value   |   no   |  maybe  |  on/off  |  on/off  |  None    |
-| Variables      | Runtime Storage |   yes   | default |   no   |   no    |  off     |  on      |  None    |
-| DataIns        | Input Data      |   yes   | default |   yes  |   no    |  on/off  |  on/off  |  Maybe   |
-| DataOuts       | Output Data     |   no    |  none   |   no   |   yes   |  on/off  |  on/off  |  None    |
+| Settings       | Configuration   |   no    | value   |   no   |   no    |  on/off  |  on/off  |  None    |
+| Parameters     | Properties      |   no    | value   |   no   |   no    |  on/off  |  on/off  |  None    |
+| Inlets         | Input           |   yes   | default |   yes  |   no    |  on/off  |  on/off  |  Maybe   |
+| Outlets        | Output          |   no    |  none   |   no   |   yes   |  on/off  |  on/off  |  None    |
 
 none = can not be set / has no effect
 Default = has default value
@@ -235,32 +309,6 @@ Visible = can be set by the user to be visible in the node UI.
 Enable = can be set to be on/off by a Parameter.
 Required = can be set to be required.
 
-### Pins
-Pins are the way to connect to and from a node. Pins have a selection of different settings that define their behaviour:
-
-- **Flow-type** defines if it is a control, data or callback pin
-- **Socket-type** defines if the pin is an inlet (for getting event/data in) or an outlet (for sending event/data out)
-- **Data-type** defines the data type the pin is associated with. And which other pins a pin can connect or not connect to.
-- **Link-type** defines how many connections can be made on the pin. This is either one or many.
-
-The following table shows the only admissible pin configurations:
-
-| Types               | Flow | Socket | Data | Link     |
-| ------------------- | ---- | ------ | ---- | -------- |
-| Control-pin inlet   | ctrl | inlet  | --   | many     |
-| Control-pin outlet  | ctrl | outlet | --   | one      |
-| Data-pin inlet      | data | inlet  | type | one/many |
-| Data-pin outlet     | data | outlet | type | many     |
-| Callback-pin inlet  | call | inlet  | type | many     |
-| Callback-pin outlet | call | outlet | type | many     |
-
-#### Explanation to link-types
-- **Control-pin-outlet** can have only one link, since it must be clear which the next node is that needs to be executed.
-- **Control-pin-inlet** can have many links, since there might be mulitple execution paths that lead to this node.
-- **Data-pin-outlet** can have many links, since multiple nodes might be interested in this data
-- **Data-pin-inlet** there are two link-types possible, depending on the needed data. in case of many the provided data is in form of a list of values in the specified data-type.
-- **Callback-pin-inlet** can have multiple links, since multiple Event-nodes can require the same callback.
-- **Callback-pin-outlet** can have multiple links, since the Event-node might be interested in multiple callbacks.
 
 ### Worker-function
 This is where the real work is done. Each node, no matter of type, has one Worker-function. However, depending of the type of the node, the Worker-function is called through different mechanisms.
@@ -316,93 +364,12 @@ Before the Data-node's Worker-function is called, it checks first if any of its 
 
 4. .. and so it continues...
 
-### Data-types
+### Data-types and Data-category
 
-TBD - More research is needed to figure out how this can be handled.
+The inlets or outlets define the Data-types and Data-category they require. This can be any python class. For the UI, Haywire provides a set of icons and colors to denote specific data-types.
 
-
-# General Implementation
-
-
-
-# Python Implementation
-
-## Examples of other node systems:
-
-### Data-types
-
-#### ComfyUI
-has just a enumeration of data types:
-
-https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/comfy_types/node_typing.py
-
-and it doesn't validate its adherence from node to node.
-
-### Toplogical Sorting Implementations:
-
-ComfyUI: https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_execution/graph.py
-
-### Custom nodes:
-
-Definition of base classes and data types for custom nodes:
-ComfyUI: https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/comfy_types/node_typing.py
-
-Example of implementation of custom nodes:
-ComfyUI: https://github.com/comfyanonymous/ComfyUI/blob/master/custom_nodes/example_node.py.example
-
-ComfyUI has a realtively simple way of defining a node:
-
-* It defines the inputs, each identifiable by a name, through `def INPUT_TYPES(cls):`
-  * with this functionit can calculate the values for the inputs, being enumerations for selections etc.
-  * it returns a dictionary, separated by required and optional, of the inputs exposed through pins
-    * containing the name, data type, and a default value.
-    * this defines the values the executable function expects.
-* It defines the name of the executable function
-* It defines the outputs by creating a tuple with the datatypes
-  * the executable function is expected to return this values in the exact order
-* It defines the executable function
-  * with its expected arguments
-  * with the return values in a tuple following the structure defined for the outputs
-* It allows the definition of VALIDATE_INPUTS method to check if the inputs are valid
-* It allows the definition of IS_CHANGED to check if an input that doesn't come from another node (i.e. filesystem) has changed
-
-Example
-```python
-class LoadVideo(ComfyNodeABC):
-    @classmethod
-    def INPUT_TYPES(cls):
-        input_dir = folder_paths.get_input_directory()
-        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        files = folder_paths.filter_files_content_types(files, ["video"])
-        return {"required":
-                    {"file": (sorted(files), {"video_upload": True})},
-                }
-
-    CATEGORY = "image/video"
-
-    RETURN_TYPES = (IO.VIDEO,)
-    FUNCTION = "load_video"
-    def load_video(self, file):
-        video_path = folder_paths.get_annotated_filepath(file)
-        return (VideoFromFile(video_path),)
-
-    @classmethod
-    def IS_CHANGED(cls, file):
-        video_path = folder_paths.get_annotated_filepath(file)
-        mod_time = os.path.getmtime(video_path)
-        # Instead of hashing the file, we can just use the modification time to avoid
-        # rehashing large files.
-        return mod_time
-
-    @classmethod
-    def VALIDATE_INPUTS(cls, file):
-        if not folder_paths.exists_annotated_filepath(file):
-            return "Invalid video file: {}".format(file)
-
-        return True
-```
-or here a more complicated example: https://github.com/comfyanonymous/ComfyUI/blob/0621d73a9c56fdc9e79aad87ed260135639bca50/nodes.py#L1518
-
+The Data-types include `int`, `float`, `str`, `bool`, `bytes`, `object`
+The Data-category include `scalar`, `list`, `tuple`, `set`, `array`, `map`, `dictionary`
 
 ### Lazy Evaluation
 
@@ -412,96 +379,48 @@ ComfyUI has a feature for DataIns called Lazy Evaluation. This feature can make 
 
 Nevertheles, the current Haywire specification has the localized Data-Flow, which is evaluated in a strict order. Before the Control-node is executed, the current specification requires that the localized Data-Flow is evaluated.
 
-So, in theory it is possible to expand on this: The assembler is responsible for generating the localized Data-Flow for each Control-node. If DataIns have a lazy evaluation flag and the Data-Flows can be lazyily evaluated, the VirtualMachine that lazily evaluates the Data-Flow would need some additional information beforehand. ComfyUI has the method `def check_lazy_status(self, args)` that is called before its Inlets are evaluated. In Haywire, the VirtualMachine can use such a method to determine if the localized Data-Flow can be evaluated lazily or not. If this is the case, depending on which DataIns are required, only certain steps of the localized Data-Flow need to be evaluated. Though the algorithm involved is not yet understood and **needs further research**.
+So, in theory it is possible to expand on this: The assembler is responsible for generating the localized Data-Flow for each Control-node. If Inlets have a lazy evaluation flag and the Data-Flows can be lazyily evaluated, the VirtualMachine that lazily evaluates the Data-Flow would need some additional information beforehand. ComfyUI has the method `def check_lazy_status(self, args)` that is called before its Inlets are evaluated. In Haywire, the VirtualMachine needs also to use such a method to determine if the localized Data-Flow can be evaluated lazily or not. If this is the case, depending on which DataIns are required, only certain steps of the localized Data-Flow need to be evaluated.
+
+Algorithm:
+
+**Setup** of a Control-node
+* Some Inlets are configured to be lazy
+* A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
+
+**Setup** of a Data-node with the localized Data-Flow of this Control-node
+* Some Inlets are configured to be lazy
+* A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
+
+**Assembly**
+* On the Control-node, the assembler creates a bit mask with a bit for each data-inlet. each data-inlet gets its own bit mask called EVAL_MASK where the bit that represents the inlet is set to 1, while all other bits are set to 0.
+* On the Data-node, the CHECK_LAZY function is called to determine which Data-inlets to follow in the backpropagation.(This, by the way has a severe edge case: the CHECK_LAZY function on a Data-node should make its decision at assembly time for performance reasons. Otherwise the re-assembly of the localized Data-Flow would be required on each execution of the Control-node, which we want to avoid. But implementing Lazy Evaluation in a consistent manner for the user means that changes of Properties or Inlets that could affect this decision on the Data-node during runtime actually needs to trigger a re-assembly of the localized Data-Flow. Otherwise, the evaluation of the Data-Flow could lead to incoherent results. A slight performance penalty is preferable over an inconsistent user experience.)
+* Upon generation of the localized Data-Flow, this bit mask is passed on during the backpropagation, and is binary OR'ed with other bit masks from the same Control-node if they merge at that specific Data-node. This OR'ed bit mask is then passed further during backpropagation. At the end there is a list of all the required Data-nodes and their respective OR'ed bit masks (EVAL_MASK). Then the correct sequence of Data-nodes is determined to evaluate the Data-Flow correctly. This EVAL_MASK shows which Data-inlets require the evaluation of this specific Data-node.
+
+**Evaluation**
+* On execution of the Control-node, the VM creates a bit mask called LAZY_MASK with a bit for each data-inlet, all set to 1.
+* then the CHECK_LAZY function is called to determine if the Data-Flow can be evaluated lazily or not. If this is the case, it sets the bits inside LAZY_MASK representing the data-inlets that are not needed to 0, while all others stay 1.
+* Then the localized Data-Flow is evaluated:
+  * It goes to the next Data-node in the sequence.
+  * First it checks if the Data-Nodes CHECK_LAZY function has a different result than the previous run (i.e. during Assembly).
+    * If yes, the evaluation of the localized Data-Flow is stopped
+      * The VM reassembles the localized Data-Flow from scratch.
+      * and restarts the evaluation process.
+    * If no, it continues ..
+  * Second it checks if any Data-Inlets are dirty.
+    * If yes, it makes a Binary AND between LAZY_MASK and EVAL_MASK.
+      * if the result is bigger than 0
+        * this means at least one Data-Inlet requires the evaluation of this Data-node.
+        * it evaluates the node.
+        * sets the dirtied Data-Inlets to clean.
+    * If not..
+  * continues with the next Data-node in the sequence..
+
+It is not clear yet how fast the reassembly of the localized Data-Flow from scratch is. I hope for an efficient algorithm. Depending on the time saved by lazy evaluation, it might be worth it. Its left to the node-designer to decide if such an effort makes sense. If there is no CHECK_LAZY function defined, the algorithm should run at nominal speed. The additional binary AND operation and if statements in each step should be negligible.
 
 This has not highest priority, since lazy evaluation would only involve Data-Nodes, which should **not** be computationally heavy to evaluate and therefore should not pose to be a serious bottleneck.
 
-Conclusion: This feature is mostly interesting for node-graphs that evaluate the graph in a backpropagation manner and expects heavy computations in some nodes (which Haywire is not).
+# General Implementation
 
-### registering, finding and instantiating a node
-
-#### ComfyUI
-
-Module Import (__init__.py)
-
-Location: custom_nodes/<node_package>/__init__.py
-```python
-# __init__.py is executed when Comfy attempts to import the module
-NODE_CLASS_MAPPINGS = {
-    "MyCustomNode": MyCustomNode,
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "MyCustomNode": "My Custom Node Display Name"
-}
-```
-
-Process:
-
-* ComfyUI scans the custom_nodes directory
-* Imports each module's __init__.py
-* Extracts NODE_CLASS_MAPPINGS to register available node classes
-* Builds internal registry of available node types
-
----
-
-Location: execution.py → Node class constructors
-```python
-# ComfyUI instantiates nodes as needed
-class_type = node["class_type"]
-class_def = nodes.NODE_CLASS_MAPPINGS[class_type]
-obj = class_def()  # Node instance created
-```
-* Nodes are instantiated when first needed during execution
-* Node __init__() method is called
-* Instance is cached for reuse within the workflow
-
----
-
-Location: execution.py → Node's main function
-
-https://github.com/comfyanonymous/ComfyUI/blob/0621d73a9c56fdc9e79aad87ed260135639bca50/execution.py#L217C1-L234C1
-```python
-f = getattr(obj, func)
-if inspect.iscoroutinefunction(f):
-    async def async_wrapper(f, prompt_id, unique_id, list_index, args):
-        with CurrentNodeContext(prompt_id, unique_id, list_index):
-            return await f(**args)
-    task = asyncio.create_task(async_wrapper(f, prompt_id, unique_id, index, args=inputs))
-    # Give the task a chance to execute without yielding
-    await asyncio.sleep(0)
-    if task.done():
-        result = task.result()
-        results.append(result)
-    else:
-        results.append(task)
-else:
-    with CurrentNodeContext(prompt_id, unique_id, index):
-        result = f(**inputs)
-    results.append(result)
-```
-* `f = getattr(obj, func)` gets the function name that needs to be executed
-* if the function has a `async` decorator, it is executed asynchronously
-  * `async_wrapper` creates the instance of the function that can be executed asynchronously
-  * `task = asyncio.create_task(` creates the task with the function and arguments
-* otherwise it is a simple synchronous execution (which is almost always the case within comfyIU)
-
----
-
-its not clear to me how comfyUI from here propagates the results to the output pins and then to the next nodes..
-
-### Flow generation
-
-#### ComfyUI
-
-Location: execution.py → DynamicPrompt → ExecutionList
-
-```python
-# Workflow is converted to execution order
-prompt = validate_prompt(workflow_json)
-dynprompt = DynamicPrompt(prompt)
-execution_list = dynprompt.get_execution_list()
-```
 
 
 ### The body of a Node
@@ -522,18 +441,15 @@ There will be nodes with a clear set of Parameters, Variables, DataIns and DataO
 This needs a function that is called when a Parameter is changed that has the power to change the behaviour of the node.
 
 
-
 ```Python
 class HaywireMeta(type):
     """
     Meta class for the HaywireNode class. Makes node declaration objects available in the class's scope
     """
+    Settings = []
     Parameters = []
-    Variables = []
-    ControlIns = []
-    ControlOuts = []
-    DataIns = []
-    DataOuts = []
+    Inlets = []
+    Outlets = []
 
 @abstractNode
 class HaywireNode(object, metaclass=HaywireMeta):
@@ -543,19 +459,22 @@ class HaywireNode(object, metaclass=HaywireMeta):
         self.node_id = node_id
         self.node_display_name = 'Node Name'
         self.node_description = 'Node Description'
-        self.node_name = '3rdParty.custom.Node_NAME'
+        self.node_name = 'Node_NAME'
+        self.node_package = 'org.github.maybites.haywire.nodes'
         self.node_library_name = '3rdPartyLibrary'
         self.node_library_url = 'https://haywire.io/docs/node-help'
+        self.node_search_tags = ['add', 'sub', 'math', 'vector']
+        self.node_menu = 'misc/custom'
         self.node_version = '0.0.0'
         self.node_author = 'Customer'
         self.node_author_url = 'https://customer.org'
         self.help_md = None
-        self.help_url = None
+        self.help_url = 'https://haywire.io/docs/node-help'
         self.is_control_node = False # Set_automatically()
         self.is_data_node = True # Set_automatically()
         self.is_loopback_node = False
+        self.can_be_muted = True
         self.is_muted = False
-        self.can_be_muted = False
         self.mute_connection = ['control_in_ID', 'control_out_ID']
         self.ui_default_color = '#FFFFFF'
         self.ui_custom_color = '#000000'
@@ -565,10 +484,13 @@ class HaywireNode(object, metaclass=HaywireMeta):
         self.ui_height = 100
         self.ui_width_min = -1
         self.ui_height_min = -1
-        self.ui_collapsed = False
-        self.ui_pinned = False
+        self.ui_is_collapsable = True
+        self.ui_is_collapsed = False
+        self.ui_is_condensable = True
+        self.ui_is_condensed = False
+        self.ui_is_pinned = False
         self.ui_icon = None
-        self.ui_component = 'default'
+        self.ui_component = None
         self.allows_variables = False
 
 
@@ -587,55 +509,90 @@ class BaseNode(HaywireNode):
         self.help_md = './node_id/node_help.md'
         self.help_url = 'https://haywire.io/docs/node-help'
 
-    def _on_parameter_changed(self, parameter):
-        # Implement logic to handle parameter changes
-        pass
+    @classmethod
+    def Settings(cls):
+        # some code
+        return{
+            {
+                name: 'Settings Name',
+                id: 'settings_id',
+                description: 'Settings Description',
+                data_type: Datatype,
+                data_category: SCALAR,
+                value: value,
+                callback: self._on_parameter_changed,
+                is_visible: True,
+                is_enabled: True,
+            }
+        }
 
     # defining Parameters
-    Parameter(
-        name: 'Parameter Name',
-        id: 'parameter_id',
-        description: 'Parameter Description',
-        datatype: Datatype,
-        value: value,
-        callback: self._on_parameter_changed,
-        is_visible: True,
-        is_enabled: True,
-        has_pin_outlet: False)
+    @classmethod
+    def Parameter(cls):
+        # some code
+        return {
+            {
+                name: 'Parameter Name',
+                id: 'parameter_id',
+                description: 'Parameter Description',
+                datatype: Datatype,
+                value: value,
+                callback: self._on_parameter_changed,
+                is_visible: True,
+                is_enabled: True
+            }
+        }
 
-    # defining Control inlets
-    ControlIns(
-        name: 'Control In Name',
-        id: 'control_in_ID',
-        description: 'Control Description')
-
-    # defining Control outlets
-    ControlOuts (
-        name: 'Control Out Name',
-        id: 'control_out_ID',
-        description: 'Control Description')
 
     # defining Data inlets
-    DataIns(
-        name: 'Data Name',
-        id: 'data_in_ID',
-        description: 'Data Description',
-        datatype: DataType,
-        datastruct: DataStruct,
-        is_visible: True,
-        is_enabled: True,
-        default: default)
+    @classmethod
+    def Inlets(cls):
+        # some code
+        return {
+            {
+                flow_type: 'ctrl',
+                coupling_type: MANY,
+                name: 'Control Name',
+                id: 'ctrl_in_ID',
+                description: 'Control Description',
+            },
+            {
+                flow_type: 'data',
+                coupling_type: ONE,
+                coupling_mode: REQUIRED,
+                name: 'Data Name',
+                id: 'data_in_ID',
+                description: 'Data Description',
+                data_type: int,
+                data_cat: SCALAR,
+                is_visible: True,
+                is_enabled: True,
+                is_lazy: True,
+                default: default
+            },
+        }
 
-    # defining Data outlets
-    DataOuts(
-        name: 'Data Name',
-        id: 'data_out_ID',
-        description: 'Data Description',
-        datatype: DataType,
-        datastruct: DataStruct,
-        is_visible: True,
-        is_enabled: True)
-
+    # defining Data inlets
+    Outlets(
+        {
+            flow_type: 'ctrl',
+            coupling_type: One,
+            name: 'Control Name',
+            id: 'ctrl_out_ID',
+            description: 'Control Description',
+        },
+        {
+            flow_type: 'data',
+            coupling_type: MANY,
+            name: 'Data Name',
+            id: 'data_out_ID',
+            description: 'Data Description',
+            data_type: int,
+            data_cat: SCALAR,
+            is_visible: True,
+            is_enabled: True,
+        },
+    )
 
     # defining worker function
     def worker(self, global_data: dict, local_data: dict, control_node_id: str, control_pin_outlet_id: str):
@@ -649,8 +606,48 @@ class BaseNode(HaywireNode):
             node_pin_id: node_pin_id
         }
 
+    def SETTINGS_CHANGED(cls):
+        # Implement logic to handle settings changes
+        pass
 
+    @classmethod
+    def CHECK_LAZY(cls):
+        # checks if there is a condition that allows lazy evaluation
+        return
 
+    @classmethod
+    def HAS_CHANGED(cls):
+        # possible to define a custom condition to check on a parameter whose value might change out of environment (like a file)
+        # rehashing large files.
+        return False
+
+    @classmethod
+    def VALIDATE_PARAMETERS(cls):
+        # Validate the parameters. Not clear anymore why this might be necessary. ComfyUI has this implemented..
+        #
+```
+
+```console
+# Initialization
+
+1. first the node is initialized, calling __init__
+2. Calling SETTINGS to set the Settings.
+3. Calling SETTINGS_CHANGED to dynamically configure the node.
+4. Calling PARAMETERS to set the Parameters.
+5. Calling INLETS to set the Inlets.
+6. Calling OUTLETS to set the Outlets.
+
+# Assembly
+
+1. Calling CHECK_LAZY on the Data-node to see if there are lazy Inlets to stear the backpropagation.
+
+# Evaluation
+
+1. Calling CHECK_LAZY on the Control-node generate the LAZY_MASK.
+2. Calling CHECK_LAZY on the Data-node to see if there is the need for re-assembly.
+3. Calling HAS_CHANGED on the Data-node to see if there is change that is not from UI or Upstream nodes
+
+```
 
 ## Callback-connections
 Callbacks are used to notify other nodes about events that have occurred. With the Hayire system, it is the mechanism that allows from within executed Flows to trigger other Flows within the same Graph.
@@ -729,7 +726,7 @@ Once a Flow is executed, the scheduler locks the Flow for exclusive execution. A
 
 Depending on the Trigger-queue's configuration, the Trigger-queue can be configured to either block or drop incoming events.
 
--> To Be Deterimend if Flows should allowed to be executed in parallel...
+Flows should allowed to be executed in parallel. Not yet clear which architecture to use.
 
 #### Control Flow Execution
 When a Flow is executed, it creates two stacks:
@@ -749,21 +746,14 @@ It then continues executing the Flow from the Loopback-node.
 
 If there are cycles in the Control-Flow that spiral into infinity, the Done-stack will eventually overflow, causing the VM to throw an error.
 
-## Question to Florian:
+## Question to the model:
 
 
-- [ ] What is the best mechanism to propagate the data-outlets to the connected data-inlets?
-  - [ ] This problem is related to the Get node for Variables. The Get node would benefit from a mechanism that indicates whether its Variable has changed since the last time it was accessed.
-- [ ] What is best mechanism to define a custom node?
-- [ ] What is the best way to structure a Control-Flow? -> Partiallly answered within execution chapter
 - [ ] Should Flows be allowed to run in parallel?
   - [ ] That would mean that each Flow needs its own reference to the Graph.
   - [ ] Only Graphs containing one Flow can run in parallel.
   - [ ] They have to be designed to be truly stateless.
   - [ ] What would be the best architecture to cover both parallel and sequential execution?
-
-
-## Question to the model:
 
 - [ ] What works with this spec?
 - [ ] What does this specification desperately need to clarify the goal?
