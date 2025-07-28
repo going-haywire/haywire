@@ -2,44 +2,79 @@
 
 ## Table of Contents
 
-1. [Credits & License](#credits--license)
-2. [Overview](#overview)
-   - [Key Differentiators](#key-differentiators)
-   - [Related Projects](#related-projects)
-3. [Core Architecture](#core-architecture)
-   - [The Dual-Flow Model](#the-dual-flow-model)
-   - [Node Classification](#node-classification)
-   - [The Virtual Machine](#the-virtual-machine)
-4. [Graph Structure](#graph-structure)
-   - [The Graph as Container](#the-graph-as-container)
-   - [Graph-as-Node Pattern](#graph-as-node-pattern)
-   - [Connection Types](#connection-types)
-   - [Cycles](#cycles)
-5. [Flow Execution Model](#flow-execution-model)
-   - [From Graph to Flow](#from-graph-to-flow)
-   - [Control-flow vs Data-flow](#control-flow-vs-data-flow)
-   - [Execution Context Management](#execution-context-management)
-6. [Node Architecture](#node-architecture)
-   - [Node Types](#node-types)
-   - [Node Components](#node-components)
-   - [Pin System](#pin-system)
-   - [Worker Function Execution](#worker-function-execution)
-   - [Data Types and Categories](#data-types-and-categories)
-7. [Advanced Features](#advanced-features)
-   - [Lazy Evaluation](#lazy-evaluation)
-   - [Callback System](#callback-system)
-   - [Just-In-Time Assembly](#just-in-time-assembly)
-8. [Implementation Framework](#implementation-framework)
-   - [Assembly Process](#assembly-process)
-   - [Interpreter](#interpreter)
-   - [Flow Execution](#flow-execution)
-9. [Outstanding Design Questions](#outstanding-design-questions)
-10. [Appendix](#appendix)
-    - [Complete Edge Data Structure](#complete-edge-data-structure)
-    - [Complete Node Definition Template](#complete-node-definition-template)
-    - [Complete Lazy Evaluation Algorithm](#complete-lazy-evaluation-algorithm)
-    - [Assembly Steps](#assembly-steps)
+- [Haywire Node System - Specification v1.0.0](#haywire-node-system---specification-v100)
+  - [Table of Contents](#table-of-contents)
+  - [Credits \& License](#credits--license)
+- [Overview](#overview)
+    - [Key Differentiators](#key-differentiators)
+    - [Related Projects](#related-projects)
+- [Core Architecture](#core-architecture)
+  - [The Dual-Flow Model](#the-dual-flow-model)
+  - [Node Classification](#node-classification)
+  - [The Graph](#the-graph)
+  - [Assembly: From Graph to Flow](#assembly-from-graph-to-flow)
+  - [Control-flow vs Data-flow](#control-flow-vs-data-flow)
+  - [The Virtual Machine](#the-virtual-machine)
+    - [Event-Driven Execution](#event-driven-execution)
+    - [Virtual Machine Architecture](#virtual-machine-architecture)
+    - [Loop and Branch Handling](#loop-and-branch-handling)
+    - [Execution Context Management](#execution-context-management)
+- [Graph Structure](#graph-structure)
+  - [The Graph as Container](#the-graph-as-container)
+    - [The Graph](#the-graph-1)
+    - [Variables](#variables)
+  - [The Graph-node](#the-graph-node)
+  - [Connection Types](#connection-types)
+    - [On Connections, Edges, Links and Pipes](#on-connections-edges-links-and-pipes)
+    - [Edges](#edges)
+    - [Control-edges -\> Links](#control-edges---links)
+    - [Data-edges -\> Pipes](#data-edges---pipes)
+    - [Cycles](#cycles)
+- [Node Architecture](#node-architecture)
+  - [Node Types](#node-types)
+  - [Node Components](#node-components)
+    - [Settings](#settings)
+    - [Parameters](#parameters)
+    - [Inlets \& Outlets \& Pins](#inlets--outlets--pins)
+      - [Pins](#pins)
+      - [Explanation to connection-types](#explanation-to-connection-types)
+      - [Control Inlets](#control-inlets)
+      - [Data Inlets](#data-inlets)
+      - [Data Outlets](#data-outlets)
+      - [Overview of Nodes Configurables](#overview-of-nodes-configurables)
+    - [Worker Function Execution](#worker-function-execution)
+    - [Data Types and Categories](#data-types-and-categories)
+- [Advanced Features](#advanced-features)
+  - [Lazy Evaluation](#lazy-evaluation)
+  - [Callback System](#callback-system)
+- [Generation](#generation)
+  - [Finding and Loading available Node Libraries](#finding-and-loading-available-node-libraries)
+  - [Loading Graphs from JSON and instantiating required Nodes](#loading-graphs-from-json-and-instantiating-required-nodes)
+- [Assembly](#assembly)
+  - [Overview](#overview-1)
+  - [Assembly Steps](#assembly-steps)
+      - [Graph Validation](#graph-validation)
+      - [Graph Cleaning](#graph-cleaning)
+      - [Graph Preprocessing](#graph-preprocessing)
+      - [Flow identification](#flow-identification)
+      - [Flow assembly](#flow-assembly)
+    - [Just-In-Time Assembly](#just-in-time-assembly)
+  - [Just-In-Time Assembly (For a future implementation)](#just-in-time-assembly-for-a-future-implementation)
+- [Execution](#execution)
+  - [Flow Execution](#flow-execution)
+    - [Control Flow Execution](#control-flow-execution)
+    - [Worker function execution/evaluation](#worker-function-executionevaluation)
+      - [for Control-nodes](#for-control-nodes)
+      - [for Data-nodes](#for-data-nodes)
+- [Interpreter](#interpreter)
+  - [Outstanding Design Questions](#outstanding-design-questions)
+    - [For Author Clarification](#for-author-clarification)
+    - [Suggested Enhancements](#suggested-enhancements)
+- [Appendix](#appendix)
+  - [Complete Edge Data Structure](#complete-edge-data-structure)
+  - [Complete Node Definition Template](#complete-node-definition-template)
     - [Complete Node Initialization Sequence](#complete-node-initialization-sequence)
+  - [Complete Lazy Evaluation Algorithm](#complete-lazy-evaluation-algorithm)
 
 ---
 
@@ -206,7 +241,7 @@ The Haywire Virtual Machine handles the complex orchestration:
 **State Preservation:**
 
 - The VM can pause execution (for async operations like delays)
-- Maintains execution context 
+- Maintains execution context
 
 ### Loop and Branch Handling
 
@@ -275,19 +310,17 @@ As with nodes, a Graph-node can be of the type control or data, depending if it 
 
 - A Graph-node **must** contain one [Source-node](#node-types) and one [Sink-node](#node-types) and **cannot** have any other [Event-](#node-types) or [Output-nodes](#node-types).
 
-
-
 ## Connection Types
 
 ### On Connections, Edges, Links and Pipes
 
 To distinguish clearly between the visual representation of a Graph and the functional representation of a Flow, Haywire makes a clear distinction between the two on the level of connections, too. And in order to keep terms clear, when "connection(s)" is used in this text it is meant in a colloquial manner, while [Edges](#edges), [Links](#control-edges---links), and [Pipes](#data-edges---pipes) are used to describe the effective data representation of the connections. So pay attention to the context in which "connections" are used:
 
-* On the Graph level, the connections between the Control- and Data-nodes describe also [Edges](#edges).
+- On the Graph level, the connections between the Control- and Data-nodes describe also [Edges](#edges).
 
-* On the Control-Flow level, the connections between the Control-nodes describe also [Links](#control-edges---links).
+- On the Control-Flow level, the connections between the Control-nodes describe also [Links](#control-edges---links).
 
-* On the Data-Flow level, the connections between the Data-nodes describe also [Pipes](#data-edges---pipes).
+- On the Data-Flow level, the connections between the Data-nodes describe also [Pipes](#data-edges---pipes).
 
 [Links](#control-edges---links) and [Pipes](#data-edges---pipes) come only into existence during the [Assembly step](#assembly-process) and are only used in the orchestration of Control- and Data-Flows.
 
@@ -357,7 +390,7 @@ These are the basic building blocks of a Haywire graph:
 - **Output-nodes**
   Output-nodes are a special kind of Control-nodes used to terminate execution within the [Graph](#graph-structure). They are defined by having no pin-outlets at all. With the exception of the [Sink-node](#node-types), output-nodes are not allowed inside of [Graph-nodes](#graph-as-node-pattern).
 
-- **Graph-nodes** 
+- **Graph-nodes**
   
   Graph-nodes are nodes that are used to encapsulate a [subgraph](#graph-as-node-pattern) within the graph. They can have [Control-pins](#pin-system) and/or [Data-pins](#pin-system), Thus they can come on two flavors: **Control-graph-nodes** and **Data-graph-nodes**. Like their siblings, **Control-node** and **Data-node**, they are assembled and executed/evaluated in the same fashion. Like other nodes, they can have [variables](#variables).
 
@@ -482,7 +515,7 @@ The inlets or outlets define the Data-types and Data-category they require. This
 The Data-types include `int`, `float`, `str`, `bool`, `bytes`, `object`
 The Data-category include `scalar`, `list`, `tuple`, `set`, `array`, `map`, `dictionary`
 
-ComfyUI follows a different strategy. It has keywords for each data-type. https://docs.comfy.org/custom-nodes/backend/datatypes
+ComfyUI follows a different strategy. It has keywords for each data-type. <https://docs.comfy.org/custom-nodes/backend/datatypes>
 
 ---
 
@@ -520,17 +553,13 @@ Also, an [Event-node](#node-types) can by definition have no pin-inlets.
 
 Under Generation falls currently everything  that is involved until a complete Graph is instantiated for further processing.
 
-This includes 
+This includes
 
 ## Finding and Loading available Node Libraries
 
 loading nodes from filesystem: [ComfyUI/nodes.py at 78672d0ee6d20d8269f324474643e5cc00f1c348 ? comfyanonymous/ComfyUI ? GitHub](https://github.com/comfyanonymous/ComfyUI/blob/78672d0ee6d20d8269f324474643e5cc00f1c348/nodes.py#L2168)
 
-
-
-## Loading Graphs from JSON and instantiating required Nodes.
-
-
+## Loading Graphs from JSON and instantiating required Nodes
 
 ---
 
@@ -589,16 +618,12 @@ We assume:
 - It does all of it iteratively with each [Graph-node](#graph-as-node-pattern) as well.
 - It identifies the [Event-nodes](#node-types) and makes them available for hooking it up with the execution mechanism of the whole haystack.
   
-  
-
 ### Just-In-Time Assembly
 
 ## Just-In-Time Assembly (For a future implementation)
 
 - This happens whenever a connection is edited.
   - This can be the case if a node is deleted, but not when a node is added.
-
-
 
 # Execution
 
@@ -616,8 +641,8 @@ Depending on the Trigger-queue's configuration, the Trigger-queue can be configu
 
 When a [Flow](#flow-execution-model) is executed, it creates two stacks:
 
-* The first stack is the Done-stack, which contains the nodes that have been executed.
-* The second stack is the Loopback-stack, which contains the [Loopback-nodes](#node-types).
+- The first stack is the Done-stack, which contains the nodes that have been executed.
+- The second stack is the Loopback-stack, which contains the [Loopback-nodes](#node-types).
 
 Once a [Control-node](#node-types) is executed, VM pushes it onto the Done-stack, and if its a [Loopback-node](#node-types), its pushed onto the Loopback-stack.
 
@@ -631,8 +656,6 @@ It then continues executing the [Flow](#flow-execution-model) from the [Loopback
 
 If there are cycles in the Control-Flow that spiral into infinity, the Done-stack will eventually overflow, causing the VM to throw an error.
 
-
-
 ### Worker function execution/evaluation
 
 #### for Control-nodes
@@ -644,7 +667,7 @@ The VM follows the [Control-pins](#pin-system) from node to node. To recap quick
 1. Before the [Control-node's](#node-types) [Worker-function](#worker-function-execution) is called, it first evaluates the [Control-node's](#node-types) [localized Data-flow](#control-flow-vs-data-flow) to update the [Data-pin-inlets](#pin-system).
 
 2. Then it executes the [Worker-function](#worker-function-execution). It provides a reference to
-   
+
    - **A global context**: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.
    - **A local context**: The local context comes in form of a dict and gives access to the local graph and its [variables](#variables).
    - **Control-pin**: The identity of the [Control-pin-input](#pin-system) that is executed.
@@ -652,7 +675,7 @@ The VM follows the [Control-pins](#pin-system) from node to node. To recap quick
    - etc.
 
 3. Within the [Worker-function](#worker-function-execution) at the end of its process,
-   
+
    - it sets the respective [Data-pin-outlets](#pin-system).
 
 4. then returns status information that includes the information which [Control-pin-outlet](#pin-system) is to be followed.
@@ -674,23 +697,21 @@ Before the [Data-node's](#node-types) [Worker-function](#worker-function-executi
 1. If this is the case:
 
 2. then it runs the [Worker-function](#worker-function-execution). It provides a reference to
-   
+
    - **A global context**: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.
    - **A local context**: The local context comes in form of a dict and gives access to the local graph and its [variables](#variables).
 
 3. Within the [Worker-function](#worker-function-execution) at the end of its process,
-   
+
    - it updates the [Data-pin-outlets](#pin-system) so its connected downstream [Data-pin-inlets](#pin-system) are set to dirty (value has changed).
 
 4. If there are no dirty inlets:
-   
+
    - the [Worker-function](#worker-function-execution) is not called. And no outlets are updated.
 
 5. The sequence hops to the next [Data-node](#node-types).
 
 6. .. and so it continues...
-
-
 
 # Interpreter
 
@@ -701,10 +722,10 @@ Before the [Data-node's](#node-types) [Worker-function](#worker-function-executi
 
 ## Outstanding Design Questions
 
-### For Author Clarification:
+### For Author Clarification
 
 1. **Parallel Flow Execution**: Should [flows](#flow-execution-model) run in parallel? This impacts:
-   
+
    - [Graph](#graph-structure) reference management (each flow needs separate instance?)
    - Thread safety requirements
    - State management complexity
@@ -715,7 +736,7 @@ Before the [Data-node's](#node-types) [Worker-function](#worker-function-executi
 2. **Data-Flow Cycle Exceptions**: The specification mentions data cycles are allowed "if passing through a [Control-node](#node-types)" - this needs clearer definition of when/how this works.
 
 3. **[Data Outlets](#data-outlets) Implementation**: Currently marked as "not yet defined" - needs specification for:
-   
+
    - How outputs are validated as "required to be set"
    - Runtime behavior when outputs aren't set
    - Integration with [pipe system](#data-edges---pipes)
@@ -730,17 +751,15 @@ Before the [Data-node's](#node-types) [Worker-function](#worker-function-executi
 
 8. **Check the [Assembly steps](#complete-assembly-steps) for missing requirements and generation steps.**
 
-### Suggested Enhancements:
+### Suggested Enhancements
 
-**?“‹ Performance Monitoring**: Add execution profiling to identify bottlenecks in complex graphs
+**?ï¿½ï¿½ Performance Monitoring**: Add execution profiling to identify bottlenecks in complex graphs
 
-**?”§ Debug Infrastructure**: Visual execution tracing, breakpoint support, step-through debugging
+**?ï¿½ï¿½ Debug Infrastructure**: Visual execution tracing, breakpoint support, step-through debugging
 
-**?“¦ Module System**: Standardized packaging/distribution for custom nodes and abstractions
+**?ï¿½ï¿½ Module System**: Standardized packaging/distribution for custom nodes and abstractions
 
-**?Ž¯ Error Handling**: Comprehensive error propagation and recovery strategies
-
-
+**?ï¿½ï¿½ Error Handling**: Comprehensive error propagation and recovery strategies
 
 ---
 
@@ -750,14 +769,14 @@ Before the [Data-node's](#node-types) [Worker-function](#worker-function-executi
 
 An [Edge](#edges) is a simple data structure that contains the:
 
-* **output-node's**
-  * node-id
-  * outlet-pin-id
-  * outlet-pin-data-type
-* **input-node's**
-  * node-id
-  * inlet-pin-id
-  * inlet-pin-data-type
+- **output-node's**
+  - node-id
+  - outlet-pin-id
+  - outlet-pin-data-type
+- **input-node's**
+  - node-id
+  - inlet-pin-id
+  - inlet-pin-data-type
 
 ## Complete Node Definition Template
 
@@ -985,38 +1004,38 @@ class BaseNode(HaywireNode):
 
 **Setup** of a [Control-node](#node-types)
 
-* Some Inlets are configured to be lazy
-* A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
+- Some Inlets are configured to be lazy
+- A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
 
 **Setup** of a [Data-node](#node-types) with the [localized Data-Flow](#control-flow-vs-data-flow) of this [Control-node](#node-types)
 
-* Some Inlets are configured to be lazy
-* A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
+- Some Inlets are configured to be lazy
+- A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
 
 **[Assembly](#assembly-process)**
 
-* On the [Control-node](#node-types), the [assembler](#assembly-process) creates a bit mask with a bit for each data-inlet. each data-inlet gets its own bit mask called EVAL_MASK where the bit that represents the inlet is set to 1, while all other bits are set to 0.
-* On the [Data-node](#node-types), the CHECK_LAZY function is called to determine which Data-inlets to follow in the backpropagation.(This, by the way has a severe edge case: the CHECK_LAZY function on a [Data-node](#node-types) should make its decision at assembly time for performance reasons. Otherwise the re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow) would be required on each execution of the [Control-node](#node-types), which we want to avoid. But implementing [Lazy Evaluation](#lazy-evaluation) in a consistent manner for the user means that changes of [Properties](#parameters) or Inlets that could affect this decision on the [Data-node](#node-types) during runtime actually needs to trigger a re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow). Otherwise, the evaluation of the Data-Flow could lead to incoherent results. A slight performance penalty is preferable over an inconsistent user experience.)
-* Upon generation of the [localized Data-Flow](#control-flow-vs-data-flow), this bit mask is passed on during the backpropagation, and is binary OR'ed with other bit masks from the same [Control-node](#node-types) if they merge at that specific [Data-node](#node-types). This OR'ed bit mask is then passed further during backpropagation. At the end there is a list of all the required [Data-nodes](#node-types) and their respective OR'ed bit masks (EVAL_MASK). Then the correct sequence of [Data-nodes](#node-types) is determined to evaluate the Data-Flow correctly. This EVAL_MASK shows which Data-inlets require the evaluation of this specific [Data-node](#node-types).
+- On the [Control-node](#node-types), the [assembler](#assembly-process) creates a bit mask with a bit for each data-inlet. each data-inlet gets its own bit mask called EVAL_MASK where the bit that represents the inlet is set to 1, while all other bits are set to 0.
+- On the [Data-node](#node-types), the CHECK_LAZY function is called to determine which Data-inlets to follow in the backpropagation.(This, by the way has a severe edge case: the CHECK_LAZY function on a [Data-node](#node-types) should make its decision at assembly time for performance reasons. Otherwise the re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow) would be required on each execution of the [Control-node](#node-types), which we want to avoid. But implementing [Lazy Evaluation](#lazy-evaluation) in a consistent manner for the user means that changes of [Properties](#parameters) or Inlets that could affect this decision on the [Data-node](#node-types) during runtime actually needs to trigger a re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow). Otherwise, the evaluation of the Data-Flow could lead to incoherent results. A slight performance penalty is preferable over an inconsistent user experience.)
+- Upon generation of the [localized Data-Flow](#control-flow-vs-data-flow), this bit mask is passed on during the backpropagation, and is binary OR'ed with other bit masks from the same [Control-node](#node-types) if they merge at that specific [Data-node](#node-types). This OR'ed bit mask is then passed further during backpropagation. At the end there is a list of all the required [Data-nodes](#node-types) and their respective OR'ed bit masks (EVAL_MASK). Then the correct sequence of [Data-nodes](#node-types) is determined to evaluate the Data-Flow correctly. This EVAL_MASK shows which Data-inlets require the evaluation of this specific [Data-node](#node-types).
 
 **Evaluation**
 
-* On execution of the [Control-node](#node-types), the VM creates a bit mask called LAZY_MASK with a bit for each data-inlet, all set to 1.
-* then the CHECK_LAZY function is called to determine if the Data-Flow can be evaluated lazily or not. If this is the case, it sets the bits inside LAZY_MASK representing the data-inlets that are not needed to 0, while all others stay 1.
-* Then the [localized Data-Flow](#control-flow-vs-data-flow) is evaluated:
-  * It goes to the next [Data-node](#node-types) in the sequence.
-  * First it checks if the [Data-Nodes](#node-types) CHECK_LAZY function has a different result than the previous run (i.e. during [Assembly](#assembly-process)).
-    * If yes, the evaluation of the [localized Data-Flow](#control-flow-vs-data-flow) is stopped
-      * The VM reassembles the [localized Data-Flow](#control-flow-vs-data-flow) from scratch.
-      * and restarts the evaluation process.
-    * If no, it continues ..
-  * Second it checks if any Data-Inlets are dirty.
-    * If yes, it makes a Binary AND between LAZY_MASK and EVAL_MASK.
-      * if the result is bigger than 0
-        * this means at least one Data-Inlet requires the evaluation of this [Data-node](#node-types).
-        * it evaluates the node.
-        * sets the dirtied Data-Inlets to clean.
-    * If not it continues. The [Data-node](#node-types) has not been evaluated yet, so if downstream a [Control-node](#node-types) with a different [localized Data-Flow](#control-flow-vs-data-flow) encounters this node, it will only then be evaluated.
-  * continues with the next [Data-node](#node-types) in the sequence..
+- On execution of the [Control-node](#node-types), the VM creates a bit mask called LAZY_MASK with a bit for each data-inlet, all set to 1.
+- then the CHECK_LAZY function is called to determine if the Data-Flow can be evaluated lazily or not. If this is the case, it sets the bits inside LAZY_MASK representing the data-inlets that are not needed to 0, while all others stay 1.
+- Then the [localized Data-Flow](#control-flow-vs-data-flow) is evaluated:
+  - It goes to the next [Data-node](#node-types) in the sequence.
+  - First it checks if the [Data-Nodes](#node-types) CHECK_LAZY function has a different result than the previous run (i.e. during [Assembly](#assembly-process)).
+    - If yes, the evaluation of the [localized Data-Flow](#control-flow-vs-data-flow) is stopped
+      - The VM reassembles the [localized Data-Flow](#control-flow-vs-data-flow) from scratch.
+      - and restarts the evaluation process.
+    - If no, it continues ..
+  - Second it checks if any Data-Inlets are dirty.
+    - If yes, it makes a Binary AND between LAZY_MASK and EVAL_MASK.
+      - if the result is bigger than 0
+        - this means at least one Data-Inlet requires the evaluation of this [Data-node](#node-types).
+        - it evaluates the node.
+        - sets the dirtied Data-Inlets to clean.
+    - If not it continues. The [Data-node](#node-types) has not been evaluated yet, so if downstream a [Control-node](#node-types) with a different [localized Data-Flow](#control-flow-vs-data-flow) encounters this node, it will only then be evaluated.
+  - continues with the next [Data-node](#node-types) in the sequence..
 
 It is not clear yet how fast the reassembly of the [localized Data-Flow](#control-flow-vs-data-flow) from scratch is. I hope for an efficient algorithm. Depending on the time saved by lazy evaluation, it might be worth it. Its left to the node-designer to decide if such an effort makes sense. If there is no CHECK_LAZY function defined, the algorithm should run at nominal speed. The additional binary AND operation and if statements in each step should be negligible.
