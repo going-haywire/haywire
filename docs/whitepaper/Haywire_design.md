@@ -48,7 +48,7 @@
 Created by Martin FrÃ¶hlich (aka maybites) Â© July 2025  
 Released under [CC-BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-## Overview
+# Overview
 
 Haywire is a Blueprint-inspired visual programming system that combines **execution flow** with **data flow** to enable imperative-style programming within a visual graph interface. Unlike pure dataflow systems, Haywire uses explicit control connections to define execution order while maintaining data connections for value passing.
 
@@ -60,6 +60,7 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 - **Just-in-time assembly**: Dynamic [flow compilation](#just-in-time-assembly) for performance
 
 ### Related Projects
+
 - [Floppy](https://github.com/JLuebben/Floppy) (Python-based)
 - [Box](https://github.com/p-ranav/box) (Python-based)  
 - [CablesGL](https://cables.gl/) (JavaScript-based)
@@ -79,79 +80,135 @@ This combination of explicit Control-flow, Data-flow, [state management](#execut
 
 ---
 
-## Core Architecture
+# Core Architecture
 
-### The Dual-Flow Model
+## The Dual-Flow Model
 
-Haywire's fundamental innovation is separating **what executes when** from **what data flows where**:
+Haywire's model is separating **what executes when**, and from **what data flows where**:
 
 **Control Flow (Execution Flow)**
+
 - Defines the sequence of operations
 - Connects [control pins](#pin-system) to specify execution order
 - Managed by the [Haywire Virtual Machine](#the-virtual-machine)
 - Supports complex patterns: loops, branches, conditionals
 
 **Data Flow**
+
 - Passes values between nodes
 - Connects [data pins](#pin-system) to transfer information
 - Evaluated locally around each control node through [localized Data-flow](#control-flow-vs-data-flow)
 - Supports [lazy evaluation](#lazy-evaluation) strategies
 
-### Node Classification
+## Node Classification
 
 **Control Nodes**
+
 - Have both control input and output pins
 - Drive execution flow
 - Examples: branches, loops, function calls
 
 **Data Nodes**  
+
 - Have only data pins (no control pins)
 - Process and transform data
 - Examples: math operations, data transformations
 
 **Event Nodes**
+
 - Special [control nodes](#node-types) with no input pins
 - Entry points for execution flows
 - Examples: BeginPlay, Tick, user input events
 
 **Output Nodes**
+
 - Special [control nodes](#node-types) with no output pins  
 - Exit points for execution flows
 - Examples: End, Return, Stop
 
 **Graph Nodes**
+
 - Nodes that encapsulate a [subgraph](#graph-as-node-pattern)
 - Can be Control or Data type based on pin configuration
 - Three variants: [Subgraph, Abstraction, Module](#graph-as-node-pattern)
 
-### The Virtual Machine
+These are the most important Node Types. More are defined under [Node Types](#node-types)
 
-## State Machine Architecture
+## The Graph
 
-Haywires graph don't execute as a simple tree traversal. Instead, they use a state machine approach:
+The Graph is the data container that describes the structure of the graph and stores the current state of the execution.
 
-- Each node can have multiple execution states (pending, executing, completed)
-- The Haywire Virtual Machine (VM) maintains an [execution stack](#execution-context-management)
+## Assembly: From Graph to Flow
+
+[Flows](#flow-execution-model) are used to organize and execute a sequence of nodes. A [Flow](#flow-execution-model) is assembled by the [Assembler](#assembly-process) from a [Graph](#graph-structure). A [Flow](#flow-execution-model) has always at least one [Event-node](#node-types) as an entry point.
+
+Each [Flow](#flow-execution-model) keeps a reference of the [Graph](#graph-structure) it is assembled from and uses the Graphs instantiations of [Nodes](#node-architecture), [Subgraphs](#graph-as-node-pattern) etc to execute/evaluate the nodes. Thus, during the Interpretation of a [Flow](#flow-execution-model), the [Graph](#graph-structure) is used as the database of the [Flow](#flow-execution-model). Once the Interpretation is finished, the Graphs nodes are reset to their default state.
+
+## Control-flow vs Data-flow
+
+Haywire uses a Control- (also known as an Execution-) flow model in combination with a Data-flow model.
+
+- Control-connections specify the order of operations
+- Data-connections pass values between nodes
+- The graph that is described by the Control-connections is called Control-graph and assembled into the Control-flow
+- The graph that is described by the Data-connections is called Data-graph and assembled into a Data-flow
+
+During the [Assembly](#assembly-process), the Control-connections are traversed and the Control-flow is assembled. Then from each [Control-node](#node-types), the Data-graph is traversed and the localized Data-flow is assembled.
+
+**Control-flow**
+
+- Start at [Event-nodes](#node-types) (BeginPlay, Tick, InputAction, etc.)
+- Follow Control-connections from [Control-node](#node-types) to [Control-node](#node-types)
+- Each control connection is essentially a "goto next instruction"
+
+**localized Data-flow: localized dependency resolution**
+
+- Analyze the local graph around a [Control-node](#node-types) to identify a local node-related dependency tree of [Data-nodes](#node-types)
+- Create evaluation sequence based on these data dependencies called a localized Data-flow
+- Every time a [Control-node](#node-types) is executed, its localized Data-flow is evaluated.
+
+## The Virtual Machine
+
+### Event-Driven Execution
+
+Haywires uses an [event-driven](#Flow-execution-model) model:
+
+- Execution begins at [Event-nodes](#node-types) (BeginPlay, Tick, input events)
+- Multiple execution chains (called [Flows](#flow-execution-model)) can run independently
+- The system can handle asynchronous operations and callbacks
+
+### Virtual Machine Architecture
+
+Haywires graph don't execute as a simple tree traversal. Instead, they use a virtual machine approach:
+
+- The Haywire Virtual Machine (VM) maintains two [execution stacks](#execution-context-management)
 - Nodes can pause execution and resume later, enabling complex control flows
 
 The Haywire Virtual Machine handles the complex orchestration:
 
 **Execution Context Management:**
-- Maintains the current execution state and call stack
+
+- Maintains the current execution state and loopback-stack
 - Tracks which node should execute next based on [Control-pin](#pin-system) connections
 - Manages local [variables](#variables) and parameter passing between nodes
 
 **Control Flow Translation:**
+
 - [Branch nodes](#node-types) become conditional jumps in the VM
 - [Loop nodes](#node-types) become loop constructs with iteration state
 - Sequence nodes become ordered function call chains
 
-**State Preservation:**
-- The VM can pause execution (for async operations like delays)
-- Maintains execution context across frame boundaries
-- Handles re-entrant execution for things like event callbacks
+**Data Flow Translation:**
 
-## Loop and Branch Handling
+- [Data nodes](#node-types) are executed sequentialy defined by the localized Data-Flow
+- The Engine supports [Lazy Evaluation](#lazy-evaluation)
+
+**State Preservation:**
+
+- The VM can pause execution (for async operations like delays)
+- Maintains execution context 
+
+### Loop and Branch Handling
 
 For loops and conditionals, Haywire use specialized [Control-flow nodes](#node-types):
 
@@ -159,30 +216,48 @@ For loops and conditionals, Haywire use specialized [Control-flow nodes](#node-t
 - [Loop nodes](#node-types) (ForLoop, WhileLoop) maintain internal state and can re-execute connected sub-control-graphs
 - The VM tracks loop iteration state and manages the evaluation context
 
-## Event-Driven Execution
+### Execution Context Management
 
-Haywires uses an event-driven model:
+The VM maintains execution through two stacks:
 
-- Execution begins at [Event-nodes](#node-types) (BeginPlay, Tick, input events)
-- Multiple execution chains (called [Flows](#flow-execution-model)) can run independently
-- The system can handle asynchronous operations and callbacks
+**Execution Stacks:**
+
+- **Done-stack**: Tracks completed nodes
+- **Loopback-stack**: Manages nodes requiring return execution (loops, sequences)
+
+**Loop Handling:**
+
+- [Loopback nodes](#node-types) can re-execute connected sub-graphs
+- VM manages iteration state and loop termination
+- Infinite loop protection via stack overflow detection (via the Done-stack)
 
 ---
 
-## Graph Structure
+# Graph Structure
 
-### The Graph as Container
+## The Graph as Container
 
-**The Graph**
+### The Graph
 
-The Haywire Graph is a data structure that describes the flow of data and control between nodes. As such, it is a collection of [Settings](#settings), [Parameters](#parameters), [Variables](#variables), [Connections](#connection-types) and instantiations of [Nodes](#node-architecture) and [Graph-nodes](#graph-as-node-pattern). All are described further down in their respective sections.
+The Haywire Graph is a data structure that describes the flow of data and control between nodes. As such, it is a collection of [Variables](#variables), [Connections](#connection-types) and instantiations of [Nodes](#node-architecture) and [Graph-nodes](#graph-as-node-pattern). All are described further down in their respective sections.
 
 - A Graph can contain multiple disconnected node-trees that are assembled into individual [Flows](#flow-execution-model).
 - A Graph cannot be executed directly. Only [Flows](#flow-execution-model) can be executed.
 
-### Graph-as-Node Pattern
+### Variables
 
-**The Graph-node: A graph is also a node**
+Only [Graphs](#graph-structure) have [Variables](#variables). [Variables](#variables) are used to enhance functionality of the [Graph](#graph-structure) and allow statefulness during execution runs between nodes (and subsequent execution runs).
+
+- [Variables](#variables) can be of specified datatypes.
+- [Variables](#variables) have a default value that can be set on creation or by the user via the user interface.
+- They are read/write accessible by the internal [Worker-function](#worker-function-execution) of [Control-nodes](#node-types)
+- When a [Graph](#graph-structure) is stored to file, only its [settings](#settings) and the default value are stored.
+
+The reason nodes have no [Variables](#variables) is because they are not meant to be stateful. Nodes are meant to be stateless and their output should only depend on their input. There are exception though, like the [Loopback-nodes](#node-types) that need to be stateful to function properly.
+
+## Graph-as-Node Pattern
+
+**The [Graph-node](#node-types): A graph is also a node**
 
 A Graph can be treated like a node and thus can be used as such within another graph: a Graph-node.
 
@@ -200,15 +275,17 @@ As with nodes, a Graph-node can be of the type control or data, depending if it 
 
 - A Graph-node **must** contain one [Source-node](#node-types) and one [Sink-node](#node-types) and **cannot** have any other [Event-](#node-types) or [Output-nodes](#node-types).
 
-### Connection Types
+## Connection Types
 
-## On Connections, Edges, Links and Pipes
+### On Connections, Edges, Links and Pipes
 
 To distinguish clearly between the visual representation of a Graph and the functional representation of a Flow, Haywire makes a clear distinction between the two on the level of connections, too. And in order to keep terms clear, when "connection(s)" is used in this text it is meant in a colloquial manner, while [Edges](#edges), [Links](#control-edges---links), and [Pipes](#data-edges---pipes) are used to describe the effective data representation of the connections. So pay attention to the context in which "connections" are used:
 
-On the Graph level, the connections between the Control- and Data-nodes describe also [Edges](#edges).
-On the Control-Flow level, the connections between the Control-nodes describe also [Links](#control-edges---links).
-On the Data-Flow level, the connections between the Data-nodes describe also [Pipes](#data-edges---pipes).
+* On the Graph level, the connections between the Control- and Data-nodes describe also [Edges](#edges).
+
+* On the Control-Flow level, the connections between the Control-nodes describe also [Links](#control-edges---links).
+
+* On the Data-Flow level, the connections between the Data-nodes describe also [Pipes](#data-edges---pipes).
 
 [Links](#control-edges---links) and [Pipes](#data-edges---pipes) come only into existence during the [Assembly step](#assembly-process) and are only used in the orchestration of Control- and Data-Flows.
 
@@ -229,9 +306,11 @@ An [Edge](#edges) is a simple data structure (see [complete structure in Appendi
 Usually, only pins of the same type can be connected. But Haywire allows for connection between [Data-pins](#pin-system) of different types if there are compatible adapters available. For [Control-pins](#pin-system), there are no data-types and such restrictions are not necessary.
 
 ### Control-edges -> Links
+
 TBD
 
 ### Data-edges -> Pipes
+
 After the [Assembly Process](#assembly-process), each [Data-pin-outlet](#pin-system) that has one/many connections will hold the same number of [Pipes](#data-edges---pipes). Each [Pipe](#data-edges---pipes) holds within it self the reference to the connected [Data-pin-inlet's](#pin-system) value. If the outlet-pin-data-type is different from the inlet-pin-data-type, the [Pipe](#data-edges---pipes) also contains an adapter that will automatically transform the data.
 
 The idea: when the nodes [worker function](#worker-function-execution) is finished and the [data-pin-outlet](#pin-system) is set, all its containing [Pipes](#data-edges---pipes) will be updated with the new value and automatically cascade the change to the connected [data-pin-inlets](#pin-system) and set them to dirty.
@@ -248,55 +327,9 @@ If an adapter is not available, the Editor should have shown an error when the e
 
 ---
 
-## Flow Execution Model
+# Node Architecture
 
-### From Graph to Flow
-
-**Flows**
-
-[Flows](#flow-execution-model) are used to organize and execute a sequence of nodes. A [Flow](#flow-execution-model) is assembled by the [Assembler](#assembly-process) from a [Graph](#graph-structure). A [Flow](#flow-execution-model) has always at least one [Event-node](#node-types) as an entry point.
-
-Each [Flow](#flow-execution-model) keeps a reference of the [Graph](#graph-structure) it is assembled from and uses the Graphs instantiations of [Nodes](#node-architecture), [Subgraphs](#graph-as-node-pattern) etc to execute/evaluate the nodes. Thus, during the Interpretation of a [Flow](#flow-execution-model), the [Graph](#graph-structure) is used as the database of the [Flow](#flow-execution-model). Once the Interpretation is finished, the Graphs nodes are reset to their default state.
-
-### Control-flow vs Data-flow
-
-Haywire uses a Control- (also known as an Execution-) flow model in combination with a Data-flow model.
-
-- Control-connections specify the order of operations
-- Data-connections pass values between nodes
-- The graph that is described by the Control-connections is called Control-graph and assembled into the Control-flow
-- The graph that is described by the Data-connections is called Data-graph and assembled into a Data-flow
-
-During the [Assembly](#assembly-process), the Control-connections are traversed and the Control-flow is assembled. Then from each [Control-node](#node-types), the Data-graph is traversed and the localized Data-flow is assembled.
-
-**Control-flow**
-- Start at [Event-nodes](#node-types) (BeginPlay, Tick, InputAction, etc.)
-- Follow Control-connections from [Control-node](#node-types) to [Control-node](#node-types)
-- Each control connection is essentially a "goto next instruction"
-
-**localized Data-flow: localized dependency resolution**
-- Analyze the local graph around a [Control-node](#node-types) to identify a local node-related dependency tree of [Data-nodes](#node-types)
-- Create evaluation sequence based on these data dependencies called a localized Data-flow
-- Every time a [Control-node](#node-types) is executed, its localized Data-flow is evaluated.
-
-### Execution Context Management
-
-The VM maintains execution through two stacks:
-
-**Execution Stacks:**
-- **Done-stack**: Tracks completed nodes
-- **Loopback-stack**: Manages nodes requiring return execution (loops, sequences)
-
-**Loop Handling:**
-- [Loopback nodes](#node-types) can re-execute connected sub-graphs
-- VM manages iteration state and loop termination
-- Infinite loop protection via stack overflow detection
-
----
-
-## Node Architecture
-
-### Node Types
+## Node Types
 
 **The node**
 
@@ -304,7 +337,7 @@ A Haywire node is arguably the most central element of the system. A node consis
 
 - **[Settings](#settings)** configure the structure / behaviour / functionality of the node
 - **[Parameters](#parameters)** to configure its behavior.
-- **[DataIns](#inlets--outlets--pins)** and **[DataOuts](#dataouts)** to store data to and from other nodes.
+- **[DataIns](#inlets--outlets--pins)** and **[Data Outlets](#data-outlets)** to store data to and from other nodes.
 - **[Pins](#pin-system)** to connect to and from other nodes.
 - **[Worker-function](#worker-function-execution)** that contains its main logic.
 
@@ -316,14 +349,15 @@ These are the basic building blocks of a Haywire graph:
 - **Data-nodes**
   Data-nodes are nodes that are used to process data within the graph. They are defined by having no [Control-pins](#pin-system) at all.
 
-- **Graph-nodes**
-  Graph-nodes are nodes that are used to encapsulate a [subgraph](#graph-as-node-pattern) within the graph. They can have [Control-pins](#pin-system) and/or [Data-pins](#pin-system), Thus they can come on two flavors: **Control-graph-nodes** and **Data-graph-nodes**. Like their siblings, **Control-node** and **Data-node**, they are assembled and executed/evaluated in the same fashion. Like other nodes, they can have [variables](#variables).
-
 - **Event-nodes**
   Event-nodes are a special kind of Control-nodes used to trigger execution within the [Graph](#graph-structure). They are defined by having no pin-inlets at all. With the exception of the [Source-node](#node-types), Event-nodes are not allowed inside of [Graph-nodes](#graph-as-node-pattern).
 
 - **Output-nodes**
   Output-nodes are a special kind of Control-nodes used to terminate execution within the [Graph](#graph-structure). They are defined by having no pin-outlets at all. With the exception of the [Sink-node](#node-types), output-nodes are not allowed inside of [Graph-nodes](#graph-as-node-pattern).
+
+- **Graph-nodes** 
+  
+  Graph-nodes are nodes that are used to encapsulate a [subgraph](#graph-as-node-pattern) within the graph. They can have [Control-pins](#pin-system) and/or [Data-pins](#pin-system), Thus they can come on two flavors: **Control-graph-nodes** and **Data-graph-nodes**. Like their siblings, **Control-node** and **Data-node**, they are assembled and executed/evaluated in the same fashion. Like other nodes, they can have [variables](#variables).
 
 - **Source-node**
   The Source-node is a special kind of Event-node used only inside [Graph-nodes](#graph-as-node-pattern) to start the execution of the Graph-node. The Source-node's pin-outlets are dynamically configured by its Graph-node defined pin-inlets.
@@ -334,18 +368,7 @@ These are the basic building blocks of a Haywire graph:
 - **Loopback-node** Flag
   The Loopback-node is a [Control-node](#node-types) with a flag that tells the VM to loop back execution within the Control-flow to itself if the branch ends without an [Output-node](#node-types). Loopback-nodes are for example For-Loops, While-Loops, Sequences and other Control-flow constructs that allow *sequential* branching of the Control-flow. Switches or If-Statements are not Loopback-nodes since they do *conditional* branching.
 
-### Node Components
-
-### Variables
-
-Only [Graphs](#graph-structure) have [Variables](#variables). [Variables](#variables) are used to enhance functionality of the [Graph](#graph-structure) and allow statefulness between nodes and execution runs.
-
-- [Variables](#variables) can be of specified datatypes.
-- [Variables](#variables) have a default value that can be set on creation or by the user via the user interface.
-- They are read/write accessible by the internal [Worker-function](#worker-function-execution)
-- When a [Graph](#graph-structure) is stored to file, only its [settings](#settings) and the default value are stored.
-
-The reason nodes have no [Variables](#variables) is because they are not meant to be stateful. Nodes are meant to be stateless and their output should only depend on their input. There are exception though, like the [Loopback-nodes](#node-types) that need to be stateful to function properly.
+## Node Components
 
 ### Settings
 
@@ -353,7 +376,7 @@ The reason nodes have no [Variables](#variables) is because they are not meant t
 
 - [Settings](#settings) can only be of datatypes that makes them editable through the user interface.
 - Change of [settings](#settings) will trigger a reconfiguration of the node and reevaluation of all the Connections.
-  - This can be used to add/remove/enable/disable [Settings](#settings), [Parameters](#parameters), [DataIns](#inlets--outlets--pins), [DataOuts](#dataouts).
+  - This can be used to add/remove/enable/disable [Settings](#settings), [Parameters](#parameters), [DataIns](#inlets--outlets--pins), [Data Outlets](#data-outlets).
   - This can also lead to a removal of Connections that are not compatible with the new [settings](#settings).
 - They have no pins.
 - They are only not meant to be accessed by the internal [Worker-function](#worker-function-execution)
@@ -368,11 +391,10 @@ The reason nodes have no [Variables](#variables) is because they are not meant t
 - They are only read accessible by the internal [Worker-function](#worker-function-execution)
 - When a [Graph](#graph-structure) is stored to file, the value is stored.
 
-### Pin System
-
 ### Inlets & Outlets & Pins
 
 #### Pins
+
 [Pins](#pin-system) are the visual icon to connect to and from a node. [Pins](#pin-system) have a selection of different [settings](#settings) that define their behaviour:
 
 - **Flow-type** defines if it is a control, data or callback pin
@@ -392,6 +414,7 @@ The following table shows the only admissible pin configurations:
 | Callback-pin outlet | call | outlet | type | many     |
 
 #### Explanation to connection-types
+
 - **Control-pin-outlet** can have only one coupling, since it must be clear which the next node is that needs to be executed.
 - **Control-pin-inlet** can have many couplings, since there might be multiple execution paths that lead to this node.
 - **Data-pin-outlet** can have many couplings, since multiple nodes might be interested in this data
@@ -400,9 +423,11 @@ The following table shows the only admissible pin configurations:
 - **Callback-pin-outlet** can have many couplings, since the [Event-node](#node-types) might be interested in multiple callbacks.
 
 #### Control Inlets
+
 Inlets are used execute Control-flow.
 
 #### Data Inlets
+
 Inlets are used to receive data.
 
 - Inlets are of specified data_types and data_categories.
@@ -414,24 +439,22 @@ Inlets are used to receive data.
 - When a [Graph](#graph-structure) is stored to file, only the default value is stored.
 - If the Inlet has a data-type that can be edited via UI, the UI-Widget is displayed and is in effect a virtually attached Data source and sets the [Data-pin-inlet](#pin-system) like a [Data-pin-outlet](#pin-system) would.
 
-### DataOuts
+#### Data Outlets
 
-[DataOuts](#dataouts) are used to send data out of a node.
+[Data Outlets](#data-outlets) are used to send data out of a node.
 
-- [DataOuts](#dataouts) are of specified datatypes.
-- [DataOuts](#dataouts) are **required** to be set by the internal [Worker-function](#worker-function-execution). This assures a consistent behavior.
+- [Data Outlets](#data-outlets) are of specified datatypes.
+- [Data Outlets](#data-outlets) are **required** to be set by the internal [Worker-function](#worker-function-execution). This assures a consistent behavior.
 - They are only write accessible by the internal [Worker-function](#worker-function-execution).
 
-**The implementation of [DataOuts](#dataouts) is not yet defined.**
+#### Overview of Nodes Configurables
 
-### Overview of Nodes Configurables
-
-| Types          | Function        | Default | Stores  | Inlets | Outlets | Visible  | Enable   | Required |
-| -------------- | --------------- | ------- | ------- | ------ | ------- | -------- | -------- | -------- |
-| Settings       | Configuration   |   no    | value   |   no   |   no    |  on/off  |  on/off  |  None    |
-| Parameters     | Properties      |   no    | value   |   no   |   no    |  on/off  |  on/off  |  None    |
-| Inlets         | Input           |   yes   | default |   yes  |   no    |  on/off  |  on/off  |  Maybe   |
-| Outlets        | Output          |   no    |  none   |   no   |   yes   |  on/off  |  on/off  |  None    |
+| Types      | Function      | Default | Stores  | Inlets | Outlets | Visible | Enable | Required |
+| ---------- | ------------- | ------- | ------- | ------ | ------- | ------- | ------ | -------- |
+| Settings   | Configuration | no      | value   | no     | no      | on/off  | on/off | None     |
+| Parameters | Properties    | no      | value   | no     | no      | on/off  | on/off | None     |
+| Inlets     | Input         | yes     | default | yes    | no      | on/off  | on/off | Maybe    |
+| Outlets    | Output        | no      | none    | no     | yes     | on/off  | on/off | None     |
 
 none = can not be set / has no effect
 Default = has default value
@@ -444,7 +467,7 @@ Required = can be set to be required.
 
 This is where the real work is done. Each node, no matter of type, has one [Worker-function](#worker-function-execution). However, depending of the type of the node, the [Worker-function](#worker-function-execution) is called through different mechanisms.
 
-The [Worker-function](#worker-function-execution) has access to the nodes internal [Parameters](#parameters), [Variables](#variables), DataIns and is able to set the [DataOuts](#dataouts).
+The [Worker-function](#worker-function-execution) has access to the nodes internal [Parameters](#parameters), [Variables](#variables), DataIns and is able to set the [Data Outlets](#data-outlets).
 
 It returns status information that is interpreted differently depending on the execution/evaluation mechanism.
 
@@ -457,6 +480,7 @@ The VM follows the [Control-pins](#pin-system) from node to node. To recap quick
 1. Before the [Control-node's](#node-types) [Worker-function](#worker-function-execution) is called, it first evaluates the [Control-node's](#node-types) [localized Data-flow](#control-flow-vs-data-flow) to update the [Data-pin-inlets](#pin-system).
 
 2. Then it executes the [Worker-function](#worker-function-execution). It provides a reference to
+   
    - **A global context**: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.
    - **A local context**: The local context comes in form of a dict and gives access to the local graph and its [variables](#variables).
    - **Control-pin**: The identity of the [Control-pin-input](#pin-system) that is executed.
@@ -464,6 +488,7 @@ The VM follows the [Control-pins](#pin-system) from node to node. To recap quick
    - etc.
 
 3. Within the [Worker-function](#worker-function-execution) at the end of its process,
+   
    - it sets the respective [Data-pin-outlets](#pin-system).
 
 4. then returns status information that includes the information which [Control-pin-outlet](#pin-system) is to be followed.
@@ -483,19 +508,23 @@ The evaluation of an individual [Data-node](#node-types) follows these steps:
 Before the [Data-node's](#node-types) [Worker-function](#worker-function-execution) is called, it checks first if any of its own [Data-pin-inlets](#pin-system) are dirty (value has changed).
 
 1. If this is the case:
-1. then it runs the [Worker-function](#worker-function-execution). It provides a reference to
-  * **A global context**: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.
-  * **A local context**: The local context comes in form of a dict and gives access to the local graph and its [variables](#variables).
 
-2. Within the [Worker-function](#worker-function-execution) at the end of its process,
-  * it updates the [Data-pin-outlets](#pin-system) so its connected downstream [Data-pin-inlets](#pin-system) are set to dirty (value has changed).
+2. then it runs the [Worker-function](#worker-function-execution). It provides a reference to
+   
+   * **A global context**: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.
+   * **A local context**: The local context comes in form of a dict and gives access to the local graph and its [variables](#variables).
 
-2. If there are no dirty inlets:
-  * the [Worker-function](#worker-function-execution) is not called. And no outlets are updated.
+3. Within the [Worker-function](#worker-function-execution) at the end of its process,
+   
+   * it updates the [Data-pin-outlets](#pin-system) so its connected downstream [Data-pin-inlets](#pin-system) are set to dirty (value has changed).
 
-3. The sequence hops to the next [Data-node](#node-types).
+4. If there are no dirty inlets:
+   
+   * the [Worker-function](#worker-function-execution) is not called. And no outlets are updated.
 
-4. .. and so it continues...
+5. The sequence hops to the next [Data-node](#node-types).
+
+6. .. and so it continues...
 
 ### Data Types and Categories
 
@@ -508,9 +537,9 @@ ComfyUI follows a different strategy. It has keywords for each data-type. https:
 
 ---
 
-## Advanced Features
+# Advanced Features
 
-### Lazy Evaluation
+## Lazy Evaluation
 
 ComfyUI: https://docs.comfy.org/custom-nodes/backend/lazy_evaluation
 
@@ -524,7 +553,7 @@ The complete [Lazy Evaluation Algorithm](#complete-lazy-evaluation-algorithm) is
 
 This has not highest priority, since lazy evaluation would only involve [Data-Nodes](#node-types), which should **not** be computationally heavy to evaluate and therefore should not pose to be a serious bottleneck.
 
-### Callback System
+## Callback System
 
 ## Callback-connections
 
@@ -545,12 +574,13 @@ Also, an [Event-node](#node-types) can by definition have no pin-inlets.
 ### Just-In-Time Assembly
 
 ## Just-In-Time Assembly (For a future implementation)
+
 - This happens whenever a connection is edited.
   - This can be the case if a node is deleted, but not when a node is added.
 
 ---
 
-## Implementation Framework
+# Implementation Framework
 
 ### Assembly Process
 
@@ -573,19 +603,20 @@ We assume:
 
 The complete [Assembly Steps](#complete-assembly-steps) are detailed in the [Appendix](#appendix).
 
-### Interpreter
+# Interpreter
 
 ## Interpreter
+
 - The [Interpreter](#interpreter) is responsible for running the individual [Flows](#flow-execution-model) in their own Threads.
 - It is responsible for piping external events to trigger the [Flows](#flow-execution-model) that have matching [Event-nodes](#node-types).
 
-### Flow Execution
+# Flow Execution
 
 ## Execution
 
 loading nodes from filesystem: https://github.com/comfyanonymous/ComfyUI/blob/78672d0ee6d20d8269f324474643e5cc00f1c348/nodes.py#L2168
 
-### Flow Execution
+## Flow Execution
 
 Each [Flow](#flow-execution-model) has a Scheduler that manages the execution of the [Flow](#flow-execution-model). It makes sure that the [Flow](#flow-execution-model) is executed from the [Event-node](#node-types) that matches the trigger type.
 
@@ -595,7 +626,7 @@ Depending on the Trigger-queue's configuration, the Trigger-queue can be configu
 
 [Flows](#flow-execution-model) should allowed to be executed in parallel. Not yet clear which architecture to use.
 
-#### Control Flow Execution
+### Control Flow Execution
 
 When a [Flow](#flow-execution-model) is executed, it creates two stacks:
 
@@ -621,6 +652,7 @@ If there are cycles in the Control-Flow that spiral into infinity, the Done-stac
 ### For Author Clarification:
 
 1. **Parallel Flow Execution**: Should [flows](#flow-execution-model) run in parallel? This impacts:
+   
    - [Graph](#graph-structure) reference management (each flow needs separate instance?)
    - Thread safety requirements
    - State management complexity
@@ -630,7 +662,8 @@ If there are cycles in the Control-Flow that spiral into infinity, the Done-stac
 
 2. **Data-Flow Cycle Exceptions**: The specification mentions data cycles are allowed "if passing through a [Control-node](#node-types)" - this needs clearer definition of when/how this works.
 
-3. **[DataOuts](#dataouts) Implementation**: Currently marked as "not yet defined" - needs specification for:
+3. **[Data Outlets](#data-outlets) Implementation**: Currently marked as "not yet defined" - needs specification for:
+   
    - How outputs are validated as "required to be set"
    - Runtime behavior when outputs aren't set
    - Integration with [pipe system](#data-edges---pipes)
@@ -647,21 +680,21 @@ If there are cycles in the Control-Flow that spiral into infinity, the Done-stac
 
 ### Suggested Enhancements:
 
-**ðŸ“‹ Performance Monitoring**: Add execution profiling to identify bottlenecks in complex graphs
+**?“‹ Performance Monitoring**: Add execution profiling to identify bottlenecks in complex graphs
 
-**ðŸ”§ Debug Infrastructure**: Visual execution tracing, breakpoint support, step-through debugging
+**?”§ Debug Infrastructure**: Visual execution tracing, breakpoint support, step-through debugging
 
-**ðŸ“¦ Module System**: Standardized packaging/distribution for custom nodes and abstractions
+**?“¦ Module System**: Standardized packaging/distribution for custom nodes and abstractions
 
-**ðŸŽ¯ Error Handling**: Comprehensive error propagation and recovery strategies
+**?Ž¯ Error Handling**: Comprehensive error propagation and recovery strategies
 
 **âš¡ Optimization Passes**: Graph analysis for common optimization patterns (dead code elimination, constant folding)
 
 ---
 
-## Appendix
+# Appendix
 
-### Complete Edge Data Structure
+## Complete Edge Data Structure
 
 An [Edge](#edges) is a simple data structure that contains the:
 
@@ -674,7 +707,7 @@ An [Edge](#edges) is a simple data structure that contains the:
   * inlet-pin-id
   * inlet-pin-data-type
 
-### Complete Node Definition Template
+## Complete Node Definition Template
 
 ```python
 class HaywireMeta(type):
@@ -894,24 +927,28 @@ class BaseNode(HaywireNode):
 2. Calling the worker FUNCTION on
 ```
 
-### Complete Lazy Evaluation Algorithm
+## Complete Lazy Evaluation Algorithm
 
 **Algorithm:**
 
 **Setup** of a [Control-node](#node-types)
+
 * Some Inlets are configured to be lazy
 * A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
 
 **Setup** of a [Data-node](#node-types) with the [localized Data-Flow](#control-flow-vs-data-flow) of this [Control-node](#node-types)
+
 * Some Inlets are configured to be lazy
 * A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
 
 **[Assembly](#assembly-process)**
+
 * On the [Control-node](#node-types), the [assembler](#assembly-process) creates a bit mask with a bit for each data-inlet. each data-inlet gets its own bit mask called EVAL_MASK where the bit that represents the inlet is set to 1, while all other bits are set to 0.
 * On the [Data-node](#node-types), the CHECK_LAZY function is called to determine which Data-inlets to follow in the backpropagation.(This, by the way has a severe edge case: the CHECK_LAZY function on a [Data-node](#node-types) should make its decision at assembly time for performance reasons. Otherwise the re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow) would be required on each execution of the [Control-node](#node-types), which we want to avoid. But implementing [Lazy Evaluation](#lazy-evaluation) in a consistent manner for the user means that changes of [Properties](#parameters) or Inlets that could affect this decision on the [Data-node](#node-types) during runtime actually needs to trigger a re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow). Otherwise, the evaluation of the Data-Flow could lead to incoherent results. A slight performance penalty is preferable over an inconsistent user experience.)
 * Upon generation of the [localized Data-Flow](#control-flow-vs-data-flow), this bit mask is passed on during the backpropagation, and is binary OR'ed with other bit masks from the same [Control-node](#node-types) if they merge at that specific [Data-node](#node-types). This OR'ed bit mask is then passed further during backpropagation. At the end there is a list of all the required [Data-nodes](#node-types) and their respective OR'ed bit masks (EVAL_MASK). Then the correct sequence of [Data-nodes](#node-types) is determined to evaluate the Data-Flow correctly. This EVAL_MASK shows which Data-inlets require the evaluation of this specific [Data-node](#node-types).
 
 **Evaluation**
+
 * On execution of the [Control-node](#node-types), the VM creates a bit mask called LAZY_MASK with a bit for each data-inlet, all set to 1.
 * then the CHECK_LAZY function is called to determine if the Data-Flow can be evaluated lazily or not. If this is the case, it sets the bits inside LAZY_MASK representing the data-inlets that are not needed to 0, while all others stay 1.
 * Then the [localized Data-Flow](#control-flow-vs-data-flow) is evaluated:
@@ -932,9 +969,10 @@ class BaseNode(HaywireNode):
 
 It is not clear yet how fast the reassembly of the [localized Data-Flow](#control-flow-vs-data-flow) from scratch is. I hope for an efficient algorithm. Depending on the time saved by lazy evaluation, it might be worth it. Its left to the node-designer to decide if such an effort makes sense. If there is no CHECK_LAZY function defined, the algorithm should run at nominal speed. The additional binary AND operation and if statements in each step should be negligible.
 
-### Complete Assembly Steps
+## Complete Assembly Steps
 
 #### Graph Validation
+
 - Checking for graph validity
   - Node checking:
     - Checking for validity of node-types (see chapter of [node types](#node-types) for details)
@@ -942,19 +980,23 @@ It is not clear yet how fast the reassembly of the [localized Data-Flow](#contro
     - Checking for [source](#node-types) and [sink nodes](#node-types) inside [Graph-nodes](#graph-as-node-pattern) (required to be functional)
 
 #### Graph Cleaning
+
 - Clearing all connections that are stored inside pins. (clean house)
 
 #### Graph Preprocessing
+
 - Storing Control-flow connections in their respective outlet-pins. This is because the Control-flow propagates in the direction from [Control-pin-outlet](#pin-system) to [Control-pin-inlet](#pin-system). The next-to-be-executed-controlnode [Control-pin-inlet](#pin-system) doesn't need to know with what node it is connected. It is actually allowed to be connected to multiple nodes. Once the node is executed, the VM will inform the from where the Control-flow came from.
 - Storing Data-flow connections in their respective inlet-pins. This is because the Data-flow is assembled through backpropagation from the [Data-pin-inlets](#pin-system) of its respective [Control-node](#node-types). the [Data-pin-outlets](#pin-system) doesn't need to know with which inlet-pins it is connected to at the time of [Assembly](#assembly-process). once the Data-flow is created though, the outlet-pins "know" where to send their results. (this mechanism is not yet defined and can benefit from a suitable solution)
 
 #### Flow identification
+
 - Identifies different Control-flows with the [Graph](#graph-structure).
   - A Control-flows needs at least one [Event-node](#node-types)
   - A Control-flows is considered separate from another Control-flows when there is no connection (control or data) between their respective nodes-trees.
     - The only exception here is the [callback-connection](#callback-system).
 
 #### Flow assembly
+
 - Stepping through each [Control-node](#node-types):
   - its [Data-pin-inlet](#pin-system) dependencies are separated into a localized Data-graph (containing only nodes and connections that influence the [Data-pin-inlets](#pin-system) of the [Control-node](#node-types) in focus).
   - Checking for loops in the Data-graph (not allowed with the exception of loops that contain a [Control-node](#node-types))
