@@ -33,8 +33,8 @@
     - [Sink-node](#sink-node)
     - [Loopback-node\*\* Flag](#loopback-node-flag)
   - [Node Components](#node-components)
-    - [Settings](#settings)
-    - [Parameters](#parameters)
+    - [Configs](#configs)
+    - [Properties](#properties)
     - [Inlets \& Outlets \& Pins](#inlets--outlets--pins)
       - [Pins](#pins)
       - [Explanation to connection-types](#explanation-to-connection-types)
@@ -142,7 +142,7 @@ Only [Graphs](#graph-structure) have [Variables](#variables). [Variables](#varia
 - [Variables](#variables) can be of specified datatypes.
 - [Variables](#variables) have a default value that can be set on creation or by the user via the user interface.
 - They are read/write accessible by the internal [Worker-function](#worker-function-execution) of [Control-nodes](#node-types)
-- When a [Graph](#graph-structure) is stored to file, only its [settings](#settings) and the default value are stored.
+- When a [Graph](#graph-structure) is stored to file, only its [configs](#configs) and the default value are stored.
 
 The reason nodes have no [Variables](#variables) is because they are not meant to be stateful. Nodes are meant to be stateless and their output should only depend on their input. There are exception though, like the [Loopback-nodes](#node-types) that need to be stateful to function properly.
 
@@ -226,8 +226,8 @@ If an adapter is not available, the Editor should have shown an error when the e
 
 A Haywire node is arguably the most central element of the system. A node consists of
 
-- **[Settings](#settings)** configure the structure / behaviour / functionality of the node
-- **[Parameters](#parameters)** to configure its behavior.
+- **[Configs](#configs)** configure the structure / behaviour / functionality of the node
+- **[Properties](#properties)** to configure its behavior.
 - **[Data Inlets](#inlets--outlets--pins)** and **[Data Outlets](#data-outlets)** to store data to and from other nodes.
 - **[Pins](#pin-system)** to connect to and from other nodes.
 - **[Worker-function](#worker-function-execution)** that contains its main logic.
@@ -293,32 +293,32 @@ These are the basic building blocks of a Haywire graph:
 
 ## Node Components
 
-### Settings
+### Configs
 
-[Settings](#settings) define the structure / behaviour / functionality of the node.
+[Configs](#configs) define the structure / behaviour / functionality of the node.
 
-- [Settings](#settings) can only be of datatypes that makes them editable through the user interface.
-- Change of [settings](#settings) will trigger a reconfiguration of the node and reevaluation of all the Connections.
-  - This can be used to add/remove/enable/disable [Settings](#settings), [Parameters](#parameters), [Data Inlets](#inlets--outlets--pins), [Data Outlets](#data-outlets).
-  - This can also lead to a removal of Connections that are not compatible with the new [settings](#settings).
+- [Configs](#configs) can only be of datatypes that makes them editable through the user interface.
+- Change of [configs](#configs) will trigger a reconfiguration of the node and reevaluation of all the Connections.
+  - This can be used to add/remove/enable/disable [Configs](#configs), [Properties](#properties), [Data Inlets](#inlets--outlets--pins), [Data Outlets](#data-outlets).
+  - This can also lead to a removal of Connections that are not compatible with the new [configs](#configs).
 - They have no pins.
-- They are only not meant to be accessed by the internal [Worker-function](#worker-function-execution)
+- They are accessible read-only by the internal [Worker-function](#worker-function-execution)
 
-### Parameters
+### Properties
 
-[Parameters](#parameters) are values that can be set or changed only by the user through the user interface. For use cases where control through pin-inlet's are **not** desired.
+[Properties](#properties) are values that can be set or changed only by the user through the user interface. For use cases where control through pin-inlet's are **not** desired.
 
-- [Parameters](#parameters) can only be of datatypes that makes them editable through the user interface.
+- [Properties](#properties) can only be of datatypes that makes them editable through the user interface.
 - They have **no** default value
 - They have no pins.
-- They are only read accessible by the internal [Worker-function](#worker-function-execution)
+- They are accessible read-only by the internal [Worker-function](#worker-function-execution)
 - When a [Graph](#graph-structure) is stored to file, the value is stored.
 
 ### Inlets & Outlets & Pins
 
 #### Pins
 
-[Pins](#pin-system) are the visual icon to connect to and from a node. [Pins](#pin-system) have a selection of different [settings](#settings) that define their behaviour:
+[Pins](#pin-system) are the visual icon to connect to and from a node. [Pins](#pin-system) have a selection of different [configs](#configs) that define their behaviour:
 
 - **Flow-type** defines if it is a control, data or callback pin
 - **Socket-type** defines if the pin is an inlet (for getting event/data in) or an outlet (for sending event/data out)
@@ -378,8 +378,8 @@ Inlets are used to receive data.
 
 | Types      | Function      | Default | Stores  | Inlets | Outlets | Visible | Enable | Required |
 | ---------- | ------------- | ------- | ------- | ------ | ------- | ------- | ------ | -------- |
-| Settings   | Configuration | no      | value   | no     | no      | on/off  | on/off | None     |
-| Parameters | Properties    | no      | value   | no     | no      | on/off  | on/off | None     |
+| Configs    | Configuration | no      | value   | no     | no      | on/off  | on/off | None     |
+| Properties | Properties    | no      | value   | no     | no      | on/off  | on/off | None     |
 | Inlets     | Input         | yes     | default | yes    | no      | on/off  | on/off | Maybe    |
 | Outlets    | Output        | no      | none    | no     | yes     | on/off  | on/off | None     |
 
@@ -387,14 +387,14 @@ none = can not be set / has no effect
 Default = has default value
 Stores = data that is stored to file and is loaded.
 Visible = can be set by the user to be visible in the node UI.
-Enable = can be set to be on/off by a [Parameter](#parameters).
+Enable = can be set to be on/off by a [Property](#properties).
 Required = can be set to be required.
 
 ### Worker Function
 
 This is where the real work is done. Each node, no matter of type, has one [Worker-function](#worker-function-execution). However, depending of the type of the node, the [Worker-function](#worker-function-execution) is called through different mechanisms.
 
-The [Worker-function](#worker-function-execution) has access to the nodes internal [Parameters](#parameters), [Variables](#variables), Data Inlets and is able to set the [Data Outlets](#data-outlets).
+The [Worker-function](#worker-function-execution) has access to the nodes internal [Properties](#properties), [Variables](#variables), Data Inlets and is able to set the [Data Outlets](#data-outlets).
 
 It returns status information that is interpreted differently depending on the execution/evaluation mechanism.
 
@@ -409,6 +409,27 @@ The Data-category include `scalar`, `list`, `tuple`, `set`, `array`, `map`, `dic
 
 ComfyUI follows a different strategy. It has keywords for each data-type. <https://docs.comfy.org/custom-nodes/backend/datatypes>
 
+LangFlow follows a different strategy. Its Data-type are only high level. <https://docs.langflow.org/data-types>
+
+### Support Functions
+The support functions allow for more fine grained control over the execution of the node.
+
+#### ON_CHANGED_CONFIG:
+* handles changes to the configuration of the node.
+* called whenever a Config of the node is changed.
+
+#### ON_VALIDATION_LAZY:
+* handles the validation of the lazy evaluation of the node.
+* called every time before execution / evaluation of node.
+
+#### ON_CHANGED_ASYNC:
+* checks for changes that are outside of the haywire process
+* called every time before execution / evaluation of node.
+
+#### ON_VALIDATION_INPUT:
+* checks for validation of the input data of the node.
+* called every time before execution / evaluation of node.
+
 ---
 
 # Advanced Features
@@ -419,7 +440,7 @@ This feature makes the evaluation of the Data-Flow more efficient by excluding u
 
 The Lazy Evaluation algorithm covers differnt areas of the haywire system, from node initialisation to execution.
 
-The [assembler](#assembly-process) is responsible for generating the [localized Data-Flow](#control-flow-vs-data-flow) for each [Control-node](#node-types). If Inlets have a lazy evaluation flag and the Data-Flows can be lazily evaluated, the VirtualMachine that lazily evaluates the Data-Flow would need some additional information beforehand. Haywire has the method `def CHECK_LAZY` that is called before the [localized Data-Flow](#control-flow-vs-data-flow) can be evaluated lazily or not. If this is the case, depending on which Data Inlets are required, only certain steps of the [localized Data-Flow](#control-flow-vs-data-flow) need to be evaluated.
+The [assembler](#assembly-process) is responsible for generating the [localized Data-Flow](#control-flow-vs-data-flow) for each [Control-node](#node-types). If Inlets have a lazy evaluation flag and the Data-Flows can be lazily evaluated, the VirtualMachine that lazily evaluates the Data-Flow would need some additional information beforehand. Haywire has the method `def ON_VALIDATION_LAZY` that is called before the [localized Data-Flow](#control-flow-vs-data-flow) can be evaluated lazily or not. If this is the case, depending on which Data Inlets are required, only certain steps of the [localized Data-Flow](#control-flow-vs-data-flow) need to be evaluated.
 
 The complete [Lazy Evaluation Algorithm](#complete-lazy-evaluation-algorithm) is detailed in the [Appendix](#appendix).
 
@@ -517,7 +538,7 @@ We assume:
 
 ## Assembly Steps
 
-#### Graph Validation
+### Graph Validation
 
 - Checking for graph validity
   - Node checking:
@@ -525,23 +546,23 @@ We assume:
     - Checking for multiples of the same [Event-nodes](#node-types) (not allowed since undefined which Control-flow is should have precedence)
     - Checking for [source](#node-types) and [sink nodes](#node-types) inside [Graph-nodes](#graph-as-node-pattern) (required to be functional)
 
-#### Graph Cleaning
+### Graph Cleaning
 
 - Clearing all connections that are stored inside pins. (clean house)
 
-#### Graph Preprocessing
+### Graph Preprocessing
 
 - Storing Control-flow connections in their respective outlet-pins. This is because the Control-flow propagates in the direction from [Control-pin-outlet](#pin-system) to [Control-pin-inlet](#pin-system). The next-to-be-executed-controlnode [Control-pin-inlet](#pin-system) doesn't need to know with what node it is connected. It is actually allowed to be connected to multiple nodes. Once the node is executed, the VM will inform the from where the Control-flow came from.
 - Storing Data-flow connections in their respective inlet-pins. This is because the Data-flow is assembled through backpropagation from the [Data-pin-inlets](#pin-system) of its respective [Control-node](#node-types). the [Data-pin-outlets](#pin-system) doesn't need to know with which inlet-pins it is connected to at the time of [Assembly](#assembly-process). once the Data-flow is created though, the outlet-pins "know" where to send their results. (this mechanism is not yet defined and can benefit from a suitable solution)
 
-#### Flow identification
+### Flow identification
 
 - Identifies different Control-flows with the [Graph](#graph-structure).
   - A Control-flows needs at least one [Event-node](#node-types)
   - A Control-flows is considered separate from another Control-flows when there is no connection (control or data) between their respective nodes-trees.
     - The only exception here is the [callback-connection](#callback-system).
 
-#### Flow assembly
+### Flow assembly
 
 - Stepping through each [Control-node](#node-types):
   - its [Data-pin-inlet](#pin-system) dependencies are separated into a localized Data-graph (containing only nodes and connections that influence the [Data-pin-inlets](#pin-system) of the [Control-node](#node-types) in focus).
@@ -751,8 +772,8 @@ class HaywireMeta(type):
     """
     Meta class for the HaywireNode class. Makes node declaration objects available in the class's scope
     """
-    Settings = []
-    Parameters = []
+    Configs = []
+    Properties = []
     Inlets = []
     Outlets = []
 
@@ -815,13 +836,13 @@ class BaseNode(HaywireNode):
         self.help_url = 'https://haywire.io/docs/node-help'
 
     @classmethod
-    def Settings(cls):
+    def Configs(cls):
         # some code
         return{
             {
-                name: 'Settings Name',
-                id: 'settings_id',
-                description: 'Settings Description',
+                name: 'Configs Name',
+                id: 'configs_id',
+                description: 'Configs Description',
                 data_type: Datatype,
                 data_category: SCALAR,
                 value: value,
@@ -831,18 +852,17 @@ class BaseNode(HaywireNode):
             }
         }
 
-    # defining Parameters
+    # defining Properties
     @classmethod
-    def Parameter(cls):
+    def Properties(cls):
         # some code
         return {
             {
-                name: 'Parameter Name',
-                id: 'parameter_id',
-                description: 'Parameter Description',
+                name: 'Property Name',
+                id: 'property_id',
+                description: 'Property Description',
                 datatype: Datatype,
                 value: value,
-                callback: self._on_parameter_changed,
                 is_visible: True,
                 is_enabled: True
             }
@@ -911,26 +931,25 @@ class BaseNode(HaywireNode):
             node_pin_id: node_pin_id
         }
 
-    def SETTINGS_CHANGED(cls):
-        # Implement logic to handle settings changes
-        pass
+    def ON_CHANGED_CONFIG(cls):
+        # Implement logic to handle configs changes
+        return
 
     @classmethod
-    def CHECK_LAZY(cls):
+    def ON_VALIDATION_LAZY(cls):
         # checks if there is a condition that allows lazy evaluation. If this is the case, it sets the LAZY_MASK
-        # return True is
-        return False
+        return
 
     @classmethod
-    def HAS_CHANGED(cls):
+    def ON_CHANGED_ASYNC(cls):
         # Method to check if a reference to the outside of the system (like a file) has changed.
-        # returns True if it has changed, otherwise false.
-        return False
+        # sets the respective reference to dirty
+        return
 
     @classmethod
-    def VALIDATE_INPUTS(cls):
-        # Validate the parameters. Not clear anymore why this might be necessary. ComfyUI has this implemented..
-        #
+    def ON_VALIDATION_INPUT(cls):
+        # Validate the properties. Not clear anymore why this might be necessary. ComfyUI has this implemented..
+        # Return False if validation fails. This would exit the execution of the flow.
         return True
 ```
 
@@ -938,30 +957,27 @@ class BaseNode(HaywireNode):
 
 ```console
 # Initialization
-
 1. first the node is initialized, calling __init__
-2. Calling SETTINGS to set the Settings.
-3. Calling SETTINGS_CHANGED to dynamically configure the node.
-4. Calling PARAMETERS to set the Parameters.
+2. Calling SETTINGS to set the Configs.
+3. Calling ON_CHANGED_CONFIG to dynamically configure the node.
+4. Calling PARAMETERS to set the Properties.
 5. Calling INLETS to set the Inlets.
 6. Calling OUTLETS to set the Outlets.
 
 # Assembly
-
-1. Calling CHECK_LAZY on the Data-node to see if there are lazy Inlets to steer the backpropagation.
-
-# Evaluation localized Data-Flow
-
-1. Calling CHECK_LAZY on the Control-node generate the LAZY_MASK.
-2. Calling CHECK_LAZY on the Data-node to see if there is the need for re-assembly.
-3. Calling HAS_CHANGED on the Data-node to see if there is change that is not from UI or Upstream nodes
-4. Calling VALIDATE_INPUTS on the Data-node to validate the inputs before calling the worker FUNCTION.
-5. Calling the worker FUNCTION on
+1. Checking if there are lazy Inlets on the Control-node to configure the backpropagation.
+2. Checking if there are lazy Inlets on the Data-node to configure the localized Data-Flow.
 
 # Execution Control-node
-
-1. Calling VALIDATE_INPUTS on the Control-node to validate the inputs before calling the worker FUNCTION.
-2. Calling the worker FUNCTION on
+1. Calling ON_VALIDATION_LAZY on the Control-node generate the LAZY_MASK.
+2. Evaluation localized Data-Flow
+  2.1 Calling ON_VALIDATION_LAZY on the Data-node to see if there is the need for re-assembly.
+  2.2 Calling ON_CHANGED_ASYNC on the Data-node to see if there is change that is not from UI or Upstream nodes
+  2.3 Calling ON_VALIDATION_INPUT on the Data-node to validate the inputs before calling the worker FUNCTION.
+  2.4 Calling the worker FUNCTION
+3. Calling ON_CHANGED_ASYNC on the Data-node to see if there is change that is not from UI or Upstream nodes
+4. Calling ON_VALIDATION_INPUT on the Control-node to validate the inputs before calling the worker FUNCTION.
+5. Calling the worker FUNCTION
 ```
 
 ## Complete Lazy Evaluation Algorithm
@@ -971,26 +987,26 @@ class BaseNode(HaywireNode):
 **Setup** of a [Control-node](#node-types)
 
 - Some Inlets are configured to be lazy
-- A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
+- A ON_VALIDATION_LAZY function is defined to determine if the condition for a lazy evaluation is given.
 
 **Setup** of a [Data-node](#node-types) with the [localized Data-Flow](#control-flow-vs-data-flow) of this [Control-node](#node-types)
 
 - Some Inlets are configured to be lazy
-- A CHECK_LAZY function is defined to determine if the condition for a lazy evaluation is given.
+- A ON_VALIDATION_LAZY function is defined to determine if the condition for a lazy evaluation is given.
 
 **[Assembly](#assembly-process)**
 
 - On the [Control-node](#node-types), the [assembler](#assembly-process) creates a bit mask with a bit for each data-inlet. each data-inlet gets its own bit mask called EVAL_MASK where the bit that represents the inlet is set to 1, while all other bits are set to 0.
-- On the [Data-node](#node-types), the CHECK_LAZY function is called to determine which Data-inlets to follow in the backpropagation.(This, by the way has a severe edge case: the CHECK_LAZY function on a [Data-node](#node-types) should make its decision at assembly time for performance reasons. Otherwise the re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow) would be required on each execution of the [Control-node](#node-types), which we want to avoid. But implementing [Lazy Evaluation](#lazy-evaluation) in a consistent manner for the user means that changes of [Properties](#parameters) or Inlets that could affect this decision on the [Data-node](#node-types) during runtime actually needs to trigger a re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow). Otherwise, the evaluation of the Data-Flow could lead to incoherent results. A slight performance penalty is preferable over an inconsistent user experience.)
+- On the [Data-node](#node-types), the ON_VALIDATION_LAZY function is called to determine which Data-inlets to follow in the backpropagation.(This, by the way has a severe edge case: the ON_VALIDATION_LAZY function on a [Data-node](#node-types) should make its decision at assembly time for performance reasons. Otherwise the re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow) would be required on each execution of the [Control-node](#node-types), which we want to avoid. But implementing [Lazy Evaluation](#lazy-evaluation) in a consistent manner for the user means that changes of [Properties](#properties) or Inlets that could affect this decision on the [Data-node](#node-types) during runtime actually needs to trigger a re-assembly of the [localized Data-Flow](#control-flow-vs-data-flow). Otherwise, the evaluation of the Data-Flow could lead to incoherent results. A slight performance penalty is preferable over an inconsistent user experience.)
 - Upon generation of the [localized Data-Flow](#control-flow-vs-data-flow), this bit mask is passed on during the backpropagation, and is binary OR'ed with other bit masks from the same [Control-node](#node-types) if they merge at that specific [Data-node](#node-types). This OR'ed bit mask is then passed further during backpropagation. At the end there is a list of all the required [Data-nodes](#node-types) and their respective OR'ed bit masks (EVAL_MASK). Then the correct sequence of [Data-nodes](#node-types) is determined to evaluate the Data-Flow correctly. This EVAL_MASK shows which Data-inlets require the evaluation of this specific [Data-node](#node-types).
 
 **Evaluation**
 
 - On execution of the [Control-node](#node-types), the VM creates a bit mask called LAZY_MASK with a bit for each data-inlet, all set to 1.
-- then the CHECK_LAZY function is called to determine if the Data-Flow can be evaluated lazily or not. If this is the case, it sets the bits inside LAZY_MASK representing the data-inlets that are not needed to 0, while all others stay 1.
+- then the ON_VALIDATION_LAZY function is called to determine if the Data-Flow can be evaluated lazily or not. If this is the case, it sets the bits inside LAZY_MASK representing the data-inlets that are not needed to 0, while all others stay 1.
 - Then the [localized Data-Flow](#control-flow-vs-data-flow) is evaluated:
   - It goes to the next [Data-node](#node-types) in the sequence.
-  - First it checks if the [Data-Nodes](#node-types) CHECK_LAZY function has a different result than the previous run (i.e. during [Assembly](#assembly-process)).
+  - First it checks if the [Data-Nodes](#node-types) ON_VALIDATION_LAZY function has a different result than the previous run (i.e. during [Assembly](#assembly-process)).
     - If yes, the evaluation of the [localized Data-Flow](#control-flow-vs-data-flow) is stopped
       - The VM reassembles the [localized Data-Flow](#control-flow-vs-data-flow) from scratch.
       - and restarts the evaluation process.
@@ -1004,4 +1020,4 @@ class BaseNode(HaywireNode):
     - If not it continues. The [Data-node](#node-types) has not been evaluated yet, so if downstream a [Control-node](#node-types) with a different [localized Data-Flow](#control-flow-vs-data-flow) encounters this node, it will only then be evaluated.
   - continues with the next [Data-node](#node-types) in the sequence..
 
-It is not clear yet how fast the reassembly of the [localized Data-Flow](#control-flow-vs-data-flow) from scratch is. I hope for an efficient algorithm. Depending on the time saved by lazy evaluation, it might be worth it. Its left to the node-designer to decide if such an effort makes sense. If there is no CHECK_LAZY function defined, the algorithm should run at nominal speed. The additional binary AND operation and if statements in each step should be negligible.
+It is not clear yet how fast the reassembly of the [localized Data-Flow](#control-flow-vs-data-flow) from scratch is. I hope for an efficient algorithm. Depending on the time saved by lazy evaluation, it might be worth it. Its left to the node-designer to decide if such an effort makes sense. If there is no ON_VALIDATION_LAZY function defined, the algorithm should run at nominal speed. The additional binary AND operation and if statements in each step should be negligible.
