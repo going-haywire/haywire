@@ -1,0 +1,174 @@
+/* Node Graph Editor Styles */
+
+.graph-canvas {
+    position: relative;
+    overflow: hidden;
+}
+
+.node-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.node-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.node-card.selected {
+    border: 2px solid #1976d2 !important;
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+.port {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.port:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+.input-port {
+    cursor: crosshair;
+}
+
+.output-port {
+    cursor: crosshair;
+}
+
+/* Port type colors */
+.port-number {
+    background-color: #2196f3 !important;
+}
+
+.port-string {
+    background-color: #4caf50 !important;
+}
+
+.port-boolean {
+    background-color: #ff9800 !important;
+}
+
+.port-array {
+    background-color: #9c27b0 !important;
+}
+
+.port-any {
+    background-color: #757575 !important;
+}
+
+/* Node type specific styles */
+.node-input {
+    border-left: 4px solid #4caf50;
+}
+
+.node-output {
+    border-left: 4px solid #f44336;
+}
+
+.node-comment {
+    border-left: 4px solid #ff9800;
+}
+
+.node-add, .node-subtract, .node-multiply, .node-divide {
+    border-left: 4px solid #2196f3;
+}
+
+.node-and, .node-or, .node-not, .node-compare {
+    border-left: 4px solid #9c27b0;
+}
+
+.node-display, .node-chart, .node-export {
+    border-left: 4px solid #e91e63;
+}
+
+/* Connection lines */
+.connection-line {
+    pointer-events: none;
+    stroke-width: 2;
+    stroke: #666;
+    fill: none;
+}
+
+.connection-line:hover {
+    stroke-width: 3;
+    stroke: #1976d2;
+}
+
+/* Grid background */
+.grid-background {
+    background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* Zoom and pan controls */
+.graph-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+/* Palette styles */
+.node-palette {
+    background: white;
+    border-right: 1px solid #e0e0e0;
+}
+
+.palette-button {
+    margin: 2px;
+    text-align: left;
+}
+
+.palette-button:hover {
+    background-color: #f5f5f5;
+}
+
+/* Animation for adding nodes */
+@keyframes nodeAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.node-card.new {
+    animation: nodeAppear 0.3s ease-out;
+}
+
+/* Dark mode support */
+.dark .node-card {
+    background: #424242 !important;
+    border-color: #666 !important;
+    color: white;
+}
+
+.dark .graph-canvas {
+    background: #303030 !important;
+}
+
+.dark .grid-background {
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .node-palette {
+        width: 200px;
+    }
+    
+    .node-card {
+        min-width: 120px;
+    }
+}
