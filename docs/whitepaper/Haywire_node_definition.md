@@ -7,7 +7,6 @@
 
 import inspect
 import sys
-
 class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
     def __new__(cls, name, bases, attrs):
         # Automatically identify metadata attributes
@@ -33,32 +32,58 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
         finally:
             del frame
 
-        # Extract file-level HAYWIRE declarations and auto-assign to node attributes
-        file_declarations = {}
+        # Auto-assign file-level HAYWIRE constants to node attributes if not explicitly set
+        # Generic approach: HAYWIRE_* constants map to node_* attributes (case conversion)
+        for const_name, const_value in module_globals.items():
+            if const_name.startswith('HAYWIRE_'):
+                # Convert HAYWIRE_LIBRARY_NAME -> node_library_name
+                node_attr = 'node_' + const_name[8:].lower()  # Remove 'HAYWIRE_' and lowercase
 
-        # Check for HAYWIRE constants in the module globals
-        if 'HAYWIRE_LIBRARY_NAME' in module_globals:
-            file_declarations['library_name'] = module_globals['HAYWIRE_LIBRARY_NAME']
-        if 'HAYWIRE_LIBRARY_URL' in module_globals:
-            file_declarations['library_url'] = module_globals['HAYWIRE_LIBRARY_URL']
-        if 'HAYWIRE_PACKAGE_NAME' in module_globals:
-            file_declarations['package_name'] = module_globals['HAYWIRE_PACKAGE_NAME']
-
-        # Auto-assign file-level declarations to node metadata if not explicitly set
-        if 'node_library_name' not in attrs and 'library_name' in file_declarations:
-            attrs['node_library_name'] = file_declarations['library_name']
-            metadata_attrs.append('node_library_name')
-
-        if 'node_library_url' not in attrs and 'library_url' in file_declarations:
-            attrs['node_library_url'] = file_declarations['library_url']
-            metadata_attrs.append('node_library_url')
-
-        if 'node_package' not in attrs and 'package_name' in file_declarations:
-            attrs['node_package'] = file_declarations['package_name']
-            metadata_attrs.append('node_package')
+                # Only assign if not explicitly set in the class
+                if node_attr not in attrs:
+                    attrs[node_attr] = const_value
+                    metadata_attrs.append(node_attr)
 
         # Update metadata_attrs list
         attrs['_node_metadata_attrs'] = list(set(metadata_attrs))
+
+        # Skip validation for abstract base classes
+        # Check if this is an abstract class or the base HaywireNode class
+        is_abstract = (
+            name == 'HaywireNode' or  # Skip the base class itself
+            attrs.get('__abstractmethods__') or  # Has abstract methods
+            any(hasattr(base, '__abstractmethods__') and base.__abstractmethods__ for base in bases)  # Inherits abstract methods
+        )
+
+        if not is_abstract:
+            # Validate that required node attributes are set
+            required_attrs = [
+                'node_display_name',
+                'node_name',
+                'node_package_name',
+                'node_library_name',
+                'node_library_url',
+                'node_search_tags',
+                'node_menu',
+                'node_version'
+            ]
+
+            missing_attrs = []
+            for required_attr in required_attrs:
+                if required_attr not in attrs:
+                    missing_attrs.append(required_attr)
+
+            if missing_attrs:
+                # Create helpful error message
+                missing_haywire = []
+                for attr in missing_attrs:
+                    haywire_equivalent = 'HAYWIRE_' + attr[5:].upper()  # node_library_name -> HAYWIRE_LIBRARY_NAME
+                    missing_haywire.append(haywire_equivalent)
+
+                raise NodeValidationError(
+                    f"Node class '{name}' is missing required attributes: {missing_attrs}\n"
+                    f"Either set them explicitly in the class or define these HAYWIRE constants: {missing_haywire}"
+                )
 
         return super().__new__(cls, name, bases, attrs)
 
@@ -130,7 +155,7 @@ class BaseNode(HaywireNode):
     node_display_name = 'Node Name'
     node_description = 'Node Description'
     node_name = 'Node_NAME'
-    node_package = 'org.github.maybites.haywire.nodes'      # override the default package name: HAYWIRE_PACKAGE_NAME
+    node_package_name = 'org.github.maybites.haywire.nodes' # override the default package name: HAYWIRE_PACKAGE_NAME
     node_library_name = 'MathLibrary'                       # override the default library name: HAYWIRE_LIBRARY_NAME
     node_library_url = 'https://haywire.io/docs/node-help'  # override the default library url: HAYWIRE_LIBRARY_URL
     node_search_tags = ['add', 'sub', 'math', 'vector']

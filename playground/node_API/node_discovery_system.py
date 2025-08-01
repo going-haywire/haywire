@@ -27,8 +27,8 @@ class NodeVersionError(NodeDiscoveryError):
     """Node version compatibility issue"""
     pass
 
-class NodeVersionIncompatibleError(NodeVersionError):
-    """Node version is incompatible (major version mismatch)"""
+class NodeValidationError(NodeDiscoveryError):
+    """Node class is missing required attributes"""
     pass
 
 
@@ -126,32 +126,58 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
         finally:
             del frame
         
-        # Extract file-level HAYWIRE declarations and auto-assign to node attributes
-        file_declarations = {}
-        
-        # Check for HAYWIRE constants in the module globals
-        if 'HAYWIRE_LIBRARY_NAME' in module_globals:
-            file_declarations['library_name'] = module_globals['HAYWIRE_LIBRARY_NAME']
-        if 'HAYWIRE_LIBRARY_URL' in module_globals:
-            file_declarations['library_url'] = module_globals['HAYWIRE_LIBRARY_URL']
-        if 'HAYWIRE_PACKAGE_NAME' in module_globals:
-            file_declarations['package_name'] = module_globals['HAYWIRE_PACKAGE_NAME']
-        
-        # Auto-assign file-level declarations to node metadata if not explicitly set
-        if 'node_library_name' not in attrs and 'library_name' in file_declarations:
-            attrs['node_library_name'] = file_declarations['library_name']
-            metadata_attrs.append('node_library_name')
-        
-        if 'node_library_url' not in attrs and 'library_url' in file_declarations:
-            attrs['node_library_url'] = file_declarations['library_url']
-            metadata_attrs.append('node_library_url')
-        
-        if 'node_package' not in attrs and 'package_name' in file_declarations:
-            attrs['node_package'] = file_declarations['package_name']
-            metadata_attrs.append('node_package')
+        # Auto-assign file-level HAYWIRE constants to node attributes if not explicitly set
+        # Generic approach: HAYWIRE_* constants map to node_* attributes (case conversion)
+        for const_name, const_value in module_globals.items():
+            if const_name.startswith('HAYWIRE_'):
+                # Convert HAYWIRE_LIBRARY_NAME -> node_library_name
+                node_attr = 'node_' + const_name[8:].lower()  # Remove 'HAYWIRE_' and lowercase
+                
+                # Only assign if not explicitly set in the class
+                if node_attr not in attrs:
+                    attrs[node_attr] = const_value
+                    metadata_attrs.append(node_attr)
         
         # Update metadata_attrs list
         attrs['_node_metadata_attrs'] = list(set(metadata_attrs))
+        
+        # Skip validation for abstract base classes
+        # Check if this is an abstract class or the base HaywireNode class
+        is_abstract = (
+            name == 'HaywireNode' or  # Skip the base class itself
+            attrs.get('__abstractmethods__') or  # Has abstract methods
+            any(hasattr(base, '__abstractmethods__') and base.__abstractmethods__ for base in bases)  # Inherits abstract methods
+        )
+        
+        if not is_abstract:
+            # Validate that required node attributes are set
+            required_attrs = [
+                'node_display_name',
+                'node_name', 
+                'node_package',
+                'node_library_name',
+                'node_library_url',
+                'node_search_tags',
+                'node_menu',
+                'node_version'
+            ]
+            
+            missing_attrs = []
+            for required_attr in required_attrs:
+                if required_attr not in attrs:
+                    missing_attrs.append(required_attr)
+            
+            if missing_attrs:
+                # Create helpful error message
+                missing_haywire = []
+                for attr in missing_attrs:
+                    haywire_equivalent = 'HAYWIRE_' + attr[5:].upper()  # node_library_name -> HAYWIRE_LIBRARY_NAME
+                    missing_haywire.append(haywire_equivalent)
+                
+                raise NodeValidationError(
+                    f"Node class '{name}' is missing required attributes: {missing_attrs}\n"
+                    f"Either set them explicitly in the class or define these HAYWIRE constants: {missing_haywire}"
+                )
         
         return super().__new__(cls, name, bases, attrs)
 
@@ -214,7 +240,13 @@ class ErrorNode(HaywireNode):
     node_description = 'Placeholder for node that could not be loaded'
     node_name = 'ERROR_NODE'
     node_package = 'org.github.maybites.haywire.error'
+    node_library_name = 'Haywire System'
+    node_library_url = 'https://haywire.io/docs/error-nodes'
+    node_search_tags = ['error', 'system', 'placeholder']
+    node_menu = 'system/error'
     node_version = '1.0.0'
+    node_author = 'Haywire System'
+    node_author_url = 'https://haywire.io'
     
     def __init__(self, node_id, graph, error_info: Dict[str, Any], 
                  original_inlets=None, original_outlets=None):
@@ -448,6 +480,29 @@ def create_node_from_saved_data(registry: NodeRegistry, saved_data: Dict[str, An
     return node, validation_result
 
 
+def serialize_node(node: HaywireNode) -> Dict[str, Any]:
+    """
+    Serialize a node instance to dictionary for saving
+    Uses the get_metadata_dict() method
+    """
+    return {
+        'node_id': node.node_id,
+        'metadata': node.get_metadata_dict(),
+        'ui_state': {
+            'ui_posX': node.ui_posX,
+            'ui_posY': node.ui_posY,
+            'ui_width': node.ui_width,
+            'ui_height': node.ui_height,
+            'ui_is_collapsed': node.ui_is_collapsed,
+            'ui_is_condensed': node.ui_is_condensed,
+            'ui_is_pinned': node.ui_is_pinned,
+            'ui_custom_color': node.ui_custom_color,
+            'is_muted': node.is_muted,
+        }
+        # Add inlets, outlets, connections etc. as needed
+    }
+
+
 # ============================================================================
 # Example Usage
 # ============================================================================
@@ -455,41 +510,114 @@ def create_node_from_saved_data(registry: NodeRegistry, saved_data: Dict[str, An
 if __name__ == "__main__":
     # Example of how the system would be used
     
-    # Simulate file-level constants (normally these would be at top of the file)
+    # Complete file-level constants (all required ones provided)
     HAYWIRE_LIBRARY_NAME = "MathLibrary"
     HAYWIRE_LIBRARY_URL = "https://github.com/mathteam/mathlibrary"
-    HAYWIRE_PACKAGE_NAME = "com.math.basic"
+    HAYWIRE_PACKAGE = "com.math.basic"
+    HAYWIRE_AUTHOR = "MathTeam"
+    HAYWIRE_AUTHOR_URL = "https://mathteam.org"
+    HAYWIRE_VERSION = "1.0.0"
+    HAYWIRE_SEARCH_TAGS = ['math', 'basic']
+    HAYWIRE_MENU = "math/basic"
     
     # Create registry and register some example nodes
     registry = NodeRegistry()
     
-    class MathAddNode(HaywireNode):
-        node_display_name = 'Add Numbers'
-        node_name = 'Add'
-        # Note: node_library_name, node_library_url, node_package will be 
-        # automatically set from HAYWIRE_* constants by the metaclass
-        node_version = '2.1.0'
+    # Example 1: Valid node with HAYWIRE constants
+    try:
+        class MathAddNode(HaywireNode):
+            node_display_name = 'Add Numbers'  # Explicit
+            node_name = 'Add'                  # Explicit
+            # All other required attributes come from HAYWIRE_* constants
+        
+        registry.register_node(MathAddNode)
+        print("✓ MathAddNode created and registered successfully!")
+        
+    except NodeValidationError as e:
+        print(f"✗ Failed to create MathAddNode: {e}")
     
-    # Different file/module would have different constants
-    class StringAddNode(HaywireNode):
-        node_display_name = 'Concatenate Strings'
-        node_name = 'Add' 
-        node_library_name = 'StringLibrary'  # Explicitly set, overrides file constant
-        node_package = 'com.string.ops'      # Explicitly set, overrides file constant
-        node_version = '2.5.0'
+    # Example 2: Valid node with mixed explicit/HAYWIRE
+    try:
+        class StringAddNode(HaywireNode):
+            node_display_name = 'Concatenate Strings'  # Explicit
+            node_name = 'Add'                           # Explicit
+            node_library_name = 'StringLibrary'        # Explicit override
+            node_package = 'com.string.ops'            # Explicit override
+            node_version = '1.5.0'                     # Explicit override
+            # node_library_url, node_search_tags, node_menu come from HAYWIRE_* constants
+        
+        registry.register_node(StringAddNode)
+        print("✓ StringAddNode created and registered successfully!")
+        
+    except NodeValidationError as e:
+        print(f"✗ Failed to create StringAddNode: {e}")
     
-    registry.register_node(MathAddNode)
-    registry.register_node(StringAddNode)
+    # Example 3: Invalid node - demonstrate error handling
+    try:
+        class IncompleteNode(HaywireNode):
+            node_display_name = 'Incomplete Node'
+            node_name = 'Incomplete'
+            # Missing: node_package, node_library_name, node_library_url, 
+            # node_search_tags, node_menu, node_version
+        
+        registry.register_node(IncompleteNode)
+        print("✓ IncompleteNode created successfully!")  # This won't print
+        
+    except NodeValidationError as e:
+        print(f"✗ Expected validation error for IncompleteNode:")
+        print(f"   {e}")
     
-    # Test that the file constants were automatically applied
-    print("MathAddNode metadata:")
-    print(f"  Library: {MathAddNode.node_library_name}")  # Should be "MathLibrary"
-    print(f"  Package: {MathAddNode.node_package}")       # Should be "com.math.basic"
-    print(f"  URL: {MathAddNode.node_library_url}")       # Should be the GitHub URL
+    # Example 4: Partial HAYWIRE constants - still missing some
+    print("\n" + "="*60)
+    print("Testing with incomplete HAYWIRE constants...")
     
-    print("\nStringAddNode metadata:")
-    print(f"  Library: {StringAddNode.node_library_name}")  # Should be "StringLibrary" (explicit)
-    print(f"  Package: {StringAddNode.node_package}")       # Should be "com.string.ops" (explicit)
+    # Temporarily simulate a different module with incomplete constants
+    incomplete_globals = {
+        'HAYWIRE_LIBRARY_NAME': "IncompleteLib",
+        'HAYWIRE_VERSION': "1.0.0",
+        # Missing: HAYWIRE_PACKAGE, HAYWIRE_LIBRARY_URL, HAYWIRE_SEARCH_TAGS, HAYWIRE_MENU
+    }
+    
+    try:
+        # Simulate what would happen with incomplete HAYWIRE constants
+        # (This is just for demonstration - in practice the metaclass would catch this)
+        print("If you had incomplete HAYWIRE constants, you'd get an error like:")
+        missing_attrs = ['node_package', 'node_library_url', 'node_search_tags', 'node_menu']
+        missing_haywire = ['HAYWIRE_PACKAGE', 'HAYWIRE_LIBRARY_URL', 'HAYWIRE_SEARCH_TAGS', 'HAYWIRE_MENU']
+        
+        error_msg = (f"Node class 'SomeNode' is missing required attributes: {missing_attrs}\n"
+                    f"Either set them explicitly in the class or define these HAYWIRE constants: {missing_haywire}")
+        raise NodeValidationError(error_msg)
+        
+    except NodeValidationError as e:
+        print(f"✗ {e}")
+    
+    print("\n" + "="*60)
+    print("All validation examples completed!")
+    
+    # Show successful nodes' metadata
+    print("\nSuccessfully created nodes:")
+    
+    print("\nMathAddNode metadata (mostly from HAYWIRE_* constants):")
+    print(f"  Display Name: {MathAddNode.node_display_name}")  # Explicit
+    print(f"  Name: {MathAddNode.node_name}")                  # Explicit  
+    print(f"  Library: {MathAddNode.node_library_name}")       # From HAYWIRE_LIBRARY_NAME
+    print(f"  Package: {MathAddNode.node_package}")            # From HAYWIRE_PACKAGE
+    print(f"  URL: {MathAddNode.node_library_url}")            # From HAYWIRE_LIBRARY_URL
+    print(f"  Author: {MathAddNode.node_author}")              # From HAYWIRE_AUTHOR
+    print(f"  Version: {MathAddNode.node_version}")            # From HAYWIRE_VERSION
+    print(f"  Search Tags: {MathAddNode.node_search_tags}")    # From HAYWIRE_SEARCH_TAGS
+    print(f"  Menu: {MathAddNode.node_menu}")                  # From HAYWIRE_MENU
+    
+    print("\nStringAddNode metadata (mix of explicit and HAYWIRE_* constants):")
+    print(f"  Display Name: {StringAddNode.node_display_name}")  # Explicit
+    print(f"  Library: {StringAddNode.node_library_name}")       # Explicit override
+    print(f"  Package: {StringAddNode.node_package}")            # Explicit override  
+    print(f"  Version: {StringAddNode.node_version}")            # Explicit override
+    print(f"  Author: {StringAddNode.node_author}")              # From HAYWIRE_AUTHOR
+    print(f"  Author URL: {StringAddNode.node_author_url}")      # From HAYWIRE_AUTHOR_URL
+    print(f"  Search Tags: {StringAddNode.node_search_tags}")    # From HAYWIRE_SEARCH_TAGS
+    print(f"  Menu: {StringAddNode.node_menu}")                  # From HAYWIRE_MENU
     
     # Simulate loading a saved graph
     saved_node_data = {
@@ -498,7 +626,7 @@ if __name__ == "__main__":
             'node_name': 'Add',
             'node_library_name': 'MathLibrary',
             'node_package': 'com.math.basic',
-            'node_version': '1.0.0'  # Older version
+            'node_version': '2.0.0'  # Older version
         },
         'ui_state': {
             'ui_posX': 100,
@@ -514,8 +642,17 @@ if __name__ == "__main__":
     print(f"Status: {status['status']}")
     print(f"Message: {status['message']}")
     
-    # Show the actual instance values
-    print(f"\nLoaded node metadata:")
-    print(f"  Library: {node.node_library_name}")
-    print(f"  Package: {node.node_package}")
-    print(f"  Version: {node.node_version}")
+    # Test serialization
+    print(f"\nSerialized node data:")
+    serialized = serialize_node(node)
+    print(f"  Metadata keys: {list(serialized['metadata'].keys())}")
+    print(f"  UI state keys: {list(serialized['ui_state'].keys())}")
+    
+    # Test get_class_metadata_dict for comparison
+    class_metadata = node.get_class_metadata_dict()
+    instance_metadata = node.get_metadata_dict()
+    
+    print(f"\nMetadata comparison:")
+    print(f"  Class metadata: {class_metadata}")
+    print(f"  Instance metadata: {instance_metadata}")
+    print(f"  Are they equal? {class_metadata == instance_metadata}")
