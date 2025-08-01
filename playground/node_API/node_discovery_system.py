@@ -154,7 +154,7 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
             required_attrs = [
                 'node_display_name',
                 'node_name', 
-                'node_package',
+                'node_package_name',
                 'node_library_name',
                 'node_library_url',
                 'node_search_tags',
@@ -239,7 +239,7 @@ class ErrorNode(HaywireNode):
     node_display_name = 'Error Node'
     node_description = 'Placeholder for node that could not be loaded'
     node_name = 'ERROR_NODE'
-    node_package = 'org.github.maybites.haywire.error'
+    node_package_name = 'org.github.maybites.haywire.error'
     node_library_name = 'Haywire System'
     node_library_url = 'https://haywire.io/docs/error-nodes'
     node_search_tags = ['error', 'system', 'placeholder']
@@ -255,7 +255,7 @@ class ErrorNode(HaywireNode):
         # Store error information
         self.error_info = error_info
         self.original_node_name = error_info.get('node_name', 'Unknown')
-        self.original_package = error_info.get('node_package', 'Unknown')
+        self.original_package_name = error_info.get('node_package_name', 'Unknown')
         self.original_version = error_info.get('node_version', 'Unknown')
         self.error_message = error_info.get('error_message', 'Unknown error')
         
@@ -282,14 +282,14 @@ class NodeRegistry:
         """Register a node class in the registry"""
         node_name = getattr(node_class, 'node_name', node_class.__name__)
         library_name = getattr(node_class, 'node_library_name', 'Unknown')
-        package_name = getattr(node_class, 'node_package', 'Unknown')
+        package_name = getattr(node_class, 'node_package_name', 'Unknown')
         
         if node_name not in self.nodes:
             self.nodes[node_name] = []
         
         self.nodes[node_name].append({
             'library': library_name,
-            'package': package_name,
+            'package_name': package_name,
             'class': node_class,
             'version': getattr(node_class, 'node_version', '0.0.0')
         })
@@ -321,7 +321,7 @@ class NodeRegistry:
             )
         
         # Step 3: Filter by package
-        exact_matches = [n for n in library_matches if n['package'] == package_name]
+        exact_matches = [n for n in library_matches if n['package_name'] == package_name]
         
         if exact_matches:
             # Perfect match found
@@ -346,11 +346,11 @@ class NodeRegistry:
                 'class': library_matches[0]['class'],
                 'status': 'warning',
                 'message': f"Package mismatch for '{node_name}' in library '{library_name}'. "
-                          f"Expected: '{package_name}', Found: '{library_matches[0]['package']}'"
+                          f"Expected: '{package_name}', Found: '{library_matches[0]['package_name']}'"
             }
         else:
             # Multiple nodes in library, cannot choose
-            available_packages = [n['package'] for n in library_matches]
+            available_packages = [n['package_name'] for n in library_matches]
             raise NodeAmbiguousError(
                 f"Multiple nodes named '{node_name}' found in library '{library_name}' "
                 f"with different packages. Expected '{package_name}', "
@@ -371,7 +371,7 @@ def find_and_validate_node(registry: NodeRegistry, saved_metadata: Dict[str, Any
     
     node_name = saved_metadata.get('node_name')
     library_name = saved_metadata.get('node_library_name')
-    package_name = saved_metadata.get('node_package')
+    package_name = saved_metadata.get('node_package_name')
     saved_version = saved_metadata.get('node_version')
     
     try:
@@ -388,7 +388,7 @@ def find_and_validate_node(registry: NodeRegistry, saved_metadata: Dict[str, Any
             # Version incompatible - return ErrorNode
             error_info = {
                 'node_name': node_name,
-                'node_package': package_name,
+                'node_package_name': package_name,
                 'node_version': saved_version,
                 'error_message': version_info['message']
             }
@@ -429,7 +429,7 @@ def find_and_validate_node(registry: NodeRegistry, saved_metadata: Dict[str, Any
         # Node discovery failed - return ErrorNode
         error_info = {
             'node_name': node_name,
-            'node_package': package_name,
+            'node_package_name': package_name,
             'node_version': saved_version,
             'error_message': str(e)
         }
@@ -513,7 +513,7 @@ if __name__ == "__main__":
     # Complete file-level constants (all required ones provided)
     HAYWIRE_LIBRARY_NAME = "MathLibrary"
     HAYWIRE_LIBRARY_URL = "https://github.com/mathteam/mathlibrary"
-    HAYWIRE_PACKAGE = "com.math.basic"
+    HAYWIRE_PACKAGE_NAME = "com.math.basic"
     HAYWIRE_AUTHOR = "MathTeam"
     HAYWIRE_AUTHOR_URL = "https://mathteam.org"
     HAYWIRE_VERSION = "1.0.0"
@@ -542,7 +542,7 @@ if __name__ == "__main__":
             node_display_name = 'Concatenate Strings'  # Explicit
             node_name = 'Add'                           # Explicit
             node_library_name = 'StringLibrary'        # Explicit override
-            node_package = 'com.string.ops'            # Explicit override
+            node_package_name = 'com.string.ops'       # Explicit override
             node_version = '1.5.0'                     # Explicit override
             # node_library_url, node_search_tags, node_menu come from HAYWIRE_* constants
         
@@ -557,7 +557,7 @@ if __name__ == "__main__":
         class IncompleteNode(HaywireNode):
             node_display_name = 'Incomplete Node'
             node_name = 'Incomplete'
-            # Missing: node_package, node_library_name, node_library_url, 
+            # Missing: node_package_name, node_library_name, node_library_url, 
             # node_search_tags, node_menu, node_version
         
         registry.register_node(IncompleteNode)
@@ -575,15 +575,15 @@ if __name__ == "__main__":
     incomplete_globals = {
         'HAYWIRE_LIBRARY_NAME': "IncompleteLib",
         'HAYWIRE_VERSION': "1.0.0",
-        # Missing: HAYWIRE_PACKAGE, HAYWIRE_LIBRARY_URL, HAYWIRE_SEARCH_TAGS, HAYWIRE_MENU
+        # Missing: HAYWIRE_PACKAGE_NAME, HAYWIRE_LIBRARY_URL, HAYWIRE_SEARCH_TAGS, HAYWIRE_MENU
     }
     
     try:
         # Simulate what would happen with incomplete HAYWIRE constants
         # (This is just for demonstration - in practice the metaclass would catch this)
         print("If you had incomplete HAYWIRE constants, you'd get an error like:")
-        missing_attrs = ['node_package', 'node_library_url', 'node_search_tags', 'node_menu']
-        missing_haywire = ['HAYWIRE_PACKAGE', 'HAYWIRE_LIBRARY_URL', 'HAYWIRE_SEARCH_TAGS', 'HAYWIRE_MENU']
+        missing_attrs = ['node_package_name', 'node_library_url', 'node_search_tags', 'node_menu']
+        missing_haywire = ['HAYWIRE_PACKAGE_NAME', 'HAYWIRE_LIBRARY_URL', 'HAYWIRE_SEARCH_TAGS', 'HAYWIRE_MENU']
         
         error_msg = (f"Node class 'SomeNode' is missing required attributes: {missing_attrs}\n"
                     f"Either set them explicitly in the class or define these HAYWIRE constants: {missing_haywire}")
@@ -602,7 +602,7 @@ if __name__ == "__main__":
     print(f"  Display Name: {MathAddNode.node_display_name}")  # Explicit
     print(f"  Name: {MathAddNode.node_name}")                  # Explicit  
     print(f"  Library: {MathAddNode.node_library_name}")       # From HAYWIRE_LIBRARY_NAME
-    print(f"  Package: {MathAddNode.node_package}")            # From HAYWIRE_PACKAGE
+    print(f"  Package: {MathAddNode.node_package_name}")        # From HAYWIRE_PACKAGE_NAME
     print(f"  URL: {MathAddNode.node_library_url}")            # From HAYWIRE_LIBRARY_URL
     print(f"  Author: {MathAddNode.node_author}")              # From HAYWIRE_AUTHOR
     print(f"  Version: {MathAddNode.node_version}")            # From HAYWIRE_VERSION
@@ -612,7 +612,7 @@ if __name__ == "__main__":
     print("\nStringAddNode metadata (mix of explicit and HAYWIRE_* constants):")
     print(f"  Display Name: {StringAddNode.node_display_name}")  # Explicit
     print(f"  Library: {StringAddNode.node_library_name}")       # Explicit override
-    print(f"  Package: {StringAddNode.node_package}")            # Explicit override  
+    print(f"  Package: {StringAddNode.node_package_name}")       # Explicit override  
     print(f"  Version: {StringAddNode.node_version}")            # Explicit override
     print(f"  Author: {StringAddNode.node_author}")              # From HAYWIRE_AUTHOR
     print(f"  Author URL: {StringAddNode.node_author_url}")      # From HAYWIRE_AUTHOR_URL
@@ -625,7 +625,7 @@ if __name__ == "__main__":
         'metadata': {
             'node_name': 'Add',
             'node_library_name': 'MathLibrary',
-            'node_package': 'com.math.basic',
+            'node_package_name': 'com.math.basic',
             'node_version': '2.0.0'  # Older version
         },
         'ui_state': {

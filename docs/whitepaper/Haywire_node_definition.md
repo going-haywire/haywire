@@ -7,6 +7,7 @@
 
 import inspect
 import sys
+
 class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
     def __new__(cls, name, bases, attrs):
         # Automatically identify metadata attributes
@@ -58,8 +59,8 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
         if not is_abstract:
             # Validate that required node attributes are set
             required_attrs = [
-                'node_display_name',
                 'node_name',
+                'node_display_name',
                 'node_package_name',
                 'node_library_name',
                 'node_library_url',
@@ -103,8 +104,10 @@ class HaywireNode(object, metaclass=NodeMetadataMeta):
                 setattr(self, attr_name, getattr(self.__class__, attr_name))
 
         # Runtime attributes
-        self.is_control_node = False # Set_automatically()
-        self.is_data_node = True # Set_automatically()
+        self.help_md = None
+        self.help_url = 'https://haywire.io/docs/node-help'
+        self.is_control_node = False
+        self.is_data_node = True
         self.is_loopback_node = False
         self.can_be_muted = True
         self.is_muted = False
@@ -150,14 +153,19 @@ class HaywireNode(object, metaclass=NodeMetadataMeta):
 HAYWIRE_LIBRARY_NAME = "MathLibrary"
 HAYWIRE_LIBRARY_URL = "https://github.com/mathteam/mathlibrary"
 HAYWIRE_PACKAGE_NAME = "com.math.basic"
+HAYWIRE_VERSION = "1.0.0"
+HAYWIRE_SEARCH_TAGS = ['math', 'basic']
+HAYWIRE_MENU = "math/basic"
 
 class BaseNode(HaywireNode):
+    # all node_* attributes can be also set by HAYWIRE_* constants.
+    # when set explicitly inside the class definition, they will override the defaults.
     node_display_name = 'Node Name'
     node_description = 'Node Description'
     node_name = 'Node_NAME'
-    node_package_name = 'org.github.maybites.haywire.nodes' # override the default package name: HAYWIRE_PACKAGE_NAME
-    node_library_name = 'MathLibrary'                       # override the default library name: HAYWIRE_LIBRARY_NAME
-    node_library_url = 'https://haywire.io/docs/node-help'  # override the default library url: HAYWIRE_LIBRARY_URL
+    node_package_name = 'org.github.maybites.haywire.nodes'
+    node_library_name = 'MathLibrary'
+    node_library_url = 'https://haywire.io/docs/node-help'
     node_search_tags = ['add', 'sub', 'math', 'vector']
     node_menu = 'misc/custom'
     node_version = '0.0.0'
