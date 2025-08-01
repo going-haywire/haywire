@@ -405,11 +405,17 @@ More details can by found under [Worker function execution/evaluation](#worker-f
 The inlets or outlets define the Data-types and Data-category they require. This can be any python class. For the UI, Haywire provides a set of icons and colors to denote specific data-types.
 
 The Data-types include `int`, `float`, `str`, `bool`, `bytes`, `object`
-The Data-category include `scalar`, `list`, `tuple`, `set`, `array`, `map`, `dictionary`
+The Data-category include `scalar`, `list`, `tuple`, `set`, `array`, `dict`
 
 ComfyUI follows a different strategy. It has keywords for each data-type. <https://docs.comfy.org/custom-nodes/backend/datatypes>
 
-LangFlow follows a different strategy. Its Data-type are only high level. <https://docs.langflow.org/data-types>
+LangFlow follows a different strategy. Its Data-type are only high level and wrapped in a dict. <https://docs.langflow.org/data-types>
+
+Blueprints:
+
+* Primitive types: integers, floats, booleans.
+* Complex types: strings, vectors, rotators. These handle more detailed aspects of game behavior.
+* Reference types: objects and assets.
 
 ### Support Functions
 The support functions allow for more fine grained control over the execution of the node.
@@ -514,6 +520,8 @@ This includes
 loading nodes from filesystem: [ComfyUI/nodes.py at 78672d0ee6d20d8269f324474643e5cc00f1c348 ? comfyanonymous/ComfyUI ? GitHub](https://github.com/comfyanonymous/ComfyUI/blob/78672d0ee6d20d8269f324474643e5cc00f1c348/nodes.py#L2168)
 
 ## Loading Graphs from JSON and instantiating required Nodes
+
+this example shows a first approach on how to load a graph from json, find, version check and instantiate the required nodes from a central registry: [node_discovery_system.py](../../playground/node_API/node_discovery_system.py)
 
 ---
 
@@ -765,193 +773,9 @@ An [Edge](#edges) is a simple data structure that contains the:
   - inlet-pin-id
   - inlet-pin-data-type
 
-## Complete Node Definition Template
+### Complete Node Definition Template
 
-```python
-class HaywireMeta(type):
-    """
-    Meta class for the HaywireNode class. Makes node declaration objects available in the class's scope
-    """
-    Configs = []
-    Properties = []
-    Inlets = []
-    Outlets = []
-
-@abstractNode
-class HaywireNode(object, metaclass=HaywireMeta):
-
-    def __init__(self, node_id, graph):
-        self.graph = graph
-        self.node_id = node_id
-        self.node_display_name = 'Node Name'
-        self.node_description = 'Node Description'
-        self.node_name = 'Node_NAME'
-        self.node_package = 'org.github.maybites.haywire.nodes'
-        self.node_library_name = '3rdPartyLibrary'
-        self.node_library_url = 'https://haywire.io/docs/node-help'
-        self.node_search_tags = ['add', 'sub', 'math', 'vector']
-        self.node_menu = 'misc/custom'
-        self.node_version = '0.0.0'
-        self.node_author = 'Customer'
-        self.node_author_url = 'https://customer.org'
-        self.help_md = None
-        self.help_url = 'https://haywire.io/docs/node-help'
-        self.is_control_node = False # Set_automatically()
-        self.is_data_node = True # Set_automatically()
-        self.is_loopback_node = False
-        self.can_be_muted = True
-        self.is_muted = False
-        self.mute_connection = ['control_in_ID', 'control_out_ID']
-        self.ui_default_color = '#FFFFFF'
-        self.ui_custom_color = '#000000'
-        self.ui_posX = 0
-        self.ui_posY = 0
-        self.ui_width = 100
-        self.ui_height = 100
-        self.ui_width_min = -1
-        self.ui_height_min = -1
-        self.ui_is_collapsable = True
-        self.ui_is_collapsed = False
-        self.ui_is_condensable = True
-        self.ui_is_condensed = False
-        self.ui_is_pinned = False
-        self.ui_icon = None
-        self.ui_component = None
-        self.allows_variables = False
-
-
-class BaseNode(HaywireNode):
-
-    def __init__(self, *args, **kwargs):
-        super(BaseNode, self).__init__(*args, **kwargs)
-        self.node_name = 'Node_NAME'
-        self.node_library_module = 'Custom'
-        self.node_library_name = 'Custom'
-        self.node_library_url = 'https://haywire.io/docs/node-help'
-        self.node_version = '0.0.0'
-        self.node_author = 'Customer'
-        self.node_display_name = 'Node Name'
-        self.node_description = 'Node Description'
-        self.help_md = './node_id/node_help.md'
-        self.help_url = 'https://haywire.io/docs/node-help'
-
-    @classmethod
-    def Configs(cls):
-        # some code
-        return{
-            {
-                name: 'Configs Name',
-                id: 'configs_id',
-                description: 'Configs Description',
-                data_type: Datatype,
-                data_category: SCALAR,
-                value: value,
-                callback: self._on_parameter_changed,
-                is_visible: True,
-                is_enabled: True,
-            }
-        }
-
-    # defining Properties
-    @classmethod
-    def Properties(cls):
-        # some code
-        return {
-            {
-                name: 'Property Name',
-                id: 'property_id',
-                description: 'Property Description',
-                datatype: Datatype,
-                value: value,
-                is_visible: True,
-                is_enabled: True
-            }
-        }
-
-
-    # defining Data inlets
-    @classmethod
-    def Inlets(cls):
-        # some code
-        return {
-            {
-                flow_type: 'ctrl',
-                coupling_type: MANY,
-                name: 'Control Name',
-                id: 'ctrl_in_ID',
-                description: 'Control Description',
-            },
-            {
-                flow_type: 'data',
-                coupling_type: ONE,
-                coupling_mode: REQUIRED,
-                name: 'Data Name',
-                id: 'data_in_ID',
-                description: 'Data Description',
-                data_type: int,
-                data_cat: SCALAR,
-                is_visible: True,
-                is_enabled: True,
-                is_lazy: True,
-                default: default
-            },
-        }
-
-    # defining Data outlets
-    Outlets(
-        {
-            flow_type: 'ctrl',
-            coupling_type: One,
-            name: 'Control Name',
-            id: 'ctrl_out_ID',
-            description: 'Control Description',
-        },
-        {
-            flow_type: 'data',
-            coupling_type: MANY,
-            name: 'Data Name',
-            id: 'data_out_ID',
-            description: 'Data Description',
-            data_type: int,
-            data_cat: SCALAR,
-            is_visible: True,
-            is_enabled: True,
-        },
-    )
-
-    # defining worker function
-    def worker(self, global_data: dict, local_data: dict, control_node_id: str, control_pin_outlet_id: str):
-        # Implement your worker logic here
-        # ...
-
-        return {
-            global_data: global_data,
-            local_data: local_data,
-            node_id: node_id,
-            node_pin_id: node_pin_id
-        }
-
-    def ON_CHANGED_CONFIG(cls):
-        # Implement logic to handle configs changes
-        return
-
-    @classmethod
-    def ON_VALIDATION_LAZY(cls):
-        # checks if there is a condition that allows lazy evaluation. If this is the case, it sets the LAZY_MASK
-        return
-
-    @classmethod
-    def ON_CHANGED_ASYNC(cls):
-        # Method to check if a reference to the outside of the system (like a file) has changed.
-        # sets the respective reference to dirty
-        return
-
-    @classmethod
-    def ON_VALIDATION_INPUT(cls):
-        # Validate the properties. Not clear anymore why this might be necessary. ComfyUI has this implemented..
-        # Return False if validation fails. This would exit the execution of the flow.
-        return True
-```
+see [Haywire_node_definition.md](./Haywire_node_definition.md)
 
 ### Complete Node Initialization Sequence
 
