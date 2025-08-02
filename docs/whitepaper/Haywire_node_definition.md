@@ -61,7 +61,7 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
             required_attrs = [
                 'node_name',
                 'node_display_name',
-                'node_package_name',
+                'node_package',
                 'node_library_name',
                 'node_library_url',
                 'node_search_tags',
@@ -152,7 +152,7 @@ class HaywireNode(object, metaclass=NodeMetadataMeta):
 
 HAYWIRE_LIBRARY_NAME = "MathLibrary"
 HAYWIRE_LIBRARY_URL = "https://github.com/mathteam/mathlibrary"
-HAYWIRE_PACKAGE_NAME = "com.math.basic"
+HAYWIRE_PACKAGE = "com.math.basic"
 HAYWIRE_VERSION = "1.0.0"
 HAYWIRE_SEARCH_TAGS = ['math', 'basic']
 HAYWIRE_MENU = "math/basic"
@@ -163,7 +163,7 @@ class BaseNode(HaywireNode):
     node_display_name = 'Node Name'
     node_description = 'Node Description'
     node_name = 'Node_NAME'
-    node_package_name = 'org.github.maybites.haywire.nodes'
+    node_package = 'org.github.maybites.haywire.nodes'
     node_library_name = 'MathLibrary'
     node_library_url = 'https://haywire.io/docs/node-help'
     node_search_tags = ['add', 'sub', 'math', 'vector']
