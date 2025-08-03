@@ -98,41 +98,94 @@ class NiceGUINodeRenderer:
             # Default fallback
             self._create_input(element_type, element, {})
     
+    def _create_input(self, element_type: str, element, ui_props):
+        """Create an input element"""
+        # Build kwargs dynamically
+        input_kwargs = {
+            'label': element.name,
+            'value': element.data.get_value()
+        }
+        
+        # Apply direct property mapping
+        for prop in ['label', 'placeholder', 'password', 'autocomplete', 'validation']:
+            if prop in ui_props:
+                input_kwargs[prop] = ui_props[prop]
+        
+        input_element = ui.input(**input_kwargs).bind_value(element.data, 'value')
+        
+        self.ui_elements[element.id] = input_element
+
+    def _create_number(self, element_type: str, element, ui_props):
+        """Create a number input element"""
+        # Build kwargs dynamically
+        number_kwargs = {
+            'label': element.name,
+            'value': element.data.get_value()
+        }
+        
+        # Apply direct property mapping
+        for prop in ['label', 'placeholder', 'min', 'max', 'precision', 'step', 'prefix', 'suffix', 'format']:
+            if prop in ui_props:
+                number_kwargs[prop] = ui_props[prop]
+        
+        number = ui.number(**number_kwargs).bind_value(element.data, 'value')
+        
+        self.ui_elements[element.id] = number
+
     def _create_slider(self, element_type: str, element, ui_props):
         """Create a slider element"""
-        min_val = ui_props.get('min', 0)
-        max_val = ui_props.get('max', 100)
+        # Build kwargs dynamically
+        slider_kwargs = {
+            'value': element.data.get_value()
+        }
         
-        slider = ui.slider(
-            min=min_val,
-            max=max_val,
-            value=element.data.get_value()
-        ).props('label').bind_value(element.data, 'value')
+        # Apply direct property mapping
+        for prop in ['min', 'max', 'step']:
+            if prop in ui_props:
+                slider_kwargs[prop] = ui_props[prop]
+        
+        # Set defaults if not specified
+        if 'min' not in slider_kwargs:
+            slider_kwargs['min'] = 0
+        if 'max' not in slider_kwargs:
+            slider_kwargs['max'] = 100
+        
+        slider = ui.slider(**slider_kwargs).bind_value(element.data, 'value')
+        
+        # Add props for additional styling if specified
+        props_list = []
+        if ui_props.get('selection_color'):
+            props_list.append(f'selection-color={ui_props["selection_color"]}')
+        if props_list:
+            slider.props(' '.join(props_list))
         
         # Label showing current value - also bound to the data
         label = ui.label().bind_text_from(element.data, 'value', 
                                          lambda v: f'{element.name}: {v}')
         
         self.ui_elements[element.id] = slider
-    
-    def _create_number(self, element_type: str, element, ui_props):
-        """Create a number input element"""
-        # Build kwargs dynamically - only include min/max if specified
-        number_kwargs = {
-            'label': element.name,
-            'value': element.data.get_value()
+
+    def _create_knob(self, element_type: str, element, ui_props):
+        """Create a knob element"""
+        # Build kwargs dynamically
+        knob_kwargs = {
+            'value': element.data.get_value(),
+            'show_value': True
         }
         
-        # Only add min/max if they're explicitly specified
-        if 'min' in ui_props:
-            number_kwargs['min'] = ui_props['min']
-        if 'max' in ui_props:
-            number_kwargs['max'] = ui_props['max']
+        # Apply direct property mapping
+        for prop in ['min', 'max', 'step', 'color', 'size', 'show_value']:
+            if prop in ui_props:
+                knob_kwargs[prop] = ui_props[prop]
         
-        number = ui.number(**number_kwargs).bind_value(element.data, 'value')
+        knob = ui.knob(**knob_kwargs).bind_value(element.data, 'value')
         
-        self.ui_elements[element.id] = number
-    
+        # Optional label showing current value
+        ui.label().bind_text_from(element.data, 'value', 
+                                 lambda v: f'{element.name}: {v:.2f}')
+        
+        self.ui_elements[element.id] = knob
+
     def _create_checkbox(self, element_type: str, element, ui_props):
         """Create a checkbox element"""
         # Build kwargs dynamically
@@ -141,7 +194,11 @@ class NiceGUINodeRenderer:
             'value': element.data.get_value()
         }
         
-        # Checkboxes don't typically have many optional props, but keeping consistent API
+        # Apply direct property mapping
+        for prop in ['text']:
+            if prop in ui_props:
+                checkbox_kwargs[prop] = ui_props[prop]
+        
         checkbox = ui.checkbox(**checkbox_kwargs).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = checkbox
@@ -154,69 +211,33 @@ class NiceGUINodeRenderer:
             'value': element.data.get_value()
         }
         
-        # Switches don't typically have many optional props, but keeping consistent API
+        # Apply direct property mapping
+        for prop in ['text']:
+            if prop in ui_props:
+                switch_kwargs[prop] = ui_props[prop]
+        
         switch = ui.switch(**switch_kwargs).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = switch
     
-    def _create_input(self, element_type: str, element, ui_props):
-        """Create a text input element"""
-        # Build kwargs dynamically
-        input_kwargs = {
-            'label': element.name,
-            'value': element.data.get_value() or ''
-        }
-        
-        # Only add placeholder if specified
-        if 'placeholder' in ui_props:
-            input_kwargs['placeholder'] = ui_props['placeholder']
-        
-        input_field = ui.input(**input_kwargs).bind_value(element.data, 'value')
-        
-        self.ui_elements[element.id] = input_field
-    
     def _create_select(self, element_type: str, element, ui_props):
         """Create a dropdown select element"""
-        options = ui_props.get('options', [])
+        # Build kwargs dynamically
+        select_kwargs = {
+            'options': ui_props.get('options', []),
+            'label': element.name,
+            'value': element.data.get_value()
+        }
         
-        select = ui.select(
-            options,
-            label=element.name,
-            value=element.data.get_value()
-        ).bind_value(element.data, 'value')
+        # Apply direct property mapping
+        for prop in ['label', 'options', 'clearable', 'multiple']:
+            if prop in ui_props:
+                select_kwargs[prop] = ui_props[prop]
+        
+        select = ui.select(**select_kwargs).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = select
     
-    def _create_knob(self, element_type: str, element, ui_props):
-        """Create a knob element"""
-        min_val = ui_props.get('min', 0)
-        max_val = ui_props.get('max', 1)
-        
-        # Normalize initial value to 0-1 range for knob
-        normalized = (element.data.get_value() - min_val) / (max_val - min_val)
-        
-        knob = ui.knob(normalized, show_value=True)
-        
-        # Custom binding handlers for normalization
-        def on_knob_change():
-            # Denormalize knob value and update data
-            actual_value = min_val + (knob.value * (max_val - min_val))
-            element.data.set_value(actual_value)
-        
-        def on_data_change(value):
-            # Normalize data value for knob display
-            normalized_value = (value - min_val) / (max_val - min_val)
-            knob.value = normalized_value
-        
-        knob.on('update:model-value', on_knob_change)
-        element.data.add_observer(on_data_change)
-        
-        # Label bound to actual value
-        label = ui.label().bind_text_from(element.data, 'value', 
-                                         lambda v: f'{element.name}: {v:.2f}')
-        
-        self.ui_elements[element.id] = knob
-
 
 # Example custom node using inheritance
 class MathProcessorNode(HaywireNode):
