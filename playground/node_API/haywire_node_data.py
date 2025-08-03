@@ -19,13 +19,13 @@ class DataType(Enum):
     STR = 'str'
     BOOL = 'bool'
     BYTES = 'bytes'
+    DICT = 'dict'
     OBJECT = 'object'
 
 
 class DataCategory(Enum):
     SCALAR = 'scalar'
     LIST = 'list'
-    TUPLE = 'tuple'
     SET = 'set'
     DICT = 'dict'
 
@@ -47,8 +47,8 @@ class CouplingType(Enum):
 class DataField(ABC):
     """Abstract base class for data fields with change notification"""
     type: DataType
-    category: DataCategory = DataCategory.SCALAR
-    is_dirty: bool = False
+    category: DataCategory
+    is_dirty: bool = True
     is_multi: bool = False
     _observers: Set[Callable] = field(default_factory=set, init=False, repr=False)
     
@@ -219,15 +219,40 @@ class MultiField(DataField):
         result['is_multi'] = True
         return result
 
+@dataclass
+class DataFieldSpec:
+    """Factory specification for creating DataField instances"""
+    type: DataType
+    category: DataCategory = DataCategory.SCALAR
+    value: Any = None
+    
+    def create_field(self, coupling_type: CouplingType | None = None) -> DataField:
+        """Create appropriate DataField instance based on coupling type"""
+        if coupling_type == CouplingType.MANY:
+            # Create MultiField
+            return MultiField(
+                type=self.type,
+                category=self.category,
+                value={},
+                is_multi=True
+            )
+        else:
+            # Create SingleField (for ONE or NONE coupling)
+            return SingleField(
+                type=self.type,
+                category=self.category,
+                value=self.value,
+                is_multi=False
+            )
+
 
 class ConfigurableElement:
     """Base class for configs, properties, inlets, outlets"""
     def __init__(self, element_id: str, name: str, description: str = "",
-                 data: Optional[DataField] = None, **kwargs):
+                 **kwargs):
         self.id = element_id
         self.name = name
         self.description = description
-        self.data = data
         self.is_visible = kwargs.get('is_visible', True)
         self.is_enabled = kwargs.get('is_enabled', True)
         self.ui = kwargs.get('ui', {})
@@ -244,49 +269,63 @@ class ConfigurableElement:
             'ui': self.ui,
             **self.metadata
         }
-        if self.data:
-            result['data'] = self.data.to_dict()
         return result
 
 
 class Config(ConfigurableElement):
     """Configuration element for node behavior"""
-    def __init__(self, element_id: str, name: str, data: DataField, 
-                 callback: Optional[Callable] = None, **kwargs):
-        super().__init__(element_id, name, data=data, **kwargs)
+    def __init__(self, element_id: str, name: str, data: DataFieldSpec, 
+                description: str = "", callback: Optional[Callable] = None, **kwargs):
+        super().__init__(element_id, name, description=description, data=data, **kwargs)
         self.callback = callback
         self.is_locked = kwargs.get('is_locked', False)
+
+        # Handle data field creation
+        if data:
+            self.data = data.create_field()
+        else:
+            self.data = None
         
         # Auto-trigger callback on value change
         if callback:
             data.add_observer(lambda v: callback())
 
+    def to_dict(self):
+        """Convert to dict for serialization"""
+        result = super().to_dict()
+        result.update({
+            'flow_type': self.flow_type.value,
+            'is_connected': self.is_connected,
+            'data': self.data.to_dict()
+        })
+        return result
+
 
 class Inlet(ConfigurableElement):
     """Data inlet for receiving values"""
-    def __init__(self, element_id: str, name: str, flow_type: FlowType,
-                 coupling_type: CouplingType | None = None, mode: str = 'optional', **kwargs):
+    def __init__(self, element_id: str, name: str, flow_type: FlowType, 
+                data: DataFieldSpec | None = None, description: str = "", 
+                coupling_type: CouplingType | None = None, mode: str = 'optional', **kwargs):
         # Now call parent constructor
-        super().__init__(element_id, name, **kwargs)
+        super().__init__(element_id, name, description=description, data=data, **kwargs)
 
+        if coupling_type is None:
+            # Default to ONE coupling type when not specified
+            self.coupling_type = CouplingType.ONE
+        else:
+            self.coupling_type = coupling_type
+
+        # Handle data field creation
+        if data:
+            self.data = data.create_field(self.coupling_type)
+        else:
+            self.data = None
+        
         self.flow_type = flow_type
         self.mode = mode
         self.is_connected = False
         self.is_lazy = kwargs.get('is_lazy', False)
-        
-        if coupling_type is not None:
-            # Use explicitly provided coupling type
-            self.coupling_type = coupling_type
-        elif self.data:
-            # Auto-determine based on is_multi flag
-            if self.data.is_multi:
-                self.coupling_type = CouplingType.MANY
-            else:
-                self.coupling_type = CouplingType.ONE
-        else:
-            # Default for no data field or no is_multi attribute
-            self.coupling_type = CouplingType.ONE
-                    
+                            
     def set_value_from_source(self, source_id: str, value: Any):
         """Convenience method for setting value from a specific source"""
         if self.data:
@@ -307,16 +346,19 @@ class Inlet(ConfigurableElement):
             'coupling_type': self.coupling_type.value,
             'mode': self.mode,
             'is_connected': self.is_connected,
-            'is_lazy': self.is_lazy
+            'is_lazy': self.is_lazy,
+            'data': self.data.to_dict() if self.data else None
         })
         return result
 
 
 class Outlet(ConfigurableElement):
     """Data outlet for sending values"""
-    def __init__(self, element_id: str, name: str, flow_type: FlowType,
-                 data: DataField, **kwargs):
-        super().__init__(element_id, name, data=data, **kwargs)
+    def __init__(self, element_id: str, name: str, flow_type: FlowType, 
+                 data: DataFieldSpec, description: str = "", **kwargs):
+        super().__init__(element_id, name, description=description, data=data, **kwargs)
+
+        self.data = data.create_field()
         self.flow_type = flow_type
         self.is_connected = False
         self.pipes = []  # List of pipes to connected inlets
@@ -326,7 +368,8 @@ class Outlet(ConfigurableElement):
         result = super().to_dict()
         result.update({
             'flow_type': self.flow_type.value,
-            'is_connected': self.is_connected
+            'is_connected': self.is_connected,
+            'data': self.data.to_dict()
         })
         return result
 
@@ -436,7 +479,7 @@ class ExampleNode(NodeData):
         self.add_config(Config(
             'precision',
             'Precision',
-            SingleField(DataType.INT, value=2),
+            DataFieldSpec(DataType.INT, value=2),
             callback=self.on_precision_changed,
             ui={
                 'widget': 'slider',
@@ -452,7 +495,7 @@ class ExampleNode(NodeData):
             'value_in',
             'Input Value',
             FlowType.DATA,
-            data=SingleField(DataType.FLOAT, value=1.0),
+            data=DataFieldSpec(DataType.FLOAT, value=1.0),
             ui={
                 'widget': 'number',
                 'properties': {
@@ -467,7 +510,7 @@ class ExampleNode(NodeData):
             'multi_values',
             'Multiple Values',
             FlowType.DATA,
-            data=MultiField(DataType.FLOAT, value=dict())
+            data=DataFieldSpec(DataType.FLOAT, value=dict())
         ))
         
         # Add outlet
@@ -475,7 +518,7 @@ class ExampleNode(NodeData):
             'result_out',
             'Result',
             FlowType.DATA,
-            SingleField(DataType.FLOAT)
+            DataFieldSpec(DataType.FLOAT)
         ))
     
     def on_precision_changed(self):

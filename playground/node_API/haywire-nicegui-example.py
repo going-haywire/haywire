@@ -13,7 +13,7 @@ from abc import abstractmethod
 # In practice, this would be: from haywire_node_data import ...
 # For this example, we'll define the minimal required classes
 
-from haywire_node_data import SingleField, MultiField, DataType, DataCategory, FlowType, Config, Inlet, Outlet, NodeData, HaywireNode
+from haywire_node_data import DataFieldSpec, DataType, DataCategory, FlowType, Config, Inlet, Outlet, NodeData, HaywireNode, CouplingType
 
 
 class NiceGUINodeRenderer:
@@ -265,14 +265,14 @@ class MathProcessorNode(HaywireNode):
         self.add_config(Config(
             'precision',
             'Precision',
-            SingleField(DataType.INT, value=2),
+            DataFieldSpec(DataType.INT, value=2),
             ui={'widget': 'slider', 'properties': {'min': 0, 'max': 10}}
         ))
         
         self.add_config(Config(
             'mode',
             'Processing Mode',
-            SingleField(DataType.STR, value='fast'),
+            DataFieldSpec(DataType.STR, value='fast'),
             ui={'widget': 'select', 'properties': {'options': ['fast', 'balanced', 'accurate']}}
         ))
         
@@ -281,7 +281,7 @@ class MathProcessorNode(HaywireNode):
             'scale',
             'Scale Factor',
             FlowType.DATA,
-            data=SingleField(DataType.FLOAT, value=1.0),
+            data=DataFieldSpec(DataType.FLOAT, value=1.0),
             ui={'widget': 'knob', 'properties': {'min': 0.1, 'max': 10.0}}
         ))
         
@@ -289,7 +289,7 @@ class MathProcessorNode(HaywireNode):
             'invert',
             'Invert Result',
             FlowType.DATA,
-            data=SingleField(DataType.BOOL, value=False),
+            data=DataFieldSpec(DataType.BOOL, value=False),
             ui={'widget': 'switch'}
         ))
         
@@ -297,7 +297,7 @@ class MathProcessorNode(HaywireNode):
             'threshold',
             'Threshold',
             FlowType.DATA,
-            data=SingleField(DataType.FLOAT, value=0.5),
+            data=DataFieldSpec(DataType.FLOAT, value=0.5),
             ui={'widget': 'number', 'properties': {'min': 0.0, 'max': 1.0}}
         ))
         
@@ -312,28 +312,29 @@ class MathProcessorNode(HaywireNode):
             'value_in',
             'Input Value',
             FlowType.DATA,
-            data=SingleField(DataType.FLOAT)
+            data=DataFieldSpec(DataType.FLOAT)
         ))
         
         self.add_inlet(Inlet(
             'multi_values',
             'Multiple Values',
             FlowType.DATA,
-            data=MultiField(DataType.FLOAT, value={})
+            data=DataFieldSpec(DataType.FLOAT), 
+            coupling_type=CouplingType.MANY
         ))
         
         self.add_outlet(Outlet(
             'ctrl_out',
             'Next',
             FlowType.CTRL,
-            SingleField(DataType.OBJECT)
+            DataFieldSpec(DataType.OBJECT)
         ))
         
         self.add_outlet(Outlet(
             'result_out',
             'Result',
             FlowType.DATA,
-            SingleField(DataType.FLOAT)
+            DataFieldSpec(DataType.FLOAT)
         ))
     
     def on_precision_changed(self):
