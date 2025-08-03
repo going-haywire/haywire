@@ -37,6 +37,12 @@ class FlowType(Enum):
     NONE = 'none'
 
 
+class CouplingType(Enum):
+    ONE = 'one'
+    MANY = 'many'
+    NONE = 'none'
+
+
 @dataclass
 class DataField(ABC):
     """Abstract base class for data fields with change notification"""
@@ -111,12 +117,16 @@ class DataField(ABC):
 class SingleField(DataField):
     """Single-value data field"""
     value: Any = None
+    default_value: Any = None
     
-    def set_value(self, value: Any, source_id: str = None):
+    def set_value(self, value: Any, source_id: str | None = None) -> None:
         """Set single value (source_id is ignored for scalar fields)"""
         if self.value != value:
             self.value = value
             self.is_dirty = True
+            if source_id is None:
+                # if the value is set via UI, it is the default value   
+                self.default_value = value
             self._notify_observers()
     
     def get_value(self):
@@ -124,11 +134,10 @@ class SingleField(DataField):
         return self.value
     
     def remove_source(self, source_id: str):
-        """Remove source - for scalar fields, this clears the value"""
-        if self.value is not None:
-            self.value = None
-            self.is_dirty = True
-            self._notify_observers()
+        """Remove source - for scalar fields, set back to default value"""
+        self.value = self.default_value
+        self.is_dirty = True    
+        self._notify_observers()
     
     def has_sources(self) -> bool:
         """Check if field has a value"""
@@ -253,38 +262,41 @@ class Config(ConfigurableElement):
             data.add_observer(lambda v: callback())
 
 
-
 class Inlet(ConfigurableElement):
     """Data inlet for receiving values"""
     def __init__(self, element_id: str, name: str, flow_type: FlowType,
-                 coupling_type: str = 'one', mode: str = 'optional', **kwargs):
-        # Set coupling type first, before calling parent constructor
-        self.flow_type = flow_type
-        self.coupling_type = coupling_type
-        self.mode = mode
-        
-        # Extract data if provided, and prepare it for multi-value if needed
-        if 'data' in kwargs and coupling_type == 'many':
-            data_field = kwargs['data']
-            if data_field:
-                data_field.is_multi = True
-                if not isinstance(data_field.value, dict):
-                    data_field.value = {}
-        
+                 coupling_type: CouplingType | None = None, mode: str = 'optional', **kwargs):
         # Now call parent constructor
         super().__init__(element_id, name, **kwargs)
-        
+
+        self.flow_type = flow_type
+        self.mode = mode
         self.is_connected = False
         self.is_lazy = kwargs.get('is_lazy', False)
-    
+        
+        if coupling_type is not None:
+            # Use explicitly provided coupling type
+            self.coupling_type = coupling_type
+        elif self.data:
+            # Auto-determine based on is_multi flag
+            if self.data.is_multi:
+                self.coupling_type = CouplingType.MANY
+            else:
+                self.coupling_type = CouplingType.ONE
+        else:
+            # Default for no data field or no is_multi attribute
+            self.coupling_type = CouplingType.ONE
+                    
     def set_value_from_source(self, source_id: str, value: Any):
         """Convenience method for setting value from a specific source"""
         if self.data:
             self.data.set_value(value, source_id=source_id)
+        # Naturally, if a value is set, the inlet is connected
+        self.is_connected = True
     
     def remove_source(self, source_id: str):
         """Remove a specific source connection"""
-        if self.data and self.coupling_type == 'many':
+        if self.data and self.coupling_type == CouplingType.MANY:
             self.data.remove_source(source_id)
     
     def to_dict(self):
@@ -292,7 +304,7 @@ class Inlet(ConfigurableElement):
         result = super().to_dict()
         result.update({
             'flow_type': self.flow_type.value,
-            'coupling_type': self.coupling_type,
+            'coupling_type': self.coupling_type.value,
             'mode': self.mode,
             'is_connected': self.is_connected,
             'is_lazy': self.is_lazy
@@ -338,16 +350,7 @@ class NodeData:
     def add_inlet(self, inlet: Inlet):
         """Add an inlet element"""
         self.inlets[inlet.id] = inlet
-        self._cache_dirty = True
-        
-        # Initialize data field if needed
-        if inlet.coupling_type == 'many' and inlet.data is None:
-            # Create multi-value data field
-            inlet.data = MultiField(
-                type=inlet.metadata.get('data_type', DataType.OBJECT),
-                category=inlet.metadata.get('data_category', DataCategory.SCALAR)
-            )
-        
+        self._cache_dirty = True        
         return inlet
     
     def add_outlet(self, outlet: Outlet):
@@ -464,7 +467,6 @@ class ExampleNode(NodeData):
             'multi_values',
             'Multiple Values',
             FlowType.DATA,
-            coupling_type='many',
             data=MultiField(DataType.FLOAT, value=dict())
         ))
         
@@ -563,8 +565,9 @@ class Pipe:
         """Propagate value through pipe using polymorphic DataField interface"""
         # The DataField subclass will handle the logic based on its type
         # ScalarField ignores source_id, MultiField uses it
-        self.target_inlet.data.set_value(value, source_id=self.pipe_id)
-    
+        self.target_inlet.set_value_from_source(self.pipe_id, value)    
+
+
     def disconnect(self):
         """Disconnect the pipe using polymorphic DataField interface"""
         # Remove from outlet's pipes
@@ -572,7 +575,7 @@ class Pipe:
         
         # Remove source using polymorphic interface
         # ScalarField will clear its value, MultiField will remove the specific source
-        self.target_inlet.data.remove_source(self.pipe_id)
+        self.target_inlet.remove_source(self.pipe_id)
         
         # Update connection status based on remaining sources
         # Use polymorphic has_sources method

@@ -305,8 +305,7 @@ class MathProcessorNode(HaywireNode):
         self.add_inlet(Inlet(
             'ctrl_in',
             'Execute',
-            FlowType.CTRL,
-            coupling_type='many'
+            FlowType.CTRL
         ))
         
         self.add_inlet(Inlet(
@@ -320,7 +319,6 @@ class MathProcessorNode(HaywireNode):
             'multi_values',
             'Multiple Values',
             FlowType.DATA,
-            coupling_type='many',
             data=MultiField(DataType.FLOAT, value={})
         ))
         
