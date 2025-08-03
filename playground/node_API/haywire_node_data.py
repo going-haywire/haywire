@@ -153,6 +153,7 @@ class ConfigurableElement:
         self.data = data
         self.is_visible = kwargs.get('is_visible', True)
         self.is_enabled = kwargs.get('is_enabled', True)
+        self.ui = kwargs.get('ui', {})
         self.metadata = kwargs  # Store any additional UI hints
     
     def to_dict(self):
@@ -163,6 +164,7 @@ class ConfigurableElement:
             'description': self.description,
             'is_visible': self.is_visible,
             'is_enabled': self.is_enabled,
+            'ui': self.ui,
             **self.metadata
         }
         if self.data:
@@ -420,7 +422,7 @@ class ExampleNode(NodeData):
             callback=self.on_precision_changed,
             ui={
                 'widget': 'slider',
-                'props': {
+                'properties': {
                     'min': 0,
                     'max': 10
                 }
@@ -434,7 +436,7 @@ class ExampleNode(NodeData):
             data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),
             ui={
                 'widget': 'number',
-                'props': {
+                'properties': {
                     'min': 0.1,
                     'max': 10.0
                 }

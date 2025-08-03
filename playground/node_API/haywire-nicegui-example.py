@@ -5,7 +5,7 @@ Shows how the UI-agnostic node data structure integrates with NiceGUI
 """
 
 from nicegui import ui
-from typing import Optional
+from typing import Any, Optional
 import weakref
 from abc import abstractmethod
 
@@ -75,9 +75,8 @@ class NiceGUINodeRenderer:
             return
         
         data_type = element.data.type
-        ui_config = element.metadata.get('ui', {})
-        ui_widget = ui_config.get('widget')
-        ui_props = ui_config.get('props', {})
+        ui_widget = element.ui.get('widget')
+        ui_props = element.ui.get('properties', {})
         
         # Create appropriate UI element
         if ui_widget == 'slider':
@@ -107,7 +106,7 @@ class NiceGUINodeRenderer:
         }
         
         # Apply direct property mapping
-        for prop in ['label', 'placeholder', 'password', 'autocomplete', 'validation']:
+        for prop in ['label', 'placeholder', 'password', 'password_toggle_button', 'autocomplete']:
             if prop in ui_props:
                 input_kwargs[prop] = ui_props[prop]
         
@@ -151,14 +150,7 @@ class NiceGUINodeRenderer:
             slider_kwargs['max'] = 100
         
         slider = ui.slider(**slider_kwargs).bind_value(element.data, 'value')
-        
-        # Add props for additional styling if specified
-        props_list = []
-        if ui_props.get('selection_color'):
-            props_list.append(f'selection-color={ui_props["selection_color"]}')
-        if props_list:
-            slider.props(' '.join(props_list))
-        
+                
         # Label showing current value - also bound to the data
         label = ui.label().bind_text_from(element.data, 'value', 
                                          lambda v: f'{element.name}: {v}')
@@ -168,13 +160,13 @@ class NiceGUINodeRenderer:
     def _create_knob(self, element_type: str, element, ui_props):
         """Create a knob element"""
         # Build kwargs dynamically
-        knob_kwargs = {
+        knob_kwargs: dict[str, Any] = {
             'value': element.data.get_value(),
             'show_value': True
         }
         
         # Apply direct property mapping
-        for prop in ['min', 'max', 'step', 'color', 'size', 'show_value']:
+        for prop in ['min', 'max', 'step', 'color', 'center_color', 'track_color', 'size', 'show_value']:
             if prop in ui_props:
                 knob_kwargs[prop] = ui_props[prop]
         
@@ -230,7 +222,7 @@ class NiceGUINodeRenderer:
         }
         
         # Apply direct property mapping
-        for prop in ['label', 'options', 'clearable', 'multiple']:
+        for prop in ['label', 'options', 'clearable', 'multiple', 'with_input']:
             if prop in ui_props:
                 select_kwargs[prop] = ui_props[prop]
         
@@ -267,21 +259,21 @@ class MathProcessorNode(HaywireNode):
             'Precision',
             DataField(DataType.INT, DataCategory.SCALAR, 2),
             callback=self.on_precision_changed,
-            ui={'widget': 'slider', 'props': {'min': 0, 'max': 10}}
+            ui={'widget': 'slider', 'properties': {'min': 0, 'max': 10}}
         ))
         
         self.add_config(Config(
             'mode',
             'Processing Mode',
             DataField(DataType.STR, DataCategory.SCALAR, 'fast'),
-            ui={'widget': 'select', 'props': {'options': ['fast', 'balanced', 'quality']}}
+            ui={'widget': 'select', 'properties': {'options': ['fast', 'balanced', 'quality']}}
         ))
         
         self.add_property(Property(
             'scale',
             'Scale Factor',
             data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),
-            ui={'widget': 'knob', 'props': {'min': 0.1, 'max': 10.0}}
+            ui={'widget': 'knob', 'properties': {'min': 0.1, 'max': 10.0}}
         ))
         
         self.add_property(Property(
@@ -295,7 +287,7 @@ class MathProcessorNode(HaywireNode):
             'threshold',
             'Threshold',
             data=DataField(DataType.FLOAT, DataCategory.SCALAR, 0.5),
-            ui={'widget': 'number', 'props': {'min': 0.0, 'max': 1.0}}
+            ui={'widget': 'number', 'properties': {'min': 0.0, 'max': 1.0}}
         ))
         
         # Add inlets/outlets
