@@ -109,7 +109,10 @@ class NiceGUINodeRenderer:
             if prop in ui_props:
                 input_kwargs[prop] = ui_props[prop]
         
-        input_element = ui.input(**input_kwargs).bind_value(element.data, 'value')
+        def update_value(e):
+            element.data.set_value(e.value)
+
+        input_element = ui.input(**input_kwargs, on_change=update_value)
         
         self.ui_elements[element.id] = input_element
 
@@ -126,7 +129,10 @@ class NiceGUINodeRenderer:
             if prop in ui_props:
                 number_kwargs[prop] = ui_props[prop]
         
-        number = ui.number(**number_kwargs).bind_value(element.data, 'value')
+        def update_value(e):
+            element.data.set_value(e.value)
+
+        number = ui.number(**number_kwargs, on_change=update_value)
         
         self.ui_elements[element.id] = number
 
@@ -148,10 +154,13 @@ class NiceGUINodeRenderer:
         if 'max' not in slider_kwargs:
             slider_kwargs['max'] = 100
         
-        slider = ui.slider(**slider_kwargs).bind_value(element.data, 'value')
+        def update_value(e):
+            element.data.set_value(e.value)
+
+        slider = ui.slider(**slider_kwargs, on_change=update_value)
                 
         # Label showing current value - also bound to the data
-        label = ui.label().bind_text_from(element.data, 'value', 
+        label = ui.label(). bind_text_from(element.data, 'value', 
                                          lambda v: f'{element.name}: {v}')
         
         self.ui_elements[element.id] = slider
@@ -169,12 +178,11 @@ class NiceGUINodeRenderer:
             if prop in ui_props:
                 knob_kwargs[prop] = ui_props[prop]
         
-        knob = ui.knob(**knob_kwargs).bind_value(element.data, 'value')
-        
-        # Optional label showing current value
-        ui.label().bind_text_from(element.data, 'value', 
-                                 lambda v: f'{element.name}: {v:.2f}')
-        
+        def update_value(e):
+            element.data.set_value(e.value)
+
+        knob = ui.knob(**knob_kwargs, on_change=update_value)
+                
         self.ui_elements[element.id] = knob
 
     def _create_checkbox(self, element_type: str, element, ui_props):
@@ -189,8 +197,11 @@ class NiceGUINodeRenderer:
         for prop in ['text']:
             if prop in ui_props:
                 checkbox_kwargs[prop] = ui_props[prop]
-        
-        checkbox = ui.checkbox(**checkbox_kwargs).bind_value(element.data, 'value')
+
+        def update_value(e):
+            element.data.set_value(e.value)
+
+        checkbox = ui.checkbox(**checkbox_kwargs, on_change=update_value)
         
         self.ui_elements[element.id] = checkbox
     
@@ -207,7 +218,10 @@ class NiceGUINodeRenderer:
             if prop in ui_props:
                 switch_kwargs[prop] = ui_props[prop]
         
-        switch = ui.switch(**switch_kwargs).bind_value(element.data, 'value')
+        def update_value(e):
+            element.data.set_value(e.value)
+
+        switch = ui.switch(**switch_kwargs, on_change=update_value)
         
         self.ui_elements[element.id] = switch
     
@@ -225,7 +239,10 @@ class NiceGUINodeRenderer:
             if prop in ui_props:
                 select_kwargs[prop] = ui_props[prop]
         
-        select = ui.select(**select_kwargs).bind_value(element.data, 'value')
+        def update_value(e):
+            element.data.set_value(e.value)
+        
+        select = ui.select(**select_kwargs, on_change=update_value)
         
         self.ui_elements[element.id] = select
     
