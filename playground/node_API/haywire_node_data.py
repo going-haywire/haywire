@@ -418,9 +418,13 @@ class ExampleNode(NodeData):
             'Precision',
             DataField(DataType.INT, DataCategory.SCALAR, 2),
             callback=self.on_precision_changed,
-            ui_hint='slider',
-            min=0,
-            max=10
+            ui={
+                'widget': 'slider',
+                'props': {
+                    'min': 0,
+                    'max': 10
+                }
+            }
         ))
         
         # Add property
@@ -428,9 +432,13 @@ class ExampleNode(NodeData):
             'scale',
             'Scale Factor',
             data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),
-            ui_hint='number',
-            min=0.1,
-            max=10.0
+            ui={
+                'widget': 'number',
+                'props': {
+                    'min': 0.1,
+                    'max': 10.0
+                }
+            }
         ))
         
         # Add inlet with property binding (single coupling)

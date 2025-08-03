@@ -75,34 +75,33 @@ class NiceGUINodeRenderer:
             return
         
         data_type = element.data.type
-        ui_hint = element.metadata.get('ui_hint')
-        
-        # Determine UI element type
-        ui_type = self.UI_ELEMENTS.get((data_type, ui_hint))
-        if not ui_type:
-            ui_type = self.UI_ELEMENTS.get((data_type, None), 'input')
+        ui_config = element.metadata.get('ui', {})
+        ui_widget = ui_config.get('widget')
+        ui_props = ui_config.get('props', {})
         
         # Create appropriate UI element
-        if ui_type == 'slider':
-            self._create_slider(element_type, element)
-        elif ui_type == 'number':
-            self._create_number(element_type, element)
-        elif ui_type == 'checkbox':
+        if ui_widget == 'slider':
+            self._create_slider(element_type, element, ui_props)
+        elif ui_widget == 'number':
+            self._create_number(element_type, element, ui_props)
+        elif ui_widget == 'checkbox':
             self._create_checkbox(element_type, element)
-        elif ui_type == 'switch':
+        elif ui_widget == 'switch':
             self._create_switch(element_type, element)
-        elif ui_type == 'input':
-            self._create_input(element_type, element)
-        elif ui_type == 'select':
-            self._create_select(element_type, element)
-        elif ui_type == 'knob':
-            self._create_knob(element_type, element)
-        # Add more UI types as needed
+        elif ui_widget == 'input':
+            self._create_input(element_type, element, ui_props)
+        elif ui_widget == 'select':
+            self._create_select(element_type, element, ui_props)
+        elif ui_widget == 'knob':
+            self._create_knob(element_type, element, ui_props)
+        else:
+            # Default fallback
+            self._create_input(element_type, element, {})
     
-    def _create_slider(self, element_type: str, element):
+    def _create_slider(self, element_type: str, element, ui_props):
         """Create a slider element"""
-        min_val = element.metadata.get('min', 0)
-        max_val = element.metadata.get('max', 100)
+        min_val = ui_props.get('min', 0)
+        max_val = ui_props.get('max', 100)
         
         slider = ui.slider(
             min=min_val,
@@ -116,10 +115,10 @@ class NiceGUINodeRenderer:
         
         self.ui_elements[element.id] = slider
     
-    def _create_number(self, element_type: str, element):
+    def _create_number(self, element_type: str, element, ui_props):
         """Create a number input element"""
-        min_val = element.metadata.get('min')
-        max_val = element.metadata.get('max')
+        min_val = ui_props.get('min')
+        max_val = ui_props.get('max')
         
         number = ui.number(
             label=element.name,
@@ -148,9 +147,9 @@ class NiceGUINodeRenderer:
         
         self.ui_elements[element.id] = switch
     
-    def _create_input(self, element_type: str, element):
+    def _create_input(self, element_type: str, element, ui_props):
         """Create a text input element"""
-        placeholder = element.metadata.get('placeholder', '')
+        placeholder = ui_props.get('placeholder', '')
         
         input_field = ui.input(
             label=element.name,
@@ -160,9 +159,9 @@ class NiceGUINodeRenderer:
         
         self.ui_elements[element.id] = input_field
     
-    def _create_select(self, element_type: str, element):
+    def _create_select(self, element_type: str, element, ui_props):
         """Create a dropdown select element"""
-        options = element.metadata.get('options', [])
+        options = ui_props.get('options', [])
         
         select = ui.select(
             options,
@@ -172,10 +171,10 @@ class NiceGUINodeRenderer:
         
         self.ui_elements[element.id] = select
     
-    def _create_knob(self, element_type: str, element):
+    def _create_knob(self, element_type: str, element, ui_props):
         """Create a knob element"""
-        min_val = element.metadata.get('min', 0)
-        max_val = element.metadata.get('max', 1)
+        min_val = ui_props.get('min', 0)
+        max_val = ui_props.get('max', 1)
         
         # Normalize initial value to 0-1 range for knob
         normalized = (element.data.get_value() - min_val) / (max_val - min_val)
@@ -231,42 +230,35 @@ class MathProcessorNode(HaywireNode):
             'Precision',
             DataField(DataType.INT, DataCategory.SCALAR, 2),
             callback=self.on_precision_changed,
-            ui_hint='slider',
-            min=0,
-            max=10
+            ui={'widget': 'slider', 'props': {'min': 0, 'max': 10}}
         ))
         
         self.add_config(Config(
             'mode',
             'Processing Mode',
             DataField(DataType.STR, DataCategory.SCALAR, 'fast'),
-            ui_hint='dropdown',
-            options=['fast', 'balanced', 'quality']
+            ui={'widget': 'select', 'props': {'options': ['fast', 'balanced', 'quality']}}
         ))
         
         self.add_property(Property(
             'scale',
             'Scale Factor',
             data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),
-            ui_hint='knob',
-            min=0.1,
-            max=10.0
+            ui={'widget': 'knob', 'props': {'min': 0.1, 'max': 10.0}}
         ))
         
         self.add_property(Property(
             'invert',
             'Invert Result',
             data=DataField(DataType.BOOL, DataCategory.SCALAR, False),
-            ui_hint='switch'
+            ui={'widget': 'switch'}
         ))
         
         self.add_property(Property(
             'threshold',
             'Threshold',
             data=DataField(DataType.FLOAT, DataCategory.SCALAR, 0.5),
-            ui_hint='number',
-            min=0.0,
-            max=1.0
+            ui={'widget': 'number', 'props': {'min': 0.0, 'max': 1.0}}
         ))
         
         # Add inlets/outlets
