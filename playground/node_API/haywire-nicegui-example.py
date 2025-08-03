@@ -44,23 +44,24 @@ class NiceGUINodeRenderer:
     
     def render_node(self, title: str = "Node"):
         """Render complete node UI"""
-        with ui.card().classes('w-64'):
-            ui.label(title).classes('text-h6')
+        with ui.card().classes('w-full min-w-64 max-w-sm'):
+            ui.label(title).classes('text-h6 w-full')
             
             # Render configs
             if self.node.configs:
-                with ui.expansion('Configuration', value=True):
-                    for config in self.node.configs.values():
-                        if config.is_visible:
-                            self._render_element('config', config)
-            
+                ui.label('Configuration').classes('font-bold text-sm mt-2 w-full')
+                for config in self.node.configs.values():
+                    if config.is_visible:
+                        ui.label(config.name).classes('text-xs')
+                        self._render_element('config', config)
+        
             # Render parameter inlets (inlets with UI that act as parameters)
             param_inlets = [i for i in self.node.inlets.values() if i.is_visible and i.is_enabled and hasattr(i, 'ui') and i.ui]
             if param_inlets:
-                ui.label('Parameters').classes('font-bold text-sm mt-2')
+                ui.label('Parameters').classes('font-bold text-sm mt-2 w-full')
                 for inlet in param_inlets:
-                    with ui.row().classes('w-full items-center gap-2'):
-                        ui.label(inlet.name).classes('w-20 text-xs')
+                    with ui.column().classes('w-full gap-1'):
+                        ui.label(inlet.name).classes('text-xs')
                         self._render_element('inlet', inlet)
             
             # Show inlet/outlet status
@@ -100,7 +101,6 @@ class NiceGUINodeRenderer:
         """Create an input element"""
         # Build kwargs dynamically
         input_kwargs = {
-            'label': element.name,
             'value': element.data.get_value()
         }
         
@@ -112,7 +112,7 @@ class NiceGUINodeRenderer:
         def update_value(e):
             element.data.set_value(e.value)
 
-        input_element = ui.input(**input_kwargs, on_change=update_value)
+        input_element = ui.input(**input_kwargs, on_change=update_value).classes('w-full')
         
         self.ui_elements[element.id] = input_element
 
@@ -120,7 +120,6 @@ class NiceGUINodeRenderer:
         """Create a number input element"""
         # Build kwargs dynamically
         number_kwargs = {
-            'label': element.name,
             'value': element.data.get_value()
         }
         
@@ -132,7 +131,7 @@ class NiceGUINodeRenderer:
         def update_value(e):
             element.data.set_value(e.value)
 
-        number = ui.number(**number_kwargs, on_change=update_value)
+        number = ui.number(**number_kwargs, on_change=update_value).classes('w-full')
         
         self.ui_elements[element.id] = number
 
@@ -157,12 +156,8 @@ class NiceGUINodeRenderer:
         def update_value(e):
             element.data.set_value(e.value)
 
-        slider = ui.slider(**slider_kwargs, on_change=update_value)
-                
-        # Label showing current value - also bound to the data
-        label = ui.label(). bind_text_from(element.data, 'value', 
-                                         lambda v: f'{element.name}: {v}')
-        
+        slider = ui.slider(**slider_kwargs, on_change=update_value).classes('w-full').props('label-always')
+                        
         self.ui_elements[element.id] = slider
 
     def _create_knob(self, element_type: str, element, ui_props):
@@ -181,7 +176,8 @@ class NiceGUINodeRenderer:
         def update_value(e):
             element.data.set_value(e.value)
 
-        knob = ui.knob(**knob_kwargs, on_change=update_value)
+        with ui.row().classes('w-full justify-center'):
+            knob = ui.knob(**knob_kwargs, on_change=update_value)
                 
         self.ui_elements[element.id] = knob
 
@@ -189,7 +185,6 @@ class NiceGUINodeRenderer:
         """Create a checkbox element"""
         # Build kwargs dynamically
         checkbox_kwargs = {
-            'text': element.name,
             'value': element.data.get_value()
         }
         
@@ -201,7 +196,7 @@ class NiceGUINodeRenderer:
         def update_value(e):
             element.data.set_value(e.value)
 
-        checkbox = ui.checkbox(**checkbox_kwargs, on_change=update_value)
+        checkbox = ui.checkbox(**checkbox_kwargs, on_change=update_value).classes('w-full')
         
         self.ui_elements[element.id] = checkbox
     
@@ -209,7 +204,6 @@ class NiceGUINodeRenderer:
         """Create a switch element"""
         # Build kwargs dynamically
         switch_kwargs = {
-            'text': element.name,
             'value': element.data.get_value()
         }
         
@@ -221,7 +215,7 @@ class NiceGUINodeRenderer:
         def update_value(e):
             element.data.set_value(e.value)
 
-        switch = ui.switch(**switch_kwargs, on_change=update_value)
+        switch = ui.switch(**switch_kwargs, on_change=update_value).classes('w-full')
         
         self.ui_elements[element.id] = switch
     
@@ -230,19 +224,18 @@ class NiceGUINodeRenderer:
         # Build kwargs dynamically
         select_kwargs = {
             'options': ui_props.get('options', []),
-            'label': element.name,
             'value': element.data.get_value()
         }
         
         # Apply direct property mapping
-        for prop in ['label', 'options', 'clearable', 'multiple', 'with_input']:
+        for prop in ['options', 'clearable', 'multiple', 'with_input']:
             if prop in ui_props:
                 select_kwargs[prop] = ui_props[prop]
         
         def update_value(e):
             element.data.set_value(e.value)
         
-        select = ui.select(**select_kwargs, on_change=update_value)
+        select = ui.select(**select_kwargs, on_change=update_value).classes('w-full')
         
         self.ui_elements[element.id] = select
     
