@@ -38,109 +38,177 @@ class FlowType(Enum):
 
 
 @dataclass
-class DataField:
-    """Core data structure for values with change notification"""
+class DataField(ABC):
+    """Abstract base class for data fields with change notification"""
     type: DataType
-    category: DataCategory
-    value: Any = None
+    category: DataCategory = DataCategory.SCALAR
     is_dirty: bool = False
     is_multi: bool = False
     _observers: Set[Callable] = field(default_factory=set, init=False, repr=False)
-    _aggregated_value: Any = field(default=None, init=False, repr=False)
     
-    def __post_init__(self):
-        """Initialize value structure based on is_multi flag"""
-        if self.is_multi:
-            if not isinstance(self.value, dict):
-                self.value = {}  # {source_id: value}
-            self._aggregated_value = None
-    
+    @abstractmethod
     def set_value(self, value: Any, source_id: str = None):
-        """Set value with optional source tracking for multi-value fields"""
-        if self.is_multi:
-            if source_id is None:
-                raise ValueError("source_id required for multi-value DataField")
-            if self.value.get(source_id) != value:
-                self.value[source_id] = value
-                self._aggregated_value = None  # Invalidate cache
-                self.is_dirty = True
-                self._notify_observers()
-        else:
-            # Original single-value behavior
-            if self.value != value:
-                self.value = value
-                self.is_dirty = True
-                self._notify_observers()
+        """Set value with optional source tracking"""
+        pass
     
+    @abstractmethod
     def get_value(self):
-        """Get value - returns dict for multi-value, single value otherwise"""
-        if self.is_multi:
-            if self._aggregated_value is None:
-                # Return as dict with source IDs as keys
-                self._aggregated_value = dict(self.value)
-            return self._aggregated_value
-        return self.value
+        """Get the current value"""
+        pass
     
-    def get_values_list(self):
-        """Get values as list (for multi-value fields)"""
-        if self.is_multi:
-            return list(self.value.values())
-        return [self.value] if self.value is not None else []
-    
+    @abstractmethod
     def remove_source(self, source_id: str):
-        """Remove a source (for multi-value fields when disconnected)"""
-        if self.is_multi and source_id in self.value:
-            del self.value[source_id]
-            self._aggregated_value = None
-            self.is_dirty = True
-            self._notify_observers()
+        """Remove a source connection"""
+        pass
     
-    def clear_sources(self):
-        """Clear all sources (for multi-value fields)"""
-        if self.is_multi and self.value:
-            self.value.clear()
-            self._aggregated_value = None
-            self.is_dirty = True
-            self._notify_observers()
+    @abstractmethod
+    def has_sources(self) -> bool:
+        """Check if field has any active sources"""
+        pass
     
-    def has_source(self, source_id: str) -> bool:
-        """Check if a source exists (for multi-value fields)"""
-        return self.is_multi and source_id in self.value
+    @abstractmethod
+    def get_values_list(self) -> list[Any]:
+        """Get values as list"""
+        pass
     
-    def get_source_ids(self) -> List[str]:
-        """Get all source IDs (for multi-value fields)"""
-        if self.is_multi:
-            return list(self.value.keys())
-        return []
+    @abstractmethod
+    def get_source_ids(self) -> list[str]:
+        """Get all source IDs (empty for scalar fields)"""
+        pass
     
     def add_observer(self, callback: Callable):
         """Add a callback for value changes"""
         self._observers.add(callback)
     
     def remove_observer(self, callback: Callable):
-        """Remove a value change callback"""
+        """Remove a callback for value changes"""
         self._observers.discard(callback)
     
     def _notify_observers(self):
         """Notify all observers of value change"""
-        # For multi-value, pass the aggregated value
-        notification_value = self.get_value()
-        for observer in self._observers:
-            observer(notification_value)
+        for callback in self._observers:
+            try:
+                callback(self.get_value())
+            except Exception as e:
+                # Log error but don't break the chain
+                print(f"Observer callback error: {e}")
     
     def mark_clean(self):
-        """Mark as clean after processing"""
+        """Mark field as clean after processing"""
         self.is_dirty = False
     
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """Convert to dict for serialization"""
         return {
-            'type': self.type.value,
-            'category': self.category.value,
-            'value': self.value,
-            'is_dirty': self.is_dirty,
-            'is_multi': self.is_multi
+            'type': self.type.value if hasattr(self.type, 'value') else self.type,
+            'category': self.category.value if hasattr(self.category, 'value') else self.category,
+            'value': self.get_value(),
+            'is_dirty': self.is_dirty
         }
+
+
+@dataclass
+class SingleField(DataField):
+    """Single-value data field"""
+    value: Any = None
+    
+    def set_value(self, value: Any, source_id: str = None):
+        """Set single value (source_id is ignored for scalar fields)"""
+        if self.value != value:
+            self.value = value
+            self.is_dirty = True
+            self._notify_observers()
+    
+    def get_value(self):
+        """Get the current value"""
+        return self.value
+    
+    def remove_source(self, source_id: str):
+        """Remove source - for scalar fields, this clears the value"""
+        if self.value is not None:
+            self.value = None
+            self.is_dirty = True
+            self._notify_observers()
+    
+    def has_sources(self) -> bool:
+        """Check if field has a value"""
+        return self.value is not None
+    
+    def get_values_list(self) -> list[Any]:
+        """Get values as list"""
+        return [self.value] if self.value is not None else []
+    
+    def get_source_ids(self) -> list[str]:
+        """Get all source IDs (empty for scalar fields)"""
+        return []
+    
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dict for serialization"""
+        result = super().to_dict()
+        result['is_multi'] = False
+        return result
+
+
+@dataclass
+class MultiField(DataField):
+    """Multi-value data field for many-to-one connections"""
+    value: dict = field(default_factory=dict)  # {source_id: value}
+    is_multi: bool = True
+    _aggregated_value: Any = field(default=None, init=False, repr=False)
+    
+    def set_value(self, value: Any, source_id: str = None):
+        """Set value from a specific source"""
+        if source_id is None:
+            raise ValueError("source_id required for MultiField")
+        if self.value.get(source_id) != value:
+            self.value[source_id] = value
+            self._aggregated_value = None  # Invalidate cache
+            self.is_dirty = True
+            self._notify_observers()
+    
+    def get_value(self):
+        """Get aggregated value as dict"""
+        if self._aggregated_value is None:
+            self._aggregated_value = dict(self.value)
+        return self._aggregated_value
+    
+    def remove_source(self, source_id: str):
+        """Remove a specific source"""
+        if source_id in self.value:
+            del self.value[source_id]
+            self._aggregated_value = None
+            self.is_dirty = True
+            self._notify_observers()
+    
+    def has_sources(self) -> bool:
+        """Check if field has any sources"""
+        return len(self.value) > 0
+    
+    def get_values_list(self) -> List[Any]:
+        """Get values as list"""
+        return list(self.value.values())
+    
+    def has_source(self, source_id: str) -> bool:
+        """Check if a specific source exists"""
+        return source_id in self.value
+    
+    def get_source_ids(self) -> List[str]:
+        """Get all source IDs"""
+        return list(self.value.keys())
+    
+    def clear_sources(self):
+        """Clear all sources"""
+        if self.value:
+            self.value.clear()
+            self._aggregated_value = None
+            self.is_dirty = True
+            self._notify_observers()
+    
+    def to_dict(self) -> dict:
+        """Convert to dict for serialization"""
+        result = super().to_dict()
+        result['is_multi'] = True
+        return result
 
 
 class ConfigurableElement:
@@ -275,10 +343,9 @@ class NodeData:
         # Initialize data field if needed
         if inlet.coupling_type == 'many' and inlet.data is None:
             # Create multi-value data field
-            inlet.data = DataField(
-                inlet.metadata.get('data_type', DataType.OBJECT),
-                inlet.metadata.get('data_category', DataCategory.SCALAR),
-                is_multi=True
+            inlet.data = MultiField(
+                type=inlet.metadata.get('data_type', DataType.OBJECT),
+                category=inlet.metadata.get('data_category', DataCategory.SCALAR)
             )
         
         return inlet
@@ -366,7 +433,7 @@ class ExampleNode(NodeData):
         self.add_config(Config(
             'precision',
             'Precision',
-            DataField(DataType.INT, DataCategory.SCALAR, 2),
+            SingleField(DataType.INT, value=2),
             callback=self.on_precision_changed,
             ui={
                 'widget': 'slider',
@@ -382,7 +449,7 @@ class ExampleNode(NodeData):
             'value_in',
             'Input Value',
             FlowType.DATA,
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),  # Default value
+            data=SingleField(DataType.FLOAT, value=1.0),
             ui={
                 'widget': 'number',
                 'properties': {
@@ -392,22 +459,13 @@ class ExampleNode(NodeData):
             }
         ))
         
-        # Add inlet with many coupling
+        # Add inlet for multi-value input (many coupling)
         self.add_inlet(Inlet(
-            'data_in_many',
-            'Multiple Inputs',
+            'multi_values',
+            'Multiple Values',
             FlowType.DATA,
             coupling_type='many',
-            mode='optional',
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR)
-        ))
-        
-        # Add control inlet
-        self.add_inlet(Inlet(
-            'ctrl_in',
-            'Execute',
-            FlowType.CTRL,
-            coupling_type='many'
+            data=MultiField(DataType.FLOAT, value=dict())
         ))
         
         # Add outlet
@@ -415,7 +473,7 @@ class ExampleNode(NodeData):
             'result_out',
             'Result',
             FlowType.DATA,
-            DataField(DataType.FLOAT, DataCategory.SCALAR)
+            SingleField(DataType.FLOAT)
         ))
     
     def on_precision_changed(self):
@@ -428,8 +486,8 @@ class ExampleNode(NodeData):
         input_value = self.get_inlet_value('value_in')
         
         # Get multi-inlet values
-        multi_values_dict = self.get_inlet_value('data_in_many')  # Dict
-        multi_values_list = self.get_inlet_values_list('data_in_many')  # List
+        multi_values_dict = self.get_inlet_value('multi_values')  # Dict
+        multi_values_list = self.get_inlet_values_list('multi_values')  # List
         
         # Get config - direct access
         precision = self.configs['precision'].data.get_value()
@@ -502,26 +560,20 @@ class Pipe:
         source_outlet.pipes.append(self)
     
     def propagate(self, value: Any):
-        """Propagate value through pipe"""
-        if self.target_inlet.coupling_type == 'many':
-            # Use pipe ID as source identifier
-            self.target_inlet.data.set_value(value, source_id=self.pipe_id)
-        else:
-            # Single coupling - direct set
-            self.target_inlet.data.set_value(value)
+        """Propagate value through pipe using polymorphic DataField interface"""
+        # The DataField subclass will handle the logic based on its type
+        # ScalarField ignores source_id, MultiField uses it
+        self.target_inlet.data.set_value(value, source_id=self.pipe_id)
     
     def disconnect(self):
-        """Disconnect the pipe"""
+        """Disconnect the pipe using polymorphic DataField interface"""
         # Remove from outlet's pipes
         self.source_outlet.pipes.remove(self)
         
-        # Update inlet connection status
-        if self.target_inlet.coupling_type == 'many':
-            # Multi-value inlet - remove this specific source
-            self.target_inlet.data.remove_source(self.pipe_id)
-            # Update connection status based on remaining sources
-            remaining_sources = self.target_inlet.data.get_source_ids() if self.target_inlet.data else []
-            self.target_inlet.is_connected = len(remaining_sources) > 0
-        else:
-            # Single coupling - mark as disconnected
-            self.target_inlet.is_connected = False
+        # Remove source using polymorphic interface
+        # ScalarField will clear its value, MultiField will remove the specific source
+        self.target_inlet.data.remove_source(self.pipe_id)
+        
+        # Update connection status based on remaining sources
+        # Use polymorphic has_sources method
+        self.target_inlet.is_connected = self.target_inlet.data.has_sources() if self.target_inlet.data else False

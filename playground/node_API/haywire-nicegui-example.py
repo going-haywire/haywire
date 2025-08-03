@@ -13,8 +13,7 @@ from abc import abstractmethod
 # In practice, this would be: from haywire_node_data import ...
 # For this example, we'll define the minimal required classes
 
-from haywire_node_data import (
-    NodeData, DataField, HaywireNode, DataType, DataCategory, FlowType, Config, Inlet, Outlet)
+from haywire_node_data import SingleField, MultiField, DataType, DataCategory, FlowType, Config, Inlet, Outlet, NodeData, HaywireNode
 
 
 class NiceGUINodeRenderer:
@@ -266,16 +265,15 @@ class MathProcessorNode(HaywireNode):
         self.add_config(Config(
             'precision',
             'Precision',
-            DataField(DataType.INT, DataCategory.SCALAR, 2),
-            callback=self.on_precision_changed,
+            SingleField(DataType.INT, value=2),
             ui={'widget': 'slider', 'properties': {'min': 0, 'max': 10}}
         ))
         
         self.add_config(Config(
             'mode',
             'Processing Mode',
-            DataField(DataType.STR, DataCategory.SCALAR, 'fast'),
-            ui={'widget': 'select', 'properties': {'options': ['fast', 'balanced', 'quality']}}
+            SingleField(DataType.STR, value='fast'),
+            ui={'widget': 'select', 'properties': {'options': ['fast', 'balanced', 'accurate']}}
         ))
         
         # Add inlets with default values (these were previously properties)
@@ -283,7 +281,7 @@ class MathProcessorNode(HaywireNode):
             'scale',
             'Scale Factor',
             FlowType.DATA,
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),
+            data=SingleField(DataType.FLOAT, value=1.0),
             ui={'widget': 'knob', 'properties': {'min': 0.1, 'max': 10.0}}
         ))
         
@@ -291,7 +289,7 @@ class MathProcessorNode(HaywireNode):
             'invert',
             'Invert Result',
             FlowType.DATA,
-            data=DataField(DataType.BOOL, DataCategory.SCALAR, False),
+            data=SingleField(DataType.BOOL, value=False),
             ui={'widget': 'switch'}
         ))
         
@@ -299,7 +297,7 @@ class MathProcessorNode(HaywireNode):
             'threshold',
             'Threshold',
             FlowType.DATA,
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR, 0.5),
+            data=SingleField(DataType.FLOAT, value=0.5),
             ui={'widget': 'number', 'properties': {'min': 0.0, 'max': 1.0}}
         ))
         
@@ -315,30 +313,29 @@ class MathProcessorNode(HaywireNode):
             'value_in',
             'Input Value',
             FlowType.DATA,
-            has_default='scale',
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR)
+            data=SingleField(DataType.FLOAT)
         ))
         
         self.add_inlet(Inlet(
-            'multi_in',
+            'multi_values',
             'Multiple Values',
             FlowType.DATA,
             coupling_type='many',
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR)
+            data=MultiField(DataType.FLOAT, value={})
         ))
         
         self.add_outlet(Outlet(
             'ctrl_out',
             'Next',
             FlowType.CTRL,
-            DataField(DataType.OBJECT, DataCategory.SCALAR)
+            SingleField(DataType.OBJECT)
         ))
         
         self.add_outlet(Outlet(
             'result_out',
             'Result',
             FlowType.DATA,
-            DataField(DataType.FLOAT, DataCategory.SCALAR)
+            SingleField(DataType.FLOAT)
         ))
     
     def on_precision_changed(self):
@@ -350,7 +347,7 @@ class MathProcessorNode(HaywireNode):
         """Process the node"""
         # Direct access to all data
         input_value = self.get_inlet_value('value_in')
-        multi_values = self.get_inlet_values_list('multi_in')
+        multi_values = self.get_inlet_values_list('multi_values')
         
         precision = self.configs['precision'].data.get_value()
         mode = self.configs['mode'].data.get_value()
@@ -410,7 +407,7 @@ def main():
         
         def simulate_multi_input():
             """Simulate multiple inputs"""
-            inlet = node.inlets['multi_in']
+            inlet = node.inlets['multi_values']
             inlet.set_value_from_source('pipe_1', 10.5)
             inlet.set_value_from_source('pipe_2', 20.3)
             inlet.set_value_from_source('pipe_3', 15.7)
@@ -436,8 +433,8 @@ def main():
             print(f"Configs: {[(k, v.data.get_value()) for k, v in node.configs.items()]}")
             print(f"Parameter Inlets: {[(k, v.data.get_value()) for k, v in node.inlets.items() if v.data and hasattr(v.data, 'get_value')]}")
             print(f"Single inlet: {node.get_inlet_value('value_in')}")
-            print(f"Multi inlet dict: {node.get_inlet_value('multi_in')}")
-            print(f"Multi inlet list: {node.get_inlet_values_list('multi_in')}")
+            print(f"Multi inlet dict: {node.get_inlet_value('multi_values')}")
+            print(f"Multi inlet list: {node.get_inlet_values_list('multi_values')}")
         
         ui.button('Print State', on_click=print_state)
     
