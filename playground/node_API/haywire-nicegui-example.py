@@ -85,9 +85,9 @@ class NiceGUINodeRenderer:
         elif ui_widget == 'number':
             self._create_number(element_type, element, ui_props)
         elif ui_widget == 'checkbox':
-            self._create_checkbox(element_type, element)
+            self._create_checkbox(element_type, element, ui_props)
         elif ui_widget == 'switch':
-            self._create_switch(element_type, element)
+            self._create_switch(element_type, element, ui_props)
         elif ui_widget == 'input':
             self._create_input(element_type, element, ui_props)
         elif ui_widget == 'select':
@@ -117,45 +117,61 @@ class NiceGUINodeRenderer:
     
     def _create_number(self, element_type: str, element, ui_props):
         """Create a number input element"""
-        min_val = ui_props.get('min')
-        max_val = ui_props.get('max')
+        # Build kwargs dynamically - only include min/max if specified
+        number_kwargs = {
+            'label': element.name,
+            'value': element.data.get_value()
+        }
         
-        number = ui.number(
-            label=element.name,
-            value=element.data.get_value(),
-            min=min_val,
-            max=max_val
-        ).bind_value(element.data, 'value')
+        # Only add min/max if they're explicitly specified
+        if 'min' in ui_props:
+            number_kwargs['min'] = ui_props['min']
+        if 'max' in ui_props:
+            number_kwargs['max'] = ui_props['max']
+        
+        number = ui.number(**number_kwargs).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = number
     
-    def _create_checkbox(self, element_type: str, element):
+    def _create_checkbox(self, element_type: str, element, ui_props):
         """Create a checkbox element"""
-        checkbox = ui.checkbox(
-            element.name,
-            value=element.data.get_value()
-        ).bind_value(element.data, 'value')
+        # Build kwargs dynamically
+        checkbox_kwargs = {
+            'text': element.name,
+            'value': element.data.get_value()
+        }
+        
+        # Checkboxes don't typically have many optional props, but keeping consistent API
+        checkbox = ui.checkbox(**checkbox_kwargs).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = checkbox
     
-    def _create_switch(self, element_type: str, element):
+    def _create_switch(self, element_type: str, element, ui_props):
         """Create a switch element"""
-        switch = ui.switch(
-            element.name,
-            value=element.data.get_value()
-        ).bind_value(element.data, 'value')
+        # Build kwargs dynamically
+        switch_kwargs = {
+            'text': element.name,
+            'value': element.data.get_value()
+        }
+        
+        # Switches don't typically have many optional props, but keeping consistent API
+        switch = ui.switch(**switch_kwargs).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = switch
     
     def _create_input(self, element_type: str, element, ui_props):
         """Create a text input element"""
-        placeholder = ui_props.get('placeholder', '')
+        # Build kwargs dynamically
+        input_kwargs = {
+            'label': element.name,
+            'value': element.data.get_value() or ''
+        }
         
-        input_field = ui.input(
-            label=element.name,
-            placeholder=placeholder,
-            value=element.data.get_value() or ''
-        ).bind_value(element.data, 'value')
+        # Only add placeholder if specified
+        if 'placeholder' in ui_props:
+            input_kwargs['placeholder'] = ui_props['placeholder']
+        
+        input_field = ui.input(**input_kwargs).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = input_field
     
