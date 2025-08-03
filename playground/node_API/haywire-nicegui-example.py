@@ -14,7 +14,7 @@ from abc import abstractmethod
 # For this example, we'll define the minimal required classes
 
 from haywire_node_data import (
-    NodeData, DataField, HaywireNode, DataType, DataCategory, FlowType, Config, Property, Inlet, Outlet)
+    NodeData, DataField, HaywireNode, DataType, DataCategory, FlowType, Config, Inlet, Outlet)
 
 
 class NiceGUINodeRenderer:
@@ -54,15 +54,14 @@ class NiceGUINodeRenderer:
                         if config.is_visible:
                             self._render_element('config', config)
             
-            # Render properties (that are enabled)
-            visible_props = [
-                p for p in self.node.properties.values() 
-                if p.is_visible and p.is_enabled
-            ]
-            if visible_props:
-                with ui.expansion('Properties', value=True):
-                    for prop in visible_props:
-                        self._render_element('property', prop)
+            # Render parameter inlets (inlets with UI that act as parameters)
+            param_inlets = [i for i in self.node.inlets.values() if i.is_visible and i.is_enabled and hasattr(i, 'ui') and i.ui]
+            if param_inlets:
+                ui.label('Parameters').classes('font-bold text-sm mt-2')
+                for inlet in param_inlets:
+                    with ui.row().classes('w-full items-center gap-2'):
+                        ui.label(inlet.name).classes('w-20 text-xs')
+                        self._render_element('inlet', inlet)
             
             # Show inlet/outlet status
             with ui.row().classes('w-full justify-between'):
@@ -269,23 +268,27 @@ class MathProcessorNode(HaywireNode):
             ui={'widget': 'select', 'properties': {'options': ['fast', 'balanced', 'quality']}}
         ))
         
-        self.add_property(Property(
+        # Add inlets with default values (these were previously properties)
+        self.add_inlet(Inlet(
             'scale',
             'Scale Factor',
+            FlowType.DATA,
             data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),
             ui={'widget': 'knob', 'properties': {'min': 0.1, 'max': 10.0}}
         ))
         
-        self.add_property(Property(
+        self.add_inlet(Inlet(
             'invert',
             'Invert Result',
+            FlowType.DATA,
             data=DataField(DataType.BOOL, DataCategory.SCALAR, False),
             ui={'widget': 'switch'}
         ))
         
-        self.add_property(Property(
+        self.add_inlet(Inlet(
             'threshold',
             'Threshold',
+            FlowType.DATA,
             data=DataField(DataType.FLOAT, DataCategory.SCALAR, 0.5),
             ui={'widget': 'number', 'properties': {'min': 0.0, 'max': 1.0}}
         ))
@@ -341,8 +344,8 @@ class MathProcessorNode(HaywireNode):
         
         precision = self.configs['precision'].data.get_value()
         mode = self.configs['mode'].data.get_value()
-        invert = self.properties['invert'].data.get_value()
-        threshold = self.properties['threshold'].data.get_value()
+        invert = self.inlets['invert'].data.get_value()
+        threshold = self.inlets['threshold'].data.get_value()
         
         # Process - handle None input_value
         if input_value is None:
@@ -366,8 +369,7 @@ class MathProcessorNode(HaywireNode):
         
         return {'next_pin': 'ctrl_out'}
 
-
-# Demo application
+# ... (rest of the code remains the same)
 def main():
     """Run the demo"""
     # Create example node (simulating graph context)
@@ -391,7 +393,7 @@ def main():
         
         def toggle_connection():
             inlet = node.inlets['value_in']
-            inlet.set_connected(not inlet.is_connected)
+            inlet.is_connected = not inlet.is_connected
             ui.notify(f"Input {'connected' if inlet.is_connected else 'disconnected'}")
         
         ui.button('Toggle Input Connection', on_click=toggle_connection)
@@ -422,7 +424,7 @@ def main():
             print("\nNode State:")
             print(f"Node: {node.node_name} v{node.node_version}")
             print(f"Configs: {[(k, v.data.get_value()) for k, v in node.configs.items()]}")
-            print(f"Properties: {[(k, v.data.get_value()) for k, v in node.properties.items()]}")
+            print(f"Parameter Inlets: {[(k, v.data.get_value()) for k, v in node.inlets.items() if v.data and hasattr(v.data, 'get_value')]}")
             print(f"Single inlet: {node.get_inlet_value('value_in')}")
             print(f"Multi inlet dict: {node.get_inlet_value('multi_in')}")
             print(f"Multi inlet list: {node.get_inlet_values_list('multi_in')}")

@@ -8,7 +8,6 @@ property-inlet binding and UI-agnostic design.
 from typing import Any, Dict, Optional, Callable, Set, Union, List
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-import weakref
 from enum import Enum
 from collections import defaultdict
 
@@ -35,6 +34,7 @@ class FlowType(Enum):
     CTRL = 'control'
     DATA = 'data'
     CALLBACK = 'callback'
+    NONE = 'none'
 
 
 @dataclass
@@ -185,13 +185,9 @@ class Config(ConfigurableElement):
             data.add_observer(lambda v: callback())
 
 
-class Property(ConfigurableElement):
-    """Property element for node parameters"""
-    pass
-
 
 class Inlet(ConfigurableElement):
-    """Data inlet with optional property binding"""
+    """Data inlet for receiving values"""
     def __init__(self, element_id: str, name: str, flow_type: FlowType,
                  coupling_type: str = 'one', mode: str = 'optional', **kwargs):
         # Set coupling type first, before calling parent constructor
@@ -212,41 +208,6 @@ class Inlet(ConfigurableElement):
         
         self.is_connected = False
         self.is_lazy = kwargs.get('is_lazy', False)
-        self.has_default = kwargs.get('has_default', None)  # Property ID
-        self._property_ref: Optional[weakref.ref] = None
-        self._own_data: Optional[DataField] = kwargs.get('data')
-    
-    @property
-    def data(self) -> Optional[DataField]:
-        """Get data from property or own data based on connection status"""
-        if self.is_connected or not self._property_ref:
-            return self._own_data
-        
-        # Get data from linked property
-        prop = self._property_ref()
-        return prop.data if prop else self._own_data
-    
-    @data.setter
-    def data(self, value: DataField):
-        """Set own data (used when connected)"""
-        self._own_data = value
-        # Ensure multi-value fields are properly configured
-        if self.coupling_type == 'many' and value:
-            value.is_multi = True
-            if not isinstance(value.value, dict):
-                value.value = {}
-    
-    def link_property(self, prop: Property):
-        """Link to a property for default value"""
-        self._property_ref = weakref.ref(prop)
-    
-    def set_connected(self, connected: bool):
-        """Update connection status and property visibility"""
-        self.is_connected = connected
-        if self._property_ref:
-            prop = self._property_ref()
-            if prop:
-                prop.is_enabled = not connected  # Disable property when connected
     
     def set_value_from_source(self, source_id: str, value: Any):
         """Convenience method for setting value from a specific source"""
@@ -266,8 +227,7 @@ class Inlet(ConfigurableElement):
             'coupling_type': self.coupling_type,
             'mode': self.mode,
             'is_connected': self.is_connected,
-            'is_lazy': self.is_lazy,
-            'has_default': self.has_default
+            'is_lazy': self.is_lazy
         })
         return result
 
@@ -295,7 +255,6 @@ class NodeData:
     """Main data structure for a Haywire node"""
     def __init__(self):
         self.configs: Dict[str, Config] = {}
-        self.properties: Dict[str, Property] = {}
         self.inlets: Dict[str, Inlet] = {}
         self.outlets: Dict[str, Outlet] = {}
         
@@ -308,20 +267,10 @@ class NodeData:
         self.configs[config.id] = config
         return config
     
-    def add_property(self, prop: Property):
-        """Add a property element"""
-        self.properties[prop.id] = prop
-        self._cache_dirty = True
-        return prop
-    
     def add_inlet(self, inlet: Inlet):
         """Add an inlet element"""
         self.inlets[inlet.id] = inlet
         self._cache_dirty = True
-        
-        # Auto-link to property if specified
-        if inlet.has_default and inlet.has_default in self.properties:
-            inlet.link_property(self.properties[inlet.has_default])
         
         # Initialize data field if needed
         if inlet.coupling_type == 'many' and inlet.data is None:
@@ -401,7 +350,6 @@ class NodeData:
         """Serialize to dict structure"""
         return {
             'configs': {k: v.to_dict() for k, v in self.configs.items()},
-            'properties': {k: v.to_dict() for k, v in self.properties.items()},
             'inlets': {k: v.to_dict() for k, v in self.inlets.items()},
             'outlets': {k: v.to_dict() for k, v in self.outlets.items()}
         }
@@ -429,11 +377,12 @@ class ExampleNode(NodeData):
             }
         ))
         
-        # Add property
-        self.add_property(Property(
-            'scale',
-            'Scale Factor',
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),
+        # Add inlet with default value (single coupling)
+        self.add_inlet(Inlet(
+            'value_in',
+            'Input Value',
+            FlowType.DATA,
+            data=DataField(DataType.FLOAT, DataCategory.SCALAR, 1.0),  # Default value
             ui={
                 'widget': 'number',
                 'properties': {
@@ -441,15 +390,6 @@ class ExampleNode(NodeData):
                     'max': 10.0
                 }
             }
-        ))
-        
-        # Add inlet with property binding (single coupling)
-        self.add_inlet(Inlet(
-            'value_in',
-            'Input Value',
-            FlowType.DATA,
-            has_default='scale',  # Links to scale property
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR)
         ))
         
         # Add inlet with many coupling
@@ -577,11 +517,11 @@ class Pipe:
         
         # Update inlet connection status
         if self.target_inlet.coupling_type == 'many':
-            # Remove this source from multi-value inlet
+            # Multi-value inlet - remove this specific source
             self.target_inlet.data.remove_source(self.pipe_id)
-            # Check if still connected to other sources
-            remaining_sources = self.target_inlet.data.get_source_ids()
-            self.target_inlet.set_connected(len(remaining_sources) > 0)
+            # Update connection status based on remaining sources
+            remaining_sources = self.target_inlet.data.get_source_ids() if self.target_inlet.data else []
+            self.target_inlet.is_connected = len(remaining_sources) > 0
         else:
             # Single coupling - mark as disconnected
-            self.target_inlet.set_connected(False)
+            self.target_inlet.is_connected = False
