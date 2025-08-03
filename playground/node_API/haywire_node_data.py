@@ -246,6 +246,32 @@ class DataFieldSpec:
             )
 
 
+def create_data_field_factory(data_type: DataType, category: DataCategory = DataCategory.SCALAR):
+    """
+    Create a factory function for custom data types.
+    
+    Example:
+        # In a custom node library
+        INT = create_data_field_factory(DataType.INT, DataCategory.SCALAR)
+        INT_ARRAY = create_data_field_factory(DataType.INT, DataCategory.LIST)
+        
+        # Register for dynamic access
+        DataFieldFactory.register('INT', INT)
+        DataFieldFactory.register('INT_ARRAY', INT_ARRAY)
+    """
+    def factory_func(value: Any = None) -> DataFieldSpec:
+        return DataFieldSpec(data_type, category, value)
+    return factory_func
+
+# Examples
+INT = create_data_field_factory(DataType.INT, DataCategory.SCALAR)
+INT_ARRAY = create_data_field_factory(DataType.INT, DataCategory.LIST)
+
+int = INT(value=4)
+int_array = INT_ARRAY(value=[1, 2, 3])
+
+#####################################################
+
 class ConfigurableElement:
     """Base class for configs, properties, inlets, outlets"""
     def __init__(self, element_id: str, name: str, description: str = "",
@@ -481,13 +507,7 @@ class ExampleNode(NodeData):
             'Precision',
             DataFieldSpec(DataType.INT, value=2),
             callback=self.on_precision_changed,
-            ui={
-                'widget': 'slider',
-                'properties': {
-                    'min': 0,
-                    'max': 10
-                }
-            }
+            ui={'widget': 'slider', 'properties': {'min': 0, 'max': 10}}
         ))
         
         # Add inlet with default value (single coupling)
@@ -496,13 +516,7 @@ class ExampleNode(NodeData):
             'Input Value',
             FlowType.DATA,
             data=DataFieldSpec(DataType.FLOAT, value=1.0),
-            ui={
-                'widget': 'number',
-                'properties': {
-                    'min': 0.1,
-                    'max': 10.0
-                }
-            }
+            ui={'widget': 'number', 'properties': {'min': 0.1, 'max': 10.0}}
         ))
         
         # Add inlet for multi-value input (many coupling)
@@ -510,7 +524,8 @@ class ExampleNode(NodeData):
             'multi_values',
             'Multiple Values',
             FlowType.DATA,
-            data=DataFieldSpec(DataType.FLOAT, value=dict())
+            data=DataFieldSpec(DataType.FLOAT),
+            coupling_type=CouplingType.MANY
         ))
         
         # Add outlet
