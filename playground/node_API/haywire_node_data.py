@@ -405,75 +405,6 @@ class NodeData:
         }
 
 
-class UIBinding:
-    """UI-agnostic binding wrapper for node data"""
-    def __init__(self, node_data: NodeData):
-        self.node_data = node_data
-        self._bindings = defaultdict(list)
-    
-    def bind_config(self, config_id: str, ui_callback: Callable):
-        """Bind UI to config changes"""
-        if config_id in self.node_data.configs:
-            config = self.node_data.configs[config_id]
-            config.data.add_observer(ui_callback)
-            self._bindings[('config', config_id)].append(ui_callback)
-            return config.data.get_value()  # Return initial value
-    
-    def bind_property(self, property_id: str, ui_callback: Callable):
-        """Bind UI to property changes"""
-        if property_id in self.node_data.properties:
-            prop = self.node_data.properties[property_id]
-            prop.data.add_observer(ui_callback)
-            self._bindings[('property', property_id)].append(ui_callback)
-            return prop.data.get_value()  # Return initial value
-    
-    def update_from_ui(self, element_type: str, element_id: str, value: Any):
-        """Update node data from UI interaction"""
-        if element_type == 'config' and element_id in self.node_data.configs:
-            self.node_data.configs[element_id].data.set_value(value)
-        elif element_type == 'property' and element_id in self.node_data.properties:
-            self.node_data.properties[element_id].data.set_value(value)
-    
-    def get_ui_elements(self) -> Dict[str, List[Dict]]:
-        """Get all UI elements organized by type"""
-        return {
-            'configs': [
-                {
-                    'id': c.id,
-                    'name': c.name,
-                    'type': c.data.type.value if c.data else None,
-                    'value': c.data.get_value() if c.data else None,
-                    'visible': c.is_visible,
-                    'enabled': c.is_enabled,
-                    'metadata': c.metadata
-                }
-                for c in self.node_data.configs.values()
-            ],
-            'properties': [
-                {
-                    'id': p.id,
-                    'name': p.name,
-                    'type': p.data.type.value if p.data else None,
-                    'value': p.data.get_value() if p.data else None,
-                    'visible': p.is_visible,
-                    'enabled': p.is_enabled,
-                    'metadata': p.metadata
-                }
-                for p in self.node_data.properties.values()
-            ]
-        }
-    
-    def cleanup(self):
-        """Clean up all bindings"""
-        for (element_type, element_id), callbacks in self._bindings.items():
-            if element_type == 'config' and element_id in self.node_data.configs:
-                for cb in callbacks:
-                    self.node_data.configs[element_id].data.remove_observer(cb)
-            elif element_type == 'property' and element_id in self.node_data.properties:
-                for cb in callbacks:
-                    self.node_data.properties[element_id].data.remove_observer(cb)
-
-
 # Example usage showing the elegant API with inheritance
 class ExampleNode(NodeData):
     def __init__(self):
@@ -508,9 +439,7 @@ class ExampleNode(NodeData):
             'Input Value',
             FlowType.DATA,
             has_default='scale',  # Links to scale property
-            data=DataField(DataType.FLOAT, DataCategory.SCALAR),
-            data_type=DataType.FLOAT,
-            data_category=DataCategory.SCALAR
+            data=DataField(DataType.FLOAT, DataCategory.SCALAR)
         ))
         
         # Add inlet with many coupling
@@ -520,8 +449,7 @@ class ExampleNode(NodeData):
             FlowType.DATA,
             coupling_type='many',
             mode='optional',
-            data_type=DataType.FLOAT,
-            data_category=DataCategory.SCALAR
+            data=DataField(DataType.FLOAT, DataCategory.SCALAR)
         ))
         
         # Add control inlet

@@ -14,9 +14,7 @@ from abc import abstractmethod
 # For this example, we'll define the minimal required classes
 
 from haywire_node_data import (
-    NodeData, HaywireNode, UIBinding, DataType, DataCategory, 
-    DataField, Config, Property, Inlet, Outlet, FlowType
-)
+    NodeData, DataField, HaywireNode, DataType, DataCategory, FlowType, Config, Property, Inlet, Outlet)
 
 
 class NiceGUINodeRenderer:
@@ -42,7 +40,6 @@ class NiceGUINodeRenderer:
     def __init__(self, node: NodeData):
         """Initialize with a node (which is also NodeData)"""
         self.node = node
-        self.ui_binding = UIBinding(node)
         self.ui_elements = {}
     
     def render_node(self, title: str = "Node"):
@@ -111,22 +108,11 @@ class NiceGUINodeRenderer:
             min=min_val,
             max=max_val,
             value=element.data.get_value()
-        ).props('label')
+        ).props('label').bind_value(element.data, 'value')
         
-        # Label showing current value
-        label = ui.label(f'{element.name}: {element.data.get_value()}')
-        
-        # Bind changes both ways
-        def on_ui_change(e):
-            self.ui_binding.update_from_ui(element_type, element.id, e.value)
-            label.set_text(f'{element.name}: {e.value}')
-        
-        def on_data_change(value):
-            slider.set_value(value)
-            label.set_text(f'{element.name}: {value}')
-        
-        slider.on('update:model-value', on_ui_change)
-        self.ui_binding.bind_property(element.id, on_data_change)
+        # Label showing current value - also bound to the data
+        label = ui.label().bind_text_from(element.data, 'value', 
+                                         lambda v: f'{element.name}: {v}')
         
         self.ui_elements[element.id] = slider
     
@@ -140,17 +126,7 @@ class NiceGUINodeRenderer:
             value=element.data.get_value(),
             min=min_val,
             max=max_val
-        )
-        
-        # Bind changes
-        def on_ui_change(e):
-            self.ui_binding.update_from_ui(element_type, element.id, e.value)
-        
-        def on_data_change(value):
-            number.set_value(value)
-        
-        number.on('update:model-value', on_ui_change)
-        self.ui_binding.bind_property(element.id, on_data_change)
+        ).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = number
     
@@ -159,16 +135,7 @@ class NiceGUINodeRenderer:
         checkbox = ui.checkbox(
             element.name,
             value=element.data.get_value()
-        )
-        
-        def on_ui_change(e):
-            self.ui_binding.update_from_ui(element_type, element.id, e.value)
-        
-        def on_data_change(value):
-            checkbox.set_value(value)
-        
-        checkbox.on('update:model-value', on_ui_change)
-        self.ui_binding.bind_property(element.id, on_data_change)
+        ).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = checkbox
     
@@ -177,34 +144,19 @@ class NiceGUINodeRenderer:
         switch = ui.switch(
             element.name,
             value=element.data.get_value()
-        )
-        
-        def on_ui_change(e):
-            self.ui_binding.update_from_ui(element_type, element.id, e.value)
-        
-        def on_data_change(value):
-            switch.set_value(value)
-        
-        switch.on('update:model-value', on_ui_change)
-        self.ui_binding.bind_property(element.id, on_data_change)
+        ).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = switch
     
     def _create_input(self, element_type: str, element):
         """Create a text input element"""
+        placeholder = element.metadata.get('placeholder', '')
+        
         input_field = ui.input(
             label=element.name,
-            value=element.data.get_value()
-        )
-        
-        def on_ui_change(e):
-            self.ui_binding.update_from_ui(element_type, element.id, e.value)
-        
-        def on_data_change(value):
-            input_field.set_value(value)
-        
-        input_field.on('update:model-value', on_ui_change)
-        self.ui_binding.bind_property(element.id, on_data_change)
+            placeholder=placeholder,
+            value=element.data.get_value() or ''
+        ).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = input_field
     
@@ -216,16 +168,7 @@ class NiceGUINodeRenderer:
             options,
             label=element.name,
             value=element.data.get_value()
-        )
-        
-        def on_ui_change(e):
-            self.ui_binding.update_from_ui(element_type, element.id, e.value)
-        
-        def on_data_change(value):
-            select.set_value(value)
-        
-        select.on('update:model-value', on_ui_change)
-        self.ui_binding.bind_property(element.id, on_data_change)
+        ).bind_value(element.data, 'value')
         
         self.ui_elements[element.id] = select
     
@@ -234,26 +177,28 @@ class NiceGUINodeRenderer:
         min_val = element.metadata.get('min', 0)
         max_val = element.metadata.get('max', 1)
         
-        # Normalize value to 0-1 range for knob
+        # Normalize initial value to 0-1 range for knob
         normalized = (element.data.get_value() - min_val) / (max_val - min_val)
         
         knob = ui.knob(normalized, show_value=True)
-        label = ui.label(f'{element.name}: {element.data.get_value():.2f}')
         
-        def on_ui_change(e):
-            # Denormalize value
-            actual_value = min_val + (e.value * (max_val - min_val))
-            self.ui_binding.update_from_ui(element_type, element.id, actual_value)
-            label.set_text(f'{element.name}: {actual_value:.2f}')
+        # Custom binding handlers for normalization
+        def on_knob_change():
+            # Denormalize knob value and update data
+            actual_value = min_val + (knob.value * (max_val - min_val))
+            element.data.set_value(actual_value)
         
         def on_data_change(value):
-            # Normalize for knob
-            normalized = (value - min_val) / (max_val - min_val)
-            knob.set_value(normalized)
-            label.set_text(f'{element.name}: {value:.2f}')
+            # Normalize data value for knob display
+            normalized_value = (value - min_val) / (max_val - min_val)
+            knob.value = normalized_value
         
-        knob.on('update:model-value', on_ui_change)
-        self.ui_binding.bind_property(element.id, on_data_change)
+        knob.on('update:model-value', on_knob_change)
+        element.data.add_observer(on_data_change)
+        
+        # Label bound to actual value
+        label = ui.label().bind_text_from(element.data, 'value', 
+                                         lambda v: f'{element.name}: {v:.2f}')
         
         self.ui_elements[element.id] = knob
 
@@ -378,7 +323,9 @@ class MathProcessorNode(HaywireNode):
         invert = self.properties['invert'].data.get_value()
         threshold = self.properties['threshold'].data.get_value()
         
-        # Process
+        # Process - handle None input_value
+        if input_value is None:
+            input_value = 0  # Default value when no input is connected
         result = round(input_value * 2, precision)
         
         if multi_values:
@@ -440,9 +387,13 @@ def main():
         
         def run_worker():
             """Run the worker function"""
+            import time
+            start_time = time.perf_counter()
             result = node.worker({})
+            end_time = time.perf_counter()
+            execution_time = (end_time - start_time) * 1000  # Convert to milliseconds
             output = node.outlets['result_out'].data.get_value()
-            ui.notify(f"Worker executed. Result: {output}")
+            ui.notify(f"Worker executed in {execution_time:.3f}ms. Result: {output}")
         
         ui.button('Execute Worker', on_click=run_worker)
         
