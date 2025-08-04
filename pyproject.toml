@@ -1,22 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "OpenTrackingTool"
+name = "haywire"
 version = "0.0.1"
-description = "Base installation for OpenTrackingTool"
+description = "Haywire Node System"
 readme = "README.md"
-requires-python = "==3.12"
-dependencies = [
-    "duit[nicegui]>=0.1.17",
-    "pygfx~=0.7.0",
-    "visiongraph[azure,depthai,mediapipe,onnx-directml,openvino,realsense]~=1.0.2",
-    "visiongraph-ui[vg]~=0.4.0a2",
-    "python-osc>=1.9.3",
-    "pywebview>=5.4",
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "mypy",
+    "ruff",
+    "nicegui",
     "ffmpegio~=0.11.1",
     "numpy",
     "opencv-python",
+    "pyinstaller>=6.14.1"
 ]
 
-[dependency-groups]
-dev = [
-    "pyinstaller>=6.14.1",
-]
+[tool.setuptools.packages.find]
+where = ["src"]
