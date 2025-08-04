@@ -8,7 +8,7 @@ import sys
 import os
 
 from nicegui import ui
-from typing import Any
+from typing import Any, Dict, Tuple, Optional
 
 # Import from the haywire_node_data module
 # In practice, this would be: from haywire_node_data import ...
@@ -27,7 +27,7 @@ if src_path not in sys.path:
 from haywire.core.data.enums import DataType
 from haywire.core.node.node import NodeData
 
-from math_processor_node import MathProcessorNode
+from .math_processor_node import MathProcessorNode
 # --------------------------------
 
 
@@ -35,7 +35,7 @@ class NiceGUINodeRenderer:
     """Renders Haywire nodes using NiceGUI elements"""
     
     # UI element mapping based on type and hints
-    UI_ELEMENTS = {
+    UI_ELEMENTS: Dict[Tuple[DataType, Optional[str]], str] = {
         (DataType.INT, 'slider'): 'slider',
         (DataType.INT, 'number'): 'number',
         (DataType.FLOAT, 'slider'): 'slider',

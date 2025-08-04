@@ -1,0 +1,167 @@
+"""
+Basic widget implementations for common data types
+"""
+
+from typing import Any, Dict
+from nicegui import ui
+from .base import BaseWidget
+
+import sys
+import os
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
+src_path = os.path.join(project_root, 'src')
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+from haywire.core.data.fields import DataField
+
+
+class TextInputWidget(BaseWidget):
+    """Text input widget for string data"""
+    
+    def create_element(self) -> Any:
+        """Create a text input element"""
+        input_kwargs = {
+            'value': self.get_value() or ''
+        }
+        
+        # Apply direct property mapping
+        for prop in ['label', 'placeholder', 'password', 'password_toggle_button', 'autocomplete']:
+            if prop in self.ui_props:
+                input_kwargs[prop] = self.ui_props[prop]
+        
+        def update_value(e):
+            self.update_value(e.value)
+
+        return ui.input(**input_kwargs, on_change=update_value).classes('w-full')
+
+
+class NumberWidget(BaseWidget):
+    """Number input widget for numeric data"""
+    
+    def create_element(self) -> Any:
+        """Create a number input element"""
+        number_kwargs = {
+            'value': self.get_value() or 0
+        }
+        
+        # Apply direct property mapping
+        for prop in ['label', 'placeholder', 'min', 'max', 'precision', 'step', 'prefix', 'suffix', 'format']:
+            if prop in self.ui_props:
+                number_kwargs[prop] = self.ui_props[prop]
+        
+        def update_value(e):
+            self.update_value(e.value)
+
+        return ui.number(**number_kwargs, on_change=update_value).classes('w-full')
+
+
+class CheckboxWidget(BaseWidget):
+    """Checkbox widget for boolean data"""
+    
+    def create_element(self) -> Any:
+        """Create a checkbox element"""
+        checkbox_kwargs = {
+            'value': bool(self.get_value())
+        }
+        
+        # Apply direct property mapping
+        for prop in ['text']:
+            if prop in self.ui_props:
+                checkbox_kwargs[prop] = self.ui_props[prop]
+
+        def update_value(e):
+            self.update_value(e.value)
+
+        return ui.checkbox(**checkbox_kwargs, on_change=update_value).classes('w-full')
+
+
+class SwitchWidget(BaseWidget):
+    """Switch widget for boolean data"""
+    
+    def create_element(self) -> Any:
+        """Create a switch element"""
+        switch_kwargs = {
+            'value': bool(self.get_value())
+        }
+        
+        # Apply direct property mapping
+        for prop in ['text']:
+            if prop in self.ui_props:
+                switch_kwargs[prop] = self.ui_props[prop]
+        
+        def update_value(e):
+            self.update_value(e.value)
+
+        return ui.switch(**switch_kwargs, on_change=update_value).classes('w-full')
+
+
+class SelectWidget(BaseWidget):
+    """Dropdown select widget for choice-based data"""
+    
+    def create_element(self) -> Any:
+        """Create a dropdown select element"""
+        select_kwargs = {
+            'options': self.ui_props.get('options', []),
+            'value': self.get_value()
+        }
+        
+        # Apply direct property mapping
+        for prop in ['options', 'clearable', 'multiple', 'with_input']:
+            if prop in self.ui_props:
+                select_kwargs[prop] = self.ui_props[prop]
+        
+        def update_value(e):
+            self.update_value(e.value)
+        
+        return ui.select(**select_kwargs, on_change=update_value).classes('w-full')
+
+
+class SliderWidget(BaseWidget):
+    """Slider widget for numeric data with range"""
+    
+    def create_element(self) -> Any:
+        """Create a slider element"""
+        slider_kwargs = {
+            'value': self.get_value() or 0
+        }
+        
+        # Apply direct property mapping
+        for prop in ['min', 'max', 'step']:
+            if prop in self.ui_props:
+                slider_kwargs[prop] = self.ui_props[prop]
+        
+        # Set defaults if not specified
+        if 'min' not in slider_kwargs:
+            slider_kwargs['min'] = 0
+        if 'max' not in slider_kwargs:
+            slider_kwargs['max'] = 100
+        
+        def update_value(e):
+            self.update_value(e.value)
+
+        return ui.slider(**slider_kwargs, on_change=update_value).classes('w-full').props('label-always')
+
+
+class KnobWidget(BaseWidget):
+    """Knob widget for numeric data with rotary control"""
+    
+    def create_element(self) -> Any:
+        """Create a knob element"""
+        knob_kwargs = {
+            'value': self.get_value() or 0,
+            'show_value': True
+        }
+        
+        # Apply direct property mapping
+        for prop in ['min', 'max', 'step', 'color', 'center_color', 'track_color', 'size', 'show_value']:
+            if prop in self.ui_props:
+                knob_kwargs[prop] = self.ui_props[prop]
+        
+        def update_value(e):
+            self.update_value(e.value)
+
+        with ui.row().classes('w-full justify-center'):
+            knob = ui.knob(**knob_kwargs, on_change=update_value)
+        
+        return knob
