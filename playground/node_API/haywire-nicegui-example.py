@@ -29,11 +29,11 @@ class NiceGUINodeRenderer:
         (DataType.BOOL, None): 'checkbox',
         (DataType.BOOL, 'switch'): 'switch',
         (DataType.BOOL, 'toggle'): 'toggle',
-        (DataType.STR, None): 'input',
-        (DataType.STR, 'textarea'): 'textarea',
-        (DataType.STR, 'dropdown'): 'select',
-        (DataType.STR, 'radio'): 'radio',
-        (DataType.STR, 'chips'): 'chips',
+        (DataType.STRING, None): 'input',
+        (DataType.STRING, 'textarea'): 'textarea',
+        (DataType.STRING, 'dropdown'): 'select',
+        (DataType.STRING, 'radio'): 'radio',
+        (DataType.STRING, 'chips'): 'chips',
     }
     
     def __init__(self, node: NodeData):
@@ -50,17 +50,16 @@ class NiceGUINodeRenderer:
             if self.node.configs:
                 ui.label('Configuration').classes('font-bold text-sm mt-2 w-full')
                 for config in self.node.configs.values():
-                    if config.is_visible:
-                        ui.label(config.name).classes('text-xs')
-                        self._render_element('config', config)
+                    ui.label(config.label).classes('text-xs')
+                    self._render_element('config', config)
         
             # Render parameter inlets (inlets with UI that act as parameters)
-            param_inlets = [i for i in self.node.inlets.values() if i.is_visible and i.is_enabled and hasattr(i, 'ui') and i.ui]
+            param_inlets = [i for i in self.node.inlets.values() if hasattr(i, 'ui') and i.ui]
             if param_inlets:
                 ui.label('Parameters').classes('font-bold text-sm mt-2 w-full')
                 for inlet in param_inlets:
                     with ui.column().classes('w-full gap-1'):
-                        ui.label(inlet.name).classes('text-xs')
+                        ui.label(inlet.label).classes('text-xs')
                         self._render_element('inlet', inlet)
             
             # Show inlet/outlet status
@@ -74,7 +73,7 @@ class NiceGUINodeRenderer:
             return
         
         data_type = element.data.type
-        ui_widget = element.ui.get('widget')
+        ui_widget = element.widget
         ui_props = element.ui.get('properties', {})
         
         # Create appropriate UI element
@@ -263,78 +262,81 @@ class MathProcessorNode(HaywireNode):
         """Configure the node's inputs/outputs"""
         # Add various configs and properties
         self.add_config(Config(
-            'precision',
-            'Precision',
-            DataFieldSpec(DataType.INT, value=2),
-            ui={'widget': 'slider', 'properties': {'min': 0, 'max': 10}}
+            element_id='precision',
+            label='Precision',
+            init=DataFieldSpec(DataType.INT, value=2),
+            widget='slider',
+            ui={'properties': {'min': 0, 'max': 10}}
         ))
         
         self.add_config(Config(
-            'mode',
-            'Processing Mode',
-            DataFieldSpec(DataType.STR, value='fast'),
-            ui={'widget': 'select', 'properties': {'options': ['fast', 'balanced', 'accurate']}}
+            element_id='mode',
+            label='Processing Mode',
+            init=DataFieldSpec(DataType.STRING, value='fast'),
+            widget='select',
+            ui={'properties': {'options': ['fast', 'balanced', 'accurate']}}
         ))
         
         # Add inlets with default values (these were previously properties)
         self.add_inlet(Inlet(
-            'scale',
-            'Scale Factor',
-            FlowType.DATA,
-            data=DataFieldSpec(DataType.FLOAT, value=1.0),
-            ui={'widget': 'knob', 'properties': {'min': 0.1, 'max': 10.0}}
+            element_id='scale',
+            label='Scale Factor',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.FLOAT, value=1.0),
+            widget='knob', 
+            ui={'properties': {'min': 0.1, 'max': 10.0}}
         ))
         
         self.add_inlet(Inlet(
-            'invert',
-            'Invert Result',
-            FlowType.DATA,
-            data=DataFieldSpec(DataType.BOOL, value=False),
-            ui={'widget': 'switch'}
+            element_id='invert',
+            label='Invert Result',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.BOOL, value=False),
+            widget='switch',
         ))
         
         self.add_inlet(Inlet(
-            'threshold',
-            'Threshold',
-            FlowType.DATA,
-            data=DataFieldSpec(DataType.FLOAT, value=0.5),
-            ui={'widget': 'number', 'properties': {'min': 0.0, 'max': 1.0}}
+            element_id='threshold',
+            label='Threshold',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.FLOAT, value=0.5),
+            widget='number',
+            ui={'properties': {'min': 0.0, 'max': 1.0}}
         ))
         
         # Add inlets/outlets
         self.add_inlet(Inlet(
-            'ctrl_in',
-            'Execute',
-            FlowType.CTRL
+            element_id='ctrl_in',
+            label='Execute',
+            flow_type=FlowType.CTRL
         ))
         
         self.add_inlet(Inlet(
-            'value_in',
-            'Input Value',
-            FlowType.DATA,
-            data=DataFieldSpec(DataType.FLOAT)
+            element_id='value_in',
+            label='Input Value',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.FLOAT)
         ))
         
         self.add_inlet(Inlet(
-            'multi_values',
-            'Multiple Values',
-            FlowType.DATA,
-            data=DataFieldSpec(DataType.FLOAT), 
-            coupling_type=CouplingType.MANY
+            element_id='multi_values',
+            label='Multiple Values',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.FLOAT, is_pooled=True), 
         ))
         
         self.add_outlet(Outlet(
-            'ctrl_out',
-            'Next',
-            FlowType.CTRL,
-            DataFieldSpec(DataType.OBJECT)
+            element_id='ctrl_out',
+            label='Next',
+            flow_type=FlowType.CTRL,
+            init=DataFieldSpec(DataType.OBJECT)
         ))
         
         self.add_outlet(Outlet(
-            'result_out',
-            'Result',
-            FlowType.DATA,
-            DataFieldSpec(DataType.FLOAT)
+            element_id='result_out',
+            label='Result',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.FLOAT)
         ))
     
     def on_precision_changed(self):

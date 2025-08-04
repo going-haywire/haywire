@@ -16,15 +16,17 @@ from collections import defaultdict
 class DataType(Enum):
     INT = 'int'
     FLOAT = 'float'
-    STR = 'str'
+    STRING = 'str'
     BOOL = 'bool'
     BYTES = 'bytes'
     DICT = 'dict'
+    LIST = 'list'
     OBJECT = 'object'
 
 
 class DataCategory(Enum):
     SCALAR = 'scalar'
+    TUPLE = 'tuple'
     LIST = 'list'
     SET = 'set'
     DICT = 'dict'
@@ -46,12 +48,18 @@ class CouplingType(Enum):
 @dataclass
 class DataField(ABC):
     """Abstract base class for data fields with change notification"""
+    id: str
     type: DataType
     category: DataCategory
-    is_dirty: bool = True
-    is_multi: bool = False
+    value: Any
+    is_pooled: bool
+    is_dirty: bool = field(default=True, init=False, repr=False)
+    _default_value: Any = field(default=None, init=False, repr=False)
     _observers: Set[Callable] = field(default_factory=set, init=False, repr=False)
     
+    def __post_init__(self):
+        self._default_value = self.value
+
     @abstractmethod
     def set_value(self, value: Any, source_id: str = None):
         """Set value with optional source tracking"""
@@ -102,23 +110,32 @@ class DataField(ABC):
     def mark_clean(self):
         """Mark field as clean after processing"""
         self.is_dirty = False
+
+    def reset(self):
+        """Reset field to default value"""
+        self.value = self._default_value
+        self.is_dirty = True    
     
     def to_dict(self) -> dict:
         """Convert to dict for serialization"""
         return {
+            'id': self.id,
             'type': self.type.value if hasattr(self.type, 'value') else self.type,
             'category': self.category.value if hasattr(self.category, 'value') else self.category,
-            'value': self.get_value(),
-            'is_dirty': self.is_dirty
+            'value': self._default_value,
+            'is_dirty': self.is_dirty,
+            'is_pooled': self.is_pooled,
         }
 
 
 @dataclass
 class SingleField(DataField):
     """Single-value data field"""
-    value: Any = None
-    default_value: Any = None
-    
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.is_pooled = False
+
     def set_value(self, value: Any, source_id: str | None = None) -> None:
         """Set single value (source_id is ignored for scalar fields)"""
         if self.value != value:
@@ -126,7 +143,7 @@ class SingleField(DataField):
             self.is_dirty = True
             if source_id is None:
                 # if the value is set via UI, it is the default value   
-                self.default_value = value
+                self._default_value = value
             self._notify_observers()
     
     def get_value(self):
@@ -135,7 +152,7 @@ class SingleField(DataField):
     
     def remove_source(self, source_id: str):
         """Remove source - for scalar fields, set back to default value"""
-        self.value = self.default_value
+        self.value = self._default_value
         self.is_dirty = True    
         self._notify_observers()
     
@@ -154,17 +171,18 @@ class SingleField(DataField):
     def to_dict(self) -> dict[str, Any]:
         """Convert to dict for serialization"""
         result = super().to_dict()
-        result['is_multi'] = False
         return result
 
 
 @dataclass
-class MultiField(DataField):
-    """Multi-value data field for many-to-one connections"""
-    value: dict = field(default_factory=dict)  # {source_id: value}
-    is_multi: bool = True
+class PooledField(DataField):
+    """Pooled-value data field for many-to-one connections"""
     _aggregated_value: Any = field(default=None, init=False, repr=False)
-    
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.is_pooled = True
+
     def set_value(self, value: Any, source_id: str = None):
         """Set value from a specific source"""
         if source_id is None:
@@ -216,37 +234,81 @@ class MultiField(DataField):
     def to_dict(self) -> dict:
         """Convert to dict for serialization"""
         result = super().to_dict()
-        result['is_multi'] = True
+        result['is_pooled'] = True
         return result
 
 @dataclass
 class DataFieldSpec:
-    """Factory specification for creating DataField instances"""
-    type: DataType
-    category: DataCategory = DataCategory.SCALAR
-    value: Any = None
+    """Factory specification for creating DataField instances
     
-    def create_field(self, coupling_type: CouplingType | None = None) -> DataField:
-        """Create appropriate DataField instance based on coupling type"""
-        if coupling_type == CouplingType.MANY:
-            # Create MultiField
-            return MultiField(
-                type=self.type,
-                category=self.category,
-                value={},
-                is_multi=True
-            )
-        else:
-            # Create SingleField (for ONE or NONE coupling)
+    Attributes:
+        id: Unique identifier for the field specification
+        label: Human-readable label displayed in UI
+        description: Detailed description of the field's purpose
+        widget: UI widget type (e.g., 'slider', 'input', 'select')
+        type: Data type (INT, FLOAT, STRING, etc.)
+        category: Data category (SCALAR, LIST, SET, DICT)
+        value: Default value for the field
+        is_pooled: Whether field accepts multiple input sources
+    """
+    type: DataType = DataType.STRING
+    category: DataCategory = DataCategory.SCALAR
+    id: str | None = field(default=None, init=False, repr=False)
+    label: str | None = field(default=None, init=False, repr=False)
+    description: str | None = field(default=None, init=False, repr=False)   
+    widget: str | None = field(default=None, init=False, repr=False)
+    ui: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    value: Any = None
+    is_pooled: bool = False
+
+    def __post_init__(self):
+        if self.id is None:
+            self.id = self.type.value.upper() + '_' + self.category.value.upper()
+        if self.label is None:
+            self.label = self.type.value.capitalize() + ':' + self.category.value.capitalize()
+        if self.description is None:
+            self.description = ""
+        if self.value is None:
+            if self.is_pooled is False: 
+                if self.category == DataCategory.SCALAR:
+                    if self.type == DataType.FLOAT:
+                        self.value = 0.0
+                    elif self.type == DataType.INT:
+                        self.value = 0
+                    elif self.type == DataType.BOOL:
+                        self.value = False
+                    elif self.type == DataType.STRING:
+                        self.value = ""
+                    elif self.type == DataType.LIST:
+                        self.value = []
+                    elif self.type == DataType.DICT:
+                        self.value = {}
+            else:
+                self.value = {}
+            
+    def create_field(self, no_pooling: bool = False) -> DataField:
+        """Create appropriate DataField instance based on pooled flag"""
+        if no_pooling or not self.is_pooled:
+            # Create SingleField 
             return SingleField(
+                id=self.id,
                 type=self.type,
                 category=self.category,
                 value=self.value,
-                is_multi=False
+                is_pooled=False
+            )
+        else:
+            # Create PooledField
+            return PooledField(
+                id=self.id,
+                type=self.type,
+                category=self.category,
+                value={},
+                is_pooled=True
             )
 
 
-def create_data_field_factory(data_type: DataType, category: DataCategory = DataCategory.SCALAR):
+def create_data_field_factory(data_type: DataType, category: DataCategory = DataCategory.SCALAR, **default_kwargs):
     """
     Create a factory function for custom data types.
     
@@ -259,39 +321,55 @@ def create_data_field_factory(data_type: DataType, category: DataCategory = Data
         DataFieldFactory.register('INT', INT)
         DataFieldFactory.register('INT_ARRAY', INT_ARRAY)
     """
-    def factory_func(value: Any = None) -> DataFieldSpec:
-        return DataFieldSpec(data_type, category, value)
+    def factory_func(**kwargs) -> DataFieldSpec:
+        # Merge default_kwargs with runtime kwargs, runtime takes precedence
+        merged_kwargs = {**default_kwargs, **kwargs}
+        return DataFieldSpec(type =  data_type, category = category, **merged_kwargs)
     return factory_func
 
 # Examples
 INT = create_data_field_factory(DataType.INT, DataCategory.SCALAR)
 INT_ARRAY = create_data_field_factory(DataType.INT, DataCategory.LIST)
 
-int = INT(value=4)
-int_array = INT_ARRAY(value=[1, 2, 3])
+int = INT()
+int_array = INT_ARRAY()
 
 #####################################################
 
 class ConfigurableElement:
     """Base class for configs, properties, inlets, outlets"""
-    def __init__(self, element_id: str, name: str, description: str = "",
-                 **kwargs):
-        self.id = element_id
-        self.name = name
-        self.description = description
-        self.is_visible = kwargs.get('is_visible', True)
-        self.is_enabled = kwargs.get('is_enabled', True)
-        self.ui = kwargs.get('ui', {})
-        self.metadata = kwargs  # Store any additional UI hints
+    def __init__(self, element_id: str, **kwargs):
+        self.id: str = element_id
+        self.init: DataFieldSpec | None = kwargs.get('init', None)
+        self.label: str = kwargs.get('label', '')
+        self.description: str = kwargs.get('description', '')
+        self.data: DataField | None = kwargs.get('data', None)
+        self.widget: str | None = kwargs.get('widget', None)
+        self.ui: dict[str, Any] = kwargs.get('ui', {})
+        self.metadata: dict[str, Any] = kwargs  # Store any additional UI hints
+
+        if self.init:
+            if self.label == '':
+                self.label = self.init.label
+            if self.description == '':
+                self.description = self.init.description
+            if self.widget is None:
+                self.widget = self.init.widget
+            if self.ui is None:
+                self.ui = self.init.ui
+            if self.metadata is None:
+                self.metadata = self.init.metadata
+        if self.widget is None:
+            self.widget = 'None'
     
+
     def to_dict(self):
         """Convert to dict for serialization"""
         result = {
             'id': self.id,
-            'name': self.name,
+            'label': self.label,
             'description': self.description,
-            'is_visible': self.is_visible,
-            'is_enabled': self.is_enabled,
+            'widget': self.widget,
             'ui': self.ui,
             **self.metadata
         }
@@ -300,28 +378,30 @@ class ConfigurableElement:
 
 class Config(ConfigurableElement):
     """Configuration element for node behavior"""
-    def __init__(self, element_id: str, name: str, data: DataFieldSpec, 
-                description: str = "", callback: Optional[Callable] = None, **kwargs):
-        super().__init__(element_id, name, description=description, data=data, **kwargs)
-        self.callback = callback
-        self.is_locked = kwargs.get('is_locked', False)
+    def __init__(
+            self, 
+            element_id: str, 
+            callback: Optional[Callable] = None, 
+            **kwargs
+        ):
+        super().__init__(element_id, **kwargs)
 
         # Handle data field creation
-        if data:
-            self.data = data.create_field()
-        else:
-            self.data = None
+        if self.data is None:
+            if self.init:
+                self.data = self.init.create_field(no_pooling=True)
+            else:
+                raise ValueError(f"Config '{self.id}' requires a data field")
         
+        self.callback = callback
         # Auto-trigger callback on value change
-        if callback:
-            data.add_observer(lambda v: callback())
+        if callback and self.data:
+            self.data.add_observer(lambda v: callback())
 
     def to_dict(self):
         """Convert to dict for serialization"""
         result = super().to_dict()
         result.update({
-            'flow_type': self.flow_type.value,
-            'is_connected': self.is_connected,
             'data': self.data.to_dict()
         })
         return result
@@ -329,26 +409,25 @@ class Config(ConfigurableElement):
 
 class Inlet(ConfigurableElement):
     """Data inlet for receiving values"""
-    def __init__(self, element_id: str, name: str, flow_type: FlowType, 
-                data: DataFieldSpec | None = None, description: str = "", 
-                coupling_type: CouplingType | None = None, mode: str = 'optional', **kwargs):
+    def __init__(
+            self, 
+            element_id: str, 
+            flow_type: FlowType, 
+            use_mode: str = 'optional', 
+            **kwargs
+        ):
         # Now call parent constructor
-        super().__init__(element_id, name, description=description, data=data, **kwargs)
-
-        if coupling_type is None:
-            # Default to ONE coupling type when not specified
-            self.coupling_type = CouplingType.ONE
-        else:
-            self.coupling_type = coupling_type
+        super().__init__(element_id, **kwargs)
 
         # Handle data field creation
-        if data:
-            self.data = data.create_field(self.coupling_type)
-        else:
-            self.data = None
+        if self.data is None and flow_type == FlowType.DATA:
+            if self.init:
+                self.data = self.init.create_field()
+            else:
+                raise ValueError(f"Inlet '{self.id}' requires a data field")
         
         self.flow_type = flow_type
-        self.mode = mode
+        self.use_mode = use_mode
         self.is_connected = False
         self.is_lazy = kwargs.get('is_lazy', False)
                             
@@ -361,7 +440,7 @@ class Inlet(ConfigurableElement):
     
     def remove_source(self, source_id: str):
         """Remove a specific source connection"""
-        if self.data and self.coupling_type == CouplingType.MANY:
+        if self.data:
             self.data.remove_source(source_id)
     
     def to_dict(self):
@@ -369,8 +448,7 @@ class Inlet(ConfigurableElement):
         result = super().to_dict()
         result.update({
             'flow_type': self.flow_type.value,
-            'coupling_type': self.coupling_type.value,
-            'mode': self.mode,
+            'use_mode': self.use_mode,
             'is_connected': self.is_connected,
             'is_lazy': self.is_lazy,
             'data': self.data.to_dict() if self.data else None
@@ -380,22 +458,29 @@ class Inlet(ConfigurableElement):
 
 class Outlet(ConfigurableElement):
     """Data outlet for sending values"""
-    def __init__(self, element_id: str, name: str, flow_type: FlowType, 
-                 data: DataFieldSpec, description: str = "", **kwargs):
-        super().__init__(element_id, name, description=description, data=data, **kwargs)
+    def __init__(
+            self, 
+            element_id: str, 
+            flow_type: FlowType, 
+            **kwargs
+        ):
+        super().__init__(element_id, **kwargs)
 
-        self.data = data.create_field()
+        # Handle data field creation
+        if self.data is None and flow_type == FlowType.DATA:
+            if self.init:
+                self.data = self.init.create_field()
+            else:
+                raise ValueError(f"Outlet '{self.id}' requires a data field")
+ 
         self.flow_type = flow_type
-        self.is_connected = False
         self.pipes = []  # List of pipes to connected inlets
     
     def to_dict(self):
         """Convert to dict for serialization"""
         result = super().to_dict()
         result.update({
-            'flow_type': self.flow_type.value,
-            'is_connected': self.is_connected,
-            'data': self.data.to_dict()
+            'flow_type': self.flow_type.value
         })
         return result
 
@@ -437,7 +522,7 @@ class NodeData:
             value = data.get_value()
             
             # For multi-value inlets, provide options to get data
-            if data.is_multi:
+            if data.is_pooled:
                 # Return the dict by default, but could be configured
                 return value  # Dict of {source_id: value}
             return value
@@ -503,37 +588,39 @@ class ExampleNode(NodeData):
     def _setup_node(self):
         # Add config with callback
         self.add_config(Config(
-            'precision',
-            'Precision',
-            DataFieldSpec(DataType.INT, value=2),
+            element_id='precision',
+            label='Precision',
+            init=DataFieldSpec(DataType.INT, value=2),
             callback=self.on_precision_changed,
-            ui={'widget': 'slider', 'properties': {'min': 0, 'max': 10}}
+            widget='slider',
+            ui={'properties': {'min': 0, 'max': 10}}
         ))
         
         # Add inlet with default value (single coupling)
         self.add_inlet(Inlet(
-            'value_in',
-            'Input Value',
-            FlowType.DATA,
-            data=DataFieldSpec(DataType.FLOAT, value=1.0),
-            ui={'widget': 'number', 'properties': {'min': 0.1, 'max': 10.0}}
+            element_id='value_in',
+            label='Input Value',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.FLOAT, value=1.0),
+            widget='number',
+            ui={'properties': {'min': 0.1, 'max': 10.0}}
         ))
         
         # Add inlet for multi-value input (many coupling)
         self.add_inlet(Inlet(
-            'multi_values',
-            'Multiple Values',
-            FlowType.DATA,
-            data=DataFieldSpec(DataType.FLOAT),
+            element_id='multi_values',
+            label='Multiple Values',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.FLOAT),
             coupling_type=CouplingType.MANY
         ))
         
         # Add outlet
         self.add_outlet(Outlet(
-            'result_out',
-            'Result',
-            FlowType.DATA,
-            DataFieldSpec(DataType.FLOAT)
+            element_id='result_out',
+            label='Result',
+            flow_type=FlowType.DATA,
+            init=DataFieldSpec(DataType.FLOAT)
         ))
     
     def on_precision_changed(self):
