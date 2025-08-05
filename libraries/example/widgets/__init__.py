@@ -50,7 +50,7 @@ class TemperatureWidget(BaseWidget):
 
 def register_test_widgets(widget_registry: WidgetRegistry):
     """Register test widgets with the widget registry"""
-    widget_registry.register('temperature', TemperatureWidget)
+    widget_registry.register('example.temperature', TemperatureWidget)
 
 
 __all__ = [

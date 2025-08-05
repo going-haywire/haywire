@@ -6,10 +6,7 @@ from haywire.core.registry.registry import AdapterRegistry
 
 # Import all adapter classes
 from .type_converters import (
-    IntToFloatAdapter, FloatToIntAdapter,
-    StringToIntAdapter, StringToFloatAdapter,
-    IntToStringAdapter, FloatToStringAdapter,
-    BoolToStringAdapter, StringToBoolAdapter
+    IntToFloatAdapter
 )
 
 def register_core_adapters(adapter_registry: AdapterRegistry):
@@ -22,60 +19,9 @@ def register_core_adapters(adapter_registry: AdapterRegistry):
         IntToFloatAdapter
     )
     
-    adapter_registry.register_adapter(
-        FloatToIntAdapter.source_type,
-        FloatToIntAdapter.target_type,
-        FloatToIntAdapter
-    )
-    
-    # String to numeric conversions
-    adapter_registry.register_adapter(
-        StringToIntAdapter.source_type,
-        StringToIntAdapter.target_type,
-        StringToIntAdapter
-    )
-    
-    adapter_registry.register_adapter(
-        StringToFloatAdapter.source_type,
-        StringToFloatAdapter.target_type,
-        StringToFloatAdapter
-    )
-    
-    # Numeric to string conversions
-    adapter_registry.register_adapter(
-        IntToStringAdapter.source_type,
-        IntToStringAdapter.target_type,
-        IntToStringAdapter
-    )
-    
-    adapter_registry.register_adapter(
-        FloatToStringAdapter.source_type,
-        FloatToStringAdapter.target_type,
-        FloatToStringAdapter
-    )
-    
-    # Boolean conversions
-    adapter_registry.register_adapter(
-        BoolToStringAdapter.source_type,
-        BoolToStringAdapter.target_type,
-        BoolToStringAdapter
-    )
-    
-    adapter_registry.register_adapter(
-        StringToBoolAdapter.source_type,
-        StringToBoolAdapter.target_type,
-        StringToBoolAdapter
-    )
 
 
 __all__ = [
     'IntToFloatAdapter',
-    'FloatToIntAdapter', 
-    'StringToIntAdapter',
-    'StringToFloatAdapter',
-    'IntToStringAdapter',
-    'FloatToStringAdapter',
-    'BoolToStringAdapter',
-    'StringToBoolAdapter',
     'register_core_adapters'
 ]

@@ -56,40 +56,40 @@ class AdapterRegistry(BaseRegistry):
     def __init__(self):
         super().__init__()
         # Key: (source_type, target_type), Value: adapter_class
-        self._adapters: Dict[Tuple[DataType, DataType], Type] = {}
+        self._adapters: Dict[Tuple[str, str], Type] = {}
     
-    def register_adapter(self, source_type: DataType, target_type: DataType, adapter_class: Type):
+    def register_adapter(self, source_type: str, target_type: str, adapter_class: Type):
         """Register an adapter for converting between two data types"""
         key = (source_type, target_type)
         self._adapters[key] = adapter_class
         
         # Also register in the base registry for metadata tracking
-        adapter_name = f"{source_type.value}_to_{target_type.value}"
+        adapter_name = f"{source_type}_to_{target_type}"
         self.register(adapter_name, adapter_class)
     
-    def has_adapter(self, source_type: DataType, target_type: DataType) -> bool:
+    def has_adapter(self, source_type: str, target_type: str) -> bool:
         """Check if an adapter exists for the given type conversion"""
         return (source_type, target_type) in self._adapters
     
-    def get_adapter(self, source_type: DataType, target_type: DataType) -> Optional[Type]:
+    def get_adapter(self, source_type: str, target_type: str) -> Optional[Type]:
         """Get adapter class for converting between two data types"""
         return self._adapters.get((source_type, target_type))
     
-    def list_conversions(self) -> list[Tuple[DataType, DataType]]:
+    def list_conversions(self) -> list[Tuple[str, str]]:
         """List all available type conversions"""
         return list(self._adapters.keys())
     
-    def can_connect(self, source_field: DataField, target_field: DataField) -> bool:
+    def can_connect(self, source_field: str, target_field: str) -> bool:
         """
         Check if two data fields can be connected.
         Returns True if types match or an adapter exists.
         """
         # Direct type match
-        if source_field.type == target_field.type:
+        if source_field == target_field:
             return True
         
         # Check if adapter exists
-        return self.has_adapter(source_field.type, target_field.type)
+        return self.has_adapter(source_field, target_field)
 
 
 class LibraryRegistry(BaseRegistry):
