@@ -26,7 +26,7 @@ from haywire.ui.nicegui_renderer import ModularNiceGUINodeRenderer
 from haywire.core.data.enums import DataType, DataCategory
 from haywire.core.data.fields import SingleField
 from haywire.core.node.node import NodeData
-from haywire.core.node.elements import Inlet
+from haywire.core.node.elements import Inlet, Outlet, Config
 from haywire.core.registry.node_system import NodeRegistry
 from haywire.core.data.enums import FlowType
 
@@ -61,7 +61,18 @@ def create_demo_node():
     node = NodeData()
     node.id = "demo_node"
     node.name = "Demo Node"
-    
+
+    # Add configs with different widget types
+    node.configs = {
+        'float_slider': Config(
+            'float_slider',  # element_id as first positional parameter
+            label='Float Slider',
+            data=SingleField('float_val', DataType.FLOAT, DataCategory.SCALAR, 50.0, False),
+            widget='slider',
+            ui={'properties': {'min': 0, 'max': 100, 'step': 1}}
+        ),
+    }
+
     # Add configs with different widget types
     node.inlets = {
         'float_slider': Inlet(
@@ -106,7 +117,16 @@ def create_demo_node():
         )
     }
 
-    node.outlets = {}
+    node.outlets = {
+        'nonexistent_widget': Outlet(
+            'nonexistent',  # element_id as first positional parameter
+            label='Missing Widget',
+            flow_type=FlowType.DATA,
+            data=SingleField('missing_val', DataType.INT, DataCategory.SCALAR, 42, False),
+            widget='nonexistent_widget_type',
+            ui={'properties': {}}
+        )
+    }
     
     return node
 

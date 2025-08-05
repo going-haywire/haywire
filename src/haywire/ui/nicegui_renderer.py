@@ -28,59 +28,62 @@ class ModularNiceGUINodeRenderer:
         with ui.card().classes('w-full min-w-64 max-w-sm'):
             ui.label(title).classes('text-h6 w-full')
 
-            with ui.row().classes(''):
-                with ui.column().classes('w-full gap-1'):
-                    # Render configs
-                    if self.node.configs:
-                        ui.label('Configuration').classes('font-bold text-sm mt-2 w-full')
-                        for config in self.node.configs.values():
-                            ui.label(config.label).classes('text-xs')
-                            self._render_element('config', config)
-                
-                    # Render parameter inlets (inlets with UI that act as parameters)
-                    for inlet in self.node.inlets.values():
-                        with ui.row().classes('w-full items-center justify-start'):
-                            # Port connector
-                            ui.element('div').classes(
-                                f'port input-port'
-                            ).style(
-                                f'width: 12px; height: 12px; '
-                                f'background: {self._get_port_color(inlet.data.type)}; '
-                                f'border: 2px solid white; '
-                                f'border-radius: 50%; '
-                                f'margin-right: 4px; '
-                                f'cursor: crosshair;'
-                            ).props(f'data-port-id="{inlet.id}"')
-                            
-                            # Port label
-                            ui.label(inlet.label).classes('text-xs')
+            # Render configs first (if any)
+            if self.node.configs:
+                ui.label('Configuration').classes('font-bold text-sm mt-2 w-full')
+                for config in self.node.configs.values():
+                    ui.label(config.label).classes('text-xs')
+                    self._render_element('config', config)
 
-                        if inlet.coupling_type != CouplingType.NONE:
-                            self._render_element('inlet', inlet)
+            # Main content: inlets and outlets in two columns
+            with ui.row().classes('w-full gap-2'):
+                # Left column: Inlets
+                with ui.column().classes('flex-1 gap-1'):
+                    if self.node.inlets:
+                        ui.label('Inputs').classes('font-bold text-sm')
+                        for inlet in self.node.inlets.values():
+                            with ui.row().classes('w-full items-center justify-start gap-1'):
+                                # Port connector
+                                ui.element('div').classes(
+                                    f'port input-port'
+                                ).style(
+                                    f'width: 12px; height: 12px; '
+                                    f'background: {self._get_port_color(inlet.data.type)}; '
+                                    f'border: 2px solid white; '
+                                    f'border-radius: 50%; '
+                                    f'cursor: crosshair;'
+                                ).props(f'data-port-id="{inlet.id}"')
+                                
+                                # Port label
+                                ui.label(inlet.label).classes('text-xs')
 
-                with ui.column().classes('w-full gap-1'):
-                   # Render parameter inlets (inlets with UI that act as parameters)
-                    for inlet in self.node.inlets.values():
-                        with ui.row().classes('w-full items-center justify-end'):
-                            # Port label
-                            ui.label(inlet.label).classes('text-xs')
+                            # Render inlet widget if it has UI (coupling_type != NONE)
+                            if inlet.coupling_type != CouplingType.NONE:
+                                self._render_element('inlet', inlet)
 
-                            # Port connector
-                            ui.element('div').classes(
-                                f'port input-port'
-                            ).style(
-                                f'width: 12px; height: 12px; '
-                                f'background: {self._get_port_color(inlet.data.type)}; '
-                                f'border: 2px solid white; '
-                                f'border-radius: 50%; '
-                                f'margin-right: 4px; '
-                                f'cursor: crosshair;'
-                            ).props(f'data-port-id="{inlet.id}"')
-                            
+                # Right column: Outlets
+                with ui.column().classes('flex-1 gap-1'):
+                    if self.node.outlets:
+                        ui.label('Outputs').classes('font-bold text-sm')
+                        for outlet in self.node.outlets.values():
+                            with ui.row().classes('w-full items-center justify-end gap-1'):
+                                # Port label
+                                ui.label(outlet.label).classes('text-xs')
+                                
+                                # Port connector
+                                ui.element('div').classes(
+                                    f'port output-port'
+                                ).style(
+                                    f'width: 12px; height: 12px; '
+                                    f'background: {self._get_port_color(outlet.data.type)}; '
+                                    f'border: 2px solid white; '
+                                    f'border-radius: 50%; '
+                                    f'cursor: crosshair;'
+                                ).props(f'data-port-id="{outlet.id}"')
 
 
             # Show inlet/outlet status
-            with ui.row().classes('w-full justify-between'):
+            with ui.row().classes('w-full justify-between mt-2'):
                 ui.label(f'↓ {len(self.node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(self.node.outlets)}').classes('text-caption')
 
