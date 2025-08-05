@@ -15,7 +15,7 @@ class LabelWidget(BaseWidget):
         text = str(self.get_value()) if self.get_value() is not None else ''
         
         # Apply styling from props
-        classes = self.ui_props.get('classes', 'text-sm')
+        classes = self.ui_properties.get('classes', 'text-sm')
         
         return ui.label(text).classes(f'w-full {classes}').bind_text_from(
             self.data_field, 'value', backward=lambda x: str(x) if x is not None else ''
@@ -30,8 +30,8 @@ class ProgressWidget(BaseWidget):
         value = self.get_value() or 0
         
         # Get min/max from props
-        min_val = self.ui_props.get('min', 0)
-        max_val = self.ui_props.get('max', 100)
+        min_val = self.ui_properties.get('min', 0)
+        max_val = self.ui_properties.get('max', 100)
         
         # Normalize value to 0-1 range
         normalized_value = (value - min_val) / (max_val - min_val) if max_val != min_val else 0
@@ -49,7 +49,7 @@ class BadgeWidget(BaseWidget):
     def create_element(self) -> Any:
         """Create a badge element"""
         text = str(self.get_value()) if self.get_value() is not None else ''
-        color = self.ui_props.get('color', 'primary')
+        color = self.ui_properties.get('color', 'primary')
         
         return ui.badge(text, color=color).bind_text_from(
             self.data_field, 'value', backward=lambda x: str(x) if x is not None else ''

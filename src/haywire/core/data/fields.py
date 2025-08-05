@@ -10,8 +10,8 @@ from .enums import DataType, DataCategory
 class DataField(ABC):
     """Abstract base class for data fields with change notification"""
     id: str
-    type: DataType
-    category: DataCategory
+    type: str   
+    category: str
     value: Any
     is_pooled: bool
     is_dirty: bool = field(default=True, init=False, repr=False)

@@ -2,6 +2,8 @@ from __future__ import annotations
 from typing import Any
 from dataclasses import dataclass, field, replace
 
+from haywire.core.data.fields import SingleField, PooledField, DataField
+
 from .enums import DataType, DataCategory
 
 @dataclass
@@ -25,7 +27,6 @@ class DataFieldSpec:
     type: DataType
     category: DataCategory = DataCategory.SCALAR
     value: Any = None
-    is_pooled: bool = False
     id: str | None = None
     label: str | None = None
     description: str | None = None
@@ -48,25 +49,42 @@ class DataFieldSpec:
 
         # Set a default value if none is provided, based on type and category
         if self.value is None:
-            if not self.is_pooled:
-                if self.category == DataCategory.SCALAR:
-                    if self.type == DataType.FLOAT:
-                        self.value = 0.0
-                    elif self.type == DataType.INT:
-                        self.value = 0
-                    elif self.type == DataType.BOOL:
-                        self.value = False
-                    elif self.type == DataType.STRING:
-                        self.value = ""
-                    else:
-                        self.value = None  # Default for OBJECT, etc.
-                elif self.category in [DataCategory.LIST, DataCategory.SET]:
-                    self.value = []
-                elif self.category == DataCategory.DICT:
-                    self.value = {}
-            else:
+            if self.category == DataCategory.SCALAR:
+                if self.type == DataType.FLOAT:
+                    self.value = 0.0
+                elif self.type == DataType.INT:
+                    self.value = 0
+                elif self.type == DataType.BOOL:
+                    self.value = False
+                elif self.type == DataType.STRING:
+                    self.value = ""
+                else:
+                    self.value = None  # Default for OBJECT, etc.
+            elif self.category in [DataCategory.LIST, DataCategory.SET]:
+                self.value = []
+            elif self.category == DataCategory.DICT:
                 self.value = {}
-            
+
+
+    def create_field(self, is_pooled: bool = False) -> DataField:
+        """Create appropriate DataField instance based on pooled flag"""
+        if is_pooled:
+            return PooledField(
+                id=self.id,
+                type=self.type,
+                category=self.category,
+                value={},
+                is_pooled=True
+            )
+        else:
+            return SingleField(
+                id=self.id,
+                type=self.type,
+                category=self.category,
+                value=self.value,
+                is_pooled=False
+            )
+
     def __call__(self, **kwargs: Any) -> DataFieldSpec:
         """Create a new instance with overridden attributes."""
         return replace(self, **kwargs)

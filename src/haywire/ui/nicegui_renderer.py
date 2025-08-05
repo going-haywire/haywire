@@ -5,16 +5,7 @@ This replaces the hardcoded widget methods in the original NiceGUINodeRenderer
 with a registry-based approach that supports the modular library system.
 """
 
-import sys
-import os
-from typing import Any, Dict, Optional
-
-# Add project paths
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-src_path = os.path.join(project_root, 'src')
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
+from typing import Any, Optional
 from nicegui import ui
 from haywire.core.registry.registry import WidgetRegistry
 from haywire.core.data.fields import DataField
@@ -59,19 +50,18 @@ class ModularNiceGUINodeRenderer:
     
     def _render_element(self, element_type: str, element):
         """Render a single config or property element using widget registry"""
-        if not element.data:
+        if not element.data or element.widget == 'None':
             return
         
         # Get widget name and properties
         widget_name = element.widget
-        ui_props = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}
         
         try:
-            # Get widget class from registry (with fallback strategy)
+            # Get widget class from registry (with fallback strategy depending on data type)
             widget_class = self.widget_registry.get_widget_class(widget_name, element.data)
             
             # Create widget instance
-            widget_instance = widget_class(element.id, element.data, ui_props)
+            widget_instance = widget_class(element)
             
             # Render the widget
             ui_element = widget_instance.render()

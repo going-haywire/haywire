@@ -18,8 +18,8 @@ class TextInputWidget(BaseWidget):
         
         # Apply direct property mapping
         for prop in ['label', 'placeholder', 'password', 'password_toggle_button', 'autocomplete']:
-            if prop in self.ui_props:
-                input_kwargs[prop] = self.ui_props[prop]
+            if prop in self.ui_properties:
+                input_kwargs[prop] = self.ui_properties[prop]
         
         def update_value(e):
             self.update_value(e.value)
@@ -38,8 +38,8 @@ class NumberWidget(BaseWidget):
         
         # Apply direct property mapping
         for prop in ['label', 'placeholder', 'min', 'max', 'precision', 'step', 'prefix', 'suffix', 'format']:
-            if prop in self.ui_props:
-                number_kwargs[prop] = self.ui_props[prop]
+            if prop in self.ui_properties:
+                number_kwargs[prop] = self.ui_properties[prop]
         
         def update_value(e):
             self.update_value(e.value)
@@ -58,8 +58,8 @@ class CheckboxWidget(BaseWidget):
         
         # Apply direct property mapping
         for prop in ['text']:
-            if prop in self.ui_props:
-                checkbox_kwargs[prop] = self.ui_props[prop]
+            if prop in self.ui_properties:
+                checkbox_kwargs[prop] = self.ui_properties[prop]
 
         def update_value(e):
             self.update_value(e.value)
@@ -78,8 +78,8 @@ class SwitchWidget(BaseWidget):
         
         # Apply direct property mapping
         for prop in ['text']:
-            if prop in self.ui_props:
-                switch_kwargs[prop] = self.ui_props[prop]
+            if prop in self.ui_properties:
+                switch_kwargs[prop] = self.ui_properties[prop]
         
         def update_value(e):
             self.update_value(e.value)
@@ -93,14 +93,14 @@ class SelectWidget(BaseWidget):
     def create_element(self) -> Any:
         """Create a dropdown select element"""
         select_kwargs = {
-            'options': self.ui_props.get('options', []),
+            'options': self.ui_properties.get('options', []),
             'value': self.get_value()
         }
         
         # Apply direct property mapping
         for prop in ['options', 'clearable', 'multiple', 'with_input']:
-            if prop in self.ui_props:
-                select_kwargs[prop] = self.ui_props[prop]
+            if prop in self.ui_properties:
+                select_kwargs[prop] = self.ui_properties[prop]
         
         def update_value(e):
             self.update_value(e.value)
@@ -119,8 +119,8 @@ class SliderWidget(BaseWidget):
         
         # Apply direct property mapping
         for prop in ['min', 'max', 'step']:
-            if prop in self.ui_props:
-                slider_kwargs[prop] = self.ui_props[prop]
+            if prop in self.ui_properties:
+                slider_kwargs[prop] = self.ui_properties[prop]
         
         # Set defaults if not specified
         if 'min' not in slider_kwargs:
@@ -146,8 +146,8 @@ class KnobWidget(BaseWidget):
         
         # Apply direct property mapping
         for prop in ['min', 'max', 'step', 'color', 'center_color', 'track_color', 'size', 'show_value']:
-            if prop in self.ui_props:
-                knob_kwargs[prop] = self.ui_props[prop]
+            if prop in self.ui_properties:
+                knob_kwargs[prop] = self.ui_properties[prop]
         
         def update_value(e):
             self.update_value(e.value)

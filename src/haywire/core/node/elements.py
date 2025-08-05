@@ -3,7 +3,7 @@ from typing import Any, Callable
 
 from ..data.specs import DataFieldSpec
 from ..data.fields import DataField
-from ..data.enums import FlowType
+from ..data.enums import CouplingType, FlowType
 
 
 class ConfigurableElement:
@@ -54,7 +54,7 @@ class Config(ConfigurableElement):
         # Handle data field creation
         if self.data is None:
             if self.init:
-                self.data = self.init.create_field(no_pooling=True)
+                self.data = self.init.create_field(is_pooled=False)
             else:
                 raise ValueError(f"Config '{self.id}' requires a data field")
         
@@ -77,7 +77,8 @@ class Inlet(ConfigurableElement):
     def __init__(
             self, 
             element_id: str, 
-            flow_type: FlowType, 
+            flow_type: str, 
+            coupling_type: str = 'one', 
             use_mode: str = 'optional', 
             **kwargs
         ):
@@ -86,7 +87,7 @@ class Inlet(ConfigurableElement):
         # Handle data field creation
         if self.data is None and flow_type == FlowType.DATA:
             if self.init:
-                self.data = self.init.create_field()
+                self.data = self.init.create_field(is_pooled=coupling_type == CouplingType.MANY)
             else:
                 raise ValueError(f"Inlet '{self.id}' requires a data field")
         
@@ -132,7 +133,7 @@ class Outlet(ConfigurableElement):
         # Handle data field creation
         if self.data is None and flow_type == FlowType.DATA:
             if self.init:
-                self.data = self.init.create_field()
+                self.data = self.init.create_field(is_pooled=False)
             else:
                 raise ValueError(f"Outlet '{self.id}' requires a data field")
  

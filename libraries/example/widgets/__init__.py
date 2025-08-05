@@ -17,7 +17,7 @@ class TemperatureWidget(BaseWidget):
         temp_fahrenheit = (temp_celsius * 9/5) + 32
         
         # Get unit preference from props
-        unit = self.ui_props.get('unit', 'celsius')
+        unit = self.ui_properties.get('unit', 'celsius')
         display_value = temp_celsius if unit == 'celsius' else temp_fahrenheit
         
         with ui.column().classes('w-full'):
