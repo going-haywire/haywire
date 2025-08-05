@@ -7,10 +7,11 @@ with a registry-based approach that supports the modular library system.
 
 from typing import Any, Optional
 from nicegui import ui
+from haywire.core.data.enums import CouplingType
 from haywire.core.registry.registry import WidgetRegistry
 from haywire.core.data.fields import DataField
 from haywire.core.node.node import NodeData
-
+from haywire.core.data.enums import FlowType, DataType
 
 class ModularNiceGUINodeRenderer:
     """Renders Haywire nodes using the widget registry system"""
@@ -26,28 +27,75 @@ class ModularNiceGUINodeRenderer:
         """Render complete node UI using registry-based widgets"""
         with ui.card().classes('w-full min-w-64 max-w-sm'):
             ui.label(title).classes('text-h6 w-full')
-            
-            # Render configs
-            if self.node.configs:
-                ui.label('Configuration').classes('font-bold text-sm mt-2 w-full')
-                for config in self.node.configs.values():
-                    ui.label(config.label).classes('text-xs')
-                    self._render_element('config', config)
-        
-            # Render parameter inlets (inlets with UI that act as parameters)
-            param_inlets = [i for i in self.node.inlets.values() if hasattr(i, 'ui') and i.ui]
-            if param_inlets:
-                ui.label('Parameters').classes('font-bold text-sm mt-2 w-full')
-                for inlet in param_inlets:
-                    with ui.column().classes('w-full gap-1'):
-                        ui.label(inlet.label).classes('text-xs')
-                        self._render_element('inlet', inlet)
-            
+
+            with ui.row().classes(''):
+                with ui.column().classes('w-full gap-1'):
+                    # Render configs
+                    if self.node.configs:
+                        ui.label('Configuration').classes('font-bold text-sm mt-2 w-full')
+                        for config in self.node.configs.values():
+                            ui.label(config.label).classes('text-xs')
+                            self._render_element('config', config)
+                
+                    # Render parameter inlets (inlets with UI that act as parameters)
+                    for inlet in self.node.inlets.values():
+                        with ui.row().classes('w-full items-center justify-start'):
+                            # Port connector
+                            ui.element('div').classes(
+                                f'port input-port'
+                            ).style(
+                                f'width: 12px; height: 12px; '
+                                f'background: {self._get_port_color(inlet.data.type)}; '
+                                f'border: 2px solid white; '
+                                f'border-radius: 50%; '
+                                f'margin-right: 4px; '
+                                f'cursor: crosshair;'
+                            ).props(f'data-port-id="{inlet.id}"')
+                            
+                            # Port label
+                            ui.label(inlet.label).classes('text-xs')
+
+                        if inlet.coupling_type != CouplingType.NONE:
+                            self._render_element('inlet', inlet)
+
+                with ui.column().classes('w-full gap-1'):
+                   # Render parameter inlets (inlets with UI that act as parameters)
+                    for inlet in self.node.inlets.values():
+                        with ui.row().classes('w-full items-center justify-end'):
+                            # Port label
+                            ui.label(inlet.label).classes('text-xs')
+
+                            # Port connector
+                            ui.element('div').classes(
+                                f'port input-port'
+                            ).style(
+                                f'width: 12px; height: 12px; '
+                                f'background: {self._get_port_color(inlet.data.type)}; '
+                                f'border: 2px solid white; '
+                                f'border-radius: 50%; '
+                                f'margin-right: 4px; '
+                                f'cursor: crosshair;'
+                            ).props(f'data-port-id="{inlet.id}"')
+                            
+
+
             # Show inlet/outlet status
             with ui.row().classes('w-full justify-between'):
                 ui.label(f'↓ {len(self.node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(self.node.outlets)}').classes('text-caption')
-    
+
+    def _get_port_color(self, data_type: str | DataType) -> str:
+        """Get the color for a port based on its data type"""
+        colors = {
+            'float': '#2196f3',
+            'int': '#2196f3',
+            'string': '#4caf50', 
+            'boolean': '#ff9800',
+            'array': '#9c27b0',
+            'any': '#757575'
+        }
+        return colors.get(str(data_type), '#757575')
+     
     def _render_element(self, element_type: str, element):
         """Render a single config or property element using widget registry"""
         if not element.data or element.widget == 'None':

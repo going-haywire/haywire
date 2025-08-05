@@ -41,6 +41,7 @@ class ConfigurableElement:
         return result
 
 
+
 class Config(ConfigurableElement):
     """Configuration element for node behavior"""
     def __init__(
@@ -72,27 +73,35 @@ class Config(ConfigurableElement):
         return result
 
 
+
 class Inlet(ConfigurableElement):
     """Data inlet for receiving values"""
     def __init__(
             self, 
             element_id: str, 
-            flow_type: str, 
-            coupling_type: str = 'one', 
+            flow_type: str | FlowType, 
+            coupling_type: str | CouplingType = 'one', 
             use_mode: str = 'optional', 
             **kwargs
         ):
         super().__init__(element_id, **kwargs)
 
+        # Convert enum values to strings for serialization compatibility
+        if isinstance(flow_type, FlowType):
+            flow_type = flow_type.value
+        if isinstance(coupling_type, CouplingType):
+            coupling_type = coupling_type.value
+
         # Handle data field creation
-        if self.data is None and flow_type == FlowType.DATA:
+        if self.data is None and flow_type == FlowType.DATA.value:
             if self.init:
-                self.data = self.init.create_field(is_pooled=coupling_type == CouplingType.MANY)
+                self.data = self.init.create_field(is_pooled=coupling_type == CouplingType.MANY.value)
             else:
                 raise ValueError(f"Inlet '{self.id}' requires a data field")
         
-        self.flow_type = flow_type
-        self.use_mode = use_mode
+        self.flow_type: str = flow_type
+        self.coupling_type: str = coupling_type
+        self.use_mode: str = use_mode
         self.is_connected = False
         self.is_lazy = kwargs.get('is_lazy', False)
                             
@@ -111,7 +120,8 @@ class Inlet(ConfigurableElement):
         """Convert to dict for serialization"""
         result = super().to_dict()
         result.update({
-            'flow_type': self.flow_type.value,
+            'flow_type': self.flow_type,
+            'coupling_type': self.coupling_type,
             'use_mode': self.use_mode,
             'is_connected': self.is_connected,
             'is_lazy': self.is_lazy,
@@ -125,13 +135,17 @@ class Outlet(ConfigurableElement):
     def __init__(
             self, 
             element_id: str, 
-            flow_type: FlowType, 
+            flow_type: str | FlowType, 
             **kwargs
         ):
         super().__init__(element_id, **kwargs)
 
+        # Convert enum values to strings for serialization compatibility
+        if isinstance(flow_type, FlowType):
+            flow_type = flow_type.value
+
         # Handle data field creation
-        if self.data is None and flow_type == FlowType.DATA:
+        if self.data is None and flow_type == FlowType.DATA.value:
             if self.init:
                 self.data = self.init.create_field(is_pooled=False)
             else:
@@ -144,6 +158,6 @@ class Outlet(ConfigurableElement):
         """Convert to dict for serialization"""
         result = super().to_dict()
         result.update({
-            'flow_type': self.flow_type.value
+            'flow_type': self.flow_type
         })
         return result

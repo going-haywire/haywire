@@ -10,8 +10,8 @@ from .enums import DataType, DataCategory
 class DataField(ABC):
     """Abstract base class for data fields with change notification"""
     id: str
-    type: str   
-    category: str
+    type: str  | DataType
+    category: str | DataCategory
     value: Any
     is_pooled: bool
     is_dirty: bool = field(default=True, init=False, repr=False)
@@ -19,6 +19,11 @@ class DataField(ABC):
     _observers: Set[Callable] = field(default_factory=set, init=False, repr=False)
     
     def __post_init__(self):
+        if isinstance(self.type, DataType):
+            self.type = self.type.value
+        if isinstance(self.category, DataCategory):
+            self.category = self.category.value
+
         self._default_value = self.value
 
     @abstractmethod

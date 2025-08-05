@@ -25,8 +25,10 @@ from haywire.core.registry.discovery import LibraryDiscovery
 from haywire.ui.nicegui_renderer import ModularNiceGUINodeRenderer
 from haywire.core.data.enums import DataType, DataCategory
 from haywire.core.data.fields import SingleField
-from haywire.core.node.node import NodeData, Config, Inlet
+from haywire.core.node.node import NodeData
+from haywire.core.node.elements import Inlet
 from haywire.core.registry.node_system import NodeRegistry
+from haywire.core.data.enums import FlowType
 
 from haywire.core.data import INT, FLOAT, STRING
 
@@ -61,48 +63,49 @@ def create_demo_node():
     node.name = "Demo Node"
     
     # Add configs with different widget types
-    node.configs = {
-        'float_slider': Config(
+    node.inlets = {
+        'float_slider': Inlet(
             'float_slider',  # element_id as first positional parameter
             label='Float Slider',
+            flow_type=FlowType.DATA,
             data=SingleField('float_val', DataType.FLOAT, DataCategory.SCALAR, 50.0, False),
             widget='slider',
             ui={'properties': {'min': 0, 'max': 100, 'step': 1}}
         ),
-        'temperature': Config(
+        'temperature': Inlet(
             'temperature',  # element_id as first positional parameter
             label='Temperature',
+            flow_type=FlowType.DATA,
             data=SingleField('temp_val', DataType.FLOAT, DataCategory.SCALAR, 25.0, False),
             widget='example.temperature',
             ui={'properties': {'unit': 'celsius'}}
         ),
-        'bool_switch': Config(
+        'bool_switch': Inlet(
             'bool_switch',  # element_id as first positional parameter
             label='Boolean Switch',
+            flow_type=FlowType.DATA,
             data=SingleField('bool_val', DataType.BOOL, DataCategory.SCALAR, True, False),
             widget='switch',
             ui={'properties': {'text': 'Enable Feature'}}
         ),
-        'string_input': Config(
+        'string_input': Inlet(
             'string_input',  # element_id as first positional parameter
             label='Text Input',
+            flow_type=FlowType.DATA,
             data=SingleField('str_val', DataType.STRING, DataCategory.SCALAR, 'Hello', False),
             widget='input',
             ui={'properties': {'placeholder': 'Enter text...'}}
         ),
-        'nonexistent_widget': Config(
+        'nonexistent_widget': Inlet(
             'nonexistent',  # element_id as first positional parameter
             label='Missing Widget',
+            flow_type=FlowType.DATA,
             data=SingleField('missing_val', DataType.INT, DataCategory.SCALAR, 42, False),
             widget='nonexistent_widget_type',
             ui={'properties': {}}
         )
     }
-    
-    # Add some inlets and outlets for display
-    node.inlets = {
-        'input1': Inlet('input1', 'Input 1', None, data=SingleField('in1', DataType.FLOAT, DataCategory.SCALAR, 0.0, False))
-    }
+
     node.outlets = {}
     
     return node
