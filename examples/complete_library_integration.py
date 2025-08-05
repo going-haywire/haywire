@@ -71,6 +71,14 @@ def create_demo_node():
             widget='select',
             ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
         ),
+        'temperature': Config(
+            'temperature',  # element_id as first positional parameter
+            label='Temperature',
+            data=SingleField('temp_val', DataType.FLOAT, DataCategory.SCALAR, 25.0, False),
+            widget='example.temperature',
+            ui={'properties': {'unit': 'celsius'}}
+        )
+
     }
 
     # Add configs with different widget types

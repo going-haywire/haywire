@@ -7,6 +7,7 @@ with a registry-based approach that supports the modular library system.
 
 from typing import Any, Optional
 from nicegui import ui
+from nicegui.element import Element
 from haywire.core.data.enums import CouplingType
 from haywire.core.registry.registry import WidgetRegistry
 from haywire.core.data.fields import DataField
@@ -59,11 +60,11 @@ class ModularNiceGUINodeRenderer:
 
             # Render configs first (if any)
             if self.node.configs:
-                ui.label('Configuration').classes('font-bold text-sm mt-2 w-full')
+                ui.label('Configuration').classes('font-bold text-sm mt-2')
                 for config in self.node.configs.values():
-                    ui.label(config.label).classes('text-xs')
-                    with ui.element('div').classes('widget-container'):
-                        self._render_element('config', config)
+                    with ui.column().classes('flex-1 gap-1 w-full'):
+                        ui.label(config.label).classes('text-xs')
+                        self._render_element('config', config).classes('widget-container')
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
@@ -130,7 +131,7 @@ class ModularNiceGUINodeRenderer:
         }
         return colors.get(str(data_type), '#757575')
      
-    def _render_element(self, element_type: str, element):
+    def _render_element(self, element_type: str, element) -> Element:
         """Render a single config or property element using widget registry"""
         if not element.data or element.widget == 'None':
             return
