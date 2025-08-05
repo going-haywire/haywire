@@ -2,15 +2,8 @@
 Basic core node implementations
 """
 
-import sys
-import os
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
-src_path = os.path.join(project_root, 'src')
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
 # Import the node system base class
-from haywire.libraries.node_system import HaywireNode
+from haywire.core.node.node import HaywireNode
 from haywire.libraries.core.data import FLOAT, INT, STR
 
 

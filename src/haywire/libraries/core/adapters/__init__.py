@@ -2,24 +2,15 @@
 Core adapter registration and exports
 """
 
-import sys
-import os
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
-src_path = os.path.join(project_root, 'src')
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
-from haywire.libraries.registry import AdapterRegistry
+from haywire.core.registry.registry import AdapterRegistry
 
 # Import all adapter classes
-from .base import BaseAdapter, ConversionError
 from .type_converters import (
     IntToFloatAdapter, FloatToIntAdapter,
     StringToIntAdapter, StringToFloatAdapter,
     IntToStringAdapter, FloatToStringAdapter,
     BoolToStringAdapter, StringToBoolAdapter
 )
-
 
 def register_core_adapters(adapter_registry: AdapterRegistry):
     """Register all core adapters with the adapter registry"""
@@ -78,8 +69,6 @@ def register_core_adapters(adapter_registry: AdapterRegistry):
 
 
 __all__ = [
-    'BaseAdapter',
-    'ConversionError',
     'IntToFloatAdapter',
     'FloatToIntAdapter', 
     'StringToIntAdapter',

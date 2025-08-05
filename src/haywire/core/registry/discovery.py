@@ -65,7 +65,7 @@ class LibraryDiscovery:
         try:
             for item in os.listdir(directory):
                 item_path = os.path.join(directory, item)
-                if os.path.isdir(item_path) and not item.startswith('.'):
+                if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
                     self._check_library_structure(item, item_path)
         except OSError as e:
             logger.error(f"Error scanning directory {directory}: {e}")
@@ -84,25 +84,16 @@ class LibraryDiscovery:
             init_file = os.path.join(library_path, '__init__.py')
             has_init = os.path.exists(init_file)
             
-            # Determine if structure is valid
+            # Determine if structure is valid (don't load metadata during discovery for performance)
             is_valid = len(missing_dirs) == 0 and has_init
             
-            # Try to load metadata if valid
-            metadata = None
-            if is_valid:
-                try:
-                    metadata = self._load_library_metadata(library_path)
-                except Exception as e:
-                    logger.warning(f"Failed to load metadata for {library_name}: {e}")
-                    is_valid = False
-            
-            # Store discovery results
+            # Store discovery results (metadata will be loaded later during actual library loading)
             self.discovered_libraries[library_name] = {
                 'path': library_path,
                 'valid': is_valid,
                 'missing_dirs': missing_dirs,
                 'has_init': has_init,
-                'metadata': metadata
+                'metadata': None  # Lazy-loaded during library loading
             }
             
             if is_valid:

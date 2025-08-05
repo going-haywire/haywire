@@ -76,12 +76,12 @@ class DataFieldSpec:
             )
 
 
-def create_data_field_factory(data_type: DataType, category: DataCategory = DataCategory.SCALAR, **default_kwargs) -> Callable[..., DataFieldSpec]:
+def specs_factory(data_type: DataType, category: DataCategory = DataCategory.SCALAR, **default_kwargs) -> Callable[..., DataFieldSpec]:
     """
     Create a factory function for generating DataFieldSpec instances.
     
     Example:
-        INT = create_data_field_factory(DataType.INT, DataCategory.SCALAR)
+        INT = specs_factory(DataType.INT, DataCategory.SCALAR)
         my_int_spec = INT(value=10, widget='slider')
     """
     def factory_func(**kwargs) -> DataFieldSpec:

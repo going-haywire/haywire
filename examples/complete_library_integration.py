@@ -8,8 +8,10 @@ This example demonstrates the full modular library system working together:
 4. Updated NiceGUI renderer using the registry system
 """
 
+import logging
 import sys
 import os
+from venv import logger
 
 # Add project paths
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -18,18 +20,21 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 from nicegui import ui
-from haywire.libraries import LibraryRegistry, WidgetRegistry, AdapterRegistry, LibraryDiscovery
+from haywire.core.registry.registry import LibraryRegistry, WidgetRegistry, AdapterRegistry
+from haywire.core.registry.discovery import LibraryDiscovery
 from haywire.ui.nicegui_renderer import ModularNiceGUINodeRenderer
 from haywire.core.data.enums import DataType, DataCategory
 from haywire.core.data.fields import SingleField
 from haywire.core.node.node import NodeData, Config, Inlet
-from haywire.libraries.node_system import NodeRegistry
+from haywire.core.registry.node_system import NodeRegistry
 
 
 def setup_library_system():
     """Set up the complete library system"""
     print("Setting up library system...")
     
+    logger.setLevel(logging.INFO)
+
     # Create registries
     library_registry = LibraryRegistry()
     widget_registry = WidgetRegistry()

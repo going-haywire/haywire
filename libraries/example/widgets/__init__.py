@@ -2,21 +2,11 @@
 Test widgets for the test library
 """
 
-import sys
-import os
 from typing import Any, Dict
 from nicegui import ui
 
-# Add project paths for imports
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-src_path = os.path.join(project_root, 'src')
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
-from haywire.libraries.core.widgets.base import BaseWidget
-from haywire.libraries.registry import WidgetRegistry
-from haywire.core.data.fields import DataField
-
+from haywire.ui.widget.base import BaseWidget
+from haywire.core.registry.registry import WidgetRegistry
 
 class TemperatureWidget(BaseWidget):
     """Custom widget for temperature values with Celsius/Fahrenheit display"""

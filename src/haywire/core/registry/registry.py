@@ -6,16 +6,8 @@ from typing import Dict, Any, Optional, Type, Tuple
 from .base import BaseRegistry, LibraryMetadata
 
 # Import core data types for widget fallback
-import sys
-import os
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-src_path = os.path.join(project_root, 'src')
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
 from haywire.core.data.enums import DataType, DataCategory
 from haywire.core.data.fields import DataField
-
 
 class WidgetRegistry(BaseRegistry):
     """Registry for UI widgets that can render data fields"""

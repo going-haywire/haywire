@@ -3,17 +3,9 @@ Base adapter classes for type conversion
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Type
-
-import sys
-import os
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
-src_path = os.path.join(project_root, 'src')
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
+from typing import Any
 
 from haywire.core.data.enums import DataType
-
 
 class BaseAdapter(ABC):
     """Abstract base class for type adapters"""

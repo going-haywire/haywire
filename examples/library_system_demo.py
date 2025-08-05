@@ -8,8 +8,10 @@ This script shows how to:
 4. Load nodes from different libraries
 """
 
+import logging
 import sys
 import os
+from venv import logger
 
 # Add project paths
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -17,16 +19,20 @@ src_path = os.path.join(project_root, 'src')
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-from haywire.libraries import LibraryRegistry, WidgetRegistry, AdapterRegistry, LibraryDiscovery
+from haywire.core.registry.registry import LibraryRegistry, WidgetRegistry, AdapterRegistry
+from haywire.core.registry.discovery import LibraryDiscovery
 from haywire.core.data.enums import DataType, DataCategory
 from haywire.core.data.fields import SingleField
-from haywire.libraries.node_system import NodeRegistry
+from haywire.core.registry.node_system import NodeRegistry
 
 
 def main():
     """Demonstrate the library system"""
     print("=== Haywire Library System Demo ===\n")
     
+
+    logger.setLevel(logging.DEBUG)
+
     # 1. Create registries
     print("1. Creating registries...")
     library_registry = LibraryRegistry()
@@ -119,7 +125,7 @@ def main():
         if lib_name == 'core':
             print("     - ConstantNode")
             print("     - DisplayNode")
-        elif lib_name == 'test':
+        elif lib_name == 'example':
             print("     - TemperatureConverterNode")
     
     print("\n=== Demo Complete ===")

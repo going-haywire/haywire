@@ -5,17 +5,8 @@ Contains fundamental nodes, widgets, adapters, and data definitions
 that form the foundation of the Haywire system.
 """
 
-import sys
-import os
-
-# Add project paths for imports
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
-src_path = os.path.join(project_root, 'src')
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
-from haywire.libraries.base import BaseLibrary, LibraryMetadata
-from haywire.libraries.registry import WidgetRegistry, AdapterRegistry
+from haywire.core.registry.base import BaseLibrary, LibraryMetadata
+from haywire.core.registry.registry import WidgetRegistry, AdapterRegistry
 
 # Import core components
 from .widgets import register_core_widgets

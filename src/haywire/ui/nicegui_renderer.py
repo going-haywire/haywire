@@ -16,7 +16,7 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 from nicegui import ui
-from haywire.libraries.registry import WidgetRegistry
+from haywire.core.registry.registry import WidgetRegistry
 from haywire.core.data.fields import DataField
 from haywire.core.node.node import NodeData
 
