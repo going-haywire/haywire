@@ -8,19 +8,32 @@ from .specs import DataFieldSpec, specs_factory
 from .fields import DataField, SingleField, PooledField
 
 # --- Factory functions for creating DataFieldSpec instances ---
-INT = specs_factory(DataType.INT)
-FLOAT = specs_factory(DataType.FLOAT)
-STR = specs_factory(DataType.STRING)
-BOOL = specs_factory(DataType.BOOL)
-BYTES = specs_factory(DataType.BYTES)
-DICT = specs_factory(DataType.DICT)
-OBJECT = specs_factory(DataType.OBJECT)
+INT = specs_factory(
+        id='INT', 
+        label='Integer', 
+        description='Integer data type',
+        type=DataType.INT,
+        category=DataCategory.SCALAR,
+        widget='number',
+    )
 
-INT_ARRAY = specs_factory(DataType.INT, DataCategory.LIST)
-FLOAT_ARRAY = specs_factory(DataType.FLOAT, DataCategory.LIST)
-STR_ARRAY = specs_factory(DataType.STRING, DataCategory.LIST)
-BOOL_ARRAY = specs_factory(DataType.BOOL, DataCategory.LIST)
-OBJECT_ARRAY = specs_factory(DataType.OBJECT, DataCategory.LIST)
+FLOAT = specs_factory(
+        id='FLOAT', 
+        label='Float', 
+        description='Float data type',
+        type=DataType.FLOAT,
+        category=DataCategory.SCALAR,
+        widget='number',
+    )
+    
+STRING = specs_factory(
+        id='STRING', 
+        label='String', 
+        description='String data type',
+        type=DataType.STRING,
+        category=DataCategory.SCALAR,
+        widget='text',
+    )
 
 __all__ = [
     # Enums
@@ -38,14 +51,5 @@ __all__ = [
     # Factory functions
     "INT",
     "FLOAT",
-    "STR",
-    "BOOL",
-    "BYTES",
-    "DICT",
-    "OBJECT",
-    "INT_ARRAY",
-    "FLOAT_ARRAY",
-    "STR_ARRAY",
-    "BOOL_ARRAY",
-    "OBJECT_ARRAY",
+    "STRING",
 ]

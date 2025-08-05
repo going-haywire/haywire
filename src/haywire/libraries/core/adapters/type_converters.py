@@ -5,7 +5,7 @@ Basic type conversion adapters
 from typing import override
 
 from haywire.core.adapter.base import BaseAdapter
-from ..data import INT, FLOAT
+from haywire.core.data import INT, FLOAT
 
 class IntToFloatAdapter(BaseAdapter):
     """Convert integer to float"""

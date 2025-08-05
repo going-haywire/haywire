@@ -25,7 +25,7 @@ class WidgetRegistry(BaseRegistry):
         """Register the error widget class"""
         self._error_widget = widget_class
     
-    def get_widget_class(self, widget_name: str, data_field: DataField) -> Type:
+    def get_widget_class(self, widget_name: str | None, data_field: DataField) -> Type:
         """
         Get widget class with fallback strategy:
         1. Try exact widget name lookup

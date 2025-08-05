@@ -20,7 +20,6 @@ def register_core_adapters(adapter_registry: AdapterRegistry):
     )
     
 
-
 __all__ = [
     'IntToFloatAdapter',
     'register_core_adapters'

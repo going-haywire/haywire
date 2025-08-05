@@ -2,27 +2,31 @@
 Test adapters for the test library
 """
 
-from typing import Any
+from typing import override
 
-from haywire.core.adapter.base import BaseAdapter, ConversionError
+from haywire.core.adapter.base import BaseAdapter
 from haywire.core.registry.registry import AdapterRegistry
-from haywire.core.data.enums import DataType
-
+from haywire.core.data import FLOAT
+from ..data import TEMPERATURE
 
 class FloatToTemperatureAdapter(BaseAdapter):
     """Convert generic float to temperature (assuming Celsius)"""
-    source_type = DataType.FLOAT
-    target_type = DataType.FLOAT  # Temperature is still a float, but semantically different
+    source_type: str = FLOAT().id
+    target_type: str = TEMPERATURE().id
     
-    def can_convert(self, value: Any) -> bool:
-        return isinstance(value, (float, int))
+    @override
+    def convert(self, value: float) -> float:
+        return value
+
+class TemperatureToFloatAdapter(BaseAdapter):
+    """Convert generic float to temperature (assuming Celsius)"""
+    source_type: str = TEMPERATURE().id
+    target_type: str = FLOAT().id
     
-    def convert(self, value: Any) -> float:
-        if not self.can_convert(value):
-            raise ConversionError(f"Cannot convert {type(value)} to temperature")
-        # For this example, we just pass through the value
-        # In a real scenario, this might involve unit conversion or validation
-        return float(value)
+    @override
+    def convert(self, value: float) -> float:
+        return value
+
 
 def register_test_adapters(adapter_registry: AdapterRegistry):
     """Register test adapters with the adapter registry"""
@@ -31,8 +35,14 @@ def register_test_adapters(adapter_registry: AdapterRegistry):
         FloatToTemperatureAdapter.target_type,
         FloatToTemperatureAdapter
     )
-
+    adapter_registry.register_adapter(
+        TemperatureToFloatAdapter.source_type,
+        TemperatureToFloatAdapter.target_type,
+        TemperatureToFloatAdapter
+    )
+    
 __all__ = [
     'FloatToTemperatureAdapter',
+    'TemperatureToFloatAdapter',
     'register_test_adapters'
 ]

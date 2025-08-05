@@ -1,43 +1,52 @@
 from __future__ import annotations
-from typing import Any, Callable
-from dataclasses import dataclass, field
+from typing import Any
+from dataclasses import dataclass, field, replace
 
 from .enums import DataType, DataCategory
-from .fields import DataField, SingleField, PooledField
-
 
 @dataclass
 class DataFieldSpec:
-    """Factory specification for creating DataField instances
-    
+    """Defines the specification for a data field.
+
+    Provides metadata about a field's type, category, default value, and UI hints.
+    This is a flexible class where only 'type' is strictly required.
+
     Attributes:
-        type: Data type (INT, FLOAT, STRING, etc.)
-        category: Data category (SCALAR, LIST, SET, DICT)
-        value: Default value for the field
-        is_pooled: Whether field accepts multiple input sources
-        id: Unique identifier for the field specification
-        label: Human-readable label displayed in UI
-        description: Detailed description of the field's purpose
-        widget: UI widget type (e.g., 'slider', 'input', 'select')
-        ui: Dictionary for UI-specific configurations
+        type: The fundamental data type (e.g., INT, FLOAT).
+        category: The data structure category (e.g., SCALAR, LIST).
+        value: The default value for the field.
+        is_pooled: Whether the field accepts multiple input sources.
+        id: Unique identifier, auto-generated if not provided.
+        label: Human-readable label, auto-generated if not provided.
+        description: Detailed description, auto-generated if not provided.
+        widget: Suggested UI widget, auto-generated if not provided.
+        ui: Dictionary for extra UI-specific configurations.
     """
-    type: DataType = DataType.STRING
+    type: DataType
     category: DataCategory = DataCategory.SCALAR
     value: Any = None
     is_pooled: bool = False
-    id: str | None = field(default=None, init=False, repr=False)
-    label: str | None = field(default=None, init=False, repr=False)
-    description: str | None = field(default=None, init=False, repr=False)   
-    widget: str | None = field(default=None, init=False, repr=False)
-    ui: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    id: str | None = None
+    label: str | None = None
+    description: str | None = None
+    widget: str | None = None
+    ui: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
+        """Generate default values for optional fields after initialization."""
+        # Generate a unique ID if not provided, e.g., "INT_SCALAR"
         if self.id is None:
-            self.id = self.type.value.upper() + '_' + self.category.value.upper()
+            self.id = f"{self.type.value.upper()}_{self.category.value.upper()}"
+
+        # Generate a human-readable label if not provided, e.g., "Int:Scalar"
         if self.label is None:
-            self.label = self.type.value.capitalize() + ':' + self.category.value.capitalize()
+            self.label = f"{self.type.value.capitalize()}:{self.category.value.capitalize()}"
+
+        # Ensure description is a string
         if self.description is None:
             self.description = ""
+
+        # Set a default value if none is provided, based on type and category
         if self.value is None:
             if not self.is_pooled:
                 if self.category == DataCategory.SCALAR:
@@ -49,42 +58,28 @@ class DataFieldSpec:
                         self.value = False
                     elif self.type == DataType.STRING:
                         self.value = ""
-                    elif self.type == DataType.LIST:
-                        self.value = []
-                    elif self.type == DataType.DICT:
-                        self.value = {}
+                    else:
+                        self.value = None  # Default for OBJECT, etc.
+                elif self.category in [DataCategory.LIST, DataCategory.SET]:
+                    self.value = []
+                elif self.category == DataCategory.DICT:
+                    self.value = {}
             else:
                 self.value = {}
             
-    def create_field(self, no_pooling: bool = False) -> DataField:
-        """Create appropriate DataField instance based on pooled flag"""
-        if no_pooling or not self.is_pooled:
-            return SingleField(
-                id=self.id,
-                type=self.type,
-                category=self.category,
-                value=self.value,
-                is_pooled=False
-            )
-        else:
-            return PooledField(
-                id=self.id,
-                type=self.type,
-                category=self.category,
-                value={},
-                is_pooled=True
-            )
+    def __call__(self, **kwargs: Any) -> DataFieldSpec:
+        """Create a new instance with overridden attributes."""
+        return replace(self, **kwargs)
 
 
-def specs_factory(data_type: DataType, category: DataCategory = DataCategory.SCALAR, **default_kwargs) -> Callable[..., DataFieldSpec]:
-    """
-    Create a factory function for generating DataFieldSpec instances.
-    
+def specs_factory(**kwargs: Any) -> DataFieldSpec:
+    """Factory function to create a DataFieldSpec instance.
+
+    This allows creating a template spec and then calling it to produce
+    configured instances.
+
     Example:
-        INT = specs_factory(DataType.INT, DataCategory.SCALAR)
-        my_int_spec = INT(value=10, widget='slider')
+        INT = specs_factory(type=DataType.INT)
+        my_int_field = INT(value=10)
     """
-    def factory_func(**kwargs) -> DataFieldSpec:
-        merged_kwargs = {**default_kwargs, **kwargs}
-        return DataFieldSpec(type=data_type, category=category, **merged_kwargs)
-    return factory_func
+    return DataFieldSpec(**kwargs)

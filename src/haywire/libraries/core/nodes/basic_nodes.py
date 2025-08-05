@@ -4,8 +4,6 @@ Basic core node implementations
 
 # Import the node system base class
 from haywire.core.node.node import HaywireNode
-from haywire.libraries.core.data import FLOAT, INT, STR
-
 
 class ConstantNode(HaywireNode):
     """Node that outputs a constant value"""

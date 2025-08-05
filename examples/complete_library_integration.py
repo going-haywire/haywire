@@ -28,6 +28,7 @@ from haywire.core.data.fields import SingleField
 from haywire.core.node.node import NodeData, Config, Inlet
 from haywire.core.registry.node_system import NodeRegistry
 
+from haywire.core.data import INT, FLOAT, STRING
 
 def setup_library_system():
     """Set up the complete library system"""
@@ -72,7 +73,7 @@ def create_demo_node():
             'temperature',  # element_id as first positional parameter
             label='Temperature',
             data=SingleField('temp_val', DataType.FLOAT, DataCategory.SCALAR, 25.0, False),
-            widget='temperature',
+            widget='example.temperature',
             ui={'properties': {'unit': 'celsius'}}
         ),
         'bool_switch': Config(
@@ -111,21 +112,21 @@ def demonstrate_adapter_system(adapter_registry):
     """Demonstrate the adapter system for connection validation"""
     print("\n=== Adapter System Demo ===")
     
-    # Test various connection scenarios
     test_connections = [
-        (DataType.STRING, DataType.INT, "123"),      # Should work with adapter
-        (DataType.FLOAT, DataType.INT, 42.7),       # Should work with adapter
-        (DataType.BOOL, DataType.STRING, True),     # Should work with adapter
-        (DataType.DICT, DataType.INT, {}),          # Should fail - no adapter
+        (INT().id, FLOAT().id, 2),
+        (INT().id, 'TEMPERATURE', 2),
+        (FLOAT().id, 'TEMPERATURE', 2),
+        ('TEMPERATURE', FLOAT().id, 2),
+        (STRING().id, INT().id, "2"),
+        (FLOAT().id, STRING().id, 2) # This should fail
     ]
-    
+
+
+
     for source_type, target_type, test_value in test_connections:
-        source_field = SingleField('source', source_type, DataCategory.SCALAR, test_value, False)
-        target_field = SingleField('target', target_type, DataCategory.SCALAR, None, False)
-        
-        can_connect = adapter_registry.can_connect(source_field, target_field)
+        can_connect = adapter_registry.can_connect(source_type, target_type)
         status = "✓ Allowed" if can_connect else "✗ Blocked"
-        print(f"{source_type.value} → {target_type.value}: {status}")
+        print(f"{source_type} → {target_type}: {status}")
         
         if can_connect and source_type != target_type:
             adapter = adapter_registry.get_adapter(source_type, target_type)
@@ -174,7 +175,7 @@ def main_page():
             conversions = adapter_registry.list_conversions()
             ui.label(f'Available conversions: {len(conversions)}')
             for source, target in conversions:
-                ui.label(f'• {source.value} → {target.value}').classes('text-sm ml-4')
+                ui.label(f'• {source} → {target}').classes('text-sm ml-4')
         
         # Right column: Rendered node using new system
         with ui.column().classes('w-1/2'):

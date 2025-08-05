@@ -24,7 +24,7 @@ from haywire.core.registry.discovery import LibraryDiscovery
 from haywire.core.data.enums import DataType, DataCategory
 from haywire.core.data.fields import SingleField
 from haywire.core.registry.node_system import NodeRegistry
-
+from haywire.core.data import FLOAT, INT, STRING
 
 def main():
     """Demonstrate the library system"""
@@ -75,7 +75,7 @@ def main():
     test_field = SingleField('test', DataType.FLOAT, DataCategory.SCALAR, 25.5, False)
     
     print("   Widget lookups:")
-    widgets_to_test = ['slider', 'knob', 'temperature', 'nonexistent']
+    widgets_to_test = ['slider', 'knob', 'temperature', 'example.temperature', 'nonexistent']
     
     for widget_name in widgets_to_test:
         try:
@@ -97,24 +97,26 @@ def main():
     print("\n6. Testing adapter registry...")
     
     conversions_to_test = [
-        (DataType.INT, DataType.FLOAT),
-        (DataType.STRING, DataType.INT),
-        (DataType.FLOAT, DataType.STRING),
-        (DataType.BOOL, DataType.INT),  # This should fail
+        (INT().id, FLOAT().id),
+        (INT().id, 'TEMPERATURE'),
+        (FLOAT().id, 'TEMPERATURE'),
+        ('TEMPERATURE', FLOAT().id),
+        (STRING().id, INT().id),
+        (FLOAT().id, STRING().id) # This should fail
     ]
     
     print("   Type conversion availability:")
     for source, target in conversions_to_test:
         has_adapter = adapter_registry.has_adapter(source, target)
         status = "✓" if has_adapter else "✗"
-        print(f"   {status} {source.value} → {target.value}")
+        print(f"   {status} {source} → {target}")
     
     # Test connection validation
     print("\n   Connection validation:")
     source_field = SingleField('source', DataType.STRING, DataCategory.SCALAR, "123", False)
     target_field = SingleField('target', DataType.INT, DataCategory.SCALAR, 0, False)
     
-    can_connect = adapter_registry.can_connect(source_field, target_field)
+    can_connect = adapter_registry.can_connect(source_field.id, target_field.id)
     print(f"   STRING → INT connection: {'✓ Allowed' if can_connect else '✗ Blocked'}")
     
     # 6. Show loaded nodes
