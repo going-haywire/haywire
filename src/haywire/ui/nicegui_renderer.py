@@ -22,10 +22,39 @@ class ModularNiceGUINodeRenderer:
         self.widget_registry = widget_registry
         self.ui_elements = {}
         self.widget_instances = {}
+        # Generate unique node ID for CSS scoping
+        self.node_id = f"node-{id(self.node)}"
     
     def render_node(self, title: str = "Node"):
         """Render complete node UI using registry-based widgets"""
-        with ui.card().classes('w-full min-w-64 max-w-sm'):
+        
+        # Add CSS for hover effects with node-specific scoping
+        ui.add_head_html(f'''
+        <style>
+        .{self.node_id} .widget-container {{
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }}
+        /* Show widgets on hover OR when any widget inside has focus */
+        .{self.node_id}:hover .widget-container,
+        .{self.node_id}:focus-within .widget-container {{
+            opacity: 1;
+            max-height: 200px;
+        }}
+        .{self.node_id} {{
+            transition: all 0.2s ease;
+        }}
+        /* Apply shadow on hover OR focus-within */
+        .{self.node_id}:hover,
+        .{self.node_id}:focus-within {{
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }}
+        </style>
+        ''')
+        
+        with ui.card().classes(f'w-full min-w-64 max-w-sm node-card {self.node_id}'):
             ui.label(title).classes('text-h6 w-full')
 
             # Render configs first (if any)
@@ -33,7 +62,8 @@ class ModularNiceGUINodeRenderer:
                 ui.label('Configuration').classes('font-bold text-sm mt-2 w-full')
                 for config in self.node.configs.values():
                     ui.label(config.label).classes('text-xs')
-                    self._render_element('config', config)
+                    with ui.element('div').classes('widget-container'):
+                        self._render_element('config', config)
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
@@ -43,10 +73,11 @@ class ModularNiceGUINodeRenderer:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in self.node.inlets.values():
                             with ui.row().classes('w-full items-center justify-start gap-1'):
-                                # Port connector
+                                # Pin connector
                                 ui.element('div').classes(
                                     f'port input-port'
                                 ).style(
+                                    f'position: absolute; left: -6px; '
                                     f'width: 12px; height: 12px; '
                                     f'background: {self._get_port_color(inlet.data.type)}; '
                                     f'border: 2px solid white; '
@@ -54,12 +85,12 @@ class ModularNiceGUINodeRenderer:
                                     f'cursor: crosshair;'
                                 ).props(f'data-port-id="{inlet.id}"')
                                 
-                                # Port label
+                                # Pin label
                                 ui.label(inlet.label).classes('text-xs')
 
                             # Render inlet widget if it has UI (coupling_type != NONE)
                             if inlet.coupling_type != CouplingType.NONE:
-                                self._render_element('inlet', inlet)
+                                self._render_element('inlet', inlet).classes('widget-container')
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
@@ -67,20 +98,20 @@ class ModularNiceGUINodeRenderer:
                         ui.label('Outputs').classes('font-bold text-sm')
                         for outlet in self.node.outlets.values():
                             with ui.row().classes('w-full items-center justify-end gap-1'):
-                                # Port label
+                                # Pin label
                                 ui.label(outlet.label).classes('text-xs')
                                 
-                                # Port connector
+                                # Pin connector
                                 ui.element('div').classes(
                                     f'port output-port'
                                 ).style(
+                                    f'position: absolute; right: -6px; '
                                     f'width: 12px; height: 12px; '
                                     f'background: {self._get_port_color(outlet.data.type)}; '
                                     f'border: 2px solid white; '
                                     f'border-radius: 50%; '
                                     f'cursor: crosshair;'
                                 ).props(f'data-port-id="{outlet.id}"')
-
 
             # Show inlet/outlet status
             with ui.row().classes('w-full justify-between mt-2'):
@@ -117,21 +148,29 @@ class ModularNiceGUINodeRenderer:
             # Render the widget
             ui_element = widget_instance.render()
             
+            # Add widget-container class for hover effects (if element supports classes)
+            if hasattr(ui_element, 'classes') and callable(ui_element.classes):
+                ui_element.classes('widget-container')
+            
             # Store references
             self.ui_elements[element.id] = ui_element
             self.widget_instances[element.id] = widget_instance
             
+            return ui_element
+            
         except Exception as e:
             # Fallback to error display if widget creation fails
-            self._render_error_widget(element, str(e))
-    
+            error_widget = self._render_error_widget(element, str(e))
+            return error_widget
+
     def _render_error_widget(self, element, error_message: str):
         """Render an error widget when widget creation fails"""
-        with ui.column().classes('w-full p-2 border border-red-500 bg-red-50'):
+        with ui.column().classes('w-full p-2 border border-red-500 bg-red-50') as error_container:
             ui.icon('error', color='red').classes('text-lg')
             ui.label(f"Widget Error: {error_message}").classes('text-red-700 text-sm font-bold')
             ui.label(f"Element: {element.id}").classes('text-red-600 text-xs')
             ui.label(f"Requested widget: {getattr(element, 'widget', 'None')}").classes('text-red-600 text-xs')
+        return error_container
     
     def get_widget_instance(self, element_id: str):
         """Get a widget instance by element ID"""

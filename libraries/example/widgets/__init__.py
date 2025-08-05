@@ -20,7 +20,7 @@ class TemperatureWidget(BaseWidget):
         unit = self.ui_properties.get('unit', 'celsius')
         display_value = temp_celsius if unit == 'celsius' else temp_fahrenheit
         
-        with ui.column().classes('w-full'):
+        with ui.column().classes('w-full') as wrapper:
             # Number input for the temperature
             number_kwargs = {
                 'value': display_value,
@@ -45,7 +45,7 @@ class TemperatureWidget(BaseWidget):
             other_unit = '°F' if unit == 'celsius' else '°C'
             conversion_label = ui.label(f"({other_value:.1f}{other_unit})").classes('text-sm text-gray-500')
         
-        return temp_input
+        return wrapper
 
 
 def register_test_widgets(widget_registry: WidgetRegistry):

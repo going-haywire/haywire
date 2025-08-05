@@ -67,9 +67,9 @@ def create_demo_node():
         'float_slider': Config(
             'float_slider',  # element_id as first positional parameter
             label='Float Slider',
-            data=SingleField('float_val', DataType.FLOAT, DataCategory.SCALAR, 50.0, False),
-            widget='slider',
-            ui={'properties': {'min': 0, 'max': 100, 'step': 1}}
+            data=SingleField('float_val', DataType.STRING, DataCategory.SCALAR, "Option 1", False),
+            widget='select',
+            ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
         ),
     }
 
