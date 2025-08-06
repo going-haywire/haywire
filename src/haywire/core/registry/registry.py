@@ -138,12 +138,14 @@ class GadgetsRegistry(BaseRegistry):
     
     def __init__(self):
         super().__init__()
-        self._default_renderer: type | None = None
+        self._default_renderer_name: str | None = None
         self._error_renderer: type | None = None
     
-    def register_default_renderer(self, renderer_class: type):
-        """Register the default renderer class"""
-        self._default_renderer = renderer_class
+    def register_default_renderer(self, renderer_name: str):
+        """Register the default renderer by name"""
+        if not self.has(renderer_name):
+            raise ValueError(f"Renderer '{renderer_name}' must be registered before setting as default")
+        self._default_renderer_name = renderer_name
     
     def register_error_renderer(self, renderer_class: type):
         """Register the error renderer class"""
@@ -161,8 +163,8 @@ class GadgetsRegistry(BaseRegistry):
             return self.get(renderer_name)
         
         # 2. Use default if no renderer name is specified
-        if renderer_name is None and self._default_renderer:
-            return self._default_renderer
+        if renderer_name is None and self._default_renderer_name:
+            return self.get(self._default_renderer_name)
         
         # 3. Return error renderer if exact renderer doesn't exist
         if self._error_renderer:
@@ -181,10 +183,16 @@ class GadgetsRegistry(BaseRegistry):
             metadata: Optional metadata for the renderer
         """
         self.register(name, renderer_class, metadata)
+        
+        # Automatically set as default if no default is set yet
+        if self._default_renderer_name is None:
+            self._default_renderer_name = name
     
     def get_default_renderer(self) -> type | None:
         """Get the default renderer class"""
-        return self._default_renderer
+        if self._default_renderer_name:
+            return self.get(self._default_renderer_name)
+        return None
     
     def get_error_renderer(self) -> type | None:
         """Get the error renderer class"""
