@@ -5,7 +5,7 @@ Test widgets for the test library
 from typing import Any, Dict
 from nicegui import ui
 
-from haywire.ui.widget.base import BaseWidget
+from haywire.ui.base import BaseWidget
 from haywire.core.registry.registry import WidgetRegistry
 
 class TemperatureWidget(BaseWidget):

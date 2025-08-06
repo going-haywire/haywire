@@ -10,7 +10,7 @@ from typing import List, Dict, Optional, Any
 import logging
 
 from .base import BaseLibrary, LibraryMetadata
-from .registry import LibraryRegistry, WidgetRegistry, AdapterRegistry
+from .registry import LibraryRegistry, WidgetRegistry, AdapterRegistry, GadgetsRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class LibraryLoadError(LibraryDiscoveryError):
 class LibraryDiscovery:
     """Discovers and loads libraries from multiple locations"""
     
-    REQUIRED_SUBDIRS = ['nodes', 'widgets', 'adapters']
+    REQUIRED_SUBDIRS = ['nodes', 'widgets', 'adapters', 'gadgets']
     
     def __init__(self):
         self.library_paths: List[str] = []
@@ -150,6 +150,7 @@ class LibraryDiscovery:
                       library_registry: LibraryRegistry,
                       widget_registry: WidgetRegistry, 
                       adapter_registry: AdapterRegistry,
+                      gadgets_registry: GadgetsRegistry,
                       node_registry) -> List[str]:
         """
         Load all discovered valid libraries.
@@ -186,6 +187,7 @@ class LibraryDiscovery:
                     # Let the library register its components
                     library_instance.register_components(
                         widget_registry, 
+                        gadgets_registry,
                         adapter_registry, 
                         node_registry
                     )

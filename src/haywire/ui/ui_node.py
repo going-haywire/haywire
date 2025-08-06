@@ -9,7 +9,7 @@ from typing import Optional
 from nicegui import ui
 from haywire.core.node.node import NodeData
 from haywire.ui.node_render_factory import NodeRenderFactory
-from haywire.ui.gadgets_registry import UINodeCard
+from haywire.ui.base import UINodeCard
 
 
 class UINode:

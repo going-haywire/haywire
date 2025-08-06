@@ -8,7 +8,8 @@ that looks up renderers from the gadgets registry.
 from typing import Dict, Type
 from haywire.core.node.node import NodeData
 from haywire.core.registry.registry import WidgetRegistry
-from haywire.ui.gadgets_registry import GadgetsRegistry, BaseNodeRenderer, UINodeCard
+from haywire.core.registry.registry import GadgetsRegistry
+from haywire.ui.base import BaseNodeRenderer, UINodeCard
 
 
 class NodeRenderFactory:

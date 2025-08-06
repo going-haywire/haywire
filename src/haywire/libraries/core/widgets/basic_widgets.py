@@ -5,7 +5,7 @@ Basic widget implementations for common data types
 from typing import Any, Dict
 from nicegui import ui
 
-from haywire.ui.widget.base import BaseWidget
+from haywire.ui.base import BaseWidget
 
 class TextInputWidget(BaseWidget):
     """Text input widget for string data"""

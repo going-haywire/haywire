@@ -5,9 +5,9 @@ This module provides the infrastructure for discovering and loading modular libr
 containing nodes, widgets, adapters, and data definitions.
 """
 
+from .base import BaseLibrary
 from .registry import LibraryRegistry, WidgetRegistry, AdapterRegistry
 from .discovery import LibraryDiscovery
-from .base import BaseLibrary
 
 __all__ = [
     "LibraryRegistry",

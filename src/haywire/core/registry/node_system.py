@@ -256,6 +256,38 @@ class NodeRegistry:
                 f"with different packages. Expected '{package_name}', "
                 f"Available: {available_packages}"
             )
+    
+    def get_all_nodes(self) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Get all registered nodes as a dictionary.
+        
+        Returns:
+            Dictionary mapping node names to lists of node information dictionaries.
+            Each node info dict contains:
+            - 'library': Library name
+            - 'package_name': Package name
+            - 'class': Node class
+            - 'version': Node version
+        """
+        return self.nodes.copy()
+    
+    def list_node_names(self) -> List[str]:
+        """
+        Get a list of all registered node names.
+        
+        Returns:
+            List of node names
+        """
+        return list(self.nodes.keys())
+    
+    def get_node_count(self) -> int:
+        """
+        Get the total number of registered node variants.
+        
+        Returns:
+            Total count of all node variants across all names
+        """
+        return sum(len(variants) for variants in self.nodes.values())
 
 
 # ============================================================================

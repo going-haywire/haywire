@@ -8,10 +8,9 @@ extracted from the current ModularNiceGUINodeRenderer implementation.
 from typing import Dict, Any
 from nicegui import ui
 from nicegui.element import Element
-from haywire.core.node.node import NodeData
+from haywire.core.node.node import HaywireNode
 from haywire.core.data.enums import CouplingType, DataType
-from haywire.ui.gadgets_registry import BaseNodeRenderer, UINodeCard
-
+from haywire.ui.base import BaseNodeRenderer, UINodeCard
 
 class DefaultNodeRenderer(BaseNodeRenderer):
     """
@@ -21,7 +20,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
     and serves as the fallback renderer when no specific renderer is requested.
     """
     
-    def render(self, node: NodeData) -> UINodeCard:
+    def render(self, node: HaywireNode) -> UINodeCard:
         """
         Render a node using the default design.
         
@@ -193,97 +192,3 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         }
         return colors.get(str(data_type), '#757575')
 
-
-class ErrorNodeRenderer(DefaultNodeRenderer):
-    """
-    Error renderer that provides error styling for nodes.
-    
-    This is a child class of DefaultNodeRenderer with different styling
-    to indicate rendering errors or fallback situations.
-    """
-    
-    def render(self, node: NodeData) -> UINodeCard:
-        """
-        Render a node with error styling.
-        
-        Args:
-            node: The HaywireNode to render
-            
-        Returns:
-            UINodeCard containing the rendered UI with error styling
-        """
-        # Storage for UI elements and widget instances
-        ui_elements: Dict[str, Any] = {}
-        widget_instances: Dict[str, Any] = {}
-        
-        # Generate unique node ID for CSS scoping
-        node_id = f"error-node-{id(node)}"
-        
-        # Add CSS for error styling
-        ui.add_head_html(f'''
-        <style>
-        .{node_id} {{
-            border: 2px solid #ef4444;
-            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-            transition: all 0.2s ease;
-        }}
-        .{node_id} .text-h6 {{
-            color: #dc2626;
-        }}
-        .{node_id} .widget-container {{
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            max-height: 0;
-            overflow: hidden;
-        }}
-        .{node_id}:hover .widget-container,
-        .{node_id}:focus-within .widget-container {{
-            opacity: 1;
-            max-height: 200px;
-        }}
-        .{node_id}:hover,
-        .{node_id}:focus-within {{
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        }}
-        </style>
-        ''')
-        
-        # Create the main card with error styling
-        with ui.card().classes(f'w-full min-w-64 max-w-sm error-node-card {node_id}') as main_card:
-            # Error header
-            with ui.row().classes('w-full items-center gap-2'):
-                ui.icon('error', color='red').classes('text-lg')
-                ui.label("Error Node").classes('text-h6 flex-1')
-            
-            ui.label('This node could not be rendered with the requested renderer.').classes('text-sm text-red-600 mb-2')
-
-            # Render configs first (if any)
-            if node.configs:
-                ui.label('Configuration').classes('font-bold text-sm mt-2')
-                for config in node.configs.values():
-                    with ui.column().classes('flex-1 gap-1 w-full'):
-                        ui.label(config.label).classes('text-xs')
-                        self._render_element('config', config, ui_elements, widget_instances)
-
-            # Main content: inlets and outlets in two columns
-            with ui.row().classes('w-full gap-2'):
-                # Left column: Inlets
-                with ui.column().classes('flex-1 gap-1'):
-                    if node.inlets:
-                        ui.label('Inputs').classes('font-bold text-sm')
-                        for inlet in node.inlets.values():
-                            self._render_inlet(inlet, ui_elements, widget_instances)
-
-                # Right column: Outlets
-                with ui.column().classes('flex-1 gap-1'):
-                    if node.outlets:
-                        ui.label('Outputs').classes('font-bold text-sm')
-                        for outlet in node.outlets.values():
-                            self._render_outlet(outlet)
-
-            # Footer with port counts
-            with ui.row().classes('w-full justify-between mt-2'):
-                ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
-                ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
-        
-        return UINodeCard(main_card, ui_elements, widget_instances)

@@ -8,217 +8,61 @@ This example shows how to use the new gadgets registry system with:
 4. Custom renderer registration and usage
 """
 
+import logging
+import sys
+import os
+
+from haywire.core.registry.node_system import NodeAmbiguousError, NodeNotFoundError, NodeRegistry
+
+# Add project paths
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+src_path = os.path.join(project_root, 'src')
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+
 from nicegui import ui
-from haywire.core.node.node import NodeData
-from haywire.core.data.fields import SingleField
-from haywire.core.data.enums import CouplingType, DataType, FlowType
-from haywire.core.node.elements import Config, Inlet, Outlet
-from haywire.core.registry.registry import WidgetRegistry
-from haywire.libraries.core.widgets import register_core_widgets
+from haywire.core.registry.registry import WidgetRegistry, GadgetsRegistry, LibraryRegistry, AdapterRegistry
+from haywire.core.registry.discovery import LibraryDiscovery
 
 # Import the new gadgets architecture
-from haywire.ui.gadgets_registry import GadgetsRegistry, BaseNodeRenderer, UINodeCard
 from haywire.ui.node_render_factory import NodeRenderFactory
 from haywire.ui.ui_node import UINode
-from haywire.ui.default_node_renderer import DefaultNodeRenderer, ErrorNodeRenderer
 
 
-class CustomMathNodeRenderer(BaseNodeRenderer):
-    """Custom renderer for math nodes with special styling."""
+def setup_library_system():
+    """Set up the complete library system"""
+    print("Setting up library system...")
     
-    def render(self, node: NodeData) -> UINodeCard:
-        """Render a math node with custom styling."""
-        ui_elements = {}
-        widget_instances = {}
-        
-        node_id = f"math-node-{id(node)}"
-        
-        # Custom math-themed CSS
-        ui.add_head_html(f'''
-        <style>
-        .{node_id} {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 16px;
-            border: 3px solid #4f46e5;
-        }}
-        .{node_id} .text-h6 {{
-            color: #fbbf24;
-            font-weight: bold;
-        }}
-        .{node_id} .widget-container {{
-            opacity: 0;
-            transition: all 0.4s ease;
-            transform: scale(0.95);
-        }}
-        .{node_id}:hover .widget-container,
-        .{node_id}:focus-within .widget-container {{
-            opacity: 1;
-            transform: scale(1);
-        }}
-        </style>
-        ''')
-        
-        with ui.card().classes(f'w-full min-w-64 max-w-sm math-node-card {node_id}') as main_card:
-            # Math-themed header
-            with ui.row().classes('w-full items-center gap-2'):
-                ui.icon('calculate', color='yellow').classes('text-lg')
-                ui.label("Math Node").classes('text-h6 flex-1')
-            
-            # Render configs
-            if node.configs:
-                ui.label('Configuration').classes('font-bold text-sm mt-2')
-                for config in node.configs.values():
-                    with ui.column().classes('flex-1 gap-1 w-full'):
-                        ui.label(config.label).classes('text-xs')
-                        self._render_element(config, ui_elements, widget_instances)
-            
-            # Render inlets and outlets
-            with ui.row().classes('w-full gap-2'):
-                # Inlets
-                with ui.column().classes('flex-1 gap-1'):
-                    if node.inlets:
-                        ui.label('Inputs').classes('font-bold text-sm')
-                        for inlet in node.inlets.values():
-                            with ui.row().classes('w-full items-center gap-1'):
-                                ui.label(inlet.label).classes('text-xs')
-                                if hasattr(inlet, 'coupling_type') and inlet.coupling_type != 'none':
-                                    self._render_element(inlet, ui_elements, widget_instances)
-                
-                # Outlets
-                with ui.column().classes('flex-1 gap-1'):
-                    if node.outlets:
-                        ui.label('Outputs').classes('font-bold text-sm')
-                        for outlet in node.outlets.values():
-                            ui.label(outlet.label).classes('text-xs text-right')
-        
-        return UINodeCard(main_card, ui_elements, widget_instances)
-    
-    def _render_element(self, element, ui_elements, widget_instances):
-        """Render element using widget registry."""
-        if not element.data or element.widget == 'None':
-            return
-        
-        try:
-            widget_class = self.widget_registry.get_widget_class(element.widget, element.data)
-            widget_instance = widget_class(element)
-            ui_element = widget_instance.render()
-            
-            if hasattr(ui_element, 'classes'):
-                ui_element.classes('widget-container')
-            
-            ui_elements[element.id] = ui_element
-            widget_instances[element.id] = widget_instance
-            
-        except Exception as e:
-            with ui.column().classes('w-full p-2 border border-red-300 bg-red-100 widget-container') as error_widget:
-                ui.label(f"Widget Error: {str(e)}").classes('text-red-700 text-sm')
-            ui_elements[element.id] = error_widget
-            widget_instances[element.id] = None
+    logging.basicConfig(level=logging.INFO)
 
-
-def setup_gadgets_system():
-    """Set up the complete gadgets registry system."""
-    
-    # 1. Set up widget registry
+    # Create registries
+    library_registry = LibraryRegistry()
     widget_registry = WidgetRegistry()
-    register_core_widgets(widget_registry)
-    
-    # 2. Set up gadgets registry
+    adapter_registry = AdapterRegistry()
     gadgets_registry = GadgetsRegistry()
+    node_registry    = NodeRegistry()
     
-    # Register default and error renderers
-    gadgets_registry.register_renderer("default", DefaultNodeRenderer)
-    gadgets_registry.register_renderer("error", ErrorNodeRenderer)
-    gadgets_registry.register_renderer("math", CustomMathNodeRenderer)
+    # Set up discovery
+    discovery = LibraryDiscovery()
+    discovery.add_library_path(os.path.join(project_root, 'src', 'haywire', 'libraries'))
+    discovery.add_library_path(os.path.join(project_root, 'libraries'))
     
-    # Set fallback renderers
-    gadgets_registry.register_default_renderer("default")
-    gadgets_registry.register_error_renderer("error")
+    # Load libraries
+    loaded = discovery.load_libraries(library_registry, widget_registry, adapter_registry, gadgets_registry, node_registry)
+    print(f"Loaded libraries: {loaded}")
     
     # 3. Create factory with both registries
     factory = NodeRenderFactory(gadgets_registry, widget_registry)
-    
-    return factory, gadgets_registry, widget_registry
 
-
-def create_demo_nodes():
-    """Create demo nodes for testing."""
-    
-    # Standard node
-    standard_node = NodeData()
-    standard_node.inlets = {
-        'input': Inlet(
-            element_id='input', 
-            label='Input',
-            flow_type=FlowType.DATA,
-            coupling_type=CouplingType.ONE, 
-            data=SingleField('input', DataType.FLOAT, 'scalar', 5.0, False), 
-            widget='slider')
-    }
-    standard_node.outlets = {
-        'output': Outlet(
-            element_id='output', 
-            coupling_type=CouplingType.ONE,
-            flow_type=FlowType.DATA, 
-            label='Output', 
-            data=SingleField('output', DataType.FLOAT, 'scalar', None, False))
-    }
-    standard_node.configs = {
-        'multiplier': Config(
-            element_id='multiplier', 
-            label='Multiplier',
-            coupling_type=CouplingType.ONE,
-            callback=None,
-            data=SingleField('multiplier', DataType.FLOAT, 'scalar', 2.0, False), 
-            widget='knob')
-    }
-    
-    # Math node
-    math_node = NodeData()
-    math_node.inlets = {
-        'a': Inlet(
-            element_id='a', 
-            label='Value A', 
-            flow_type=FlowType.DATA,
-            coupling_type=CouplingType.ONE, 
-            data=SingleField('a', DataType.FLOAT, 'scalar', 10.0, False), 
-            widget='number'),
-        'b': Inlet(
-            element_id='b', 
-            label='Value B', 
-            flow_type=FlowType.DATA,
-            coupling_type=CouplingType.ONE, 
-            data=SingleField('b', DataType.FLOAT, 'scalar', 5.0, False), 
-            widget='number')
-    }
-    math_node.outlets = {
-        'result': Outlet(
-            element_id='result', 
-            flow_type=FlowType.DATA, 
-            label='Result', 
-            data=SingleField('result', DataType.FLOAT, 'scalar', None, False))
-    }
-    math_node.configs = {
-        'operation': Config(
-            element_id='operation', 
-            label='Operation', 
-            callback=None,
-            data=SingleField('operation', DataType.STRING, 'scalar', 'add', False), 
-            widget='select')
-    }
-    
-    return standard_node, math_node
+    return factory, gadgets_registry, widget_registry, adapter_registry, node_registry
 
 
 def main():
     """Main demo application."""
     
     # Set up the gadgets system
-    factory, gadgets_registry, widget_registry = setup_gadgets_system()
-    
-    # Create demo nodes
-    standard_node, math_node = create_demo_nodes()
+    factory, gadgets_registry, widget_registry, adapter_registry, node_registry = setup_library_system()
     
     # Store UINode instances
     ui_nodes = {}
@@ -237,67 +81,137 @@ def main():
         </ul>
         ''')
         
+        # Print registered nodes in a beautiful format
+        print("\n=== Registered Nodes ===")
+        all_nodes = node_registry.get_all_nodes()
+        for node_name, variants in all_nodes.items():
+            for variant in variants:
+                print(f"📦 {node_name:15} | {variant['package_name']:25} | {variant['library']}")
+        print(f"Total: {node_registry.get_node_count()} nodes\n")
+
         with ui.row().classes('w-full gap-4'):
             # Column 1: Standard Node (Default Renderer)
             with ui.column().classes('flex-1') as col1:
                 ui.label('Standard Node (Default Renderer)').classes('text-h6 mb-2')
                 
-                # Create UINode with container-slot approach
-                ui_nodes['standard'] = UINode(standard_node, factory, col1)
-                ui_nodes['standard'].render()  # Uses default renderer
+                node_instance = None
+                # Get a specific node class
+                try:
+                    result = node_registry.find_node_class(
+                        node_name="Display",
+                        library_name="Example Library", 
+                        package_name="org.example.basic"
+                    )
+                    
+                    if result['status'] == 'found':
+                        node_class = result['class']
+                        # Instantiate the node
+                        node_instance = node_class('unique_id', None)
+                    else:
+                        print(f"Warning: {result['message']}")
+                        node_class = result['class']  # Still usable but with warnings
+                        
+                except NodeNotFoundError as e:
+                    print(f"Node not found: {e}")
+                except NodeAmbiguousError as e:
+                    print(f"Multiple nodes found: {e}")
+
+                if node_instance is not None:
+                    # Create UINode with container-slot approach
+                    ui_nodes['standard'] = UINode(node_instance, factory, col1)
+                    ui_nodes['standard'].render()  # Uses default renderer
                 
-                # Controls
-                with ui.card().classes('mt-4 p-4'):
-                    ui.label('Controls').classes('font-bold mb-2')
-                    
-                    async def rerender_standard():
-                        ui_nodes['standard'].rerender()  # Re-render with default
-                        ui.notify('Standard node re-rendered')
-                    
-                    async def update_standard():
-                        success = ui_nodes['standard'].update_element_value('input', 15.0)
-                        ui.notify(f'Update: {"Success" if success else "Failed"}')
-                    
-                    ui.button('Re-render', on_click=rerender_standard)
-                    ui.button('Set Input to 15.0', on_click=update_standard)
+                    # Controls
+                    with ui.card().classes('mt-4 p-4'):
+                        ui.label('Controls').classes('font-bold mb-2')
+                        
+                        async def rerender_standard():
+                            ui_nodes['standard'].rerender()  # Re-render with default
+                            ui.notify('Standard node re-rendered')
+                        
+                        async def update_standard():
+                            success = ui_nodes['standard'].update_element_value('input', 15.0)
+                            ui.notify(f'Update: {"Success" if success else "Failed"}')
+                        
+                        ui.button('Re-render', on_click=rerender_standard)
+                        ui.button('Set Input to 15.0', on_click=update_standard)
             
             # Column 2: Math Node (Custom Renderer)
             with ui.column().classes('flex-1') as col2:
                 ui.label('Math Node (Custom Renderer)').classes('text-h6 mb-2')
+
+                node_instance = None
+                # Get a specific node class
+                try:
+                    result = node_registry.find_node_class(
+                        node_name="TestNodeOne",
+                        library_name="Haywire Core", 
+                        package_name="org.haywire.core.basic"
+                    )
+                    
+                    if result['status'] == 'found':
+                        node_class = result['class']
+                        # Instantiate the node
+                        node_instance = node_class('unique_id2', None)
+                    else:
+                        print(f"Warning: {result['message']}")
+                        node_class = result['class']  # Still usable but with warnings
+                        
+                except NodeNotFoundError as e:
+                    print(f"Node not found: {e}")
+                except NodeAmbiguousError as e:
+                    print(f"Multiple nodes found: {e}")
+
+                if node_instance is not None:
+                    # Create UINode with custom renderer
+                    ui_nodes['math'] = UINode(node_instance, factory, col2)
+                    ui_nodes['math'].render('example.renderer')  # Uses custom math renderer
                 
-                # Create UINode with custom renderer
-                ui_nodes['math'] = UINode(math_node, factory, col2)
-                ui_nodes['math'].render('math')  # Uses custom math renderer
-                
-                # Controls
-                with ui.card().classes('mt-4 p-4'):
-                    ui.label('Controls').classes('font-bold mb-2')
-                    
-                    async def rerender_math_default():
-                        ui_nodes['math'].rerender()  # Re-render with default
-                        ui.notify('Math node re-rendered with default renderer')
-                    
-                    async def rerender_math_custom():
-                        ui_nodes['math'].rerender('math')  # Re-render with custom
-                        ui.notify('Math node re-rendered with custom renderer')
-                    
-                    async def test_error_renderer():
-                        ui_nodes['math'].rerender('nonexistent')  # Should use error renderer
-                        ui.notify('Math node rendered with error renderer (fallback)')
-                    
-                    ui.button('Render as Default', on_click=rerender_math_default)
-                    ui.button('Render as Math', on_click=rerender_math_custom)
-                    ui.button('Test Error Fallback', on_click=test_error_renderer)
+                    # Controls
+                    with ui.card().classes('mt-4 p-4'):
+                        ui.label('Controls').classes('font-bold mb-2')
+                        
+                        async def rerender_math_default():
+                            ui_nodes['math'].rerender()  # Re-render with default
+                            ui.notify('Math node re-rendered with default renderer')
+                        
+                        async def rerender_math_custom():
+                            ui_nodes['math'].rerender('example.renderer')  # Re-render with custom
+                            ui.notify('Math node re-rendered with custom renderer')
+                        
+                        async def test_error_renderer():
+                            ui_nodes['math'].rerender('nonexistent')  # Should use error renderer
+                            ui.notify('Math node rendered with error renderer (fallback)')
+                        
+                        ui.button('Render as Default', on_click=rerender_math_default)
+                        ui.button('Render as Math', on_click=rerender_math_custom)
+                        ui.button('Test Error Fallback', on_click=test_error_renderer)
         
         # System Information
         with ui.expansion('System Information', icon='info').classes('w-full mt-6'):
-            ui.html(f'''
+            # Dynamically get all registered renderers
+            registered_renderers = gadgets_registry.list_names()
+            renderer_list_html = ""
+            
+            # Add special renderers (default and error)
+            default_renderer = gadgets_registry.get_default_renderer()
+            if default_renderer:
+                renderer_list_html += f'<li><strong>default</strong>: {default_renderer.__name__}</li>'
+            error_renderer = gadgets_registry.get_error_renderer()
+            if error_renderer:
+                renderer_list_html += f'<li><strong>error</strong>: {error_renderer.__name__}</li>'
+            
+            # Add all explicitly registered renderers
+            for renderer_name in registered_renderers:
+                renderer_class = gadgets_registry.get(renderer_name)
+                if renderer_class:
+                    renderer_list_html += f'<li><strong>{renderer_name}</strong>: {renderer_class.__name__}</li>'
+            
+            _ = ui.html(f'''
             <div class="p-4">
-                <h3 class="text-lg font-bold mb-2">Registered Renderers:</h3>
+                <h3 class="text-lg font-bold mb-2">Registered Renderers ({len(registered_renderers) + 2}):</h3>
                 <ul class="list-disc ml-6 mb-4">
-                    <li><strong>default</strong>: {DefaultNodeRenderer.__name__}</li>
-                    <li><strong>error</strong>: {ErrorNodeRenderer.__name__}</li>
-                    <li><strong>math</strong>: {CustomMathNodeRenderer.__name__}</li>
+                    {renderer_list_html}
                 </ul>
                 
                 <h3 class="text-lg font-bold mb-2">Fallback Strategy:</h3>

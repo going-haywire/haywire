@@ -6,7 +6,7 @@ from haywire.core.registry.registry import WidgetRegistry
 from haywire.core.data.enums import DataType
 
 # Import all widget classes
-from .base import BaseWidget, ErrorWidget
+from .base import ErrorWidget
 from .basic_widgets import (
     TextInputWidget, NumberWidget, CheckboxWidget, SwitchWidget,
     SelectWidget, SliderWidget, KnobWidget
@@ -47,7 +47,6 @@ def register_core_widgets(widget_registry: WidgetRegistry):
 
 
 __all__ = [
-    'BaseWidget',
     'ErrorWidget', 
     'TextInputWidget',
     'NumberWidget',

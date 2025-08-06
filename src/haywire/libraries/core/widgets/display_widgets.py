@@ -5,7 +5,7 @@ Display widgets for read-only data visualization
 from typing import Any, Dict
 from nicegui import ui
 
-from haywire.ui.widget.base import BaseWidget
+from haywire.ui.base import BaseWidget
 
 class LabelWidget(BaseWidget):
     """Read-only label widget for displaying data"""
