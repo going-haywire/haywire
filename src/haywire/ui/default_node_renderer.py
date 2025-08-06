@@ -7,6 +7,7 @@ extracted from the current ModularNiceGUINodeRenderer implementation.
 
 from typing import Dict, Any
 from nicegui import ui
+from nicegui.element import Element
 from haywire.core.node.node import NodeData
 from haywire.core.data.enums import CouplingType, DataType
 from haywire.ui.gadgets_registry import BaseNodeRenderer, UINodeCard
@@ -73,7 +74,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 for config in node.configs.values():
                     with ui.column().classes('flex-1 gap-1 w-full'):
                         ui.label(config.label).classes('text-xs')
-                        self._render_element('config', config, ui_elements, widget_instances)
+                        self._render_element('config', config, ui_elements, widget_instances).classes('widget-container')
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
@@ -138,7 +139,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'cursor: crosshair;'
             ).props(f'data-port-id="{outlet.id}"')
     
-    def _render_element(self, element_type: str, element, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]):
+    def _render_element(self, element_type: str, element, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]) -> Element:
         """Render a single element using widget registry"""
         if not element.data or element.widget == 'None':
             return

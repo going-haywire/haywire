@@ -149,22 +149,26 @@ def create_demo_nodes():
     standard_node = NodeData()
     standard_node.inlets = {
         'input': Inlet(
-            'input', 
-            'Input Value', 
-            CouplingType.ONE, 
+            element_id='input', 
+            label='Input',
+            flow_type=FlowType.DATA,
+            coupling_type=CouplingType.ONE, 
             data=SingleField('input', DataType.FLOAT, 'scalar', 5.0, False), 
             widget='slider')
     }
     standard_node.outlets = {
         'output': Outlet(
-            'output', 
-            FlowType.DATA, 
+            element_id='output', 
+            coupling_type=CouplingType.ONE,
+            flow_type=FlowType.DATA, 
             label='Output', 
             data=SingleField('output', DataType.FLOAT, 'scalar', None, False))
     }
     standard_node.configs = {
         'multiplier': Config(
-            'multiplier', 
+            element_id='multiplier', 
+            label='Multiplier',
+            coupling_type=CouplingType.ONE,
             callback=None,
             data=SingleField('multiplier', DataType.FLOAT, 'scalar', 2.0, False), 
             widget='knob')
@@ -174,28 +178,31 @@ def create_demo_nodes():
     math_node = NodeData()
     math_node.inlets = {
         'a': Inlet(
-            'a', 
-            'Value A', 
-            CouplingType.ONE, 
+            element_id='a', 
+            label='Value A', 
+            flow_type=FlowType.DATA,
+            coupling_type=CouplingType.ONE, 
             data=SingleField('a', DataType.FLOAT, 'scalar', 10.0, False), 
             widget='number'),
         'b': Inlet(
-            'b', 
-            'Value B', 
-            CouplingType.ONE, 
+            element_id='b', 
+            label='Value B', 
+            flow_type=FlowType.DATA,
+            coupling_type=CouplingType.ONE, 
             data=SingleField('b', DataType.FLOAT, 'scalar', 5.0, False), 
             widget='number')
     }
     math_node.outlets = {
         'result': Outlet(
-            'result', 
-            FlowType.DATA, 
+            element_id='result', 
+            flow_type=FlowType.DATA, 
             label='Result', 
             data=SingleField('result', DataType.FLOAT, 'scalar', None, False))
     }
     math_node.configs = {
         'operation': Config(
-            'operation', 
+            element_id='operation', 
+            label='Operation', 
             callback=None,
             data=SingleField('operation', DataType.STRING, 'scalar', 'add', False), 
             widget='select')
