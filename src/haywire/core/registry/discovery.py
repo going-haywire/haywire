@@ -33,7 +33,7 @@ class LibraryLoadError(LibraryDiscoveryError):
 class LibraryDiscovery:
     """Discovers and loads libraries from multiple locations"""
     
-    REQUIRED_SUBDIRS = ['nodes', 'widgets', 'adapters', 'data']
+    REQUIRED_SUBDIRS = ['nodes', 'widgets', 'adapters']
     
     def __init__(self):
         self.library_paths: List[str] = []

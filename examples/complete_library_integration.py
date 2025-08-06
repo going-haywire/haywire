@@ -11,7 +11,6 @@ This example demonstrates the full modular library system working together:
 import logging
 import sys
 import os
-from venv import logger
 
 # Add project paths
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -36,7 +35,7 @@ def setup_library_system():
     """Set up the complete library system"""
     print("Setting up library system...")
     
-    logger.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
     # Create registries
     library_registry = LibraryRegistry()

@@ -10,9 +10,8 @@ from haywire.core.registry.registry import WidgetRegistry, AdapterRegistry
 
 # Import test components
 from .widgets import register_test_widgets
-from .adapters import register_test_adapters
+from .adapters import register_test_adapters  # Now includes data types
 from .nodes import register_test_nodes
-from .data import *  # Import test data definitions
 
 
 # Library metadata

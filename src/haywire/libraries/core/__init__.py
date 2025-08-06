@@ -10,9 +10,8 @@ from haywire.core.registry.registry import WidgetRegistry, AdapterRegistry
 
 # Import core components
 from .widgets import register_core_widgets
-from .adapters import register_core_adapters
+from .adapters import register_core_adapters  # Now includes data types
 from .nodes import register_core_nodes
-from .data import *  # Import all data definitions
 
 
 # Library metadata
@@ -36,7 +35,7 @@ class Library(BaseLibrary):
         # Register widgets
         register_core_widgets(widget_registry)
         
-        # Register adapters
+        # Register adapters (now includes data types)
         register_core_adapters(adapter_registry)
         
         # Register nodes
