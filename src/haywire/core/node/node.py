@@ -180,7 +180,7 @@ class HaywireNode(NodeData, metaclass=NodeMetadataMeta):
         self.graph = graph
 
         ## identifying attributes
-        self.Node_label = 'Node Name'
+        self.node_label = 'Node Name'
         self.node_description = 'Node Description'
         self.node_name = 'Node_NAME'
         self.node_package = 'org.github.maybites.haywire.nodes'
@@ -220,6 +220,7 @@ class HaywireNode(NodeData, metaclass=NodeMetadataMeta):
         self.ui_icon = None
         self.ui_component = None
         self.allows_variables = False
+        self.renderer = None
 
 
     @abstractmethod
