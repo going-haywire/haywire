@@ -3,16 +3,16 @@ Test nodes for the test library
 """
 
 # Import the node system base class
-from haywire.core.node.node import HaywireNode
+from haywire.core.registry.base import LibraryMetadata
+from haywire.core.registry.node_system import NodeRegistry
 from .display_node import DisplayNode
 
-
-def register_test_nodes(node_registry):
+def register_nodes(node_registry: NodeRegistry, library_metadata: LibraryMetadata):
     """Register test nodes with the node registry"""
-    node_registry.register_node(DisplayNode)
+    node_registry.register_node(DisplayNode, library_metadata)
 
 
 __all__ = [
     'DisplayNode',
-    'register_test_nodes'
+    'register_nodes'
 ]

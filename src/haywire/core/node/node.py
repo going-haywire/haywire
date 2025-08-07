@@ -58,12 +58,8 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
             required_attrs = [
                 'node_name', 
                 'node_label',
-                'node_package',
-                'node_library_name',
-                'node_library_url',
                 'node_search_tags',
-                'node_menu',
-                'node_version'
+                'node_menu'
             ]
             
             missing_attrs = []
@@ -179,22 +175,22 @@ class HaywireNode(NodeData, metaclass=NodeMetadataMeta):
         self.node_id = node_id
         self.graph = graph
 
+        # library attributes set upon registration
+        self.library_name = ''
+        self.library_url = ''
+        self.library_version = ''
+        self.library_author = ''
+        self.library_author_url = ''
+        self.library_help_url = ''
+
         ## identifying attributes
         self.node_label = 'Node Name'
         self.node_description = 'Node Description'
         self.node_name = 'Node_NAME'
-        self.node_package = 'org.github.maybites.haywire.nodes'
-        self.node_library_name = 'MathLibrary'
-        self.node_library_url = 'https://haywire.io/docs/node-help'
         self.node_search_tags = ['add', 'sub', 'math', 'vector']
         self.node_menu = 'misc/custom'
-        self.node_version = '0.0.0'
-        self.node_author = 'Customer'
-        self.node_author_url = 'https://customer.org'
         self.node_help_md = None
         self.node_help_url = 'https://haywire.io/docs/node-help'
-        self.help_md = None
-        self.help_url = 'https://haywire.io/docs/node-help'
 
 
         # Runtime attributes

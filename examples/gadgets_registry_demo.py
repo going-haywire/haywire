@@ -9,10 +9,11 @@ This example shows how to use the new gadgets registry system with:
 """
 
 import logging
+from math import e
 import sys
 import os
 
-from haywire.core.registry.node_system import NodeAmbiguousError, NodeNotFoundError, NodeRegistry
+from haywire.core.registry.node_system import NodeRegistry
 
 # Add project paths
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -83,89 +84,56 @@ def main():
         
         # Print registered nodes in a beautiful format
         print("\n=== Registered Nodes ===")
-        all_nodes = node_registry.get_all_nodes()
-        for node_name, variants in all_nodes.items():
-            for variant in variants:
-                print(f"📦 {node_name:15} | {variant['package_name']:25} | {variant['library']}")
-        print(f"Total: {node_registry.get_node_count()} nodes\n")
+        all_nodes = node_registry.list_names()
+        for node_key in all_nodes:
+            print(f"📦 {node_key}")
+        print(f"Total: {len(all_nodes)} nodes\n")
 
         with ui.row().classes('w-full gap-4'):
             # Column 1: Standard Node (Default Renderer)
             with ui.column().classes('flex-1') as col1:
                 ui.label('Standard Node (Default Renderer)').classes('text-h6 mb-2')
                 
-                node_instance = None
-                # Get a specific node class
                 try:
-                    result = node_registry.find_node_class(
-                        node_name="Display",
-                        library_name="Example Library", 
-                        package_name="org.example.basic"
-                    )
-                    
-                    if result['status'] == 'found':
-                        node_class = result['class']
-                        # Instantiate the node
-                        node_instance = node_class('unique_id', None)
-                    else:
-                        print(f"Warning: {result['message']}")
-                        node_class = result['class']  # Still usable but with warnings
-                        
-                except NodeNotFoundError as e:
-                    print(f"Node not found: {e}")
-                except NodeAmbiguousError as e:
-                    print(f"Multiple nodes found: {e}")
+                    node_class = node_registry.get_node_class("example:Display")
+                    node_instance = node_class('unique_id', None)
 
-                if node_instance is not None:
-                    # Create UINode with container-slot approach
-                    ui_nodes['standard'] = UINode(node_instance, factory, col1)
-                    ui_nodes['standard'].render()  # Uses default renderer
+                    if node_instance is not None:
+                        # Create UINode with container-slot approach
+                        ui_nodes['standard'] = UINode(node_instance, factory, col1)
+                        ui_nodes['standard'].render()  # Uses default renderer
+                    
+                        # Controls
+                        with ui.card().classes('mt-4 p-4'):
+                            ui.label('Controls').classes('font-bold mb-2')
+                            
+                            async def rerender_standard():
+                                ui_nodes['standard'].rerender()  # Re-render with default
+                                ui.notify('Standard node re-rendered')
+                            
+                            async def update_standard():
+                                success = ui_nodes['standard'].update_element_value('input', 15.0)
+                                ui.notify(f'Update: {"Success" if success else "Failed"}')
+                            
+                            ui.button('Re-render', on_click=rerender_standard)
+                            ui.button('Set Input to 15.0', on_click=update_standard)
                 
-                    # Controls
-                    with ui.card().classes('mt-4 p-4'):
-                        ui.label('Controls').classes('font-bold mb-2')
-                        
-                        async def rerender_standard():
-                            ui_nodes['standard'].rerender()  # Re-render with default
-                            ui.notify('Standard node re-rendered')
-                        
-                        async def update_standard():
-                            success = ui_nodes['standard'].update_element_value('input', 15.0)
-                            ui.notify(f'Update: {"Success" if success else "Failed"}')
-                        
-                        ui.button('Re-render', on_click=rerender_standard)
-                        ui.button('Set Input to 15.0', on_click=update_standard)
-            
+                except Exception as e:
+                    ui.notify(f'Error: {str(e)}', type='negative')
+
             # Column 2: Math Node (Custom Renderer)
             with ui.column().classes('flex-1') as col2:
                 ui.label('Math Node (Custom Renderer)').classes('text-h6 mb-2')
 
-                node_instance = None
-                # Get a specific node class
                 try:
-                    result = node_registry.find_node_class(
-                        node_name="TestNodeOne",
-                        library_name="Haywire Core", 
-                        package_name="org.haywire.core.basic"
-                    )
-                    
-                    if result['status'] == 'found':
-                        node_class = result['class']
-                        # Instantiate the node
-                        node_instance = node_class('unique_id2', None)
-                    else:
-                        print(f"Warning: {result['message']}")
-                        node_class = result['class']  # Still usable but with warnings
-                        
-                except NodeNotFoundError as e:
-                    print(f"Node not found: {e}")
-                except NodeAmbiguousError as e:
-                    print(f"Multiple nodes found: {e}")
+                    node_class = node_registry.get_node_class("core:TestNodeOne")
+                    node_instance = node_class('unique_id', None)
 
-                if node_instance is not None:
-                    # Create UINode with custom renderer
-                    ui_nodes['math'] = UINode(node_instance, factory, col2)
-                    ui_nodes['math'].render('example.renderer')  # Uses custom math renderer
+
+                    if node_instance is not None:
+                        # Create UINode with custom renderer
+                        ui_nodes['math'] = UINode(node_instance, factory, col2)
+                        ui_nodes['math'].render('example.renderer')  # Uses custom math renderer
                 
                     # Controls
                     with ui.card().classes('mt-4 p-4'):
@@ -186,7 +154,10 @@ def main():
                         ui.button('Render as Default', on_click=rerender_math_default)
                         ui.button('Render as Math', on_click=rerender_math_custom)
                         ui.button('Test Error Fallback', on_click=test_error_renderer)
-        
+                
+                except Exception as e:
+                    ui.notify(f'Error: {str(e)}', type='negative')
+
         # System Information
         with ui.expansion('System Information', icon='info').classes('w-full mt-6'):
             # Dynamically get all registered renderers

@@ -1,100 +1,225 @@
 """
-Node registry and discovery system for the Haywire library system.
+Simplified node registry system for the Haywire library system.
 
-This module contains the node registry and discovery functionality
-for managing nodes across multiple libraries.
+This module contains a simplified node registry that uses library metadata
+as the single source of truth and eliminates complex version checking.
 """
 
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Optional, Any
+from .base import BaseRegistry, LibraryMetadata
 
-# Import core node classes from their proper location
-from haywire.core.node.node import HaywireNode, NodeDiscoveryError, NodeNotFoundError, NodeAmbiguousError, NodeVersionError, NodeValidationError
-
-
-# ============================================================================
-# Version Utilities
-# ============================================================================
-
-def parse_version(version_str: str) -> Tuple[int, int, int]:
-    """Parse version string into (major, minor, bugfix) tuple"""
-    try:
-        major, minor, bugfix = map(int, version_str.split('.'))
-        return (major, minor, bugfix)
-    except (ValueError, AttributeError):
-        raise ValueError(f"Invalid version format: {version_str}. Expected 'major.minor.bugfix'")
+# Import core node classes
+from haywire.core.node.node import HaywireNode, NodeDiscoveryError
 
 
-def compare_versions(saved_version: str, current_version: str) -> Dict[str, Any]:
+class NodeRegistry(BaseRegistry):
+    """Simplified registry for managing nodes using library_name:node_name keys"""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def register_node(self, node_class: type, library_metadata: LibraryMetadata):
+        """
+        Register a node class with library metadata.
+        
+        Sets node class attributes from library metadata and registers under
+        the key format: library_name:node_name
+        
+        Args:
+            node_class: The node class to register
+            library_metadata: Library metadata to use for setting node attributes
+            
+        Raises:
+            ValueError: If a node with the same key is already registered
+        """
+        # Set library-derived attributes on the node class
+        setattr(node_class, 'library_name', library_metadata.name)
+        setattr(node_class, 'library_version', library_metadata.version)
+        setattr(node_class, 'library_url', library_metadata.url)
+        setattr(node_class, 'library_help_url', library_metadata.help_url)
+        setattr(node_class, 'library_author', library_metadata.author)
+        setattr(node_class, 'library_author_url', library_metadata.author_url)
+
+
+        # Create registry key
+        key = f"{library_metadata.name}:{node_class.node_name}"
+        
+        # Check for duplicates
+        if self.has(key):
+            raise ValueError(f"Node already registered: {key}")
+        
+        # Register with metadata
+        metadata = {
+            'library_name': library_metadata.name,
+            'library_metadata': library_metadata,
+            'node_name': node_class.node_name,
+            'node_version': library_metadata.version,
+            'node_author': library_metadata.author,
+            'node_url': library_metadata.url,
+            'node_help_url': library_metadata.help_url
+        }
+        
+        self.register(key, node_class, metadata)
+    
+    def get_node_class(self, key: str) -> type:
+        """
+        Get node class by registry key for graph operations.
+        
+        Args:
+            key: Registry key in format "library_name:node_name"
+            
+        Returns:
+            Node class
+            
+        Raises:
+            NodeDiscoveryError: If node is not found
+        """
+        node_class = self.get(key)
+        if node_class is None:
+            raise NodeDiscoveryError(f"Node not found: {key}")
+        return node_class
+    
+    def get_menu_structure(self) -> Dict[str, List[Dict[str, str]]]:
+        """
+        Get nodes organized by menu path for UI building.
+        
+        Returns:
+            Dictionary mapping menu paths to lists of node info dicts
+        """
+        menu = {}
+        
+        for key in self.list_names():
+            node_class = self.get(key)
+            menu_path = getattr(node_class, 'node_menu', 'misc')
+            
+            if menu_path not in menu:
+                menu[menu_path] = []
+            
+            menu[menu_path].append({
+                'label': node_class.node_label,           # Display name
+                'key': key,                               # Registry key
+                'description': node_class.node_description,
+                'tags': getattr(node_class, 'node_search_tags', [])
+            })
+        
+        return menu
+    
+    def search_nodes(self, query: str) -> List[Dict[str, str]]:
+        """
+        Search nodes by name, description, or tags.
+        
+        Args:
+            query: Search query string
+            
+        Returns:
+            List of matching node info dicts
+        """
+        results = []
+        query_lower = query.lower()
+        
+        for key in self.list_names():
+            node_class = self.get(key)
+            
+            # Search in label, description, and tags
+            searchable = [
+                node_class.node_label.lower(),
+                node_class.node_description.lower(),
+                *[tag.lower() for tag in getattr(node_class, 'node_search_tags', [])]
+            ]
+            
+            if any(query_lower in text for text in searchable):
+                results.append({
+                    'label': node_class.node_label,
+                    'key': key,
+                    'description': node_class.node_description,
+                    'library': self.get_metadata(key)['library_name']
+                })
+        
+        return results
+    
+    def get_nodes_by_library(self, library_name: str) -> List[Dict[str, str]]:
+        """
+        Get all nodes from a specific library.
+        
+        Args:
+            library_name: Name of the library
+            
+        Returns:
+            List of node info dicts from the specified library
+        """
+        results = []
+        
+        for key in self.list_names():
+            metadata = self.get_metadata(key)
+            if metadata and metadata.get('library_name') == library_name:
+                node_class = self.get(key)
+                results.append({
+                    'label': node_class.node_label,
+                    'key': key,
+                    'description': node_class.node_description,
+                    'node_name': node_class.node_name
+                })
+        
+        return results
+    
+    def list_libraries(self) -> List[str]:
+        """
+        Get list of all libraries that have registered nodes.
+        
+        Returns:
+            List of unique library names
+        """
+        libraries = set()
+        
+        for key in self.list_names():
+            metadata = self.get_metadata(key)
+            if metadata:
+                libraries.add(metadata['library_name'])
+        
+        return sorted(list(libraries))
+
+
+# Convenience functions for backward compatibility and ease of use
+def create_node_from_key(registry: NodeRegistry, key: str, node_id: str, graph) -> HaywireNode:
     """
-    Compare versions and return compatibility info
-    Returns: {
-        'compatible': bool,
-        'saved_version': tuple,
-        'current_version': tuple,
-        'status': 'exact' | 'compatible' | 'warning' | 'incompatible',
-        'message': str
-    }
+    Create a node instance from a registry key.
+    
+    Args:
+        registry: The node registry
+        key: Registry key in format "library_name:node_name"
+        node_id: Unique ID for the node instance
+        graph: Graph instance the node belongs to
+        
+    Returns:
+        Node instance
     """
-    try:
-        saved_tuple = parse_version(saved_version)
-        current_tuple = parse_version(current_version)
-    except ValueError as e:
-        return {
-            'compatible': False,
-            'saved_version': None,
-            'current_version': None,
-            'status': 'incompatible',
-            'message': str(e)
-        }
+    node_class = registry.get_node_class(key)
+    return node_class(node_id, graph)
+
+
+def serialize_node_metadata(node: HaywireNode) -> Dict[str, Any]:
+    """
+    Serialize node metadata for saving (simplified version).
     
-    if saved_tuple == current_tuple:
-        return {
-            'compatible': True,
-            'saved_version': saved_tuple,
-            'current_version': current_tuple,
-            'status': 'exact',
-            'message': f"Exact version match: {saved_version}"
-        }
-    
-    saved_major, saved_minor, saved_bugfix = saved_tuple
-    current_major, current_minor, current_bugfix = current_tuple
-    
-    # Major version compatibility
-    if saved_major != current_major:
-        return {
-            'compatible': False,
-            'saved_version': saved_tuple,
-            'current_version': current_tuple,
-            'status': 'incompatible',
-            'message': f"Major version mismatch: saved {saved_version}, current {current_version}"
-        }
-    
-    # Minor version compatibility
-    if saved_minor > current_minor:
-        return {
-            'compatible': False,
-            'saved_version': saved_tuple,
-            'current_version': current_tuple,
-            'status': 'incompatible',
-            'message': f"Saved version requires newer minor version: saved {saved_version}, current {current_version}"
-        }
-    
-    if saved_minor < current_minor:
-        return {
-            'compatible': True,
-            'saved_version': saved_tuple,
-            'current_version': current_tuple,
-            'status': 'compatible',
-            'message': f"Compatible: current version is newer: saved {saved_version}, current {current_version}"
-        }
-    
-    # Same major.minor, different bugfix
+    Args:
+        node: Node instance to serialize
+        
+    Returns:
+        Dictionary containing node metadata
+    """
     return {
-        'compatible': True,
-        'saved_version': saved_tuple,
-        'current_version': current_tuple,
-        'status': 'compatible',
-        'message': f"Compatible bugfix difference: saved {saved_version}, current {current_version}"
+        'node_id': node.node_id,
+        'registry_key': f"{node.node_library_name}:{node.node_name}",
+        'ui_properties': {
+            'posX': getattr(node, 'ui_posX', 0),
+            'posY': getattr(node, 'ui_posY', 0),
+            'width': getattr(node, 'ui_width', 200),
+            'height': getattr(node, 'ui_height', 100),
+            'is_collapsed': getattr(node, 'ui_is_collapsed', False),
+            'is_condensed': getattr(node, 'ui_is_condensed', False),
+            'is_pinned': getattr(node, 'ui_is_pinned', False),
+            'custom_color': getattr(node, 'ui_custom_color', None)
+        }
     }
 
 
@@ -109,14 +234,8 @@ class ErrorNode(HaywireNode):
     node_label = 'Error Node'
     node_description = 'Placeholder for node that could not be loaded'
     node_name = 'ERROR_NODE'
-    node_package = 'org.github.maybites.haywire.error'
-    node_library_name = 'Haywire System'
-    node_library_url = 'https://haywire.io/docs/error-nodes'
     node_search_tags = ['error', 'system', 'placeholder']
     node_menu = 'system/error'
-    node_version = '1.0.0'
-    node_author = 'Haywire System'
-    node_author_url = 'https://haywire.io'
     
     def __init__(self, node_id, graph, error_info: Dict[str, Any], 
                  original_inlets=None, original_outlets=None):
@@ -136,270 +255,3 @@ class ErrorNode(HaywireNode):
         # Override display properties
         self.node_display_name = f"ERROR: {self.original_node_name}"
         self.ui_default_color = '#FF0000'  # Red for error
-
-
-# ============================================================================
-# Node Registry
-# ============================================================================
-
-class NodeRegistry:
-    """Registry for managing installed nodes"""
-    
-    def __init__(self):
-        self.nodes: Dict[str, List[Dict[str, Any]]] = {}
-    
-    def register_node(self, node_class):
-        """Register a node class in the registry"""
-        node_name = getattr(node_class, 'node_name', node_class.__name__)
-        library_name = getattr(node_class, 'node_library_name', 'Unknown')
-        package_name = getattr(node_class, 'node_package', 'Unknown')
-        
-        if node_name not in self.nodes:
-            self.nodes[node_name] = []
-        
-        self.nodes[node_name].append({
-            'library': library_name,
-            'package_name': package_name,
-            'class': node_class,
-            'version': getattr(node_class, 'node_version', '0.0.0')
-        })
-    
-    def find_node_class(self, node_name: str, library_name: str, 
-                       package_name: str) -> Dict[str, Any]:
-        """
-        Find the appropriate node class based on name, library, and package
-        
-        Returns dict with:
-        - 'class': The node class to use
-        - 'status': 'found' | 'warning' | 'error'
-        - 'message': Status message
-        """
-        
-        # Step 1: Check if there is a node with the same name
-        if node_name not in self.nodes:
-            raise NodeNotFoundError(f"No node named '{node_name}' found in registry")
-        
-        candidates = self.nodes[node_name]
-        
-        # Step 2: Filter by library
-        library_matches = [n for n in candidates if n['library'] == library_name]
-        
-        if not library_matches:
-            raise NodeNotFoundError(
-                f"No node '{node_name}' found in library '{library_name}'. "
-                f"Available libraries: {[n['library'] for n in candidates]}"
-            )
-        
-        # Step 3: Filter by package
-        exact_matches = [n for n in library_matches if n['package_name'] == package_name]
-        
-        if exact_matches:
-            # Perfect match found
-            if len(exact_matches) == 1:
-                return {
-                    'class': exact_matches[0]['class'],
-                    'status': 'found',
-                    'message': f"Exact match found for {node_name}"
-                }
-            else:
-                # Multiple exact matches - shouldn't happen but handle gracefully
-                return {
-                    'class': exact_matches[0]['class'],
-                    'status': 'warning',
-                    'message': f"Multiple exact matches found for {node_name}, using first one"
-                }
-        
-        # Step 4: No exact package match
-        if len(library_matches) == 1:
-            # Only one node in library, use it but warn about package mismatch
-            return {
-                'class': library_matches[0]['class'],
-                'status': 'warning',
-                'message': f"Package mismatch for '{node_name}' in library '{library_name}'. "
-                          f"Expected: '{package_name}', Found: '{library_matches[0]['package_name']}'"
-            }
-        else:
-            # Multiple nodes in library, cannot choose
-            available_packages = [n['package_name'] for n in library_matches]
-            raise NodeAmbiguousError(
-                f"Multiple nodes named '{node_name}' found in library '{library_name}' "
-                f"with different packages. Expected '{package_name}', "
-                f"Available: {available_packages}"
-            )
-    
-    def get_all_nodes(self) -> Dict[str, List[Dict[str, Any]]]:
-        """
-        Get all registered nodes as a dictionary.
-        
-        Returns:
-            Dictionary mapping node names to lists of node information dictionaries.
-            Each node info dict contains:
-            - 'library': Library name
-            - 'package_name': Package name
-            - 'class': Node class
-            - 'version': Node version
-        """
-        return self.nodes.copy()
-    
-    def list_node_names(self) -> List[str]:
-        """
-        Get a list of all registered node names.
-        
-        Returns:
-            List of node names
-        """
-        return list(self.nodes.keys())
-    
-    def get_node_count(self) -> int:
-        """
-        Get the total number of registered node variants.
-        
-        Returns:
-            Total count of all node variants across all names
-        """
-        return sum(len(variants) for variants in self.nodes.values())
-
-
-# ============================================================================
-# Node Discovery Functions
-# ============================================================================
-
-def find_and_validate_node(registry: NodeRegistry, saved_metadata: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Find and validate node class before instantiation
-    
-    Returns dict with:
-    - 'class': Node class to instantiate (or ErrorNode)
-    - 'status': 'ok' | 'warning' | 'error'
-    - 'message': Status message
-    - 'version_info': Version comparison results
-    """
-    
-    node_name: str = saved_metadata.get('node_name', "")
-    library_name: str = saved_metadata.get('node_library_name', "")
-    package_name: str = saved_metadata.get('node_package', "")
-    saved_version: str = saved_metadata.get('node_version', '0.0.0')
-    
-    if not all([node_name, library_name, package_name]):
-        error_info = {
-            'node_name': node_name or 'Unknown',
-            'node_package': package_name or 'Unknown',
-            'node_version': saved_version,
-            'error_message': 'Missing required metadata (node_name, node_library_name, or node_package)'
-        }
-        
-        return {
-            'class': ErrorNode,
-            'status': 'error',
-            'message': 'Missing required metadata',
-            'version_info': None,
-            'error_info': error_info
-        }
-    
-    try:
-        # Find the node class
-        find_result = registry.find_node_class(node_name, library_name, package_name)
-        node_class = find_result['class']
-        
-        # Check version compatibility
-        current_version = getattr(node_class, 'node_version', '0.0.0')
-        version_info = compare_versions(saved_version, current_version)
-        
-        if not version_info['compatible']:
-            # Version incompatible - use ErrorNode
-            error_info = {
-                'node_name': node_name,
-                'node_package': package_name,
-                'node_version': saved_version,
-                'error_message': f"Version incompatible: {version_info['message']}"
-            }
-            
-            return {
-                'class': ErrorNode,
-                'status': 'error',
-                'message': version_info['message'],
-                'version_info': version_info,
-                'error_info': error_info
-            }
-        
-        # Success - return the found node class
-        status = 'ok' if version_info['status'] == 'exact' else 'warning'
-        message = find_result['message']
-        if version_info['status'] != 'exact':
-            message += f" (Version: {version_info['message']})"
-        
-        return {
-            'class': node_class,
-            'status': status,
-            'message': message,
-            'version_info': version_info
-        }
-        
-    except (NodeNotFoundError, NodeAmbiguousError, NodeVersionError) as e:
-        # Node discovery failed - use ErrorNode
-        error_info = {
-            'node_name': node_name,
-            'node_package': package_name,
-            'node_version': saved_version,
-            'error_message': str(e)
-        }
-        
-        return {
-            'class': ErrorNode,
-            'status': 'error',
-            'message': str(e),
-            'version_info': None,
-            'error_info': error_info
-        }
-
-
-def create_node_from_saved_data(registry: NodeRegistry, saved_data: Dict[str, Any], 
-                               graph) -> Tuple[HaywireNode, Dict[str, Any]]:
-    """
-    Create a node instance from saved data, handling all discovery and version checking
-    
-    Returns: (node_instance, status_info)
-    """
-    
-    saved_metadata = saved_data.get('metadata', {})
-    
-    # Find and validate the node
-    validation_result = find_and_validate_node(registry, saved_metadata)
-    
-    node_class = validation_result['class']
-    node_id = saved_data['node_id']
-    
-    # Create the node instance
-    if node_class == ErrorNode:
-        # Special handling for ErrorNode
-        error_info = validation_result.get('error_info', {})
-        original_inlets = saved_data.get('inlets', [])
-        original_outlets = saved_data.get('outlets', [])
-        
-        node = ErrorNode(node_id, graph, error_info, original_inlets, original_outlets)
-    else:
-        # Normal node creation
-        node = node_class(node_id, graph)
-    
-    return node, validation_result
-
-
-def serialize_node(node: HaywireNode) -> Dict[str, Any]:
-    """
-    Serialize a node instance to dictionary for saving
-    Uses the get_metadata_dict() method
-    """
-    return {
-        'node_id': node.node_id,
-        'metadata': node.get_metadata_dict(),
-        'ui_properties': {
-            'posX': node.ui_posX,
-            'posY': node.ui_posY,
-            'width': node.ui_width,
-            'height': node.ui_height,
-            'is_collapsed': node.ui_is_collapsed,
-            'is_condensed': node.ui_is_condensed,
-            'is_pinned': node.ui_is_pinned,
-            'custom_color': node.ui_custom_color
-        }
-    }

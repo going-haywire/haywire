@@ -14,7 +14,7 @@ from .basic_widgets import (
 from .display_widgets import LabelWidget, ProgressWidget, BadgeWidget
 
 
-def register_core_widgets(widget_registry: WidgetRegistry):
+def register_widgets(widget_registry: WidgetRegistry):
     """Register all core widgets with the widget registry"""
     
     # Register error widget
@@ -58,5 +58,5 @@ __all__ = [
     'LabelWidget',
     'ProgressWidget',
     'BadgeWidget',
-    'register_core_widgets'
+    'register_widgets'
 ]

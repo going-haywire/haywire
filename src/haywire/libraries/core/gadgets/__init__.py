@@ -9,7 +9,7 @@ from .default import DefaultNodeRenderer
 from .error import ErrorNodeRenderer
 
 
-def register_core_gadgets(gadgets_registry: GadgetsRegistry):
+def register_gadgets(gadgets_registry: GadgetsRegistry):
     """Register all core node renderers with the gadgets registry"""
     
     # Register default and error renderers
@@ -23,5 +23,5 @@ def register_core_gadgets(gadgets_registry: GadgetsRegistry):
 __all__ = [
     'DefaultNodeRenderer',
     'ErrorNodeRenderer',
-    'register_core_gadgets'
+    'register_gadgets'
 ]

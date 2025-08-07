@@ -14,14 +14,8 @@ class TestNodeOne(HaywireNode):
     # Required metadata for node discovery
     node_name = 'TestNodeOne'
     node_label = 'Test Node One'
-    node_package = 'org.haywire.core.basic'
-    node_library_name = 'Haywire Core'
-    node_library_url = 'https://haywire.io/docs/core-nodes'
     node_search_tags = ['constant', 'value', 'output', 'basic']
     node_menu = 'core/basic'
-    node_version = '1.0.0'
-    node_author = 'Haywire System'
-    node_author_url = 'https://haywire.io'
     
     def __init__(self, node_id, graph):
         super().__init__(node_id, graph)

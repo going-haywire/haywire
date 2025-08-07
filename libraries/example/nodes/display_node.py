@@ -8,17 +8,11 @@ class DisplayNode(HaywireNode):
     """Node that displays input values"""
     
     # Required metadata for node discovery
+    node_name = 'Display'
     node_label = 'Display'
     node_description = 'Displays input values for debugging'
-    node_name = 'Display'
-    node_package = 'org.example.basic'
-    node_library_name = 'Example Library'
-    node_library_url = 'https://example.io/docs/core-nodes'
     node_search_tags = ['display', 'debug', 'output', 'basic']
     node_menu = 'example/basic'
-    node_version = '1.0.0'
-    node_author = 'Exampler System'
-    node_author_url = 'https://example.io'
     
     def __init__(self, node_id, graph):
         super().__init__(node_id, graph)

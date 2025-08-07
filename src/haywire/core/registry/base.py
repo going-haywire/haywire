@@ -13,7 +13,10 @@ class LibraryMetadata:
     name: str
     version: str
     description: str
+    url: str
+    help_url: str
     author: str
+    author_url: str
     dependencies: list[str] = None
     
     def __post_init__(self):

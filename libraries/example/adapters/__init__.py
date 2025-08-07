@@ -44,7 +44,7 @@ class TemperatureToFloatAdapter(BaseAdapter):
         return value
 
 
-def register_test_adapters(adapter_registry: AdapterRegistry):
+def register_adapters(adapter_registry: AdapterRegistry):
     """Register test adapters with the adapter registry using self-registering pattern"""
     # List of adapter classes to register (self-registering pattern)
     adapters = [
@@ -62,5 +62,5 @@ __all__ = [
     # Adapters
     'FloatToTemperatureAdapter',
     'TemperatureToFloatAdapter',
-    'register_test_adapters'
+    'register_adapters'
 ]

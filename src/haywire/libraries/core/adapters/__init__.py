@@ -35,7 +35,7 @@ from .type_converters import (
     IntToFloatAdapter
 )
 
-def register_core_adapters(adapter_registry: AdapterRegistry):
+def register_adapters(adapter_registry: AdapterRegistry):
     """Register all core adapters with the adapter registry"""
     
     # List of adapter classes to register (self-registering pattern)
@@ -58,5 +58,5 @@ __all__ = [
     'STRING',
     # Adapters
     'IntToFloatAdapter',
-    'register_core_adapters'
+    'register_adapters'
 ]
