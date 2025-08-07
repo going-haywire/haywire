@@ -3,7 +3,37 @@ from typing import Any, Dict, List
 from abc import abstractmethod
 import inspect
 
-from .elements import Config, Inlet, Outlet
+from .elements import Inlet, Outlet
+
+
+# ============================================================================
+# Custom Exceptions
+# ============================================================================
+
+class NodeDiscoveryError(Exception):
+    """Base exception for node discovery issues"""
+    pass
+
+
+class NodeNotFoundError(NodeDiscoveryError):
+    """Node with specified criteria not found"""
+    pass
+
+
+class NodeAmbiguousError(NodeDiscoveryError):
+    """Multiple nodes found, cannot determine which to use"""
+    pass
+
+
+class NodeVersionError(NodeDiscoveryError):
+    """Node version compatibility issue"""
+    pass
+
+
+class NodeValidationError(NodeDiscoveryError):
+    """Node class is missing required attributes"""
+    pass
+
 
 class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
     def __new__(cls, name, bases, attrs):
@@ -14,37 +44,7 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
                 metadata_attrs.append(attr_name)
         
         attrs['_node_metadata_attrs'] = metadata_attrs
-        
-        # Get the module where this class is being defined
-        frame = inspect.currentframe()
-        try:
-            # Go up the call stack to find the module that's defining this class
-            caller_frame = frame.f_back
-            while caller_frame:
-                if caller_frame.f_code.co_name == '<module>':
-                    module_globals = caller_frame.f_globals
-                    break
-                caller_frame = caller_frame.f_back
-            else:
-                module_globals = {}
-        finally:
-            del frame
-        
-        # Auto-assign file-level HAYWIRE constants to node attributes if not explicitly set
-        # Generic approach: HAYWIRE_* constants map to node_* attributes (case conversion)
-        for const_name, const_value in module_globals.items():
-            if const_name.startswith('HAYWIRE_'):
-                # Convert HAYWIRE_LIBRARY_NAME -> node_library_name
-                node_attr = 'node_' + const_name[8:].lower()  # Remove 'HAYWIRE_' and lowercase
-                
-                # Only assign if not explicitly set in the class
-                if node_attr not in attrs:
-                    attrs[node_attr] = const_value
-                    metadata_attrs.append(node_attr)
-        
-        # Update metadata_attrs list
-        attrs['_node_metadata_attrs'] = list(set(metadata_attrs))
-        
+               
         # Skip validation for abstract base classes
         # Check if this is an abstract class or the base HaywireNode class
         is_abstract = (
@@ -56,8 +56,8 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
         if not is_abstract:
             # Validate that required node attributes are set
             required_attrs = [
-                'node_display_name',
                 'node_name', 
+                'node_label',
                 'node_package',
                 'node_library_name',
                 'node_library_url',
@@ -89,19 +89,13 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
 class NodeData():
     """Main data structure for a Haywire node"""
     def __init__(self):
-        self.configs: Dict[str, Config] = {}
         self.inlets: Dict[str, Inlet] = {}
         self.outlets: Dict[str, Outlet] = {}
         
         # Performance optimization: direct access caches
         self._inlet_data_cache: dict[str, Any] = {}
         self._cache_dirty = True
-    
-    def add_config(self, config: Config) -> Config:
-        """Add a configuration element"""
-        self.configs[config.id] = config
-        return config
-    
+       
     def add_inlet(self, inlet: Inlet) -> Inlet:
         """Add an inlet element"""
         self.inlets[inlet.id] = inlet
@@ -169,7 +163,6 @@ class NodeData():
     def to_dict(self) -> Dict:
         """Serialize to dict structure"""
         return {
-            'configs': {k: v.to_dict() for k, v in self.configs.items()},
             'inlets': {k: v.to_dict() for k, v in self.inlets.items()},
             'outlets': {k: v.to_dict() for k, v in self.outlets.items()}
         }
@@ -186,14 +179,25 @@ class HaywireNode(NodeData, metaclass=NodeMetadataMeta):
         self.node_id = node_id
         self.graph = graph
 
-        # Copy class metadata to instance attributes for serialization
-        for attr_name in self._node_metadata_attrs:
-            if hasattr(self.__class__, attr_name):
-                setattr(self, attr_name, getattr(self.__class__, attr_name))
-       
-        # Runtime attributes
+        ## identifying attributes
+        self.Node_label = 'Node Name'
+        self.node_description = 'Node Description'
+        self.node_name = 'Node_NAME'
+        self.node_package = 'org.github.maybites.haywire.nodes'
+        self.node_library_name = 'MathLibrary'
+        self.node_library_url = 'https://haywire.io/docs/node-help'
+        self.node_search_tags = ['add', 'sub', 'math', 'vector']
+        self.node_menu = 'misc/custom'
+        self.node_version = '0.0.0'
+        self.node_author = 'Customer'
+        self.node_author_url = 'https://customer.org'
+        self.node_help_md = None
+        self.node_help_url = 'https://haywire.io/docs/node-help'
         self.help_md = None
         self.help_url = 'https://haywire.io/docs/node-help'
+
+
+        # Runtime attributes
         self.is_control_node = False
         self.is_data_node = True
         self.is_loopback_node = False

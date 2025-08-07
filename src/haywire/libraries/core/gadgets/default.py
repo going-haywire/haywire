@@ -9,8 +9,9 @@ from typing import Dict, Any
 from nicegui import ui
 from nicegui.element import Element
 from haywire.core.node.node import HaywireNode
-from haywire.core.data.enums import CouplingType, DataType
+from haywire.core.data.enums import DataType, FlowType
 from haywire.ui.base import BaseNodeRenderer, UINodeCard
+from haywire.core.node.elements import Inlet
 
 class DefaultNodeRenderer(BaseNodeRenderer):
     """
@@ -65,15 +66,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         
         # Create the main card
         with ui.card().classes(f'w-full min-w-64 max-w-sm node-card {node_id}') as main_card:
-            ui.label("Node").classes('text-h6 w-full')
-
-            # Render configs first (if any)
-            if node.configs:
-                ui.label('Configuration').classes('font-bold text-sm mt-2')
-                for config in node.configs.values():
-                    with ui.column().classes('flex-1 gap-1 w-full'):
-                        ui.label(config.label).classes('text-xs')
-                        self._render_element('config', config, ui_elements, widget_instances).classes('widget-container')
+            ui.label(node.node_label).classes('text-h6 w-full')
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
@@ -98,26 +91,28 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         
         return UINodeCard(main_card, ui_elements, widget_instances)
     
-    def _render_inlet(self, inlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]):
+    def _render_inlet(self, inlet: Inlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-1'):
-            # Pin connector
-            ui.element('div').classes(
-                f'port input-port'
-            ).style(
-                f'position: absolute; left: -6px; '
-                f'width: 12px; height: 12px; '
-                f'background: {self._get_port_color(inlet.data.type)}; '
-                f'border: 2px solid white; '
-                f'border-radius: 50%; '
-                f'cursor: crosshair;'
-            ).props(f'data-port-id="{inlet.id}"')
+            # only render pins for inlets that are actually involved in flows
+            if inlet.flow_type != FlowType.NONE.value:
+                # Pin connector
+                ui.element('div').classes(
+                    f'port input-port'
+                ).style(
+                    f'position: absolute; left: -6px; '
+                    f'width: 12px; height: 12px; '
+                    f'background: {self._get_port_color(inlet.data.type)}; '
+                    f'border: 2px solid white; '
+                    f'border-radius: 50%; '
+                    f'cursor: crosshair;'
+                ).props(f'data-port-id="{inlet.id}"')
             
             # Pin label
             ui.label(inlet.label).classes('text-xs')
 
-        # Render inlet widget if it has UI (coupling_type != NONE)
-        if inlet.coupling_type != CouplingType.NONE.value:
+        # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
+        if inlet.is_pooled == False:
             self._render_element('inlet', inlet, ui_elements, widget_instances)
     
     def _render_outlet(self, outlet):

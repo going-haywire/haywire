@@ -4,17 +4,16 @@ Basic core node implementations
 
 # Import the node system base class
 from haywire.core.node.node import HaywireNode
-from haywire.core.node.elements import Config, Inlet, Outlet
-from haywire.core.data.enums import CouplingType, DataType, DataCategory, FlowType
+from haywire.core.node.elements import Inlet, Outlet
+from haywire.core.data.enums import DataType, DataCategory, FlowType
 from haywire.core.data.fields import SingleField
 
 class TestNodeOne(HaywireNode):
     """Node that outputs a constant value"""
     
     # Required metadata for node discovery
-    node_display_name = 'TestNode One'
-    node_description = 'Outputs a constant value'
     node_name = 'TestNodeOne'
+    node_label = 'Test Node One'
     node_package = 'org.haywire.core.basic'
     node_library_name = 'Haywire Core'
     node_library_url = 'https://haywire.io/docs/core-nodes'
@@ -33,24 +32,27 @@ class TestNodeOne(HaywireNode):
         self.is_control_node = False
         
         # Add configs with different widget types
-        _ = self.add_config(Config(
-            element_id='float_slider',  # element_id as first positional parameter
-            label='Float Slider',
-            data=SingleField('float_val', DataType.STRING, DataCategory.SCALAR, "Option 1", False),
-            widget='select',
-            ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
-            )
-        )
-        _ = self.add_config(
-            Config(
-                element_id='temperature',  # element_id as first positional parameter
-                label='Temperature',
+        _ = self.add_inlet(Inlet(
+                id='temperature',  # id as first positional parameter
+                label='Temperature_NONE',
+                flow_type=FlowType.NONE,
                 data=SingleField('temp_val', DataType.FLOAT, DataCategory.SCALAR, 25.0, False),
                 widget='example.temperature',
                 ui={'properties': {'unit': 'celsius'}}
             )
         )    
-        # Add configs with different widget types
+        # Add inlets with different widget types
+        _ = self.add_inlet(Inlet(
+            id='float_slider',  # id as first positional parameter
+            label='Float Slider',
+            flow_type=FlowType.DATA,
+            is_pooled=False,
+            use_mode='optional',
+            data=SingleField('float_val', DataType.STRING, DataCategory.SCALAR, "Option 1", False),
+            widget='select',
+            ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
+            )
+        )
         _ = self.add_inlet(Inlet(
                 'float_slider',  # element_id as first positional parameter
                 label='Float Slider',
@@ -58,15 +60,6 @@ class TestNodeOne(HaywireNode):
                 data=SingleField('float_val', DataType.FLOAT, DataCategory.SCALAR, 50.0, False),
                 widget='slider',
                 ui={'properties': {'min': 0, 'max': 100, 'step': 1}}
-            )
-        )
-        _ = self.add_inlet(Inlet(
-                'temperature',  # element_id as first positional parameter
-                label='Temperature',
-                flow_type=FlowType.DATA,
-                data=SingleField('temp_val', DataType.FLOAT, DataCategory.SCALAR, 25.0, False),
-                widget='example.temperature',
-                ui={'properties': {'unit': 'celsius'}}
             )
         )
         _ = self.add_inlet(Inlet(

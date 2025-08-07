@@ -3,7 +3,7 @@ This module exports the core data components of the Haywire library, including e
 data field specifications, and factory functions for creating data fields.
 """
 
-from .enums import DataType, DataCategory, FlowType, CouplingType
+from .enums import DataType, DataCategory, FlowType
 from .specs import DataFieldSpec, specs_factory
 from .fields import DataField, SingleField, PooledField
 
@@ -40,7 +40,6 @@ __all__ = [
     "DataType",
     "DataCategory",
     "FlowType",
-    "CouplingType",
     # Specs
     "DataFieldSpec",
     "specs_factory",

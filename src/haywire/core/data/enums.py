@@ -28,10 +28,3 @@ class FlowType(Enum):
     DATA = 'data'
     CALLBACK = 'callback'
     NONE = 'none'
-
-
-class CouplingType(Enum):
-    """Defines how multiple connections to an inlet are handled."""
-    ONE = 'one'      # Only one connection allowed
-    MANY = 'many'    # Multiple connections allowed
-    NONE = 'none'    # No connections allowed

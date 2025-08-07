@@ -5,40 +5,10 @@ This module contains the node registry and discovery functionality
 for managing nodes across multiple libraries.
 """
 
-import re
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Tuple, Any
 
 # Import core node classes from their proper location
-from haywire.core.node.node import HaywireNode
-
-
-# ============================================================================
-# Custom Exceptions
-# ============================================================================
-
-class NodeDiscoveryError(Exception):
-    """Base exception for node discovery issues"""
-    pass
-
-
-class NodeNotFoundError(NodeDiscoveryError):
-    """Node with specified criteria not found"""
-    pass
-
-
-class NodeAmbiguousError(NodeDiscoveryError):
-    """Multiple nodes found, cannot determine which to use"""
-    pass
-
-
-class NodeVersionError(NodeDiscoveryError):
-    """Node version compatibility issue"""
-    pass
-
-
-class NodeValidationError(NodeDiscoveryError):
-    """Node class is missing required attributes"""
-    pass
+from haywire.core.node.node import HaywireNode, NodeDiscoveryError, NodeNotFoundError, NodeAmbiguousError, NodeVersionError, NodeValidationError
 
 
 # ============================================================================
@@ -136,7 +106,7 @@ def compare_versions(saved_version: str, current_version: str) -> Dict[str, Any]
 class ErrorNode(HaywireNode):
     """Special node to represent nodes that couldn't be loaded properly"""
     
-    node_display_name = 'Error Node'
+    node_label = 'Error Node'
     node_description = 'Placeholder for node that could not be loaded'
     node_name = 'ERROR_NODE'
     node_package = 'org.github.maybites.haywire.error'
@@ -305,10 +275,10 @@ def find_and_validate_node(registry: NodeRegistry, saved_metadata: Dict[str, Any
     - 'version_info': Version comparison results
     """
     
-    node_name = saved_metadata.get('node_name')
-    library_name = saved_metadata.get('node_library_name')
-    package_name = saved_metadata.get('node_package')
-    saved_version = saved_metadata.get('node_version', '0.0.0')
+    node_name: str = saved_metadata.get('node_name', "")
+    library_name: str = saved_metadata.get('node_library_name', "")
+    package_name: str = saved_metadata.get('node_package', "")
+    saved_version: str = saved_metadata.get('node_version', '0.0.0')
     
     if not all([node_name, library_name, package_name]):
         error_info = {

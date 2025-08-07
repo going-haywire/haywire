@@ -45,15 +45,7 @@ class ExampleNodeRenderer(BaseNodeRenderer):
             with ui.row().classes('w-full items-center gap-2'):
                 ui.icon('calculate', color='yellow').classes('text-lg')
                 ui.label("Math Node").classes('text-h6 flex-1')
-            
-            # Render configs
-            if node.configs:
-                ui.label('Configuration').classes('font-bold text-sm mt-2')
-                for config in node.configs.values():
-                    with ui.column().classes('flex-1 gap-1 w-full'):
-                        ui.label(config.label).classes('text-xs')
-                        self._render_element(config, ui_elements, widget_instances)
-            
+                        
             # Render inlets and outlets
             with ui.row().classes('w-full gap-2'):
                 # Inlets
@@ -63,7 +55,7 @@ class ExampleNodeRenderer(BaseNodeRenderer):
                         for inlet in node.inlets.values():
                             with ui.row().classes('w-full items-center gap-1'):
                                 ui.label(inlet.label).classes('text-xs')
-                                if hasattr(inlet, 'coupling_type') and inlet.coupling_type != 'none':
+                                if inlet.is_pooled == False:
                                     self._render_element(inlet, ui_elements, widget_instances)
                 
                 # Outlets

@@ -75,13 +75,6 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
             
             ui.label('This node could not be rendered with the requested renderer.').classes('text-sm text-red-600 mb-2')
 
-            # Render configs first (if any)
-            if node.configs:
-                ui.label('Configuration').classes('font-bold text-sm mt-2')
-                for config in node.configs.values():
-                    with ui.column().classes('flex-1 gap-1 w-full'):
-                        ui.label(config.label).classes('text-xs')
-                        self._render_element('config', config, ui_elements, widget_instances)
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
