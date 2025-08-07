@@ -91,9 +91,10 @@ class NodeRegistry(BaseRegistry):
             if self._error_node:
                 creationerror = NodeErrorInfo(
                     error='Node Not Found',
-                    error_message='The requested node could not be found in the registry.',
-                    context={'library_name': key.split(':')[0], 'node_name': key.split(':')[-1]},
+                    error_message='The requested node could not be found in the registry.'
                 )
+                creationerror.add_note(f"Library: {key.split(':')[0]}")
+                creationerror.add_note(f"Node: {key.split(':')[-1]}")
                 return creationerror, self._error_node
             # Otherwise raise error
             raise NodeDiscoveryError(f"Node not found: {key}")

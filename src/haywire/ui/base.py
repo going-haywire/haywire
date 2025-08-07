@@ -5,9 +5,9 @@ Base widget classes for the Haywire widget system
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from nicegui import ui
+from nicegui import ui, element
 
-from haywire.core.node.node import HaywireNode
+from haywire.core.node.node import HaywireNode, NodeErrorInfo
 from haywire.core.registry.registry import WidgetRegistry
 
 from haywire.core.data.fields import DataField
@@ -125,7 +125,7 @@ class BaseNodeRenderer(ABC):
         """
         pass
 
-    def _render_error_info(self, node: HaywireNode) -> bool:
+    def _render_error_info(self, error_info: NodeErrorInfo) -> element:
         """
         Render error information for a node.
 
@@ -135,15 +135,13 @@ class BaseNodeRenderer(ABC):
         Returns:
             bool: True if error info was rendered, False if no error info
         """
-        if node and node.error_info:
-            error_info = node.error_info
+        with ui.column().classes('items-left p-2 border border-red-500 bg-red-50') as error_column:
             with ui.row():
                 ui.icon('error', color='red').classes('text-lg')
-                ui.label(f"Error: {error_info.error}").classes('text-lg text-red-600')
-            ui.label(f"{error_info.error_message}").classes('text-sm text-red-600')
-            if error_info.context:
-                for key, value in error_info.context.items():
-                    ui.label(f"{key}: {value}").classes('text-sm text-red-600')
-
-            return True
-        return False
+                ui.label(error_info.error).classes('text-lg text-red-600')
+            ui.label(error_info.error_message).classes('text-sm text-red-600')
+            if error_info.note:
+                for value in error_info.note:
+                    ui.label(value).classes('text-sm text-red-600')
+            ui.label(error_info.timestamp).classes('text-sm text-red-600')
+        return error_column

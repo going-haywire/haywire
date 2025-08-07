@@ -69,8 +69,10 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
         # Create the main card with error styling
         with ui.card().classes(f'w-full min-w-64 max-w-sm error-node-card {node_id}') as main_card:
             # Error header
-            with ui.column().classes('items-left'):
-                if self._render_error_info(node) == False:
+            if node and node.error_info:
+                self._render_error_info(node.error_info)
+            else:
+                with ui.column().classes('items-left'):
                     with ui.row():
                         ui.icon('error', color='red').classes('text-lg')
                         ui.label("Error Node").classes('text-h6 flex-1')

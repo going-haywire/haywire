@@ -8,7 +8,7 @@ extracted from the current ModularNiceGUINodeRenderer implementation.
 from typing import Dict, Any
 from nicegui import ui
 from nicegui.element import Element
-from haywire.core.node.node import HaywireNode
+from haywire.core.node.node import HaywireNode, NodeErrorInfo
 from haywire.core.data.enums import DataType, FlowType
 from haywire.ui.base import BaseNodeRenderer, UINodeCard
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
@@ -144,8 +144,14 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             
         except Exception as e:
             # Fallback to error display if widget creation fails
-            error_widget = self._render_error_widget(element, str(e))
-            return error_widget
+            creationerror = NodeErrorInfo(
+                error='Widget Creation Error',
+                error_message=str(e)
+            )
+            creationerror.add_note(f"Element: {element.id}")
+            creationerror.add_note(f"Requested widget: {getattr(element, 'widget', 'None')}")
+
+            return self._render_error_info(creationerror)
     
     def _render_pin(self, pin: ConfigurableElement, direction: str = 'left'):
         """Render an inlet with its port and optional widget."""
@@ -178,16 +184,6 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'border-radius: 50%; '
                 f'cursor: crosshair;'
             ).props(f'data-port-id="{pin.id}"')
-
-
-    def _render_error_widget(self, element, error_message: str):
-        """Render an error widget when widget creation fails."""
-        with ui.column().classes('w-full p-2 border border-red-500 bg-red-50 widget-container') as error_container:
-            ui.icon('error', color='red').classes('text-lg')
-            ui.label(f"Widget Error: {error_message}").classes('text-red-700 text-sm font-bold')
-            ui.label(f"Element: {element.id}").classes('text-red-600 text-xs')
-            ui.label(f"Requested widget: {getattr(element, 'widget', 'None')}").classes('text-red-600 text-xs')
-        return error_container
     
     def _get_port_color(self, data_type: str | DataType) -> str:
         """Get the color for a port based on its data type."""

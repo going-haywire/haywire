@@ -1,7 +1,8 @@
 from __future__ import annotations
 from typing import Any, Dict, List
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 
 from .elements import Inlet, Outlet
 
@@ -34,16 +35,17 @@ class NodeValidationError(NodeDiscoveryError):
     """Node class is missing required attributes"""
     pass
 
-from dataclasses import dataclass, field
-from datetime import datetime
-
 @dataclass
 class NodeErrorInfo:
     """Error information for a Haywire node operation"""
     error: str
     error_message: str
-    context: dict = field(default_factory=dict)
+    note: list = field(default_factory=list)
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    def add_note(self, note: str):
+        """Add a note to the error info"""
+        self.note.append(note)
 
 class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
     def __new__(cls, name, bases, attrs):
