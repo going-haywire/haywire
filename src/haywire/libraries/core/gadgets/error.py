@@ -7,7 +7,7 @@ extracted from the current ModularNiceGUINodeRenderer implementation.
 
 from typing import Dict, Any
 from nicegui import ui
-from haywire.core.node.node import HaywireNode
+from haywire.core.node.node import HaywireNode, NodeErrorInfo
 from haywire.ui.base import UINodeCard
 
 from .default import DefaultNodeRenderer
@@ -75,6 +75,13 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
             
             ui.label('This node could not be rendered with the requested renderer.').classes('text-sm text-red-600 mb-2')
 
+            # Error details
+            if node.error_info:
+                error_info = node.error_info
+                ui.label(f"Error: {error_info.error}").classes('text-sm text-red-600')
+                ui.label(f"Error Message: {error_info.error_message}").classes('text-sm text-red-600')
+                ui.label(f"Node Name: {error_info.node_name}").classes('text-sm text-red-600')
+                ui.label(f"Library: {error_info.library_name}").classes('text-sm text-red-600')
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):

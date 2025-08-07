@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Any
 from .base import BaseRegistry, LibraryMetadata
 
 # Import core node classes
-from haywire.core.node.node import HaywireNode, NodeDiscoveryError
+from haywire.core.node.node import HaywireNode, NodeDiscoveryError, NodeErrorInfo
 
 
 class NodeRegistry(BaseRegistry):
@@ -17,6 +17,7 @@ class NodeRegistry(BaseRegistry):
     
     def __init__(self):
         super().__init__()
+        self._error_node: type | None = None
     
     def register_node(self, node_class: type, library_metadata: LibraryMetadata):
         """
@@ -61,7 +62,15 @@ class NodeRegistry(BaseRegistry):
         
         self.register(key, node_class, metadata)
     
-    def get_node_class(self, key: str) -> type:
+    def register_error_node(self, node_class: type):
+        """Register the error node class"""
+        self._error_node = node_class
+    
+    def get_error_node(self) -> type | None:
+        """Get the error node class"""
+        return self._error_node
+
+    def get_node_class(self, key: str) -> tuple[NodeErrorInfo | None, HaywireNode.__class__]:
         """
         Get node class by registry key for graph operations.
         
@@ -69,15 +78,28 @@ class NodeRegistry(BaseRegistry):
             key: Registry key in format "library_name:node_name"
             
         Returns:
-            Node class
+            Tuple of (success: bool, node_class: type)
+            - success: True if the requested node was found, False if error node was returned
+            - node_class: Either the requested node class or the error node class
             
         Raises:
-            NodeDiscoveryError: If node is not found
+            NodeDiscoveryError: If node is not found and no error node is registered
         """
         node_class = self.get(key)
         if node_class is None:
+            # Return error node if registered
+            if self._error_node:
+                creationerror = NodeErrorInfo(
+                    error='Node Not Found',
+                    error_message='The requested node could not be found in the registry.',
+                    node_name=key.split(':')[-1],
+                    library_name=key.split(':')[0],
+                    library_version='unknown'
+                )
+                return creationerror, self._error_node
+            # Otherwise raise error
             raise NodeDiscoveryError(f"Node not found: {key}")
-        return node_class
+        return None, node_class
     
     def get_menu_structure(self) -> Dict[str, List[Dict[str, str]]]:
         """
@@ -222,36 +244,3 @@ def serialize_node_metadata(node: HaywireNode) -> Dict[str, Any]:
         }
     }
 
-
-# ============================================================================
-# Error Node (specific to discovery system)
-# ============================================================================
-
-
-class ErrorNode(HaywireNode):
-    """Special node to represent nodes that couldn't be loaded properly"""
-    
-    node_label = 'Error Node'
-    node_description = 'Placeholder for node that could not be loaded'
-    node_name = 'ERROR_NODE'
-    node_search_tags = ['error', 'system', 'placeholder']
-    node_menu = 'system/error'
-    
-    def __init__(self, node_id, graph, error_info: Dict[str, Any], 
-                 original_inlets=None, original_outlets=None):
-        super().__init__(node_id, graph)
-        
-        # Store error information
-        self.error_info = error_info
-        self.original_node_name = error_info.get('node_name', 'Unknown')
-        self.original_package_name = error_info.get('node_package', 'Unknown')
-        self.original_version = error_info.get('node_version', 'Unknown')
-        self.error_message = error_info.get('error_message', 'Unknown error')
-        
-        # Preserve original inlet/outlet structure for connections
-        self.original_inlets = original_inlets or []
-        self.original_outlets = original_outlets or []
-        
-        # Override display properties
-        self.node_display_name = f"ERROR: {self.original_node_name}"
-        self.ui_default_color = '#FF0000'  # Red for error

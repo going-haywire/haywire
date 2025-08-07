@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, List
 from abc import abstractmethod
-import inspect
+from dataclasses import dataclass
 
 from .elements import Inlet, Outlet
 
@@ -33,6 +33,15 @@ class NodeVersionError(NodeDiscoveryError):
 class NodeValidationError(NodeDiscoveryError):
     """Node class is missing required attributes"""
     pass
+
+@dataclass
+class NodeErrorInfo:
+    """Metadata for a Haywire library"""
+    error: str
+    error_message: str
+    node_name: str  = ""
+    library_name: str  = ""
+    library_version: str  = ""
 
 
 class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
@@ -174,24 +183,24 @@ class HaywireNode(NodeData, metaclass=NodeMetadataMeta):
         super().__init__()
         self.node_id = node_id
         self.graph = graph
+        self.error_info: NodeErrorInfo | None = None
 
-        # library attributes set upon registration
+        # library attributes set automatically upon registration
         self.library_name = ''
-        self.library_url = ''
         self.library_version = ''
+        self.library_url = ''
+        self.library_help_url = ''
         self.library_author = ''
         self.library_author_url = ''
-        self.library_help_url = ''
 
         ## identifying attributes
+        self.node_name = 'Node_NAME'
         self.node_label = 'Node Name'
         self.node_description = 'Node Description'
-        self.node_name = 'Node_NAME'
         self.node_search_tags = ['add', 'sub', 'math', 'vector']
         self.node_menu = 'misc/custom'
         self.node_help_md = None
         self.node_help_url = 'https://haywire.io/docs/node-help'
-
 
         # Runtime attributes
         self.is_control_node = False

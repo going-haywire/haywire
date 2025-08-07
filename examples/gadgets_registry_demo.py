@@ -51,10 +51,34 @@ def setup_library_system():
     
     # Load libraries
     loaded = discovery.load_libraries(library_registry, widget_registry, adapter_registry, gadgets_registry, node_registry)
-    print(f"Loaded libraries: {loaded}")
     
     # 3. Create factory with both registries
     factory = NodeRenderFactory(gadgets_registry, widget_registry)
+
+    # Print registered adapters in a beautiful format
+    print("\n=== Registered Adapters ===")
+    all_adapters = adapter_registry.list_names()
+    for adapter_key in all_adapters:
+        print(f"🔧 {adapter_key}")
+
+    # Print registered widgets in a beautiful format
+    print("\n=== Registered Widgets ===")
+    all_widgets = widget_registry.list_names()
+    for widget_key in all_widgets:
+        print(f"🔧 {widget_key}")
+
+    # Print registered gadgets in a beautiful format
+    print("\n=== Registered Gadgets ===")
+    all_gadgets = gadgets_registry.list_names()
+    for gadget_key in all_gadgets:
+        print(f"🔧 {gadget_key}")        
+    
+    # Print registered nodes in a beautiful format
+    print("\n=== Registered Nodes ===")
+    all_nodes = node_registry.list_names()
+    for node_key in all_nodes:
+        print(f"📦 {node_key}")
+    print(f"Total: {len(all_nodes)} nodes\n")
 
     return factory, gadgets_registry, widget_registry, adapter_registry, node_registry
 
@@ -81,13 +105,6 @@ def main():
             <li><strong>Container-Slot Approach</strong> - Reliable re-rendering without memory leaks</li>
         </ul>
         ''')
-        
-        # Print registered nodes in a beautiful format
-        print("\n=== Registered Nodes ===")
-        all_nodes = node_registry.list_names()
-        for node_key in all_nodes:
-            print(f"📦 {node_key}")
-        print(f"Total: {len(all_nodes)} nodes\n")
 
         with ui.row().classes('w-full gap-4'):
             # Column 1: Standard Node (Default Renderer)
@@ -95,8 +112,10 @@ def main():
                 ui.label('Standard Node (Default Renderer)').classes('text-h6 mb-2')
                 
                 try:
-                    node_class = node_registry.get_node_class("example:Display")
+                    error, node_class = node_registry.get_node_class("example:Display")
                     node_instance = node_class('unique_id', None)
+                    if error:
+                        node_instance.error_info = error
 
                     if node_instance is not None:
                         # Create UINode with container-slot approach
@@ -119,40 +138,46 @@ def main():
                             ui.button('Set Input to 15.0', on_click=update_standard)
                 
                 except Exception as e:
-                    ui.notify(f'Error: {str(e)}', type='negative')
+                    ui.notify(f'Error creating node: {str(e)}', type='negative')
 
             # Column 2: Math Node (Custom Renderer)
             with ui.column().classes('flex-1') as col2:
                 ui.label('Math Node (Custom Renderer)').classes('text-h6 mb-2')
 
                 try:
-                    node_class = node_registry.get_node_class("core:TestNodeOne")
+                    error, node_class = node_registry.get_node_class("core:TestNodeOne")
                     node_instance = node_class('unique_id', None)
-
+                    if error:
+                        node_instance.error_info = error
 
                     if node_instance is not None:
                         # Create UINode with custom renderer
                         ui_nodes['math'] = UINode(node_instance, factory, col2)
-                        ui_nodes['math'].render('example.renderer')  # Uses custom math renderer
+                        ui_nodes['math'].render()  # Uses custom math renderer
                 
                     # Controls
                     with ui.card().classes('mt-4 p-4'):
                         ui.label('Controls').classes('font-bold mb-2')
                         
-                        async def rerender_math_default():
+                        async def rerender_nodes_default():
                             ui_nodes['math'].rerender()  # Re-render with default
-                            ui.notify('Math node re-rendered with default renderer')
+                            ui.notify('Math node re-rendered with its custom renderer')
                         
-                        async def rerender_math_custom():
+                        async def rerender_custom():
                             ui_nodes['math'].rerender('example.renderer')  # Re-render with custom
-                            ui.notify('Math node re-rendered with custom renderer')
+                            ui.notify('Math node re-rendered with example.renderer renderer')
+
+                        async def rerender_default():
+                            ui_nodes['math'].rerender('core.default')  # Re-render with custom
+                            ui.notify('Math node re-rendered with core.default renderer')
                         
                         async def test_error_renderer():
                             ui_nodes['math'].rerender('nonexistent')  # Should use error renderer
                             ui.notify('Math node rendered with error renderer (fallback)')
                         
-                        ui.button('Render as Default', on_click=rerender_math_default)
-                        ui.button('Render as Math', on_click=rerender_math_custom)
+                        ui.button('Render nodes own renderer', on_click=rerender_nodes_default)
+                        ui.button('Render with custom renderer', on_click=rerender_custom)
+                        ui.button('Render with core default', on_click=rerender_default)
                         ui.button('Test Error Fallback', on_click=test_error_renderer)
                 
                 except Exception as e:

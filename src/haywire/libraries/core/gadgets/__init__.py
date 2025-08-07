@@ -13,10 +13,10 @@ def register_gadgets(gadgets_registry: GadgetsRegistry):
     """Register all core node renderers with the gadgets registry"""
     
     # Register default and error renderers
-    gadgets_registry.register_renderer('default', DefaultNodeRenderer)
+    gadgets_registry.register_renderer('core.default', DefaultNodeRenderer)
     
     # Set fallback renderers using class references
-    gadgets_registry.register_default_renderer('default')
+    gadgets_registry.register_default_renderer('core.default')
     gadgets_registry.register_error_renderer(ErrorNodeRenderer)
 
 

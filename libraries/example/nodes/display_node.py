@@ -20,7 +20,7 @@ class DisplayNode(HaywireNode):
         # This would normally be set up with proper inlet/outlet definitions
         self.is_data_node = True
         self.is_control_node = False
-        
+        self.renderer = 'example.renderer'
 
         # Math node
         _ = self.add_inlet(

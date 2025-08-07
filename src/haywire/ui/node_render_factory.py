@@ -6,7 +6,7 @@ that looks up renderers from the gadgets registry.
 """
 
 from typing import Dict, Type
-from haywire.core.node.node import NodeData
+from haywire.core.node.node import HaywireNode
 from haywire.core.registry.registry import WidgetRegistry
 from haywire.core.registry.registry import GadgetsRegistry
 from haywire.ui.base import BaseNodeRenderer, UINodeCard
@@ -36,7 +36,7 @@ class NodeRenderFactory:
         # Cache for NodeRenderer instances (stateless, so can be reused)
         self._renderer_cache: Dict[str, BaseNodeRenderer] = {}
     
-    def generate_node(self, node_design_name: str | None, node: NodeData) -> UINodeCard:
+    def generate_node(self, node_design_name: str | None, node: HaywireNode) -> UINodeCard:
         """
         Generate a UINodeCard for the given node using the specified renderer.
         
