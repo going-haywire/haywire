@@ -24,11 +24,18 @@ class TestNodeOne(HaywireNode):
         # For now, just demonstrate the structure
         self.is_data_node = True
         self.is_control_node = False
-        
+
         # Add configs with different widget types
         _ = self.add_inlet(Inlet(
+                id='execute',  # id as first positional parameter
+                label='Execute',
+                flow_type=FlowType.CTRL,
+                is_pooled=False
+            )
+        )
+        _ = self.add_inlet(Inlet(
                 id='temperature',  # id as first positional parameter
-                label='Temperature_NONE',
+                label='Temperature',
                 flow_type=FlowType.NONE,
                 data=SingleField('temp_val', DataType.FLOAT, DataCategory.SCALAR, 25.0, False),
                 widget='example.temperature',
@@ -38,12 +45,11 @@ class TestNodeOne(HaywireNode):
         # Add inlets with different widget types
         _ = self.add_inlet(Inlet(
             id='float_slider',  # id as first positional parameter
-            label='Float Slider',
+            label='Float',
             flow_type=FlowType.DATA,
             is_pooled=False,
-            use_mode='optional',
             data=SingleField('float_val', DataType.STRING, DataCategory.SCALAR, "Option 1", False),
-            widget='select',
+            widget='core.select',
             ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
             )
         )
@@ -52,7 +58,7 @@ class TestNodeOne(HaywireNode):
                 label='Float Slider',
                 flow_type=FlowType.DATA,
                 data=SingleField('float_val', DataType.FLOAT, DataCategory.SCALAR, 50.0, False),
-                widget='slider',
+                widget='core.slider',
                 ui={'properties': {'min': 0, 'max': 100, 'step': 1}}
             )
         )
@@ -61,7 +67,7 @@ class TestNodeOne(HaywireNode):
                 label='Boolean Switch',
                 flow_type=FlowType.DATA,
                 data=SingleField('bool_val', DataType.BOOL, DataCategory.SCALAR, True, False),
-                widget='switch',
+                widget='core.switch',
                 ui={'properties': {'text': 'Enable Feature'}}
             )
         )
@@ -70,7 +76,7 @@ class TestNodeOne(HaywireNode):
                 label='Text Input',
                 flow_type=FlowType.DATA,
                 data=SingleField('str_val', DataType.STRING, DataCategory.SCALAR, 'Hello', False),
-                widget='input',
+                widget='core.input',
                 ui={'properties': {'placeholder': 'Enter text...'}}
             )   
         )
@@ -81,6 +87,12 @@ class TestNodeOne(HaywireNode):
                 data=SingleField('missing_val', DataType.INT, DataCategory.SCALAR, 42, False),
                 widget='nonexistent_widget_type',
                 ui={'properties': {}}
+            )
+        )
+        _ = self.add_inlet(Inlet(
+                'callback',  # element_id as first positional parameter
+                label='Callback Widget',
+                flow_type=FlowType.CALLBACK,
             )
         )
 

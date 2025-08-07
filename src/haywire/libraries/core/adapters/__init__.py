@@ -21,7 +21,7 @@ from haywire.core.data.specs import specs_factory
 #         description='Integer data type',
 #         type=DataType.INT,
 #         category=DataCategory.SCALAR,
-#         widget='number',
+#         widget='core.number',
 #     )
 #
 # But for convenience reasons, the factory functions for core data specs are located

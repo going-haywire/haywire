@@ -21,29 +21,29 @@ def register_widgets(widget_registry: WidgetRegistry):
     widget_registry.register_error_widget(ErrorWidget)
     
     # Register basic input widgets
-    widget_registry.register('text_input', TextInputWidget)
-    widget_registry.register('input', TextInputWidget)  # Alias
-    widget_registry.register('number', NumberWidget)
-    widget_registry.register('checkbox', CheckboxWidget)
-    widget_registry.register('switch', SwitchWidget)
-    widget_registry.register('select', SelectWidget)
-    widget_registry.register('dropdown', SelectWidget)  # Alias
-    widget_registry.register('slider', SliderWidget)
-    widget_registry.register('knob', KnobWidget)
+    widget_registry.register('core.text_input', TextInputWidget)
+    widget_registry.register('core.input', TextInputWidget)  # Alias
+    widget_registry.register('core.number', NumberWidget)
+    widget_registry.register('core.checkbox', CheckboxWidget)
+    widget_registry.register('core.switch', SwitchWidget)
+    widget_registry.register('core.select', SelectWidget)
+    widget_registry.register('core.dropdown', SelectWidget)  # Alias
+    widget_registry.register('core.slider', SliderWidget)
+    widget_registry.register('core.knob', KnobWidget)
     
     # Register display widgets
-    widget_registry.register('label', LabelWidget)
-    widget_registry.register('progress', ProgressWidget)
-    widget_registry.register('badge', BadgeWidget)
+    widget_registry.register('core.label', LabelWidget)
+    widget_registry.register('core.progress', ProgressWidget)
+    widget_registry.register('core.badge', BadgeWidget)
     
     # Register default widgets for scalar data types
-    widget_registry.register_default_widget(DataType.STRING, 'text_input')
-    widget_registry.register_default_widget(DataType.INT, 'number')
-    widget_registry.register_default_widget(DataType.FLOAT, 'number')
-    widget_registry.register_default_widget(DataType.BOOL, 'checkbox')
-    widget_registry.register_default_widget(DataType.BYTES, 'text_input')  # Display as text
-    widget_registry.register_default_widget(DataType.DICT, 'label')  # Read-only for complex types
-    widget_registry.register_default_widget(DataType.OBJECT, 'label')  # Read-only for complex types
+    widget_registry.register_default_widget(DataType.STRING, 'core.text_input')
+    widget_registry.register_default_widget(DataType.INT, 'core.number')
+    widget_registry.register_default_widget(DataType.FLOAT, 'core.number')
+    widget_registry.register_default_widget(DataType.BOOL, 'core.checkbox')
+    widget_registry.register_default_widget(DataType.BYTES, 'core.text_input')  # Display as text
+    widget_registry.register_default_widget(DataType.DICT, 'core.label')  # Read-only for complex types
+    widget_registry.register_default_widget(DataType.OBJECT, 'core.label')  # Read-only for complex types
 
 
 __all__ = [

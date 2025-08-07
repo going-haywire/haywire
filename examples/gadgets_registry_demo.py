@@ -59,7 +59,7 @@ def setup_library_system():
     print("\n=== Registered Adapters ===")
     all_adapters = adapter_registry.list_names()
     for adapter_key in all_adapters:
-        print(f"🔧 {adapter_key}")
+        print(f"🔗 {adapter_key}")
 
     # Print registered widgets in a beautiful format
     print("\n=== Registered Widgets ===")
@@ -71,13 +71,13 @@ def setup_library_system():
     print("\n=== Registered Gadgets ===")
     all_gadgets = gadgets_registry.list_names()
     for gadget_key in all_gadgets:
-        print(f"🔧 {gadget_key}")        
+        print(f"🔨 {gadget_key}")        
     
     # Print registered nodes in a beautiful format
     print("\n=== Registered Nodes ===")
     all_nodes = node_registry.list_names()
     for node_key in all_nodes:
-        print(f"📦 {node_key}")
+        print(f"🛠 {node_key}")
     print(f"Total: {len(all_nodes)} nodes\n")
 
     return factory, gadgets_registry, widget_registry, adapter_registry, node_registry
@@ -112,7 +112,7 @@ def main():
                 ui.label('Standard Node (Default Renderer)').classes('text-h6 mb-2')
                 
                 try:
-                    error, node_class = node_registry.get_node_class("example:Display")
+                    error, node_class = node_registry.get_node_class("example:Display2")
                     node_instance = node_class('unique_id', None)
                     if error:
                         node_instance.error_info = error

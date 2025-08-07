@@ -34,15 +34,16 @@ class NodeValidationError(NodeDiscoveryError):
     """Node class is missing required attributes"""
     pass
 
+from dataclasses import dataclass, field
+from datetime import datetime
+
 @dataclass
 class NodeErrorInfo:
-    """Metadata for a Haywire library"""
+    """Error information for a Haywire node operation"""
     error: str
     error_message: str
-    node_name: str  = ""
-    library_name: str  = ""
-    library_version: str  = ""
-
+    context: dict = field(default_factory=dict)
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
 class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
     def __new__(cls, name, bases, attrs):

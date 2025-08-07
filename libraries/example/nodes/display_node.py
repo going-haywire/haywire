@@ -29,7 +29,7 @@ class DisplayNode(HaywireNode):
                 label='Value A', 
                 flow_type=FlowType.DATA,
                 data=SingleField('a', DataType.FLOAT, 'scalar', 10.0, False), 
-                widget='number')
+                widget='core.number')
         )
         _ = self.add_inlet(
             Inlet(
@@ -37,7 +37,7 @@ class DisplayNode(HaywireNode):
                 label='Value B', 
                 flow_type=FlowType.DATA,
                 data=SingleField('b', DataType.FLOAT, 'scalar', 5.0, False), 
-                widget='number')
+                widget='core.number')
             )
         _ = self.add_outlet(
             Outlet(
@@ -52,7 +52,7 @@ class DisplayNode(HaywireNode):
                 label='Operation', 
                 flow_type=FlowType.DATA,
                 data=SingleField('operation', DataType.STRING, 'scalar', 'add', False), 
-                widget='select')
+                widget='core.select')
         )   
     
 

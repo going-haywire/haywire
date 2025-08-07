@@ -5,8 +5,8 @@ Core gadgets (node renderers) registration and exports
 from haywire.core.registry.registry import GadgetsRegistry
 
 # Import all renderer classes
-from .default import DefaultNodeRenderer
-from .error import ErrorNodeRenderer
+from .default_renderer import DefaultNodeRenderer
+from .error_renderer import ErrorNodeRenderer
 
 
 def register_gadgets(gadgets_registry: GadgetsRegistry):
@@ -14,11 +14,11 @@ def register_gadgets(gadgets_registry: GadgetsRegistry):
     
     # Register default and error renderers
     gadgets_registry.register_renderer('core.default', DefaultNodeRenderer)
-    
+    gadgets_registry.register_renderer('core.error', ErrorNodeRenderer)
+
     # Set fallback renderers using class references
     gadgets_registry.register_default_renderer('core.default')
     gadgets_registry.register_error_renderer(ErrorNodeRenderer)
-
 
 __all__ = [
     'DefaultNodeRenderer',

@@ -5,6 +5,8 @@ Base widget classes for the Haywire widget system
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
+from nicegui import ui
+
 from haywire.core.node.node import HaywireNode
 from haywire.core.registry.registry import WidgetRegistry
 
@@ -123,3 +125,25 @@ class BaseNodeRenderer(ABC):
         """
         pass
 
+    def _render_error_info(self, node: HaywireNode) -> bool:
+        """
+        Render error information for a node.
+
+        Args:
+            node: The HaywireNode with error information
+            
+        Returns:
+            bool: True if error info was rendered, False if no error info
+        """
+        if node and node.error_info:
+            error_info = node.error_info
+            with ui.row():
+                ui.icon('error', color='red').classes('text-lg')
+                ui.label(f"Error: {error_info.error}").classes('text-lg text-red-600')
+            ui.label(f"{error_info.error_message}").classes('text-sm text-red-600')
+            if error_info.context:
+                for key, value in error_info.context.items():
+                    ui.label(f"{key}: {value}").classes('text-sm text-red-600')
+
+            return True
+        return False

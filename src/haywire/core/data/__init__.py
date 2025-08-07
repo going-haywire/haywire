@@ -14,7 +14,7 @@ INT = specs_factory(
         description='Integer data type',
         type=DataType.INT,
         category=DataCategory.SCALAR,
-        widget='number',
+        widget='core.number',
     )
 
 FLOAT = specs_factory(
@@ -23,7 +23,7 @@ FLOAT = specs_factory(
         description='Float data type',
         type=DataType.FLOAT,
         category=DataCategory.SCALAR,
-        widget='number',
+        widget='core.number',
     )
     
 STRING = specs_factory(

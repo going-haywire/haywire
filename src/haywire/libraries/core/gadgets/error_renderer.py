@@ -10,7 +10,7 @@ from nicegui import ui
 from haywire.core.node.node import HaywireNode, NodeErrorInfo
 from haywire.ui.base import UINodeCard
 
-from .default import DefaultNodeRenderer
+from .default_renderer import DefaultNodeRenderer
 
 class ErrorNodeRenderer(DefaultNodeRenderer):
     """
@@ -69,19 +69,15 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
         # Create the main card with error styling
         with ui.card().classes(f'w-full min-w-64 max-w-sm error-node-card {node_id}') as main_card:
             # Error header
-            with ui.row().classes('w-full items-center gap-2'):
-                ui.icon('error', color='red').classes('text-lg')
-                ui.label("Error Node").classes('text-h6 flex-1')
-            
-            ui.label('This node could not be rendered with the requested renderer.').classes('text-sm text-red-600 mb-2')
+            with ui.column().classes('items-left'):
+                if self._render_error_info(node) == False:
+                    with ui.row():
+                        ui.icon('error', color='red').classes('text-lg')
+                        ui.label("Error Node").classes('text-h6 flex-1')
+                
+                    ui.label('This node could not be rendered with the requested renderer.').classes('text-sm text-red-600 mb-2')
 
-            # Error details
-            if node.error_info:
-                error_info = node.error_info
-                ui.label(f"Error: {error_info.error}").classes('text-sm text-red-600')
-                ui.label(f"Error Message: {error_info.error_message}").classes('text-sm text-red-600')
-                ui.label(f"Node Name: {error_info.node_name}").classes('text-sm text-red-600')
-                ui.label(f"Library: {error_info.library_name}").classes('text-sm text-red-600')
+            
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):

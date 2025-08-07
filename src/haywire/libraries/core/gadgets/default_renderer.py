@@ -11,7 +11,7 @@ from nicegui.element import Element
 from haywire.core.node.node import HaywireNode
 from haywire.core.data.enums import DataType, FlowType
 from haywire.ui.base import BaseNodeRenderer, UINodeCard
-from haywire.core.node.elements import Inlet
+from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
 
 class DefaultNodeRenderer(BaseNodeRenderer):
     """
@@ -95,19 +95,8 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-1'):
             # only render pins for inlets that are actually involved in flows
-            if inlet.flow_type != FlowType.NONE.value:
-                # Pin connector
-                ui.element('div').classes(
-                    f'port input-port'
-                ).style(
-                    f'position: absolute; left: -6px; '
-                    f'width: 12px; height: 12px; '
-                    f'background: {self._get_port_color(inlet.data.type)}; '
-                    f'border: 2px solid white; '
-                    f'border-radius: 50%; '
-                    f'cursor: crosshair;'
-                ).props(f'data-port-id="{inlet.id}"')
-            
+            self._render_pin(inlet, direction='left')
+
             # Pin label
             ui.label(inlet.label).classes('text-xs')
 
@@ -120,18 +109,10 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         with ui.row().classes('w-full items-center justify-end gap-1'):
             # Pin label
             ui.label(outlet.label).classes('text-xs')
-            
-            # Pin connector
-            ui.element('div').classes(
-                f'port output-port'
-            ).style(
-                f'position: absolute; right: -6px; '
-                f'width: 12px; height: 12px; '
-                f'background: {self._get_port_color(outlet.data.type)}; '
-                f'border: 2px solid white; '
-                f'border-radius: 50%; '
-                f'cursor: crosshair;'
-            ).props(f'data-port-id="{outlet.id}"')
+
+            # only render pins for inlets that are actually involved in flows
+            self._render_pin(outlet, direction='right')
+
     
     def _render_element(self, element_type: str, element, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]) -> Element:
         """Render a single element using widget registry"""
@@ -166,6 +147,39 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             error_widget = self._render_error_widget(element, str(e))
             return error_widget
     
+    def _render_pin(self, pin: ConfigurableElement, direction: str = 'left'):
+        """Render an inlet with its port and optional widget."""
+        if pin.flow_type == FlowType.CTRL.value:
+            # Pin connector
+            ui.icon('label', color='blue', size='xs').classes(
+                f'text-4xl'
+                f'port input-port'
+            ).style(
+                f'position: absolute; {direction}: -8px; '
+                f'cursor: crosshair;'
+            ).props(f'data-port-id="{pin.id}"')
+        if pin.flow_type == FlowType.CALLBACK.value:
+            # Pin connector
+            ui.icon('replay_circle_filled', color='red', size='xs').classes(
+                f'text-4xl'
+                f'port input-port'
+            ).style(
+                f'position: absolute; {direction}: -8px; '
+                f'cursor: crosshair;'
+            ).props(f'data-port-id="{pin.id}"')
+        elif pin.flow_type == FlowType.DATA.value:
+            ui.element('div').classes(
+                f'port output-port'
+            ).style(
+                f'position: absolute; {direction}: -8px; '
+                f'width: 15px; height: 15px; '
+                f'background: {self._get_port_color(pin.data.type)}; '
+                f'border: 2px solid white; '
+                f'border-radius: 50%; '
+                f'cursor: crosshair;'
+            ).props(f'data-port-id="{pin.id}"')
+
+
     def _render_error_widget(self, element, error_message: str):
         """Render an error widget when widget creation fails."""
         with ui.column().classes('w-full p-2 border border-red-500 bg-red-50 widget-container') as error_container:

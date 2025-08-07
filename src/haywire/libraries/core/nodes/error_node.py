@@ -19,4 +19,4 @@ class ErrorNode(HaywireNode):
     def __init__(self, node_id, graph):
         super().__init__(node_id, graph)
         
-        self.renderer = 'ARidiculousErrorRenderer'
+        self.renderer = 'core.error'
