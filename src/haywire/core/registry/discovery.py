@@ -8,6 +8,7 @@ import importlib
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 import logging
+import traceback
 
 from .base import BaseLibrary, LibraryMetadata
 from .registry import LibraryRegistry, WidgetRegistry, AdapterRegistry, GadgetsRegistry
@@ -124,16 +125,33 @@ class LibraryDiscovery:
             # Import the module using the proper path
             module = importlib.import_module(module_path)
             
-            # Extract metadata
+           # Extract metadata
             if hasattr(module, 'LIBRARY_METADATA'):
                 metadata_dict = module.LIBRARY_METADATA
-                return LibraryMetadata(
-                    name=metadata_dict.get('name', 'Unknown'),
-                    version=metadata_dict.get('version', '0.0.0'),
-                    description=metadata_dict.get('description', ''),
-                    author=metadata_dict.get('author', 'Unknown'),
-                    dependencies=metadata_dict.get('dependencies', [])
-                )
+                
+                # Create LibraryMetadata with all possible fields
+                # Get the actual LibraryMetadata class to inspect its fields
+                from dataclasses import fields
+                metadata_fields = {field.name for field in fields(LibraryMetadata)}
+                
+                # Build kwargs only with fields that exist in LibraryMetadata
+                metadata_kwargs = {}
+                for field_name in metadata_fields:
+                    if field_name in metadata_dict:
+                        metadata_kwargs[field_name] = metadata_dict[field_name]
+                    # Set reasonable defaults for missing required fields
+                    elif field_name == 'name':
+                        metadata_kwargs[field_name] = library_name
+                    elif field_name == 'version':
+                        metadata_kwargs[field_name] = '0.0.0'
+                    elif field_name == 'description':
+                        metadata_kwargs[field_name] = f'Library: {library_name}'
+                    elif field_name == 'author':
+                        metadata_kwargs[field_name] = 'Unknown'
+                    elif field_name == 'dependencies':
+                        metadata_kwargs[field_name] = []
+
+                return LibraryMetadata(**metadata_kwargs)
             
         except Exception as e:
             logger.error(f"Error loading metadata from {library_path}: {e}")
@@ -237,7 +255,7 @@ class LibraryDiscovery:
                     return library_class(metadata)
             
         except Exception as e:
-            logger.error(f"Error loading library instance from {library_path}: {e}")
+            logger.error(f"Error loading library instance from {library_path}: {e} \n {traceback.format_exc()}")
         finally:
             # Remove from sys.path if we added it
             if 'src/haywire/libraries' not in library_path:

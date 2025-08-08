@@ -97,7 +97,7 @@ class NodeRegistry(BaseRegistry):
                 creationerror.add_note(f"Node: {key.split(':')[-1]}")
                 return creationerror, self._error_node
             # Otherwise raise error
-            raise NodeDiscoveryError(f"Node not found: {key}")
+            raise NodeDiscoveryError(f"Node not found: {key}. No error node registered.")
         return None, node_class
     
     def get_menu_structure(self) -> Dict[str, List[Dict[str, str]]]:
