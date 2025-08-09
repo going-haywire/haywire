@@ -6,7 +6,7 @@ from haywire.ui.base import UINodeCard
 
 class ExampleNodeRenderer(BaseNodeRenderer):
     """Custom renderer for nodes with special styling."""
-    
+
     def render(self, node: HaywireNode) -> UINodeCard:
         """Render a node with custom styling."""
         ui_elements = {}

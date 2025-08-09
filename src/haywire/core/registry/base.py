@@ -3,10 +3,38 @@ Base classes for the Haywire library system
 """
 
 from abc import ABC, abstractmethod
+import sys
+import importlib
+import traceback
+from enum import Enum
 from typing import Dict, Any, Optional
-import inspect
+from pathlib import Path
+import time
+import logging
 from dataclasses import dataclass
 
+class RegistryFolder(Enum):
+    """Defines the folder names for the registries."""
+    WIDGETS = 'widgets'
+    RENDERERS = 'renderers'
+    NODES = 'nodes'
+    ADAPTERS = 'adapters'
+
+# Required directories for a valid library structure
+REQUIRED_LIB_DIRS = [RegistryFolder.WIDGETS.value,
+                     RegistryFolder.RENDERERS.value,
+                     RegistryFolder.NODES.value,
+                     RegistryFolder.ADAPTERS.value]
+
+HAYWIRE_CORE_LIB_NAME = 'haywire.core'
+
+class FileChangeEvent:
+    """Represents a file change event"""
+    def __init__(self, file_path: str, event_type: str, library_name: str = None):
+        self.file_path = file_path
+        self.event_type = event_type  # 'modified', 'created', 'deleted'
+        self.library_name = library_name
+        self.timestamp = time.time()
 
 @dataclass
 class LibraryMetadata:
@@ -19,8 +47,7 @@ class LibraryMetadata:
     author: str
     author_url: str
     dependencies: list[str] = None
-    # file_path is set when the library is registered
-    file_path: Optional[str] = None
+    file_watcher: bool = False  # Whether to watch for file changes
     
     def __post_init__(self):
         if self.dependencies is None:
@@ -59,16 +86,71 @@ class BaseRegistry(ABC):
 
 class BaseClassRegistry(BaseRegistry):
     """Abstract base class for all class registries"""
-    
+    directory_name: str = None  # To be overridden by subclasses
+  
     def __init__(self):
         super().__init__()
-        self._file_path: Dict[str, str] = {}
-    
+        self._class_name: Dict[str, str] = {}  # Name of the class being registered
+        self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
+     
     def register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
         super().register(name, item, metadata)
+        self._class_name[name] = item.__name__
 
-        self._file_path[name] = inspect.getfile(item)
-        #print(f"Registered {name} at {self._file_path[name]}")
+        # Track module to class mapping
+        module_name = item.__module__
+        if module_name not in self._module_to_classes:
+            self._module_to_classes[module_name] = []
+        if name not in self._module_to_classes[module_name]:
+            self._module_to_classes[module_name].append(name)
+
+    def _unregister(self, name: str):
+        """Remove a class from the registry"""
+        if name in self._items:
+            del self._items[name]
+        if name in self._metadata:
+            del self._metadata[name]
+        if name in self._class_name:
+            del self._class_name[name]
+        
+        # Clean up module to class mapping
+        for module_name, class_list in self._module_to_classes.items():
+            if name in class_list:
+                class_list.remove(name)
+                if not class_list:  # Remove empty module entries
+                    del self._module_to_classes[module_name]
+                break
+
+    def handle_module_change(self, module: str):
+        """Handle changes to a module by reloading and re-registering classes"""
+        # Get classes that need to be updated
+        classes_to_update = self._module_to_classes.get(module, [])
+        if not classes_to_update:
+            logging.info(f"Module '{module}' has no classes to update.")
+            return
+
+        # Store old class info for re-registration
+        old_class_info: Dict[str, str] = {}
+        for class_name in classes_to_update:
+            old_class_info[self._class_name[class_name]] = class_name
+        
+        # Remove old classes
+        del sys.modules[module]
+
+        # Reload the module
+        if module in sys.modules:
+            reloaded_module = importlib.reload(sys.modules[module])
+        else:
+            reloaded_module = importlib.import_module(module)
+        
+        # Re-register classes from reloaded module  
+        for class_name in old_class_info:
+            if hasattr(reloaded_module, class_name):
+                self._items[old_class_info[class_name]] = getattr(reloaded_module, class_name)
+                logging.info(f"Reloaded and re-registered '{old_class_info[class_name]}' with '{class_name}' from {module}")
+            else:
+                self._unregister(old_class_info[class_name])
+                logging.error(f"class '{old_class_info[class_name]}' with '{class_name}' no longer exists in reloaded module '{module}'")
 
 
 class BaseLibrary(ABC):
@@ -77,13 +159,85 @@ class BaseLibrary(ABC):
     def __init__(self, metadata: LibraryMetadata, file_path: str):
         self.metadata = metadata
         self.file_path = file_path
-    
+        self._widget_registry = None
+        self._renderer_registry = None
+        self._adapter_registry = None
+        self._node_registry = None
+
+    def _register_components(self, widget_registry, renderers_registry, adapter_registry, node_registry):
+        """
+        First: Register this global registries with the library
+        Then: Let the library register its components
+        """
+        self._widget_registry = widget_registry
+        self._renderer_registry = renderers_registry
+        self._adapter_registry = adapter_registry
+        self._node_registry = node_registry
+
+        self.register_components(widget_registry, renderers_registry, adapter_registry, node_registry)
+
     @abstractmethod
     def register_components(self, widget_registry, renderers_registry, adapter_registry, node_registry):
         """Register this library's components with the global registries"""
         pass
-    
+
     @abstractmethod
     def validate(self) -> bool:
         """Validate that this library is properly structured"""
         pass
+
+    def handle_file_change(self, event: FileChangeEvent):
+        """
+        Handle a file change event by determining which registry is responsible
+        and triggering appropriate actions
+        """
+        file_path = Path(event.file_path)
+        library_root = Path(self.file_path).parent
+
+        module = self._resolve_module_name(file_path)
+
+        # Determine which component type this file belongs to based on directory structure
+        try:
+            relative_path = file_path.relative_to(library_root)
+            path_parts = relative_path.parts
+            
+            if len(path_parts) > 0:                
+                # Map directory to registry and handle the change
+                if self._node_registry and self._node_registry.directory_name in path_parts:
+                    self._node_registry.handle_module_change(module)
+                elif self._widget_registry and self._widget_registry.directory_name in path_parts:
+                    self._widget_registry.handle_module_change(module)
+                elif self._adapter_registry and self._adapter_registry.directory_name in path_parts:
+                    self._adapter_registry.handle_module_change(module)
+                elif self._renderer_registry and self._renderer_registry.directory_name in path_parts:
+                    self._renderer_registry.handle_module_change(module)
+                    
+        except Exception as e:
+            logging.error(f"Unable to hotswap class from file change for {event.file_path}: {e} \n {traceback.format_exc()}")
+
+
+    def _resolve_module_name(self, file_path: str) -> Optional[str]:
+        """
+        Resolve module name from file path by walking up directories until no __init__.py found
+        """
+        file_path = Path(file_path)
+        
+        # Start from the file's directory
+        current_dir = file_path.parent
+        module_parts = [file_path.stem]  # Start with filename (without .py)
+        
+        # Walk up directories while __init__.py exists
+        while True:
+            init_file = current_dir / "__init__.py"
+            if not init_file.exists():
+                break
+            
+            module_parts.insert(0, current_dir.name)
+            current_dir = current_dir.parent
+        
+        if not module_parts:
+            return None
+        
+        return ".".join(module_parts)
+
+

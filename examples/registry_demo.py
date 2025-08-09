@@ -10,6 +10,7 @@ This example shows how to use the new renderers registry system with:
 
 import logging
 from math import e
+from pathlib import Path
 import sys
 import os
 
@@ -45,6 +46,8 @@ def setup_library_system():
     discovery = LibraryDiscovery()
     discovery.add_library_path(os.path.join(project_root, 'src', 'haywire', 'libraries'))
     discovery.add_library_path(os.path.join(project_root, 'libraries'))
+
+    discovery.enable_file_watching(debounce_delay=0.5, force=True)  # Enable file watching
     
     # Load libraries
     loaded = discovery.load_libraries(library_registry, widget_registry, adapter_registry, renderer_registry, node_registry)
@@ -82,10 +85,10 @@ def setup_library_system():
 
 def main():
     """Main demo application."""
-    
+
     # Set up the renderers system
     factory, renderers_registry, widget_registry, adapter_registry, node_registry = setup_library_system()
-    
+
     # Store UINode instances
     ui_nodes = {}
     
@@ -142,7 +145,7 @@ def main():
                 ui.label('Math Node (Custom Renderer)').classes('text-h6 mb-2')
 
                 try:
-                    error, node_class = node_registry.get_node_class("core:TestNodeOne")
+                    error, node_class = node_registry.get_node_class("haywire.core:TestNodeOne")
                     node_instance = node_class('unique_id', None)
                     if error:
                         node_instance.error_info = error
@@ -225,7 +228,8 @@ def main():
             ''')
 
     # Run the application
-    ui.run(port=8080, show=True, title="Renderer Registry Demo")
+    ui.run(port=8080, show=True, title="Renderer Registry Demo", reload=False)
+    # ui.run(port=8080, show=True, title="Renderer Registry Demo", uvicorn_reload_dirs="examples")
 
 
 if __name__ in {"__main__", "__mp_main__"}:

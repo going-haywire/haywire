@@ -23,7 +23,8 @@ LIBRARY_METADATA = {
     'help_url': 'https://docs.github.io/haywire_library',
     'author': 'Example Author',
     'author_url': 'https://author_url',
-    'dependencies': ['core']  # Depends on core library
+    'dependencies': ['haywire.core'],  # Depends on core library
+    'file_watcher': False  # Enable file watching for this library
 }
 
 class Library(BaseLibrary):

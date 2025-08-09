@@ -16,14 +16,15 @@ from .renderers import register_renderers
 
 # Library metadata
 LIBRARY_METADATA = {
-    'name': 'core',
+    'name': 'haywire.core',
     'version': '1.0.0',
     'description': 'Core Haywire library with fundamental components',
     'url': 'https://github.com/maybites/haywire',
     'help_url': 'https://github.com/maybites/haywire',
     'author': 'maybites',
     'author_url': 'https://maybites.ch',
-    'dependencies': []
+    'dependencies': [],
+    'file_watcher': False  # Enable file watching for this library
 }
 
 class Library(BaseLibrary):

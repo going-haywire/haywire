@@ -3,7 +3,7 @@ Registry implementations for widgets, adapters, and libraries
 """
 
 from typing import Any, Dict, List, Optional
-from .base import BaseRegistry, BaseClassRegistry, LibraryMetadata
+from .base import BaseRegistry, BaseClassRegistry, LibraryMetadata, RegistryFolder
 
 # Import core data types for widget fallback
 from haywire.core.data.enums import DataType, DataCategory
@@ -41,7 +41,8 @@ class LibraryRegistry(BaseRegistry):
 
 class WidgetRegistry(BaseClassRegistry):
     """Registry for UI widgets that can render data fields"""
-    
+    directory_name: str = RegistryFolder.WIDGETS.value
+
     def __init__(self):
         super().__init__()
         self._default_widgets: dict[DataType, str] = {}
@@ -82,7 +83,8 @@ class WidgetRegistry(BaseClassRegistry):
 
 class AdapterRegistry(BaseClassRegistry):
     """Registry for type conversion adapters"""
-    
+    directory_name: str = RegistryFolder.ADAPTERS.value
+
     def __init__(self):
         super().__init__()
         # Key: (source_type, target_type), Value: adapter_class
@@ -135,7 +137,8 @@ class AdapterRegistry(BaseClassRegistry):
 
 class RendererRegistry(BaseClassRegistry):
     """Registry for NodeRenderer classes with fallback support"""
-    
+    directory_name: str = RegistryFolder.RENDERERS.value
+
     def __init__(self):
         super().__init__()
         self._default_renderer_name: str | None = None
@@ -200,7 +203,8 @@ class RendererRegistry(BaseClassRegistry):
 
 class NodeRegistry(BaseClassRegistry):
     """Simplified registry for managing nodes using library_name:node_name keys"""
-    
+    directory_name: str = RegistryFolder.NODES.value
+
     def __init__(self):
         super().__init__()
         self._error_node: type | None = None
