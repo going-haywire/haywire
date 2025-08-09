@@ -83,6 +83,7 @@ class LibraryDiscovery:
                 library_info = valid_libraries[library_name]
                 library_instance = self._load_library_instance(library_name, library_info['path'])
 
+                # store them in the metadata name (and not the folder)
                 Instantiated_libraries[library_instance.metadata.name] = library_instance
 
             except Exception as e:
@@ -112,6 +113,7 @@ class LibraryDiscovery:
                         node_registry
                     )
                     
+                    # Add to the loaded libraries list
                     loaded_libraries.append(library_instance.metadata.name)
                     logger.info(f"Successfully loaded library: '{library_instance.metadata.name}' - deps: {library_instance.metadata.dependencies}")
 
@@ -136,7 +138,7 @@ class LibraryDiscovery:
         sorted_libraries = []
         remaining = libraries.copy()
         
-        if 'haywire.core' in remaining:
+        if HAYWIRE_CORE_LIB_NAME in remaining:
             sorted_libraries.append(remaining.pop(HAYWIRE_CORE_LIB_NAME))
         
         if not remaining:
@@ -244,6 +246,8 @@ class LibraryDiscovery:
             if module and hasattr(module, 'Library'):
                 library_class = module.Library
                 return library_class(metadata, library_path)
+            else:
+                logger.error(f"Library '{library_name}' does not have a valid 'Library' class in '{library_path}'")
                     
         except Exception as e:
             logger.error(f"Error loading library instance from {library_path}: {e} \n {traceback.format_exc()}")

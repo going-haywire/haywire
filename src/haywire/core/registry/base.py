@@ -104,7 +104,7 @@ class BaseClassRegistry(BaseRegistry):
         if name not in self._module_to_classes[module_name]:
             self._module_to_classes[module_name].append(name)
 
-    def _unregister(self, name: str):
+    def unregister(self, name: str):
         """Remove a class from the registry"""
         if name in self._items:
             del self._items[name]
@@ -134,7 +134,7 @@ class BaseClassRegistry(BaseRegistry):
         for class_name in classes_to_update:
             old_class_info[self._class_name[class_name]] = class_name
         
-        # Remove old classes
+        # Remove old classes from the system
         del sys.modules[module]
 
         # Reload the module
@@ -149,7 +149,7 @@ class BaseClassRegistry(BaseRegistry):
                 self._items[old_class_info[class_name]] = getattr(reloaded_module, class_name)
                 logging.info(f"Reloaded and re-registered '{old_class_info[class_name]}' with '{class_name}' from {module}")
             else:
-                self._unregister(old_class_info[class_name])
+                self.unregister(old_class_info[class_name])
                 logging.error(f"class '{old_class_info[class_name]}' with '{class_name}' no longer exists in reloaded module '{module}'")
 
 
