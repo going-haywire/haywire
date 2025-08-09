@@ -3,6 +3,7 @@ import os
 import time
 import ast
 import threading
+import traceback
 from pathlib import Path
 from typing import Dict, Set, Callable, Optional
 from abc import ABC, abstractmethod
@@ -172,7 +173,14 @@ class FileWatcher:
             ast.parse(source_code, filename=file_path)
             return True
         except SyntaxError as e:
-            logging.error(f"Syntax error in {file_path}: {e}")
+            # Get specific syntax error details
+            error_details = [
+                f"Syntax error in {file_path}:",
+                f"  Line {e.lineno}: {e.text.strip() if e.text else 'N/A'}",
+                f"  Error: {e.msg}",
+                f"  Position: {' ' * (e.offset - 1) if e.offset else ''}^" if e.offset else ""
+            ]
+            logging.error("\n".join(filter(None, error_details)))
             return False
         except Exception as e:
             logging.error(f"Error reading/parsing {file_path}: {e}")

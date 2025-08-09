@@ -8,7 +8,6 @@ from haywire.core.registry.registry import RendererRegistry
 from .default_renderer import DefaultNodeRenderer
 from .error_renderer import ErrorNodeRenderer
 
-
 def register_renderers(renderers_registry: RendererRegistry):
     """Register all core node renderers with the renderers registry"""
     

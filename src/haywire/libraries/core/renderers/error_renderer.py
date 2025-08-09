@@ -78,9 +78,7 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
                         ui.label("Error Node").classes('text-h6 flex-1')
                 
                     ui.label('This node could not be rendered with the requested renderer.').classes('text-sm text-red-600 mb-2')
-
             
-
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
                 # Left column: Inlets
