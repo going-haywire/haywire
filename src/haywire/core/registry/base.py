@@ -135,7 +135,8 @@ class BaseClassRegistry(BaseRegistry):
             old_class_info[self._class_name[class_name]] = class_name
         
         # Remove old classes from the system
-        del sys.modules[module]
+        # del sys.modules[module]
+        # This is problematic as it can drop other classes in the module
 
         # Reload the module
         if module in sys.modules:
