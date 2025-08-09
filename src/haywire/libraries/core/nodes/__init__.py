@@ -7,7 +7,7 @@ from .basic_nodes import TestNodeOne
 from .error_node import ErrorNode
 
 from haywire.core.registry.base import LibraryMetadata
-from haywire.core.registry.node_system import NodeRegistry
+from haywire.core.registry.registry import NodeRegistry
 
 
 def register_nodes(node_registry: NodeRegistry, library_metadata: LibraryMetadata):

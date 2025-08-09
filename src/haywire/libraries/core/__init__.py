@@ -6,8 +6,7 @@ that form the foundation of the Haywire system.
 """
 
 from haywire.core.registry.base import BaseLibrary, LibraryMetadata
-from haywire.core.registry.registry import WidgetRegistry, AdapterRegistry, RendererRegistry
-from haywire.core.registry.node_system import NodeRegistry
+from haywire.core.registry.registry import NodeRegistry, WidgetRegistry, AdapterRegistry, RendererRegistry
 
 # Import core components
 from .widgets import register_widgets
