@@ -2,13 +2,13 @@
 NodeRenderFactory - Factory for creating UINodeCard instances using NodeRenderer classes
 
 This factory manages cached NodeRenderer instances and provides the generate_node method
-that looks up renderers from the gadgets registry.
+that looks up renderers from the renderers registry.
 """
 
 from typing import Dict, Type
 from haywire.core.node.node import HaywireNode
 from haywire.core.registry.registry import WidgetRegistry
-from haywire.core.registry.registry import GadgetsRegistry
+from haywire.core.registry.registry import RendererRegistry
 from haywire.ui.base import BaseNodeRenderer, UINodeCard
 
 
@@ -17,20 +17,20 @@ class NodeRenderFactory:
     Factory class for creating UINodeCard instances using NodeRenderer classes.
     
     This factory:
-    - Has access to both gadgets registry and widgets registry
+    - Has access to both renderers registry and widgets registry
     - Caches stateless NodeRenderer instances for reuse
     - Provides generate_node method for creating UINodeCard instances
     """
     
-    def __init__(self, gadgets_registry: GadgetsRegistry, widget_registry: WidgetRegistry):
+    def __init__(self, renderers_registry: RendererRegistry, widget_registry: WidgetRegistry):
         """
         Initialize the factory with registries.
         
         Args:
-            gadgets_registry: Registry for NodeRenderer classes
+            renderers_registry: Registry for NodeRenderer classes
             widget_registry: Registry for widget classes (passed to NodeRenderer)
         """
-        self.gadgets_registry = gadgets_registry
+        self.renderers_registry = renderers_registry
         self.widget_registry = widget_registry
         
         # Cache for NodeRenderer instances (stateless, so can be reused)
@@ -47,8 +47,8 @@ class NodeRenderFactory:
         Returns:
             UINodeCard containing the rendered UI and widget instances
         """
-        # Get renderer class from gadgets registry (with fallback)
-        renderer_class = self.gadgets_registry.get_renderer_class(node_design_name)
+        # Get renderer class from renderers registry (with fallback)
+        renderer_class = self.renderers_registry.get_renderer_class(node_design_name)
         
         # Get or create cached renderer instance
         renderer_class_name = renderer_class.__name__
@@ -77,7 +77,7 @@ class NodeRenderFactory:
         Args:
             node_design_name: Name of the renderer to preload
         """
-        renderer_class = self.gadgets_registry.get_renderer_class(node_design_name)
+        renderer_class = self.renderers_registry.get_renderer_class(node_design_name)
         renderer_class_name = renderer_class.__name__
         
         if renderer_class_name not in self._renderer_cache:

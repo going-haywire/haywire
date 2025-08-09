@@ -6,14 +6,14 @@ Contains one node, one widget, one adapter, and one data struct.
 """
 
 from haywire.core.registry.base import BaseLibrary, LibraryMetadata
-from haywire.core.registry.registry import GadgetsRegistry, WidgetRegistry, AdapterRegistry
+from haywire.core.registry.registry import RendererRegistry, WidgetRegistry, AdapterRegistry
 from haywire.core.registry.node_system import NodeRegistry
 
 # Import test components
 from .widgets import register_widgets
 from .adapters import register_adapters  # Now includes data types
 from .nodes import register_nodes
-from .gadgets import register_gadgets
+from .renderers import register_renderers
 
 # Library metadata
 LIBRARY_METADATA = {
@@ -33,13 +33,13 @@ class Library(BaseLibrary):
     def __init__(self, metadata: LibraryMetadata):
         super().__init__(metadata)
     
-    def register_components(self, widget_registry: WidgetRegistry, gadgets_registry: GadgetsRegistry, adapter_registry: AdapterRegistry, node_registry: NodeRegistry):
+    def register_components(self, widget_registry: WidgetRegistry, renderers_registry: RendererRegistry, adapter_registry: AdapterRegistry, node_registry: NodeRegistry):
         """Register all test components with the global registries"""
         # Register widgets
         register_widgets(widget_registry)
 
-        # Register gadgets
-        register_gadgets(gadgets_registry)
+        # Register renderers
+        register_renderers(renderers_registry)
         
         # Register adapters
         register_adapters(adapter_registry)

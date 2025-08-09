@@ -45,12 +45,12 @@ class UINode:
         # Generate unique ID for this UINode
         self.ui_node_id = f"ui-node-{id(self)}"
     
-    def render(self, gadget_name: str | None = None):
+    def render(self, renderer_name: str | None = None):
         """
-        Render the node using the specified gadget.
+        Render the node using the specified renderer.
         
         Args:
-            gadget_name: Name of the gadget/renderer to use (None for default)
+            renderer_name: Name of the renderer/renderer to use (None for default)
         """
         with self.component:
             # Create or clear the container slot
@@ -61,23 +61,23 @@ class UINode:
             
             # Render into the container slot
             with self.container_slot:
-                if gadget_name is None:
-                    gadget_name = self.haywire_node.renderer
-                self.current_ui_card = self.factory.generate_node(gadget_name, self.haywire_node)
+                if renderer_name is None:
+                    renderer_name = self.haywire_node.renderer
+                self.current_ui_card = self.factory.generate_node(renderer_name, self.haywire_node)
     
-    def rerender(self, gadget_name: str | None = None):
+    def rerender(self, renderer_name: str | None = None):
         """
         Re-render the node with reliable cleanup.
         
         Args:
-            gadget_name: Name of the gadget/renderer to use (None for default)
+            renderer_name: Name of the renderer/renderer to use (None for default)
         """
         # Reliable cleanup via container slot
         if self.container_slot:
             self.container_slot.clear()  # NiceGUI handles the cleanup
         
         # Re-render
-        self.render(gadget_name)
+        self.render(renderer_name)
     
     def get_widget_instance(self, element_id: str):
         """

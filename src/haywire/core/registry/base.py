@@ -61,7 +61,7 @@ class BaseLibrary(ABC):
         self.metadata = metadata
     
     @abstractmethod
-    def register_components(self, widget_registry, gadgets_registry, adapter_registry, node_registry):
+    def register_components(self, widget_registry, renderers_registry, adapter_registry, node_registry):
         """Register this library's components with the global registries"""
         pass
     

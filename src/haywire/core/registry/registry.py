@@ -133,7 +133,7 @@ class LibraryRegistry(BaseRegistry):
         return library.metadata if library else None
 
 
-class GadgetsRegistry(BaseRegistry):
+class RendererRegistry(BaseRegistry):
     """Registry for NodeRenderer classes with fallback support"""
     
     def __init__(self):

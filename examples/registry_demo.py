@@ -1,8 +1,8 @@
 """
-Gadgets Registry Demo - Demonstrating the new node rendering architecture
+Renderer Registry Demo - Demonstrating the new node rendering architecture
 
-This example shows how to use the new gadgets registry system with:
-1. Setting up gadgets registry with default and error renderers
+This example shows how to use the new renderers registry system with:
+1. Setting up renderers registry with default and error renderers
 2. Creating NodeRenderFactory with both registries
 3. Using UINode for reliable rendering and re-rendering
 4. Custom renderer registration and usage
@@ -23,10 +23,10 @@ if src_path not in sys.path:
 
 
 from nicegui import ui
-from haywire.core.registry.registry import WidgetRegistry, GadgetsRegistry, LibraryRegistry, AdapterRegistry
+from haywire.core.registry.registry import WidgetRegistry, RendererRegistry, LibraryRegistry, AdapterRegistry
 from haywire.core.registry.discovery import LibraryDiscovery
 
-# Import the new gadgets architecture
+# Import the new renderers architecture
 from haywire.ui.node_render_factory import NodeRenderFactory
 from haywire.ui.ui_node import UINode
 
@@ -41,7 +41,7 @@ def setup_library_system():
     library_registry = LibraryRegistry()
     widget_registry = WidgetRegistry()
     adapter_registry = AdapterRegistry()
-    gadgets_registry = GadgetsRegistry()
+    renderer_registry = RendererRegistry()
     node_registry    = NodeRegistry()
     
     # Set up discovery
@@ -50,10 +50,10 @@ def setup_library_system():
     discovery.add_library_path(os.path.join(project_root, 'libraries'))
     
     # Load libraries
-    loaded = discovery.load_libraries(library_registry, widget_registry, adapter_registry, gadgets_registry, node_registry)
+    loaded = discovery.load_libraries(library_registry, widget_registry, adapter_registry, renderer_registry, node_registry)
     
     # 3. Create factory with both registries
-    factory = NodeRenderFactory(gadgets_registry, widget_registry)
+    factory = NodeRenderFactory(renderer_registry, widget_registry)
 
     # Print registered adapters in a beautiful format
     print("\n=== Registered Adapters ===")
@@ -67,11 +67,11 @@ def setup_library_system():
     for widget_key in all_widgets:
         print(f"🔧 {widget_key}")
 
-    # Print registered gadgets in a beautiful format
-    print("\n=== Registered Gadgets ===")
-    all_gadgets = gadgets_registry.list_names()
-    for gadget_key in all_gadgets:
-        print(f"🔨 {gadget_key}")        
+    # Print registered renderers in a beautiful format
+    print("\n=== Registered Renderer ===")
+    all_renderers = renderer_registry.list_names()
+    for renderer_key in all_renderers:
+        print(f"🔨 {renderer_key}")        
     
     # Print registered nodes in a beautiful format
     print("\n=== Registered Nodes ===")
@@ -80,26 +80,26 @@ def setup_library_system():
         print(f"🛠 {node_key}")
     print(f"Total: {len(all_nodes)} nodes\n")
 
-    return factory, gadgets_registry, widget_registry, adapter_registry, node_registry
+    return factory, renderer_registry, widget_registry, adapter_registry, node_registry
 
 
 def main():
     """Main demo application."""
     
-    # Set up the gadgets system
-    factory, gadgets_registry, widget_registry, adapter_registry, node_registry = setup_library_system()
+    # Set up the renderers system
+    factory, renderers_registry, widget_registry, adapter_registry, node_registry = setup_library_system()
     
     # Store UINode instances
     ui_nodes = {}
     
     @ui.page('/')
     def index_page():
-        ui.label('Gadgets Registry Demo - New Node Rendering Architecture').classes('text-h4 mb-4')
+        ui.label('Renderer Registry Demo - New Node Rendering Architecture').classes('text-h4 mb-4')
         
-        ui.label('This demo shows the new gadgets registry system:').classes('text-lg mb-2')
+        ui.label('This demo shows the new renderers registry system:').classes('text-lg mb-2')
         ui.html('''
         <ul class="list-disc ml-6 mb-4">
-            <li><strong>Gadgets Registry</strong> - Manages NodeRenderer classes with fallback</li>
+            <li><strong>Renderer Registry</strong> - Manages NodeRenderer classes with fallback</li>
             <li><strong>NodeRenderFactory</strong> - Caches stateless renderers and creates UINodeCard</li>
             <li><strong>UINode</strong> - Manages UI lifecycle with reliable cleanup</li>
             <li><strong>Container-Slot Approach</strong> - Reliable re-rendering without memory leaks</li>
@@ -186,20 +186,20 @@ def main():
         # System Information
         with ui.expansion('System Information', icon='info').classes('w-full mt-6'):
             # Dynamically get all registered renderers
-            registered_renderers = gadgets_registry.list_names()
+            registered_renderers = renderers_registry.list_names()
             renderer_list_html = ""
             
             # Add special renderers (default and error)
-            default_renderer = gadgets_registry.get_default_renderer()
+            default_renderer = renderers_registry.get_default_renderer()
             if default_renderer:
                 renderer_list_html += f'<li><strong>default</strong>: {default_renderer.__name__}</li>'
-            error_renderer = gadgets_registry.get_error_renderer()
+            error_renderer = renderers_registry.get_error_renderer()
             if error_renderer:
                 renderer_list_html += f'<li><strong>error</strong>: {error_renderer.__name__}</li>'
             
             # Add all explicitly registered renderers
             for renderer_name in registered_renderers:
-                renderer_class = gadgets_registry.get(renderer_name)
+                renderer_class = renderers_registry.get(renderer_name)
                 if renderer_class:
                     renderer_list_html += f'<li><strong>{renderer_name}</strong>: {renderer_class.__name__}</li>'
             
@@ -228,7 +228,7 @@ def main():
             ''')
 
     # Run the application
-    ui.run(port=8080, show=True, title="Gadgets Registry Demo")
+    ui.run(port=8080, show=True, title="Renderer Registry Demo")
 
 
 if __name__ in {"__main__", "__mp_main__"}:

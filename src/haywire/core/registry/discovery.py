@@ -11,7 +11,7 @@ import logging
 import traceback
 
 from .base import BaseLibrary, LibraryMetadata
-from .registry import LibraryRegistry, WidgetRegistry, AdapterRegistry, GadgetsRegistry
+from .registry import LibraryRegistry, WidgetRegistry, AdapterRegistry, RendererRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +33,9 @@ class LibraryLoadError(LibraryDiscoveryError):
 
 class LibraryDiscovery:
     """Discovers and loads libraries from multiple locations"""
-    
-    REQUIRED_SUBDIRS = ['nodes', 'widgets', 'adapters', 'gadgets']
-    
+
+    REQUIRED_SUBDIRS = ['nodes', 'widgets', 'adapters', 'renderers']
+
     def __init__(self):
         self.library_paths: List[str] = []
         self.discovered_libraries: Dict[str, Dict[str, Any]] = {}
@@ -100,7 +100,7 @@ class LibraryDiscovery:
             if is_valid:
                 logger.info(f"Valid library found: {library_name} at {library_path}")
             else:
-                logger.warning(f"Invalid library structure: {library_name} (missing: {missing_dirs})")
+                logger.warning(f"Invalid library structure: library '{library_name}' is missing: '{missing_dirs}' - folder")
                 
         except Exception as e:
             logger.error(f"Error checking library structure for {library_name}: {e}")
@@ -168,7 +168,7 @@ class LibraryDiscovery:
                       library_registry: LibraryRegistry,
                       widget_registry: WidgetRegistry, 
                       adapter_registry: AdapterRegistry,
-                      gadgets_registry: GadgetsRegistry,
+                      renderer_registry: RendererRegistry,
                       node_registry) -> List[str]:
         """
         Load all discovered valid libraries.
@@ -205,7 +205,7 @@ class LibraryDiscovery:
                     # Let the library register its components
                     library_instance.register_components(
                         widget_registry, 
-                        gadgets_registry,
+                        renderer_registry,
                         adapter_registry, 
                         node_registry
                     )
