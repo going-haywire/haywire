@@ -28,10 +28,7 @@ LIBRARY_METADATA = {
 
 class Library(BaseLibrary):
     """Core Haywire library implementation"""
-    
-    def __init__(self, metadata: LibraryMetadata):
-        super().__init__(metadata)
-    
+
     def register_components(self, widget_registry: WidgetRegistry, renderer_registry: RendererRegistry, adapter_registry: AdapterRegistry, node_registry: NodeRegistry):
         """Register all core components with the global registries"""
         # Register widgets

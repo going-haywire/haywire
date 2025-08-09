@@ -3,7 +3,7 @@ Registry implementations for widgets, adapters, and libraries
 """
 
 from typing import Any, Dict, List, Optional
-from .base import BaseRegistry, LibraryMetadata
+from .base import BaseRegistry, BaseClassRegistry, LibraryMetadata
 
 # Import core data types for widget fallback
 from haywire.core.data.enums import DataType, DataCategory
@@ -11,7 +11,35 @@ from haywire.core.data.fields import DataField
 from haywire.core.adapter.base import BaseAdapter
 from haywire.core.node.node import HaywireNode, NodeDiscoveryError, NodeErrorInfo
 
-class WidgetRegistry(BaseRegistry):
+class LibraryRegistry(BaseRegistry):
+    """Registry for managing loaded libraries"""
+    
+    def __init__(self):
+        super().__init__()
+        self._library_paths: dict[str, str] = {}
+        self._load_order: list[str] = []
+    
+    def register_library(self, library_name: str, library_instance: Any, library_path: str):
+        """Register a library instance with its path"""
+        self.register(library_name, library_instance)
+        self._library_paths[library_name] = library_path
+        if library_name not in self._load_order:
+            self._load_order.append(library_name)
+    
+    def get_library_path(self, library_name: str) -> str | None:
+        """Get the filesystem path for a library"""
+        return self._library_paths.get(library_name)
+    
+    def get_load_order(self) -> list[str]:
+        """Get the order in which libraries were loaded"""
+        return self._load_order.copy()
+    
+    def get_library_metadata(self, library_name: str) -> LibraryMetadata | None:
+        """Get metadata for a library"""
+        library = self.get(library_name)
+        return library.metadata if library else None
+
+class WidgetRegistry(BaseClassRegistry):
     """Registry for UI widgets that can render data fields"""
     
     def __init__(self):
@@ -52,7 +80,7 @@ class WidgetRegistry(BaseRegistry):
         raise RuntimeError(f"No widget found for '{widget_name}' and no error widget registered")
 
 
-class AdapterRegistry(BaseRegistry):
+class AdapterRegistry(BaseClassRegistry):
     """Registry for type conversion adapters"""
     
     def __init__(self):
@@ -105,36 +133,7 @@ class AdapterRegistry(BaseRegistry):
         return self.has_adapter(source_field, target_field)
 
 
-class LibraryRegistry(BaseRegistry):
-    """Registry for managing loaded libraries"""
-    
-    def __init__(self):
-        super().__init__()
-        self._library_paths: dict[str, str] = {}
-        self._load_order: list[str] = []
-    
-    def register_library(self, library_name: str, library_instance: Any, library_path: str):
-        """Register a library instance with its path"""
-        self.register(library_name, library_instance)
-        self._library_paths[library_name] = library_path
-        if library_name not in self._load_order:
-            self._load_order.append(library_name)
-    
-    def get_library_path(self, library_name: str) -> str | None:
-        """Get the filesystem path for a library"""
-        return self._library_paths.get(library_name)
-    
-    def get_load_order(self) -> list[str]:
-        """Get the order in which libraries were loaded"""
-        return self._load_order.copy()
-    
-    def get_library_metadata(self, library_name: str) -> LibraryMetadata | None:
-        """Get metadata for a library"""
-        library = self.get(library_name)
-        return library.metadata if library else None
-
-
-class RendererRegistry(BaseRegistry):
+class RendererRegistry(BaseClassRegistry):
     """Registry for NodeRenderer classes with fallback support"""
     
     def __init__(self):
@@ -199,7 +198,7 @@ class RendererRegistry(BaseRegistry):
         """Get the error renderer class"""
         return self._error_renderer
 
-class NodeRegistry(BaseRegistry):
+class NodeRegistry(BaseClassRegistry):
     """Simplified registry for managing nodes using library_name:node_name keys"""
     
     def __init__(self):

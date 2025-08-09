@@ -4,6 +4,7 @@ Base classes for the Haywire library system
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
+import inspect
 from dataclasses import dataclass
 
 
@@ -18,6 +19,8 @@ class LibraryMetadata:
     author: str
     author_url: str
     dependencies: list[str] = None
+    # file_path is set when the library is registered
+    file_path: Optional[str] = None
     
     def __post_init__(self):
         if self.dependencies is None:
@@ -36,7 +39,7 @@ class BaseRegistry(ABC):
         self._items[name] = item
         if metadata:
             self._metadata[name] = metadata
-    
+
     def get(self, name: str) -> Optional[Any]:
         """Get an item by name"""
         return self._items.get(name)
@@ -54,11 +57,26 @@ class BaseRegistry(ABC):
         return self._metadata.get(name)
 
 
+class BaseClassRegistry(BaseRegistry):
+    """Abstract base class for all class registries"""
+    
+    def __init__(self):
+        super().__init__()
+        self._file_path: Dict[str, str] = {}
+    
+    def register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
+        super().register(name, item, metadata)
+
+        self._file_path[name] = inspect.getfile(item)
+        #print(f"Registered {name} at {self._file_path[name]}")
+
+
 class BaseLibrary(ABC):
     """Abstract base class for all libraries"""
     
-    def __init__(self, metadata: LibraryMetadata):
+    def __init__(self, metadata: LibraryMetadata, file_path: str):
         self.metadata = metadata
+        self.file_path = file_path
     
     @abstractmethod
     def register_components(self, widget_registry, renderers_registry, adapter_registry, node_registry):

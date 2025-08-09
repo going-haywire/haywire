@@ -28,10 +28,7 @@ LIBRARY_METADATA = {
 
 class Library(BaseLibrary):
     """Example library implementation"""
-    
-    def __init__(self, metadata: LibraryMetadata):
-        super().__init__(metadata)
-    
+       
     def register_components(self, widget_registry: WidgetRegistry, renderers_registry: RendererRegistry, adapter_registry: AdapterRegistry, node_registry: NodeRegistry):
         """Register all test components with the global registries"""
         # Register widgets

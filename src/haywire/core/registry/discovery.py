@@ -105,64 +105,6 @@ class LibraryDiscovery:
         except Exception as e:
             logger.error(f"Error checking library structure for {library_name}: {e}")
     
-    def _load_library_metadata(self, library_path: str) -> Optional[LibraryMetadata]:
-        """Load metadata from a library's __init__.py"""
-        try:
-            # Determine the proper module path for import
-            library_name = os.path.basename(library_path)
-            
-            # Check if this is a core library (in src/haywire/libraries/)
-            if 'src/haywire/libraries' in library_path:
-                # For core libraries, use the haywire.libraries.X import path
-                module_path = f"haywire.libraries.{library_name}"
-            else:
-                # For external libraries, add parent to sys.path and import directly
-                parent_dir = os.path.dirname(library_path)
-                if parent_dir not in sys.path:
-                    sys.path.insert(0, parent_dir)
-                module_path = library_name
-            
-            # Import the module using the proper path
-            module = importlib.import_module(module_path)
-            
-           # Extract metadata
-            if hasattr(module, 'LIBRARY_METADATA'):
-                metadata_dict = module.LIBRARY_METADATA
-                
-                # Create LibraryMetadata with all possible fields
-                # Get the actual LibraryMetadata class to inspect its fields
-                from dataclasses import fields
-                metadata_fields = {field.name for field in fields(LibraryMetadata)}
-                
-                # Build kwargs only with fields that exist in LibraryMetadata
-                metadata_kwargs = {}
-                for field_name in metadata_fields:
-                    if field_name in metadata_dict:
-                        metadata_kwargs[field_name] = metadata_dict[field_name]
-                    # Set reasonable defaults for missing required fields
-                    elif field_name == 'name':
-                        metadata_kwargs[field_name] = library_name
-                    elif field_name == 'version':
-                        metadata_kwargs[field_name] = '0.0.0'
-                    elif field_name == 'description':
-                        metadata_kwargs[field_name] = f'Library: {library_name}'
-                    elif field_name == 'author':
-                        metadata_kwargs[field_name] = 'Unknown'
-                    elif field_name == 'dependencies':
-                        metadata_kwargs[field_name] = []
-
-                return LibraryMetadata(**metadata_kwargs)
-            
-        except Exception as e:
-            logger.error(f"Error loading metadata from {library_path}: {e}")
-        finally:
-            # Remove from sys.path if we added it
-            if 'src/haywire/libraries' not in library_path:
-                parent_dir = os.path.dirname(library_path)
-                if parent_dir in sys.path:
-                    sys.path.remove(parent_dir)
-        
-        return None
     
     def load_libraries(self, 
                       library_registry: LibraryRegistry,
@@ -214,7 +156,7 @@ class LibraryDiscovery:
                     logger.info(f"Successfully loaded library: {library_name}")
                 
             except Exception as e:
-                logger.error(f"Failed to load library {library_name}: {e}")
+                logger.error(f"Failed to load library {library_name}: {e} \n {traceback.format_exc()}")
         
         return loaded_libraries
     
@@ -228,9 +170,27 @@ class LibraryDiscovery:
             library_names.insert(0, 'core')
         
         return library_names
-    
+        
     def _load_library_instance(self, library_name: str, library_path: str) -> Optional[BaseLibrary]:
         """Load a library instance from its path"""
+        try:
+            # Use the existing metadata loading method to get both module and metadata
+            module, metadata = self._load_module_and_metadata(library_name, library_path)
+            
+            if module and hasattr(module, 'Library'):
+                library_class = module.Library
+                return library_class(metadata, library_path)
+                    
+        except Exception as e:
+            logger.error(f"Error loading library instance from {library_path}: {e} \n {traceback.format_exc()}")
+        
+        return None
+
+    def _load_module_and_metadata(self, library_name: str, library_path: str) -> tuple[Optional[Any], LibraryMetadata]:
+        """Load module and metadata from a library's __init__.py. Always returns LibraryMetadata (with defaults if needed)."""
+        module = None
+        parent_dir_added = False
+        
         try:
             # Determine the proper module path for import
             # Check if this is a core library (in src/haywire/libraries/)
@@ -242,25 +202,45 @@ class LibraryDiscovery:
                 parent_dir = os.path.dirname(library_path)
                 if parent_dir not in sys.path:
                     sys.path.insert(0, parent_dir)
+                    parent_dir_added = True
                 module_path = library_name
             
             # Import the module using the proper path
             module = importlib.import_module(module_path)
             
-            # Look for library class
-            if hasattr(module, 'Library'):
-                library_class = module.Library
-                if hasattr(module, 'LIBRARY_METADATA'):
-                    metadata = LibraryMetadata(**module.LIBRARY_METADATA)
-                    return library_class(metadata)
-            
         except Exception as e:
-            logger.error(f"Error loading library instance from {library_path}: {e} \n {traceback.format_exc()}")
+            logger.error(f"Error loading module from {library_path}: {e}")
         finally:
             # Remove from sys.path if we added it
-            if 'src/haywire/libraries' not in library_path:
+            if parent_dir_added and 'src/haywire/libraries' not in library_path:
                 parent_dir = os.path.dirname(library_path)
                 if parent_dir in sys.path:
                     sys.path.remove(parent_dir)
         
-        return None
+        # Always create metadata (from module or defaults)
+        metadata = self._create_metadata(module, library_name)
+        return module, metadata
+
+    def _create_metadata(self, module: Optional[Any], library_name: str) -> LibraryMetadata:
+        """Create LibraryMetadata from module or use defaults"""
+        metadata_kwargs = {
+            'name': library_name,
+            'version': '0.0.0',
+            'description': f'Library: {library_name}',
+            'author': 'Unknown',
+            'dependencies': []
+        }
+        if module and hasattr(module, 'LIBRARY_METADATA'):
+            metadata_dict = module.LIBRARY_METADATA
+            
+            # Create LibraryMetadata with all possible fields
+            from dataclasses import fields
+            metadata_fields = {field.name for field in fields(LibraryMetadata)}
+            
+            # Fill metadata_kwargs with fields that exist in LibraryMetadata
+            for field_name in metadata_fields:
+                if field_name in metadata_dict:
+                    metadata_kwargs[field_name] = metadata_dict[field_name]
+
+        return LibraryMetadata(**metadata_kwargs)
+    
