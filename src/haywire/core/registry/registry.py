@@ -167,7 +167,7 @@ class RendererRegistry(BaseClassRegistry):
         self._default_renderer_name: str | None = None
         self._error_renderer: type | None = None
 
-    def register_renderer(self, name: str, renderer_class, metadata: Optional[Dict[str, Any]] = None):
+    def register_renderer(self, renderer_cls: type, metadata: Optional[Dict[str, Any]] = None):
         """
         Register a renderer class.
         
@@ -176,28 +176,40 @@ class RendererRegistry(BaseClassRegistry):
             renderer_class: The NodeRenderer class
             metadata: Optional metadata for the renderer
         """
-        self._register(name, renderer_class, metadata)
+
+        renderer_name = camel_to_dot_case(renderer_cls.__name__)
+
+        keyname = f"{metadata.name}:{renderer_name}"
+
+        self._register(keyname, renderer_cls, metadata)
         
         # Automatically set as default if no default is set yet
         if self._default_renderer_name is None:
-            self._default_renderer_name = name
+            self._default_renderer_name = keyname
 
-    def register_default_renderer(self, renderer_name: str):
-        """Register the default renderer by name"""
-        if not self.has(renderer_name):
-            raise ValueError(f"Renderer '{renderer_name}' must be registered before setting as default")
-        self._default_renderer_name = renderer_name
+    def register_default_renderer(self, renderer_cls: type):
+        """Register the default renderer by class"""
+
+        # get the widget name from the class
+        # This assures to work even it the widget class was removed from the registry
+        renderer_name = next((name for name, cls in self._items.items() if cls == renderer_cls), None)
+
+        if renderer_name:
+            self._default_renderer_name = renderer_name
+        else:
+            logging.warning(f"Renderer class '{renderer_cls.__name__}' not found in registry, cannot set as default")
     
     def register_error_renderer(self, renderer_class: type):
         """Register the error renderer class"""
         self._error_renderer = renderer_class
-    
-    def get_renderer_class(self, renderer_name: str | None):
+
+    def get_renderer_class(self, renderer_name: str | None) -> type:
         """
         Get renderer class with fallback strategy:
         1. Try exact renderer name lookup
         2. Use default if no renderer name is specified
         3. Return error renderer if exact renderer doesn't exist
+        4. Escalate with RuntimeError exception if no error renderer registered
         """
         # 1. Try exact renderer name lookup
         if renderer_name and self.has(renderer_name):
@@ -205,7 +217,8 @@ class RendererRegistry(BaseClassRegistry):
         
         # 2. Use default if no renderer name is specified
         if renderer_name is None and self._default_renderer_name:
-            return self.get(self._default_renderer_name)
+            if self.has(self._default_renderer_name):
+                return self.get(self._default_renderer_name)
         
         # 3. Return error renderer if exact renderer doesn't exist
         if self._error_renderer:
@@ -217,7 +230,8 @@ class RendererRegistry(BaseClassRegistry):
     def get_default_renderer(self) -> type | None:
         """Get the default renderer class"""
         if self._default_renderer_name:
-            return self.get(self._default_renderer_name)
+            if self.has(self._default_renderer_name):
+                return self.get(self._default_renderer_name)
         return None
     
     def get_error_renderer(self) -> type | None:

@@ -164,12 +164,12 @@ def main():
                             ui.notify('Math node re-rendered with its custom renderer')
                         
                         async def rerender_custom():
-                            ui_nodes['math'].rerender('example.renderer')  # Re-render with custom
-                            ui.notify('Math node re-rendered with example.renderer renderer')
+                            ui_nodes['math'].rerender('example:example.node.renderer')  # Re-render with custom
+                            ui.notify('Math node re-rendered with example:example.node.renderer')
 
                         async def rerender_default():
-                            ui_nodes['math'].rerender('core.default')  # Re-render with custom
-                            ui.notify('Math node re-rendered with core.default renderer')
+                            ui_nodes['math'].rerender('haywire.core:default.node.renderer')  # Re-render with custom
+                            ui.notify('Math node re-rendered with haywire.core:default.node.renderer')
                         
                         async def test_error_renderer():
                             ui_nodes['math'].rerender('nonexistent')  # Should use error renderer
