@@ -30,13 +30,13 @@ REQUIRED_LIB_DIRS = [RegistryFolder.WIDGETS.value,
 
 HAYWIRE_CORE_LIB_NAME = 'haywire.core'
 
+@dataclass
 class FileChangeEvent:
     """Represents a file change event"""
-    def __init__(self, file_path: str, event_type: str, library_name: str = None):
-        self.file_path = file_path
-        self.event_type = event_type  # 'modified', 'created', 'deleted'
-        self.library_name = library_name
-        self.timestamp = time.time()
+    file_path: str
+    event_type: str  # 'created', 'modified', 'deleted'
+    timestamp: float
+
 
 @dataclass
 class LibraryMetadata:
