@@ -3,6 +3,9 @@ Registry implementations for widgets, adapters, and libraries
 """
 
 from typing import Any, Dict, List, Optional
+import logging
+
+from haywire.core.registry.utils import camel_to_dot_case
 from .base import BaseRegistry, BaseClassRegistry, LibraryMetadata, RegistryFolder
 
 # Import core data types for widget fallback
@@ -19,9 +22,12 @@ class LibraryRegistry(BaseRegistry):
         self._library_paths: dict[str, str] = {}
         self._load_order: list[str] = []
     
-    def register_library(self, library_name: str, library_instance: Any, library_path: str):
+    def register_library(self, library_instance: Any, library_path: str):
         """Register a library instance with its path"""
-        self.register(library_name, library_instance)
+        library_name = library_instance.metadata.name
+
+        self._register(library_name, library_instance)
+
         self._library_paths[library_name] = library_path
         if library_name not in self._load_order:
             self._load_order.append(library_name)
@@ -45,12 +51,29 @@ class WidgetRegistry(BaseClassRegistry):
 
     def __init__(self):
         super().__init__()
-        self._default_widgets: dict[DataType, str] = {}
+        self._default_widgets: dict[DataType, type] = {}
         self._error_widget: type | None = None
     
-    def register_default_widget(self, data_type: DataType, widget_name: str):
+    def register_widget(self, widget: type, metadata: LibraryMetadata):
+        """Register a UI widget with its metadata"""
+
+        widget_name = camel_to_dot_case(widget.__name__)
+
+        keyname = f"{metadata.name}:{widget_name}"
+
+        self._register(keyname, widget, metadata=metadata)
+
+    def register_default_widget(self, data_type: DataType, widget_class: type):
         """Register a default widget for a data type"""
-        self._default_widgets[data_type] = widget_name
+
+        # get the widget name from the class
+        # This assures to work even it the widget class was removed from the registry
+        widget_name = next((name for name, cls in self._items.items() if cls == widget_class), None)
+
+        if widget_name is None:
+            self._default_widgets[data_type] = widget_name
+        else:
+            logging.warning(f"Widget class '{widget_class.__name__}' not found in registry, cannot register default widget for '{data_type}'")
     
     def register_error_widget(self, widget_class: type):
         """Register the error widget class"""
@@ -108,7 +131,7 @@ class AdapterRegistry(BaseClassRegistry):
         
         # Register with base registry for metadata tracking
         adapter_name = f"{source_key}_to_{target_key}"
-        super().register(adapter_name, adapter_class)
+        super()._register(adapter_name, adapter_class)
     
     def has_adapter(self, source_type: str, target_type: str) -> bool:
         """Check if an adapter exists for the given type conversion"""
@@ -153,7 +176,7 @@ class RendererRegistry(BaseClassRegistry):
             renderer_class: The NodeRenderer class
             metadata: Optional metadata for the renderer
         """
-        self.register(name, renderer_class, metadata)
+        self._register(name, renderer_class, metadata)
         
         # Automatically set as default if no default is set yet
         if self._default_renderer_name is None:
@@ -239,7 +262,7 @@ class NodeRegistry(BaseClassRegistry):
         if self.has(key):
             raise ValueError(f"Node already registered: {key}")
                 
-        self.register(key, node_class, library_metadata)
+        self._register(key, node_class, library_metadata)
     
     def register_error_node(self, node_class: type):
         """Register the error node class"""

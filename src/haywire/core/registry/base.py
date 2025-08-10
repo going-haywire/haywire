@@ -63,11 +63,18 @@ class BaseRegistry(ABC):
         self._items: Dict[str, Any] = {}
         self._metadata: Dict[str, Dict[str, Any]] = {}
     
-    def register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
+    def _register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
         """Register an item with optional metadata"""
         self._items[name] = item
         if metadata:
             self._metadata[name] = metadata
+
+    def _unregister(self, name: str):
+        """Remove an item from the registry"""
+        if name in self._items:
+            del self._items[name]
+        if name in self._metadata:
+            del self._metadata[name]
 
     def get(self, name: str) -> Optional[Any]:
         """Get an item by name"""
@@ -95,8 +102,8 @@ class BaseClassRegistry(BaseRegistry):
         self._class_name: Dict[str, str] = {}  # Name of the class being registered
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
      
-    def register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
-        super().register(name, item, metadata)
+    def _register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
+        super()._register(name, item, metadata)
         self._class_name[name] = item.__name__
 
         # Track module to class mapping
@@ -106,12 +113,9 @@ class BaseClassRegistry(BaseRegistry):
         if name not in self._module_to_classes[module_name]:
             self._module_to_classes[module_name].append(name)
 
-    def unregister(self, name: str):
+    def _unregister(self, name: str):
         """Remove a class from the registry"""
-        if name in self._items:
-            del self._items[name]
-        if name in self._metadata:
-            del self._metadata[name]
+        super()._unregister(name)
         if name in self._class_name:
             del self._class_name[name]
         

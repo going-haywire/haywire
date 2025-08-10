@@ -100,7 +100,6 @@ class LibraryDiscovery:
                 if library_instance:
                     # Register the library
                     library_registry.register_library(
-                        library_name, 
                         library_instance, 
                         library_info['path']
                     )

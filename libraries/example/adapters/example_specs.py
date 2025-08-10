@@ -8,6 +8,6 @@ TEMPERATURE = specs_factory(
     description='Temperature data type',
     type=DataType.FLOAT,
     category=DataCategory.SCALAR,
-    widget='example.temperature',
+    widget='example:temperature.widget',
     ui={'properties': {'unit': '°C'}}
 )

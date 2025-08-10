@@ -64,7 +64,7 @@ def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryM
         print(f"Test-Registering widget: '{widget_class.__name__}' as :'{camel_to_dot_case(widget_class.__name__)}'")
         #widget_registry.register_widget(widget_class, library_metadata)
 
-    widget_registry.register('example.temperature', TemperatureWidget)
+    widget_registry.register_widget(TemperatureWidget, library_metadata)
 
 __all__ = [
     'TemperatureWidget',
