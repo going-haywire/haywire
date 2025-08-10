@@ -1,8 +1,7 @@
 """
-Default NodeRenderer - Based on the existing ModularNiceGUINodeRenderer design
+Error NodeRenderer - Based on the DefaultNodeRenderer
 
-This renderer provides the standard node appearance and functionality,
-extracted from the current ModularNiceGUINodeRenderer implementation.
+This renderer provides error styling for nodes.
 """
 
 from typing import Dict, Any

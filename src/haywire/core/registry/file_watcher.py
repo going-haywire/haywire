@@ -150,7 +150,7 @@ class FileWatcher:
         if event.file_path.endswith('.py'):
             # Validate Python file before notifying libraries
             if not self._validate_python_file(event.file_path):
-                logging.error(f"Invalid Python file: {event.file_path}. Skipping notification.")
+                logging.error(f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
                 return
 
             for library_name in affected_libraries:

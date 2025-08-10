@@ -277,7 +277,7 @@ class LibraryDiscovery:
             module = importlib.import_module(module_path)
             
         except Exception as e:
-            logger.error(f"Error loading module from {library_path}: {e}")
+            logger.error(f"Error loading module from {library_path}: {e} \n {traceback.format_exc()}")
         finally:
             # Remove from sys.path if we added it
             if parent_dir_added and 'src/haywire/libraries' not in library_path:

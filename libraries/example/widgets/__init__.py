@@ -5,6 +5,8 @@ Test widgets for the test library
 from typing import Any, Dict
 from nicegui import ui
 
+from haywire.core.registry.auto_discover import auto_discover_classes, is_widget
+from haywire.core.registry.utils import camel_to_dot_case
 from haywire.core.ui.base import BaseWidget
 from haywire.core.registry.base import LibraryMetadata
 from haywire.core.registry.registry import WidgetRegistry
@@ -51,6 +53,17 @@ class TemperatureWidget(BaseWidget):
 
 def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryMetadata):
     """Register test widgets with the widget registry"""
+
+    widgets = auto_discover_classes(
+        library_path=__path__[0],
+        class_filter=is_widget
+    )
+
+    # Register all discovered widgets
+    for widget_class in widgets:
+        print(f"Test-Registering widget: '{widget_class.__name__}' as :'{camel_to_dot_case(widget_class.__name__)}'")
+        #widget_registry.register_widget(widget_class, library_metadata)
+
     widget_registry.register('example.temperature', TemperatureWidget)
 
 __all__ = [

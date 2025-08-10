@@ -1,7 +1,15 @@
 
 from pathlib import Path
 from typing import Dict, Any, Optional 
+import re
 
+def camel_to_dot_case(CamelCaseString: str) -> str:
+    """Convert CamelCase to dot.case with handling of consecutive uppercase letters"""
+    # Handle transition from lowercase to uppercase
+    result = re.sub(r'([a-z])([A-Z])', r'\1.\2', CamelCaseString)
+    # Handle transition from multiple uppercase to lowercase (e.g., "XMLHttp" -> "XML.Http")
+    result = re.sub(r'([A-Z])([A-Z][a-z])', r'\1.\2', result)
+    return result.lower()
 
 def resolve_module_name(file_path: str) -> Optional[str]:
     """

@@ -3,6 +3,8 @@ Core node implementations and registration
 """
 
 # Import core node examples
+from haywire.core.registry.auto_discover import auto_discover_classes, is_node
+from haywire.core.registry.utils import camel_to_dot_case
 from .basic_nodes import TestNodeOne
 from .error_node import ErrorNode
 
@@ -13,12 +15,30 @@ from haywire.core.registry.registry import NodeRegistry
 def register_nodes(node_registry: NodeRegistry, library_metadata: LibraryMetadata):
     """Register all core nodes with the node registry"""
 
+    nodes = auto_discover_classes(
+        library_path=__path__[0],
+        class_filter=is_node
+    )
+
+    # Register all discovered nodes
+    for node_class in nodes:
+        print(f"Test-Registering node: '{node_class.__name__}' as :'{camel_to_dot_case(node_class.__name__)}'")
+        #node_registry.register_node(node_class, library_metadata)
+
+    nodes = [
+        TestNodeOne,
+        ErrorNode
+    ]
+
+    nodes.remove(ErrorNode)  # Remove ErrorNode from basic nodes list
+
+    # Register basic nodes
+    for node_class in nodes:
+        node_registry.register_node(node_class, library_metadata)
+
     # Register error node
     node_registry.register_error_node(ErrorNode)
 
-    # Register basic nodes
-    node_registry.register_node(TestNodeOne, library_metadata)
-    
 __all__ = [
     'TestNodeOne',
     'ErrorNode'

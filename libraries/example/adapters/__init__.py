@@ -4,50 +4,30 @@ Test adapters for the test library
 This module now includes both adapters and data type definitions (merged from data/ folder).
 """
 
-from typing import override
-
-from haywire.core.adapter.base import BaseAdapter
+from haywire.core.registry.auto_discover import auto_discover_classes, is_adapter
 from haywire.core.registry.base import LibraryMetadata
 from haywire.core.registry.registry import AdapterRegistry
-from haywire.core.data import FLOAT
 
 # Data type definitions (merged from data/ folder)
-from haywire.core.data.enums import DataType, DataCategory
-from haywire.core.data.specs import specs_factory
+from haywire.core.registry.utils import camel_to_dot_case
 
-# Custom data type for testing
-TEMPERATURE = specs_factory(
-    id='TEMPERATURE', 
-    label='Temperature', 
-    description='Temperature data type',
-    type=DataType.FLOAT,
-    category=DataCategory.SCALAR,
-    widget='example.temperature',
-    ui={'properties': {'unit': '°C'}}
-)
-
-class FloatToTemperatureAdapter(BaseAdapter):
-    """Convert generic float to temperature (assuming Celsius)"""
-    source_type: str = FLOAT().id
-    target_type: str = TEMPERATURE().id
-    
-    @override
-    def convert(self, value: float) -> float:
-        return value
-
-class TemperatureToFloatAdapter(BaseAdapter):
-    """Convert generic float to temperature (assuming Celsius)"""
-    source_type: str = TEMPERATURE().id
-    target_type: str = FLOAT().id
-    
-    @override
-    def convert(self, value: float) -> float:
-        return value
-
+# Importing adapters
+from .example_adapters import FloatToTemperatureAdapter, TemperatureToFloatAdapter
 
 def register_adapters(adapter_registry: AdapterRegistry, library_metadata: LibraryMetadata):
     """Register test adapters with the adapter registry using self-registering pattern"""
     # List of adapter classes to register (self-registering pattern)
+
+    adapters = auto_discover_classes(
+        library_path=__path__[0],
+        class_filter=is_adapter
+    )
+
+    # Register all discovered adapters
+    for adapter_class in adapters:
+        print(f"Test-Registering adapter: '{adapter_class.__name__}' as :'{camel_to_dot_case(adapter_class.__name__)}'")
+        #renderers_registry.register_renderer(adapter_class, library_metadata)
+
     adapters = [
         FloatToTemperatureAdapter,
         TemperatureToFloatAdapter,
@@ -58,8 +38,6 @@ def register_adapters(adapter_registry: AdapterRegistry, library_metadata: Libra
         adapter_registry.register_adapter(adapter_class)
     
 __all__ = [
-    # Data types (merged from data/ folder)
-    'TEMPERATURE',
     # Adapters
     'FloatToTemperatureAdapter',
     'TemperatureToFloatAdapter',
