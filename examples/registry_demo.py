@@ -145,7 +145,7 @@ def main():
                 ui.label('Math Node (Custom Renderer)').classes('text-h6 mb-2')
 
                 try:
-                    error, node_class = node_registry.get_node_class("haywire.core:TestNodeOne")
+                    error, node_class = node_registry.get_node_class("haywire.core:test.node.one")
                     node_instance = node_class('unique_id', None)
                     if error:
                         node_instance.error_info = error

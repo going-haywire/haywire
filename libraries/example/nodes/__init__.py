@@ -12,6 +12,7 @@ from .display_node import DisplayNode
 def register_nodes(node_registry: NodeRegistry, library_metadata: LibraryMetadata):
     """Register test nodes with the node registry"""
 
+    # Discover all node classes in this library
     nodes = auto_discover_classes(
         library_path=__path__[0],
         class_filter=is_node
@@ -19,17 +20,8 @@ def register_nodes(node_registry: NodeRegistry, library_metadata: LibraryMetadat
 
     # Register all discovered nodes
     for node_class in nodes:
-        print(f"Test-Registering node: '{node_class.__name__}' as :'{camel_to_dot_case(node_class.__name__)}'")
-        #node_registry.register_node(node_class, library_metadata)
-
-    nodes = [
-        DisplayNode,
-    ]
-
-    for node_class in nodes:
         node_registry.register_node(node_class, library_metadata)
 
 __all__ = [
-    'DisplayNode',
     'register_nodes'
 ]

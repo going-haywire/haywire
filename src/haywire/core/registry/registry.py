@@ -246,7 +246,7 @@ class NodeRegistry(BaseClassRegistry):
         super().__init__()
         self._error_node: type | None = None
     
-    def register_node(self, node_class: type, library_metadata: LibraryMetadata):
+    def register_node(self, node_cls: type, library_metadata: LibraryMetadata):
         """
         Register a node class with library metadata.
         
@@ -261,22 +261,24 @@ class NodeRegistry(BaseClassRegistry):
             ValueError: If a node with the same key is already registered
         """
         # Set library-derived attributes on the node class
-        setattr(node_class, 'library_name', library_metadata.name)
-        setattr(node_class, 'library_version', library_metadata.version)
-        setattr(node_class, 'library_url', library_metadata.url)
-        setattr(node_class, 'library_help_url', library_metadata.help_url)
-        setattr(node_class, 'library_author', library_metadata.author)
-        setattr(node_class, 'library_author_url', library_metadata.author_url)
+        setattr(node_cls, 'library_name', library_metadata.name)
+        setattr(node_cls, 'library_version', library_metadata.version)
+        setattr(node_cls, 'library_url', library_metadata.url)
+        setattr(node_cls, 'library_help_url', library_metadata.help_url)
+        setattr(node_cls, 'library_author', library_metadata.author)
+        setattr(node_cls, 'library_author_url', library_metadata.author_url)
 
+
+        node_name = camel_to_dot_case(node_cls.__name__)
 
         # Create registry key
-        key = f"{library_metadata.name}:{node_class.node_name}"
+        key = f"{library_metadata.name}:{node_name}"
         
         # Check for duplicates
         if self.has(key):
             raise ValueError(f"Node already registered: {key}")
                 
-        self._register(key, node_class, library_metadata)
+        self._register(key, node_cls, library_metadata)
     
     def register_error_node(self, node_class: type):
         """Register the error node class"""
