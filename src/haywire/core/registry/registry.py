@@ -70,7 +70,7 @@ class WidgetRegistry(BaseClassRegistry):
         # This assures to work even it the widget class was removed from the registry
         widget_name = next((name for name, cls in self._items.items() if cls == widget_class), None)
 
-        if widget_name is None:
+        if widget_name:
             self._default_widgets[data_type] = widget_name
         else:
             logging.warning(f"Widget class '{widget_class.__name__}' not found in registry, cannot register default widget for '{data_type}'")

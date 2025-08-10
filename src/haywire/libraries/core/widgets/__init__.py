@@ -10,10 +10,14 @@ from haywire.core.registry.utils import camel_to_dot_case
 # Import all widget classes
 from .base import ErrorWidget
 from .basic_widgets import (
-    TextInputWidget, NumberWidget, CheckboxWidget, SwitchWidget,
-    SelectWidget, SliderWidget, KnobWidget
+    TextInputWidget, 
+    NumberWidget, 
+    CheckboxWidget, 
+    SwitchWidget
 )
-from .display_widgets import LabelWidget, ProgressWidget, BadgeWidget
+from .display_widgets import (
+    LabelWidget
+)
 
 
 def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryMetadata):
@@ -26,23 +30,7 @@ def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryM
 
     # Register all discovered widgets
     for widget_class in widgets:
-        print(f"Test-Registering widget: '{widget_class.__name__}' as :'{camel_to_dot_case(widget_class.__name__)}'")
-        #widget_registry.register_widget(widget_class, library_metadata)
-
-    
-    # Register basic input widgets
-    widget_registry.register_widget(TextInputWidget, library_metadata)
-    widget_registry.register_widget(NumberWidget, library_metadata)
-    widget_registry.register_widget(CheckboxWidget, library_metadata)
-    widget_registry.register_widget(SwitchWidget, library_metadata)
-    widget_registry.register_widget(SelectWidget, library_metadata)
-    widget_registry.register_widget(SliderWidget, library_metadata)
-    widget_registry.register_widget(KnobWidget, library_metadata)
-
-    # Register display widgets
-    widget_registry.register_widget(LabelWidget, library_metadata)
-    widget_registry.register_widget(ProgressWidget, library_metadata)
-    widget_registry.register_widget(BadgeWidget, library_metadata)
+        widget_registry.register_widget(widget_class, library_metadata)
 
     # Register default widgets for scalar data types
     widget_registry.register_default_widget(DataType.STRING, TextInputWidget)
@@ -63,11 +51,6 @@ __all__ = [
     'NumberWidget',
     'CheckboxWidget',
     'SwitchWidget',
-    'SelectWidget',
-    'SliderWidget',
-    'KnobWidget',
     'LabelWidget',
-    'ProgressWidget',
-    'BadgeWidget',
     'register_widgets'
 ]
