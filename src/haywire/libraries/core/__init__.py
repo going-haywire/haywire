@@ -43,7 +43,7 @@ class Library(BaseLibrary):
         
         # Register nodes
         register_nodes(node_registry, library_metadata=self.metadata)
-    
+
     def validate(self) -> bool:
         """Validate that the core library is properly structured"""
         # Core library is always valid since it's part of the system

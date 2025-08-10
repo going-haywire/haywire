@@ -87,7 +87,7 @@ class LibraryDiscovery:
                 Instantiated_libraries[library_instance.metadata.name] = library_instance
 
             except Exception as e:
-                logger.error(f"Failed to instantiate library {library_name}: {e} \n {traceback.format_exc()}")
+                logger.error(f"While attempting to load library '{library_name}': \n\n {format_external_exception()}\n")
 
         # Sort by dependencies using the metadata dependencies
         sorted_libraries = self._sort_libraries_by_dependencies(Instantiated_libraries)
@@ -122,7 +122,7 @@ class LibraryDiscovery:
                         self.file_watcher.add_library(library_instance)
 
             except Exception as e:
-                logger.error(f"Failed to load library {library_instance.metadata.name}: {e} \n {traceback.format_exc()}")
+                logger.error(f"Failed to load library '{library_instance.metadata.name}': {e} \n\n {format_external_exception()}\n")
         
         return loaded_libraries
 
@@ -201,8 +201,8 @@ class LibraryDiscovery:
                 if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
                     self._check_library_structure(item, item_path)
         except OSError as e:
-            logger.error(f"Error scanning directory {directory}: {e}")
-    
+            logger.error(f"Scanning library directory '{directory}': {e}")
+
     def _check_library_structure(self, library_name: str, library_path: str):
         """Check if a directory follows the required library structure"""
         try:
@@ -235,55 +235,50 @@ class LibraryDiscovery:
                 logger.warning(f"Invalid library structure: library '{library_name}' is missing: '{missing_dirs}' - folder")
                 
         except Exception as e:
-            logger.error(f"Error checking library structure for '{library_name}': {e}")
+            logger.error(f"Checking library structure for '{library_name}': {e}")
         
     def _load_library_instance(self, library_name: str, library_path: str) -> Optional[BaseLibrary]:
         """Load a library instance from its path"""
-        try:
-            # Use the existing metadata loading method to get both module and metadata
-            module, metadata = self._load_module_and_metadata(library_name, library_path)
+        # Use the existing metadata loading method to get both module and metadata
+        module, metadata = self._load_module_and_metadata(library_name, library_path)
             
-            if module and hasattr(module, 'Library'):
+        if module and hasattr(module, 'Library'):
+            try:
                 library_class = module.Library
                 return library_class(metadata, library_path)
-            else:
-                logger.error(f"Library '{library_name}' does not have a valid 'Library' class in '{library_path}'")
-                    
-        except Exception as e:
-            logger.error(f"Error loading library instance from {library_path}: {e} \n {traceback.format_exc()}")
-        
-        return None
+            except Exception as e:
+                logger.error(f"Failed instantiating library {library_name}: {e} \n {traceback.format_exc()}")
+                raise LibraryLoadError(f"Failed instantiating library {library_name}: {e}")
+        else:
+            logger.error(f"Library '{library_name}' does not have a valid 'Library' class in '__init__.py' at '{library_path}'")
+            raise LibraryStructureError(f"Library '{library_name}' does not have a valid 'Library' class in '{library_path}'")
 
     def _load_module_and_metadata(self, library_name: str, library_path: str) -> tuple[Optional[Any], LibraryMetadata]:
         """Load module and metadata from a library's __init__.py. Always returns LibraryMetadata (with defaults if needed)."""
         module = None
         parent_dir_added = False
         
-        try:
-            # Determine the proper module path for import
-            # Check if this is a core library (in src/haywire/libraries/)
-            if 'src/haywire/libraries' in library_path:
-                # For core libraries, use the haywire.libraries.X import path
-                module_path = f"haywire.libraries.{library_name}"
-            else:
-                # For external libraries, add parent to sys.path and import directly
-                parent_dir = os.path.dirname(library_path)
-                if parent_dir not in sys.path:
-                    sys.path.insert(0, parent_dir)
-                    parent_dir_added = True
-                module_path = library_name
-            
-            # Import the module using the proper path
-            module = importlib.import_module(module_path)
-            
-        except Exception as e:
-            logger.error(f"Error loading module from {library_path}: {e} \n {traceback.format_exc()}")
-        finally:
-            # Remove from sys.path if we added it
-            if parent_dir_added and 'src/haywire/libraries' not in library_path:
-                parent_dir = os.path.dirname(library_path)
-                if parent_dir in sys.path:
-                    sys.path.remove(parent_dir)
+        # Determine the proper module path for import
+        # Check if this is a core library (in src/haywire/libraries/)
+        if 'src/haywire/libraries' in library_path:
+            # For core libraries, use the haywire.libraries.X import path
+            module_path = f"haywire.libraries.{library_name}"
+        else:
+            # For external libraries, add parent to sys.path and import directly
+            parent_dir = os.path.dirname(library_path)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+                parent_dir_added = True
+            module_path = library_name
+        
+        # Import the module using the proper path
+        module = importlib.import_module(module_path)
+        
+        # Remove from sys.path if we added it
+        if parent_dir_added and 'src/haywire/libraries' not in library_path:
+            parent_dir = os.path.dirname(library_path)
+            if parent_dir in sys.path:
+                sys.path.remove(parent_dir)
         
         # Always create metadata (from module or defaults)
         metadata = self._create_metadata(module, library_name)
@@ -312,3 +307,24 @@ class LibraryDiscovery:
 
         return LibraryMetadata(**metadata_kwargs)
     
+
+
+def format_external_exception(exclude_modules=None):
+    """Format the current exception, by default excluding frames from this module"""
+    if exclude_modules is None:
+        exclude_modules = [__name__.split('.')[-1]]  # Exclude this module
+    
+    exc_type, exc_value, exc_tb = sys.exc_info()
+    tb_list = traceback.extract_tb(exc_tb)
+    
+    filtered_frames = []
+    for frame in tb_list:
+        # Check if frame is from excluded modules
+        frame_module = frame.filename
+        if not any(module in frame_module for module in exclude_modules):
+            filtered_frames.append(frame)
+    
+    if filtered_frames:
+        return ''.join(traceback.format_list(filtered_frames)) + f"\n{exc_type.__name__}: {exc_value}"
+    else:
+        return f"{exc_type.__name__}: {exc_value}"
