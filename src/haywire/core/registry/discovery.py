@@ -10,8 +10,14 @@ from typing import List, Dict, Optional, Any
 import logging
 import traceback
 
+from .registry_renderer import RendererRegistry
+
+from .registry_adapter import AdapterRegistry
+
+from .registry_widget import WidgetRegistry
+
 from .base import BaseLibrary, LibraryMetadata, REQUIRED_LIB_DIRS, HAYWIRE_CORE_LIB_NAME
-from .registry import LibraryRegistry, WidgetRegistry, AdapterRegistry, RendererRegistry
+from .registry_library import LibraryRegistry
 from .file_watcher import FileWatcher
 
 logger = logging.getLogger(__name__)

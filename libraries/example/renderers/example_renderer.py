@@ -1,6 +1,6 @@
 
 from nicegui import ui
-from haywire.core.ui.base import BaseNodeRenderer
+from haywire.core.ui.renderer import BaseNodeRenderer
 from haywire.core.node.node import BaseNode
 from haywire.core.ui.base import UINodeCard 
 

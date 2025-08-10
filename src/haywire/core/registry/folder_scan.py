@@ -7,7 +7,8 @@ from typing import List, Type, Optional, Callable
 from pathlib import Path
 
 from haywire.core.registry.utils import resolve_module_name
-from haywire.core.ui.base import BaseWidget, BaseNodeRenderer
+from haywire.core.ui.renderer import BaseNodeRenderer
+from haywire.core.ui.base import BaseWidget
 from haywire.core.node.node import BaseNode
 from haywire.core.adapter.base import BaseAdapter
 
@@ -47,7 +48,7 @@ def is_widget(cls):
     except TypeError:
         return False
     
-def auto_discover_classes(library_path: str, 
+def folder_scan_for_classes(library_path: str, 
                          class_filter: Callable[[Type], bool],
                          exclude_patterns: Optional[List[str]] = None) -> List[Type]:
     """

@@ -9,7 +9,7 @@ from nicegui import ui
 from nicegui.element import Element
 from haywire.core.node.node import BaseNode, NodeErrorInfo
 from haywire.core.data.enums import DataType, FlowType
-from haywire.core.ui.base import BaseNodeRenderer
+from haywire.core.ui.renderer import BaseNodeRenderer
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
 from haywire.core.ui.base import UINodeCard
 from haywire.ui.utils import render_error_info

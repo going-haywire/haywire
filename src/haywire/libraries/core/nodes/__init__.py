@@ -3,18 +3,18 @@ Core node implementations and registration
 """
 
 # Import core node examples
-from haywire.core.registry.auto_discover import auto_discover_classes, is_node
+from haywire.core.registry.folder_scan import folder_scan_for_classes, is_node
 from .error_node import ErrorNode
 
 from haywire.core.registry.base import LibraryMetadata
-from haywire.core.registry.registry import NodeRegistry
+from haywire.core.registry.registry_node import NodeRegistry
 
 
 def register_nodes(node_registry: NodeRegistry, library_metadata: LibraryMetadata):
     """Register all core nodes with the node registry"""
 
     # Discover all node classes in this library
-    nodes = auto_discover_classes(
+    nodes = folder_scan_for_classes(
         library_path=__path__[0],
         class_filter=is_node
     )

@@ -2,8 +2,9 @@
 Core widget registration and exports
 """
 
-from haywire.core.registry.auto_discover import auto_discover_classes, is_widget
-from haywire.core.registry.registry import WidgetRegistry, LibraryMetadata
+from haywire.core.registry.registry_widget import WidgetRegistry
+from haywire.core.registry.folder_scan import folder_scan_for_classes, is_widget
+from haywire.core.registry.registry_library import LibraryMetadata
 from haywire.core.data.enums import DataType
 from haywire.core.registry.utils import camel_to_dot_case
 
@@ -23,7 +24,7 @@ from .display_widgets import (
 def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryMetadata):
     """Register all core widgets with the widget registry"""
 
-    widgets = auto_discover_classes(
+    widgets = folder_scan_for_classes(
         library_path=__path__[0],
         class_filter=is_widget
     )
