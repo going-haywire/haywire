@@ -2,13 +2,13 @@
 Core renderers (node renderers) registration and exports
 """
 
-from haywire.core.registry.registry import RendererRegistry
+from haywire.core.registry.registry import RendererRegistry, LibraryMetadata
 
 # Import all renderer classes
 from .default_renderer import DefaultNodeRenderer
 from .error_renderer import ErrorNodeRenderer
 
-def register_renderers(renderers_registry: RendererRegistry):
+def register_renderers(renderers_registry: RendererRegistry, library_metadata: LibraryMetadata):
     """Register all core node renderers with the renderers registry"""
     
     # Register default and error renderers

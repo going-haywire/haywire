@@ -2,7 +2,7 @@
 Core widget registration and exports
 """
 
-from haywire.core.registry.registry import WidgetRegistry
+from haywire.core.registry.registry import WidgetRegistry, LibraryMetadata
 from haywire.core.data.enums import DataType
 
 # Import all widget classes
@@ -14,7 +14,7 @@ from .basic_widgets import (
 from .display_widgets import LabelWidget, ProgressWidget, BadgeWidget
 
 
-def register_widgets(widget_registry: WidgetRegistry):
+def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryMetadata):
     """Register all core widgets with the widget registry"""
     
     # Register error widget

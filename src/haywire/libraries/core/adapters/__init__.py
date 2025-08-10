@@ -4,7 +4,7 @@ Core adapter registration and exports
 This module now includes both adapters and core data type definitions (merged from data/ folder).
 """
 
-from haywire.core.registry.registry import AdapterRegistry
+from haywire.core.registry.registry import AdapterRegistry, LibraryMetadata
 
 # Data type definitions (merged from data/ folder)
 from haywire.core.data.enums import DataType, DataCategory
@@ -35,7 +35,7 @@ from .type_converters import (
     IntToFloatAdapter
 )
 
-def register_adapters(adapter_registry: AdapterRegistry):
+def register_adapters(adapter_registry: AdapterRegistry, library_metadata: LibraryMetadata):
     """Register all core adapters with the adapter registry"""
     
     # List of adapter classes to register (self-registering pattern)

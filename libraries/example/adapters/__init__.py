@@ -7,6 +7,7 @@ This module now includes both adapters and data type definitions (merged from da
 from typing import override
 
 from haywire.core.adapter.base import BaseAdapter
+from haywire.core.registry.base import LibraryMetadata
 from haywire.core.registry.registry import AdapterRegistry
 from haywire.core.data import FLOAT
 
@@ -44,7 +45,7 @@ class TemperatureToFloatAdapter(BaseAdapter):
         return value
 
 
-def register_adapters(adapter_registry: AdapterRegistry):
+def register_adapters(adapter_registry: AdapterRegistry, library_metadata: LibraryMetadata):
     """Register test adapters with the adapter registry using self-registering pattern"""
     # List of adapter classes to register (self-registering pattern)
     adapters = [

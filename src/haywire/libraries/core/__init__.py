@@ -33,13 +33,13 @@ class Library(BaseLibrary):
     def register_components(self, widget_registry: WidgetRegistry, renderer_registry: RendererRegistry, adapter_registry: AdapterRegistry, node_registry: NodeRegistry):
         """Register all core components with the global registries"""
         # Register widgets
-        register_widgets(widget_registry)
+        register_widgets(widget_registry, library_metadata=self.metadata)
         
         # Register adapters (now includes data types)
-        register_adapters(adapter_registry)
+        register_adapters(adapter_registry, library_metadata=self.metadata)
         
         # Register renderers (node renderers)
-        register_renderers(renderer_registry)
+        register_renderers(renderer_registry, library_metadata=self.metadata)
         
         # Register nodes
         register_nodes(node_registry, library_metadata=self.metadata)

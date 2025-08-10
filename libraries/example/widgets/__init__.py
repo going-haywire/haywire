@@ -6,6 +6,7 @@ from typing import Any, Dict
 from nicegui import ui
 
 from haywire.ui.base import BaseWidget
+from haywire.core.registry.base import LibraryMetadata
 from haywire.core.registry.registry import WidgetRegistry
 
 class TemperatureWidget(BaseWidget):
@@ -48,7 +49,7 @@ class TemperatureWidget(BaseWidget):
         return wrapper
 
 
-def register_widgets(widget_registry: WidgetRegistry):
+def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryMetadata):
     """Register test widgets with the widget registry"""
     widget_registry.register('example.temperature', TemperatureWidget)
 
