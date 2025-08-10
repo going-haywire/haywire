@@ -42,6 +42,7 @@ class FileWatcher:
         self.handler = LibraryFileHandler(self)
         self.watched_libraries: Dict[str, BaseLibrary] = {}  # library_name -> library instance
         self.watched_paths: Dict[str, Set[str]] = {}  # file_path -> set of library_names
+        self.library_directories: Dict[str, str] = {}  # library_name -> directory_path
         self.watched_paths_last_event: Dict[str, float] = {}
         self.pending_changes: Dict[str, FileChangeEvent] = {}  # file_path -> latest event
         self.debounce_timer = None
@@ -55,6 +56,7 @@ class FileWatcher:
         
         with self._lock:
             self.watched_libraries[library_name] = library
+            self.library_directories[library_name] = str(library_path)
             
             # Watch all Python files in the library directory and subdirectories
             for py_file in library_path.rglob("*.py"):
@@ -82,6 +84,10 @@ class FileWatcher:
             if library_name in self.watched_libraries:
                 del self.watched_libraries[library_name]
                 
+                # Remove from library directories
+                if library_name in self.library_directories:
+                    del self.library_directories[library_name]
+                
                 # Remove library from watched paths
                 paths_to_remove = []
                 for file_path, library_names in self.watched_paths.items():
@@ -91,6 +97,8 @@ class FileWatcher:
                 
                 for file_path in paths_to_remove:
                     del self.watched_paths[file_path]
+                    if file_path in self.watched_paths_last_event:
+                        del self.watched_paths_last_event[file_path]
 
                 logging.info(f"Removed library '{library_name}' from file watcher.")
 
@@ -111,21 +119,57 @@ class FileWatcher:
             self.is_running = False
             logging.info("Stopped file watcher...")
 
+    def _find_libraries_for_file(self, file_path: str) -> Set[str]:
+        """Find which libraries should be notified about changes to a file"""
+        file_path = Path(file_path).resolve()
+        matching_libraries = set()
+        
+        for library_name, library_dir in self.library_directories.items():
+            library_path = Path(library_dir).resolve()
+            try:
+                # Check if file is within the library directory
+                file_path.relative_to(library_path)
+                matching_libraries.add(library_name)
+            except ValueError:
+                # File is not within this library directory
+                continue
+        
+        return matching_libraries
+
     def _handle_file_change(self, file_path: str, event_type: str):
         """Handle a file change event with debouncing"""
         file_path = os.path.abspath(file_path)
         
         with self._lock:
-            # Check if this file is being watched
+            # For new files, dynamically determine which libraries they belong to
             if file_path not in self.watched_paths:
-                return
+                matching_libraries = self._find_libraries_for_file(file_path)
+                if matching_libraries:
+                    self.watched_paths[file_path] = matching_libraries
+                    self.watched_paths_last_event[file_path] = time.time()
+                    logging.debug(f"Dynamically registered new file: {file_path} for libraries: {matching_libraries}")
+                else:
+                    # File doesn't belong to any watched library
+                    return
             
-            # Store the event (this will overwrite any previous event for the same file)
-            library_names = list(self.watched_paths[file_path])
-            if library_names:
-                self.pending_changes[file_path] = FileChangeEvent(
-                    file_path, event_type, library_names[0]
-                )
+            # For deleted files, clean up tracking
+            if event_type == 'deleted':
+                library_names = list(self.watched_paths[file_path])
+                if library_names:
+                    self.pending_changes[file_path] = FileChangeEvent(
+                        file_path, event_type, library_names[0]
+                    )
+                # Remove from tracking after processing
+                del self.watched_paths[file_path]
+                if file_path in self.watched_paths_last_event:
+                    del self.watched_paths_last_event[file_path]
+            else:
+                # Store the event (this will overwrite any previous event for the same file)
+                library_names = list(self.watched_paths[file_path])
+                if library_names:
+                    self.pending_changes[file_path] = FileChangeEvent(
+                        file_path, event_type, library_names[0]
+                    )
         
         # Reset the debounce timer
         if self.debounce_timer:
@@ -148,10 +192,12 @@ class FileWatcher:
         affected_libraries = self.watched_paths.get(event.file_path, set())
 
         if event.file_path.endswith('.py'):
-            # Validate Python file before notifying libraries
-            if not self._validate_python_file(event.file_path):
-                logging.error(f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
-                return
+            # For deleted files, skip validation
+            if event.event_type != 'deleted':
+                # Validate Python file before notifying libraries
+                if not self._validate_python_file(event.file_path):
+                    logging.error(f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
+                    return
 
             for library_name in affected_libraries:
                 library = self.watched_libraries.get(library_name)
