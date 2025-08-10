@@ -143,7 +143,22 @@ class RendererRegistry(BaseClassRegistry):
         super().__init__()
         self._default_renderer_name: str | None = None
         self._error_renderer: type | None = None
-    
+
+    def register_renderer(self, name: str, renderer_class, metadata: Optional[Dict[str, Any]] = None):
+        """
+        Register a renderer class.
+        
+        Args:
+            name: Unique name for the renderer
+            renderer_class: The NodeRenderer class
+            metadata: Optional metadata for the renderer
+        """
+        self.register(name, renderer_class, metadata)
+        
+        # Automatically set as default if no default is set yet
+        if self._default_renderer_name is None:
+            self._default_renderer_name = name
+
     def register_default_renderer(self, renderer_name: str):
         """Register the default renderer by name"""
         if not self.has(renderer_name):
@@ -175,22 +190,7 @@ class RendererRegistry(BaseClassRegistry):
         
         # Fallback if no error renderer registered
         raise RuntimeError(f"No renderer found for '{renderer_name}' and no error renderer registered")
-    
-    def register_renderer(self, name: str, renderer_class, metadata: Optional[Dict[str, Any]] = None):
-        """
-        Register a renderer class.
         
-        Args:
-            name: Unique name for the renderer
-            renderer_class: The NodeRenderer class
-            metadata: Optional metadata for the renderer
-        """
-        self.register(name, renderer_class, metadata)
-        
-        # Automatically set as default if no default is set yet
-        if self._default_renderer_name is None:
-            self._default_renderer_name = name
-    
     def get_default_renderer(self) -> type | None:
         """Get the default renderer class"""
         if self._default_renderer_name:
@@ -238,19 +238,8 @@ class NodeRegistry(BaseClassRegistry):
         # Check for duplicates
         if self.has(key):
             raise ValueError(f"Node already registered: {key}")
-        
-        # Register with metadata
-        metadata = {
-            'library_name': library_metadata.name,
-            'library_metadata': library_metadata,
-            'node_name': node_class.node_name,
-            'node_version': library_metadata.version,
-            'node_author': library_metadata.author,
-            'node_url': library_metadata.url,
-            'node_help_url': library_metadata.help_url
-        }
-        
-        self.register(key, node_class, metadata)
+                
+        self.register(key, node_class, library_metadata)
     
     def register_error_node(self, node_class: type):
         """Register the error node class"""
