@@ -7,8 +7,9 @@ extracted from the current ModularNiceGUINodeRenderer implementation.
 
 from typing import Dict, Any
 from nicegui import ui
-from haywire.core.node.node import HaywireNode, NodeErrorInfo
-from haywire.ui.base import UINodeCard
+from haywire.core.node.node import BaseNode, NodeErrorInfo
+from haywire.core.ui.base import UINodeCard
+from haywire.ui.utils import render_error_info
 
 from .default_renderer import DefaultNodeRenderer
 
@@ -20,7 +21,7 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
     to indicate rendering errors or fallback situations.
     """
     
-    def render(self, node: HaywireNode) -> UINodeCard:
+    def render(self, node: BaseNode) -> UINodeCard:
         """
         Render a node with error styling.
         
@@ -70,7 +71,7 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
         with ui.card().classes(f'w-full min-w-64 max-w-sm error-node-card {node_id}') as main_card:
             # Error header
             if node and node.error_info:
-                self._render_error_info(node.error_info)
+                render_error_info(node.error_info)
             else:
                 with ui.column().classes('items-left'):
                     with ui.row():

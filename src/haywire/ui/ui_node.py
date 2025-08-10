@@ -7,9 +7,9 @@ using a container-slot approach for reliable re-rendering and cleanup.
 
 from typing import Optional
 from nicegui import ui
-from haywire.core.node.node import HaywireNode
+from haywire.core.node.node import BaseNode
+from haywire.core.ui.base import UINodeCard
 from haywire.ui.node_render_factory import NodeRenderFactory
-from haywire.ui.base import UINodeCard
 
 
 class UINode:
@@ -23,7 +23,7 @@ class UINode:
     - Has no knowledge of renderers or widgets (clean separation)
     """
 
-    def __init__(self, haywire_node: HaywireNode, factory: NodeRenderFactory, component):
+    def __init__(self, haywire_node: BaseNode, factory: NodeRenderFactory, component):
         """
         Initialize UINode with node, factory, and parent component.
         
@@ -143,7 +143,7 @@ class UINode:
         """Check if the node is currently rendered."""
         return self.current_ui_card is not None and self.container_slot is not None
     
-    def get_node_data(self) -> HaywireNode:
+    def get_node_data(self) -> BaseNode:
         """Get the underlying HaywireNode data."""
         return self.haywire_node
     

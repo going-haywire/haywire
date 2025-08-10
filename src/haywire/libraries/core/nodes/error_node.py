@@ -1,13 +1,13 @@
 
 from typing import Dict, Any, Optional
-from haywire.core.node.node import HaywireNode
+from haywire.core.node.node import BaseNode
 
 # ============================================================================
 # Error Node (returned when a node cannot be loaded)
 # ============================================================================
 
 
-class ErrorNode(HaywireNode):
+class ErrorNode(BaseNode):
     """Special node to represent nodes that couldn't be loaded properly"""
     
     node_name = 'ERROR_NODE'

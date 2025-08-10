@@ -13,6 +13,8 @@ import time
 import logging
 from dataclasses import dataclass
 
+from haywire.core.registry.utils import resolve_module_name
+
 class RegistryFolder(Enum):
     """Defines the folder names for the registries."""
     WIDGETS = 'widgets'
@@ -197,7 +199,7 @@ class BaseLibrary(ABC):
         file_path = Path(event.file_path)
         library_root = Path(self.file_path).parent
 
-        module = self._resolve_module_name(file_path)
+        module = resolve_module_name(file_path)
 
         # Determine which component type this file belongs to based on directory structure
         try:
@@ -218,29 +220,5 @@ class BaseLibrary(ABC):
         except Exception as e:
             logging.error(f"Unable to hotswap class from file change for {event.file_path}: {e} \n {traceback.format_exc()}")
 
-
-    def _resolve_module_name(self, file_path: str) -> Optional[str]:
-        """
-        Resolve module name from file path by walking up directories until no __init__.py found
-        """
-        file_path = Path(file_path)
-        
-        # Start from the file's directory
-        current_dir = file_path.parent
-        module_parts = [file_path.stem]  # Start with filename (without .py)
-        
-        # Walk up directories while __init__.py exists
-        while True:
-            init_file = current_dir / "__init__.py"
-            if not init_file.exists():
-                break
-            
-            module_parts.insert(0, current_dir.name)
-            current_dir = current_dir.parent
-        
-        if not module_parts:
-            return None
-        
-        return ".".join(module_parts)
 
 

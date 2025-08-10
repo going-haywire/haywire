@@ -5,7 +5,7 @@ Test widgets for the test library
 from typing import Any, Dict
 from nicegui import ui
 
-from haywire.ui.base import BaseWidget
+from haywire.core.ui.base import BaseWidget
 from haywire.core.registry.base import LibraryMetadata
 from haywire.core.registry.registry import WidgetRegistry
 

@@ -1,10 +1,10 @@
 
-from haywire.core.node.node import HaywireNode
+from haywire.core.node.node import BaseNode
 from haywire.core.node.elements import Inlet, Outlet
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.data.fields import SingleField
 
-class DisplayNode(HaywireNode):
+class DisplayNode(BaseNode):
     """Node that displays input values"""
     
     # Required metadata for node discovery

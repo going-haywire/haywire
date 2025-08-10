@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 from nicegui import ui
 
 from haywire.core.data.fields import DataField
-from haywire.ui.base import BaseWidget
+from haywire.core.ui.base import BaseWidget
 from haywire.core.node.elements import ConfigurableElement
 
 class ErrorWidget(BaseWidget):

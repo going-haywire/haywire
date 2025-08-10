@@ -47,7 +47,7 @@ class NodeErrorInfo:
         """Add a note to the error info"""
         self.note.append(note)
 
-class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
+class NodeMeta(type):  # Assuming HaywireMeta inherits from type
     def __new__(cls, name, bases, attrs):
         # Automatically identify metadata attributes
         metadata_attrs = []
@@ -58,9 +58,9 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
         attrs['_node_metadata_attrs'] = metadata_attrs
                
         # Skip validation for abstract base classes
-        # Check if this is an abstract class or the base HaywireNode class
+        # Check if this is an abstract class or the base BaseNode class
         is_abstract = (
-            name == 'HaywireNode' or  # Skip the base class itself
+            name == 'BaseNode' or  # Skip the base class itself
             attrs.get('__abstractmethods__') or  # Has abstract methods
             any(hasattr(base, '__abstractmethods__') and base.__abstractmethods__ for base in bases)  # Inherits abstract methods
         )
@@ -79,16 +79,10 @@ class NodeMetadataMeta(type):  # Assuming HaywireMeta inherits from type
                 if required_attr not in attrs:
                     missing_attrs.append(required_attr)
             
-            if missing_attrs:
-                # Create helpful error message
-                missing_haywire = []
-                for attr in missing_attrs:
-                    haywire_equivalent = 'HAYWIRE_' + attr[5:].upper()  # node_library_name -> HAYWIRE_LIBRARY_NAME
-                    missing_haywire.append(haywire_equivalent)
-                
+            if missing_attrs:                
                 raise NodeValidationError(
                     f"Node class '{name}' is missing required attributes: {missing_attrs}\n"
-                    f"Either set them explicitly in the class or define these HAYWIRE constants: {missing_haywire}"
+                    f"Set them explicitly in the class"
                 )
         
         return super().__new__(cls, name, bases, attrs)
@@ -176,7 +170,7 @@ class NodeData():
         }
 
 @abstractmethod
-class HaywireNode(NodeData, metaclass=NodeMetadataMeta):
+class BaseNode(NodeData, metaclass=NodeMeta):
     """Base class combining HaywireNode requirements with NodeData"""
     
     # Type annotation for dynamically created attribute by NodeMetadataMeta

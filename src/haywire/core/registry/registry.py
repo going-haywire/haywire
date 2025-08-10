@@ -9,7 +9,7 @@ from .base import BaseRegistry, BaseClassRegistry, LibraryMetadata, RegistryFold
 from haywire.core.data.enums import DataType, DataCategory
 from haywire.core.data.fields import DataField
 from haywire.core.adapter.base import BaseAdapter
-from haywire.core.node.node import HaywireNode, NodeDiscoveryError, NodeErrorInfo
+from haywire.core.node.node import BaseNode, NodeDiscoveryError, NodeErrorInfo
 
 class LibraryRegistry(BaseRegistry):
     """Registry for managing loaded libraries"""
@@ -260,7 +260,7 @@ class NodeRegistry(BaseClassRegistry):
         """Get the error node class"""
         return self._error_node
 
-    def get_node_class(self, key: str) -> tuple[NodeErrorInfo | None, HaywireNode.__class__]:
+    def get_node_class(self, key: str) -> tuple[NodeErrorInfo | None, BaseNode.__class__]:
         """
         Get node class by registry key for graph operations.
         

@@ -8,10 +8,12 @@ extracted from the current ModularNiceGUINodeRenderer implementation.
 from typing import Dict, Any
 from nicegui import ui
 from nicegui.element import Element
-from haywire.core.node.node import HaywireNode, NodeErrorInfo
+from haywire.core.node.node import BaseNode, NodeErrorInfo
 from haywire.core.data.enums import DataType, FlowType
-from haywire.ui.base import BaseNodeRenderer, UINodeCard
+from haywire.core.ui.base import BaseNodeRenderer
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
+from haywire.core.ui.base import UINodeCard
+from haywire.ui.utils import render_error_info
 
 class DefaultNodeRenderer(BaseNodeRenderer):
     """
@@ -21,7 +23,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
     and serves as the fallback renderer when no specific renderer is requested.
     """
     
-    def render(self, node: HaywireNode) -> UINodeCard:
+    def render(self, node: BaseNode) -> UINodeCard:
         """
         Render a node using the default design.
         
@@ -151,7 +153,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             creationerror.add_note(f"Element: {element.id}")
             creationerror.add_note(f"Requested widget: {getattr(element, 'widget', 'None')}")
 
-            return self._render_error_info(creationerror)
+            render_error_info(creationerror)
     
     def _render_pin(self, pin: ConfigurableElement, direction: str = 'left'):
         """Render an inlet with its port and optional widget."""

@@ -8,10 +8,10 @@ as the single source of truth and eliminates complex version checking.
 from typing import Dict, List, Optional, Any
 
 # Import core node classes
-from haywire.core.node.node import HaywireNode
+from haywire.core.node.node import BaseNode
 
 # Convenience functions for backward compatibility and ease of use
-def create_node_from_key(registry: HaywireNode, key: str, node_id: str, graph) -> HaywireNode:
+def create_node_from_key(registry: BaseNode, key: str, node_id: str, graph) -> BaseNode:
     """
     Create a node instance from a registry key.
     
@@ -28,7 +28,7 @@ def create_node_from_key(registry: HaywireNode, key: str, node_id: str, graph) -
     return node_class(node_id, graph)
 
 
-def serialize_node_metadata(node: HaywireNode) -> Dict[str, Any]:
+def serialize_node_metadata(node: BaseNode) -> Dict[str, Any]:
     """
     Serialize node metadata for saving (simplified version).
     

@@ -1,13 +1,13 @@
 
 from nicegui import ui
-from haywire.ui.base import BaseNodeRenderer
-from haywire.core.node.node import HaywireNode
-from haywire.ui.base import UINodeCard 
+from haywire.core.ui.base import BaseNodeRenderer
+from haywire.core.node.node import BaseNode
+from haywire.core.ui.base import UINodeCard 
 
 class ExampleNodeRenderer(BaseNodeRenderer):
     """Custom renderer for nodes with special styling."""
 
-    def render(self, node: HaywireNode) -> UINodeCard:
+    def render(self, node: BaseNode) -> UINodeCard:
         """Render a node with custom styling."""
         ui_elements = {}
         widget_instances = {}

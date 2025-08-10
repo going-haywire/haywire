@@ -3,12 +3,12 @@ Basic core node implementations
 """
 
 # Import the node system base class
-from haywire.core.node.node import HaywireNode
+from haywire.core.node.node import BaseNode
 from haywire.core.node.elements import Inlet, Outlet
 from haywire.core.data.enums import DataType, DataCategory, FlowType
 from haywire.core.data.fields import SingleField
 
-class TestNodeOne(HaywireNode):
+class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
     # Required metadata for node discovery
