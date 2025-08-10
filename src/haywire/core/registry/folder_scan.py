@@ -7,47 +7,7 @@ from typing import List, Type, Optional, Callable
 from pathlib import Path
 
 from haywire.core.registry.utils import resolve_module_name
-from haywire.core.ui.renderer import BaseNodeRenderer
-from haywire.core.ui.base import BaseWidget
-from haywire.core.node.node import BaseNode
-from haywire.core.adapter.base import BaseAdapter
 
-# For nodes
-def is_node(cls):
-    try:
-        return (inspect.isclass(cls) and 
-                issubclass(cls, BaseNode) and 
-                cls != BaseNode)
-    except TypeError:
-        return False
-
-# For renderers  
-def is_renderer(cls):
-    try:
-        return (inspect.isclass(cls) and 
-                issubclass(cls, BaseNodeRenderer) and 
-                cls != BaseNodeRenderer)
-    except TypeError:
-        return False
-
-# For adapters
-def is_adapter(cls):
-    try:
-        return (inspect.isclass(cls) and 
-                issubclass(cls, BaseAdapter) and 
-                cls != BaseAdapter)
-    except TypeError:
-        return False
-
-# For widgets
-def is_widget(cls):
-    try:
-        return (inspect.isclass(cls) and 
-                issubclass(cls, BaseWidget) and 
-                cls != BaseWidget)
-    except TypeError:
-        return False
-    
 def folder_scan_for_classes(library_path: str, 
                          class_filter: Callable[[Type], bool],
                          exclude_patterns: Optional[List[str]] = None) -> List[Type]:
@@ -85,23 +45,43 @@ def folder_scan_for_classes(library_path: str,
         try:
             # Import the module
             module_name = f"{module_prefix}.{py_file.stem}"
-            module = importlib.import_module(module_name)
-            
-            # Inspect all classes in the module
-            for name, obj in inspect.getmembers(module, inspect.isclass):
-                # Ensure it's defined in this module (not imported)
-                if obj.__module__ == module_name:
-                    try:
-                        # Apply the class filter with error handling
-                        if class_filter(obj):
-                            discovered_classes.append(obj)
-                    except Exception as e:
-                        # Log filter errors but continue discovery
-                        logging.debug(f"Filter error for class {name}: {e}")
-                        continue
+
+            discovered_classes.extend(module_scan_for_classes(module_name, class_filter))
                    
         except Exception as e:
             logging.warning(f"Could not import {py_file.name}: {e} \n{traceback.format_exc()}")
             continue
     
+    return discovered_classes
+
+
+def module_scan_for_classes(module_name: str, 
+                         class_filter: Callable[[Type], bool]) -> List[Type]:
+    """
+    Automatically discover classes in a module based on a filter function.
+    
+    Args:
+        module_name: Name of the module to scan
+        class_filter: Function that returns True if a class should be included
+    
+    Returns:
+        List of discovered classes that pass the filter
+    """
+    discovered_classes = []
+
+    module = importlib.import_module(module_name)
+    
+    # Inspect all classes in the module
+    for name, obj in inspect.getmembers(module, inspect.isclass):
+        # Ensure it's defined in this module (not imported)
+        if obj.__module__ == module_name:
+            try:
+                # Apply the class filter with error handling
+                if class_filter(obj):
+                    discovered_classes.append(obj)
+            except Exception as e:
+                # Log filter errors but continue discovery
+                logging.debug(f"Filter error for class {name}: {e}")
+                continue
+
     return discovered_classes

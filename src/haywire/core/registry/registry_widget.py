@@ -1,6 +1,7 @@
 from haywire.core.data.enums import DataCategory, DataType
 from haywire.core.data.fields import DataField
-from haywire.core.registry.base import BaseClassRegistry, LibraryMetadata, RegistryFolder
+from haywire.core.registry.base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from haywire.core.ui.base import is_widget
 from haywire.core.registry.utils import camel_to_dot_case
 from haywire.core.ui.base import BaseWidget
 
@@ -11,6 +12,7 @@ import logging
 class WidgetRegistry(BaseClassRegistry):
     """Registry for UI widgets that can render data fields"""
     directory_name: str = RegistryFolder.WIDGETS.value
+    class_filter = is_widget  # Use the widget filter
 
     def __init__(self):
         super().__init__()
@@ -25,6 +27,22 @@ class WidgetRegistry(BaseClassRegistry):
         keyname = f"{metadata.name}:{widget_name}"
 
         self._register(keyname, widget, metadata=metadata)
+
+    def unregister_widget(self, widget_name: str):
+        """Unregister a UI widget by its name"""
+        # Remove from default widgets if it was set
+        for data_type, default_widget in list(self._default_widgets.items()):
+            if default_widget == widget_name:
+                del self._default_widgets[data_type]
+                logging.warning(f"Widget '{widget_name}' removed from default widgets for '{data_type}'")
+        
+        removed_class = super()._unregister(widget_name)
+
+        if removed_class == self._error_widget:
+            self._error_widget = None
+            logging.warning(f"Error widget '{widget_name}' unregistered, no error widget left in registry")
+
+        return removed_class
 
     def register_default_widget(self, data_type: DataType, widget_class: type[BaseWidget]):
         """Register a default widget for a data type"""
@@ -41,6 +59,30 @@ class WidgetRegistry(BaseClassRegistry):
     def register_error_widget(self, widget_class: type[BaseWidget]):
         """Register the error widget class"""
         self._error_widget = widget_class
+
+    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
+        """
+        Handle file change events for node modules.
+
+        Args:
+            event: FileChangeEvent containing file path and event type
+        """
+        if event.event_type == FileEventType.DELETED:
+            affected_class_names = self._on_delete(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.unregister_widget(cls_name)
+        elif event.event_type == FileEventType.CREATED:
+            affected_class_names = self._on_creation(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.register_widget(cls_name, metadata)
+        elif event.event_type == FileEventType.MODIFIED:
+            affected_class_names = self._on_change(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.unregister_widget(cls_name)
+
 
     def get_widget_class(self, widget_name: str | None, data_field: DataField) -> type[BaseWidget]:
         """

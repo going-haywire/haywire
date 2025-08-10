@@ -3,8 +3,9 @@ Core renderers (node renderers) registration and exports
 """
 
 from haywire.core.registry.registry_renderer import RendererRegistry
-from haywire.core.registry.folder_scan import folder_scan_for_classes, is_renderer
+from haywire.core.registry.folder_scan import folder_scan_for_classes
 from haywire.core.registry.registry_library import LibraryMetadata
+from haywire.core.ui.renderer import is_renderer
 
 # Import all renderer classes
 from .default_renderer import DefaultNodeRenderer

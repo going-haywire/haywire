@@ -139,9 +139,36 @@ def main():
                                 success = ui_nodes['standard'].update_element_value('input', 15.0)
                                 ui.notify(f'Update: {"Success" if success else "Failed"}')
                             
+                            async def print_registry():
+                                # Print registered adapters in a beautiful format
+                                print("\n=== Registered Adapters ===")
+                                all_adapters = adapter_registry.list_names()
+                                for adapter_key in all_adapters:
+                                    print(f"🔗 {adapter_key}")
+
+                                # Print registered widgets in a beautiful format
+                                print("\n=== Registered Widgets ===")
+                                all_widgets = widget_registry.list_names()
+                                for widget_key in all_widgets:
+                                    print(f"🔧 {widget_key}")
+
+                                # Print registered renderers in a beautiful format
+                                print("\n=== Registered Renderer ===")
+                                all_renderers = renderers_registry.list_names()
+                                for renderer_key in all_renderers:
+                                    print(f"🔨 {renderer_key}")        
+                                
+                                # Print registered nodes in a beautiful format
+                                print("\n=== Registered Nodes ===")
+                                all_nodes = node_registry.list_names()
+                                for node_key in all_nodes:
+                                    print(f"🛠 {node_key}")
+                                print(f"Total: {len(all_nodes)} nodes\n")
+
                             ui.button('Re-render', on_click=rerender_standard)
                             ui.button('Set Input to 15.0', on_click=update_standard)
-                
+                            ui.button('Print Registry', on_click=print_registry)
+
                 except Exception as e:
                     ui.notify(f'Error creating node: {str(e)}', type='negative')
 

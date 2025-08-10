@@ -1,12 +1,14 @@
 from typing import Optional
 
 from haywire.core.adapter.base import BaseAdapter
-from haywire.core.registry.base import BaseClassRegistry, LibraryMetadata, RegistryFolder
+from haywire.core.registry.base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from haywire.core.adapter.base import is_adapter
 
 
 class AdapterRegistry(BaseClassRegistry):
     """Registry for type conversion adapters"""
     directory_name: str = RegistryFolder.ADAPTERS.value
+    class_filter = is_adapter  # Use the adapter filter
 
     def __init__(self):
         super().__init__()
@@ -32,6 +34,39 @@ class AdapterRegistry(BaseClassRegistry):
         # Register with base registry for metadata tracking
         adapter_name = f"{source_key}_to_{target_key}"
         super()._register(adapter_name, adapter_class)
+
+    def unregister_adapter(self, adapter_name: str) -> type[BaseAdapter] | None:
+        """ Unregister an adapter by its name.
+
+        Args:
+            adapter_name: The name of the adapter to unregister
+        """
+        del self._adapters[adapter_name]
+        return super()._unregister(adapter_name)
+
+    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
+        """
+        Handle file change events for node modules.
+
+        Args:
+            event: FileChangeEvent containing file path and event type
+        """
+        if event.event_type == FileEventType.DELETED:
+            affected_class_names = self._on_delete(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.unregister_adapter(cls_name)
+        elif event.event_type == FileEventType.CREATED:
+            affected_class_names = self._on_creation(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.register_adapter(cls_name, metadata)
+        elif event.event_type == FileEventType.MODIFIED:
+            affected_class_names = self._on_change(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.unregister_adapter(cls_name)
+
 
     def has_adapter(self, source_type: str, target_type: str) -> bool:
         """Check if an adapter exists for the given type conversion"""

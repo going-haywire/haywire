@@ -3,9 +3,21 @@ Base adapter classes for type conversion
 """
 
 from abc import ABC, abstractmethod
+import inspect
 from typing import Any, override
 
 from haywire.core.data.enums import DataType
+
+
+# For adapters
+def is_adapter(cls):
+    """Check if a class is a valid Haywire adapter class."""
+    try:
+        return (inspect.isclass(cls) and
+                issubclass(cls, BaseAdapter) and
+                cls != BaseAdapter)
+    except TypeError:
+        return False
 
 class BaseAdapter(ABC):
     """Abstract base class for type adapters"""

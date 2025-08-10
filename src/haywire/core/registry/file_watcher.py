@@ -1,3 +1,4 @@
+from enum import Enum
 import logging
 import ast
 import time
@@ -9,7 +10,8 @@ from collections import defaultdict
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from haywire.core.registry.base import BaseLibrary, FileChangeEvent
+from haywire.core.registry.base import BaseLibrary, FileChangeEvent, FileEventType
+
 
 class LibraryFileHandler(FileSystemEventHandler):
     """Handles file system events for library files"""
@@ -19,15 +21,15 @@ class LibraryFileHandler(FileSystemEventHandler):
         
     def on_modified(self, event):
         if not event.is_directory and event.src_path.endswith('.py'):
-            self.file_watcher._handle_file_change(event.src_path, 'modified')
+            self.file_watcher._handle_file_change(event.src_path, FileEventType.MODIFIED)
     
     def on_created(self, event):
         if not event.is_directory and event.src_path.endswith('.py'):
-            self.file_watcher._handle_file_change(event.src_path, 'created')
+            self.file_watcher._handle_file_change(event.src_path, FileEventType.CREATED)
     
     def on_deleted(self, event):
         if not event.is_directory and event.src_path.endswith('.py'):
-            self.file_watcher._handle_file_change(event.src_path, 'deleted')
+            self.file_watcher._handle_file_change(event.src_path, FileEventType.DELETED)
 
 
 class FileWatcher:
@@ -108,7 +110,7 @@ class FileWatcher:
             del self.observers[path]
             print(f"Stopped watching: {path}")
     
-    def _handle_file_change(self, file_path: str, event_type: str):
+    def _handle_file_change(self, file_path: str, event_type: FileEventType):
         """Handle file change with debouncing"""
         with self._lock:
             # Cancel existing timer for this file
@@ -199,7 +201,7 @@ class FileWatcher:
                     affected_libraries.update(library_names)
 
         # For deleted files, skip validation
-        if event.event_type != 'deleted':
+        if event.event_type != FileEventType.DELETED:
             # Validate Python file before notifying libraries
             if not self._validate_python_file(event.file_path):
                 logging.error(f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
@@ -211,9 +213,9 @@ class FileWatcher:
                 library = self.libraries[library_name]
                 try:
                     library.handle_file_change(event)
-                    print(f"Notified {library_name} about {event.event_type}: {event.file_path}")
+                    logging.info(f"Notified {library_name} about {event.event_type}: {event.file_path}")
                 except Exception as e:
-                    print(f"Error notifying {library_name}: {e}")
+                    logging.error(f"Failed notifying '{library_name}': {e}")
 
     def _validate_python_file(self, file_path: str) -> bool:
         """

@@ -3,10 +3,11 @@ Core widget registration and exports
 """
 
 from haywire.core.registry.registry_widget import WidgetRegistry
-from haywire.core.registry.folder_scan import folder_scan_for_classes, is_widget
+from haywire.core.registry.folder_scan import folder_scan_for_classes
 from haywire.core.registry.registry_library import LibraryMetadata
 from haywire.core.data.enums import DataType
 from haywire.core.registry.utils import camel_to_dot_case
+from haywire.core.ui.base import is_widget
 
 # Import all widget classes
 from .base import ErrorWidget

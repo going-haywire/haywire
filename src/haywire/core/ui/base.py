@@ -3,12 +3,21 @@ Base widget classes for the Haywire widget system
 """
 
 from abc import ABC, abstractmethod
+import inspect
 from typing import Any, Dict, Optional
-
-from haywire.core.node.node import NodeErrorInfo
 
 from haywire.core.data.fields import DataField
 from haywire.core.node.elements import ConfigurableElement
+
+# For widgets
+def is_widget(cls):
+    try:
+        return (inspect.isclass(cls) and
+                issubclass(cls, BaseWidget) and
+                cls != BaseWidget)
+    except TypeError:
+        return False
+
 
 class UINodeCard:
     """

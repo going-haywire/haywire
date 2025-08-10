@@ -4,8 +4,9 @@ Core adapter registration and exports
 This module now includes both adapters and core data type definitions (merged from data/ folder).
 """
 
+from haywire.core.adapter.base import is_adapter
 from haywire.core.registry.registry_adapter import AdapterRegistry
-from haywire.core.registry.folder_scan import folder_scan_for_classes, is_adapter
+from haywire.core.registry.folder_scan import folder_scan_for_classes
 from haywire.core.registry.registry_library import LibraryMetadata
 
 # --- Factory functions for creating DataFieldSpec instances ---

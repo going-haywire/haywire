@@ -1,4 +1,5 @@
 from __future__ import annotations
+import inspect
 from typing import Any, Dict, List
 from abc import abstractmethod
 from dataclasses import dataclass, field
@@ -34,6 +35,16 @@ class NodeVersionError(NodeDiscoveryError):
 class NodeValidationError(NodeDiscoveryError):
     """Node class is missing required attributes"""
     pass
+
+
+def is_node(cls):
+    """Check if a class is a valid Haywire node class."""
+    try:
+        return (inspect.isclass(cls) and
+                issubclass(cls, BaseNode) and
+                cls != BaseNode)
+    except TypeError:
+        return False
 
 @dataclass
 class NodeErrorInfo:
@@ -239,4 +250,5 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """Get current class metadata for comparison"""
         return {attr: getattr(self.__class__, attr) for attr in self._node_metadata_attrs 
                 if hasattr(self.__class__, attr)}
+
 

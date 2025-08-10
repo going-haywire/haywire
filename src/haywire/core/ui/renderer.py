@@ -1,9 +1,19 @@
+import inspect
 from haywire.core.node.node import BaseNode
 from haywire.core.registry.registry_widget import WidgetRegistry
 from haywire.core.ui.base import UINodeCard
 
 from abc import ABC, abstractmethod
 
+# For renderers  
+def is_renderer(cls):
+    try:
+        return (inspect.isclass(cls) and
+                issubclass(cls, BaseNodeRenderer) and
+                cls != BaseNodeRenderer)
+    except TypeError:
+        return False
+    
 class BaseNodeRenderer(ABC):
     """
     Abstract base class for all NodeRenderer classes.

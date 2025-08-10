@@ -1,5 +1,6 @@
 from haywire.core.node.node import BaseNode, NodeDiscoveryError, NodeErrorInfo
-from haywire.core.registry.base import BaseClassRegistry, LibraryMetadata, RegistryFolder
+from haywire.core.registry.base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from haywire.core.node.node import is_node
 from haywire.core.registry.utils import camel_to_dot_case
 
 
@@ -9,6 +10,7 @@ from typing import Dict, List
 class NodeRegistry(BaseClassRegistry):
     """Simplified registry for managing nodes using library_name:node_name keys"""
     directory_name: str = RegistryFolder.NODES.value
+    class_filter = is_node  # Use the node filter
 
     def __init__(self):
         super().__init__()
@@ -48,6 +50,9 @@ class NodeRegistry(BaseClassRegistry):
 
         self._register(key, node_cls, library_metadata)
 
+    def unregister_node(self, name):
+        return super()._unregister(name)
+
     def register_error_node(self, node_class: type[BaseNode]):
         """Register the error node class"""
         self._error_node = node_class
@@ -85,6 +90,29 @@ class NodeRegistry(BaseClassRegistry):
             # Otherwise raise error
             raise NodeDiscoveryError(f"Node not found: {key}. No error node registered.")
         return None, node_class
+
+    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
+        """
+        Handle file change events for node modules.
+
+        Args:
+            event: FileChangeEvent containing file path and event type
+        """
+        if event.event_type == FileEventType.DELETED:
+            affected_class_names = self._on_deleted(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.unregister_node(cls_name)
+        elif event.event_type == FileEventType.CREATED:
+            affected_class_names = self._on_created(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.register_node(cls_name, metadata)
+        elif event.event_type == FileEventType.MODIFIED:
+            affected_class_names = self._on_modified(module)
+            if affected_class_names:
+                for cls_name in affected_class_names:
+                    self.unregister_node(cls_name)
 
     def get_menu_structure(self) -> Dict[str, List[Dict[str, str]]]:
         """
