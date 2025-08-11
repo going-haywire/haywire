@@ -212,8 +212,8 @@ class FileWatcher:
             if library_name in self.libraries:
                 library = self.libraries[library_name]
                 try:
+                    logging.info(f"Notifying library '{library_name}' about {event.event_type.value}: {event.file_path}")
                     library.handle_file_change(event)
-                    logging.info(f"Notified {library_name} about {event.event_type}: {event.file_path}")
                 except Exception as e:
                     logging.error(f"Failed notifying '{library_name}': {e}")
 

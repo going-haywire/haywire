@@ -7,7 +7,7 @@ from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMet
 class AdapterRegistry(BaseClassRegistry):
     """Registry for type conversion adapters"""
     directory_name: str = RegistryFolder.ADAPTERS.value
-    class_filter = is_adapter  # Use the adapter filter
+    class_filter = lambda self, cls: is_adapter(cls)  # Use the adapter filter
 
     def __init__(self):
         super().__init__()
@@ -16,9 +16,10 @@ class AdapterRegistry(BaseClassRegistry):
 
     def register_adapter(self, adapter_class: type[BaseAdapter], metadata: Optional[LibraryMetadata] = None):
         """
-        Register a self-registering adapter class.
-
-        The adapter class inherits from BaseAdapter which ensures source_type and target_type exist.
+        Register adapter class.
+        Args:
+            adapter_class: The adapter class to register.
+            metadata: Optional metadata for the adapter.
         """
         source_type = adapter_class.source_type
         target_type = adapter_class.target_type
@@ -35,12 +36,15 @@ class AdapterRegistry(BaseClassRegistry):
         super()._register(adapter_name, adapter_class)
 
     def unregister_adapter(self, adapter_name: str) -> type[BaseAdapter] | None:
-        """ Unregister an adapter by its name.
+        """ Unregister an adapter by its haywire name.
 
         Args:
-            adapter_name: The name of the adapter to unregister
+            adapter_name: The haywire name of the adapter to unregister
         """
-        del self._adapters[adapter_name]
+        adapter_class = self.get(adapter_name)
+        key = next((k for k, cls in self._adapters.items() if cls.__name__ == adapter_class.__name__), None)
+        del self._adapters[key]
+
         return super()._unregister(adapter_name)
 
     def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
@@ -50,21 +54,24 @@ class AdapterRegistry(BaseClassRegistry):
         Args:
             event: FileChangeEvent containing file path and event type
         """
-        if event.event_type == FileEventType.DELETED:
-            affected_class_names = self._on_delete(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
-                    self.unregister_adapter(cls_name)
-        elif event.event_type == FileEventType.CREATED:
-            affected_class_names = self._on_creation(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
-                    self.register_adapter(cls_name, metadata)
+        if event.event_type == FileEventType.CREATED:
+            added_classes = self._on_creation(module)
+            if added_classes:
+                for cls in added_classes:
+                    self.register_adapter(cls, metadata)
         elif event.event_type == FileEventType.MODIFIED:
-            affected_class_names = self._on_change(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
-                    self.unregister_adapter(cls_name)
+            added_classes, removed_classes = self._on_change(module)
+            if removed_classes:
+                for cls_name in removed_classes:
+                    _ = self.unregister_adapter(cls_name)
+            if added_classes:
+                for cls in added_classes:
+                    self.register_adapter(cls, metadata)
+        elif event.event_type == FileEventType.DELETED:
+            removed_classes = self._on_delete(module)
+            if removed_classes:
+                for cls_name in removed_classes:
+                    _ = self.unregister_adapter(cls_name)
 
 
     def has_adapter(self, source_type: str, target_type: str) -> bool:

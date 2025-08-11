@@ -11,7 +11,7 @@ from ..utils import camel_to_dot_case
 class WidgetRegistry(BaseClassRegistry):
     """Registry for UI widgets that can render data fields"""
     directory_name: str = RegistryFolder.WIDGETS.value
-    class_filter = is_widget  # Use the widget filter
+    class_filter = lambda self, cls: is_widget(cls)  # Use the widget filter
 
     def __init__(self):
         super().__init__()
@@ -27,8 +27,11 @@ class WidgetRegistry(BaseClassRegistry):
 
         self._register(keyname, widget, metadata=metadata)
 
-    def unregister_widget(self, widget_name: str):
-        """Unregister a UI widget by its name"""
+    def unregister_widget(self, widget_name: str) -> type[BaseWidget] | None:
+        """Unregister a UI widget by its haywire name
+        Args:
+            widget_name: The haywire name of the widget to unregister
+        """
         # Remove from default widgets if it was set
         for data_type, default_widget in list(self._default_widgets.items()):
             if default_widget == widget_name:
@@ -66,20 +69,23 @@ class WidgetRegistry(BaseClassRegistry):
         Args:
             event: FileChangeEvent containing file path and event type
         """
-        if event.event_type == FileEventType.DELETED:
-            affected_class_names = self._on_delete(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
-                    self.unregister_widget(cls_name)
-        elif event.event_type == FileEventType.CREATED:
-            affected_class_names = self._on_creation(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
+        if event.event_type == FileEventType.CREATED:
+            added_classes = self._on_creation(module)
+            if added_classes:
+                for cls_name in added_classes:
                     self.register_widget(cls_name, metadata)
         elif event.event_type == FileEventType.MODIFIED:
-            affected_class_names = self._on_change(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
+            added_classes, removed_classes = self._on_change(module)
+            if removed_classes:
+                for cls_name in removed_classes:
+                    self.unregister_widget(cls_name)
+            if added_classes:
+                for cls_name in added_classes:
+                    self.register_widget(cls_name, metadata)
+        elif event.event_type == FileEventType.DELETED:
+            removed_classes = self._on_delete(module)
+            if removed_classes:
+                for cls_name in removed_classes:
                     self.unregister_widget(cls_name)
 
 

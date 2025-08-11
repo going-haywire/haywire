@@ -111,12 +111,18 @@ class BaseClassRegistry(BaseRegistry):
   
     def __init__(self):
         super().__init__()
-        self._class_name: Dict[str, str] = {}  # Name of the class being registered
+        self._module_class_name: Dict[str, str] = {}  # Name of the class being registered
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
      
     def _register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
+        """Register a class with its name and optional metadata
+        Args:
+            name (str): The haywire name of the class to register
+            item (Any): The class to register
+            metadata (Optional[Dict[str, Any]]): Optional metadata for the class
+        """
         super()._register(name, item, metadata)
-        self._class_name[name] = item.__name__
+        self._module_class_name[name] = item.__name__
 
         # Track module to class mapping
         module_name = item.__module__
@@ -125,10 +131,19 @@ class BaseClassRegistry(BaseRegistry):
         if name not in self._module_to_classes[module_name]:
             self._module_to_classes[module_name].append(name)
 
+        logging.info(f"Registered class '{name}' named '{item.__name__}' from '{module_name}' has been registered.")
+
+
     def _unregister(self, name: str):
-        """Remove a class from the registry"""
-        if name in self._class_name:
-            del self._class_name[name]
+        """Remove a class from the registry
+        Args:
+            name (str): The haywire name of the class to unregister
+        """
+
+        logging.info(f"Unregistering class '{name}' named  '{self._module_class_name[name]}' from '{self._items[name].__module__}' ...")
+
+        if name in self._module_class_name:
+            del self._module_class_name[name]
         
         # Clean up module to class mapping
         for module_name, class_list in self._module_to_classes.items():
@@ -148,74 +163,77 @@ class BaseClassRegistry(BaseRegistry):
         """
         pass
 
-    def _on_creation(self, model: str) -> list[type]:
-        """Helps in creation of a new module by returning classes
+    def _on_creation(self, module: str) -> list[type]:
+        """returns all relevant classes of the module
 
         Args:
-            model (str): The module name that has been created.
-        
-        Returns:
-            list: List of classes that have been discovered
-        """
-        logging.info(f"New module '{model}' created. Scanning for classes.")
-        return module_scan_for_classes(model, self.class_filter)
+            module (str): The module name that has been created.
 
-    def _on_change(self, module: str) -> list:
-        """Handle changes to a module by reloading and re-registering classes
-        
+        Returns:
+            list: List of relevant classes that are in this module
+        """
+        return module_scan_for_classes(module, self.class_filter, True)
+
+    def _on_change(self, module_name: str) -> tuple[list, list]:
+        """re-registering existing classes within the module
+        and returning the classes that need to be
+        additionally registered / unregistered
+
         Args:
-            module (str): The module name that has changed.
+            module_name (str): The module name that has changed.
         
         Returns:
-            list: List of classes that need to be unregistered
+            [list,list]: [(List of classes to be registered), (List of haywire class names to be unregistered)]
         """
-        logging.info(f"Reloading module '{module}' due to change.")
-        # Get classes that need to be updated
-        classes_to_update = self._module_to_classes.get(module, [])
-        if not classes_to_update:
-            logging.info(f"Module '{module}' has no classes to update.")
-            return
+        logging.info(f"Reloading module '{module_name}' due to change...")
+        # Get all classes in this module
+        classes_to_add = module_scan_for_classes(module_name, self.class_filter, True)
+        hw_class_names_to_remove = []
 
-        # Store old class info for re-registration
-        old_class_info: Dict[str, str] = {}
-        for class_name in classes_to_update:
-            old_class_info[self._class_name[class_name]] = class_name
+        # Get registered classes from this module that need to be updated
+        hw_class_names_to_update = self._module_to_classes.get(module_name, [])
+        if hw_class_names_to_update:
+
+            # Store old class info for re-registration
+            mod_to_hw_class_name_mapping: Dict[str, str] = {} # key: module class name, value: haywire class name
+            for mod_class_name in hw_class_names_to_update:
+                mod_to_hw_class_name_mapping[self._module_class_name[mod_class_name]] = mod_class_name
+                # check if the registered old class name matches a class name in the new module
+                class_to_remove = next((cls for cls in classes_to_add if cls.__name__ == self._module_class_name[mod_class_name]), None)
+                if class_to_remove:
+                    # Remove the class from the list to avoid re-registering it
+                    classes_to_add.remove(class_to_remove)
+                
+            # this gets the module that has already been forcefully reloaded
+            # by the module_scan_for_classes function
+            module = importlib.import_module(module_name)
+            
+            # Re-register classes from reloaded module  
+            for mod_class_name in mod_to_hw_class_name_mapping:
+                if hasattr(module, mod_class_name):
+                    self._items[mod_to_hw_class_name_mapping[mod_class_name]] = getattr(module, mod_class_name)
+                    logging.info(f"... Re-loaded and re-registered: '{mod_to_hw_class_name_mapping[mod_class_name]}' with '{mod_class_name}' from {module_name}")
+                else:
+                    hw_class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
         
-        # Remove old classes from the system
-        del sys.modules[module]
- 
-        # Reload the module
-        if module in sys.modules:
-            reloaded_module = importlib.reload(sys.modules[module])
         else:
-            reloaded_module = importlib.import_module(module)
-        
-        removed_classes = []
+            logging.info(f"Module '{module_name}' has no matching classes that need an update.")
 
-        # Re-register classes from reloaded module  
-        for class_name in old_class_info:
-            if hasattr(reloaded_module, class_name):
-                self._items[old_class_info[class_name]] = getattr(reloaded_module, class_name)
-                logging.info(f"Reloaded and re-registered '{old_class_info[class_name]}' with '{class_name}' from {module}")
-            else:
-                removed_classes.append(old_class_info[class_name])
-                logging.warning(f"class '{old_class_info[class_name]}' with '{class_name}' no longer exists in reloaded module '{module}'")
+        return classes_to_add, hw_class_names_to_remove.copy()
 
-        return removed_classes
-    
     def _on_delete(self, module: str) -> list[str]:
-        """ Helps with deletion of a module by returning all classes from it.
+        """Marks the classes need to be unregistered.
 
         Args:
             module (str): The module name that has been deleted.
         
         Returns:
-            list: List of classes that need to be unregistered
+            list: List of haywire class names that need to be unregistered
         """
         logging.info(f"Module '{module}' has been deleted. Unregistering classes.")
         classes_to_delete = self._module_to_classes.get(module, [])
 
-        return classes_to_delete
+        return classes_to_delete.copy()
 
 class BaseLibrary(ABC):
     """Abstract base class for all libraries"""

@@ -7,7 +7,7 @@ from ..utils import camel_to_dot_case
 class NodeRegistry(BaseClassRegistry):
     """Simplified registry for managing nodes using library_name:node_name keys"""
     directory_name: str = RegistryFolder.NODES.value
-    class_filter = is_node  # Use the node filter
+    class_filter = lambda self, cls: is_node(cls)  # Use the node filter
 
     def __init__(self):
         super().__init__()
@@ -47,7 +47,11 @@ class NodeRegistry(BaseClassRegistry):
 
         self._register(key, node_cls, library_metadata)
 
-    def unregister_node(self, name):
+    def unregister_node(self, name) -> type[BaseNode] | None:
+        """Unregister a node by its haywire name
+        Args:
+            name: The name of the node to unregister
+        """
         return super()._unregister(name)
 
     def register_error_node(self, node_class: type[BaseNode]):
@@ -95,21 +99,25 @@ class NodeRegistry(BaseClassRegistry):
         Args:
             event: FileChangeEvent containing file path and event type
         """
-        if event.event_type == FileEventType.DELETED:
-            affected_class_names = self._on_deleted(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
-                    self.unregister_node(cls_name)
-        elif event.event_type == FileEventType.CREATED:
-            affected_class_names = self._on_created(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
+        if event.event_type == FileEventType.CREATED:
+            added_classes = self._on_creation(module)
+            if added_classes:
+                for cls_name in added_classes:
                     self.register_node(cls_name, metadata)
         elif event.event_type == FileEventType.MODIFIED:
-            affected_class_names = self._on_modified(module)
-            if affected_class_names:
-                for cls_name in affected_class_names:
+            added_classes, removed_classes = self._on_change(module)
+            if removed_classes:
+                for cls_name in removed_classes:
                     self.unregister_node(cls_name)
+            if added_classes:
+                for cls_name in added_classes:
+                    self.register_node(cls_name, metadata)
+        elif event.event_type == FileEventType.DELETED:
+            removed_classes = self._on_delete(module)
+            if removed_classes:
+                for cls_name in removed_classes:
+                    self.unregister_node(cls_name)
+
 
     def get_menu_structure(self) -> Dict[str, List[Dict[str, str]]]:
         """

@@ -2,6 +2,7 @@ import logging
 import os
 import importlib
 import inspect
+import sys
 import traceback
 from typing import List, Type, Optional, Callable
 from pathlib import Path
@@ -46,7 +47,7 @@ def folder_scan_for_classes(library_path: str,
             # Import the module
             module_name = f"{module_prefix}.{py_file.stem}"
 
-            discovered_classes.extend(module_scan_for_classes(module_name, class_filter))
+            discovered_classes.extend(module_scan_for_classes(module_name, class_filter, False))
                    
         except Exception as e:
             logging.warning(f"Could not import {py_file.name}: {e} \n{traceback.format_exc()}")
@@ -56,21 +57,30 @@ def folder_scan_for_classes(library_path: str,
 
 
 def module_scan_for_classes(module_name: str, 
-                         class_filter: Callable[[Type], bool]) -> List[Type]:
+                         class_filter: Callable[[Type], bool],
+                         force_reload: bool = False) -> List[Type]:
     """
     Automatically discover classes in a module based on a filter function.
     
     Args:
         module_name: Name of the module to scan
         class_filter: Function that returns True if a class should be included
+        force_reload: Whether to force reload the module even if it is already imported
     
     Returns:
         List of discovered classes that pass the filter
     """
     discovered_classes = []
 
-    module = importlib.import_module(module_name)
+    module = None
     
+    if force_reload and module_name in sys.modules:
+        # The existing module needs to be explicitly removed
+        # to ensure it is the latest version is reloaded
+        del sys.modules[module_name]
+    
+    module = importlib.import_module(module_name)
+
     # Inspect all classes in the module
     for name, obj in inspect.getmembers(module, inspect.isclass):
         # Ensure it's defined in this module (not imported)
@@ -81,7 +91,7 @@ def module_scan_for_classes(module_name: str,
                     discovered_classes.append(obj)
             except Exception as e:
                 # Log filter errors but continue discovery
-                logging.debug(f"Filter error for class {name}: {e}")
+                logging.error(f"Filter error for class {name}: \n\n {e} \n")
                 continue
 
     return discovered_classes
