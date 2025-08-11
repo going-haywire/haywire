@@ -8,7 +8,6 @@ class DisplayNode(BaseNode):
     """Node that displays input values"""
     
     # Required metadata for node discovery
-    node_name = 'Display'
     node_label = 'Display'
     node_description = 'Displays input values for debugging'
     node_search_tags = ['display', 'debug', 'output', 'basic']

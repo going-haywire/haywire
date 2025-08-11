@@ -5,7 +5,7 @@ from haywire.core.data.fields import DataField
 from haywire.core.ui.base import BaseWidget, is_widget
 
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
-from ..utils import camel_to_dot_case
+from ..utils import camel_to_dot_case, reg_key
 
 
 class WidgetRegistry(BaseClassRegistry):
@@ -21,11 +21,9 @@ class WidgetRegistry(BaseClassRegistry):
     def register_widget(self, widget: type[BaseWidget], metadata: LibraryMetadata):
         """Register a UI widget with its metadata"""
 
-        widget_name = camel_to_dot_case(widget.__name__)
+        registry_key = reg_key(metadata.name, widget.__name__)
 
-        keyname = f"{metadata.name}:{widget_name}"
-
-        self._register(keyname, widget, metadata=metadata)
+        self._register(registry_key, widget, metadata=metadata)
 
     def unregister_widget(self, widget_name: str) -> type[BaseWidget] | None:
         """Unregister a UI widget by its haywire name

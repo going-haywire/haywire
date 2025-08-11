@@ -2,10 +2,10 @@ from typing import Dict, List
 
 from haywire.core.node.node import BaseNode, NodeDiscoveryError, NodeErrorInfo, is_node
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
-from ..utils import camel_to_dot_case
+from ..utils import camel_to_dot_case, reg_key
 
 class NodeRegistry(BaseClassRegistry):
-    """Simplified registry for managing nodes using library_name:node_name keys"""
+    """Simplified registry for managing nodes using library.name:node.name keys"""
     directory_name: str = RegistryFolder.NODES.value
     class_filter = lambda self, cls: is_node(cls)  # Use the node filter
 
@@ -18,7 +18,7 @@ class NodeRegistry(BaseClassRegistry):
         Register a node class with library metadata.
 
         Sets node class attributes from library metadata and registers under
-        the key format: library_name:node_name
+        the key format: library.name:node.name
 
         Args:
             node_class: The node class to register
@@ -27,6 +27,16 @@ class NodeRegistry(BaseClassRegistry):
         Raises:
             ValueError: If a node with the same key is already registered
         """
+        # Create registry key
+        registry_key = reg_key(library_metadata.name, node_cls.__name__)
+
+        # Check for duplicates
+        if self.has(registry_key):
+            raise ValueError(f"Node already registered: {registry_key}")
+
+        # Set the registry key on the node class
+        setattr(node_cls, 'registry_key', registry_key)
+
         # Set library-derived attributes on the node class
         setattr(node_cls, 'library_name', library_metadata.name)
         setattr(node_cls, 'library_version', library_metadata.version)
@@ -35,17 +45,7 @@ class NodeRegistry(BaseClassRegistry):
         setattr(node_cls, 'library_author', library_metadata.author)
         setattr(node_cls, 'library_author_url', library_metadata.author_url)
 
-
-        node_name = camel_to_dot_case(node_cls.__name__)
-
-        # Create registry key
-        key = f"{library_metadata.name}:{node_name}"
-
-        # Check for duplicates
-        if self.has(key):
-            raise ValueError(f"Node already registered: {key}")
-
-        self._register(key, node_cls, library_metadata)
+        self._register(registry_key, node_cls, library_metadata)
 
     def unregister_node(self, name) -> type[BaseNode] | None:
         """Unregister a node by its haywire name
@@ -189,15 +189,14 @@ class NodeRegistry(BaseClassRegistry):
         """
         results = []
 
-        for key in self.list_names():
-            metadata = self.get_metadata(key)
+        for registry_key in self.list_names():
+            metadata = self.get_metadata(registry_key)
             if metadata and metadata.get('library_name') == library_name:
-                node_class = self.get(key)
+                node_class = self.get(registry_key)
                 results.append({
                     'label': node_class.node_label,
-                    'key': key,
-                    'description': node_class.node_description,
-                    'node_name': node_class.node_name
+                    'key': registry_key,
+                    'description': node_class.node_description
                 })
 
         return results
@@ -211,8 +210,8 @@ class NodeRegistry(BaseClassRegistry):
         """
         libraries = set()
 
-        for key in self.list_names():
-            metadata = self.get_metadata(key)
+        for registry_key in self.list_names():
+            metadata = self.get_metadata(registry_key)
             if metadata:
                 libraries.add(metadata['library_name'])
 

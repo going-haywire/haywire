@@ -12,7 +12,6 @@ class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
     # Required metadata for node discovery
-    node_name = 'TestNodeOne'
     node_label = 'Test Node One'
     node_search_tags = ['constant', 'value', 'output', 'basic']
     node_menu = 'core/basic'

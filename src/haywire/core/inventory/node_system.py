@@ -17,7 +17,7 @@ def create_node_from_key(registry: BaseNode, key: str, node_id: str, graph) -> B
     
     Args:
         registry: The node registry
-        key: Registry key in format "library_name:node_name"
+        key: Registry key in format "library.name:node.name"
         node_id: Unique ID for the node instance
         graph: Graph instance the node belongs to
         
@@ -40,7 +40,7 @@ def serialize_node_metadata(node: BaseNode) -> Dict[str, Any]:
     """
     return {
         'node_id': node.node_id,
-        'registry_key': f"{node.node_library_name}:{node.node_name}",
+        'registry_key': f"{node.registry_key}",
         'ui_properties': {
             'posX': getattr(node, 'ui_posX', 0),
             'posY': getattr(node, 'ui_posY', 0),

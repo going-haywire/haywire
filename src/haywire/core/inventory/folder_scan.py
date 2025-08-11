@@ -15,6 +15,12 @@ def folder_scan_for_classes(library_path: str,
     """
     Automatically discover classes in a library directory based on a filter function.
     
+    Remarks: should only be used when the libraries are registering their
+    inventory for the first time. The subsequent call of the method
+    'module_scan_for_classes' does not enforce the reloading of the module,
+    since this would lead to unexpected behavior when comparing the classes 
+    returned by this method with the classes imported by the __init__.py file.
+
     Args:
         library_path: Path to the library directory to scan. Conveniently, use __path__[0]
         class_filter: Function that returns True if a class should be included
@@ -76,7 +82,7 @@ def module_scan_for_classes(module_name: str,
     
     if force_reload and module_name in sys.modules:
         # The existing module needs to be explicitly removed
-        # to ensure it is the latest version is reloaded
+        # to ensure it is the latest version that is reloaded
         del sys.modules[module_name]
     
     module = importlib.import_module(module_name)

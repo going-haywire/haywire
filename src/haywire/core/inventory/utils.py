@@ -3,6 +3,11 @@ from pathlib import Path
 from typing import Dict, Any, Optional 
 import re
 
+def reg_key(library_name: str, class_name: str) -> str:
+    """Generate the registry key from the library and class name."""
+    camel_class_name = camel_to_dot_case(class_name)
+    return f"{library_name}:{camel_class_name}"
+
 def camel_to_dot_case(CamelCaseString: str) -> str:
     """Convert CamelCase to dot.case with handling of consecutive uppercase letters"""
     # Handle transition from lowercase to uppercase

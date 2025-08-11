@@ -79,7 +79,6 @@ class NodeMeta(type):  # Assuming HaywireMeta inherits from type
         if not is_abstract:
             # Validate that required node attributes are set
             required_attrs = [
-                'node_name', 
                 'node_label',
                 'node_search_tags',
                 'node_menu'
@@ -192,6 +191,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         self.node_id = node_id
         self.graph = graph
         self.error_info: NodeErrorInfo | None = None
+        self.registry_key = '' # set upon registration - library.name:node.name
 
         # library attributes set automatically upon registration
         self.library_name = ''
@@ -202,7 +202,6 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         self.library_author_url = ''
 
         ## identifying attributes
-        self.node_name = 'Node_NAME'
         self.node_label = 'Node Name'
         self.node_description = 'Node Description'
         self.node_search_tags = ['add', 'sub', 'math', 'vector']

@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from haywire.core.ui.renderer import BaseNodeRenderer, is_renderer
 
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
-from ..utils import camel_to_dot_case
+from ..utils import camel_to_dot_case, reg_key
 
 class RendererRegistry(BaseClassRegistry):
     """Registry for NodeRenderer classes with fallback support"""
@@ -26,15 +26,13 @@ class RendererRegistry(BaseClassRegistry):
             metadata: Optional metadata for the renderer
         """
 
-        renderer_name = camel_to_dot_case(renderer_cls.__name__)
+        registry_key = reg_key(metadata.name, renderer_cls.__name__)
 
-        keyname = f"{metadata.name}:{renderer_name}"
-
-        self._register(keyname, renderer_cls, metadata)
+        self._register(registry_key, renderer_cls, metadata)
 
         # Automatically set as default if no default is set yet
         if self._default_renderer_name is None:
-            self._default_renderer_name = keyname
+            self._default_renderer_name = registry_key
 
     def unregister_renderer(self, name: str) -> type[BaseNodeRenderer] | None:
         """Unregister a renderer by its haywire name
