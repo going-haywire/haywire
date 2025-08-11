@@ -1,6 +1,6 @@
 import inspect
 from haywire.core.node.node import BaseNode
-from haywire.core.registry.registry_widget import WidgetRegistry
+from haywire.core.inventory.registry.widget import WidgetRegistry
 from haywire.core.ui.base import UINodeCard
 
 from abc import ABC, abstractmethod

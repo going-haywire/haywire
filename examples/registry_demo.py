@@ -14,10 +14,7 @@ from pathlib import Path
 import sys
 import os
 
-from haywire.core.registry.registry_node import NodeRegistry
-from haywire.core.registry.registry_renderer import RendererRegistry
-from haywire.core.registry.registry_adapter import AdapterRegistry
-from haywire.core.registry.registry_widget import WidgetRegistry
+from nicegui import ui
 
 # Add project paths
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -25,14 +22,16 @@ src_path = os.path.join(project_root, 'src')
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-from nicegui import ui
-from haywire.core.registry.registry_library import LibraryRegistry
-from haywire.core.registry.discovery import LibraryDiscovery
+from haywire.core.inventory.discovery import LibraryDiscovery
+from haywire.core.inventory.registry.library import LibraryRegistry
+from haywire.core.inventory.registry.node import NodeRegistry
+from haywire.core.inventory.registry.renderer import RendererRegistry
+from haywire.core.inventory.registry.adapter import AdapterRegistry
+from haywire.core.inventory.registry.widget import WidgetRegistry
 
 # Import the new renderers architecture
 from haywire.ui.node_render_factory import NodeRenderFactory
 from haywire.ui.ui_node import UINode
-
 
 def setup_library_system():
     """Set up the complete library system"""

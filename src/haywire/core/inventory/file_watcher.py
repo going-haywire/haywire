@@ -10,7 +10,7 @@ from collections import defaultdict
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from haywire.core.registry.base import BaseLibrary, FileChangeEvent, FileEventType
+from haywire.core.inventory.base import BaseLibrary, FileChangeEvent, FileEventType
 
 
 class LibraryFileHandler(FileSystemEventHandler):

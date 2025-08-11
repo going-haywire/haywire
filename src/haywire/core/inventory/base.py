@@ -13,8 +13,8 @@ import time
 import logging
 from dataclasses import dataclass
 
-from haywire.core.registry.folder_scan import module_scan_for_classes
-from haywire.core.registry.utils import resolve_module_name
+from haywire.core.inventory.folder_scan import module_scan_for_classes
+from haywire.core.inventory.utils import resolve_module_name
 
 class RegistryFolder(Enum):
     """Defines the folder names for the registries."""

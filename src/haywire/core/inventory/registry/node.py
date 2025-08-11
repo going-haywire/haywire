@@ -1,11 +1,8 @@
-from haywire.core.node.node import BaseNode, NodeDiscoveryError, NodeErrorInfo
-from haywire.core.registry.base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
-from haywire.core.node.node import is_node
-from haywire.core.registry.utils import camel_to_dot_case
-
-
 from typing import Dict, List
 
+from haywire.core.node.node import BaseNode, NodeDiscoveryError, NodeErrorInfo, is_node
+from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from ..utils import camel_to_dot_case
 
 class NodeRegistry(BaseClassRegistry):
     """Simplified registry for managing nodes using library_name:node_name keys"""

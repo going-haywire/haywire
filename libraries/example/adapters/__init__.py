@@ -5,9 +5,9 @@ This module now includes both adapters and data type definitions (merged from da
 """
 
 from haywire.core.adapter.base import is_adapter
-from haywire.core.registry.folder_scan import folder_scan_for_classes
-from haywire.core.registry.base import LibraryMetadata
-from haywire.core.registry.registry_adapter import AdapterRegistry
+from haywire.core.inventory.folder_scan import folder_scan_for_classes
+from haywire.core.inventory.base import LibraryMetadata
+from haywire.core.inventory.registry.adapter import AdapterRegistry
 
 def register_adapters(adapter_registry: AdapterRegistry, library_metadata: LibraryMetadata):
     """Register test adapters with the adapter registry using self-registering pattern"""

@@ -4,7 +4,7 @@ Registry implementations for widgets, adapters, and libraries
 
 from typing import Any, Optional
 
-from .base import BaseRegistry, LibraryMetadata
+from ..base import BaseRegistry, LibraryMetadata
 
 # Import core data types for widget fallback
 

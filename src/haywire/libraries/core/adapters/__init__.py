@@ -5,9 +5,9 @@ This module now includes both adapters and core data type definitions (merged fr
 """
 
 from haywire.core.adapter.base import is_adapter
-from haywire.core.registry.registry_adapter import AdapterRegistry
-from haywire.core.registry.folder_scan import folder_scan_for_classes
-from haywire.core.registry.registry_library import LibraryMetadata
+from haywire.core.inventory.registry.adapter import AdapterRegistry
+from haywire.core.inventory.folder_scan import folder_scan_for_classes
+from haywire.core.inventory.registry.library import LibraryMetadata
 
 # --- Factory functions for creating DataFieldSpec instances ---
 #

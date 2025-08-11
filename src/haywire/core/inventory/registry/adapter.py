@@ -1,8 +1,7 @@
 from typing import Optional
 
-from haywire.core.adapter.base import BaseAdapter
-from haywire.core.registry.base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
-from haywire.core.adapter.base import is_adapter
+from haywire.core.adapter.base import BaseAdapter, is_adapter
+from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
 
 
 class AdapterRegistry(BaseClassRegistry):

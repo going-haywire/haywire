@@ -5,11 +5,11 @@ Minimal test library to demonstrate multi-library support.
 Contains one node, one widget, one adapter, and one data struct.
 """
 
-from haywire.core.registry.registry_renderer import RendererRegistry
-from haywire.core.registry.registry_adapter import AdapterRegistry
-from haywire.core.registry.registry_widget import WidgetRegistry
-from haywire.core.registry.base import BaseLibrary, LibraryMetadata
-from haywire.core.registry.registry_node import NodeRegistry
+from haywire.core.inventory.registry.renderer import RendererRegistry
+from haywire.core.inventory.registry.adapter import AdapterRegistry
+from haywire.core.inventory.registry.widget import WidgetRegistry
+from haywire.core.inventory.base import BaseLibrary, LibraryMetadata
+from haywire.core.inventory.registry.node import NodeRegistry
 
 # Import test components
 from .widgets import register_widgets

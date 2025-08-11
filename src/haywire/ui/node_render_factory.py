@@ -7,8 +7,8 @@ that looks up renderers from the renderers registry.
 
 from typing import Dict, Type
 from haywire.core.node.node import BaseNode
-from haywire.core.registry.registry_widget import WidgetRegistry
-from haywire.core.registry.registry_renderer import RendererRegistry
+from haywire.core.inventory.registry.widget import WidgetRegistry
+from haywire.core.inventory.registry.renderer import RendererRegistry
 from haywire.core.ui.renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
 

@@ -1,12 +1,11 @@
+import logging
+
 from haywire.core.data.enums import DataCategory, DataType
 from haywire.core.data.fields import DataField
-from haywire.core.registry.base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
-from haywire.core.ui.base import is_widget
-from haywire.core.registry.utils import camel_to_dot_case
-from haywire.core.ui.base import BaseWidget
+from haywire.core.ui.base import BaseWidget, is_widget
 
-
-import logging
+from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from ..utils import camel_to_dot_case
 
 
 class WidgetRegistry(BaseClassRegistry):

@@ -6,7 +6,7 @@ import traceback
 from typing import List, Type, Optional, Callable
 from pathlib import Path
 
-from haywire.core.registry.utils import resolve_module_name
+from haywire.core.inventory.utils import resolve_module_name
 
 def folder_scan_for_classes(library_path: str, 
                          class_filter: Callable[[Type], bool],
