@@ -62,7 +62,7 @@ class UINode:
             # Render into the container slot
             with self.container_slot:
                 if renderer_name is None:
-                    renderer_name = self.haywire_node.renderer
+                    renderer_name = self.haywire_node.ui_node_renderer
                 self.current_ui_card = self.factory.generate_node(renderer_name, self.haywire_node)
     
     def rerender(self, renderer_name: str | None = None):

@@ -209,13 +209,21 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         self.node_help_md = None
         self.node_help_url = 'https://haywire.io/docs/node-help'
 
-        # Runtime attributes
+        # Behavioral attributes
         self.is_control_node = False
         self.is_data_node = True
         self.is_loopback_node = False
-        self.can_be_muted = True
-        self.is_muted = False
+        self.ui_is_collapsable = True
+        self.ui_is_condensable = True
+        self.is_mutable = False
         self.mute_connection = ['control_in_ID', 'control_out_ID']
+        self.allows_variables = False # Not sure if this is needed, but it is here for now
+
+        # Runtime attributes
+        self.is_muted = False
+        self.ui_is_collapsed = False
+        self.ui_is_condensed = False
+        self.ui_is_pinned = False
         self.ui_default_color = '#FFFFFF'
         self.ui_custom_color = '#000000'
         self.ui_posX = 0
@@ -224,15 +232,14 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         self.ui_height = 100
         self.ui_width_min = -1
         self.ui_height_min = -1
-        self.ui_is_collapsable = True
-        self.ui_is_collapsed = False
-        self.ui_is_condensable = True
-        self.ui_is_condensed = False
-        self.ui_is_pinned = False
         self.ui_icon = None
-        self.ui_component = None
-        self.allows_variables = False
-        self.renderer = None
+        self.ui_node_renderer = None # A renderer to render the node in the UI
+        self.ui_props_renderer = None # A renderer to render the node properties in the UI
+        self.ui_custom_gui = None # A renderer to render a customer GUI for controlling user interaction with the node
+
+        # metadata attributes
+        self.notes = [str] # List of notes for this node
+        self.metadata = {} # Dictionary for additional userdefined metadata
 
 
     @abstractmethod
