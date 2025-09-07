@@ -5,7 +5,7 @@ This module contains actions that operate on the graph structure,
 including node and edge manipulation, positioning, and selection.
 """
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 
 from ..base_action import ActionBase, CompositeAction
@@ -25,7 +25,9 @@ class AddNodeAction(ActionBase):
             node: The node to add
             description: Optional description override
         """
-        super().__init__(description or f"Add node '{node.name}'")
+        # Use node_label if available, otherwise fallback to node_id or class name
+        node_name = getattr(node, 'node_label', None) or getattr(node, 'name', None) or node.node_id or node.__class__.__name__
+        super().__init__(description or f"Add node '{node_name}'")
         self.graph = graph
         self.node = node
         self.node_id = node.node_id

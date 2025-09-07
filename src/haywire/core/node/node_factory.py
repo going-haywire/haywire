@@ -1,8 +1,9 @@
 """
-Enhanced Node Factory with undo system integration.
+Pure Node Factory utility.
 
-This factory manages node lifecycle operations and integrates with the undo system
-to make node operations undoable while supporting hot reloading and cloning.
+This factory is a utility class that creates node instances from registry keys.
+It handles hot reloading support and node tracking but does not manage graph
+lifecycle or undo operations - those are handled by Graph and Actions respectively.
 """
 
 import time
@@ -14,8 +15,6 @@ from collections import defaultdict
 from .node import BaseNode
 from ..graph.graph import HaywireGraph
 from ..inventory.registry.node import NodeRegistry
-from ...undo.interfaces import IHistoryManager
-from ...undo.actions.graph_actions import AddNodeAction, RemoveNodeAction, MoveNodeAction
 
 
 @dataclass
@@ -62,25 +61,23 @@ class NodeSnapshot:
 
 class NodeFactory:
     """
-    Enhanced node factory with undo system integration.
+    Pure node factory utility.
     
-    This factory manages the complete lifecycle of nodes including creation,
-    cloning, hot reloading, and integration with the undo system for
-    undoable operations.
+    This factory is a utility class that creates node instances from registry keys.
+    It handles hot reload tracking but does not manage graph lifecycle or undo 
+    operations - those are handled by Graph and Actions respectively.
     """
     
-    def __init__(self, node_registry: NodeRegistry, undo_manager: Optional[IHistoryManager] = None):
+    def __init__(self, node_registry: NodeRegistry):
         """
         Initialize the node factory.
         
         Args:
             node_registry: Registry containing node class definitions
-            undo_manager: Optional undo manager for undoable operations
         """
         self.node_registry = node_registry
-        self.undo_manager = undo_manager
         
-        # Track created nodes for hot reload and management
+        # Track created nodes for hot reload support only
         self._active_nodes: Dict[str, BaseNode] = {}
         self._nodes_by_registry_key: Dict[str, set[str]] = defaultdict(set)
         self._node_registry_keys: Dict[str, str] = {}  # node_id -> registry_key
@@ -92,18 +89,19 @@ class NodeFactory:
         self._creation_count = 0
         self._last_creation_time = time.time()
     
-    def create_node(self, registry_key: str, graph: HaywireGraph, 
-                   node_id: Optional[str] = None, position: Optional[Tuple[float, float]] = None,
-                   use_undo: bool = True) -> BaseNode:
+    def create_instance(self, registry_key: str, graph: HaywireGraph, 
+                       node_id: Optional[str] = None, position: Optional[Tuple[float, float]] = None) -> BaseNode:
         """
-        Create a new node instance.
+        Pure utility method to create a node instance.
+        
+        This method only creates the node instance and tracks it for hot reload.
+        It does not add the node to any graph or interact with undo systems.
         
         Args:
             registry_key: Key in the node registry
             graph: Parent graph for the node
             node_id: Optional custom node ID (generated if not provided)
             position: Optional (x, y) position for the node
-            use_undo: Whether to create this through the undo system
             
         Returns:
             The created node instance
@@ -127,92 +125,50 @@ class NodeFactory:
         if position:
             node.ui_posX, node.ui_posY = position
         
-        # Track the node
+        # Track the node for hot reload support
         self._track_node(node, registry_key)
-        
-        # Add to graph through undo system or directly
-        if use_undo and self.undo_manager:
-            action = AddNodeAction(graph, node)
-            self.undo_manager.add_action(action)
-        else:
-            graph.add_node(node)
         
         self._creation_count += 1
         self._last_creation_time = time.time()
         
         return node
     
-    def remove_node(self, graph: HaywireGraph, node_id: str, use_undo: bool = True) -> bool:
+    def untrack_node(self, node_id: str) -> bool:
         """
-        Remove a node from the graph.
+        Stop tracking a node (called when node is removed from graph).
+        
+        This method only handles the factory's internal tracking and does not
+        remove the node from any graph - that should be done by the graph itself.
         
         Args:
-            graph: The graph containing the node
-            node_id: ID of the node to remove
-            use_undo: Whether to remove through the undo system
+            node_id: ID of the node to stop tracking
             
         Returns:
-            True if node was removed, False if not found
+            True if node was being tracked, False if not found
         """
         if node_id not in self._active_nodes:
             return False
-        
-        # Remove through undo system or directly
-        if use_undo and self.undo_manager:
-            action = RemoveNodeAction(graph, node_id)
-            self.undo_manager.add_action(action)
-        else:
-            graph.remove_node(node_id)
         
         # Untrack the node
         self._untrack_node(node_id)
-        
-        return True
-    
-    def move_node(self, graph: HaywireGraph, node_id: str, new_x: float, new_y: float,
-                  use_undo: bool = True) -> bool:
-        """
-        Move a node to a new position.
-        
-        Args:
-            graph: The graph containing the node
-            node_id: ID of the node to move
-            new_x: New X position
-            new_y: New Y position
-            use_undo: Whether to move through the undo system
-            
-        Returns:
-            True if node was moved, False if not found
-        """
-        if node_id not in self._active_nodes:
-            return False
-        
-        # Move through undo system or directly
-        if use_undo and self.undo_manager:
-            action = MoveNodeAction(graph, node_id, new_x, new_y)
-            self.undo_manager.add_action(action)
-        else:
-            node = self._active_nodes[node_id]
-            node.ui_posX = new_x
-            node.ui_posY = new_y
-        
         return True
     
     def clone_node(self, source_node: BaseNode, graph: HaywireGraph,
-                   new_node_id: Optional[str] = None, offset: Optional[Tuple[float, float]] = None,
-                   use_undo: bool = True) -> BaseNode:
+                   new_node_id: Optional[str] = None, offset: Optional[Tuple[float, float]] = None) -> BaseNode:
         """
-        Clone an existing node.
+        Clone an existing node instance.
+        
+        This creates a new node instance based on an existing one but does not
+        add it to any graph - that should be done by the caller.
         
         Args:
             source_node: The node to clone
             graph: Target graph for the cloned node
             new_node_id: Optional ID for the cloned node
             offset: Optional (x, y) offset from source position
-            use_undo: Whether to create through the undo system
             
         Returns:
-            The cloned node instance
+            The cloned node instance (not added to graph)
         """
         # Get the registry key for the source node
         registry_key = self._node_registry_keys.get(source_node.node_id)
@@ -232,28 +188,28 @@ class NodeFactory:
             snapshot.ui_posY += offset[1]
         
         # Create the cloned node
-        return self.create_node_from_snapshot(snapshot, graph, use_undo)
+        return self.create_node_from_snapshot(snapshot, graph)
     
-    def create_node_from_snapshot(self, snapshot: NodeSnapshot, graph: HaywireGraph,
-                                 use_undo: bool = True) -> BaseNode:
+    def create_node_from_snapshot(self, snapshot: NodeSnapshot, graph: HaywireGraph) -> BaseNode:
         """
-        Create a node from a snapshot.
+        Create a node instance from a snapshot.
+        
+        This creates the node instance but does not add it to any graph -
+        that should be done by the caller.
         
         Args:
             snapshot: The node snapshot to restore
             graph: Target graph for the node
-            use_undo: Whether to create through the undo system
             
         Returns:
-            The restored node instance
+            The restored node instance (not added to graph)
         """
         # Create the base node
-        node = self.create_node(
+        node = self.create_instance(
             snapshot.registry_key, 
             graph, 
             snapshot.node_id,
-            (snapshot.ui_posX, snapshot.ui_posY),
-            use_undo
+            (snapshot.ui_posX, snapshot.ui_posY)
         )
         
         # Restore additional state
@@ -375,6 +331,5 @@ class NodeFactory:
             'registry_keys': len(self._nodes_by_registry_key),
             'creation_count': self._creation_count,
             'last_creation_time': self._last_creation_time,
-            'has_undo_manager': self.undo_manager is not None,
             'hot_reload_listeners': len(self._hot_reload_listeners)
         }

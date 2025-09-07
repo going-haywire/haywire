@@ -181,6 +181,25 @@ class HaywireGraph:
         """
         return self.nodes.get(node_id)
     
+    def move_node(self, node_id: str, new_x: float, new_y: float) -> bool:
+        """Move a node to a new position
+        
+        Args:
+            node_id: ID of the node to move
+            new_x: New X position
+            new_y: New Y position
+            
+        Returns:
+            True if node was moved, False if not found
+        """
+        node = self.nodes.get(node_id)
+        if node is None:
+            return False
+        
+        node.ui_posX = new_x
+        node.ui_posY = new_y
+        return True
+    
     def get_nodes_by_type(self, registry_key: str) -> list[BaseNode]:
         """Get all nodes of a specific type
         
@@ -194,7 +213,19 @@ class HaywireGraph:
             node for node in self.nodes.values() 
             if hasattr(node, 'registry_key') and node.registry_key == registry_key
         ]
-    
+
+    def replace_nodes_of_type(self, registry_key: str, new_node: BaseNode):
+        """Replace all nodes of a specific type with a new node
+        
+        Args:
+            registry_key: The node type to replace
+            new_node: The new node instance to use
+            
+        """   
+        
+                 
+        pass
+
     # ========================================================================
     # Edge Management
     # ========================================================================
