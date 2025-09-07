@@ -1,9 +1,9 @@
 from nicegui import ui
 import time
 
-from .zoom_pan_vue import ZoomPanContainer
-#from .mini_map_vue import MinimapCanvas
-from .mini_map_vue import MinimapCanvas
+from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
+#from haywire.ui.pan_zoom.mini_map_vue import MinimapCanvas
+from haywire.ui.pan_zoom.mini_map_vue import MinimapCanvas
 
 def create_zoom_pan_controls(container: ZoomPanContainer) -> None:
     """Create standard zoom/pan control buttons."""
@@ -138,10 +138,17 @@ def main():
                     with ui.grid(columns=50).classes('gap-6 p-8') as grid:
                         grid.classes('right-[2000px] bottom-[2000px] relative')
                         for i in range(1000):
-                            with ui.card().classes('w-32 h-32 bg-blue-100 flex flex-col items-center justify-center haywire-zoomable-lod0'):
-                                ui.label(f'Item {i+1}').classes('text-center text-sm mb-2 haywire-zoomable-lod1')
-                                ui.button('Click', on_click=lambda i=i: ui.notify(f'Clicked item {i+1}')).classes('text-xs haywire-zoomable-lod2')
-                
+                            with ui.card().classes('w-32 h-32 bg-blue-100 flex flex-col items-center justify-center haywire-zoomable-lod0 node-card'):
+                                with ui.column():
+                                    # Drag handle (should be draggable, not pan the view)
+                                    with ui.row().classes('drag-handle w-full justify-center mb-1'):
+                                        ui.icon('drag_indicator').classes('text-grey-6 text-xs')
+                                    ui.label(f'Item {i+1}').classes('text-center text-sm mb-2 haywire-zoomable-lod1')
+                                    ui.input(value='some text').props('clearable outlined').classes('text-xs haywire-zoomable-lod2').style('cursor: text; pointer-events: auto;')
+                                    # Add a port-like element
+                                    with ui.row().classes('justify-center mt-1'):
+                                        ui.element('div').classes('port output-port w-3 h-3 bg-red-500 rounded-full').style('cursor: crosshair;')
+
                 # Add controls
                 create_zoom_pan_controls(zoom_container)
                 create_zoom_pan_info(zoom_container)

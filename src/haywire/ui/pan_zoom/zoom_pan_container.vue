@@ -92,6 +92,41 @@ export default {
     
     handleMouseDown(e) {
       if (e.button === 0) {
+        // Check if the target is an interactive element
+        const target = e.target;
+        
+        // Basic form controls and buttons
+        const isBasicInteractiveElement = target.matches('input, textarea, select, button, [contenteditable], .q-field__native, .q-field__input') ||
+                                        target.closest('.q-field') ||
+                                        target.closest('input') ||
+                                        target.closest('button') ||
+                                        target.closest('[role="button"]');
+        
+        // Node-specific interactive elements
+        const isNodeInteractiveElement = target.closest('.node-card') ||           // Node cards themselves
+                                       target.closest('.drag-handle') ||          // Drag handles on nodes
+                                       target.closest('.port') ||                 // Input/output ports
+                                       target.closest('.output-port') ||          // Output ports specifically
+                                       target.closest('.input-port') ||           // Input ports specifically
+                                       target.closest('[data-draggable="true"]') ||// Draggable elements
+                                       target.closest('[draggable="true"]') ||     // HTML5 draggable elements
+                                       target.closest('.q-btn') ||                 // Quasar buttons
+                                       target.closest('.clickable');               // Elements marked as clickable
+        
+        // Custom interactive elements (you can extend this list)
+        const isCustomInteractiveElement = target.closest('[data-interactive="true"]') ||  // Custom marker
+                                         target.closest('.interactive') ||                 // Custom class
+                                         target.closest('[data-node-id]') ||              // Elements with node IDs
+                                         target.closest('[data-port-name]') ||            // Port elements
+                                         target.hasAttribute('data-draggable') ||         // Custom draggable attribute
+                                         target.classList.contains('no-pan');             // Elements that should never pan
+        
+        // Combine all checks
+        if (isBasicInteractiveElement || isNodeInteractiveElement || isCustomInteractiveElement) {
+          // Don't start dragging if clicking on interactive elements
+          return;
+        }
+        
         this.isDragging = true;
         this.$el.classList.add('dragging');
         this.lastMouseX = e.clientX;
@@ -260,6 +295,58 @@ export default {
   -ms-user-select: none;
 
   --hover-scale: 1.1;
+}
+
+/* Allow user selection and interactions for interactive elements */
+.zoom-pan-container input,
+.zoom-pan-container textarea,
+.zoom-pan-container select,
+.zoom-pan-container button,
+.zoom-pan-container [contenteditable],
+.zoom-pan-container .q-field,
+.zoom-pan-container .q-field__native,
+.zoom-pan-container .q-field__input,
+.zoom-pan-container .q-btn,
+.zoom-pan-container .node-card,
+.zoom-pan-container .drag-handle,
+.zoom-pan-container .port,
+.zoom-pan-container .output-port,
+.zoom-pan-container .input-port,
+.zoom-pan-container [data-draggable="true"],
+.zoom-pan-container [draggable="true"],
+.zoom-pan-container .clickable,
+.zoom-pan-container [data-interactive="true"],
+.zoom-pan-container .interactive,
+.zoom-pan-container [data-node-id],
+.zoom-pan-container [data-port-name],
+.zoom-pan-container .no-pan {
+  user-select: auto;
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  pointer-events: auto;
+  cursor: auto;
+}
+
+/* Specific cursor styles for different interactive elements */
+.zoom-pan-container .drag-handle {
+  cursor: grab;
+}
+
+.zoom-pan-container .drag-handle:active {
+  cursor: grabbing;
+}
+
+.zoom-pan-container .port,
+.zoom-pan-container .output-port,
+.zoom-pan-container .input-port {
+  cursor: crosshair;
+}
+
+.zoom-pan-container .clickable,
+.zoom-pan-container [data-interactive="true"],
+.zoom-pan-container .interactive {
+  cursor: pointer;
 }
 
 .zoom-pan-container.dragging {
