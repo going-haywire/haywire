@@ -14,6 +14,7 @@ class ConfigurableElement:
     init: DataFieldSpec | None = None
     label: str = ''
     description: str = ''
+    is_inlet = False
     flow_type: str | FlowType = FlowType.NONE
     data: DataField | None = None
     widget: str | None = None
@@ -56,6 +57,7 @@ class Inlet(ConfigurableElement):
     use_mode: str = 'optional'
     is_connected: bool = False
     is_lazy: bool = False
+    is_inlet = True  # Override base class
     
     def __post_init__(self):
         super().__post_init__()

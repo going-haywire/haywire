@@ -43,13 +43,13 @@ class TestNodeOne(BaseNode):
         )    
         # Add inlets with different widget types
         _ = self.add_inlet(Inlet(
-            id='float_slider',  # id as first positional parameter
-            label='Float',
-            flow_type=FlowType.DATA,
-            is_pooled=False,
-            data=SingleField('float_val', DataType.STRING, DataCategory.SCALAR, "Option 1", False),
-            widget='core.select',
-            ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
+                id='float_select',  # id as first positional parameter
+                label='Select',
+                flow_type=FlowType.DATA,
+                is_pooled=False,
+                data=SingleField('string_val', DataType.STRING, DataCategory.SCALAR, "Option 1", False),
+                widget='core.select',
+                ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
             )
         )
         _ = self.add_inlet(Inlet(

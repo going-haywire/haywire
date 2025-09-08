@@ -134,56 +134,17 @@ class UndoRedoTestAppDI:
     
     def create_ui(self):
         """Create the main UI."""
-        @ui.page('/')
+        @ui.page('/', title="DI-based Haywire Undo/Redo Test App")
         def main_page():
-            # Add CSS to fix text input interactions within zoom container
-            ui.add_head_html('''
-            <style>
-            /* Ensure text inputs and interactive elements work within zoom container */
-            .zoom-debug-node input,
-            .zoom-debug-node textarea, 
-            .zoom-debug-node select,
-            .zoom-debug-node button {
-                pointer-events: auto !important;
-                user-select: auto !important;
-                -webkit-user-select: auto !important;
-                -moz-user-select: auto !important;
-                -ms-user-select: auto !important;
-            }
-            
-            /* Prevent zoom container from interfering with input focus */
-            .zoom-debug-node input:focus,
-            .zoom-debug-node textarea:focus {
-                z-index: 10000 !important;
-                position: relative !important;
-            }
-            
-            /* Ensure node containers don't block mouse events */
-            .zoom-debug-node {
-                pointer-events: auto !important;
-            }
-            
-            /* CRITICAL FIX: Disable hover scaling for node cards */
-            .zoom-debug-node.haywire-zoomable-lod0:hover {
-                transform: none !important;
-                box-shadow: none !important;
-            }
-            
-            /* Instead, provide subtle hover feedback for nodes */
-            .zoom-debug-node:hover .node-card {
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-                transition: box-shadow 0.2s ease !important;
-            }
-            </style>
-            ''')
-            
-            # Create the main page layout
+            # Header must be a direct child of the page
             self.create_header()
             
-            with ui.row().classes('w-full gap-4').style('height: calc(100vh - 80px);'):
-                self.create_left_panel()
-                self.create_main_editor()
-                self.create_right_panel()
+            # Main content area
+            with ui.column().classes('w-full bg-gray-50').style('height: calc(100vh - 64px);'):
+                with ui.row().classes('w-full gap-4 flex-grow'):
+                    self.create_left_panel()
+                    self.create_main_editor()
+                    self.create_right_panel()
     
     def create_header(self):
         """Create the application header with main controls."""
@@ -427,10 +388,7 @@ class UndoRedoTestAppDI:
         try:
             # Create a container for the node at the specified position
             with self.canvas:
-                with ui.column().classes('absolute haywire-zoomable-lod0').style(
-                    f'left: {x}px; top: {y}px; z-index: 100; '
-                    f'pointer-events: auto; user-select: auto;'
-                ) as container:
+                with ui.column().classes('absolute').style(f'left: {x}px; top: {y}px; z-index: 100;') as container:
                     # Use the proper UINode and NodeRenderFactory system (like registry demo)
                     ui_node = UINode(node, self.node_render_factory, container)
                     ui_node.render()  # This uses the registry's renderer system
@@ -444,7 +402,6 @@ class UndoRedoTestAppDI:
                     
                     print(f"Created visual for node {node.node_id} using NodeRenderFactory")
                     print(f"Node inlets: {list(node.inlets.keys()) if hasattr(node, 'inlets') else 'No inlets'}")
-                    print(f"Current canvas zoom: {getattr(self.canvas, 'current_zoom', 'unknown')}")
                     
                     # Debug: Print widget instances that were created
                     if ui_node.current_ui_card:
@@ -452,9 +409,6 @@ class UndoRedoTestAppDI:
                         print(f"Widget instances created: {list(widget_instances.keys())}")
                         for widget_id, widget in widget_instances.items():
                             print(f"  {widget_id}: {widget.__class__.__name__} -> {widget.get_value() if hasattr(widget, 'get_value') else 'No value'}")
-                    
-                    # Add debugging for pointer events - check if node elements have correct CSS
-                    container.classes('zoom-debug-node')
                     
         except Exception as e:
             print(f"Error creating node visual with NodeRenderFactory: {e}")

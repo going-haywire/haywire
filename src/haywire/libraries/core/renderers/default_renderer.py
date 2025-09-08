@@ -12,6 +12,7 @@ from haywire.core.data.enums import DataType, FlowType
 from haywire.core.ui.renderer import BaseNodeRenderer
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
 from haywire.core.ui.base import UINodeCard
+from haywire.core.utils import generate_pin_id
 from haywire.ui.utils import render_error_info
 
 class DefaultNodeRenderer(BaseNodeRenderer):
@@ -78,14 +79,14 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                     if node.inlets:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.inlets.values():
-                            self._render_inlet(inlet, ui_elements, widget_instances)
+                            self._render_inlet(inlet, ui_elements, widget_instances, node)
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
                     if node.outlets:
                         ui.label('Outputs').classes('font-bold text-sm')
                         for outlet in node.outlets.values():
-                            self._render_outlet(outlet)
+                            self._render_outlet(outlet, node)
 
             # Footer with port counts
             with ui.row().classes('w-full justify-between mt-2'):
@@ -94,11 +95,11 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         
         return UINodeCard(main_card, ui_elements, widget_instances)
     
-    def _render_inlet(self, inlet: Inlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]):
+    def _render_inlet(self, inlet: Inlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any], node: BaseNode):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-1'):
             # only render pins for inlets that are actually involved in flows
-            self._render_pin(inlet, direction='left')
+            self._render_pin(inlet, direction='left', node=node)
 
             # Pin label
             ui.label(inlet.label).classes('text-xs')
@@ -107,14 +108,14 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         if inlet.is_pooled == False:
             self._render_element('inlet', inlet, ui_elements, widget_instances)
     
-    def _render_outlet(self, outlet):
+    def _render_outlet(self, outlet, node: BaseNode):
         """Render an outlet with its port."""
         with ui.row().classes('w-full items-center justify-end gap-1'):
             # Pin label
             ui.label(outlet.label).classes('text-xs')
 
             # only render pins for inlets that are actually involved in flows
-            self._render_pin(outlet, direction='right')
+            self._render_pin(outlet, direction='right', node=node)
 
     
     def _render_element(self, element_type: str, element, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]) -> Element:
@@ -156,29 +157,42 @@ class DefaultNodeRenderer(BaseNodeRenderer):
 
             render_error_info(creationerror)
     
-    def _render_pin(self, pin: ConfigurableElement, direction: str = 'left'):
-        """Render an inlet with its port and optional widget."""
+    def _render_pin(self, pin: ConfigurableElement, direction: str = 'left', node: BaseNode = None):
+        """Render a pin with connection system compatibility."""
+        # Create unique pin ID and determine port type for connection system
+        pin_direction = 'inlet' if pin.is_inlet else 'outlet'
+        pin_id = generate_pin_id(pin_direction, node.node_id, pin.id)
+        port_type = 'input' if pin.is_inlet else 'output'
+        
         if pin.flow_type == FlowType.CTRL.value:
             # Pin connector
             ui.icon('label', color='blue', size='xs').classes(
-                f'text-4xl'
-                f'port input-port'
+                'text-4xl port input-port connection-pin'
             ).style(
                 f'position: absolute; {direction}: -8px; '
                 f'cursor: crosshair;'
-            ).props(f'data-port-id="{pin.id}"')
-        if pin.flow_type == FlowType.CALLBACK.value:
+            ).props(
+                f'id="{pin_id}" '
+                f'data-node-id="{node.node_id}" '
+                f'data-port-id="{pin.id}" '
+                f'data-port-type="{port_type}"'
+            )
+        elif pin.flow_type == FlowType.CALLBACK.value:
             # Pin connector
             ui.icon('replay_circle_filled', color='red', size='xs').classes(
-                f'text-4xl'
-                f'port input-port'
+                'text-4xl port input-port connection-pin'
             ).style(
                 f'position: absolute; {direction}: -8px; '
                 f'cursor: crosshair;'
-            ).props(f'data-port-id="{pin.id}"')
+            ).props(
+                f'id="{pin_id}" '
+                f'data-node-id="{node.node_id}" '
+                f'data-port-id="{pin.id}" '
+                f'data-port-type="{port_type}"'
+            )
         elif pin.flow_type == FlowType.DATA.value:
             ui.element('div').classes(
-                f'port output-port'
+                'port output-port connection-pin'
             ).style(
                 f'position: absolute; {direction}: -8px; '
                 f'width: 15px; height: 15px; '
@@ -186,7 +200,12 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'border: 2px solid white; '
                 f'border-radius: 50%; '
                 f'cursor: crosshair;'
-            ).props(f'data-port-id="{pin.id}"')
+            ).props(
+                f'id="{pin_id}" '
+                f'data-node-id="{node.node_id}" '
+                f'data-port-id="{pin.id}" '
+                f'data-port-type="{port_type}"'
+            )
     
     def _get_port_color(self, data_type: str | DataType) -> str:
         """Get the color for a port based on its data type."""
