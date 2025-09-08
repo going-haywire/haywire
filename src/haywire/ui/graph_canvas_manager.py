@@ -144,7 +144,6 @@ class GraphCanvasManager:
         """Setup JavaScript for connection creation via drag and drop."""
         js_code = f"""
         // Canvas Manager: {self._callback_id}
-        console.log('Setting up connection drag system...');
         
         // Wait a bit for DOM to be ready, then setup
         setTimeout(() => {{
@@ -159,39 +158,42 @@ class GraphCanvasManager:
                 console.error('SVG canvas not found');
                 return;
             }}
-            console.log('Found SVG canvas:', svg);
             
             // Debug: Check for existing pins
             const existingPins = document.querySelectorAll('.connection-pin');
-            console.log(`Found ${{existingPins.length}} connection pins:`, existingPins);
         
-        // Helper function to get pin position relative to SVG
+        // Helper function to get pin position relative to SVG (with caching)
+        let pinPositionCache = new Map();
+        let cacheValidUntil = 0;
+        
         function getPinPosition(pinElement) {{
+            const now = Date.now();
+            const pinId = pinElement.id;
+            
+            // Use cache if still valid (cache for 16ms = ~60fps)
+            if (now < cacheValidUntil && pinPositionCache.has(pinId)) {{
+                return pinPositionCache.get(pinId);
+            }}
+            
             const svg = document.querySelector('#connection-svg');
             if (!svg) return {{ x: 0, y: 0 }};
             
             const pinRect = pinElement.getBoundingClientRect();
+            let position;
             
-            // Try using SVG's built-in coordinate transformation for pin position too
-            let result;
+            // Try using SVG's built-in coordinate transformation
             try {{
-                // Create an SVG point for the pin center
                 const svgPoint = svg.createSVGPoint();
                 svgPoint.x = pinRect.left + pinRect.width / 2;
                 svgPoint.y = pinRect.top + pinRect.height / 2;
                 
-                // Convert screen coordinates to SVG coordinates
                 const transformedPoint = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
                 
-                result = {{
+                position = {{
                     x: transformedPoint.x,
                     y: transformedPoint.y
                 }};
-                
-                console.log(`📍 Pin position for ${{pinElement.id}} (SVG transform): screen=${{pinRect.left + pinRect.width / 2}}, ${{pinRect.top + pinRect.height / 2}} -> SVG=${{result.x}}, ${{result.y}}`);
             }} catch (error) {{
-                console.log('📍 SVG coordinate transform failed for pin, using manual method:', error);
-                
                 // Fallback to manual calculation
                 const svgRect = svg.getBoundingClientRect();
                 let x = pinRect.left + pinRect.width / 2 - svgRect.left;
@@ -216,11 +218,16 @@ class GraphCanvasManager:
                     }}
                 }}
                 
-                result = {{ x, y }};
-                console.log(`📍 Pin position for ${{pinElement.id}} (manual): pinRect=${{pinRect.left}}, ${{pinRect.top}} svgRect=${{svgRect.left}}, ${{svgRect.top}} result=${{result.x}}, ${{result.y}}`);
+                position = {{ x, y }};
             }}
             
-            return result;
+            // Cache the result
+            pinPositionCache.set(pinId, position);
+            if (now >= cacheValidUntil) {{
+                cacheValidUntil = now + 16; // Cache valid for 16ms
+            }}
+            
+            return position;
         }}
         
         // Make getPinPosition globally available
@@ -233,7 +240,6 @@ class GraphCanvasManager:
             
             // ResizeObserver to detect when nodes change size (fold/unfold)
             const resizeObserver = new ResizeObserver((entries) => {{
-                console.log('🔗 Node resize detected, updating connections');
                 updateAllConnections();
             }});
             
@@ -250,8 +256,7 @@ class GraphCanvasManager:
                     }}
                 }});
                 if (shouldUpdate) {{
-                    console.log('🔗 Node DOM change detected, updating connections');
-                    setTimeout(() => updateAllConnections(), 50); // Small delay for DOM to settle
+                    setTimeout(() => updateAllConnections(), 50);
                 }}
             }});
             
@@ -276,12 +281,14 @@ class GraphCanvasManager:
                                 document.querySelector('[style*="transform"]') ||
                                 document.getElementById('node-container');
             if (zoomContainer) {{
+                let zoomUpdateTimeout;
                 const zoomObserver = new MutationObserver((mutations) => {{
                     mutations.forEach((mutation) => {{
                         if (mutation.type === 'attributes' && 
                             mutation.attributeName === 'style') {{
-                            console.log('🔗 Zoom/transform change detected, updating connections');
-                            setTimeout(() => updateAllConnections(), 10);
+                            // Debounce zoom updates with longer delay
+                            clearTimeout(zoomUpdateTimeout);
+                            zoomUpdateTimeout = setTimeout(() => updateAllConnections(), 100);
                         }}
                     }});
                 }});
@@ -293,13 +300,22 @@ class GraphCanvasManager:
             }}
         }}
         
-        // Function to update all existing connections
+        // Function to update all existing connections (with throttling)
+        let updateConnectionsThrottled = false;
         function updateAllConnections() {{
-            const paths = document.querySelectorAll('#connection-svg path:not([stroke-dasharray])');
-            paths.forEach(path => {{
-                if (window.updateConnectionPath) {{
-                    window.updateConnectionPath(path);
-                }}
+            if (updateConnectionsThrottled) return;
+            updateConnectionsThrottled = true;
+            
+            requestAnimationFrame(() => {{
+                const paths = document.querySelectorAll('#connection-svg path:not([stroke-dasharray])');
+                paths.forEach(path => {{
+                    if (window.updateConnectionPath) {{
+                        window.updateConnectionPath(path);
+                    }}
+                }});
+                
+                // Reset throttle after frame
+                setTimeout(() => updateConnectionsThrottled = false, 16); // ~60fps
             }});
         }}
         
@@ -324,31 +340,22 @@ class GraphCanvasManager:
             const startNodeId = startPin.dataset.nodeId;
             const endNodeId = endPin.dataset.nodeId;
             
-            console.log(`Checking connection: ${{startType}} -> ${{endType}}, nodes: ${{startNodeId}} -> ${{endNodeId}}`);
-            
             // Cannot connect to same node
             if (startNodeId === endNodeId) {{
-                console.log('Cannot connect to same node');
                 return false;
             }}
             
             // Must connect output to input or input to output
             const valid = (startType === 'output' && endType === 'input') || 
                          (startType === 'input' && endType === 'output');
-            console.log('Connection valid:', valid);
             return valid;
         }}
         
         // Mouse down on connection pin - UPDATED to work with individual pins
         document.body.addEventListener('mousedown', (e) => {{
-            console.log('Mouse down event:', e.target);
-            console.log('Target classes:', e.target.className);
-            console.log('Closest connection-pin:', e.target.closest('.connection-pin'));
             
             const pin = e.target.closest('.connection-pin');
             if (!pin) return;
-            
-            console.log('🔗 DRAG START - Mouse down on pin:', pin.id, pin.dataset);
             
             e.preventDefault();
             e.stopPropagation();
@@ -356,12 +363,10 @@ class GraphCanvasManager:
             connectionState.startPin = pin;
             
             const startPos = getPinPosition(pin);
-            console.log('🔗 Start position:', startPos);
             
             // Create temporary path
             connectionState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             const initialPath = createBezierPath(startPos, startPos);
-            console.log('🔗 Initial path data:', initialPath);
             connectionState.tempPath.setAttribute('d', initialPath);
             connectionState.tempPath.setAttribute('stroke', '#4A90E2');
             connectionState.tempPath.setAttribute('stroke-width', '4');
@@ -370,8 +375,6 @@ class GraphCanvasManager:
             connectionState.tempPath.style.pointerEvents = 'none';
             
             svg.appendChild(connectionState.tempPath);
-            console.log('🔗 Added temporary path to SVG:', connectionState.tempPath);
-            console.log('🔗 SVG element:', svg, 'SVG rect:', svg.getBoundingClientRect());
             
             // Visual feedback on start pin
             pin.style.boxShadow = '0 0 15px #4A90E2';
@@ -406,9 +409,7 @@ class GraphCanvasManager:
                     y: transformedPoint.y
                 }};
                 
-                console.log('🔗 Using SVG coordinate transform - Raw:', rawMouseX, rawMouseY, '-> SVG:', mousePos.x, mousePos.y);
             }} catch (error) {{
-                console.log('🔗 SVG coordinate transform failed, using manual method:', error);
                 
                 // Fallback to manual calculation
                 const zoomContainer = document.querySelector('[style*="transform"]') || 
@@ -427,7 +428,6 @@ class GraphCanvasManager:
                         scale = matrix.a;
                         translateX = matrix.e;
                         translateY = matrix.f;
-                        console.log('🔗 Manual transform values:', scale, translateX, translateY);
                     }}
                 }}
                 
@@ -436,12 +436,10 @@ class GraphCanvasManager:
                     y: rawMouseY / scale - translateY / scale
                 }};
                 
-                console.log('🔗 Manual calculation - Raw:', rawMouseX, rawMouseY, '-> Adjusted:', mousePos.x, mousePos.y);
             }}
             
             const pathData = createBezierPath(startPos, mousePos);
             connectionState.tempPath.setAttribute('d', pathData);
-            console.log('🔗 Updated path:', pathData);
             
             // Highlight valid drop targets
             const targetPin = e.target.closest('.connection-pin');
@@ -464,13 +462,11 @@ class GraphCanvasManager:
             if (!connectionState.isDragging) return;
             
             const endPin = e.target.closest('.connection-pin');
-            console.log('🔗 DRAG END - Mouse up, end pin:', endPin?.id);
             
             // Cleanup temporary visual elements
             if (connectionState.tempPath) {{
                 connectionState.tempPath.remove();
                 connectionState.tempPath = null;
-                console.log('🔗 Removed temporary path');
             }}
             
             if (connectionState.startPin) {{
@@ -489,11 +485,8 @@ class GraphCanvasManager:
                 const startData = connectionState.startPin.dataset;
                 const endData = endPin.dataset;
                 
-                console.log('🔗 CREATING CONNECTION:', startData, '->', endData);
-                
                 // Call Python callback through global function
                 if (window.haywire_on_connection_created) {{
-                    console.log('🔗 Calling Python callback');
                     window.haywire_on_connection_created(
                         startData.nodeId,
                         startData.portId,  // Changed from portName to portId
@@ -502,13 +495,6 @@ class GraphCanvasManager:
                     );
                 }} else {{
                     console.error('❌ Python callback not available');
-                }}
-            }} else {{
-                console.log('🔗 No valid connection created');
-                if (endPin) {{
-                    console.log('🔗 Invalid connection between:', connectionState.startPin.id, '->', endPin.id);
-                }} else {{
-                    console.log('🔗 No end pin detected');
                 }}
             }}
             
@@ -521,26 +507,15 @@ class GraphCanvasManager:
         document.addEventListener('DOMContentLoaded', function() {{
             setTimeout(() => {{
                 const pins = document.querySelectorAll('.connection-pin');
-                console.log(`Found ${{pins.length}} connection pins after DOM load`);
-                pins.forEach((pin, index) => {{
-                    console.log(`Pin ${{index + 1}}:`, pin.id, pin.dataset, pin.style.cssText);
-                }});
-                
                 // Test if pins are clickable
                 pins.forEach(pin => {{
                     pin.addEventListener('click', (e) => {{
-                        console.log('Pin clicked:', pin.id);
+                        // Pin interaction handled by main event listeners
                     }});
                 }});
             }}, 1000);
         }});
         
-        // Add debugging for mouse events
-        document.body.addEventListener('mousedown', (e) => {{
-            console.log('Mouse down event:', e.target, e.target.className, e.target.closest('.connection-pin'));
-        }}, true);
-        
-        console.log('Connection drag system setup complete');
         }}, 500); // Close the setTimeout
         """
         
@@ -591,9 +566,7 @@ class GraphCanvasManager:
         // Helper function to update a single connection path
         function updateConnectionPath(pathElement) {{
             const pathId = pathElement.id;
-            console.log('🔗 Updating connection path for:', pathId);
             const parts = pathId.split('__');
-            console.log('🔗 Path parts:', parts);
             if (parts.length < 7) return;
             
             // Reconstruct the full pin IDs from the parts
@@ -601,19 +574,11 @@ class GraphCanvasManager:
             // parts: [connection, outlet, node_id, pin_id, inlet, node_id, pin_id]
             const startPortId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
             const endPortId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
-            console.log('🔗 Debug - parts[1]:', parts[1]);
-            console.log('🔗 Debug - parts[2]:', parts[2]);
-            console.log('🔗 Debug - parts[3]:', parts[3]);
-            console.log('🔗 Debug - startPortId:', startPortId);
-            console.log('🔗 Debug - endPortId:', endPortId);
-            console.log('🔗 Looking for pins:', startPortId, endPortId);
             
             const startPin = document.getElementById(startPortId);
             const endPin = document.getElementById(endPortId);
-            console.log('🔗 Found pins:', startPin, endPin);
             
             if (!startPin || !endPin) {{
-                console.log('🔗 Missing pins, removing path');
                 pathElement.remove();
                 return;
             }}
@@ -622,12 +587,9 @@ class GraphCanvasManager:
             const startPos = window.getPinPosition ? window.getPinPosition(startPin) : {{ x: 0, y: 0 }};
             const endPos = window.getPinPosition ? window.getPinPosition(endPin) : {{ x: 0, y: 0 }};
             
-            console.log('🔗 Calculated positions:', startPos, endPos);
-            
             const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
             const pathData = `M ${{startPos.x}} ${{startPos.y}} C ${{startPos.x + controlOffset}} ${{startPos.y}}, ${{endPos.x - controlOffset}} ${{endPos.y}}, ${{endPos.x}} ${{endPos.y}}`;
             
-            console.log('🔗 Final path data:', pathData);
             pathElement.setAttribute('d', pathData);
         }}
         
@@ -649,7 +611,6 @@ class GraphCanvasManager:
                     if (nodeElement) {{
                         const nodeId = nodeElement.getAttribute('data-node-id');
                         if (nodeId) {{
-                            console.log('🔗 Node resized:', nodeId);
                             updateConnectionsForNode(nodeId);
                         }}
                     }}
@@ -908,17 +869,12 @@ class GraphCanvasManager:
         setTimeout(() => {{
             const pin = document.getElementById('{pin_id}');
             if (pin) {{
-                console.log('✅ Pin {pin_id} created successfully');
-                
                 // Don't add individual click handlers that might interfere with drag
                 // The drag system will handle all interactions
                 
                 const rect = pin.getBoundingClientRect();
                 if (rect.width === 0 || rect.height === 0) {{
                     console.error('❌ Pin {pin_id} has zero size!', rect);
-                }} else {{
-                    console.log('✅ Pin {pin_id} is visible with size:', rect.width, 'x', rect.height);
-                    console.log('✅ Pin {pin_id} ready for drag operations');
                 }}
                 
             }} else {{
@@ -1006,7 +962,6 @@ class GraphCanvasManager:
             
             # Create SVG path element using JavaScript
             ui.run_javascript(f"""
-            console.log('🔗 Python requested path creation for: {path_id}');
             const svg = document.querySelector('#connection-svg');
             if (svg) {{
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1017,15 +972,11 @@ class GraphCanvasManager:
                 path.style.pointerEvents = 'stroke';
                 path.style.cursor = 'pointer';
                 svg.appendChild(path);
-                console.log('🔗 Added path to SVG:', path);
                 
                 // Store reference for click handling
                 path.addEventListener('click', function() {{
-                    console.log('Connection clicked: {edge.output_node_id} -> {edge.input_node_id}');
                     // Could trigger a Python callback here for connection deletion
                 }});
-            }} else {{
-                console.log('🔗 SVG not found for path creation');
             }}
             """)
             
@@ -1035,19 +986,13 @@ class GraphCanvasManager:
             # Force immediate path drawing regardless of setup state
             ui.run_javascript(f"""
             setTimeout(() => {{
-                console.log('🔗 Setting up permanent connection for {edge.output_node_id} -> {edge.input_node_id}');
                 const path = document.getElementById('{path_id}');
-                console.log('🔗 Found path element:', path);
                 
                 if (path) {{
-                    console.log('🔗 Attempting to call updateConnectionPath');
-                    
                     // Try both global and local function access
                     if (window.updateConnectionPath) {{
-                        console.log('🔗 Using window.updateConnectionPath');
                         window.updateConnectionPath(path);
                     }} else if (window.getPinPosition) {{
-                        console.log('🔗 Using fallback manual calculation with getPinPosition');
                         // Manual calculation as fallback
                         const pathId = path.id;
                         const parts = pathId.split('__');
@@ -1062,16 +1007,9 @@ class GraphCanvasManager:
                                 const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
                                 const pathData = `M ${{startPos.x}} ${{startPos.y}} C ${{startPos.x + controlOffset}} ${{startPos.y}}, ${{endPos.x - controlOffset}} ${{endPos.y}}, ${{endPos.x}} ${{endPos.y}}`;
                                 path.setAttribute('d', pathData);
-                                console.log('🔗 Fallback connection path set:', pathData);
-                            }} else {{
-                                console.log('🔗 Pins not found:', startPortId, endPortId);
                             }}
                         }}
-                    }} else {{
-                        console.log('🔗 No positioning functions available');
                     }}
-                }} else {{
-                    console.log('🔗 Path element not found');
                 }}
             }}, 200);
             """)
@@ -1103,9 +1041,6 @@ class GraphCanvasManager:
                 const path = document.getElementById('{path_id}');
                 if (path) {{
                     path.remove();
-                    console.log('🔗 Removed connection path: {path_id}');
-                }} else {{
-                    console.log('🔗 Path not found: {path_id}');
                 }}
                 """)
             
