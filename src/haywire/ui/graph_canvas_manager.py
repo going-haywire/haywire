@@ -495,86 +495,50 @@ class GraphCanvasManager:
                 }});
             }});
             
-            // SELECTIVE ResizeObserver with simple animation follow-up
-            if (window.ResizeObserver) {{
-                const resizeObserver = new ResizeObserver(entries => {{
-                    // Group entries by node to avoid duplicate updates
-                    const nodeUpdates = new Set();
+            // Hover-based connection updates for LOD animations
+            function setupHoverObserver(node) {{
+                const lodElement = node.querySelector('.haywire-zoomable-lod0');
+                if (!lodElement) return;
+                
+                const nodeId = node.getAttribute('data-node-id');
+                if (!nodeId) return;
+                
+                const scheduleConnectionUpdates = () => {{
+                    console.log('🔍 Hover detected for node:', nodeId, 'triggering connection updates');
                     
-                    entries.forEach(entry => {{
-                        let nodeElement = entry.target;
-                        
-                        // Find the node container
-                        if (!nodeElement.hasAttribute('data-node-id')) {{
-                            nodeElement = nodeElement.closest('[data-node-id]');
-                        }}
-                        
-                        if (nodeElement) {{
-                            const nodeId = nodeElement.getAttribute('data-node-id');
-                            if (nodeId && !nodeUpdates.has(nodeId)) {{
-                                nodeUpdates.add(nodeId);
-                                console.log('🔍 Resize detected for node:', nodeId, 'from element:', entry.target);
-                                
-                                // Immediate update
-                                if (window.updateConnectionsForNode) {{
-                                    window.updateConnectionsForNode(nodeId);
-                                }}
-                                
-                                // Clear any existing animation timers for this node
-                                if (nodeElement._animationTimers) {{
-                                    nodeElement._animationTimers.forEach(timer => clearTimeout(timer));
-                                }}
-                                nodeElement._animationTimers = [];
-                                
-                                // Schedule 5 additional updates over 200ms to follow animations
-                                for (let i = 1; i <= 5; i++) {{
-                                    const delay = (200 / 5) * i; // 40ms intervals
-                                    const timer = setTimeout(() => {{
-                                        if (window.updateConnectionsForNode) {{
-                                            window.updateConnectionsForNode(nodeId);
-                                        }}
-                                    }}, delay);
-                                    nodeElement._animationTimers.push(timer);
-                                }}
+                    // Immediate update
+                    if (window.updateConnectionsForNode) {{
+                        window.updateConnectionsForNode(nodeId);
+                    }}
+                    
+                    // Clear any existing animation timers for this node
+                    if (node._animationTimers) {{
+                        node._animationTimers.forEach(timer => clearTimeout(timer));
+                    }}
+                    node._animationTimers = [];
+                    
+                    // Schedule 5 additional updates over 200ms to follow animations
+                    for (let i = 1; i <= 5; i++) {{
+                        const delay = (200 / 5) * i; // 40ms intervals
+                        const timer = setTimeout(() => {{
+                            if (window.updateConnectionsForNode) {{
+                                window.updateConnectionsForNode(nodeId);
                             }}
-                        }}
-                    }});
-                }});
-
-                // SELECTIVE observation function - only observe key elements
-                function observeNodeResize(node) {{
-                    // 1. Always observe the main node container
-                    resizeObserver.observe(node);
-                    
-                    // 2. Only observe specific elements that affect layout:
-                    
-                    // Main content card (this is where fold/unfold happens)
-                    const mainCard = node.querySelector('.q-card, .node-card');
-                    if (mainCard) {{
-                        resizeObserver.observe(mainCard);
+                        }}, delay);
+                        node._animationTimers.push(timer);
                     }}
-                    
-                    // Node content container (where widgets are)
-                    const nodeContent = node.querySelector('.node-content, .ui-node-slot');
-                    if (nodeContent) {{
-                        resizeObserver.observe(nodeContent);
-                    }}
-                    
-                    // Port containers (where pins are positioned)
-                    const portContainers = node.querySelectorAll('.port-container, .ports-container');
-                    portContainers.forEach(container => {{
-                        resizeObserver.observe(container);
-                    }});
-                    
-                }}
+                }};
                 
-                // Observe existing nodes and their children
-                document.querySelectorAll('[data-node-id]').forEach(observeNodeResize);
-                
-                // Make the function available globally for new nodes
-                window.haywire_observeNodeResize = observeNodeResize;
-                window.haywire_resizeObserver = resizeObserver;
+                // Set up hover event listeners
+                lodElement.addEventListener('mouseenter', scheduleConnectionUpdates);
+                lodElement.addEventListener('mouseleave', scheduleConnectionUpdates);
             }}
+            
+            // Setup hover observers for existing nodes
+            document.querySelectorAll('[data-node-id]').forEach(setupHoverObserver);
+            
+            // Make the function available globally for new nodes
+            window.haywire_setupHoverObserver = setupHoverObserver;
             
             // Store observer globally for adding new nodes
             window.haywire_nodeObserver = nodeObserver;
@@ -704,9 +668,9 @@ class GraphCanvasManager:
                                 }});
                             }}
                             
-                            // Setup resize observer
-                            if (window.haywire_observeNodeResize) {{
-                                window.haywire_observeNodeResize(nodeEl);
+                            // Setup hover observer
+                            if (window.haywire_setupHoverObserver) {{
+                                window.haywire_setupHoverObserver(nodeEl);
                             }}
                         }}
                         """)
