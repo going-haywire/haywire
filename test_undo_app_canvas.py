@@ -231,7 +231,7 @@ class UndoRedoTestAppWithCanvasManager:
         with ui.card().classes('flex-grow').style('min-width: 600px; height: calc(100vh - 120px);'):
             ui.label('Node Editor with Canvas Manager').classes('text-lg font-bold mb-2')
             
-            # Create the zoom/pan container
+            # Create the zoom/pan container with callbacks
             self.zoom_container = ZoomPanContainer(
                 min_zoom=0.1,
                 max_zoom=3.0,
@@ -296,11 +296,21 @@ class UndoRedoTestAppWithCanvasManager:
     # Event Handlers
     def on_zoom_change(self, zoom_level):
         """Handle zoom change events."""
+        # Update canvas manager's zoom state
+        if hasattr(self, 'canvas_manager') and self.canvas_manager:
+            self.canvas_manager.update_zoom_pan_state(zoom=zoom_level)
+        
+        # Update UI display
         if hasattr(self, 'canvas_status_container'):
             self.update_canvas_status()
     
     def on_pan_change(self, pan_x, pan_y):
         """Handle pan change events."""
+        # Update canvas manager's pan state
+        if hasattr(self, 'canvas_manager') and self.canvas_manager:
+            self.canvas_manager.update_zoom_pan_state(pan_x=pan_x, pan_y=pan_y)
+        
+        # Update UI display
         if hasattr(self, 'canvas_status_container'):
             self.update_canvas_status()
     

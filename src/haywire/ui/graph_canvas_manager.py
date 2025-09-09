@@ -67,6 +67,11 @@ class GraphCanvasManager:
         self.on_connection_removed = on_connection_removed
         self.on_node_selected = on_node_selected
         
+        # Store current zoom/pan state for coordinate calculations
+        self.current_zoom = 1.0
+        self.current_pan_x = 0.0
+        self.current_pan_y = 0.0
+        
         # Visual state
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
         self.connection_paths: Dict[str, ui.element] = {}  # edge_id -> svg path element
@@ -93,7 +98,7 @@ class GraphCanvasManager:
         """Setup the canvas with SVG overlay for connections."""
         with self.zoom_container.content_container:
             # Create the main canvas container
-            with ui.element('div').classes('relative').style(
+            with ui.element('div').classes('right-[2000px] bottom-[2000px] relative').style(
                 'width: 4000px; height: 4000px; '
                 'background: linear-gradient(90deg, #f0f0f0 1px, transparent 1px), '
                 'linear-gradient(180deg, #f0f0f0 1px, transparent 1px); '
@@ -147,6 +152,22 @@ class GraphCanvasManager:
         
         // Wait a bit for DOM to be ready, then setup
         setTimeout(() => {{
+            // Store zoom/pan state globally for coordinate calculations
+            window.canvasZoomPanState = {{
+                zoom: {self.current_zoom},
+                panX: {self.current_pan_x},
+                panY: {self.current_pan_y}
+            }};
+            
+            // Function to update zoom/pan state from Python
+            window.updateCanvasZoomPanState = function(zoom, panX, panY) {{
+                window.canvasZoomPanState.zoom = zoom !== undefined ? zoom : window.canvasZoomPanState.zoom;
+                window.canvasZoomPanState.panX = panX !== undefined ? panX : window.canvasZoomPanState.panX;
+                window.canvasZoomPanState.panY = panY !== undefined ? panY : window.canvasZoomPanState.panY;
+                
+                console.log('Updated zoom/pan state:', window.canvasZoomPanState);
+            }};
+            
             let connectionState = {{
                 isDragging: false,
                 startPin: null,
@@ -179,48 +200,9 @@ class GraphCanvasManager:
             if (!svg) return {{ x: 0, y: 0 }};
             
             const pinRect = pinElement.getBoundingClientRect();
-            let position;
             
-            // Try using SVG's built-in coordinate transformation
-            try {{
-                const svgPoint = svg.createSVGPoint();
-                svgPoint.x = pinRect.left + pinRect.width / 2;
-                svgPoint.y = pinRect.top + pinRect.height / 2;
-                
-                const transformedPoint = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
-                
-                position = {{
-                    x: transformedPoint.x,
-                    y: transformedPoint.y
-                }};
-            }} catch (error) {{
-                // Fallback to manual calculation
-                const svgRect = svg.getBoundingClientRect();
-                let x = pinRect.left + pinRect.width / 2 - svgRect.left;
-                let y = pinRect.top + pinRect.height / 2 - svgRect.top;
-                
-                // Account for zoom transforms
-                const zoomContainer = document.querySelector('[style*="transform"]') || 
-                                    document.body.querySelector('*[style*="scale"]') ||
-                                    document.getElementById('node-container') ||
-                                    svg.parentElement;
-                
-                if (zoomContainer) {{
-                    const transform = window.getComputedStyle(zoomContainer).transform;
-                    if (transform && transform !== 'none') {{
-                        const matrix = new DOMMatrix(transform);
-                        const scale = matrix.a;
-                        const translateX = matrix.e;
-                        const translateY = matrix.f;
+            let position = transformScreenToSVG(pinRect.left + pinRect.width / 2, pinRect.top + pinRect.height / 2);
                         
-                        x = x / scale - translateX / scale;
-                        y = y / scale - translateY / scale;
-                    }}
-                }}
-                
-                position = {{ x, y }};
-            }}
-            
             // Cache the result
             pinPositionCache.set(pinId, position);
             if (now >= cacheValidUntil) {{
@@ -232,6 +214,24 @@ class GraphCanvasManager:
         
         // Make getPinPosition globally available
         window.getPinPosition = getPinPosition;
+        
+        // Enhanced coordinate transformation using current zoom/pan state
+        function transformScreenToSVG(clientX, clientY) {{
+            const svg = document.querySelector('#connection-svg');
+            if (!svg) return {{ x: clientX, y: clientY }};
+            
+            const svgRect = svg.getBoundingClientRect();
+            const state = window.canvasZoomPanState || {{ zoom: 1, panX: 0, panY: 0 }};
+            
+            // Apply inverse transform accounting for current zoom/pan
+            let x = (clientX - svgRect.left) / state.zoom;
+            let y = (clientY - svgRect.top) / state.zoom;
+            
+            return {{ x, y }};
+        }}
+        
+        // Make transformScreenToSVG globally available
+        window.transformScreenToSVG = transformScreenToSVG;
         
         // Set up observers for node changes to update connections
         function setupNodeObservers() {{
@@ -387,56 +387,9 @@ class GraphCanvasManager:
             if (!connectionState.isDragging || !connectionState.tempPath) return;
             
             const startPos = getPinPosition(connectionState.startPin);
-            const svgRect = svg.getBoundingClientRect();
             
-            // Get mouse position relative to SVG
-            let rawMouseX = e.clientX - svgRect.left;
-            let rawMouseY = e.clientY - svgRect.top;
-            
-            // Try using SVG's built-in coordinate transformation
-            let mousePos;
-            try {{
-                // Create an SVG point and use the SVG's transformation matrix
-                const svgPoint = svg.createSVGPoint();
-                svgPoint.x = e.clientX;
-                svgPoint.y = e.clientY;
-                
-                // Convert screen coordinates to SVG coordinates
-                const transformedPoint = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
-                
-                mousePos = {{
-                    x: transformedPoint.x,
-                    y: transformedPoint.y
-                }};
-                
-            }} catch (error) {{
-                
-                // Fallback to manual calculation
-                const zoomContainer = document.querySelector('[style*="transform"]') || 
-                                    document.body.querySelector('*[style*="scale"]') ||
-                                    document.getElementById('node-container') ||
-                                    svg.parentElement;
-                
-                let scale = 1;
-                let translateX = 0;
-                let translateY = 0;
-                
-                if (zoomContainer) {{
-                    const transform = window.getComputedStyle(zoomContainer).transform;
-                    if (transform && transform !== 'none') {{
-                        const matrix = new DOMMatrix(transform);
-                        scale = matrix.a;
-                        translateX = matrix.e;
-                        translateY = matrix.f;
-                    }}
-                }}
-                
-                mousePos = {{
-                    x: rawMouseX / scale - translateX / scale,
-                    y: rawMouseY / scale - translateY / scale
-                }};
-                
-            }}
+            // Use enhanced coordinate transformation
+            const mousePos = transformScreenToSVG(e.clientX, e.clientY);
             
             const pathData = createBezierPath(startPos, mousePos);
             connectionState.tempPath.setAttribute('d', pathData);
@@ -1126,6 +1079,34 @@ class GraphCanvasManager:
         return self.selected_nodes.copy()
     
     # Cleanup
+    def update_zoom_pan_state(self, zoom: float = None, pan_x: float = None, pan_y: float = None):
+        """Update internal zoom/pan state and trigger coordinate recalculation."""
+        if zoom is not None:
+            self.current_zoom = zoom
+        if pan_x is not None:
+            self.current_pan_x = pan_x  
+        if pan_y is not None:
+            self.current_pan_y = pan_y
+        
+        # Update JavaScript state and invalidate pin position cache
+        ui.run_javascript(f"""
+        // Update global zoom/pan state
+        if (window.updateCanvasZoomPanState) {{
+            window.updateCanvasZoomPanState({self.current_zoom}, {self.current_pan_x}, {self.current_pan_y});
+        }}
+        
+        // Clear position cache when zoom/pan changes
+        if (window.pinPositionCache) {{
+            window.pinPositionCache.clear();
+            window.cacheValidUntil = 0;
+        }}
+        
+        // Update all connections with new coordinates
+        if (window.updateAllConnections) {{
+            window.updateAllConnections();
+        }}
+        """)
+    
     def cleanup(self):
         """Cleanup resources."""
         self.clear_all_visuals()
