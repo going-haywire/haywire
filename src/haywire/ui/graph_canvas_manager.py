@@ -259,54 +259,9 @@ class GraphCanvasManager:
         // Make transformScreenToSVG globally available
         window.transformScreenToSVG = transformScreenToSVG;
         
-        // Set up observers for node changes to update connections
-        function setupNodeObservers() {{
-            const nodeContainer = document.getElementById('node-container');
-            if (!nodeContainer) return;
-            
-            // ResizeObserver to detect when nodes change size (fold/unfold)
-            const resizeObserver = new ResizeObserver((entries) => {{
-                updateAllConnections();
-            }});
-            
-            // MutationObserver to detect DOM changes in nodes
-            const mutationObserver = new MutationObserver((mutations) => {{
-                let shouldUpdate = false;
-                mutations.forEach((mutation) => {{
-                    if (mutation.type === 'attributes' && 
-                        (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {{
-                        shouldUpdate = true;
-                    }}
-                    if (mutation.type === 'childList') {{
-                        shouldUpdate = true;
-                    }}
-                }});
-                if (shouldUpdate) {{
-                    setTimeout(() => updateAllConnections(), 50);
-                }}
-            }});
-            
-            // Observe all existing nodes
-            const nodes = nodeContainer.querySelectorAll('.node-widget');
-            nodes.forEach(node => {{
-                resizeObserver.observe(node);
-                mutationObserver.observe(node, {{ 
-                    attributes: true, 
-                    childList: true, 
-                    subtree: true,
-                    attributeFilter: ['style', 'class']
-                }});
-            }});
-            
-            // Store observers globally for cleanup
-            window.nodeResizeObserver = resizeObserver;
-            window.nodeMutationObserver = mutationObserver;            
-        }}
-        
         // Function to update all existing connections (with throttling)
         let updateConnectionsThrottled = false;
         function updateAllConnections() {{
-            console.log('Updating all connections');
             if (updateConnectionsThrottled) return;
             updateConnectionsThrottled = true;
             
@@ -326,8 +281,50 @@ class GraphCanvasManager:
         // Make updateAllConnections globally available
         window.updateAllConnections = updateAllConnections;
         
-        // Set up observers after a short delay to ensure DOM is ready
-        setTimeout(setupNodeObservers, 100);
+        // Helper function to update connections for a specific node
+        function updateConnectionsForNode(nodeId) {{
+            const svg = document.querySelector('#connection-svg');
+            if (!svg) return;
+            
+            // Find all paths connected to this node
+            svg.querySelectorAll(`path[id*="${{nodeId}}"]`).forEach(path => {{
+                updateConnectionPath(path);
+            }});
+        }}
+        
+        // Helper function to update a single connection path
+        function updateConnectionPath(pathElement) {{
+            const pathId = pathElement.id;
+            const parts = pathId.split('__');
+            if (parts.length < 7) return;
+            
+            // Reconstruct the full pin IDs from the parts
+            // Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
+            // parts: [connection, outlet, node_id, pin_id, inlet, node_id, pin_id]
+            const startPortId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
+            const endPortId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
+            
+            const startPin = document.getElementById(startPortId);
+            const endPin = document.getElementById(endPortId);
+            
+            if (!startPin || !endPin) {{
+                pathElement.remove();
+                return;
+            }}
+            
+            // Use the global getPinPosition function
+            const startPos = window.getPinPosition ? window.getPinPosition(startPin) : {{ x: 0, y: 0 }};
+            const endPos = window.getPinPosition ? window.getPinPosition(endPin) : {{ x: 0, y: 0 }};
+            
+            const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
+            const pathData = `M ${{startPos.x}} ${{startPos.y}} C ${{startPos.x + controlOffset}} ${{startPos.y}}, ${{endPos.x - controlOffset}} ${{endPos.y}}, ${{endPos.x}} ${{endPos.y}}`;
+            
+            pathElement.setAttribute('d', pathData);
+        }}
+        
+        // Make connection utility functions globally available
+        window.updateConnectionsForNode = updateConnectionsForNode;
+        window.updateConnectionPath = updateConnectionPath;
         
         // Helper function to create bezier curve path
         function createBezierPath(start, end) {{
@@ -476,8 +473,10 @@ class GraphCanvasManager:
                     const nodeId = nodeElement.dataset.nodeId;
                     
                     if (nodeId) {{
-                        // Update connected paths
-                        updateConnectionsForNode(nodeId);
+                        // Update connected paths using global utility function
+                        if (window.updateConnectionsForNode) {{
+                            window.updateConnectionsForNode(nodeId);
+                        }}
                         
                         // Notify Python of position change (debounced)
                         clearTimeout(nodeElement._positionTimer);
@@ -495,47 +494,6 @@ class GraphCanvasManager:
                 }}
             }});
         }});
-        
-        // Helper function to update connections for a specific node
-        function updateConnectionsForNode(nodeId) {{
-            const svg = document.querySelector('#connection-svg');
-            if (!svg) return;
-            
-            // Find all paths connected to this node
-            svg.querySelectorAll(`path[id*="${{nodeId}}"]`).forEach(path => {{
-                updateConnectionPath(path);
-            }});
-        }}
-        
-        // Helper function to update a single connection path
-        function updateConnectionPath(pathElement) {{
-            const pathId = pathElement.id;
-            const parts = pathId.split('__');
-            if (parts.length < 7) return;
-            
-            // Reconstruct the full pin IDs from the parts
-            // Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
-            // parts: [connection, outlet, node_id, pin_id, inlet, node_id, pin_id]
-            const startPortId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
-            const endPortId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
-            
-            const startPin = document.getElementById(startPortId);
-            const endPin = document.getElementById(endPortId);
-            
-            if (!startPin || !endPin) {{
-                pathElement.remove();
-                return;
-            }}
-            
-            // Use the global getPinPosition function
-            const startPos = window.getPinPosition ? window.getPinPosition(startPin) : {{ x: 0, y: 0 }};
-            const endPos = window.getPinPosition ? window.getPinPosition(endPin) : {{ x: 0, y: 0 }};
-            
-            const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
-            const pathData = `M ${{startPos.x}} ${{startPos.y}} C ${{startPos.x + controlOffset}} ${{startPos.y}}, ${{endPos.x - controlOffset}} ${{endPos.y}}, ${{endPos.x}} ${{endPos.y}}`;
-            
-            pathElement.setAttribute('d', pathData);
-        }}
         
         // Start observing existing nodes
         document.querySelectorAll('[data-node-id]').forEach(node => {{
@@ -555,7 +513,10 @@ class GraphCanvasManager:
                     if (nodeElement) {{
                         const nodeId = nodeElement.getAttribute('data-node-id');
                         if (nodeId) {{
-                            updateConnectionsForNode(nodeId);
+                            // Update connected paths using global utility function
+                            if (window.updateConnectionsForNode) {{
+                                window.updateConnectionsForNode(nodeId);
+                            }}
                         }}
                     }}
                 }});
@@ -570,9 +531,6 @@ class GraphCanvasManager:
         
         // Store observer globally for adding new nodes
         window.haywire_nodeObserver = nodeObserver;
-        
-        // Make update function globally available
-        window.updateConnectionPath = updateConnectionPath;
         """
         
         ui.run_javascript(js_code)
