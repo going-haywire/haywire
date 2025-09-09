@@ -505,7 +505,15 @@ class GraphCanvasManager:
             if (window.ResizeObserver) {{
                 const resizeObserver = new ResizeObserver(entries => {{
                     entries.forEach(entry => {{
-                        const nodeElement = entry.target.closest('[data-node-id]');
+                        console.log('🔍 Resize detected:', entry.target, 'Size:', entry.contentRect);
+                        // entry.target is the observed element
+                        let nodeElement = entry.target;
+                        
+                        // If the target doesn't have data-node-id, look for the closest parent that does
+                        if (!nodeElement.hasAttribute('data-node-id')) {{
+                            nodeElement = nodeElement.closest('[data-node-id]');
+                        }}
+                        
                         if (nodeElement) {{
                             const nodeId = nodeElement.getAttribute('data-node-id');
                             if (nodeId) {{
@@ -518,10 +526,23 @@ class GraphCanvasManager:
                     }});
                 }});
                 
-                document.querySelectorAll('[data-node-id]').forEach(node => {{
+                // Function to setup resize observation for a node and its children
+                function observeNodeResize(node) {{
+                    // Observe the node container itself
                     resizeObserver.observe(node);
-                }});
+                    
+                    // Also observe key child elements that might resize (like content containers)
+                    const children = node.querySelectorAll('div, span, .node-content, .port-container');
+                    children.forEach(child => {{
+                        resizeObserver.observe(child);
+                    }});
+                }}
                 
+                // Observe existing nodes and their children
+                document.querySelectorAll('[data-node-id]').forEach(observeNodeResize);
+                
+                // Make the function available globally for new nodes
+                window.haywire_observeNodeResize = observeNodeResize;
                 window.haywire_resizeObserver = resizeObserver;
             }}
             
@@ -639,20 +660,27 @@ class GraphCanvasManager:
                         'position': position
                     }
                     
-                    # Setup observer for this node if JS is ready
+                    # Setup observers for this node if JS is ready
                     if self._js_setup_done:
                         ui.run_javascript(f"""
-                        if (window.haywire_nodeObserver) {{
-                            const nodeEl = document.querySelector('[data-node-id="{node.node_id}"]');
-                            if (nodeEl) {{
+                        const nodeEl = document.querySelector('[data-node-id="{node.node_id}"]');
+                        console.log('🔍 new node created ({node.node_id}):', nodeEl, 'Size:', nodeEl.getBoundingClientRect());
+                        if (nodeEl) {{
+                            // Setup mutation observer
+                            if (window.haywire_nodeObserver) {{
                                 window.haywire_nodeObserver.observe(nodeEl, {{ 
                                     attributes: true, 
                                     attributeFilter: ['style'] 
                                 }});
                             }}
+                            
+                            // Setup resize observer
+                            if (window.haywire_observeNodeResize) {{
+                                window.haywire_observeNodeResize(nodeEl);
+                            }}
                         }}
                         """)
-                        print(f"Setup JS observer for {node.node_id}")
+                        print(f"Setup JS observers for {node.node_id}")
             
             print(f"Successfully added node visual for {node.node_id}")
             return True
