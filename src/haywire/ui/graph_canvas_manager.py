@@ -495,7 +495,7 @@ class GraphCanvasManager:
                 }});
             }});
             
-            // SELECTIVE ResizeObserver - only observe what matters
+            // SELECTIVE ResizeObserver with simple animation follow-up
             if (window.ResizeObserver) {{
                 const resizeObserver = new ResizeObserver(entries => {{
                     // Group entries by node to avoid duplicate updates
@@ -515,15 +515,32 @@ class GraphCanvasManager:
                                 nodeUpdates.add(nodeId);
                                 console.log('🔍 Resize detected for node:', nodeId, 'from element:', entry.target);
                                 
-                                // Update connected paths using global utility function
+                                // Immediate update
                                 if (window.updateConnectionsForNode) {{
                                     window.updateConnectionsForNode(nodeId);
+                                }}
+                                
+                                // Clear any existing animation timers for this node
+                                if (nodeElement._animationTimers) {{
+                                    nodeElement._animationTimers.forEach(timer => clearTimeout(timer));
+                                }}
+                                nodeElement._animationTimers = [];
+                                
+                                // Schedule 5 additional updates over 200ms to follow animations
+                                for (let i = 1; i <= 5; i++) {{
+                                    const delay = (200 / 5) * i; // 40ms intervals
+                                    const timer = setTimeout(() => {{
+                                        if (window.updateConnectionsForNode) {{
+                                            window.updateConnectionsForNode(nodeId);
+                                        }}
+                                    }}, delay);
+                                    nodeElement._animationTimers.push(timer);
                                 }}
                             }}
                         }}
                     }});
                 }});
-                
+
                 // SELECTIVE observation function - only observe key elements
                 function observeNodeResize(node) {{
                     // 1. Always observe the main node container

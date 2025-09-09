@@ -67,9 +67,9 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         ''')
         
         # Create the main card
-        with ui.card().classes(f'w-full min-w-64 max-w-sm node-card {node_id}') as main_card:
-            with ui.row().classes('drag-handle'):
-                ui.icon('drag_indicator').classes('text-grey-6 text-h6')
+        with ui.card().classes(f'w-full min-w-64 max-w-sm node-card haywire-zoomable-lod0 {node_id}') as main_card:
+            with ui.row().classes('drag-handle haywire-zoomable-lod1'):
+                ui.icon('drag_indicator').classes('text-grey-6 text-h6 ')
                 ui.label(node.node_label).classes('text-h6')
 
             # Main content: inlets and outlets in two columns
@@ -89,7 +89,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                             self._render_outlet(outlet, node)
 
             # Footer with port counts
-            with ui.row().classes('w-full justify-between mt-2'):
+            with ui.row().classes('w-full justify-between mt-2 haywire-zoomable-lod1'):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
         
@@ -102,11 +102,15 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             self._render_pin(inlet, direction='left', node=node)
 
             # Pin label
-            ui.label(inlet.label).classes('text-xs')
+            ui.label(inlet.label).classes('text-xs haywire-zoomable-lod2')
 
         # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
         if inlet.is_pooled == False:
-            self._render_element('inlet', inlet, ui_elements, widget_instances)
+            widget = self._render_element('inlet', inlet, ui_elements, widget_instances)
+            # Add widget-container class for hover effects (if element supports classes)
+            if hasattr(widget, 'classes') and callable(widget.classes):
+                widget.classes('widget-container haywire-zoomable-lod2')
+
     
     def _render_outlet(self, outlet, node: BaseNode):
         """Render an outlet with its port."""
@@ -135,11 +139,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             
             # Render the widget
             ui_element = widget_instance.render()
-            
-            # Add widget-container class for hover effects (if element supports classes)
-            if hasattr(ui_element, 'classes') and callable(ui_element.classes):
-                ui_element.classes('widget-container')
-            
+                        
             # Store references
             ui_elements[element.id] = ui_element
             widget_instances[element.id] = widget_instance
@@ -155,7 +155,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             creationerror.add_note(f"Element: {element.id}")
             creationerror.add_note(f"Requested widget: {getattr(element, 'widget', 'None')}")
 
-            render_error_info(creationerror)
+            return render_error_info(creationerror)
     
     def _render_pin(self, pin: ConfigurableElement, direction: str = 'left', node: BaseNode = None):
         """Render a pin with connection system compatibility."""
@@ -167,7 +167,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         if pin.flow_type == FlowType.CTRL.value:
             # Pin connector
             ui.icon('label', color='blue', size='xs').classes(
-                'text-4xl port input-port connection-pin'
+                'text-4xl port input-port connection-pin haywire-zoomable-lod0'
             ).style(
                 f'position: absolute; {direction}: -8px; '
                 f'cursor: crosshair;'
@@ -180,7 +180,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         elif pin.flow_type == FlowType.CALLBACK.value:
             # Pin connector
             ui.icon('replay_circle_filled', color='red', size='xs').classes(
-                'text-4xl port input-port connection-pin'
+                'text-4xl port input-port connection-pin haywire-zoomable-lod0'
             ).style(
                 f'position: absolute; {direction}: -8px; '
                 f'cursor: crosshair;'
@@ -192,7 +192,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             )
         elif pin.flow_type == FlowType.DATA.value:
             ui.element('div').classes(
-                'port output-port connection-pin'
+                'port output-port connection-pin haywire-zoomable-lod0'
             ).style(
                 f'position: absolute; {direction}: -8px; '
                 f'width: 15px; height: 15px; '

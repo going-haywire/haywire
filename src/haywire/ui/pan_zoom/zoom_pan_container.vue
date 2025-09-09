@@ -216,13 +216,13 @@ export default {
         hoverScale = 2.5;
         lodLevel = 'raw';  // Show only lod0
       } else if (this._zoom <= 0.5) {
-        hoverScale = 2.0;
+        hoverScale = 1.5;
         lodLevel = 'low';   // Show lod0 and lod1
       } else if (this._zoom <= 0.75) {
-        hoverScale = 1.5;
+        hoverScale = 1.0;
         lodLevel = 'medium';  // Show lod0, lod1 and lod2
       } else if (this._zoom <= 1.0) {
-        hoverScale = 1.25;
+        hoverScale = 1.0;
         lodLevel = 'high';  // Show lod0, lod1, lod2 and lod3
       } else {
         hoverScale = 1.0;
