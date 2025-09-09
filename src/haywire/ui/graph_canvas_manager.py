@@ -96,6 +96,35 @@ class GraphCanvasManager:
     
     def _setup_canvas(self):
         """Setup the canvas with SVG overlay for connections."""
+        # Add connection pin CSS once during canvas setup
+        ui.add_head_html("""
+        <style>
+        .connection-pin {
+            transition: all 0.2s ease !important;
+            pointer-events: all !important;
+            position: relative !important;
+            z-index: 10000 !important;
+        }
+        .connection-pin:hover {
+            transform: scale(1.3) !important;
+            filter: brightness(1.2) !important;
+            z-index: 10001 !important;
+        }
+        .connection-pin.connection-valid {
+            box-shadow: 0 0 15px #4CAF50 !important;
+            border-color: #4CAF50 !important;
+            transform: scale(1.5) !important;
+            z-index: 10002 !important;
+        }
+        .connection-pin.connection-invalid {
+            box-shadow: 0 0 15px #f44336 !important;
+            border-color: #f44336 !important;
+            transform: scale(1.2) !important;
+            z-index: 10002 !important;
+        }
+        </style>
+        """)
+        
         with self.zoom_container.content_container:
             # Create the main canvas container
             with ui.element('div').classes('right-[4000px] bottom-[4000px] relative').style(
@@ -162,7 +191,7 @@ class GraphCanvasManager:
                 window.canvasZoomPanState.panX = panX !== undefined ? panX : window.canvasZoomPanState.panX;
                 window.canvasZoomPanState.panY = panY !== undefined ? panY : window.canvasZoomPanState.panY;
                 
-                console.log('Updated zoom/pan state:', window.canvasZoomPanState);
+                //console.log('Updated zoom/pan state:', window.canvasZoomPanState);
             }};
             
             let connectionState = {{
@@ -271,35 +300,13 @@ class GraphCanvasManager:
             
             // Store observers globally for cleanup
             window.nodeResizeObserver = resizeObserver;
-            window.nodeMutationObserver = mutationObserver;
-            
-            // Also observe zoom container for transform changes
-            const zoomContainer = document.querySelector('.zoom-pan-container') || 
-                                document.querySelector('[style*="transform"]') ||
-                                document.getElementById('node-container');
-            if (zoomContainer) {{
-                let zoomUpdateTimeout;
-                const zoomObserver = new MutationObserver((mutations) => {{
-                    mutations.forEach((mutation) => {{
-                        if (mutation.type === 'attributes' && 
-                            mutation.attributeName === 'style') {{
-                            // Debounce zoom updates with longer delay
-                            clearTimeout(zoomUpdateTimeout);
-                            zoomUpdateTimeout = setTimeout(() => updateAllConnections(), 100);
-                        }}
-                    }});
-                }});
-                zoomObserver.observe(zoomContainer, {{ 
-                    attributes: true, 
-                    attributeFilter: ['style'] 
-                }});
-                window.zoomObserver = zoomObserver;
-            }}
+            window.nodeMutationObserver = mutationObserver;            
         }}
         
         // Function to update all existing connections (with throttling)
         let updateConnectionsThrottled = false;
         function updateAllConnections() {{
+            console.log('Updating all connections');
             if (updateConnectionsThrottled) return;
             updateConnectionsThrottled = true;
             
@@ -668,9 +675,8 @@ class GraphCanvasManager:
                     ui_node.render()
                     print(f"Rendered UINode for {node.node_id}")
                     
-                    # Add connection pins to rendered node
-                    self._add_connection_pins_to_node(ui_node, node)
-                    print(f"Added connection pins for {node.node_id}")
+                    # Note: Connection pins are created by DefaultNodeRenderer with proper connection-pin class
+                    print(f"Node {node.node_id} rendered with connection-ready pins from DefaultNodeRenderer")
                     
                     # Store reference
                     self.node_panels[node.node_id] = {
@@ -702,137 +708,6 @@ class GraphCanvasManager:
             import traceback
             traceback.print_exc()
             return False
-    
-    def _add_connection_pins_to_node(self, ui_node: UINode, node: BaseNode):
-        """Add connection pins to a rendered node."""
-        # Since DefaultNodeRenderer now creates pins with proper connection-pin class
-        # and data attributes, we don't need to create duplicate pins here.
-        # Just log that the node is ready for connections.
-        print(f"Node {node.node_id} rendered with connection-ready pins from DefaultNodeRenderer")
-        
-        # Add the CSS for connection feedback states (only once)
-        if not hasattr(self, '_css_added'):
-            ui.add_head_html("""
-            <style>
-            .connection-pin {
-                transition: all 0.2s ease !important;
-                pointer-events: all !important;
-                position: relative !important;
-                z-index: 10000 !important;
-            }
-            .connection-pin:hover {
-                transform: scale(1.3) !important;
-                filter: brightness(1.2) !important;
-                z-index: 10001 !important;
-            }
-            .connection-pin.connection-valid {
-                box-shadow: 0 0 15px #4CAF50 !important;
-                border-color: #4CAF50 !important;
-                transform: scale(1.5) !important;
-                z-index: 10002 !important;
-            }
-            .connection-pin.connection-invalid {
-                box-shadow: 0 0 15px #f44336 !important;
-                border-color: #f44336 !important;
-                transform: scale(1.2) !important;
-                z-index: 10002 !important;
-            }
-            </style>
-            """)
-            self._css_added = True
-    
-    def _create_connection_pin(self, node_id: str, port_name: str, port_type: str, port_obj):
-        """Create a connection pin element."""
-        pin_id = f"pin-{node_id}-{port_name}"
-        port_color = getattr(port_obj, 'color', '#4A90E2' if port_type == 'output' else '#FF6B6B')
-        
-        print(f"Creating connection pin: {pin_id} ({port_type})")
-        
-        pin = ui.element('div').classes('connection-pin').props(
-            f'id="{pin_id}" '
-            f'data-node-id="{node_id}" '
-            f'data-port-name="{port_name}" '
-            f'data-port-type="{port_type}"'
-        ).style(
-            f'width: 32px; height: 32px; '
-            f'background: {port_color}; '
-            f'border: 4px solid white; '
-            f'border-radius: 50%; '
-            f'cursor: crosshair; '
-            f'position: relative; '
-            f'display: inline-block; '
-            f'margin: 8px; '
-            f'box-shadow: 0 6px 12px rgba(0,0,0,0.4); '
-            f'z-index: 10000; '
-            f'pointer-events: all; '
-        )
-        
-        # Add immediate test click handler to verify the pin is working (but don't interfere with drag)
-        pin.on('click', lambda e, pin_id=pin_id: self._test_pin_click(pin_id))
-        
-        # Add CSS for connection feedback - only add once
-        if not hasattr(self, '_css_added'):
-            ui.add_head_html("""
-            <style>
-            .connection-pin {
-                transition: all 0.2s ease !important;
-                pointer-events: all !important;
-                position: relative !important;
-                z-index: 10000 !important;
-            }
-            .connection-pin:hover {
-                transform: scale(1.5) !important;
-                box-shadow: 0 8px 16px rgba(0,0,0,0.5) !important;
-                z-index: 10001 !important;
-            }
-            .connection-pin.connection-valid {
-                box-shadow: 0 0 25px #4CAF50 !important;
-                border-color: #4CAF50 !important;
-                transform: scale(1.7) !important;
-                z-index: 10002 !important;
-            }
-            .connection-pin.connection-invalid {
-                box-shadow: 0 0 25px #f44336 !important;
-                border-color: #f44336 !important;
-                transform: scale(1.4) !important;
-                z-index: 10002 !important;
-            }
-            </style>
-            """)
-            self._css_added = True
-        
-        # Add immediate JavaScript debugging for this specific pin
-        ui.run_javascript(f"""
-        setTimeout(() => {{
-            const pin = document.getElementById('{pin_id}');
-            if (pin) {{
-                // Don't add individual click handlers that might interfere with drag
-                // The drag system will handle all interactions
-                
-                const rect = pin.getBoundingClientRect();
-                if (rect.width === 0 || rect.height === 0) {{
-                    console.error('❌ Pin {pin_id} has zero size!', rect);
-                }}
-                
-            }} else {{
-                console.error('❌ Pin {pin_id} not found in DOM!');
-            }}
-        }}, 100);
-        """)
-        
-        # Add tooltip with detailed info
-        tooltip_text = f'{port_type.title()}: {port_name}'
-        if hasattr(port_obj, 'label'):
-            tooltip_text += f' ({port_obj.label})'
-        pin.tooltip(tooltip_text)
-        
-        return pin
-    
-    def _test_pin_click(self, pin_id: str):
-        """Test function to verify pin clicks work (only fires on actual clicks, not drags)"""
-        print(f"🎯 Python: Pin {pin_id} clicked successfully!")
-        # Only show notification for testing, don't interfere with drag operations
-        # ui.notify(f'Pin {pin_id} works!', type='positive')
     
     def remove_node_visual(self, node_id: str) -> bool:
         """Remove a node's visual representation."""
@@ -1085,10 +960,6 @@ class GraphCanvasManager:
             window.cacheValidUntil = 0;
         }}
         
-        // Update all connections with new coordinates
-        if (window.updateAllConnections) {{
-            window.updateAllConnections();
-        }}
         """)
     
     def cleanup(self):
