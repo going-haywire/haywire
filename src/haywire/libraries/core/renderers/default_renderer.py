@@ -169,7 +169,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             ui.icon('label', color='blue', size='xs').classes(
                 'text-4xl port input-port connection-pin haywire-zoomable-lod0'
             ).style(
-                f'position: absolute; {direction}: -8px; '
+                f'position: absolute; {direction}: -25px; '
                 f'cursor: crosshair;'
             ).props(
                 f'id="{pin_id}" '
@@ -182,7 +182,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             ui.icon('replay_circle_filled', color='red', size='xs').classes(
                 'text-4xl port input-port connection-pin haywire-zoomable-lod0'
             ).style(
-                f'position: absolute; {direction}: -8px; '
+                f'position: absolute; {direction}: -25px; '
                 f'cursor: crosshair;'
             ).props(
                 f'id="{pin_id}" '
@@ -194,7 +194,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             ui.element('div').classes(
                 'port output-port connection-pin haywire-zoomable-lod0'
             ).style(
-                f'position: absolute; {direction}: -8px; '
+                f'position: absolute; {direction}: -25px; '
                 f'width: 15px; height: 15px; '
                 f'background: {self._get_port_color(pin.data.type)}; '
                 f'border: 2px solid white; '

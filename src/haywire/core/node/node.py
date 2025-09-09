@@ -110,12 +110,18 @@ class NodeData():
        
     def add_inlet(self, inlet: Inlet) -> Inlet:
         """Add an inlet element"""
+        if '__' in inlet.id:
+            # Handle special case for inlet IDs containing '__' - reserved to split concatenated attributes
+            raise ValueError("Inlet ID cannot contain double underscores '__'")
         self.inlets[inlet.id] = inlet
         self._cache_dirty = True        
         return inlet
     
     def add_outlet(self, outlet: Outlet) -> Outlet:
         """Add an outlet element"""
+        if '__' in outlet.id:
+            # Handle special case for outlet IDs containing '__' - reserved to split concatenated attributes
+            raise ValueError("Outlet ID cannot contain double underscores '__'")
         self.outlets[outlet.id] = outlet
         return outlet
     

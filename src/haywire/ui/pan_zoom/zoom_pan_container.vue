@@ -213,10 +213,10 @@ export default {
       let hoverScale, lodLevel;
       
       if (this._zoom <= 0.3) {
-        hoverScale = 2.5;
+        hoverScale = 1.5;
         lodLevel = 'raw';  // Show only lod0
       } else if (this._zoom <= 0.5) {
-        hoverScale = 1.5;
+        hoverScale = 1.25;
         lodLevel = 'low';   // Show lod0 and lod1
       } else if (this._zoom <= 0.75) {
         hoverScale = 1.0;

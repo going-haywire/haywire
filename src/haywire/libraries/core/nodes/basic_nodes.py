@@ -48,7 +48,7 @@ class TestNodeOne(BaseNode):
                 flow_type=FlowType.DATA,
                 is_pooled=False,
                 data=SingleField('string_val', DataType.STRING, DataCategory.SCALAR, "Option 1", False),
-                widget='core.select',
+                widget='haywire.core:select.widget',
                 ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
             )
         )
@@ -84,7 +84,7 @@ class TestNodeOne(BaseNode):
                 label='Missing Widget',
                 flow_type=FlowType.DATA,
                 data=SingleField('missing_val', DataType.INT, DataCategory.SCALAR, 42, False),
-                widget='nonexistent_widget_type',
+                widget='haywire.core:number.widget',
                 ui={'properties': {}}
             )
         )
@@ -100,8 +100,6 @@ class TestNodeOne(BaseNode):
                 label='Missing Widget',
                 flow_type=FlowType.DATA,
                 data=SingleField('missing_val', DataType.INT, DataCategory.SCALAR, 42, False),
-                widget='nonexistent_widget_type',
-                ui={'properties': {}}
             )
         )
 
