@@ -98,10 +98,10 @@ class GraphCanvasManager:
         """Setup the canvas with SVG overlay for connections."""
         with self.zoom_container.content_container:
             # Create the main canvas container
-            with ui.element('div').classes('right-[2000px] bottom-[2000px] relative').style(
-                'width: 4000px; height: 4000px; '
-                'background: linear-gradient(90deg, #f0f0f0 1px, transparent 1px), '
-                'linear-gradient(180deg, #f0f0f0 1px, transparent 1px); '
+            with ui.element('div').classes('right-[4000px] bottom-[4000px] relative').style(
+                'width: 8000px; height: 8000px; '
+                'background: linear-gradient(90deg, #fff0f0 2px, transparent 2px), '
+                'linear-gradient(180deg, #fff0f0 2px, transparent 2px); '
                 'background-size: 50px 50px; '
                 'position: relative; overflow: visible;'
             ) as self.canvas:
@@ -110,10 +110,7 @@ class GraphCanvasManager:
                 self.svg_canvas = ui.html('''
                 <svg id="connection-svg" 
                      class="absolute top-0 left-0 w-full h-full" 
-                     style="z-index: 0; pointer-events: none; width: 4000px; height: 4000px;"
-                     width="4000"
-                     height="4000"
-                     viewBox="0 0 4000 4000"
+                     style="z-index: 0; pointer-events: none;"
                      xmlns="http://www.w3.org/2000/svg">
                 </svg>
                 ''')
@@ -455,20 +452,7 @@ class GraphCanvasManager:
             connectionState.isDragging = false;
             connectionState.startPin = null;
         }}, true); // Use capture phase
-        
-        // Add debugging for pin detection
-        document.addEventListener('DOMContentLoaded', function() {{
-            setTimeout(() => {{
-                const pins = document.querySelectorAll('.connection-pin');
-                // Test if pins are clickable
-                pins.forEach(pin => {{
-                    pin.addEventListener('click', (e) => {{
-                        // Pin interaction handled by main event listeners
-                    }});
-                }});
-            }}, 1000);
-        }});
-        
+                
         }}, 500); // Close the setTimeout
         """
         
