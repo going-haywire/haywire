@@ -207,31 +207,13 @@ class GraphCanvasManager:
             // Debug: Check for existing pins
             const existingPins = document.querySelectorAll('.connection-pin');
             
-            // Helper function to get pin position relative to SVG (with caching)
-            let pinPositionCache = new Map();
-            let cacheValidUntil = 0;
-            
+            // Helper function to get pin position relative to SVG (no caching for accuracy)
             function getPinPosition(pinElement) {{
-                const now = Date.now();
-                const pinId = pinElement.id;
-                
-                // Use cache if still valid (cache for 16ms = ~60fps)
-                if (now < cacheValidUntil && pinPositionCache.has(pinId)) {{
-                    return pinPositionCache.get(pinId);
-                }}
-                
                 const svg = document.querySelector('#connection-svg');
                 if (!svg) return {{ x: 0, y: 0 }};
                 
                 const pinRect = pinElement.getBoundingClientRect();
-                
-                let position = transformScreenToSVG(pinRect.left + pinRect.width / 2, pinRect.top + pinRect.height / 2);
-                            
-                // Cache the result
-                pinPositionCache.set(pinId, position);
-                if (now >= cacheValidUntil) {{
-                    cacheValidUntil = now + 16; // Cache valid for 16ms
-                }}
+                const position = transformScreenToSVG(pinRect.left + pinRect.width / 2, pinRect.top + pinRect.height / 2);
                 
                 return position;
             }}
@@ -263,6 +245,8 @@ class GraphCanvasManager:
                 if (updateConnectionsThrottled) return;
                 updateConnectionsThrottled = true;
                 
+                //console.log('🔄 updateAllConnections!');
+
                 requestAnimationFrame(() => {{
                     const paths = document.querySelectorAll('#connection-svg path:not([stroke-dasharray])');
                     paths.forEach(path => {{
@@ -282,10 +266,17 @@ class GraphCanvasManager:
             // Helper function to update connections for a specific node
             function updateConnectionsForNode(nodeId) {{
                 const svg = document.querySelector('#connection-svg');
-                if (!svg) return;
-                
+                if (!svg) {{
+                    console.warn('❌ #connection-svg not available yet for ResizeObserver');
+                    return;
+                }}
+
+                //console.log('🔄 updateConnectionsForNode called for:', nodeId);
                 // Find all paths connected to this node
-                svg.querySelectorAll(`path[id*="${{nodeId}}"]`).forEach(path => {{
+                const paths = svg.querySelectorAll(`path[id*="${{nodeId}}"]`);
+                //console.log('🔍 Found', paths.length, 'paths to update for node:', nodeId);
+                paths.forEach(path => {{
+                    //console.log('🔄 updateConnectionsForNode:', nodeId);
                     updateConnectionPath(path);
                 }});
             }}
@@ -294,17 +285,20 @@ class GraphCanvasManager:
             function updateConnectionPath(pathElement) {{
                 const pathId = pathElement.id;
                 const parts = pathId.split('__');
+                //console.log('🔄 updateConnectionPath:', pathId);
                 if (parts.length < 7) return;
-                
+
+                // example: 'connection__outlet__node_3db7a466__nonexistent__inlet__node_9e13e876__float_select'
+
                 // Reconstruct the full pin IDs from the parts
                 // Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
                 // parts: [connection, outlet, node_id, pin_id, inlet, node_id, pin_id]
                 const startPortId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
                 const endPortId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
-                
+
                 const startPin = document.getElementById(startPortId);
                 const endPin = document.getElementById(endPortId);
-                
+
                 if (!startPin || !endPin) {{
                     pathElement.remove();
                     return;
@@ -313,7 +307,7 @@ class GraphCanvasManager:
                 // Use the global getPinPosition function
                 const startPos = window.getPinPosition ? window.getPinPosition(startPin) : {{ x: 0, y: 0 }};
                 const endPos = window.getPinPosition ? window.getPinPosition(endPin) : {{ x: 0, y: 0 }};
-                
+
                 const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
                 const pathData = `M ${{startPos.x}} ${{startPos.y}} C ${{startPos.x + controlOffset}} ${{startPos.y}}, ${{endPos.x - controlOffset}} ${{endPos.y}}, ${{endPos.x}} ${{endPos.y}}`;
                 
@@ -501,22 +495,26 @@ class GraphCanvasManager:
                 }});
             }});
             
-            // Also add resize observer for better detection of size changes
+            // SELECTIVE ResizeObserver - only observe what matters
             if (window.ResizeObserver) {{
                 const resizeObserver = new ResizeObserver(entries => {{
+                    // Group entries by node to avoid duplicate updates
+                    const nodeUpdates = new Set();
+                    
                     entries.forEach(entry => {{
-                        console.log('🔍 Resize detected:', entry.target, 'Size:', entry.contentRect);
-                        // entry.target is the observed element
                         let nodeElement = entry.target;
                         
-                        // If the target doesn't have data-node-id, look for the closest parent that does
+                        // Find the node container
                         if (!nodeElement.hasAttribute('data-node-id')) {{
                             nodeElement = nodeElement.closest('[data-node-id]');
                         }}
                         
                         if (nodeElement) {{
                             const nodeId = nodeElement.getAttribute('data-node-id');
-                            if (nodeId) {{
+                            if (nodeId && !nodeUpdates.has(nodeId)) {{
+                                nodeUpdates.add(nodeId);
+                                console.log('🔍 Resize detected for node:', nodeId, 'from element:', entry.target);
+                                
                                 // Update connected paths using global utility function
                                 if (window.updateConnectionsForNode) {{
                                     window.updateConnectionsForNode(nodeId);
@@ -526,16 +524,31 @@ class GraphCanvasManager:
                     }});
                 }});
                 
-                // Function to setup resize observation for a node and its children
+                // SELECTIVE observation function - only observe key elements
                 function observeNodeResize(node) {{
-                    // Observe the node container itself
+                    // 1. Always observe the main node container
                     resizeObserver.observe(node);
                     
-                    // Also observe key child elements that might resize (like content containers)
-                    const children = node.querySelectorAll('div, span, .node-content, .port-container');
-                    children.forEach(child => {{
-                        resizeObserver.observe(child);
+                    // 2. Only observe specific elements that affect layout:
+                    
+                    // Main content card (this is where fold/unfold happens)
+                    const mainCard = node.querySelector('.q-card, .node-card');
+                    if (mainCard) {{
+                        resizeObserver.observe(mainCard);
+                    }}
+                    
+                    // Node content container (where widgets are)
+                    const nodeContent = node.querySelector('.node-content, .ui-node-slot');
+                    if (nodeContent) {{
+                        resizeObserver.observe(nodeContent);
+                    }}
+                    
+                    // Port containers (where pins are positioned)
+                    const portContainers = node.querySelectorAll('.port-container, .ports-container');
+                    portContainers.forEach(container => {{
+                        resizeObserver.observe(container);
                     }});
+                    
                 }}
                 
                 // Observe existing nodes and their children
@@ -548,8 +561,8 @@ class GraphCanvasManager:
             
             // Store observer globally for adding new nodes
             window.haywire_nodeObserver = nodeObserver;
-        """
-        
+        """        
+
         ui.run_javascript(js_code)
         
         # Register Python callbacks as global JavaScript functions
@@ -929,19 +942,12 @@ class GraphCanvasManager:
         if pan_y is not None:
             self.current_pan_y = pan_y
         
-        # Update JavaScript state and invalidate pin position cache
+        # Update JavaScript state
         ui.run_javascript(f"""
         // Update global zoom/pan state
         if (window.updateCanvasZoomPanState) {{
             window.updateCanvasZoomPanState({self.current_zoom}, {self.current_pan_x}, {self.current_pan_y});
         }}
-        
-        // Clear position cache when zoom/pan changes
-        if (window.pinPositionCache) {{
-            window.pinPositionCache.clear();
-            window.cacheValidUntil = 0;
-        }}
-        
         """)
     
     def cleanup(self):
