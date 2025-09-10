@@ -312,6 +312,11 @@ class GraphCanvasManager:
                 const pathData = `M ${{startPos.x}} ${{startPos.y}} C ${{startPos.x + controlOffset}} ${{startPos.y}}, ${{endPos.x - controlOffset}} ${{endPos.y}}, ${{endPos.x}} ${{endPos.y}}`;
                 
                 pathElement.setAttribute('d', pathData);
+
+                const svg = document.querySelector('#connection-svg');
+                const stroke = createBezierStroke(startPin.dataset.pinColor, endPin.dataset.pinColor, pathId, svg);
+
+                pathElement.setAttribute('stroke', stroke);
             }}
             
             // Make connection utility functions globally available
@@ -323,7 +328,56 @@ class GraphCanvasManager:
                 const controlOffset = Math.abs(end.x - start.x) * 0.5 * offsetDir;
                 return `M ${{start.x}} ${{start.y}} C ${{start.x + controlOffset}} ${{start.y}}, ${{end.x - controlOffset}} ${{end.y}}, ${{end.x}} ${{end.y}}`;
             }}
-            
+
+            // Helper function to create gradient stroke for bezier paths
+            function createBezierStroke(startColor, endColor, pathId, svg) {{
+                if (!endColor || !pathId) {{
+                    // Return solid color if no gradient needed
+                    return startColor || '#ff0000';
+                }}
+                
+                // Ensure we have defs element
+                let defs = svg.querySelector('defs');
+                if (!defs) {{
+                    defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                    svg.appendChild(defs);
+                }}
+                
+                const gradientId = `gradient_${{pathId}}`;
+                
+                // Check if gradient already exists
+                let gradient = document.getElementById(gradientId);
+                if (!gradient) {{
+                    gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                    gradient.setAttribute('id', gradientId);
+                    gradient.setAttribute('x1', '0%');
+                    gradient.setAttribute('y1', '0%');
+                    gradient.setAttribute('x2', '100%');
+                    gradient.setAttribute('y2', '0%');
+                    
+                    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                    stop1.setAttribute('offset', '0%');
+                    stop1.setAttribute('stop-color', startColor);
+                    
+                    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                    stop2.setAttribute('offset', '100%');
+                    stop2.setAttribute('stop-color', endColor);
+                    
+                    gradient.appendChild(stop1);
+                    gradient.appendChild(stop2);
+                    defs.appendChild(gradient);
+                }} else {{
+                    // Update existing gradient colors
+                    const stops = gradient.querySelectorAll('stop');
+                    if (stops.length >= 2) {{
+                        stops[0].setAttribute('stop-color', startColor);
+                        stops[1].setAttribute('stop-color', endColor);
+                    }}
+                }}
+                
+                return `url(#${{gradientId}})`;
+            }}
+
             // Helper function to check if connection is valid
             function isValidConnection(startPin, endPin) {{
                 if (!startPin || !endPin || startPin === endPin) return false;
@@ -366,12 +420,13 @@ class GraphCanvasManager:
                 const startPos = getPinPosition(pin);
 
                 const offsetDir = pin.dataset.pinDir === 'inlet' ? -1 : 1;
+                const pinColor = pin.dataset.pinColor || '#000000';
                 
                 // Create temporary path
                 connectionState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 const initialPath = createBezierPath(startPos, startPos, offsetDir);
                 connectionState.tempPath.setAttribute('d', initialPath);
-                connectionState.tempPath.setAttribute('stroke', '#4A90E2');
+                connectionState.tempPath.setAttribute('stroke', pinColor);
                 connectionState.tempPath.setAttribute('stroke-width', '4');
                 connectionState.tempPath.setAttribute('fill', 'none');
                 connectionState.tempPath.setAttribute('stroke-dasharray', '8,4');

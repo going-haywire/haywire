@@ -169,13 +169,14 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             ui.icon('label', color='blue', size='xs').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
-                f'position: absolute; {direction}: -25px; '
+                f'position: absolute; {direction}: -20px; '
                 f'cursor: crosshair;'
             ).props(
                 f'id="{pin_id}" '
                 f'data-node-id="{node.node_id}" '
                 f'data-pin-id="{pin.id}" '
                 f'data-pin-flow-type="{pin.flow_type}" '
+                f'data-pin-color="#000000" '
                 f'data-pin-dir="{pin_direction}"'
             )
         elif pin.flow_type == FlowType.CALLBACK.value:
@@ -183,20 +184,21 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             ui.icon('replay_circle_filled', color='red', size='xs').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
-                f'position: absolute; {direction}: -25px; '
+                f'position: absolute; {direction}: -20px; '
                 f'cursor: crosshair;'
             ).props(
                 f'id="{pin_id}" '
                 f'data-node-id="{node.node_id}" '
                 f'data-pin-id="{pin.id}" '
                 f'data-pin-flow-type="{pin.flow_type}" '
+                f'data-pin-color="#ff0000" '
                 f'data-pin-dir="{pin_direction}"'
             )
         elif pin.flow_type == FlowType.DATA.value:
             ui.element('div').classes(
                 'port output-port connection-pin zoom-pan-lod0'
             ).style(
-                f'position: absolute; {direction}: -25px; '
+                f'position: absolute; {direction}: -20px; '
                 f'width: 15px; height: 15px; '
                 f'background: {self._get_port_color(pin.data.type)}; '
                 f'border: 2px solid white; '
@@ -207,18 +209,19 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'data-node-id="{node.node_id}" '
                 f'data-pin-id="{pin.id}" '
                 f'data-pin-flow-type="{pin.flow_type}" '
+                f'data-pin-color="{self._get_port_color(pin.data.type)}" '
                 f'data-pin-dir="{pin_direction}"'
             )
     
     def _get_port_color(self, data_type: str | DataType) -> str:
         """Get the color for a port based on its data type."""
         colors = {
-            'float': '#2196f3',
-            'int': '#2196f3',
+            'float': "#50b0ff",
+            'int': "#f7b0ff",
             'string': '#4caf50', 
             'boolean': '#ff9800',
             'array': '#9c27b0',
-            'any': '#757575'
+            'any': "#BABABA"
         }
         return colors.get(str(data_type), '#757575')
 
