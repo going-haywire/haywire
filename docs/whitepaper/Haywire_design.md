@@ -8,8 +8,6 @@
 - [Overview](#overview)
     - [Key Differentiators](#key-differentiators)
     - [Related Projects](#related-projects)
-- [Core Architecture](#core-architecture)
-  - [The Dual-Flow Model](#the-dual-flow-model)
 - [Graph Structure](#graph-structure)
   - [The Graph as Container](#the-graph-as-container)
     - [The Graph](#the-graph)
@@ -39,28 +37,37 @@
       - [Pins](#pins)
       - [Explanation to connection-types](#explanation-to-connection-types)
       - [Control Inlets](#control-inlets)
+      - [Control Outlets](#control-outlets)
       - [Data Inlets](#data-inlets)
       - [Data Outlets](#data-outlets)
       - [Overview of Nodes Configurables](#overview-of-nodes-configurables)
     - [Worker Function](#worker-function)
     - [Data Types and Categories](#data-types-and-categories)
+    - [Support Functions](#support-functions)
+      - [ON\_CHANGED\_CONFIG:](#on_changed_config)
+      - [ON\_VALIDATION\_LAZY:](#on_validation_lazy)
+      - [ON\_CHANGED\_ASYNC:](#on_changed_async)
+      - [ON\_VALIDATION\_INPUT:](#on_validation_input)
 - [Advanced Features](#advanced-features)
   - [Lazy Evaluation](#lazy-evaluation)
   - [Callback System](#callback-system)
 - [Flow](#flow)
   - [Overview](#overview-1)
   - [From Graph to Flow](#from-graph-to-flow)
+  - [The Dual-Flow Model](#the-dual-flow-model)
+    - [Control Flow](#control-flow)
+    - [(localized) Data Flow](#localized-data-flow)
 - [Generation](#generation)
   - [Finding and Loading available Node Libraries](#finding-and-loading-available-node-libraries)
   - [Loading Graphs from JSON and instantiating required Nodes](#loading-graphs-from-json-and-instantiating-required-nodes)
 - [Assembly](#assembly)
   - [Overview](#overview-2)
   - [Assembly Steps](#assembly-steps)
-      - [Graph Validation](#graph-validation)
-      - [Graph Cleaning](#graph-cleaning)
-      - [Graph Preprocessing](#graph-preprocessing)
-      - [Flow identification](#flow-identification)
-      - [Flow assembly](#flow-assembly)
+    - [Graph Validation](#graph-validation)
+    - [Graph Cleaning](#graph-cleaning)
+    - [Graph Preprocessing](#graph-preprocessing)
+    - [Flow identification](#flow-identification)
+    - [Flow assembly](#flow-assembly)
     - [Just-In-Time Assembly](#just-in-time-assembly)
   - [Just-In-Time Assembly (For a future implementation)](#just-in-time-assembly-for-a-future-implementation)
 - [Execution](#execution)
@@ -76,12 +83,12 @@
       - [for Control-nodes](#for-control-nodes)
       - [for Data-nodes](#for-data-nodes)
 - [Interpreter](#interpreter)
-  - [Outstanding Design Questions](#outstanding-design-questions)
-    - [For Author Clarification](#for-author-clarification)
-    - [Suggested Enhancements](#suggested-enhancements)
+- [Outstanding Design Questions](#outstanding-design-questions)
+  - [For Author Clarification](#for-author-clarification)
+  - [Suggested Enhancements](#suggested-enhancements)
 - [Appendix](#appendix)
   - [Complete Edge Data Structure](#complete-edge-data-structure)
-  - [Complete Node Definition Template](#complete-node-definition-template)
+    - [Complete Node Definition Template](#complete-node-definition-template)
     - [Complete Node Initialization Sequence](#complete-node-initialization-sequence)
   - [Complete Lazy Evaluation Algorithm](#complete-lazy-evaluation-algorithm)
 
@@ -323,11 +330,11 @@ These are the basic building blocks of a Haywire graph:
 - **Flow-type** defines if it is a control, data or callback pin
 - **Socket-type** defines if the pin is an inlet (for getting event/data in) or an outlet (for sending event/data out)
 - **Data-type** defines the data type the pin is associated with. And which other pins a pin can connect or not connect to.
-- **Coupling-type** defines how many connections can be made on the pin. This is either one or many.
+- **Mate-type** defines how many connections can be made on the pin. This is either one or many.
 
 The following table shows the only admissible pin configurations:
 
-| Types               | Flow | Socket | Data | Coupling |
+| Types               | Flow | Socket | Data | Mate     |
 | ------------------- | ---- | ------ | ---- | -------- |
 | Control-pin inlet   | ctrl | inlet  | --   | many     |
 | Control-pin outlet  | ctrl | outlet | --   | one      |
@@ -338,12 +345,12 @@ The following table shows the only admissible pin configurations:
 
 #### Explanation to connection-types
 
-- **Control-pin-outlet** can have only one coupling, since it must be clear which the next node is that needs to be executed.
-- **Control-pin-inlet** can have many couplings, since there might be multiple execution paths that lead to this node.
-- **Data-pin-outlet** can have many couplings, since multiple nodes might be interested in this data
-- **Data-pin-inlet** there are two coupling-types possible, depending on the needed data. in case of many the provided data is in form of a list of values in the specified data-type.
-- **Callback-pin-inlet** can have many couplings, since multiple [Event-nodes](#node-types) can require the same callback.
-- **Callback-pin-outlet** can have many couplings, since the [Event-node](#node-types) might be interested in multiple callbacks.
+- **Control-pin-outlet** can have only one Mate, since it must be clear which the next node is that needs to be executed.
+- **Control-pin-inlet** can have many mates, since there might be multiple execution paths that lead to this node.
+- **Data-pin-outlet** can have many mates, since multiple nodes might be interested in this data
+- **Data-pin-inlet** there are two mate-types possible, depending on the needed data. in case of many the provided data is in form of a list of values in the specified data-type.
+- **Callback-pin-inlet** can have many mates, since multiple [Event-nodes](#node-types) can require the same callback.
+- **Callback-pin-outlet** can have many mates, since the [Event-node](#node-types) might be interested in multiple callbacks.
 
 #### Control Inlets
 
@@ -380,7 +387,7 @@ Inlets are used to receive data.
 | ---------- | ------------- | ------- | ------- | ------ | ------- | ------- | ------ | -------- |
 | Configs    | Configuration | no      | value   | no     | no      | on/off  | on/off | None     |
 | Properties | Properties    | no      | value   | no     | no      | on/off  | on/off | None     |
-| Inlets     | Input         | yes     | default | yes    | no      | on/off  | on/off | Maybe    |
+| Inlets     | Input         | yes     | value   | yes    | no      | on/off  | on/off | Maybe    |
 | Outlets    | Output        | no      | none    | no     | yes     | on/off  | on/off | None     |
 
 none = can not be set / has no effect

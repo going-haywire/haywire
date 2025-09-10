@@ -28,3 +28,8 @@ class FlowType(Enum):
     DATA = 'data'
     CALLBACK = 'callback'
     NONE = 'none'
+
+class SocketType(Enum):
+    """Defines the socket type. It is either an inlet or an outlet."""
+    INLET = 'inlet'
+    OUTLET = 'outlet'

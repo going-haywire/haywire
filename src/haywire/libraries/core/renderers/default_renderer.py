@@ -162,7 +162,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         # Create unique pin ID and determine port type for connection system
         pin_direction = 'inlet' if pin.is_inlet else 'outlet'
         pin_id = generate_pin_id(pin_direction, node.node_id, pin.id)
-        port_type = 'input' if pin.is_inlet else 'output'
+        flow_type = pin.flow_type
         
         if pin.flow_type == FlowType.CTRL.value:
             # Pin connector
@@ -174,8 +174,9 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             ).props(
                 f'id="{pin_id}" '
                 f'data-node-id="{node.node_id}" '
-                f'data-port-id="{pin.id}" '
-                f'data-port-type="{port_type}"'
+                f'data-pin-id="{pin.id}" '
+                f'data-pin-flow-type="{pin.flow_type}" '
+                f'data-pin-dir="{pin_direction}"'
             )
         elif pin.flow_type == FlowType.CALLBACK.value:
             # Pin connector
@@ -187,8 +188,9 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             ).props(
                 f'id="{pin_id}" '
                 f'data-node-id="{node.node_id}" '
-                f'data-port-id="{pin.id}" '
-                f'data-port-type="{port_type}"'
+                f'data-pin-id="{pin.id}" '
+                f'data-pin-flow-type="{pin.flow_type}" '
+                f'data-pin-dir="{pin_direction}"'
             )
         elif pin.flow_type == FlowType.DATA.value:
             ui.element('div').classes(
@@ -203,8 +205,9 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             ).props(
                 f'id="{pin_id}" '
                 f'data-node-id="{node.node_id}" '
-                f'data-port-id="{pin.id}" '
-                f'data-port-type="{port_type}"'
+                f'data-pin-id="{pin.id}" '
+                f'data-pin-flow-type="{pin.flow_type}" '
+                f'data-pin-dir="{pin_direction}"'
             )
     
     def _get_port_color(self, data_type: str | DataType) -> str:

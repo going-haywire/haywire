@@ -96,6 +96,12 @@ class TestNodeOne(BaseNode):
         )
 
         _ = self.add_outlet(Outlet(
+                'execute',  # element_id as first positional parameter
+                label='Execute',
+                flow_type=FlowType.CTRL
+            )
+        )
+        _ = self.add_outlet(Outlet(
                 'nonexistent',  # element_id as first positional parameter
                 label='Missing Widget',
                 flow_type=FlowType.DATA,

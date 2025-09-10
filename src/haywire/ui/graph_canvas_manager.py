@@ -293,11 +293,11 @@ class GraphCanvasManager:
                 // Reconstruct the full pin IDs from the parts
                 // Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
                 // parts: [connection, outlet, node_id, pin_id, inlet, node_id, pin_id]
-                const startPortId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
-                const endPortId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
+                const startpinId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
+                const endpinId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
 
-                const startPin = document.getElementById(startPortId);
-                const endPin = document.getElementById(endPortId);
+                const startPin = document.getElementById(startpinId);
+                const endPin = document.getElementById(endpinId);
 
                 if (!startPin || !endPin) {{
                     pathElement.remove();
@@ -319,8 +319,8 @@ class GraphCanvasManager:
             window.updateConnectionPath = updateConnectionPath;
             
             // Helper function to create bezier curve path
-            function createBezierPath(start, end) {{
-                const controlOffset = Math.abs(end.x - start.x) * 0.5;
+            function createBezierPath(start, end, offsetDir) {{
+                const controlOffset = Math.abs(end.x - start.x) * 0.5 * offsetDir;
                 return `M ${{start.x}} ${{start.y}} C ${{start.x + controlOffset}} ${{start.y}}, ${{end.x - controlOffset}} ${{end.y}}, ${{end.x}} ${{end.y}}`;
             }}
             
@@ -328,19 +328,27 @@ class GraphCanvasManager:
             function isValidConnection(startPin, endPin) {{
                 if (!startPin || !endPin || startPin === endPin) return false;
                 
-                const startType = startPin.dataset.portType;
-                const endType = endPin.dataset.portType;
+                const startDir = startPin.dataset.pinDir;
                 const startNodeId = startPin.dataset.nodeId;
+                const startFlowType = startPin.dataset.pinFlowType;
+                const endDir = endPin.dataset.pinDir;
                 const endNodeId = endPin.dataset.nodeId;
+                const endFlowType = endPin.dataset.pinFlowType;
                 
                 // Cannot connect to same node
                 if (startNodeId === endNodeId) {{
+                    console.warn('❌ Cannot connect pin to same node');
+                    return false;
+                }}
+
+                if (startFlowType !== endFlowType) {{
+                    console.warn('❌ Cannot connect pins of different flow types');
                     return false;
                 }}
                 
                 // Must connect output to input or input to output
-                const valid = (startType === 'output' && endType === 'input') || 
-                            (startType === 'input' && endType === 'output');
+                const valid = (startDir === 'outlet' && endDir === 'inlet') || 
+                            (startDir === 'inlet' && endDir === 'outlet');
                 return valid;
             }}
             
@@ -356,10 +364,12 @@ class GraphCanvasManager:
                 connectionState.startPin = pin;
                 
                 const startPos = getPinPosition(pin);
+
+                const offsetDir = pin.dataset.pinDir === 'inlet' ? -1 : 1;
                 
                 // Create temporary path
                 connectionState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const initialPath = createBezierPath(startPos, startPos);
+                const initialPath = createBezierPath(startPos, startPos, offsetDir);
                 connectionState.tempPath.setAttribute('d', initialPath);
                 connectionState.tempPath.setAttribute('stroke', '#4A90E2');
                 connectionState.tempPath.setAttribute('stroke-width', '4');
@@ -383,8 +393,10 @@ class GraphCanvasManager:
                 
                 // Use enhanced coordinate transformation
                 const mousePos = transformScreenToSVG(e.clientX, e.clientY);
-                
-                const pathData = createBezierPath(startPos, mousePos);
+
+                const offsetDir = connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
+
+                const pathData = createBezierPath(startPos, mousePos, offsetDir);
                 connectionState.tempPath.setAttribute('d', pathData);
                 
                 // Highlight valid drop targets
@@ -428,16 +440,21 @@ class GraphCanvasManager:
                 
                 // Create connection if valid
                 if (endPin && isValidConnection(connectionState.startPin, endPin)) {{
-                    const startData = connectionState.startPin.dataset;
-                    const endData = endPin.dataset;
+                    let startData = connectionState.startPin.dataset;
+                    let endData = endPin.dataset;
+                    if (endPin.dataset.pinDir === 'outlet') {{
+                        console.log('reverse connection to maintain inlet->outlet convention');
+                        endData = connectionState.startPin.dataset;
+                        startData = endPin.dataset;
+                    }}
                     
                     // Call Python callback through global function
                     if (window.haywire_on_connection_created) {{
                         window.haywire_on_connection_created(
                             startData.nodeId,
-                            startData.portId,  // Changed from portName to portId
+                            startData.pinId,  // Changed from portName to pinId
                             endData.nodeId, 
-                            endData.portId     // Changed from portName to portId
+                            endData.pinId     // Changed from portName to pinId
                         );
                     }} else {{
                         console.error('❌ Python callback not available');
@@ -785,10 +802,10 @@ class GraphCanvasManager:
                         const pathId = path.id;
                         const parts = pathId.split('__');
                         if (parts.length >= 7) {{
-                            const startPortId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
-                            const endPortId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
-                            const startPin = document.getElementById(startPortId);
-                            const endPin = document.getElementById(endPortId);
+                            const startpinId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
+                            const endpinId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
+                            const startPin = document.getElementById(startpinId);
+                            const endPin = document.getElementById(endpinId);
                             if (startPin && endPin) {{
                                 const startPos = window.getPinPosition(startPin);
                                 const endPos = window.getPinPosition(endPin);
