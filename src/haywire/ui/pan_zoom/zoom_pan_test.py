@@ -138,13 +138,13 @@ def main():
                     with ui.grid(columns=50).classes('gap-6 p-8') as grid:
                         grid.classes('right-[2000px] bottom-[2000px] relative')
                         for i in range(1000):
-                            with ui.card().classes('w-32 h-32 bg-blue-100 flex flex-col items-center justify-center haywire-zoomable-lod0 node-card'):
+                            with ui.card().classes('w-32 h-32 bg-blue-100 flex flex-col items-center justify-center zoom-pan-lod0 node-card'):
                                 with ui.column():
                                     # Drag handle (should be draggable, not pan the view)
                                     with ui.row().classes('drag-handle w-full justify-center mb-1'):
                                         ui.icon('drag_indicator').classes('text-grey-6 text-xs')
-                                    ui.label(f'Item {i+1}').classes('text-center text-sm mb-2 haywire-zoomable-lod1')
-                                    ui.input(value='some text').props('clearable outlined').classes('text-xs haywire-zoomable-lod2').style('cursor: text; pointer-events: auto;')
+                                    ui.label(f'Item {i+1}').classes('text-center text-sm mb-2 zoom-pan-lod1')
+                                    ui.input(value='some text').props('clearable outlined').classes('text-xs zoom-pan-lod2').style('cursor: text; pointer-events: auto;')
                                     # Add a port-like element
                                     with ui.row().classes('justify-center mt-1'):
                                         ui.element('div').classes('port output-port w-3 h-3 bg-red-500 rounded-full').style('cursor: crosshair;')

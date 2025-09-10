@@ -514,7 +514,7 @@ class GraphCanvasManager:
             
             // Hover-based connection updates for LOD animations
             function setupHoverObserver(node) {{
-                const lodElement = node.querySelector('.haywire-zoomable-lod0');
+                const lodElement = node.querySelector('.zoom-pan-lod0');
                 if (!lodElement) return;
                 
                 const nodeId = node.getAttribute('data-node-id');

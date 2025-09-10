@@ -67,8 +67,8 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         ''')
         
         # Create the main card
-        with ui.card().classes(f'w-full min-w-64 max-w-sm node-card haywire-zoomable-lod0 {node_id}') as main_card:
-            with ui.row().classes('drag-handle haywire-zoomable-lod1'):
+        with ui.card().classes(f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0 {node_id}') as main_card:
+            with ui.row().classes('drag-handle zoom-pan-lod1'):
                 ui.icon('drag_indicator').classes('text-grey-6 text-h6 ')
                 ui.label(node.node_label).classes('text-h6')
 
@@ -89,7 +89,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                             self._render_outlet(outlet, node)
 
             # Footer with port counts
-            with ui.row().classes('w-full justify-between mt-2 haywire-zoomable-lod1'):
+            with ui.row().classes('w-full justify-between mt-2 zoom-pan-lod1'):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
         
@@ -102,14 +102,14 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             self._render_pin(inlet, direction='left', node=node)
 
             # Pin label
-            ui.label(inlet.label).classes('text-xs haywire-zoomable-lod2')
+            ui.label(inlet.label).classes('text-xs zoom-pan-lod2')
 
         # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
         if inlet.is_pooled == False:
             widget = self._render_element('inlet', inlet, ui_elements, widget_instances)
             # Add widget-container class for hover effects (if element supports classes)
             if hasattr(widget, 'classes') and callable(widget.classes):
-                widget.classes('widget-container haywire-zoomable-lod2')
+                widget.classes('widget-container zoom-pan-lod2')
 
     
     def _render_outlet(self, outlet, node: BaseNode):
@@ -167,7 +167,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         if pin.flow_type == FlowType.CTRL.value:
             # Pin connector
             ui.icon('label', color='blue', size='xs').classes(
-                'text-4xl port input-port connection-pin haywire-zoomable-lod0'
+                'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -25px; '
                 f'cursor: crosshair;'
@@ -181,7 +181,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         elif pin.flow_type == FlowType.CALLBACK.value:
             # Pin connector
             ui.icon('replay_circle_filled', color='red', size='xs').classes(
-                'text-4xl port input-port connection-pin haywire-zoomable-lod0'
+                'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -25px; '
                 f'cursor: crosshair;'
@@ -194,7 +194,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             )
         elif pin.flow_type == FlowType.DATA.value:
             ui.element('div').classes(
-                'port output-port connection-pin haywire-zoomable-lod0'
+                'port output-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -25px; '
                 f'width: 15px; height: 15px; '

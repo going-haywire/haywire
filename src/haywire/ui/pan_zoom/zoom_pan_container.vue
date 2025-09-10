@@ -396,9 +396,9 @@ export default {
 //* LOD-based visibility rules with hover persistence - Optimized Version */
 
 /* Base transitions for appearing/disappearing elements */
-.haywire-zoomable-lod1,
-.haywire-zoomable-lod2,
-.haywire-zoomable-lod3 {
+.zoom-pan-lod1,
+.zoom-pan-lod2,
+.zoom-pan-lod3 {
   transition: opacity 0.3s ease-out;
 }
 
@@ -435,17 +435,17 @@ export default {
 }
 
 /* Apply custom properties to LOD elements */
-.haywire-zoomable-lod1 {
+.zoom-pan-lod1 {
   opacity: var(--lod-1-opacity);
   pointer-events: var(--lod-1-pointer-events);
 }
 
-.haywire-zoomable-lod2 {
+.zoom-pan-lod2 {
   opacity: var(--lod-2-opacity);
   pointer-events: var(--lod-2-pointer-events);
 }
 
-.haywire-zoomable-lod3 {
+.zoom-pan-lod3 {
   opacity: var(--lod-3-opacity);
   pointer-events: var(--lod-3-pointer-events);
 }
@@ -453,7 +453,7 @@ export default {
 /* HOVER PERSISTENCE: Override LOD when hovering - Simplified */
 
 /* When hovering LOD0, show all children */
-.haywire-zoomable-lod0:hover {
+.zoom-pan-lod0:hover {
   --lod-1-opacity: 1;
   --lod-1-pointer-events: auto;
   --lod-2-opacity: 1;
@@ -463,7 +463,7 @@ export default {
 }
 
 /* When hovering LOD1, show LOD2 and LOD3 children */
-.haywire-zoomable-lod1:hover {
+.zoom-pan-lod1:hover {
   --lod-2-opacity: 1;
   --lod-2-pointer-events: auto;
   --lod-3-opacity: 1;
@@ -471,18 +471,18 @@ export default {
 }
 
 /* When hovering LOD2, show LOD3 children */
-.haywire-zoomable-lod2:hover {
+.zoom-pan-lod2:hover {
   --lod-3-opacity: 1;
   --lod-3-pointer-events: auto;
 }
 
 /* Hover scaling for cards based on zoom level */
-.haywire-zoomable-lod0 {
+.zoom-pan-lod0 {
   transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
   cursor: pointer;
 }
 
-.haywire-zoomable-lod0:hover {
+.zoom-pan-lod0:hover {
   /* This inherits --hover-scale from .zoom-pan-container */
   transform: scale(var(--hover-scale, 1.1));
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
