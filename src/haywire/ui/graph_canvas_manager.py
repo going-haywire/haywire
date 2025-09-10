@@ -314,7 +314,7 @@ class GraphCanvasManager:
                 pathElement.setAttribute('d', pathData);
 
                 const svg = document.querySelector('#connection-svg');
-                const stroke = createBezierStroke(startPin.dataset.pinColor, endPin.dataset.pinColor, pathId, svg);
+                const stroke = createBezierStroke(startPos, endPos, startPin.dataset.pinColor, endPin.dataset.pinColor, pathId, svg);
 
                 pathElement.setAttribute('stroke', stroke);
             }}
@@ -330,7 +330,7 @@ class GraphCanvasManager:
             }}
 
             // Helper function to create gradient stroke for bezier paths
-            function createBezierStroke(startColor, endColor, pathId, svg) {{
+            function createBezierStroke(startPos, endPos, startColor, endColor, pathId, svg) {{
                 if (!endColor || !pathId) {{
                     // Return solid color if no gradient needed
                     return startColor || '#ff0000';
@@ -350,11 +350,13 @@ class GraphCanvasManager:
                 if (!gradient) {{
                     gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
                     gradient.setAttribute('id', gradientId);
-                    gradient.setAttribute('x1', '0%');
-                    gradient.setAttribute('y1', '0%');
-                    gradient.setAttribute('x2', '100%');
-                    gradient.setAttribute('y2', '0%');
+                    gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
                     
+                    gradient.setAttribute('x1', startPos.x);
+                    gradient.setAttribute('y1', startPos.y);
+                    gradient.setAttribute('x2', endPos.x);
+                    gradient.setAttribute('y2', endPos.y);
+
                     const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
                     stop1.setAttribute('offset', '0%');
                     stop1.setAttribute('stop-color', startColor);
@@ -852,23 +854,8 @@ class GraphCanvasManager:
                     // Try both global and local function access
                     if (window.updateConnectionPath) {{
                         window.updateConnectionPath(path);
-                    }} else if (window.getPinPosition) {{
-                        // Manual calculation as fallback
-                        const pathId = path.id;
-                        const parts = pathId.split('__');
-                        if (parts.length >= 7) {{
-                            const startpinId = parts[1] + '__' + parts[2] + '__' + parts[3];  // outlet__node_id__pin_id
-                            const endpinId = parts[4] + '__' + parts[5] + '__' + parts[6];    // inlet__node_id__pin_id
-                            const startPin = document.getElementById(startpinId);
-                            const endPin = document.getElementById(endpinId);
-                            if (startPin && endPin) {{
-                                const startPos = window.getPinPosition(startPin);
-                                const endPos = window.getPinPosition(endPin);
-                                const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
-                                const pathData = `M ${{startPos.x}} ${{startPos.y}} C ${{startPos.x + controlOffset}} ${{startPos.y}}, ${{endPos.x - controlOffset}} ${{endPos.y}}, ${{endPos.x}} ${{endPos.y}}`;
-                                path.setAttribute('d', pathData);
-                            }}
-                        }}
+                    }} else  {{
+                        console.error('❌ updateConnectionPath not available');
                     }}
                 }}
             }}, 200);
