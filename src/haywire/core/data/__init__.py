@@ -7,34 +7,6 @@ from .enums import DataType, DataCategory, FlowType
 from .specs import DataFieldSpec, specs_factory
 from .fields import DataField, SingleField, PooledField
 
-# --- Factory functions for creating DataFieldSpec instances ---
-INT = specs_factory(
-        id='INT', 
-        label='Integer', 
-        description='Integer data type',
-        type=DataType.INT,
-        category=DataCategory.SCALAR,
-        widget='core.number',
-    )
-
-FLOAT = specs_factory(
-        id='FLOAT', 
-        label='Float', 
-        description='Float data type',
-        type=DataType.FLOAT,
-        category=DataCategory.SCALAR,
-        widget='core.number',
-    )
-    
-STRING = specs_factory(
-        id='STRING', 
-        label='String', 
-        description='String data type',
-        type=DataType.STRING,
-        category=DataCategory.SCALAR,
-        widget='text',
-    )
-
 __all__ = [
     # Enums
     "DataType",
@@ -47,8 +19,4 @@ __all__ = [
     "DataField",
     "SingleField",
     "PooledField",
-    # Factory functions
-    "INT",
-    "FLOAT",
-    "STRING",
 ]
