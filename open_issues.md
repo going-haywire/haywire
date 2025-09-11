@@ -1,4 +1,5 @@
-- [ ] Coordinate transformation lead, where?
+- [ ] Graph - Coordinate transformation lead, where?
+- [ ] BaseNode - create DataClasses for self.library_  self.node_ self.ui_
 
 
 - [ ] src/haywire/ui/pan_zoom/zoom_pan_container.vue handles the mouse events for panning. not sure if this is the best or only place.

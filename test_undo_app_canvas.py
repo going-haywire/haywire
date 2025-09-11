@@ -296,9 +296,8 @@ class UndoRedoTestAppWithCanvasManager:
     # Event Handlers
     def on_zoom_change(self, zoom_level):
         """Handle zoom change events."""
-        # Update canvas manager's zoom state
-        if hasattr(self, 'canvas_manager') and self.canvas_manager:
-            self.canvas_manager.update_zoom_pan_state(zoom=zoom_level)
+        # Note: No need to update canvas manager - zoom/pan is handled by CSS transforms
+        # in the zoom container, connections automatically scale with the transform
         
         # Update UI display
         if hasattr(self, 'canvas_status_container'):
@@ -306,9 +305,8 @@ class UndoRedoTestAppWithCanvasManager:
     
     def on_pan_change(self, pan_x, pan_y):
         """Handle pan change events."""
-        # Update canvas manager's pan state
-        if hasattr(self, 'canvas_manager') and self.canvas_manager:
-            self.canvas_manager.update_zoom_pan_state(pan_x=pan_x, pan_y=pan_y)
+        # Note: No need to update canvas manager - zoom/pan is handled by CSS transforms
+        # in the zoom container, connections automatically pan with the transform
         
         # Update UI display
         if hasattr(self, 'canvas_status_container'):
