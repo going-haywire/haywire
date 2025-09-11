@@ -252,6 +252,17 @@ export default {
       this.$refs.content.style.transform = transform;
       this._updateZoomAndLODClass();
       
+      // Dispatch custom event with zoom/pan state to document
+      document.dispatchEvent(new CustomEvent('zoom-pan-state', {
+        detail: {
+          zoom: this._zoom,
+          panX: this._panX,
+          panY: this._panY,
+          containerId: this.containerId,
+          isDragging: this.isDragging
+        }
+      }));
+      
       if (this.updateTimeout) return;
       this.updateTimeout = setTimeout(() => {
         this.$emit('transform-changed', { panX: this._panX, panY: this._panY, zoom: this._zoom });

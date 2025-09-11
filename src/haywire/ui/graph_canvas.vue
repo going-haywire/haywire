@@ -58,7 +58,14 @@ export default {
       connectionPaths: new Map(), // path_id -> path_element
       updateConnectionsThrottled: false,
       resizeObserver: null,
-      mutationObserver: null
+      mutationObserver: null,
+      // Store current zoom/pan state from the zoom container
+      zoomState: {
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+        isDragging: false
+      }
     };
   },
   
@@ -83,6 +90,7 @@ export default {
     // Initialize component
     this._setupEventListeners();
     this._setupObservers();
+    this._setupZoomPanListener();
     
     // Expose API to parent/Python
     this.$el._graphCanvasControls = {
@@ -94,13 +102,15 @@ export default {
       addNodeObserver: this.addNodeObserver,
       removeNodeObserver: this.removeNodeObserver,
       getPinPosition: this.getPinPosition,
-      transformScreenToSVG: this.transformScreenToSVG
+      transformScreenToSVG: this.transformScreenToSVG,
+      getZoomState: () => this.zoomState
     };
   },
   
   beforeDestroy() {
     this._cleanupEventListeners();
     this._cleanupObservers();
+    this._cleanupZoomPanListener();
   },
   
   // Note: No watcher for zoomState needed - zoom/pan is handled by CSS transforms
@@ -134,6 +144,32 @@ export default {
       document.body.removeEventListener('mousedown', this.handleMouseDown, true);
       document.body.removeEventListener('mousemove', this.handleMouseMove, true);
       document.body.removeEventListener('mouseup', this.handleMouseUp, true);
+    },
+
+    // Zoom/Pan Event Listener Setup
+    _setupZoomPanListener() {
+      // Listen for zoom/pan state changes from the zoom container
+      this.handleZoomPanUpdate = (event) => {
+        const { zoom, panX, panY, containerId, isDragging } = event.detail;
+        
+        // Update our local zoom state
+        this.zoomState = { zoom, panX, panY, isDragging };
+        
+        console.log('🔍 GraphCanvas received zoom/pan update:', this.zoomState);
+        
+        // Update all connections when zoom/pan changes
+        // Note: This is throttled in the zoom container, so we don't need additional throttling
+        this.updateAllConnections();
+      };
+      
+      document.addEventListener('zoom-pan-state', this.handleZoomPanUpdate);
+    },
+
+    _cleanupZoomPanListener() {
+      if (this.handleZoomPanUpdate) {
+        document.removeEventListener('zoom-pan-state', this.handleZoomPanUpdate);
+        this.handleZoomPanUpdate = null;
+      }
     },
     
     // Observer Setup
@@ -503,15 +539,15 @@ export default {
       
       const svgRect = this.$refs.svg.getBoundingClientRect();
 
-      // Get current zoom/pan state from the zoom container or global state
-      const zoomState = this.zoomState || { zoom: 1, panX: 0, panY: 0 };
+      // Use current zoom/pan state from zoom container events
+      const { zoom, panX, panY } = this.zoomState;
       
-      console.log('Transforming screen to SVG:', { clientX, clientY, svgRect, zoomState });
+      console.log('Transforming screen to SVG:', { clientX, clientY, svgRect, zoomState: this.zoomState });
 
       // Apply inverse transform accounting for current zoom/pan
       // This matches the old implementation's coordinate transformation
-      let x = (clientX - svgRect.left) / zoomState.zoom;
-      let y = (clientY - svgRect.top) / zoomState.zoom;
+      let x = (clientX - svgRect.left) / zoom;
+      let y = (clientY - svgRect.top) / zoom;
       
       return { x, y };
     },
