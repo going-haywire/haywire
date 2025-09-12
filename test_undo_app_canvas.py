@@ -58,32 +58,66 @@ class UndoRedoTestAppWithCanvasManager:
     def __init__(self):
         print("Setting up Enhanced DI system with Canvas Manager...")
         
-        # Initialize library system service
+        # Initialize library system service (shared across all sessions)
         self.setup_library_system()
         
-        # Get services from the library system
-        self.setup_services()
+        # Shared data across all sessions
+        self.setup_shared_services()
         
-        # UI state
-        self.selected_nodes: set[str] = set()
-        self.creation_mode = None  # Stores the node type to create on canvas click
+        # Session-specific UI state (client_id -> session_data)
+        self.sessions = {}
         
-        # Statistics
-        self.stats = {
+    def get_session_data(self):
+        """Get or create session-specific data for current client."""
+        from nicegui import context
+        
+        # Use NiceGUI's client context to identify unique sessions
+        client_id = context.client.id if context.client else 'default'
+        
+        if client_id not in self.sessions:
+            print(f"Creating new session for client: {client_id}")
+            self.sessions[client_id] = self.create_session_data()
+        
+        return self.sessions[client_id], client_id
+    
+    def create_session_data(self):
+        """Create session-specific UI data (not graph data - that's shared)."""
+        return {
+            # UI-specific state (not shared between sessions)
+            'selected_nodes': set(),
+            'creation_mode': None,
+            'canvas_manager': None,
+            'zoom_container': None,
+            'stats': {
+                'nodes_created': 0,
+                'edges_created': 0,
+                'undo_operations': 0,
+                'redo_operations': 0
+            },
+            'ui_containers': {}  # Store UI container references
+        }
+    
+    def setup_shared_services(self):
+        """Setup services and data shared across all sessions."""
+        # Get services from the library system (shared)
+        self.node_registry = self.library_service.get_node_registry()
+        self.node_factory = self.library_service.get_node_factory()
+        self.node_render_factory = self.library_service.get_node_render_factory()
+        self.history_manager = self.library_service.get_history_manager()
+        
+        # Create ONE shared graph for all sessions
+        self.graph = HaywireGraph("shared_graph", "Shared Graph Across Sessions")
+        
+        # Global stats (shared across sessions)
+        self.global_stats = {
             'nodes_created': 0,
             'edges_created': 0,
             'undo_operations': 0,
             'redo_operations': 0
         }
         
-        # UI components (will be set during setup)
-        self.zoom_container = None
-        self.canvas_manager = None
-        self.info_panel = None
-        self.history_panel = None
-        self.stats_container = None
-        self.info_container = None 
-        self.history_container = None
+        print(f"History manager available: {self.history_manager is not None}")
+        print("Shared services configured successfully.")
     
     def setup_library_system(self):
         """Initialize the library system service."""
@@ -104,23 +138,13 @@ class UndoRedoTestAppWithCanvasManager:
     
     def setup_services(self):
         """Get all required services from the library system."""
-        # Get services through DI
-        self.node_registry = self.library_service.get_node_registry()
-        self.node_factory = self.library_service.get_node_factory()
-        self.node_render_factory = self.library_service.get_node_render_factory()
-        
-        # Get history manager for undo/redo
-        self.history_manager = self.library_service.get_history_manager()
-        print(f"History manager available: {self.history_manager is not None}")
-        
-        # Create graph
-        self.graph = HaywireGraph("test_graph", "Enhanced Test Graph")
-        self.node_factory.add_hot_reload_listener(self.on_hot_reload)
-        
-        print("Services configured successfully.")
+        # Services will now be accessed per session
+        # Remove the old global service setup
+        pass
     
     def get_available_nodes(self):
         """Get available node types from the registry."""
+        # Use shared node registry
         available_nodes = self.node_registry.list_names()
         print(f"Available nodes from registry: {available_nodes}")
         return available_nodes
@@ -129,6 +153,15 @@ class UndoRedoTestAppWithCanvasManager:
         """Create the main UI."""
         @ui.page('/', title="Enhanced Haywire Test App with Canvas Manager")
         def main_page():
+            # Get session-specific data
+            session_data, client_id = self.get_session_data()
+            
+            # Store current session in UI context
+            self.current_session = session_data
+            self.current_client_id = client_id
+            
+            print(f"Creating UI for session: {client_id[:8]}")
+            
             self.create_header()
             
             with ui.row().classes('w-full flex-grow gap-4 p-4').style('height: calc(100vh - 80px);'):
@@ -141,7 +174,7 @@ class UndoRedoTestAppWithCanvasManager:
         with ui.header().classes('bg-blue-600 text-white px-4 py-2'):
             with ui.row().classes('w-full justify-between items-center'):
                 with ui.row().classes('items-center gap-4'):
-                    ui.label('Enhanced Haywire Test App').classes('text-xl font-bold')
+                    ui.label(f'Enhanced Haywire Test App - Session {self.current_client_id[:8]}').classes('text-xl font-bold')
                     
                     # Quick action buttons
                     ui.button('Undo', icon='undo', on_click=self.undo_action).props('outline').classes('text-white')
@@ -155,7 +188,9 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Canvas Manager Status
             with ui.expansion('Canvas Manager Status', icon='dashboard').classes('w-full'):
-                with ui.column() as self.canvas_status_container:
+                with ui.column() as canvas_status_container:
+                    # Store reference in session data
+                    self.current_session['ui_containers']['canvas_status_container'] = canvas_status_container
                     ui.label('Canvas Manager: Initializing...').classes('text-sm text-gray-600')
             
             # Connection Help
@@ -176,9 +211,11 @@ class UndoRedoTestAppWithCanvasManager:
                 available_nodes = self.get_available_nodes()
                 if available_nodes:
                     for node_type in available_nodes:
+                        # Capture session data for this button's callback
+                        session_data = self.current_session
                         ui.button(
                             f'Create {node_type}', 
-                            on_click=lambda node_type=node_type: self.set_creation_mode(node_type),
+                            on_click=lambda node_type=node_type, sess=session_data: self.set_creation_mode_for_session(sess, node_type),
                             icon='add'
                         ).props('outline').classes('w-full mb-1')
                 else:
@@ -200,7 +237,8 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Statistics
             with ui.expansion('Statistics', icon='analytics').classes('w-full'):
-                with ui.column() as self.stats_container:
+                with ui.column() as stats_container:
+                    self.current_session['ui_containers']['stats_container'] = stats_container
                     self.update_stats_display()
             
             # Configuration
@@ -229,36 +267,49 @@ class UndoRedoTestAppWithCanvasManager:
     def create_main_editor(self):
         """Create the main node editor with GraphCanvasManager."""
         with ui.card().classes('flex-grow').style('min-width: 600px; height: calc(100vh - 120px);'):
-            ui.label('Node Editor with Canvas Manager').classes('text-lg font-bold mb-2')
+            ui.label(f'Node Editor - Session {self.current_client_id[:8]}').classes('text-lg font-bold mb-2')
             
-            # Create the zoom/pan container with callbacks
-            self.zoom_container = ZoomPanContainer(
+            # Capture current session data for callbacks
+            session_data = self.current_session
+            client_id = self.current_client_id
+            
+            # Create session-specific zoom container with captured session
+            zoom_container = ZoomPanContainer(
                 min_zoom=0.1,
                 max_zoom=3.0,
                 initial_zoom=1.0,
-                on_zoom_change=self.on_zoom_change,
-                on_pan_change=self.on_pan_change
+                on_zoom_change=lambda zoom: self.on_zoom_change_for_specific_session(session_data, zoom),
+                on_pan_change=lambda x, y: self.on_pan_change_for_specific_session(session_data, x, y)
             ).classes('w-full flex-grow border-2 border-gray-300').style('height: calc(100% - 60px);')
             
-            # Initialize canvas manager
-            self.canvas_manager = GraphCanvasManager(
-                graph=self.graph,
-                node_render_factory=self.node_render_factory,
-                zoom_container=self.zoom_container,
-                on_node_position_changed=self.on_node_moved,
-                on_connection_created=self.on_connection_created,
-                on_connection_removed=self.on_connection_removed,
-                on_node_selected=self.on_node_selected
+            session_data['zoom_container'] = zoom_container
+            
+            # Create session-specific canvas manager with captured session
+            canvas_manager = GraphCanvasManager(
+                graph=self.graph,  # Use shared graph
+                node_render_factory=self.node_render_factory,  # Use shared render factory
+                zoom_container=zoom_container,
+                on_node_position_changed=lambda node_id, pos: self.on_node_moved_for_specific_session(session_data, node_id, pos),
+                on_connection_created=lambda s_id, s_port, e_id, e_port: self.on_connection_created_for_specific_session(session_data, s_id, s_port, e_id, e_port),
+                on_connection_removed=lambda edge: self.on_connection_removed_for_specific_session(session_data, edge),
+                on_node_selected=lambda node_id, selected: self.on_node_selected_for_specific_session(session_data, node_id, selected),
+                history_manager=self.history_manager  # Pass the shared history manager
             )
             
-            # Register canvas manager for callbacks
-            register_canvas_manager(self.canvas_manager)
+            session_data['canvas_manager'] = canvas_manager
+            
+            # Register canvas manager with unique session ID
+            register_canvas_manager(canvas_manager)
             
             # Setup client-side interactions
-            self.canvas_manager.setup_client_side_interactions()
+            canvas_manager.setup_client_side_interactions()
             
-            # Add canvas click handler for node creation
-            self.canvas_manager.canvas.on('click', self.on_canvas_click)
+            # IMPORTANT: Sync with existing graph data when canvas manager is first created
+            canvas_manager.sync_with_graph()
+            print(f"Canvas manager synced with {len(self.graph.nodes)} existing nodes")
+            
+            # Add canvas click handler for node creation with captured session
+            canvas_manager.canvas.on('click', lambda event: self.on_canvas_click_for_specific_session(session_data, client_id, event))
             
             self.create_zoom_controls()
             
@@ -272,45 +323,220 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Graph Information
             with ui.expansion('Graph Info', icon='info').classes('w-full'):
-                with ui.column() as self.info_container:
+                with ui.column() as info_container:
+                    self.current_session['ui_containers']['info_container'] = info_container
                     self.update_info_display()
             
             # History Information
             with ui.expansion('Undo/Redo History', icon='history').classes('w-full'):
-                with ui.column() as self.history_container:
+                with ui.column() as history_container:
+                    self.current_session['ui_containers']['history_container'] = history_container
                     self.update_history_display()
             
             # Selected Nodes
             with ui.expansion('Selection', icon='check_circle').classes('w-full'):
-                with ui.column() as self.selection_container:
+                with ui.column() as selection_container:
+                    self.current_session['ui_containers']['selection_container'] = selection_container
                     ui.label('No nodes selected').classes('text-gray-500')
     
     def create_zoom_controls(self):
         """Create zoom and pan controls."""
         with ui.row().classes('gap-2 mt-2'):
-            ui.button('Fit to View', on_click=lambda: self.zoom_container.zoom_to_fit(), icon='fit_screen').props('outline')
-            ui.button('Reset Zoom', on_click=lambda: self.zoom_container.reset_zoom(), icon='center_focus_strong').props('outline')
-            ui.button('Zoom In', on_click=lambda: self.zoom_container.zoom_in(), icon='zoom_in').props('outline')
-            ui.button('Zoom Out', on_click=lambda: self.zoom_container.zoom_out(), icon='zoom_out').props('outline')
+            ui.button('Fit to View', on_click=lambda: self.current_session['zoom_container'].zoom_to_fit(), icon='fit_screen').props('outline')
+            ui.button('Reset Zoom', on_click=lambda: self.current_session['zoom_container'].reset_zoom(), icon='center_focus_strong').props('outline')
+            ui.button('Zoom In', on_click=lambda: self.current_session['zoom_container'].zoom_in(), icon='zoom_in').props('outline')
+            ui.button('Zoom Out', on_click=lambda: self.current_session['zoom_container'].zoom_out(), icon='zoom_out').props('outline')
     
-    # Event Handlers
-    def on_zoom_change(self, zoom_level):
-        """Handle zoom change events."""
-        # Note: No need to update canvas manager - zoom/pan is handled by CSS transforms
-        # in the zoom container, connections automatically scale with the transform
-        
-        # Update UI display
-        if hasattr(self, 'canvas_status_container'):
-            self.update_canvas_status()
+    # Session-specific Event Handlers
+    def on_zoom_change_for_session(self, zoom_level):
+        """Handle zoom change events for specific session."""
+        self.update_canvas_status()
     
-    def on_pan_change(self, pan_x, pan_y):
-        """Handle pan change events."""
-        # Note: No need to update canvas manager - zoom/pan is handled by CSS transforms
-        # in the zoom container, connections automatically pan with the transform
+    def on_pan_change_for_session(self, pan_x, pan_y):
+        """Handle pan change events for specific session.""" 
+        self.update_canvas_status()
+    
+    # Session-specific Event Handlers with captured session data
+    def on_zoom_change_for_specific_session(self, session_data, zoom_level):
+        """Handle zoom change events for specific session."""
+        self.update_displays_for_session(session_data)
+    
+    def on_pan_change_for_specific_session(self, session_data, pan_x, pan_y):
+        """Handle pan change events for specific session.""" 
+        self.update_displays_for_session(session_data)
+    
+    def on_canvas_click_for_specific_session(self, session_data, client_id, event):
+        """Handle canvas click events for specific session."""
+        if session_data['creation_mode']:
+            try:
+                # Get click position from event
+                click_x = event.args.get('offsetX', 100)
+                click_y = event.args.get('offsetY', 100)
+                
+                # Store creation details for async execution
+                node_type = session_data['creation_mode']
+                session_data['creation_mode'] = None  # Reset immediately
+                
+                # Use timer to execute in proper UI context
+                ui.timer(0.01, lambda: self._create_node_in_specific_session(session_data, client_id, node_type, click_x, click_y), once=True)
+                
+            except Exception as e:
+                ui.notify(f"Error creating node: {str(e)}", type='negative')
+                print(f"Error creating node: {e}")
+    
+    def _create_node_in_specific_session(self, session_data, client_id, node_type: str, click_x: float, click_y: float):
+        """Create node within specific session context."""
+        try:
+            # Create node using shared factory and graph
+            node = self.node_factory.create_instance(
+                node_type,
+                self.graph,  # Use shared graph
+                position=(click_x, click_y)
+            )
+            
+            # Set position attributes
+            node.ui_posX = click_x
+            node.ui_posY = click_y
+            
+            # Use shared undo system
+            if self.history_manager:
+                action = AddNodeAction(self.graph, node)
+                self.history_manager.add_action(action)
+            else:
+                self.graph.add_node(node)
+            
+            # Add visual representation through this session's canvas manager
+            if session_data['canvas_manager'].add_node_visual(node, (click_x, click_y)):
+                # Update global stats
+                self.global_stats['nodes_created'] += 1
+                # Sync all sessions to show the new node
+                self.sync_all_sessions()
+                # Update UI displays for this specific session
+                self.update_displays_for_session(session_data)
+                ui.notify(f"Created {node.__class__.__name__} at ({click_x}, {click_y})")
+            else:
+                ui.notify(f"Failed to create visual for {node.__class__.__name__}", type='negative')
+                
+        except Exception as e:
+            ui.notify(f"Error creating node: {str(e)}", type='negative')
+            print(f"Error creating node: {e}")
+    
+    def on_node_moved_for_specific_session(self, session_data, node_id: str, new_position: Tuple[float, float]):
+        """Handle node position changes for specific session."""
+        try:
+            if node_id in self.graph.nodes:
+                node = self.graph.nodes[node_id]
+                old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
+                
+                # Only create an action if the position has actually changed
+                if old_position != new_position:
+                    print(f"DEBUG: Node move - {node_id}: {old_position} -> {new_position}")
+                    
+                    if self.history_manager:
+                        # Pass individual coordinates, not tuples
+                        action = MoveNodeAction(self.graph, node_id, new_position[0], new_position[1])
+                        self.history_manager.add_action(action)
+                        # NOTE: The action already updates the position, so no need to do it manually
+                        
+                        # Sync all sessions to show the move across all clients
+                        self.sync_all_sessions()
+                    else:
+                        # Fallback if no history manager
+                        node.ui_posX, node.ui_posY = new_position
+                        # Still need to sync for fallback case
+                        self.sync_all_sessions()
+                else:
+                    print(f"DEBUG: Node move ignored - {node_id}: position unchanged {old_position}")
+                
+        except Exception as e:
+            print(f"Error handling node move: {e}")
+    
+    def on_connection_created_for_specific_session(self, session_data, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
+        """Handle new connection creation for specific session."""
+        try:
+            print(f"Connection request from session: {start_node_id}:{start_port} -> {end_node_id}:{end_port}")
+            
+            # Create edge in shared graph
+            edge = Edge(
+                edge_type=EdgeType.DATA,
+                output_node_id=start_node_id,
+                outlet_pin_id=start_port,
+                input_node_id=end_node_id,
+                inlet_pin_id=end_port
+            )
+            
+            # Use shared undo system
+            if self.history_manager:
+                action = AddEdgeAction(self.graph, edge)
+                self.history_manager.add_action(action)
+            else:
+                self.graph.add_edge(edge)
+            
+            self.global_stats['edges_created'] += 1
+            self.sync_all_sessions()
+            # Update UI displays for this specific session
+            self.update_displays_for_session(session_data)
+            
+            ui.notify(f"Connected {start_node_id}:{start_port} → {end_node_id}:{end_port}")
+            
+        except Exception as e:
+            ui.notify(f"Connection failed: {str(e)}", type='negative')
+            print(f"Connection error: {e}")
+    
+    def on_connection_removed_for_specific_session(self, session_data, edge: Edge):
+        """Handle connection removal for specific session."""
+        try:
+            print(f"Connection removal request: {edge.output_node_id} -> {edge.input_node_id}")
+            
+            # Remove edge from shared graph
+            removed = self.graph.remove_edge(
+                edge.output_node_id, 
+                edge.outlet_pin_id,
+                edge.input_node_id, 
+                edge.inlet_pin_id
+            )
+            
+            if removed:
+                self.sync_all_sessions()
+                # Update UI displays for this specific session
+                self.update_displays_for_session(session_data)
+                ui.notify("Connection removed")
+            else:
+                ui.notify("Connection not found", type='warning')
+            
+        except Exception as e:
+            print(f"Error removing connection: {e}")
+            ui.notify(f"Error removing connection: {str(e)}", type='negative')
+    
+    def on_node_selected_for_specific_session(self, session_data, node_id: str, selected: bool):
+        """Handle node selection changes for specific session."""
+        if selected:
+            session_data['selected_nodes'].add(node_id)
+        else:
+            session_data['selected_nodes'].discard(node_id)
         
-        # Update UI display
-        if hasattr(self, 'canvas_status_container'):
-            self.update_canvas_status()
+        print(f"Node {node_id} {'selected' if selected else 'deselected'} in specific session")
+        # Update selection display for this specific session
+        self.update_selection_display_for_session(session_data)
+    
+    def on_canvas_click_for_session(self, event):
+        """Handle canvas click events for specific session."""
+        if self.current_session['creation_mode']:
+            try:
+                # Get click position from event
+                click_x = event.args.get('offsetX', 100)
+                click_y = event.args.get('offsetY', 100)
+                
+                # Store creation details for async execution
+                node_type = self.current_session['creation_mode']
+                self.current_session['creation_mode'] = None  # Reset immediately
+                
+                # Use timer to execute in proper UI context
+                ui.timer(0.01, lambda: self._create_node_in_ui_context(node_type, click_x, click_y), once=True)
+                
+            except Exception as e:
+                ui.notify(f"Error creating node: {str(e)}", type='negative')
+                print(f"Error creating node: {e}")
     
     def on_canvas_click(self, event):
         """Handle canvas click events."""
@@ -334,10 +560,10 @@ class UndoRedoTestAppWithCanvasManager:
     def _create_node_in_ui_context(self, node_type: str, click_x: float, click_y: float):
         """Create node within proper UI context."""
         try:
-            # Create node using factory
+            # Create node using shared factory and graph
             node = self.node_factory.create_instance(
                 node_type,
-                self.graph,
+                self.graph,  # Use shared graph
                 position=(click_x, click_y)
             )
             
@@ -345,17 +571,21 @@ class UndoRedoTestAppWithCanvasManager:
             node.ui_posX = click_x
             node.ui_posY = click_y
             
-            # Use undo system
+            # Use shared undo system
             if self.history_manager:
                 action = AddNodeAction(self.graph, node)
                 self.history_manager.add_action(action)
             else:
                 self.graph.add_node(node)
             
-            # Add visual representation through canvas manager
-            if self.canvas_manager.add_node_visual(node, (click_x, click_y)):
-                self.stats['nodes_created'] += 1
-                self.update_displays()
+            # Add visual representation through current session's canvas manager
+            if self.current_session['canvas_manager'].add_node_visual(node, (click_x, click_y)):
+                # Update global stats
+                self.global_stats['nodes_created'] += 1
+                # Sync all sessions to show the new node
+                self.sync_all_sessions()
+                # Update UI displays only for current session
+                self.update_current_session_displays()
                 ui.notify(f"Created {node.__class__.__name__} at ({click_x}, {click_y})")
             else:
                 ui.notify(f"Failed to create visual for {node.__class__.__name__}", type='negative')
@@ -363,6 +593,194 @@ class UndoRedoTestAppWithCanvasManager:
         except Exception as e:
             ui.notify(f"Error creating node: {str(e)}", type='negative')
             print(f"Error creating node: {e}")
+    
+    def sync_all_sessions(self):
+        """Synchronize all active sessions with the shared graph."""
+        sessions_to_remove = []
+        
+        for client_id, session_data in list(self.sessions.items()):
+            if session_data.get('canvas_manager'):
+                try:
+                    canvas_manager = session_data['canvas_manager']
+                    # Ensure each session's canvas manager syncs properly
+                    print(f"Syncing session {client_id[:8]} with graph data")
+                    canvas_manager.sync_with_graph()
+                    
+                    # Force update displays for each session
+                    self.update_displays_for_session(session_data)
+                    
+                    print(f"Synced graph data for session {client_id[:8]}")
+                except RuntimeError as e:
+                    if "client this element belongs to has been deleted" in str(e):
+                        print(f"Client {client_id[:8]} disconnected, marking for cleanup")
+                        sessions_to_remove.append(client_id)
+                    else:
+                        print(f"Runtime error syncing session {client_id[:8]}: {e}")
+                except Exception as e:
+                    print(f"Error syncing session {client_id[:8]}: {e}")
+        
+        # Clean up disconnected sessions
+        for client_id in sessions_to_remove:
+            print(f"Removing disconnected session: {client_id[:8]}")
+            del self.sessions[client_id]
+    
+    def update_current_session_displays(self):
+        """Update displays only for the current session."""
+        if hasattr(self, 'current_session'):
+            self.update_displays_for_session(self.current_session)
+    
+    def update_displays_for_session(self, session_data):
+        """Update displays for a specific session."""
+        try:
+            containers = session_data.get('ui_containers', {})
+            
+            # Update stats display
+            if 'stats_container' in containers:
+                container = containers['stats_container']
+                container.clear()
+                with container:
+                    ui.label(f'Nodes Created: {self.global_stats["nodes_created"]}')
+                    ui.label(f'Connections Created: {self.global_stats["edges_created"]}')
+                    ui.label(f'Undo Operations: {self.global_stats["undo_operations"]}')
+                    ui.label(f'Redo Operations: {self.global_stats["redo_operations"]}')
+            
+            # Update info display
+            if 'info_container' in containers:
+                container = containers['info_container']
+                container.clear()
+                with container:
+                    ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
+                    ui.label(f'Nodes: {len(self.graph.nodes)}')
+                    ui.label(f'Connections: {len(self.graph.edges)}')
+                    
+                    if self.history_manager:
+                        ui.label(f'Can Undo: {self.history_manager.can_undo()}')
+                        ui.label(f'Can Redo: {self.history_manager.can_redo()}')
+            
+            # Update canvas status
+            if 'canvas_status_container' in containers and session_data.get('canvas_manager'):
+                container = containers['canvas_status_container']
+                container.clear()
+                with container:
+                    ui.label(f'✓ Canvas Manager Active').classes('text-green-600 text-sm')
+                    ui.label(f'Visual Nodes: {len(session_data["canvas_manager"].node_panels)}').classes('text-sm')
+                    ui.label(f'Visual Connections: {len(session_data["canvas_manager"].connection_paths)}').classes('text-sm')
+                    if session_data.get('zoom_container'):
+                        zoom_container = session_data['zoom_container']
+                        ui.label(f'Zoom: {zoom_container.current_zoom:.2f}x').classes('text-sm')
+                        ui.label(f'Pan: ({zoom_container.pan_x:.0f}, {zoom_container.pan_y:.0f})').classes('text-sm')
+                        
+        except Exception as e:
+            print(f"Error updating displays for session: {e}")
+    
+    # Session-specific event handlers that update shared data
+    def on_connection_created_for_session(self, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
+        """Handle new connection creation from any session."""
+        try:
+            print(f"Connection request: {start_node_id}:{start_port} -> {end_node_id}:{end_port}")
+            
+            # Create edge in shared graph
+            edge = Edge(
+                edge_type=EdgeType.DATA,
+                output_node_id=start_node_id,
+                outlet_pin_id=start_port,
+                input_node_id=end_node_id,
+                inlet_pin_id=end_port
+            )
+            
+            # Use shared undo system
+            if self.history_manager:
+                action = AddEdgeAction(self.graph, edge)
+                self.history_manager.add_action(action)
+            else:
+                self.graph.add_edge(edge)
+            
+            self.global_stats['edges_created'] += 1
+            self.sync_all_sessions()
+            # Update UI displays only for current session
+            self.update_current_session_displays()
+            
+            ui.notify(f"Connected {start_node_id}:{start_port} → {end_node_id}:{end_port}")
+            
+        except Exception as e:
+            ui.notify(f"Connection failed: {str(e)}", type='negative')
+            print(f"Connection error: {e}")
+    
+    def on_connection_removed_for_session(self, edge: Edge):
+        """Handle connection removal from any session."""
+        try:
+            print(f"Connection removal request: {edge.output_node_id} -> {edge.input_node_id}")
+            
+            # Remove edge from shared graph
+            removed = self.graph.remove_edge(
+                edge.output_node_id, 
+                edge.outlet_pin_id,
+                edge.input_node_id, 
+                edge.inlet_pin_id
+            )
+            
+            if removed:
+                self.sync_all_sessions()
+                # Update UI displays only for current session
+                self.update_current_session_displays()
+                ui.notify("Connection removed")
+            else:
+                ui.notify("Connection not found", type='warning')
+            
+        except Exception as e:
+            print(f"Error removing connection: {e}")
+            ui.notify(f"Error removing connection: {str(e)}", type='negative')
+    
+    def on_node_moved_for_session(self, node_id: str, new_position: Tuple[float, float]):
+        """Handle node position changes from any session."""
+        try:
+            if node_id in self.graph.nodes:
+                node = self.graph.nodes[node_id]
+                old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
+                
+                if self.history_manager:
+                    # Pass individual coordinates, not tuples
+                    action = MoveNodeAction(self.graph, node_id, new_position[0], new_position[1])
+                    self.history_manager.add_action(action)
+                    # NOTE: The action already updates the position, so no need to do it manually
+                else:
+                    # Fallback if no history manager
+                    node.ui_posX, node.ui_posY = new_position
+                
+        except Exception as e:
+            print(f"Error handling node move: {e}")
+    
+    def on_node_selected_for_session(self, node_id: str, selected: bool):
+        """Handle node selection changes (session-specific)."""
+        session_data = self.current_session
+        if selected:
+            session_data['selected_nodes'].add(node_id)
+        else:
+            session_data['selected_nodes'].discard(node_id)
+        
+        print(f"Node {node_id} {'selected' if selected else 'deselected'} in session {self.current_client_id[:8]}")
+        # Update selection display for this session only
+        self.update_selection_display_for_session(session_data)
+    
+    def update_selection_display_for_session(self, session_data):
+        """Update selection display for specific session."""
+        try:
+            containers = session_data.get('ui_containers', {})
+            if 'selection_container' in containers:
+                container = containers['selection_container']
+                container.clear()
+                with container:
+                    selected_nodes = session_data.get('selected_nodes', set())
+                    if selected_nodes:
+                        ui.label(f'Selected: {len(selected_nodes)} nodes').classes('font-bold')
+                        for node_id in list(selected_nodes)[:5]:  # Show first 5
+                            ui.label(f'• {node_id}').classes('text-xs pl-2')
+                        if len(selected_nodes) > 5:
+                            ui.label(f'... and {len(selected_nodes) - 5} more').classes('text-xs pl-2 text-gray-500')
+                    else:
+                        ui.label('No nodes selected').classes('text-gray-500')
+        except Exception as e:
+            print(f"Error updating selection display: {e}")
     
     def on_connection_created(self, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
         """Handle new connection creation from canvas manager."""
@@ -388,7 +806,7 @@ class UndoRedoTestAppWithCanvasManager:
             # Visual will be handled by canvas manager sync
             self.canvas_manager.sync_with_graph()
             
-            self.stats['edges_created'] += 1
+            self.global_stats['edges_created'] += 1
             self.update_displays()
             
             ui.notify(f"Connected {start_node_id}:{start_port} → {end_node_id}:{end_port}")
@@ -431,11 +849,13 @@ class UndoRedoTestAppWithCanvasManager:
                 old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
                 
                 if self.history_manager:
-                    action = MoveNodeAction(self.graph, node_id, old_position, new_position)
+                    # Pass individual coordinates, not tuples
+                    action = MoveNodeAction(self.graph, node_id, new_position[0], new_position[1])
                     self.history_manager.add_action(action)
-                
-                # Update node position
-                node.ui_posX, node.ui_posY = new_position
+                    # NOTE: The action already updates the position, so no need to do it manually
+                else:
+                    # Fallback if no history manager
+                    node.ui_posX, node.ui_posY = new_position
                 
         except Exception as e:
             print(f"Error handling node move: {e}")
@@ -458,9 +878,19 @@ class UndoRedoTestAppWithCanvasManager:
     
     # Action Methods
     def set_creation_mode(self, node_type: str):
-        """Set node creation mode."""
-        self.creation_mode = node_type
+        """Set node creation mode for current session."""
+        if hasattr(self, 'current_session'):
+            self.current_session['creation_mode'] = node_type
+        else:
+            # Fallback for backward compatibility
+            self.creation_mode = node_type
         print(f"Setting creation mode to: {node_type}")
+        ui.notify(f"Creation mode: {node_type}. Click on canvas to create node.")
+    
+    def set_creation_mode_for_session(self, session_data, node_type: str):
+        """Set node creation mode for a specific session."""
+        session_data['creation_mode'] = node_type
+        print(f"Setting creation mode to: {node_type} for specific session")
         ui.notify(f"Creation mode: {node_type}. Click on canvas to create node.")
     
     def toggle_selection_mode(self):
@@ -496,7 +926,7 @@ class UndoRedoTestAppWithCanvasManager:
             self.history_manager.undo()
             nodes_after = set(self.graph.nodes.keys())
             
-            self.stats['undo_operations'] += 1
+            self.global_stats['undo_operations'] += 1
             self.sync_ui_with_graph(nodes_before, nodes_after)
             ui.notify("Undo performed")
         else:
@@ -509,16 +939,25 @@ class UndoRedoTestAppWithCanvasManager:
             self.history_manager.redo()
             nodes_after = set(self.graph.nodes.keys())
             
-            self.stats['redo_operations'] += 1
+            self.global_stats['redo_operations'] += 1
             self.sync_ui_with_graph(nodes_before, nodes_after)
             ui.notify("Redo performed")
         else:
             ui.notify("Nothing to redo")
     
     def sync_ui_with_graph(self, nodes_before: set, nodes_after: set):
-        """Synchronize UI with graph changes."""
-        self.canvas_manager.sync_with_graph()
-        self.update_displays()
+        """Synchronize UI with graph changes across all sessions."""
+        # Store current session context to restore later
+        original_current_session = getattr(self, 'current_session', None)
+        
+        try:
+            # Sync all active sessions with the updated graph state
+            self.sync_all_sessions()
+            self.update_displays()
+        finally:
+            # Restore original session context
+            if original_current_session is not None:
+                self.current_session = original_current_session
     
     def clear_graph(self):
         """Clear the entire graph."""
@@ -716,73 +1155,81 @@ class UndoRedoTestAppWithCanvasManager:
     
     # UI Update Methods
     def update_canvas_status(self):
-        """Update canvas manager status display."""
-        if hasattr(self, 'canvas_status_container'):
-            self.canvas_status_container.clear()
-            with self.canvas_status_container:
-                ui.label(f'✓ Canvas Manager Active').classes('text-green-600 text-sm')
-                ui.label(f'Visual Nodes: {len(self.canvas_manager.node_panels)}').classes('text-sm')
-                ui.label(f'Visual Connections: {len(self.canvas_manager.connection_paths)}').classes('text-sm')
-                if self.zoom_container:
-                    ui.label(f'Zoom: {self.zoom_container.current_zoom:.2f}x').classes('text-sm')
-                    ui.label(f'Pan: ({self.zoom_container.pan_x:.0f}, {self.zoom_container.pan_y:.0f})').classes('text-sm')
+        """Update canvas manager status display for current session."""
+        if hasattr(self, 'current_session'):
+            self.update_displays_for_session(self.current_session)
+        else:
+            # Fallback for backward compatibility
+            if hasattr(self, 'canvas_status_container') and hasattr(self, 'canvas_manager'):
+                self.canvas_status_container.clear()
+                with self.canvas_status_container:
+                    ui.label(f'✓ Canvas Manager Active').classes('text-green-600 text-sm')
+                    ui.label(f'Visual Nodes: {len(self.canvas_manager.node_panels)}').classes('text-sm')
+                    ui.label(f'Visual Connections: {len(self.canvas_manager.connection_paths)}').classes('text-sm')
     
     def update_stats_display(self):
-        """Update the statistics display."""
-        if hasattr(self, 'stats_container'):
-            self.stats_container.clear()
-            with self.stats_container:
-                ui.label(f'Nodes Created: {self.stats["nodes_created"]}')
-                ui.label(f'Connections Created: {self.stats["edges_created"]}')
-                ui.label(f'Undo Operations: {self.stats["undo_operations"]}')
-                ui.label(f'Redo Operations: {self.stats["redo_operations"]}')
+        """Update the statistics display for current session."""
+        if hasattr(self, 'current_session'):
+            self.update_displays_for_session(self.current_session)
+        else:
+            # Fallback for backward compatibility
+            if hasattr(self, 'stats_container'):
+                self.stats_container.clear()
+                with self.stats_container:
+                    ui.label(f'Nodes Created: {self.global_stats["nodes_created"]}')
+                    ui.label(f'Connections Created: {self.global_stats["edges_created"]}')
+                    ui.label(f'Undo Operations: {self.global_stats["undo_operations"]}')
+                    ui.label(f'Redo Operations: {self.global_stats["redo_operations"]}')
     
     def update_info_display(self):
-        """Update the information display."""
-        if hasattr(self, 'info_container'):
-            self.info_container.clear()
-            with self.info_container:
-                ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
-                ui.label(f'Nodes: {len(self.graph.nodes)}')
-                ui.label(f'Connections: {len(self.graph.edges)}')
-                
-                if self.history_manager:
-                    ui.label(f'Can Undo: {self.history_manager.can_undo()}')
-                    ui.label(f'Can Redo: {self.history_manager.can_redo()}')
+        """Update the information display for current session."""
+        if hasattr(self, 'current_session'):
+            self.update_displays_for_session(self.current_session)
+        else:
+            # Fallback for backward compatibility  
+            if hasattr(self, 'info_container'):
+                self.info_container.clear()
+                with self.info_container:
+                    ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
+                    ui.label(f'Nodes: {len(self.graph.nodes)}')
+                    ui.label(f'Connections: {len(self.graph.edges)}')
     
     def update_history_display(self):
-        """Update the history display."""
-        if hasattr(self, 'history_container'):
-            self.history_container.clear()
-            with self.history_container:
-                if self.history_manager:
-                    ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
-                    ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
-                    if self.history_manager.history:
-                        ui.label('Recent Actions:').classes('font-bold text-sm')
-                        # Show last 5 actions
-                        recent_actions = self.history_manager.history[-5:]
-                        for i, item in enumerate(recent_actions):
-                            if hasattr(item, 'description'):
-                                ui.label(f'• {item.description}').classes('text-xs pl-2')
-                            else:
-                                ui.label(f'• {type(item).__name__}').classes('text-xs pl-2')
-                else:
-                    ui.label('History not available').classes('text-gray-500')
+        """Update the history display for current session."""
+        if hasattr(self, 'current_session'):
+            containers = self.current_session.get('ui_containers', {})
+            if 'history_container' in containers:
+                container = containers['history_container']
+                container.clear()
+                with container:
+                    if self.history_manager:
+                        ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
+                        ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
+                        if self.history_manager.history:
+                            ui.label('Recent Actions:').classes('font-bold text-sm')
+                            # Show last 5 actions
+                            recent_actions = self.history_manager.history[-5:]
+                            for i, item in enumerate(recent_actions):
+                                if hasattr(item, 'description'):
+                                    ui.label(f'• {item.description}').classes('text-xs pl-2')
+                                else:
+                                    ui.label(f'• {type(item).__name__}').classes('text-xs pl-2')
+                    else:
+                        ui.label('History not available').classes('text-gray-500')
+        else:
+            # Fallback for backward compatibility
+            if hasattr(self, 'history_container'):
+                self.history_container.clear()
+                with self.history_container:
+                    if self.history_manager:
+                        ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
+                    else:
+                        ui.label('History not available').classes('text-gray-500')
     
     def update_selection_display(self):
-        """Update selection display."""
-        if hasattr(self, 'selection_container'):
-            self.selection_container.clear()
-            with self.selection_container:
-                if self.selected_nodes:
-                    ui.label(f'Selected: {len(self.selected_nodes)} nodes').classes('font-bold')
-                    for node_id in list(self.selected_nodes)[:5]:  # Show first 5
-                        ui.label(f'• {node_id}').classes('text-xs pl-2')
-                    if len(self.selected_nodes) > 5:
-                        ui.label(f'... and {len(self.selected_nodes) - 5} more').classes('text-xs pl-2 text-gray-500')
-                else:
-                    ui.label('No nodes selected').classes('text-gray-500')
+        """Update selection display for current session."""
+        if hasattr(self, 'current_session'):
+            self.update_selection_display_for_session(self.current_session)
     
     def update_displays(self):
         """Update all displays."""

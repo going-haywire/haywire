@@ -43,17 +43,27 @@ export default {
   name: 'GraphCanvas',
   
   props: {
-    containerId: { type: String, required: true }
+    containerId: { type: String, required: true },
+    connections: { type: Array, default: () => [] }  // Add connections prop
     // Note: zoomState prop removed - zoom/pan is handled by CSS transforms in parent container
   },
   
-  data() {
+    data() {
     return {
       connectionState: {
         isDragging: false,
         startPin: null,
         tempPath: null,
-        hasNodes: false
+        hasNodes: false,
+        lastDragEndTime: null
+      },
+      // Add node dragging state
+      nodeDragState: {
+        isDragging: false,
+        draggedNode: null,
+        startMousePos: { x: 0, y: 0 },
+        startNodePos: { x: 0, y: 0 },
+        dragOffset: { x: 0, y: 0 }
       },
       connectionPaths: new Map(), // path_id -> path_element
       updateConnectionsThrottled: false,
@@ -67,9 +77,7 @@ export default {
         isDragging: false
       }
     };
-  },
-  
-  computed: {
+  },  computed: {
     svgTransform() {
       // No transformation needed - zoom container handles all transformations
       // This is just for coordinate calculations if needed
@@ -86,11 +94,21 @@ export default {
     console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
     console.log('Container element:', this.$el);
     console.log('Container dimensions:', this.$el.offsetWidth, 'x', this.$el.offsetHeight);
+    console.log('🔗 Vue initial connections prop:', this.connections);
     
     // Initialize component
     this._setupEventListeners();
     this._setupObservers();
     this._setupZoomPanListener();
+    
+    // Process initial connections if any exist
+    if (this.connections && this.connections.length > 0) {
+      console.log('🔗 Vue processing initial connections on mount:', this.connections.length);
+      // Use nextTick to ensure DOM is ready
+      this.$nextTick(() => {
+        this._updateConnectionsFromPropsDelayed(this.connections, []);
+      });
+    }
     
     // Expose API to parent/Python
     this.$el._graphCanvasControls = {
@@ -106,7 +124,11 @@ export default {
       getZoomState: () => this.zoomState
     };
   },
-  
+
+  updated() {
+    console.log('🔗 Vue component updated, connections prop now:', this.connections);
+  },
+
   beforeDestroy() {
     this._cleanupEventListeners();
     this._cleanupObservers();
@@ -116,7 +138,54 @@ export default {
   // Note: No watcher for zoomState needed - zoom/pan is handled by CSS transforms
   // in the zoom container, so SVG paths don't need to be recalculated on zoom/pan changes
   
+  watch: {
+    // Watch for changes in connections prop and update visuals
+    connections: {
+      handler(newConnections, oldConnections) {
+        console.log('🔗 Vue connections prop changed:', { newConnections, oldConnections });
+        this._updateConnectionsFromProps(newConnections, oldConnections || []);
+      },
+      deep: true
+    }
+  },
+  
   methods: {
+    // Connection ID Utilities
+    parseConnectionId(connectionId) {
+      /**
+       * Parse a connection ID into its components.
+       * Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
+       * Returns: { outletNodeId, outletPinId, inletNodeId, inletPinId }
+       */
+      const parts = connectionId.split('__');
+      if (parts.length !== 7) {
+        console.error(`Invalid connection ID format: ${connectionId}. Expected 7 parts, got ${parts.length}`);
+        return null;
+      }
+      
+      if (parts[0] !== 'connection' || parts[1] !== 'outlet' || parts[4] !== 'inlet') {
+        console.error(`Invalid connection ID structure: ${connectionId}`);
+        return null;
+      }
+      
+      return {
+        outletNodeId: parts[2],
+        outletPinId: parts[3], 
+        inletNodeId: parts[5],
+        inletPinId: parts[6],
+        outletPinFullId: `${parts[1]}__${parts[2]}__${parts[3]}`,  // outlet__node_id__pin_id
+        inletPinFullId: `${parts[4]}__${parts[5]}__${parts[6]}`    // inlet__node_id__pin_id
+      };
+    },
+
+    // Debug method to list available pin elements
+    _debugListPinElements() {
+      const pinElements = Array.from(document.querySelectorAll('[id*="__"]')).filter(el => 
+        el.id.startsWith('outlet__') || el.id.startsWith('inlet__')
+      );
+      return pinElements.map(el => ({ id: el.id, exists: true }));
+    },
+
     // Event Listeners Setup
     _setupEventListeners() {
       // Mouse events for connection creation
@@ -144,6 +213,117 @@ export default {
       document.body.removeEventListener('mousedown', this.handleMouseDown, true);
       document.body.removeEventListener('mousemove', this.handleMouseMove, true);
       document.body.removeEventListener('mouseup', this.handleMouseUp, true);
+    },
+
+    // Update connection visuals based on props changes
+    _updateConnectionsFromProps(newConnections, oldConnections) {
+      console.log('🔗 Vue updating connections from props:', { new: newConnections.length, old: oldConnections.length });
+      
+      // Add a small delay to ensure DOM elements are ready
+      this.$nextTick(() => {
+        this._updateConnectionsFromPropsDelayed(newConnections, oldConnections);
+      });
+    },
+    
+    _updateConnectionsFromPropsDelayed(newConnections, oldConnections) {
+      console.log('🔗 Vue updating connections from props (delayed):', { new: newConnections.length, old: oldConnections.length });
+      
+      // Convert arrays to Maps for easier comparison
+      const oldConnectionMap = new Map(oldConnections.map(c => [c.id, c]));
+      const newConnectionMap = new Map(newConnections.map(c => [c.id, c]));
+      
+      // Remove connections that are no longer in the new list
+      for (const [connectionId, connectionData] of oldConnectionMap) {
+        if (!newConnectionMap.has(connectionId)) {
+          console.log('🔗 Vue removing connection from props:', connectionId);
+          this._removeConnectionVisualInternal(connectionId);
+        }
+      }
+      
+      // Add connections that are new in the list
+      for (const [connectionId, connectionData] of newConnectionMap) {
+        if (!oldConnectionMap.has(connectionId)) {
+          console.log('🔗 Vue adding connection from props:', connectionId);
+          this._addConnectionVisualInternal(connectionData);
+        }
+      }
+    },
+
+    // Internal method to add connection visual (used by props watcher)
+    _addConnectionVisualInternal(connectionData) {
+      const { id, outputNodeId, outletPinId, inputNodeId, inletPinId } = connectionData;
+      
+      // Generate pin IDs in the expected format
+      const startPinId = `outlet__${outputNodeId}__${outletPinId}`;
+      const endPinId = `inlet__${inputNodeId}__${inletPinId}`;
+      // Use the connection ID directly as path ID (Format 2)
+      const pathId = id;
+      
+      console.log('🔗 Vue (internal) generated pin IDs:', { startPinId, endPinId, pathId });
+      
+      // Check if pins exist
+      const startPin = document.getElementById(startPinId);
+      const endPin = document.getElementById(endPinId);
+      console.log('🔗 Vue (internal) pin elements found:', { startPin: !!startPin, endPin: !!endPin });
+      
+      if (!startPin || !endPin) {
+        console.error('🔗 Vue (internal) connection creation failed - pins not found');
+        console.log('Looking for pins:', { startPinId, endPinId });
+        return false;
+      }
+      
+      // Check if path already exists
+      if (this.connectionPaths.has(pathId)) {
+        console.log('🔗 Vue (internal) connection already exists:', pathId);
+        return false;
+      }
+      
+      // Create SVG path element
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('id', pathId);
+      path.setAttribute('stroke', '#4A90E2');
+      path.setAttribute('stroke-width', '2');
+      path.setAttribute('fill', 'none');
+      path.style.pointerEvents = 'stroke';
+      path.style.cursor = 'pointer';
+      
+      // Add click handler for connection removal
+      path.addEventListener('click', () => {
+        this.$emit('connection-clicked', { pathId, connectionData });
+      });
+      
+      this.$refs.svg.appendChild(path);
+      // Store using the connection ID (Format 2)
+      this.connectionPaths.set(pathId, path);
+      
+      console.log('🔗 Vue (internal) created path element:', pathId);
+      
+      // Update path after a brief delay to ensure nodes are rendered
+      this.$nextTick(() => {
+        setTimeout(() => {
+          console.log('🔗 Vue (internal) updating connection path...');
+          this.updateConnectionPath(path);
+          console.log('🔗 Vue (internal) ✅ connection path updated successfully');
+        }, 100);
+      });
+      
+      return true;
+    },
+
+    // Internal method to remove connection visual (used by props watcher)
+    _removeConnectionVisualInternal(connectionId) {
+      // Use the connection ID (Format 2) to find the path
+      const path = this.connectionPaths.get(connectionId);
+      
+      if (path) {
+        path.remove();
+        this.connectionPaths.delete(connectionId);
+        console.log('🔗 Vue (internal) removed path element:', connectionId);
+        return true;
+      } else {
+        console.log('🔗 Vue (internal) path not found for removal:', connectionId);
+        return false;
+      }
     },
 
     // Zoom/Pan Event Listener Setup
@@ -181,9 +361,23 @@ export default {
             const nodeElement = mutation.target;
             const nodeId = nodeElement.dataset.nodeId;
             
-            if (nodeId) {
-              this.updateConnectionsForNode(nodeId);
-              this._emitNodePositionChanged(nodeElement, nodeId);
+            // Only process style changes on node containers, not on children
+            if (nodeId && nodeElement.hasAttribute('data-node-id')) {
+              console.log(`🔍 Style mutation detected on node ${nodeId}:`, {
+                oldValue: mutation.oldValue,
+                currentStyle: nodeElement.style.cssText,
+                isDragging: this.connectionState.isDragging,
+                hasLeftTop: nodeElement.style.left || nodeElement.style.top
+              });
+              
+              // Only process if the style change actually includes position properties
+              const styleText = nodeElement.style.cssText;
+              if (styleText.includes('left:') || styleText.includes('top:')) {
+                this.updateConnectionsForNode(nodeId);
+                this._emitNodePositionChanged(nodeElement, nodeId);
+              } else {
+                console.log(`🚫 Skipping style mutation for ${nodeId} - no position changes detected`);
+              }
             }
           }
         });
@@ -203,9 +397,26 @@ export default {
     
     // Connection Drag Handlers
     handleMouseDown(e) {
+      // Check for connection pin first
       const pin = e.target.closest('.connection-pin');
-      if (!pin) return;
+      if (pin) {
+        this._startConnectionDrag(e, pin);
+        return;
+      }
       
+      // Check for node dragging - look for node container
+      const nodeElement = e.target.closest('[data-node-id]');
+      if (nodeElement && !e.target.closest('.connection-pin')) {
+        // Check if we clicked on the node header or draggable area
+        const nodeId = nodeElement.dataset.nodeId;
+        if (nodeId) {
+          this._startNodeDrag(e, nodeElement);
+          return;
+        }
+      }
+    },
+
+    _startConnectionDrag(e, pin) {
       e.preventDefault();
       e.stopPropagation();
       
@@ -234,10 +445,62 @@ export default {
       pin.style.transform = 'scale(1.8)';
       pin.style.zIndex = '10003';
     },
+
+    _startNodeDrag(e, nodeElement) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      console.log('Starting node drag for:', nodeElement.dataset.nodeId);
+      
+      this.nodeDragState.isDragging = true;
+      this.nodeDragState.draggedNode = nodeElement;
+      this.nodeDragState.startMousePos = { x: e.clientX, y: e.clientY };
+      
+      // Get current node position from style
+      const computedStyle = nodeElement.style;
+      const currentLeft = parseInt(computedStyle.left) || 0;
+      const currentTop = parseInt(computedStyle.top) || 0;
+      this.nodeDragState.startNodePos = { x: currentLeft, y: currentTop };
+      
+      // Calculate drag offset
+      this.nodeDragState.dragOffset = {
+        x: e.clientX - currentLeft,
+        y: e.clientY - currentTop
+      };
+      
+      // Add visual feedback
+      nodeElement.style.cursor = 'grabbing';
+      nodeElement.style.zIndex = '1000';
+      nodeElement.classList.add('dragging-node');
+      
+      // Emit drag start event to add fence for undo grouping
+      this.$emit('node-drag-start', {
+        nodeId: nodeElement.dataset.nodeId
+      });
+      
+      console.log('Node drag started:', {
+        nodeId: nodeElement.dataset.nodeId,
+        startPos: this.nodeDragState.startNodePos,
+        mousePos: this.nodeDragState.startMousePos,
+        offset: this.nodeDragState.dragOffset
+      });
+    },
     
     handleMouseMove(e) {
-      if (!this.connectionState.isDragging || !this.connectionState.tempPath) return;
+      // Handle connection dragging
+      if (this.connectionState.isDragging && this.connectionState.tempPath) {
+        this._handleConnectionDragMove(e);
+        return;
+      }
       
+      // Handle node dragging
+      if (this.nodeDragState.isDragging && this.nodeDragState.draggedNode) {
+        this._handleNodeDragMove(e);
+        return;
+      }
+    },
+
+    _handleConnectionDragMove(e) {
       const startPos = this.getPinPosition(this.connectionState.startPin);
       const mousePos = this.transformScreenToSVG(e.clientX, e.clientY);
       const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
@@ -260,10 +523,53 @@ export default {
         }
       });
     },
+
+    _handleNodeDragMove(e) {
+      const nodeElement = this.nodeDragState.draggedNode;
+      const nodeId = nodeElement.dataset.nodeId;
+      
+      // Calculate mouse movement in screen coordinates
+      const mouseDeltaX = e.clientX - this.nodeDragState.startMousePos.x;
+      const mouseDeltaY = e.clientY - this.nodeDragState.startMousePos.y;
+      
+      // Adjust for zoom level - divide by zoom to get correct canvas coordinates
+      const zoomFactor = this.zoomState.zoom || 1;
+      const canvasDeltaX = mouseDeltaX / zoomFactor;
+      const canvasDeltaY = mouseDeltaY / zoomFactor;
+      
+      // Calculate new position relative to start position
+      const newX = this.nodeDragState.startNodePos.x + canvasDeltaX;
+      const newY = this.nodeDragState.startNodePos.y + canvasDeltaY;
+      
+      // Apply constraints to keep node within canvas bounds
+      const constrainedX = Math.max(0, Math.min(newX, 7500)); // Leave some margin
+      const constrainedY = Math.max(0, Math.min(newY, 7500));
+      
+      // Update node position
+      nodeElement.style.left = `${constrainedX}px`;
+      nodeElement.style.top = `${constrainedY}px`;
+      
+      // Update connections immediately for smooth dragging
+      this.updateConnectionsForNode(nodeId);
+      
+      console.log(`Node ${nodeId} dragged to: (${constrainedX}, ${constrainedY}) [zoom: ${zoomFactor}]`);
+    },
     
     handleMouseUp(e) {
-      if (!this.connectionState.isDragging) return;
+      // Handle connection drag end
+      if (this.connectionState.isDragging) {
+        this._handleConnectionDragEnd(e);
+        return;
+      }
       
+      // Handle node drag end
+      if (this.nodeDragState.isDragging) {
+        this._handleNodeDragEnd(e);
+        return;
+      }
+    },
+
+    _handleConnectionDragEnd(e) {
       const endPin = e.target.closest('.connection-pin');
       
       // Cleanup temporary visual elements
@@ -306,6 +612,55 @@ export default {
       // Reset state
       this.connectionState.isDragging = false;
       this.connectionState.startPin = null;
+      this.connectionState.lastDragEndTime = Date.now(); // Track when drag ended
+    },
+
+    _handleNodeDragEnd(e) {
+      const nodeElement = this.nodeDragState.draggedNode;
+      const nodeId = nodeElement.dataset.nodeId;
+      
+      console.log('Ending node drag for:', nodeId);
+      
+      // Get final position
+      const finalX = parseInt(nodeElement.style.left) || 0;
+      const finalY = parseInt(nodeElement.style.top) || 0;
+      
+      // Check if position actually changed from start
+      const startX = this.nodeDragState.startNodePos.x;
+      const startY = this.nodeDragState.startNodePos.y;
+      const positionChanged = (finalX !== startX || finalY !== startY);
+      
+      // Remove visual feedback
+      nodeElement.style.cursor = 'grab';
+      nodeElement.style.zIndex = '100';
+      nodeElement.classList.remove('dragging-node');
+      
+      // Only emit position change if the position actually changed
+      if (positionChanged) {
+        // Emit position change event to Python
+        this.$emit('node-position-changed', {
+          nodeId: nodeId,
+          x: finalX,
+          y: finalY
+        });
+        
+        console.log(`Node ${nodeId} drag ended with position change: (${startX}, ${startY}) -> (${finalX}, ${finalY})`);
+      } else {
+        console.log(`Node ${nodeId} drag ended with no position change: (${finalX}, ${finalY})`);
+      }
+      
+      // Emit drag end event to close fence for undo grouping
+      this.$emit('node-drag-end', {
+        nodeId: nodeId,
+        positionChanged: positionChanged
+      });
+      
+      // Reset drag state
+      this.nodeDragState.isDragging = false;
+      this.nodeDragState.draggedNode = null;
+      this.nodeDragState.startMousePos = { x: 0, y: 0 };
+      this.nodeDragState.startNodePos = { x: 0, y: 0 };
+      this.nodeDragState.dragOffset = { x: 0, y: 0 };
     },
     
     // Connection Management Methods
@@ -386,16 +741,17 @@ export default {
       if (!pathElement || !pathElement.id) return;
       
       const pathId = pathElement.id;
-      const parts = pathId.split('__');
+      const connectionInfo = this.parseConnectionId(pathId);
       
-      if (parts.length < 7) return;
+      if (!connectionInfo) {
+        console.error(`Failed to parse connection ID: ${pathId}`);
+        pathElement.remove();
+        this.connectionPaths.delete(pathId);
+        return;
+      }
       
-      // Reconstruct pin IDs: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
-      const startPinId = `${parts[1]}__${parts[2]}__${parts[3]}`;
-      const endPinId = `${parts[4]}__${parts[5]}__${parts[6]}`;
-      
-      const startPin = document.getElementById(startPinId);
-      const endPin = document.getElementById(endPinId);
+      const startPin = document.getElementById(connectionInfo.outletPinFullId);
+      const endPin = document.getElementById(connectionInfo.inletPinFullId);
       
       if (!startPin || !endPin) {
         pathElement.remove();
@@ -542,8 +898,6 @@ export default {
       // Use current zoom/pan state from zoom container events
       const { zoom, panX, panY } = this.zoomState;
       
-      console.log('Transforming screen to SVG:', { clientX, clientY, svgRect, zoomState: this.zoomState });
-
       // Apply inverse transform accounting for current zoom/pan
       // This matches the old implementation's coordinate transformation
       let x = (clientX - svgRect.left) / zoom;
@@ -633,6 +987,25 @@ export default {
     },
     
     _emitNodePositionChanged(nodeElement, nodeId) {
+      // Don't emit position changes when dragging connections to avoid interference
+      if (this.connectionState.isDragging) {
+        console.log(`🚫 Skipping node position change for ${nodeId} during connection drag`);
+        return;
+      }
+      
+      // Don't emit during active node dragging (we handle this in _handleNodeDragEnd)
+      if (this.nodeDragState.isDragging && this.nodeDragState.draggedNode === nodeElement) {
+        console.log(`🚫 Skipping node position change for ${nodeId} during node drag - will emit on drag end`);
+        return;
+      }
+      
+      // Also skip if we recently finished a connection drag (timing protection)
+      const now = Date.now();
+      if (this.connectionState.lastDragEndTime && (now - this.connectionState.lastDragEndTime) < 500) {
+        console.log(`🚫 Skipping node position change for ${nodeId} - too soon after connection drag end`);
+        return;
+      }
+      
       // Debounce position change notifications
       clearTimeout(nodeElement._positionTimer);
       nodeElement._positionTimer = setTimeout(() => {
@@ -641,10 +1014,32 @@ export default {
         const relativeX = rect.left - containerRect.left;
         const relativeY = rect.top - containerRect.top;
         
+        // Debug position calculation
+        const style = nodeElement.style;
+        const styleLeft = parseInt(style.left) || 0;
+        const styleTop = parseInt(style.top) || 0;
+        
+        // Validate position - skip if it's (0,0) and we have no good reason for it to be there
+        if (styleLeft === 0 && styleTop === 0) {
+          console.log(`⚠️ Warning: Node ${nodeId} position is (0,0) - this might be erroneous. Skipping position update.`);
+          return;
+        }
+        
+        console.log(`🔍 Node position debug for ${nodeId}:`, {
+          stylePosition: { left: styleLeft, top: styleTop },
+          calculatedPosition: { x: relativeX, y: relativeY },
+          rectLeft: rect.left,
+          rectTop: rect.top,
+          containerLeft: containerRect.left,
+          containerTop: containerRect.top
+        });
+        
+        // Use the style position directly instead of calculated position
+        // as it's more reliable for absolute positioned elements
         this.$emit('node-position-changed', {
           nodeId,
-          x: relativeX,
-          y: relativeY
+          x: styleLeft,
+          y: styleTop
         });
       }, 100);
     }
@@ -697,6 +1092,26 @@ export default {
 }
 
 .graph-canvas.dragging {
+  cursor: grabbing;
+}
+
+/* Node dragging styles */
+[data-node-id] {
+  cursor: grab;
+  user-select: none;
+}
+
+[data-node-id]:hover {
+  cursor: grab;
+}
+
+[data-node-id].dragging-node {
+  cursor: grabbing !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+[data-node-id]:active {
   cursor: grabbing;
 }
 </style>

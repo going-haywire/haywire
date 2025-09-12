@@ -18,6 +18,8 @@ from typing import Dict, List, Optional, Tuple, Callable
 import uuid
 import json
 
+from haywire.core.utils import generate_connection_id
+
 
 class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     """Vue-based graph canvas component with event handling."""
@@ -25,6 +27,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     def __init__(self, on_node_created=None, on_connection_created=None, 
                  on_connection_removed=None, on_node_position_changed=None,
                  on_connection_clicked=None, zoom_container=None,
+                 on_node_drag_start=None, on_node_drag_end=None,
                  canvas_width: int = 8000, canvas_height: int = 8000):
         super().__init__()
         
@@ -34,6 +37,8 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         self._on_connection_removed = on_connection_removed
         self._on_node_position_changed = on_node_position_changed
         self._on_connection_clicked = on_connection_clicked
+        self._on_node_drag_start = on_node_drag_start
+        self._on_node_drag_end = on_node_drag_end
         
         # Store zoom container reference if provided
         self.zoom_container = zoom_container
@@ -41,6 +46,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         # Props for Vue component
         self._props['canvasWidth'] = canvas_width
         self._props['canvasHeight'] = canvas_height
+        self._props['connections'] = []  # Initialize empty connections list
         
         # Note: zoomState prop removed - zoom/pan is handled by CSS transforms in parent container
         
@@ -53,6 +59,8 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         self.on('connectionRemoved', self._handle_connection_removed)
         self.on('connectionClicked', self._handle_connection_clicked)
         self.on('nodePositionChanged', self._handle_node_position_changed)
+        self.on('nodeDragStart', self._handle_node_drag_start)
+        self.on('nodeDragEnd', self._handle_node_drag_end)
     
     def _handle_node_created(self, event_data):
         """Handle node creation event from Vue component."""
@@ -73,9 +81,13 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
             end_node_id = args.get('endNodeId')
             end_port = args.get('endPort')
             
+            print(f"[GraphCanvasVue] Parsed connection args: startNodeId={start_node_id}, startPort={start_port}, endNodeId={end_node_id}, endPort={end_port}")
+            
             if start_node_id and start_port and end_node_id and end_port:
                 print(f"[GraphCanvasVue] Calling connection created callback with: {start_node_id}:{start_port} -> {end_node_id}:{end_port}")
                 self._on_connection_created(start_node_id, start_port, end_node_id, end_port)
+            else:
+                print(f"[GraphCanvasVue] Warning: Missing required connection arguments in event: {args}")
     
     def _handle_connection_removed(self, event_data):
         """Handle connection removal event from Vue component."""
@@ -98,12 +110,40 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         if self._on_node_position_changed:
             args = event_data.args
             node_id = args.get('nodeId')
-            position = args.get('position', {})
-            x = position.get('x', 0)
-            y = position.get('y', 0)
+            # Vue emits x and y directly, not nested in a position object
+            x = args.get('x', 0)
+            y = args.get('y', 0)
             
-            if node_id:
-                self._on_node_position_changed(node_id, x, y)
+            if node_id is not None:
+                print(f"[GraphCanvasVue] Node position changed: {node_id} -> ({x}, {y})")
+                self._on_node_position_changed(node_id, x, y)  # Pass x, y as separate args
+            else:
+                print(f"[GraphCanvasVue] Warning: nodeId is missing in position change event: {args}")
+    
+    def _handle_node_drag_start(self, event_data):
+        """Handle node drag start event from Vue component."""
+        if self._on_node_drag_start:
+            args = event_data.args
+            node_id = args.get('nodeId')
+            
+            if node_id is not None:
+                print(f"[GraphCanvasVue] Node drag started: {node_id}")
+                self._on_node_drag_start(node_id)
+            else:
+                print(f"[GraphCanvasVue] Warning: nodeId is missing in drag start event: {args}")
+    
+    def _handle_node_drag_end(self, event_data):
+        """Handle node drag end event from Vue component."""
+        if self._on_node_drag_end:
+            args = event_data.args
+            node_id = args.get('nodeId')
+            position_changed = args.get('positionChanged', True)
+            
+            if node_id is not None:
+                print(f"[GraphCanvasVue] Node drag ended: {node_id}, position changed: {position_changed}")
+                self._on_node_drag_end(node_id, position_changed)
+            else:
+                print(f"[GraphCanvasVue] Warning: nodeId is missing in drag end event: {args}")
     
     # Connection Management Methods
     
@@ -121,45 +161,78 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
                 output_node_id, outlet_pin_id = from_parts
                 input_node_id, inlet_pin_id = to_parts
                 
-                # Call Vue component method via JavaScript injection
-                ui.run_javascript(f"""
-                const canvasEl = document.querySelector('[data-graph_canvas]');
-                if (canvasEl && canvasEl._graphCanvasControls) {{
-                    console.log('[GraphCanvasVue] Calling addConnectionVisual with:', {{
-                        outputNodeId: '{output_node_id}',
-                        outletPinId: '{outlet_pin_id}',
-                        inputNodeId: '{input_node_id}',
-                        inletPinId: '{inlet_pin_id}'
-                    }});
-                    canvasEl._graphCanvasControls.addConnectionVisual({{
-                        outputNodeId: '{output_node_id}',
-                        outletPinId: '{outlet_pin_id}',
-                        inputNodeId: '{input_node_id}',
-                        inletPinId: '{inlet_pin_id}'
-                    }});
-                }} else {{
-                    console.error('[GraphCanvasVue] Canvas element or controls not found');
-                }}
-                """)
+                # Create connection data
+                connection_data = {
+                    'id': connection_id,
+                    'outputNodeId': output_node_id,
+                    'outletPinId': outlet_pin_id,
+                    'inputNodeId': input_node_id,
+                    'inletPinId': inlet_pin_id
+                }
+                
+                # Add to connections prop
+                current_connections = list(self._props.get('connections', []))
+                # Remove existing connection with same ID if it exists
+                current_connections = [c for c in current_connections if c.get('id') != connection_id]
+                # Add new connection
+                current_connections.append(connection_data)
+                # Update the prop
+                self._props['connections'] = current_connections
+                
+                print(f"[GraphCanvasVue] ✅ Connection added to props: {connection_id}")
+                return True
             else:
                 print(f"[GraphCanvasVue] Invalid pin ID format: {from_pin_id}, {to_pin_id}")
+                return False
         except Exception as e:
             print(f"[GraphCanvasVue] Error parsing pin IDs: {e}")
+            return False
     
     def remove_connection_visual(self, connection_id: str):
         """Remove visual connection."""
         print(f"[GraphCanvasVue] remove_connection_visual: {connection_id}")
         
-        # Call Vue component method via JavaScript injection
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls) {{
-            console.log('[GraphCanvasVue] Calling removeConnectionVisual with connectionId:', '{connection_id}');
-            canvasEl._graphCanvasControls.removeConnectionVisual('{connection_id}');
-        }} else {{
-            console.error('[GraphCanvasVue] Canvas element or controls not found');
-        }}
-        """)
+        # Remove from connections prop
+        current_connections = list(self._props.get('connections', []))
+        # Filter out the connection with matching ID
+        updated_connections = [c for c in current_connections if c.get('id') != connection_id]
+        # Update the prop
+        self._props['connections'] = updated_connections
+        
+        print(f"[GraphCanvasVue] ✅ Connection removed from props: {connection_id}")
+        return len(updated_connections) < len(current_connections)  # Return True if connection was found and removed
+
+    def sync_connections_from_edges(self, edges):
+        """Sync all connections from a list of edges."""
+        print(f"[GraphCanvasVue] sync_connections_from_edges: {len(edges)} edges")
+        
+        # Convert edges to connection data format
+        connection_data_list = []
+        for edge in edges:
+            # Generate connection ID using Format 2 (consistent with canvas manager)
+            connection_id = generate_connection_id(
+                edge.output_node_id,
+                edge.outlet_pin_id, 
+                edge.input_node_id,
+                edge.inlet_pin_id
+            )
+            
+            connection_data = {
+                'id': connection_id,
+                'outputNodeId': edge.output_node_id,
+                'outletPinId': edge.outlet_pin_id,
+                'inputNodeId': edge.input_node_id,
+                'inletPinId': edge.inlet_pin_id
+            }
+            connection_data_list.append(connection_data)
+        
+        # Update the connections prop (this will trigger the Vue watcher)
+        self._props['connections'] = connection_data_list
+        print(f"[GraphCanvasVue] ✅ Connections prop updated with {len(connection_data_list)} connections")
+        print(f"[GraphCanvasVue] Connection data: {connection_data_list}")
+        
+        # Force a prop update by calling update() on the element
+        self.update()
     
     def update_connection_path(self, path_id: str):
         """Update a specific connection path."""
@@ -181,12 +254,40 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     
     def update_connections_for_node(self, node_id: str):
         """Update all connections for a specific node."""
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls) {{
+        # This will trigger the Vue component to refresh connection positions
+        # for the specified node by calling the client-side JavaScript
+        self.run_method(f"""
             canvasEl._graphCanvasControls.updateConnectionsForNode('{node_id}');
-        }}
         """)
+    
+    def force_node_position_update(self, node_id: str, x: float, y: float):
+        """Force update a node's position in the Vue component."""
+        # Use NiceGUI's client update mechanism instead of direct DOM manipulation
+        self.run_method(f"""
+            // Find the node element
+            const nodeEl = document.getElementById('{node_id}');
+            if (nodeEl) {{
+                // Update the style directly
+                nodeEl.style.left = '{x}px';
+                nodeEl.style.top = '{y}px';
+                
+                // Trigger a custom event to notify Vue component
+                const event = new CustomEvent('nodePositionForceUpdate', {{
+                    detail: {{ nodeId: '{node_id}', x: {x}, y: {y} }}
+                }});
+                nodeEl.dispatchEvent(event);
+                
+                // Also try to trigger mutation observer manually
+                if (window.MutationObserver) {{
+                    const observer = new MutationObserver(function() {{}});
+                    observer.observe(nodeEl, {{ attributes: true, attributeFilter: ['style'] }});
+                    observer.disconnect();
+                }}
+            }}
+        """, check_state=False)
+    
+    # Additional cleanup and utility methods
+    # in the zoom container, so no need to sync state or trigger connection updates
 
     def add_node_observer(self, node_id: str):
         """Add mutation/hover observers for a node."""
@@ -254,5 +355,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         self._on_connection_removed = None
         self._on_node_position_changed = None
         self._on_connection_clicked = None
+        self._on_node_drag_start = None
+        self._on_node_drag_end = None
         self.zoom_container = None
         

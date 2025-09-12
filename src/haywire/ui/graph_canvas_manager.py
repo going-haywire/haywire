@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from haywire.core.graph.graph import HaywireGraph, Edge
 from haywire.core.node.node import BaseNode
-from haywire.core.utils import generate_pin_id, parse_pin_id
+from haywire.core.utils import generate_pin_id, parse_pin_id, generate_connection_id
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.ui.graph_canvas_vue import GraphCanvasVue
@@ -60,11 +60,13 @@ class GraphCanvasManager:
         on_node_position_changed: Optional[Callable[[str, Tuple[float, float]], None]] = None,
         on_connection_created: Optional[Callable[[str, str, str, str], None]] = None,
         on_connection_removed: Optional[Callable[[Edge], None]] = None,
-        on_node_selected: Optional[Callable[[str, bool], None]] = None
+        on_node_selected: Optional[Callable[[str, bool], None]] = None,
+        history_manager = None
     ):
         self.graph = graph
         self.node_render_factory = node_render_factory
         self.zoom_container = zoom_container
+        self.history_manager = history_manager
         
         # Event callbacks
         self.on_node_position_changed = on_node_position_changed
@@ -76,6 +78,9 @@ class GraphCanvasManager:
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
         self.connection_paths: Dict[str, str] = {}  # edge_key -> path_id
         self.selected_nodes: Set[str] = set()
+        
+        # Sync state - prevents recursive updates during graph sync
+        self._syncing = False
         
         # Vue component for canvas interactions
         self.canvas_vue: Optional[GraphCanvasVue] = None
@@ -119,7 +124,9 @@ class GraphCanvasManager:
                 zoom_container=self.zoom_container,
                 on_connection_created=self._handle_vue_connection_created,
                 on_connection_clicked=self._handle_vue_connection_clicked,
-                on_node_position_changed=self._handle_vue_node_position_changed
+                on_node_position_changed=self._handle_vue_node_position_changed,
+                on_node_drag_start=self._handle_vue_node_drag_start,
+                on_node_drag_end=self._handle_vue_node_drag_end
             )
     
     @property
@@ -153,8 +160,37 @@ class GraphCanvasManager:
     
     def _handle_vue_node_position_changed(self, node_id: str, x: float, y: float):
         """Handle node position change from Vue component."""
+        # Ignore position changes during sync operations to prevent recursion
+        if self._syncing:
+            return
+        
+        # Update stored position when user drags
+        if node_id in self.node_panels:
+            self.node_panels[node_id]['position'] = (x, y)
+            
         if self.on_node_position_changed:
+            print(f"on_node_position_changed. node_id = {node_id} | x = {x}, y = {y}")
             self.on_node_position_changed(node_id, (x, y))
+    
+    def _handle_vue_node_drag_start(self, node_id: str):
+        """Handle node drag start from Vue component - add fence for undo grouping."""
+        print(f"[GraphCanvasManager] Node drag started: {node_id}")
+        
+        # Add fence to group all drag-related actions together
+        if self.history_manager:
+            self.history_manager.add_fence()
+            print(f"[GraphCanvasManager] Added fence for drag start: {node_id}")
+    
+    def _handle_vue_node_drag_end(self, node_id: str, position_changed: bool):
+        """Handle node drag end from Vue component - add fence to end grouping."""
+        print(f"[GraphCanvasManager] Node drag ended: {node_id}, position changed: {position_changed}")
+        
+        # Add fence to end the drag operation grouping
+        if self.history_manager and position_changed:
+            self.history_manager.add_fence()
+            print(f"[GraphCanvasManager] Added fence for drag end: {node_id}")
+        elif not position_changed:
+            print(f"[GraphCanvasManager] No fence needed - position unchanged for: {node_id}")
     
     # Deprecated JavaScript setup methods - no longer needed with Vue component
     def setup_client_side_interactions(self):
@@ -227,6 +263,16 @@ class GraphCanvasManager:
             print(f"Successfully added node visual for {node.node_id}")
             return True
             
+        except RuntimeError as e:
+            if "client this element belongs to has been deleted" in str(e):
+                # Re-raise client deletion errors so they can be caught by sync_all_sessions
+                print(f"Error adding node visual: {e}")
+                raise
+            else:
+                print(f"Runtime error adding node visual: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
         except Exception as e:
             print(f"Error adding node visual: {e}")
             import traceback
@@ -280,13 +326,30 @@ class GraphCanvasManager:
             
         x, y = position
         container = self.node_panels[node_id]['container']
+        
+        # Update the style using NiceGUI's update mechanism
+        container.style(f'left: {x}px; top: {y}px; z-index: 100;')
+        container.update()  # Force update to propagate to all clients
+        
+        self.node_panels[node_id]['position'] = position
+        
+        # Also try the force update method as backup
+        if self.canvas_vue:
+            self.canvas_vue.force_node_position_update(node_id, x, y)
+            self.canvas_vue.update_connections_for_node(node_id)
+        container = self.node_panels[node_id]['container']
         container.style(f'left: {x}px; top: {y}px;')
         self.node_panels[node_id]['position'] = position
     
     # Connection Management
     def _get_edge_key(self, edge: Edge) -> str:
-        """Generate a unique key for an edge."""
-        return f"{edge.output_node_id}-{edge.outlet_pin_id}-{edge.input_node_id}-{edge.inlet_pin_id}"
+        """Generate a unique key for an edge using Format 2."""
+        return generate_connection_id(
+            edge.output_node_id, 
+            edge.outlet_pin_id, 
+            edge.input_node_id, 
+            edge.inlet_pin_id
+        )
     
     def add_connection_visual(self, edge: Edge) -> bool:
         """Add a visual connection between two nodes."""
@@ -308,6 +371,21 @@ class GraphCanvasManager:
             else:
                 print(f"❌ Vue component not available")
                 return False
+        except RuntimeError as e:
+            if "client this element belongs to has been deleted" in str(e):
+                # Re-raise client deletion errors so they can be caught by sync_all_sessions
+                print(f"🔗 Error adding connection visual: {e}")
+                raise
+            else:
+                print(f"🔗 Runtime error adding connection visual: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
+        except Exception as e:
+            print(f"🔗 Error adding connection visual: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
             
         except Exception as e:
             print(f"Error adding connection visual: {e}")
@@ -342,36 +420,62 @@ class GraphCanvasManager:
     # Graph Synchronization
     def sync_with_graph(self):
         """Synchronize visual representation with the graph state."""
-        # Sync nodes
-        graph_node_ids = set(self.graph.nodes.keys())
-        visual_node_ids = set(self.node_panels.keys())
+        # Set sync flag to prevent recursive updates
+        self._syncing = True
         
-        # Add missing nodes
-        for node_id in graph_node_ids - visual_node_ids:
-            node = self.graph.nodes[node_id]
-            position = (
-                getattr(node, 'ui_posX', 100),
-                getattr(node, 'ui_posY', 100)
-            )
-            self.add_node_visual(node, position)
-        
-        # Remove extra nodes
-        for node_id in visual_node_ids - graph_node_ids:
-            self.remove_node_visual(node_id)
-        
-        # Sync connections
-        graph_edge_keys = set(self._get_edge_key(edge) for edge in self.graph.edges)
-        visual_edge_keys = set(self.connection_paths.keys())
-        
-        # Add missing connections
-        for edge in self.graph.edges:
-            edge_key = self._get_edge_key(edge)
-            if edge_key not in visual_edge_keys:
-                self.add_connection_visual(edge)
-        
-        # Remove extra connections
-        for edge_key in visual_edge_keys - graph_edge_keys:
-            self.remove_connection_visual(edge_key)
+        try:
+            # Sync nodes
+            graph_node_ids = set(self.graph.nodes.keys())
+            visual_node_ids = set(self.node_panels.keys())
+            
+            # Add missing nodes
+            for node_id in graph_node_ids - visual_node_ids:
+                node = self.graph.nodes[node_id]
+                position = (
+                    getattr(node, 'ui_posX', 100),
+                    getattr(node, 'ui_posY', 100)
+                )
+                self.add_node_visual(node, position)
+            
+            # Remove extra nodes
+            for node_id in visual_node_ids - graph_node_ids:
+                self.remove_node_visual(node_id)
+                
+            # Update positions of existing nodes
+            for node_id in graph_node_ids.intersection(visual_node_ids):
+                node = self.graph.nodes[node_id]
+                new_position = (
+                    getattr(node, 'ui_posX', 100),
+                    getattr(node, 'ui_posY', 100)
+                )
+                old_position = self.node_panels[node_id]['position']
+                
+                # Only update if position has changed
+                if new_position != old_position:
+                    print(f"Updating node {node_id} position: {old_position} -> {new_position}")
+                    self.update_node_position(node_id, new_position)
+            
+            # Sync connections - use Vue component's reactive prop system
+            if self.canvas_vue:
+                # Pass all edges to Vue component, let it handle the diff
+                self.canvas_vue.sync_connections_from_edges(self.graph.edges)
+            else:
+                # Fallback to individual connection management
+                graph_edge_keys = set(self._get_edge_key(edge) for edge in self.graph.edges)
+                visual_edge_keys = set(self.connection_paths.keys())
+                
+                # Add missing connections
+                for edge in self.graph.edges:
+                    edge_key = self._get_edge_key(edge)
+                    if edge_key not in visual_edge_keys:
+                        self.add_connection_visual(edge)
+                
+                # Remove extra connections
+                for edge_key in visual_edge_keys - graph_edge_keys:
+                    self.remove_connection_visual(edge_key)
+        finally:
+            # Always clear sync flag
+            self._syncing = False
     
     def clear_all_visuals(self):
         """Clear all visual representations."""
