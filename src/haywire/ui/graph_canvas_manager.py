@@ -91,35 +91,7 @@ class GraphCanvasManager:
     
     def _setup_canvas(self):
         """Setup the canvas with Vue component."""
-        # Add connection pin CSS once during canvas setup
-        ui.add_head_html("""
-        <style>
-        .connection-pin {
-            transition: all 0.2s ease !important;
-            pointer-events: all !important;
-            position: relative !important;
-            z-index: 10000 !important;
-        }
-        .connection-pin:hover {
-            transform: scale(1.3) !important;
-            filter: brightness(1.2) !important;
-            z-index: 10001 !important;
-        }
-        .connection-pin.connection-valid {
-            box-shadow: 0 0 15px #4CAF50 !important;
-            border-color: #4CAF50 !important;
-            transform: scale(1.5) !important;
-            z-index: 10002 !important;
-        }
-        .connection-pin.connection-invalid {
-            box-shadow: 0 0 15px #f44336 !important;
-            border-color: #f44336 !important;
-            transform: scale(1.2) !important;
-            z-index: 10002 !important;
-        }
-        </style>
-        """)
-        
+      
         # Create the Vue-based canvas component
         with self.zoom_container.content_container:
             self.canvas_vue = GraphCanvasVue(
@@ -236,44 +208,7 @@ class GraphCanvasManager:
         # Update local state for fast access (this will be in sync with graph state)
         self.selected_nodes = selected_nodes_set
         self.selected_connections = selected_connections_set
-    
-    # Deprecated JavaScript setup methods - no longer needed with Vue component
-    def setup_client_side_interactions(self):
-        """Setup client-side interactions - now handled by Vue component."""
-        pass  # Vue component handles this automatically
-    
-    def _setup_connection_drag_js(self):
-        """Deprecated - connection drag is now handled by Vue component."""
-        pass
-    
-    def _setup_node_observers_js(self):
-        """Deprecated - node observers now handled by Vue component."""
-        pass
-    
-    def _register_python_callbacks(self):
-        """Deprecated - callbacks now handled via Vue component events."""
-        pass
-    
-    def _register_js_callbacks(self):
-        """Deprecated - callbacks now handled via Vue component events.""" 
-        pass
-    
-    def _handle_connection_event(self, e: events.GenericEventArguments):
-        """Deprecated - handled by Vue component."""
-        pass
-    
-    def _handle_position_event(self, e: events.GenericEventArguments):
-        """Deprecated - handled by Vue component."""
-        pass
-    
-    def handle_js_connection_created(self, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
-        """Deprecated - handled by Vue component."""
-        pass
-    
-    def handle_js_node_position_changed(self, node_id: str, x: float, y: float):
-        """Deprecated - handled by Vue component."""
-        pass
-    
+        
     # Node Management
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
         """Add a visual representation of a node to the canvas."""

@@ -301,9 +301,6 @@ class UndoRedoTestAppWithCanvasManager:
             # Register canvas manager with unique session ID
             register_canvas_manager(canvas_manager)
             
-            # Setup client-side interactions
-            canvas_manager.setup_client_side_interactions()
-            
             # IMPORTANT: Sync with existing graph data when canvas manager is first created
             canvas_manager.sync_with_graph()
             print(f"Canvas manager synced with {len(self.graph.nodes)} existing nodes")
