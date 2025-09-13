@@ -84,7 +84,7 @@ class UndoRedoTestAppWithCanvasManager:
         """Create session-specific UI data (not graph data - that's shared)."""
         return {
             # UI-specific state (not shared between sessions)
-            'selected_nodes': set(),
+            # Note: selection is now managed by the shared graph, not per-session
             'creation_mode': None,
             'canvas_manager': None,
             'zoom_container': None,
@@ -510,12 +510,9 @@ class UndoRedoTestAppWithCanvasManager:
     
     def on_node_selected_for_specific_session(self, session_data, node_id: str, selected: bool):
         """Handle node selection changes for specific session."""
-        if selected:
-            session_data['selected_nodes'].add(node_id)
-        else:
-            session_data['selected_nodes'].discard(node_id)
-        
-        print(f"Node {node_id} {'selected' if selected else 'deselected'} in specific session")
+        # Selection is now managed by the shared graph through undo actions
+        # This callback is deprecated but kept for backward compatibility
+        print(f"Node {node_id} {'selected' if selected else 'deselected'} (handled via undo actions)")
         # Update selection display for this specific session
         self.update_selection_display_for_session(session_data)
     
@@ -669,6 +666,12 @@ class UndoRedoTestAppWithCanvasManager:
                         zoom_container = session_data['zoom_container']
                         ui.label(f'Zoom: {zoom_container.current_zoom:.2f}x').classes('text-sm')
                         ui.label(f'Pan: ({zoom_container.pan_x:.0f}, {zoom_container.pan_y:.0f})').classes('text-sm')
+            
+            # Update history display for this specific session
+            self.update_history_display_for_session(session_data)
+            
+            # Update selection display for this specific session
+            self.update_selection_display_for_session(session_data)
                         
         except Exception as e:
             print(f"Error updating displays for session: {e}")
@@ -752,13 +755,10 @@ class UndoRedoTestAppWithCanvasManager:
     
     def on_node_selected_for_session(self, node_id: str, selected: bool):
         """Handle node selection changes (session-specific)."""
+        # Selection is now managed by the shared graph through undo actions
+        # This callback is deprecated but kept for backward compatibility
         session_data = self.current_session
-        if selected:
-            session_data['selected_nodes'].add(node_id)
-        else:
-            session_data['selected_nodes'].discard(node_id)
-        
-        print(f"Node {node_id} {'selected' if selected else 'deselected'} in session {self.current_client_id[:8]}")
+        print(f"Node {node_id} {'selected' if selected else 'deselected'} (handled via undo actions)")
         # Update selection display for this session only
         self.update_selection_display_for_session(session_data)
     
@@ -770,13 +770,24 @@ class UndoRedoTestAppWithCanvasManager:
                 container = containers['selection_container']
                 container.clear()
                 with container:
-                    selected_nodes = session_data.get('selected_nodes', set())
-                    if selected_nodes:
-                        ui.label(f'Selected: {len(selected_nodes)} nodes').classes('font-bold')
-                        for node_id in list(selected_nodes)[:5]:  # Show first 5
-                            ui.label(f'• {node_id}').classes('text-xs pl-2')
+                    # Get selection from shared graph instead of session-local state
+                    selected_nodes, selected_connections = self.graph.get_selection_state()
+                    total_selected = len(selected_nodes) + len(selected_connections)
+                    
+                    if total_selected > 0:
+                        ui.label(f'Selected: {len(selected_nodes)} nodes, {len(selected_connections)} connections').classes('font-bold')
+                        
+                        # Show first 5 selected nodes
+                        for node_id in list(selected_nodes)[:5]:
+                            ui.label(f'• Node: {node_id}').classes('text-xs pl-2')
                         if len(selected_nodes) > 5:
-                            ui.label(f'... and {len(selected_nodes) - 5} more').classes('text-xs pl-2 text-gray-500')
+                            ui.label(f'... and {len(selected_nodes) - 5} more nodes').classes('text-xs pl-2 text-gray-500')
+                        
+                        # Show first 3 selected connections
+                        for connection_id in list(selected_connections)[:3]:
+                            ui.label(f'• Connection: {connection_id[:30]}...').classes('text-xs pl-2')
+                        if len(selected_connections) > 3:
+                            ui.label(f'... and {len(selected_connections) - 3} more connections').classes('text-xs pl-2 text-gray-500')
                     else:
                         ui.label('No nodes selected').classes('text-gray-500')
         except Exception as e:
@@ -862,14 +873,11 @@ class UndoRedoTestAppWithCanvasManager:
     
     def on_node_selected(self, node_id: str, selected: bool):
         """Handle node selection changes."""
-        if selected:
-            self.selected_nodes.add(node_id)
-        else:
-            self.selected_nodes.discard(node_id)
-        
-        print(f"Node {node_id} {'selected' if selected else 'deselected'}")
-        # Update selection display
-        self.update_selection_display()
+        # Selection is now managed by the shared graph through undo actions
+        # This callback is deprecated but kept for backward compatibility
+        print(f"Node {node_id} {'selected' if selected else 'deselected'} (handled via undo actions)")
+        # Update selection display - will read from shared graph
+        self.update_current_session_displays()
     
     def on_hot_reload(self, registry_key: str, affected_node_ids: List[str]):
         """Handle hot reload notifications."""
@@ -1226,6 +1234,28 @@ class UndoRedoTestAppWithCanvasManager:
                     else:
                         ui.label('History not available').classes('text-gray-500')
     
+    def update_history_display_for_session(self, session_data):
+        """Update history display for a specific session."""
+        containers = session_data.get('ui_containers', {})
+        if 'history_container' in containers:
+            container = containers['history_container']
+            container.clear()
+            with container:
+                if self.history_manager:
+                    ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
+                    ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
+                    if self.history_manager.history:
+                        ui.label('Recent Actions:').classes('font-bold text-sm')
+                        # Show last 5 actions
+                        recent_actions = self.history_manager.history[-5:]
+                        for i, item in enumerate(recent_actions):
+                            if hasattr(item, 'description'):
+                                ui.label(f'• {item.description}').classes('text-xs pl-2')
+                            else:
+                                ui.label(f'• {type(item).__name__}').classes('text-xs pl-2')
+                else:
+                    ui.label('History not available').classes('text-gray-500')
+
     def update_selection_display(self):
         """Update selection display for current session."""
         if hasattr(self, 'current_session'):

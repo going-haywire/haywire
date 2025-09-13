@@ -297,7 +297,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
                     observer.disconnect();
                 }}
             }}
-        """, check_state=False)
+        """)
     
     # Additional cleanup and utility methods
     # in the zoom container, so no need to sync state or trigger connection updates
@@ -347,6 +347,53 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         }
         """)
     
+    # Selection Management Methods
+    
+    def select_node(self, node_id: str, multi_select: bool = False):
+        """Select a node in the Vue component."""
+        ui.run_javascript(f"""
+        const canvasEl = document.querySelector('[data-graph_canvas]');
+        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.selectNode) {{
+            canvasEl._graphCanvasControls.selectNode('{node_id}', {str(multi_select).lower()});
+        }}
+        """)
+    
+    def deselect_node(self, node_id: str):
+        """Deselect a node in the Vue component."""
+        ui.run_javascript(f"""
+        const canvasEl = document.querySelector('[data-graph_canvas]');
+        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.deselectNode) {{
+            canvasEl._graphCanvasControls.deselectNode('{node_id}');
+        }}
+        """)
+    
+    def select_connection(self, connection_id: str, multi_select: bool = False):
+        """Select a connection in the Vue component."""
+        ui.run_javascript(f"""
+        const canvasEl = document.querySelector('[data-graph_canvas]');
+        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.selectConnection) {{
+            canvasEl._graphCanvasControls.selectConnection('{connection_id}', {str(multi_select).lower()});
+        }}
+        """)
+    
+    def deselect_connection(self, connection_id: str):
+        """Deselect a connection in the Vue component."""
+        ui.run_javascript(f"""
+        const canvasEl = document.querySelector('[data-graph_canvas]');
+        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.deselectConnection) {{
+            canvasEl._graphCanvasControls.deselectConnection('{connection_id}');
+        }}
+        """)
+    
+    def clear_selection(self):
+        """Clear all selections in the Vue component."""
+        ui.run_javascript("""
+        const canvasEl = document.querySelector('[data-graph_canvas]');
+        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.clearSelection) {
+            canvasEl._graphCanvasControls.clearSelection();
+        }
+        """)
+
     def get_canvas_size(self) -> Tuple[int, int]:
         """Get canvas dimensions."""
         return (self._props['canvasWidth'], self._props['canvasHeight'])

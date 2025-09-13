@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from haywire.core.graph.graph import HaywireGraph, Edge
 from haywire.core.node.node import BaseNode
 from haywire.core.utils import generate_pin_id, parse_pin_id, generate_connection_id
+from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.ui.graph_canvas_vue import GraphCanvasVue
@@ -198,12 +199,43 @@ class GraphCanvasManager:
         """Handle selection changes from Vue component."""
         print(f"🎯 Selection changed from Vue: nodes={selected_nodes}, connections={selected_connections}")
         
-        # Update internal selection state (without triggering visual updates to avoid recursion)
-        self.selected_nodes = set(selected_nodes)
-        self.selected_connections = set(selected_connections)
+        # Ignore selection changes during sync operations to prevent recursion
+        if self._syncing:
+            return
         
-        # TODO: Integrate with undo system - create ChangeSelectionAction
-        # This would require implementing the selection state tracking in the undo system
+        # Create new selection state
+        selected_nodes_set = set(selected_nodes)
+        selected_connections_set = set(selected_connections)
+        
+        # Convert connection IDs to edge tuples for SelectionState format
+        selected_edges = set()
+        for connection_id in selected_connections_set:
+            # Parse connection ID format: connection__outlet__node_id__port__inlet__node_id__port
+            try:
+                parts = connection_id.split('__')
+                if len(parts) >= 6 and parts[0] == 'connection' and parts[1] == 'outlet' and parts[4] == 'inlet':
+                    output_node_id = parts[2]
+                    outlet_pin = parts[3]
+                    input_node_id = parts[5]
+                    inlet_pin = parts[6]
+                    selected_edges.add((output_node_id, outlet_pin, input_node_id, inlet_pin))
+            except (IndexError, ValueError):
+                # Skip invalid connection IDs
+                continue
+        
+        new_selection = SelectionState(selected_nodes_set, selected_edges)
+        
+        # Create and execute undo action if history manager is available
+        if self.history_manager:
+            action = ChangeSelectionAction(self.graph, new_selection)
+            self.history_manager.add_action(action)
+        else:
+            # Fallback: Update graph selection directly if no history manager
+            self.graph.set_selection_state(selected_nodes_set, selected_connections_set)
+        
+        # Update local state for fast access (this will be in sync with graph state)
+        self.selected_nodes = selected_nodes_set
+        self.selected_connections = selected_connections_set
     
     # Deprecated JavaScript setup methods - no longer needed with Vue component
     def setup_client_side_interactions(self):
@@ -486,6 +518,21 @@ class GraphCanvasManager:
                 # Remove extra connections
                 for edge_key in visual_edge_keys - graph_edge_keys:
                     self.remove_connection_visual(edge_key)
+            
+            # Sync selection state from graph to UI using existing methods
+            graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
+            
+            # Clear current UI selection (this also updates the Vue component)
+            self.clear_selection()
+            
+            # Rebuild selection using existing methods (these also update the Vue component)
+            for node_id in graph_selected_nodes:
+                self.select_node(node_id, multi_select=True)
+            
+            for connection_id in graph_selected_connections:
+                self.select_connection(connection_id, multi_select=True)
+                
+            print(f"🔄 Selection synced from graph: {len(graph_selected_nodes)} nodes, {len(graph_selected_connections)} connections")
         finally:
             # Always clear sync flag
             self._syncing = False
@@ -515,7 +562,7 @@ class GraphCanvasManager:
         # Update visual selection in Vue component
         if self.canvas_vue:
             try:
-                self.canvas_vue._el._graphCanvasControls.selectNode(node_id, multi_select)
+                self.canvas_vue.select_node(node_id, multi_select)
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not update visual selection for node {node_id}: {e}")
         
@@ -529,7 +576,7 @@ class GraphCanvasManager:
         # Update visual selection in Vue component
         if self.canvas_vue:
             try:
-                self.canvas_vue._el._graphCanvasControls.deselectNode(node_id)
+                self.canvas_vue.deselect_node(node_id)
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not update visual deselection for node {node_id}: {e}")
         
@@ -547,7 +594,7 @@ class GraphCanvasManager:
         if self.canvas_vue and edge_key in self.connection_paths:
             try:
                 path_id = self.connection_paths[edge_key]
-                self.canvas_vue._el._graphCanvasControls.selectConnection(path_id, multi_select)
+                self.canvas_vue.select_connection(path_id, multi_select)
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not update visual selection for connection {edge_key}: {e}")
         
@@ -561,7 +608,7 @@ class GraphCanvasManager:
         if self.canvas_vue and edge_key in self.connection_paths:
             try:
                 path_id = self.connection_paths[edge_key]
-                self.canvas_vue._el._graphCanvasControls.deselectConnection(path_id)
+                self.canvas_vue.deselect_connection(path_id)
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not update visual deselection for connection {edge_key}: {e}")
         
@@ -575,7 +622,7 @@ class GraphCanvasManager:
         # Update visual selection in Vue component
         if self.canvas_vue:
             try:
-                self.canvas_vue._el._graphCanvasControls.clearSelection()
+                self.canvas_vue.clear_selection()
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not clear visual selection: {e}")
         

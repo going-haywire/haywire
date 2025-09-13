@@ -289,15 +289,37 @@ class ChangeSelectionAction(ActionBase):
     
     def _get_current_selection(self) -> SelectionState:
         """Get the current selection state from the graph."""
-        # This would need to be implemented based on how selection is tracked
-        # For now, return an empty selection
-        return SelectionState(set(), set())
+        selected_nodes, selected_connections = self.graph.get_selection_state()
+        
+        # Convert connection IDs to edge tuples for SelectionState format
+        selected_edges = set()
+        for connection_id in selected_connections:
+            # Parse connection ID format: connection__outlet__node_id__port__inlet__node_id__port
+            try:
+                parts = connection_id.split('__')
+                if len(parts) >= 6 and parts[0] == 'connection' and parts[1] == 'outlet' and parts[4] == 'inlet':
+                    output_node_id = parts[2]
+                    outlet_pin = parts[3]
+                    input_node_id = parts[5]
+                    inlet_pin = parts[6]
+                    selected_edges.add((output_node_id, outlet_pin, input_node_id, inlet_pin))
+            except (IndexError, ValueError):
+                # Skip invalid connection IDs
+                continue
+        
+        return SelectionState(selected_nodes, selected_edges)
     
     def _apply_selection(self, selection: SelectionState) -> None:
         """Apply a selection state to the graph."""
-        # This would need to be implemented based on how selection is managed
-        # For now, this is a placeholder
-        pass
+        # Convert edge tuples back to connection IDs
+        selected_connection_ids = set()
+        for edge_tuple in selection.selected_edges:
+            output_node_id, outlet_pin, input_node_id, inlet_pin = edge_tuple
+            connection_id = f"connection__outlet__{output_node_id}__{outlet_pin}__inlet__{input_node_id}__{inlet_pin}"
+            selected_connection_ids.add(connection_id)
+        
+        # Apply the selection to the graph
+        self.graph.set_selection_state(selection.selected_nodes, selected_connection_ids)
     
     def _execute_impl(self) -> None:
         """Apply the new selection."""

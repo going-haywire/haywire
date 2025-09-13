@@ -119,6 +119,10 @@ class HaywireGraph:
         self.edges: list[Edge] = []
         self.variables: dict[str, Variable] = {}
         
+        # Selection state - shared across all sessions
+        self.selected_nodes: set[str] = set()
+        self.selected_connections: set[str] = set()  # Using connection IDs (edge keys)
+        
         # Metadata
         self.description: str = ""
         self.version: str = "1.0.0"
@@ -421,12 +425,69 @@ class HaywireGraph:
                 components.append(component)
         
         return components
+
+    # ========================================================================
+    # Selection Management
+    # ========================================================================
     
+    def set_selection_state(self, selected_nodes: set[str], selected_connections: set[str]):
+        """Set the complete selection state."""
+        self.selected_nodes = selected_nodes.copy()
+        self.selected_connections = selected_connections.copy()
+    
+    def get_selection_state(self) -> tuple[set[str], set[str]]:
+        """Get the current selection state."""
+        return self.selected_nodes.copy(), self.selected_connections.copy()
+    
+    def select_node(self, node_id: str, multi_select: bool = False):
+        """Select a node."""
+        if not multi_select:
+            self.selected_nodes.clear()
+            self.selected_connections.clear()
+        
+        if node_id in self.nodes:
+            self.selected_nodes.add(node_id)
+    
+    def deselect_node(self, node_id: str):
+        """Deselect a node."""
+        self.selected_nodes.discard(node_id)
+    
+    def select_connection(self, connection_id: str, multi_select: bool = False):
+        """Select a connection."""
+        if not multi_select:
+            self.selected_nodes.clear()
+            self.selected_connections.clear()
+        
+        self.selected_connections.add(connection_id)
+    
+    def deselect_connection(self, connection_id: str):
+        """Deselect a connection."""
+        self.selected_connections.discard(connection_id)
+    
+    def clear_selection(self):
+        """Clear all selections."""
+        self.selected_nodes.clear()
+        self.selected_connections.clear()
+    
+    def is_node_selected(self, node_id: str) -> bool:
+        """Check if a node is selected."""
+        return node_id in self.selected_nodes
+    
+    def is_connection_selected(self, connection_id: str) -> bool:
+        """Check if a connection is selected."""
+        return connection_id in self.selected_connections
+
+    # ========================================================================
+    # Cleanup
+    # ========================================================================
+
     def clear(self):
         """Clear all nodes, edges, and variables from the graph"""
         self.nodes.clear()
         self.edges.clear()
         self.variables.clear()
+        self.selected_nodes.clear()
+        self.selected_connections.clear()
     
     # ========================================================================
     # Serialization
