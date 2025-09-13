@@ -148,9 +148,6 @@ export default {
             updateConnectionsForNode: this.updateConnectionsForNode,
             addNodeObserver: this.addNodeObserver,
             removeNodeObserver: this.removeNodeObserver,
-            getPinPosition: this.getPinPosition,
-            transformScreenToSVG: this.transformScreenToSVG,
-            getZoomState: () => this.zoomState,
             // Selection API
             selectNode: this.selectNode,
             deselectNode: this.deselectNode,
@@ -405,13 +402,13 @@ export default {
       this.connectionState.isDragging = true;
       this.connectionState.startPin = pin;
       
-      const startPos = this.getPinPosition(pin);
+      const startPos = this._getPinPosition(pin);
       const offsetDir = pin.dataset.pinDir === 'inlet' ? -1 : 1;
       const pinColor = pin.dataset.pinColor || '#000000';
       
       // Create temporary path
       this.connectionState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const initialPath = this.createBezierPath(startPos, startPos, offsetDir);
+      const initialPath = this._createBezierPath(startPos, startPos, offsetDir);
       
       this.connectionState.tempPath.setAttribute('d', initialPath);
       this.connectionState.tempPath.setAttribute('stroke', pinColor);
@@ -429,11 +426,11 @@ export default {
     },
     
     _handleConnectionDragMove(e) {
-      const startPos = this.getPinPosition(this.connectionState.startPin);
-      const mousePos = this.transformScreenToSVG(e.clientX, e.clientY);
+      const startPos = this._getPinPosition(this.connectionState.startPin);
+      const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
       const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
       
-      const pathData = this.createBezierPath(startPos, mousePos, offsetDir);
+      const pathData = this._createBezierPath(startPos, mousePos, offsetDir);
       this.connectionState.tempPath.setAttribute('d', pathData);
       
       // Highlight valid drop targets
@@ -442,7 +439,7 @@ export default {
         pin.classList.remove('connection-valid', 'connection-invalid');
         if (pin !== this.connectionState.startPin) {
           if (targetPin === pin) {
-            if (this.isValidConnection(this.connectionState.startPin, pin)) {
+            if (this._isValidConnection(this.connectionState.startPin, pin)) {
               pin.classList.add('connection-valid');
             } else {
               pin.classList.add('connection-invalid');
@@ -473,7 +470,7 @@ export default {
       });
       
       // Create connection if valid
-      if (endPin && this.isValidConnection(this.connectionState.startPin, endPin)) {
+      if (endPin && this._isValidConnection(this.connectionState.startPin, endPin)) {
         let startData = this.connectionState.startPin.dataset;
         let endData = endPin.dataset;
         
@@ -660,7 +657,7 @@ export default {
       const { outputNodeId, outletPinId, inputNodeId, inletPinId } = edgeData;
       
       // Generate path ID using the utility function
-      const pathId = this.buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId);
+      const pathId = this._buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId);
       
       console.log('🔗 Vue generated connection ID:', pathId);
       
@@ -704,7 +701,7 @@ export default {
       if (!pathElement || !pathElement.id) return;
       
       const pathId = pathElement.id;
-      const connectionInfo = this.parseConnectionId(pathId);
+      const connectionInfo = this._parseConnectionId(pathId);
       
       if (!connectionInfo) {
         console.error(`Failed to parse connection ID: ${pathId}`);
@@ -722,8 +719,8 @@ export default {
         return;
       }
       
-      const startPos = this.getPinPosition(startPin);
-      const endPos = this.getPinPosition(endPin);
+      const startPos = this._getPinPosition(startPin);
+      const endPos = this._getPinPosition(endPin);
       
       const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
       const pathData = `M ${startPos.x} ${startPos.y} C ${startPos.x + controlOffset} ${startPos.y}, ${endPos.x - controlOffset} ${endPos.y}, ${endPos.x} ${endPos.y}`;
@@ -731,7 +728,7 @@ export default {
       pathElement.setAttribute('d', pathData);
       
       // Update stroke with gradient
-      const stroke = this.createBezierStroke(startPos, endPos, startPin.dataset.pinColor, endPin.dataset.pinColor, pathId);
+      const stroke = this._createBezierStroke(startPos, endPos, startPin.dataset.pinColor, endPin.dataset.pinColor, pathId);
       pathElement.setAttribute('stroke', stroke);
       
       // Set consistent stroke width
@@ -772,8 +769,8 @@ export default {
     // Shared internal method for creating connection visuals
     _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, logPrefix = '', connectionData = null) {
       // Generate pin IDs using utility functions
-      const startPinId = this.buildOutletPinId(outputNodeId, outletPinId);
-      const endPinId = this.buildInletPinId(inputNodeId, inletPinId);
+      const startPinId = this._buildOutletPinId(outputNodeId, outletPinId);
+      const endPinId = this._buildInletPinId(inputNodeId, inletPinId);
       
       console.log(`${logPrefix}Looking for pins:`, { startPinId, endPinId, pathId });
       
@@ -1228,7 +1225,7 @@ export default {
     },
 
     // Utility Methods
-    parseConnectionId(connectionId) {
+    _parseConnectionId(connectionId) {
       /**
        * Parse a connection ID into its components.
        * Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
@@ -1255,18 +1252,18 @@ export default {
       };
     },
 
-    buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId) {
+    _buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId) {
       /**
        * Build a connection ID from components.
        * Format: connection__outlet__outputNodeId__outletPinId__inlet__inputNodeId__inletPinId
        * This is the inverse of parseConnectionId()
        */
-      const outletPin = this.buildOutletPinId(outputNodeId, outletPinId);
-      const inletPin = this.buildInletPinId(inputNodeId, inletPinId);
+      const outletPin = this._buildOutletPinId(outputNodeId, outletPinId);
+      const inletPin = this._buildInletPinId(inputNodeId, inletPinId);
       return `connection__${outletPin}__${inletPin}`;
     },
 
-    buildOutletPinId(nodeId, pinId) {
+    _buildOutletPinId(nodeId, pinId) {
       /**
        * Build an outlet pin ID from components.
        * Format: outlet__nodeId__pinId
@@ -1274,7 +1271,7 @@ export default {
       return `outlet__${nodeId}__${pinId}`;
     },
 
-    buildInletPinId(nodeId, pinId) {
+    _buildInletPinId(nodeId, pinId) {
       /**
        * Build an inlet pin ID from components.
        * Format: inlet__nodeId__pinId
@@ -1282,11 +1279,11 @@ export default {
       return `inlet__${nodeId}__${pinId}`;
     },
 
-    getPinPosition(pinElement) {
+    _getPinPosition(pinElement) {
       if (!pinElement) return { x: 0, y: 0 };
       
       const pinRect = pinElement.getBoundingClientRect();
-      const position = this.transformScreenToSVG(
+      const position = this._transformScreenToSVG(
         pinRect.left + pinRect.width / 2,
         pinRect.top + pinRect.height / 2
       );
@@ -1294,7 +1291,7 @@ export default {
       return position;
     },
     
-    transformScreenToSVG(clientX, clientY) {
+    _transformScreenToSVG(clientX, clientY) {
       if (!this.$refs.svg) return { x: clientX, y: clientY };
       
       const svgRect = this.$refs.svg.getBoundingClientRect();
@@ -1310,12 +1307,12 @@ export default {
       return { x, y };
     },
     
-    createBezierPath(start, end, offsetDir) {
+    _createBezierPath(start, end, offsetDir) {
       const controlOffset = Math.abs(end.x - start.x) * 0.5 * offsetDir;
       return `M ${start.x} ${start.y} C ${start.x + controlOffset} ${start.y}, ${end.x - controlOffset} ${end.y}, ${end.x} ${end.y}`;
     },
     
-    createBezierStroke(startPos, endPos, startColor, endColor, pathId) {
+    _createBezierStroke(startPos, endPos, startColor, endColor, pathId) {
       if (!endColor || !pathId) {
         return startColor || '#ff0000';
       }
@@ -1364,7 +1361,7 @@ export default {
       return `url(#${gradientId})`;
     },
     
-    isValidConnection(startPin, endPin) {
+    _isValidConnection(startPin, endPin) {
       if (!startPin || !endPin || startPin === endPin) return false;
       
       const startDir = startPin.dataset.pinDir;
