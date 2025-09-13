@@ -28,6 +28,7 @@ from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionS
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.ui.graph_canvas_vue import GraphCanvasVue
+from haywire.ui.context_menu_vue import ContextMenu
 
 
 @dataclass
@@ -62,18 +63,22 @@ class GraphCanvasManager:
         on_connection_created: Optional[Callable[[str, str, str, str], None]] = None,
         on_connection_removed: Optional[Callable[[Edge], None]] = None,
         on_node_selected: Optional[Callable[[str, bool], None]] = None,
-        history_manager = None
+        history_manager = None,
+        available_nodes: Optional[List[str]] = None,
+        on_context_create_node: Optional[Callable[[str, float, float], None]] = None
     ):
         self.graph = graph
         self.node_render_factory = node_render_factory
         self.zoom_container = zoom_container
         self.history_manager = history_manager
+        self.available_nodes = available_nodes or []
         
         # Event callbacks
         self.on_node_position_changed = on_node_position_changed
         self.on_connection_created = on_connection_created
         self.on_connection_removed = on_connection_removed
         self.on_node_selected = on_node_selected
+        self.on_context_create_node = on_context_create_node
         
         # Visual state
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
@@ -86,12 +91,14 @@ class GraphCanvasManager:
         
         # Vue component for canvas interactions
         self.canvas_vue: Optional[GraphCanvasVue] = None
+        self.context_menu: Optional[ContextMenu] = None
         
         self._setup_canvas()
     
     def _setup_canvas(self):
         """Setup the canvas with Vue component."""
-      
+        print("🔧 Setting up GraphCanvasManager with Vue component")
+        
         # Create the Vue-based canvas component
         with self.zoom_container.content_container:
             self.canvas_vue = GraphCanvasVue(
@@ -101,7 +108,21 @@ class GraphCanvasManager:
                 on_node_position_changed=self._handle_vue_node_position_changed,
                 on_node_drag_start=self._handle_vue_node_drag_start,
                 on_node_drag_end=self._handle_vue_node_drag_end,
-                on_selection_changed=self._handle_vue_selection_changed
+                on_selection_changed=self._handle_vue_selection_changed,
+                on_context_menu_canvas=self._handle_context_menu_canvas,
+                on_context_menu_node=self._handle_context_menu_node,
+                on_context_menu_connection=self._handle_context_menu_connection
+            )
+            
+            # Create context menu component
+            self.context_menu = ContextMenu(
+                available_nodes=self.available_nodes,
+                on_create_node=self._handle_context_create_node,
+                on_duplicate_node=self._handle_context_duplicate_node,
+                on_copy_node=self._handle_context_copy_node,
+                on_delete_node=self._handle_context_delete_node,
+                on_inspect_connection=self._handle_context_inspect_connection,
+                on_delete_connection=self._handle_context_delete_connection
             )
     
     @property
@@ -591,8 +612,143 @@ class GraphCanvasManager:
         self.clear_all_visuals()
         if self.canvas_vue:
             self.canvas_vue.cleanup()
+        self.canvas_vue = None
+        self.context_menu = None
         self.node_render_factory = None
         self.graph = None
+    
+    # Context Menu Event Handlers
+    
+    def _handle_context_menu_canvas(self, screen_x: float, screen_y: float, canvas_x: float, canvas_y: float):
+        """Handle canvas context menu request."""
+        print(f"🎯 Canvas context menu requested at screen({screen_x}, {screen_y}) canvas({canvas_x}, {canvas_y})")
+        if self.context_menu:
+            self.context_menu.show_canvas_menu(screen_x, screen_y, canvas_x, canvas_y)
+    
+    def _handle_context_menu_node(self, node_id: str, x: float, y: float):
+        """Handle node context menu request."""
+        print(f"🎯 Node context menu requested for {node_id} at ({x}, {y})")
+        if self.context_menu:
+            self.context_menu.show_node_menu(x, y, node_id)
+    
+    def _handle_context_menu_connection(self, connection_id: str, x: float, y: float):
+        """Handle connection context menu request."""
+        print(f"🎯 Connection context menu requested for {connection_id} at ({x}, {y})")
+        if self.context_menu:
+            self.context_menu.show_connection_menu(x, y, connection_id)
+    
+    # Context Menu Action Handlers
+    
+    def _handle_context_create_node(self, node_type: str, x: float, y: float):
+        """Handle node creation from context menu."""
+        print(f"📝 Creating node {node_type} at ({x}, {y}) from context menu")
+        
+        if self.on_context_create_node:
+            # Delegate to the parent application
+            self.on_context_create_node(node_type, x, y)
+        else:
+            # Fallback notification
+            from nicegui import ui
+            ui.notify(f"Context node creation not implemented: {node_type} at ({x}, {y})")
+    
+    def _handle_context_duplicate_node(self, node_id: str):
+        """Handle node duplication from context menu."""
+        print(f"📋 Duplicating node {node_id} from context menu")
+        from nicegui import ui
+        ui.notify(f"Duplicating node {node_id}")
+        # TODO: Implement node duplication logic
+    
+    def _handle_context_copy_node(self, node_id: str):
+        """Handle node copy from context menu."""
+        print(f"📄 Copying node {node_id} from context menu")
+        from nicegui import ui
+        ui.notify(f"Copied node {node_id}")
+        # TODO: Implement node copy logic
+    
+    def _handle_context_delete_node(self, node_id: str):
+        """Handle node deletion from context menu."""
+        print(f"🗑️ Deleting node {node_id} from context menu")
+        from nicegui import ui
+        
+        if node_id in self.graph.nodes:
+            try:
+                # Use history manager if available, otherwise direct removal
+                if self.history_manager:
+                    from haywire.undo.actions.graph_actions import RemoveNodeAction
+                    node = self.graph.nodes[node_id]
+                    action = RemoveNodeAction(self.graph, node_id, node)
+                    self.history_manager.add_action(action)
+                else:
+                    self.graph.remove_node(node_id)
+                
+                # Sync visual representation
+                self.sync_with_graph()
+                ui.notify(f"Deleted node {node_id}")
+                
+            except Exception as e:
+                print(f"Error deleting node: {e}")
+                ui.notify(f"Error deleting node: {e}", type='negative')
+        else:
+            ui.notify(f"Node {node_id} not found", type='warning')
+    
+    def _handle_context_inspect_connection(self, connection_id: str):
+        """Handle connection inspection from context menu."""
+        print(f"🔍 Inspecting connection {connection_id} from context menu")
+        from nicegui import ui
+        ui.notify(f"Inspecting connection {connection_id}")
+        # TODO: Show connection details dialog
+    
+    def _handle_context_delete_connection(self, connection_id: str):
+        """Handle connection deletion from context menu."""
+        print(f"🗑️ Deleting connection {connection_id} from context menu")
+        from nicegui import ui
+        
+        # Find the edge by connection_id
+        edge_to_remove = None
+        for edge in self.graph.edges:
+            edge_key = self._get_edge_key(edge)
+            if edge_key == connection_id:
+                edge_to_remove = edge
+                break
+        
+        if edge_to_remove:
+            try:
+                # Create and execute undo action if history manager is available
+                if self.history_manager:
+                    from haywire.undo.actions.graph_actions import RemoveEdgeAction
+                    action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
+                    self.history_manager.add_action(action)
+                    
+                    # Sync visual representation
+                    self.sync_with_graph()
+                    ui.notify(f"Deleted connection")
+                else:
+                    # Fallback: Use direct removal if no history manager
+                    removed = self.graph.remove_edge(
+                        edge_to_remove.output_node_id,
+                        edge_to_remove.outlet_pin_id,
+                        edge_to_remove.input_node_id,
+                        edge_to_remove.inlet_pin_id
+                    )
+                    
+                    if removed:
+                        # Sync visual representation
+                        self.sync_with_graph()
+                        ui.notify(f"Deleted connection")
+                    else:
+                        ui.notify("Failed to delete connection", type='warning')
+                    
+            except Exception as e:
+                print(f"Error deleting connection: {e}")
+                ui.notify(f"Error deleting connection: {e}", type='negative')
+        else:
+            ui.notify(f"Connection not found", type='warning')
+    
+    def update_available_nodes(self, nodes: List[str]):
+        """Update the list of available nodes for context menu."""
+        self.available_nodes = nodes
+        if self.context_menu:
+            self.context_menu.update_available_nodes(nodes)
 
 
 # Deprecated global callback registry - no longer needed with Vue component

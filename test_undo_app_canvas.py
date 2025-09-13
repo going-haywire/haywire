@@ -204,6 +204,16 @@ class UndoRedoTestAppWithCanvasManager:
                     ui.label('5. You can only connect output → input').classes('text-xs')
                     ui.label('6. Click on a connection line to delete it').classes('text-xs')
             
+            # Context Menu Help
+            with ui.expansion('Context Menu Instructions', icon='menu').classes('w-full'):
+                with ui.column().classes('gap-2'):
+                    ui.label('How to use context menus:').classes('font-bold text-sm')
+                    ui.label('1. Hold Ctrl (Cmd on Mac) and right-click').classes('text-xs')
+                    ui.label('2. On empty canvas: Create new nodes').classes('text-xs')
+                    ui.label('3. On nodes: Duplicate, copy, or delete').classes('text-xs')
+                    ui.label('4. On connections: Inspect or delete').classes('text-xs')
+                    ui.label('5. Press Escape to close the menu').classes('text-xs')
+            
             # Node creation tools
             with ui.expansion('Node Creation', icon='add_circle').classes('w-full'):
                 ui.label('Click a node type, then click on canvas to create:').classes('text-sm mb-2')
@@ -293,7 +303,9 @@ class UndoRedoTestAppWithCanvasManager:
                 on_connection_created=lambda s_id, s_port, e_id, e_port: self.on_connection_created_for_specific_session(session_data, s_id, s_port, e_id, e_port),
                 on_connection_removed=lambda edge: self.on_connection_removed_for_specific_session(session_data, edge),
                 on_node_selected=lambda node_id, selected: self.on_node_selected_for_specific_session(session_data, node_id, selected),
-                history_manager=self.history_manager  # Pass the shared history manager
+                history_manager=self.history_manager,  # Pass the shared history manager
+                available_nodes=self.get_available_nodes(),  # Pass available nodes for context menu
+                on_context_create_node=lambda node_type, x, y: self.on_context_create_node_for_session(session_data, node_type, x, y)
             )
             
             session_data['canvas_manager'] = canvas_manager
@@ -512,6 +524,50 @@ class UndoRedoTestAppWithCanvasManager:
         print(f"Node {node_id} {'selected' if selected else 'deselected'} (handled via undo actions)")
         # Update selection display for this specific session
         self.update_selection_display_for_session(session_data)
+    
+    def on_context_create_node_for_session(self, session_data, node_type: str, x: float, y: float):
+        """Handle context menu node creation for specific session."""
+        print(f"🎯 Context menu creating node {node_type} at ({x}, {y}) for session")
+        
+        try:
+            # Create node using shared factory and graph (same as regular node creation)
+            node = self.node_factory.create_instance(
+                node_type,
+                self.graph,  # Use shared graph
+                position=(x, y)
+            )
+            
+            # Set position attributes
+            node.ui_posX = x
+            node.ui_posY = y
+            
+            # Use shared undo system
+            if self.history_manager:
+                from haywire.undo.actions.graph_actions import AddNodeAction
+                action = AddNodeAction(self.graph, node)
+                self.history_manager.add_action(action)
+            else:
+                self.graph.add_node(node)
+            
+            # Add visual representation through this session's canvas manager
+            if session_data['canvas_manager'].add_node_visual(node, (x, y)):
+                # Update global stats
+                self.global_stats['nodes_created'] += 1
+                # Sync all sessions to show the new node
+                self.sync_all_sessions()
+                # Update UI displays for this specific session
+                self.update_displays_for_session(session_data)
+                
+                from nicegui import ui
+                ui.notify(f"Created {node.__class__.__name__} from context menu")
+            else:
+                from nicegui import ui
+                ui.notify(f"Failed to create visual for {node.__class__.__name__}", type='negative')
+                
+        except Exception as e:
+            from nicegui import ui
+            ui.notify(f"Error creating node from context menu: {str(e)}", type='negative')
+            print(f"Error creating node from context menu: {e}")
     
     def on_canvas_click_for_session(self, event):
         """Handle canvas click events for specific session."""

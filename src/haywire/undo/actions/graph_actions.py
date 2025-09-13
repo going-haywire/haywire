@@ -138,7 +138,12 @@ class RemoveEdgeAction(ActionBase):
     
     def _execute_impl(self) -> None:
         """Remove the edge from the graph."""
-        self.graph.remove_edge(self.edge)
+        self.graph.remove_edge(
+            self.edge.output_node_id,
+            self.edge.outlet_pin_id,
+            self.edge.input_node_id,
+            self.edge.inlet_pin_id
+        )
     
     def _undo_impl(self) -> None:
         """Add the edge back to the graph."""

@@ -29,6 +29,8 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
                  on_connection_clicked=None, zoom_container=None,
                  on_node_drag_start=None, on_node_drag_end=None,
                  on_selection_changed=None,
+                 on_context_menu_canvas=None, on_context_menu_node=None,
+                 on_context_menu_connection=None,
                  canvas_width: int = 8000, canvas_height: int = 8000):
         super().__init__()
         
@@ -41,6 +43,9 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         self._on_node_drag_start = on_node_drag_start
         self._on_node_drag_end = on_node_drag_end
         self._on_selection_changed = on_selection_changed
+        self._on_context_menu_canvas = on_context_menu_canvas
+        self._on_context_menu_node = on_context_menu_node
+        self._on_context_menu_connection = on_context_menu_connection
         
         # Store zoom container reference if provided
         self.zoom_container = zoom_container
@@ -64,6 +69,9 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         self.on('nodeDragStart', self._handle_node_drag_start)
         self.on('nodeDragEnd', self._handle_node_drag_end)
         self.on('selectionChanged', self._handle_selection_changed)
+        self.on('contextMenuCanvas', self._handle_context_menu_canvas)
+        self.on('contextMenuNode', self._handle_context_menu_node)
+        self.on('contextMenuConnection', self._handle_context_menu_connection)
     
     def _handle_node_created(self, event_data):
         """Handle node creation event from Vue component."""
@@ -157,6 +165,42 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
             
             print(f"[GraphCanvasVue] Selection changed: nodes={selected_nodes}, connections={selected_connections}")
             self._on_selection_changed(selected_nodes, selected_connections)
+    
+    def _handle_context_menu_canvas(self, event_data):
+        """Handle canvas context menu event from Vue component."""
+        if self._on_context_menu_canvas:
+            args = event_data.args
+            screen_x = args.get('screenX', 0)
+            screen_y = args.get('screenY', 0)
+            canvas_x = args.get('canvasX', 0)
+            canvas_y = args.get('canvasY', 0)
+            
+            print(f"[GraphCanvasVue] Canvas context menu: screen({screen_x}, {screen_y}) canvas({canvas_x}, {canvas_y})")
+            self._on_context_menu_canvas(screen_x, screen_y, canvas_x, canvas_y)
+    
+    def _handle_context_menu_node(self, event_data):
+        """Handle node context menu event from Vue component."""
+        if self._on_context_menu_node:
+            args = event_data.args
+            node_id = args.get('nodeId')
+            x = args.get('x', 0)
+            y = args.get('y', 0)
+            
+            if node_id:
+                print(f"[GraphCanvasVue] Node context menu: {node_id} at ({x}, {y})")
+                self._on_context_menu_node(node_id, x, y)
+    
+    def _handle_context_menu_connection(self, event_data):
+        """Handle connection context menu event from Vue component."""
+        if self._on_context_menu_connection:
+            args = event_data.args
+            connection_id = args.get('connectionId')
+            x = args.get('x', 0)
+            y = args.get('y', 0)
+            
+            if connection_id:
+                print(f"[GraphCanvasVue] Connection context menu: {connection_id} at ({x}, {y})")
+                self._on_context_menu_connection(connection_id, x, y)
     
     # Connection Management Methods
     
