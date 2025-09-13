@@ -65,7 +65,9 @@ export default {
         startNodePos: { x: 0, y: 0 },
         dragOffset: { x: 0, y: 0 },
         hasActuallyMoved: false,
-        dragThreshold: 5 // pixels - minimum movement to consider it a drag
+        dragThreshold: 5, // pixels - minimum movement to consider it a drag
+        // Store event details for selection handling on mouse up
+        mouseDownEvent: null
       },
       // Add selection state
       selectionState: {
@@ -293,8 +295,8 @@ export default {
       if (nodeElement && !e.target.closest('.connection-pin')) {
         const nodeId = nodeElement.dataset.nodeId;
         if (nodeId) {
-          // Handle selection on mouse down (before potential drag)
-          this._handleNodeSelection(e, nodeId);
+          // Don't handle selection on mouse down anymore - defer to mouse up
+          // Store the event details for selection handling later
           this._startNodeDrag(e, nodeElement);
           return;
         }
@@ -494,6 +496,13 @@ export default {
       this.nodeDragState.startMousePos = { x: e.clientX, y: e.clientY };
       this.nodeDragState.hasActuallyMoved = false;
       
+      // Store the mouse down event details for selection handling on mouse up
+      this.nodeDragState.mouseDownEvent = {
+        ctrlKey: e.ctrlKey,
+        metaKey: e.metaKey,
+        nodeId: nodeElement.dataset.nodeId
+      };
+      
       // Get current node position from style
       const computedStyle = nodeElement.style;
       const currentLeft = parseInt(computedStyle.left) || 0;
@@ -615,11 +624,17 @@ export default {
           positionChanged: positionChanged
         });
       } else {
-        // This was just a click, not a drag - handle as selection
-        console.log(`Node ${nodeId} was clicked (not dragged)`);
+        // This was just a click, not a drag - handle as selection now
+        console.log(`Node ${nodeId} was clicked (not dragged) - handling selection`);
         
-        // The selection was already handled in handleMouseDown/_handleNodeSelection
-        // No need to emit drag events
+        // Handle selection using stored event details
+        if (this.nodeDragState.mouseDownEvent) {
+          const mockEvent = {
+            ctrlKey: this.nodeDragState.mouseDownEvent.ctrlKey,
+            metaKey: this.nodeDragState.mouseDownEvent.metaKey
+          };
+          this._handleNodeSelection(mockEvent, nodeId);
+        }
       }
       
       // Reset drag state
@@ -629,6 +644,7 @@ export default {
       this.nodeDragState.startNodePos = { x: 0, y: 0 };
       this.nodeDragState.dragOffset = { x: 0, y: 0 };
       this.nodeDragState.hasActuallyMoved = false;
+      this.nodeDragState.mouseDownEvent = null;
     },
 
 
