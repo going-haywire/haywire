@@ -224,18 +224,11 @@ export default {
         
         // Update our local zoom state
         this.zoomState = { zoom, panX, panY, isDragging };
-        
-        //console.log('🔍 GraphCanvas received zoom/pan update:', this.zoomState);
-        
-        // Update all connections when zoom/pan changes
-        // Note: This is throttled in the zoom container, so we don't need additional throttling
-        //this.updateAllConnections();
       };
       
       document.addEventListener('zoom-pan-state', this.handleZoomPanUpdate);
     },
 
-    
     _setupHoverObserver(nodeElement) {
       const lodElement = nodeElement.querySelector('.zoom-pan-lod0');
       if (!lodElement) return;
@@ -305,6 +298,13 @@ export default {
       if (pin) {
         this._startConnectionDrag(e, pin);
         return;
+      }
+      
+      // Check if clicking on interactive widget elements - avoid dragging if so
+      const isInteractiveWidget = this._isInteractiveWidgetElement(e.target);
+      if (isInteractiveWidget) {
+        console.log('Click on interactive widget element - skipping node drag');
+        return; // Let the widget handle its own interaction
       }
       
       // Check for node dragging/selection - look for node container
@@ -1197,6 +1197,36 @@ export default {
     // UTILITY & HELPER METHODS
     // =============================================================================
 
+    // Interactive Widget Detection
+    _isInteractiveWidgetElement(element) {
+      /**
+       * Check if the clicked element is an interactive widget that should not trigger node dragging.
+       * This includes input fields, buttons, sliders, checkboxes, etc.
+       */
+      
+      // Check for basic form controls and interactive elements
+      const isFormElement = element.matches('input, textarea, select, button, [contenteditable]') ||
+                           element.closest('input, textarea, select, button, [contenteditable]');
+      
+      // Check for NiceGUI/Quasar specific elements
+      const isQuasarElement = element.closest('.q-field, .q-btn, .q-checkbox, .q-radio, .q-toggle, .q-slider, .q-knob, .q-select') ||
+                             element.closest('[role="button"], [role="checkbox"], [role="radio"], [role="slider"]');
+      
+      // Check for elements within widget containers (when widgets are unfolded)
+      const isWidgetContainer = element.closest('.widget-container');
+      
+      // Check for elements marked as interactive
+      const isMarkedInteractive = element.closest('[data-interactive="true"], .interactive, .clickable');
+      
+      // Check for drag handle specifically - this should allow dragging
+      const isDragHandle = element.closest('.drag-handle');
+      if (isDragHandle) {
+        return false; // Allow dragging on drag handles
+      }
+      
+      return isFormElement || isQuasarElement || isWidgetContainer || isMarkedInteractive;
+    },
+
     // Utility Methods
     parseConnectionId(connectionId) {
       /**
@@ -1451,7 +1481,6 @@ export default {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25), 
               0 0 20px rgba(74, 144, 226, 0.4), 
               0 0 0 2px rgba(74, 144, 226, 0.3) !important;
-  transform: translateY(-2px) !important;
 }
 
 [data-node-id].node-selected:hover {
@@ -1460,7 +1489,6 @@ export default {
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3), 
               0 0 25px rgba(74, 144, 226, 0.5), 
               0 0 0 2px rgba(74, 144, 226, 0.4) !important;
-  transform: translateY(-3px) !important;
 }
 </style>
 
