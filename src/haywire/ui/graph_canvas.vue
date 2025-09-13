@@ -363,6 +363,12 @@ export default {
         // Clear selection when clicking on empty canvas
         this.clearSelection();
         
+        // Emit selection change event to Python for history tracking
+        this.$emit('selectionChanged', {
+          selectedNodes: [],
+          selectedConnections: []
+        });
+        
         // Emit click event to Python with proper coordinates
         const rect = this.$el.getBoundingClientRect();
         const offsetX = event.clientX - rect.left;

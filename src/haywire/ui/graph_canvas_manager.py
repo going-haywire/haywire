@@ -503,6 +503,18 @@ class GraphCanvasManager:
             if self.canvas_vue:
                 # Pass all edges to Vue component, let it handle the diff
                 self.canvas_vue.sync_connections_from_edges(self.graph.edges)
+                
+                # Also update our connection_paths dictionary to keep it in sync
+                # This is needed for selection management
+                new_connection_paths = {}
+                for edge in self.graph.edges:
+                    edge_key = self._get_edge_key(edge)
+                    connection_id = edge_key  # Use edge key as connection ID (consistent with add_connection_visual)
+                    new_connection_paths[edge_key] = connection_id
+                
+                # Update the connection_paths dictionary
+                self.connection_paths = new_connection_paths
+                print(f"🔄 Updated connection_paths dictionary with {len(self.connection_paths)} connections")
             else:
                 # Fallback to individual connection management
                 graph_edge_keys = set(self._get_edge_key(edge) for edge in self.graph.edges)
