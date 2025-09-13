@@ -99,58 +99,6 @@ export default {
     }
   },
   
-  mounted() {
-    console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
-    console.log('Container element:', this.$el);
-    console.log('Container dimensions:', this.$el.offsetWidth, 'x', this.$el.offsetHeight);
-    console.log('🔗 Vue initial connections prop:', this.connections);
-    
-    // Initialize component
-    this._setupEventListeners();
-    this._setupObservers();
-    this._setupZoomPanListener();
-    
-    // Process initial connections if any exist
-    if (this.connections && this.connections.length > 0) {
-      console.log('🔗 Vue processing initial connections on mount:', this.connections.length);
-      // Use nextTick to ensure DOM is ready
-      this.$nextTick(() => {
-        this._updateConnectionsFromPropsDelayed(this.connections, []);
-      });
-    }
-    
-    // Expose API to parent/Python
-    this.$el._graphCanvasControls = {
-      addConnectionVisual: this.addConnectionVisual,
-      removeConnectionVisual: this.removeConnectionVisual,
-      updateConnectionPath: this.updateConnectionPath,
-      updateAllConnections: this.updateAllConnections,
-      updateConnectionsForNode: this.updateConnectionsForNode,
-      addNodeObserver: this.addNodeObserver,
-      removeNodeObserver: this.removeNodeObserver,
-      getPinPosition: this.getPinPosition,
-      transformScreenToSVG: this.transformScreenToSVG,
-      getZoomState: () => this.zoomState,
-      // Selection API
-      selectNode: this.selectNode,
-      deselectNode: this.deselectNode,
-      selectConnection: this.selectConnection,
-      deselectConnection: this.deselectConnection,
-      clearSelection: this.clearSelection,
-      getSelection: this.getSelection,
-      setSelection: this.setSelection
-    };
-  },
-
-  updated() {
-    console.log('🔗 Vue component updated, connections prop now:', this.connections);
-  },
-
-  beforeDestroy() {
-    this._cleanupEventListeners();
-    this._cleanupObservers();
-    this._cleanupZoomPanListener();
-  },
   
   // Note: No watcher for zoomState needed - zoom/pan is handled by CSS transforms
   // in the zoom container, so SVG paths don't need to be recalculated on zoom/pan changes
@@ -165,53 +113,241 @@ export default {
       deep: true
     }
   },
+
   
+  // =============================================================================
+  // LIFECYCLE METHODS
+  // =============================================================================
+
+    mounted() {
+        console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
+        console.log('Container element:', this.$el);
+        console.log('Container dimensions:', this.$el.offsetWidth, 'x', this.$el.offsetHeight);
+        console.log('🔗 Vue initial connections prop:', this.connections);
+
+        // Initialize component
+        this._setupEventListeners();
+        this._setupObservers();
+        this._setupZoomPanListener();
+
+        // Process initial connections if any exist
+        if (this.connections && this.connections.length > 0) {
+            console.log('🔗 Vue processing initial connections on mount:', this.connections.length);
+            // Use nextTick to ensure DOM is ready
+            this.$nextTick(() => {
+                this._updateConnectionsFromPropsDelayed(this.connections, []);
+            });
+        }
+
+        // Expose API to parent/Python
+        this.$el._graphCanvasControls = {
+            addConnectionVisual: this.addConnectionVisual,
+            removeConnectionVisual: this.removeConnectionVisual,
+            updateConnectionPath: this.updateConnectionPath,
+            updateAllConnections: this.updateAllConnections,
+            updateConnectionsForNode: this.updateConnectionsForNode,
+            addNodeObserver: this.addNodeObserver,
+            removeNodeObserver: this.removeNodeObserver,
+            getPinPosition: this.getPinPosition,
+            transformScreenToSVG: this.transformScreenToSVG,
+            getZoomState: () => this.zoomState,
+            // Selection API
+            selectNode: this.selectNode,
+            deselectNode: this.deselectNode,
+            selectConnection: this.selectConnection,
+            deselectConnection: this.deselectConnection,
+            clearSelection: this.clearSelection,
+            getSelection: this.getSelection,
+            setSelection: this.setSelection
+        };
+    },
+
+    updated() {
+        console.log('🔗 Vue component updated, connections prop now:', this.connections);
+    },
+
+    beforeDestroy() {
+        this._cleanupEventListeners();
+        this._cleanupObservers();
+        this._cleanupZoomPanListener();
+    },
+
   methods: {
-    // Connection ID Utilities
-    parseConnectionId(connectionId) {
-      /**
-       * Parse a connection ID into its components.
-       * Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
-       * Returns: { outletNodeId, outletPinId, inletNodeId, inletPinId }
-       */
-      const parts = connectionId.split('__');
-      if (parts.length !== 7) {
-        console.error(`Invalid connection ID format: ${connectionId}. Expected 7 parts, got ${parts.length}`);
-        return null;
-      }
-      
-      if (parts[0] !== 'connection' || parts[1] !== 'outlet' || parts[4] !== 'inlet') {
-        console.error(`Invalid connection ID structure: ${connectionId}`);
-        return null;
-      }
-      
-      return {
-        outletNodeId: parts[2],
-        outletPinId: parts[3], 
-        inletNodeId: parts[5],
-        inletPinId: parts[6],
-        outletPinFullId: `${parts[1]}__${parts[2]}__${parts[3]}`,  // outlet__node_id__pin_id
-        inletPinFullId: `${parts[4]}__${parts[5]}__${parts[6]}`    // inlet__node_id__pin_id
-      };
-    },
+    // =============================================================================
+    // SETUP & INITIALIZATION
+    // =============================================================================
 
-    // Debug method to list available pin elements
-    _debugListPinElements() {
-      const pinElements = Array.from(document.querySelectorAll('[id*="__"]')).filter(el => 
-        el.id.startsWith('outlet__') || el.id.startsWith('inlet__')
-      );
-      return pinElements.map(el => ({ id: el.id, exists: true }));
-    },
-
-    // Event Listeners Setup
     _setupEventListeners() {
       // Mouse events for connection creation
       document.body.addEventListener('mousedown', this.handleMouseDown, true);
       document.body.addEventListener('mousemove', this.handleMouseMove, true);
       document.body.addEventListener('mouseup', this.handleMouseUp, true);
     },
+
+    _setupObservers() {
+      // Mutation observer for node position changes
+      this.mutationObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+          if (mutation.attributeName === 'style') {
+            const nodeElement = mutation.target;
+            const nodeId = nodeElement.dataset.nodeId;
+            
+            // Only process style changes on node containers, not on children
+            if (nodeId && nodeElement.hasAttribute('data-node-id')) {
+                /*
+                console.log(`🔍 Style mutation detected on node ${nodeId}:`, {
+                    oldValue: mutation.oldValue,
+                    currentStyle: nodeElement.style.cssText,
+                    isDragging: this.connectionState.isDragging,
+                    hasLeftTop: nodeElement.style.left || nodeElement.style.top
+                });
+                */
+
+              // Only process if the style change actually includes position properties
+              const styleText = nodeElement.style.cssText;
+              if (styleText.includes('left:') || styleText.includes('top:')) {
+                this.updateConnectionsForNode(nodeId);
+                this._emitNodePositionChanged(nodeElement, nodeId);
+              } else {
+                //console.log(`🚫 Skipping style mutation for ${nodeId} - no position changes detected`);
+              }
+            }
+          }
+        });
+      });
+    },
+
+    _setupZoomPanListener() {
+      // Listen for zoom/pan state changes from the zoom container
+      this.handleZoomPanUpdate = (event) => {
+        const { zoom, panX, panY, containerId, isDragging } = event.detail;
+        
+        // Update our local zoom state
+        this.zoomState = { zoom, panX, panY, isDragging };
+        
+        console.log('🔍 GraphCanvas received zoom/pan update:', this.zoomState);
+        
+        // Update all connections when zoom/pan changes
+        // Note: This is throttled in the zoom container, so we don't need additional throttling
+        this.updateAllConnections();
+      };
+      
+      document.addEventListener('zoom-pan-state', this.handleZoomPanUpdate);
+    },
+
     
-    // Canvas Click Handler
+    _setupHoverObserver(nodeElement) {
+      const lodElement = nodeElement.querySelector('.zoom-pan-lod0');
+      if (!lodElement) return;
+      
+      const nodeId = nodeElement.getAttribute('data-node-id');
+      if (!nodeId) return;
+      
+      const scheduleConnectionUpdates = () => {
+        // Immediate update
+        this.updateConnectionsForNode(nodeId);
+        
+        // Clear any existing animation timers
+        if (nodeElement._animationTimers) {
+          nodeElement._animationTimers.forEach(timer => clearTimeout(timer));
+        }
+        nodeElement._animationTimers = [];
+        
+        // Schedule additional updates during animations
+        for (let i = 1; i <= 5; i++) {
+          const delay = (200 / 5) * i; // 40ms intervals
+          const timer = setTimeout(() => {
+            this.updateConnectionsForNode(nodeId);
+          }, delay);
+          nodeElement._animationTimers.push(timer);
+        }
+      };
+      
+      lodElement.addEventListener('mouseenter', scheduleConnectionUpdates);
+      lodElement.addEventListener('mouseleave', scheduleConnectionUpdates);
+    },
+
+    _cleanupEventListeners() {
+      document.body.removeEventListener('mousedown', this.handleMouseDown, true);
+      document.body.removeEventListener('mousemove', this.handleMouseMove, true);
+      document.body.removeEventListener('mouseup', this.handleMouseUp, true);
+    },
+
+    _cleanupZoomPanListener() {
+      if (this.handleZoomPanUpdate) {
+        document.removeEventListener('zoom-pan-state', this.handleZoomPanUpdate);
+        this.handleZoomPanUpdate = null;
+      }
+    },
+    
+    _cleanupObservers() {
+      if (this.mutationObserver) {
+        this.mutationObserver.disconnect();
+        this.mutationObserver = null;
+      }
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect();
+        this.resizeObserver = null;
+      }
+    },
+
+    // =============================================================================
+    // PRIMARY EVENT HANDLERS
+    // =============================================================================
+
+    handleMouseDown(e) {
+      // Store click time for distinguishing clicks from drags
+      const clickTime = Date.now();
+      this.selectionState.lastClickTime = clickTime;
+      
+      // Check for connection pin first
+      const pin = e.target.closest('.connection-pin');
+      if (pin) {
+        this._startConnectionDrag(e, pin);
+        return;
+      }
+      
+      // Check for node dragging/selection - look for node container
+      const nodeElement = e.target.closest('[data-node-id]');
+      if (nodeElement && !e.target.closest('.connection-pin')) {
+        const nodeId = nodeElement.dataset.nodeId;
+        if (nodeId) {
+          // Handle selection on mouse down (before potential drag)
+          this._handleNodeSelection(e, nodeId);
+          this._startNodeDrag(e, nodeElement);
+          return;
+        }
+      }
+    },
+
+    handleMouseMove(e) {
+      // Handle connection dragging
+      if (this.connectionState.isDragging && this.connectionState.tempPath) {
+        this._handleConnectionDragMove(e);
+        return;
+      }
+      
+      // Handle node dragging
+      if (this.nodeDragState.isDragging && this.nodeDragState.draggedNode) {
+        this._handleNodeDragMove(e);
+        return;
+      }
+    },
+
+    handleMouseUp(e) {
+      // Handle connection drag end
+      if (this.connectionState.isDragging) {
+        this._handleConnectionDragEnd(e);
+        return;
+      }
+      
+      // Handle node drag end
+      if (this.nodeDragState.isDragging) {
+        this._handleNodeDragEnd(e);
+        return;
+      }
+    },
+
     handleCanvasClick(event) {
       console.log('Canvas click event target:', event.target.tagName, event.target.id);
       
@@ -257,271 +393,10 @@ export default {
         });
       }
     },
-    
-    _cleanupEventListeners() {
-      document.body.removeEventListener('mousedown', this.handleMouseDown, true);
-      document.body.removeEventListener('mousemove', this.handleMouseMove, true);
-      document.body.removeEventListener('mouseup', this.handleMouseUp, true);
-    },
 
-    // Update connection visuals based on props changes
-    _updateConnectionsFromProps(newConnections, oldConnections) {
-      console.log('🔗 Vue updating connections from props:', { new: newConnections.length, old: oldConnections.length });
-      
-      // Add a small delay to ensure DOM elements are ready
-      this.$nextTick(() => {
-        this._updateConnectionsFromPropsDelayed(newConnections, oldConnections);
-      });
-    },
-    
-    _updateConnectionsFromPropsDelayed(newConnections, oldConnections) {
-      console.log('🔗 Vue updating connections from props (delayed):', { new: newConnections.length, old: oldConnections.length });
-      
-      // Convert arrays to Maps for easier comparison
-      const oldConnectionMap = new Map(oldConnections.map(c => [c.id, c]));
-      const newConnectionMap = new Map(newConnections.map(c => [c.id, c]));
-      
-      // Remove connections that are no longer in the new list
-      for (const [connectionId, connectionData] of oldConnectionMap) {
-        if (!newConnectionMap.has(connectionId)) {
-          console.log('🔗 Vue removing connection from props:', connectionId);
-          this._removeConnectionVisualInternal(connectionId);
-        }
-      }
-      
-      // Add connections that are new in the list
-      for (const [connectionId, connectionData] of newConnectionMap) {
-        if (!oldConnectionMap.has(connectionId)) {
-          console.log('🔗 Vue adding connection from props:', connectionId);
-          this._addConnectionVisualInternal(connectionData);
-        }
-      }
-    },
-
-    // Shared internal method for creating connection visuals
-    _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, logPrefix = '', connectionData = null) {
-      // Generate pin IDs in the expected format
-      const startPinId = `outlet__${outputNodeId}__${outletPinId}`;
-      const endPinId = `inlet__${inputNodeId}__${inletPinId}`;
-      
-      console.log(`${logPrefix}Looking for pins:`, { startPinId, endPinId, pathId });
-      
-      const startPin = document.getElementById(startPinId);
-      const endPin = document.getElementById(endPinId);
-      
-      if (!startPin || !endPin) {
-        console.error(`🔗 Vue${logPrefix} could not find pins:`, {
-          startPinId: startPinId,
-          endPinId: endPinId,
-          startPinExists: !!startPin,
-          endPinExists: !!endPin
-        });
-        
-        // List all available pins for debugging
-        const allPins = document.querySelectorAll('.connection-pin');
-        console.log('Available pins:', Array.from(allPins).map(p => p.id));
-        
-        return { success: false, pathElement: null };
-      }
-      
-      // Check if path already exists
-      if (this.connectionPaths.has(pathId)) {
-        console.log(`🔗 Vue${logPrefix} connection already exists:`, pathId);
-        return { success: false, pathElement: null };
-      }
-      
-      // Create SVG path element
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('id', pathId);
-      path.setAttribute('stroke', '#4A90E2'); // Default blue, will be updated by updateConnectionPath
-      path.setAttribute('stroke-width', '2');
-      path.setAttribute('fill', 'none');
-      path.style.pointerEvents = 'stroke';
-      path.style.cursor = 'pointer';
-      
-      this.$refs.svg.appendChild(path);
-      this.connectionPaths.set(pathId, path);
-      
-      console.log(`🔗 Vue${logPrefix} created path element:`, pathId);
-      
-      // Add click handler for connection selection
-      console.log(`🔗 Adding click event listener to${logPrefix} path:`, pathId, path);
-      console.log(`🔗${logPrefix} path element details:`, { 
-        tagName: path.tagName,
-        id: path.id,
-        parentElement: path.parentElement?.tagName,
-        style: path.style.pointerEvents,
-        computedPointerEvents: window.getComputedStyle(path).pointerEvents
-      });
-      
-      path.addEventListener('click', (e) => {
-        console.log(`🔗 Connection path clicked${logPrefix}!`, pathId);
-        console.log(`🔗 Path click event details${logPrefix}:`, { 
-          target: e.target, 
-          currentTarget: e.currentTarget,
-          pathId: pathId,
-          bubbles: e.bubbles,
-          preventDefault: e.defaultPrevented 
-        });
-        e.preventDefault();
-        e.stopPropagation();
-        this._handleConnectionSelection(e, pathId);
-        
-        // Emit connection-clicked event with appropriate data format
-        if (connectionData) {
-          // Internal connections pass connectionData
-          this.$emit('connection-clicked', { pathId, connectionData });
-        } else {
-          // Public API connections pass edgeData (reconstructed)
-          const edgeData = {
-            outputNodeId,
-            outletPinId,
-            inputNodeId,
-            inletPinId
-          };
-          this.$emit('connection-clicked', { pathId, edgeData });
-        }
-      });
-      
-      console.log(`🔗${logPrefix} event listener added to path:`, pathId);
-      
-      // Update path after a brief delay to ensure nodes are rendered
-      this.$nextTick(() => {
-        this.updateConnectionPath(path);
-      });
-      
-      return { success: true, pathElement: path };
-    },
-
-    // Internal method to add connection visual (used by props watcher)
-    _addConnectionVisualInternal(connectionData) {
-      const { id, outputNodeId, outletPinId, inputNodeId, inletPinId } = connectionData;
-      
-      const result = this._createConnectionVisual(
-        outputNodeId, 
-        outletPinId, 
-        inputNodeId, 
-        inletPinId, 
-        id, // Use the connection ID directly as path ID (Format 2)
-        ' (internal)', // Log prefix
-        connectionData // Pass connectionData for event emission
-      );
-      
-      return result.success;
-    },
-
-    // Internal method to remove connection visual (used by props watcher)
-    _removeConnectionVisualInternal(connectionId) {
-      // Use the connection ID (Format 2) to find the path
-      const path = this.connectionPaths.get(connectionId);
-      
-      if (path) {
-        path.remove();
-        this.connectionPaths.delete(connectionId);
-        console.log('🔗 Vue (internal) removed path element:', connectionId);
-        return true;
-      } else {
-        console.log('🔗 Vue (internal) path not found for removal:', connectionId);
-        return false;
-      }
-    },
-
-    // Zoom/Pan Event Listener Setup
-    _setupZoomPanListener() {
-      // Listen for zoom/pan state changes from the zoom container
-      this.handleZoomPanUpdate = (event) => {
-        const { zoom, panX, panY, containerId, isDragging } = event.detail;
-        
-        // Update our local zoom state
-        this.zoomState = { zoom, panX, panY, isDragging };
-        
-        console.log('🔍 GraphCanvas received zoom/pan update:', this.zoomState);
-        
-        // Update all connections when zoom/pan changes
-        // Note: This is throttled in the zoom container, so we don't need additional throttling
-        this.updateAllConnections();
-      };
-      
-      document.addEventListener('zoom-pan-state', this.handleZoomPanUpdate);
-    },
-
-    _cleanupZoomPanListener() {
-      if (this.handleZoomPanUpdate) {
-        document.removeEventListener('zoom-pan-state', this.handleZoomPanUpdate);
-        this.handleZoomPanUpdate = null;
-      }
-    },
-    
-    // Observer Setup
-    _setupObservers() {
-      // Mutation observer for node position changes
-      this.mutationObserver = new MutationObserver((mutations) => {
-        mutations.forEach(mutation => {
-          if (mutation.attributeName === 'style') {
-            const nodeElement = mutation.target;
-            const nodeId = nodeElement.dataset.nodeId;
-            
-            // Only process style changes on node containers, not on children
-            if (nodeId && nodeElement.hasAttribute('data-node-id')) {
-                /*
-                console.log(`🔍 Style mutation detected on node ${nodeId}:`, {
-                    oldValue: mutation.oldValue,
-                    currentStyle: nodeElement.style.cssText,
-                    isDragging: this.connectionState.isDragging,
-                    hasLeftTop: nodeElement.style.left || nodeElement.style.top
-                });
-                */
-
-              // Only process if the style change actually includes position properties
-              const styleText = nodeElement.style.cssText;
-              if (styleText.includes('left:') || styleText.includes('top:')) {
-                this.updateConnectionsForNode(nodeId);
-                this._emitNodePositionChanged(nodeElement, nodeId);
-              } else {
-                //console.log(`🚫 Skipping style mutation for ${nodeId} - no position changes detected`);
-              }
-            }
-          }
-        });
-      });
-    },
-    
-    _cleanupObservers() {
-      if (this.mutationObserver) {
-        this.mutationObserver.disconnect();
-        this.mutationObserver = null;
-      }
-      if (this.resizeObserver) {
-        this.resizeObserver.disconnect();
-        this.resizeObserver = null;
-      }
-    },
-    
-    // Connection Drag Handlers
-    handleMouseDown(e) {
-      // Store click time for distinguishing clicks from drags
-      const clickTime = Date.now();
-      this.selectionState.lastClickTime = clickTime;
-      
-      // Check for connection pin first
-      const pin = e.target.closest('.connection-pin');
-      if (pin) {
-        this._startConnectionDrag(e, pin);
-        return;
-      }
-      
-      // Check for node dragging/selection - look for node container
-      const nodeElement = e.target.closest('[data-node-id]');
-      if (nodeElement && !e.target.closest('.connection-pin')) {
-        const nodeId = nodeElement.dataset.nodeId;
-        if (nodeId) {
-          // Handle selection on mouse down (before potential drag)
-          this._handleNodeSelection(e, nodeId);
-          this._startNodeDrag(e, nodeElement);
-          return;
-        }
-      }
-    },
+    // =============================================================================
+    // CONNECTION DRAG SYSTEM
+    // =============================================================================
 
     _startConnectionDrag(e, pin) {
       e.preventDefault();
@@ -552,6 +427,80 @@ export default {
       pin.style.transform = 'scale(1.8)';
       pin.style.zIndex = '10003';
     },
+    
+    _handleConnectionDragMove(e) {
+      const startPos = this.getPinPosition(this.connectionState.startPin);
+      const mousePos = this.transformScreenToSVG(e.clientX, e.clientY);
+      const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
+      
+      const pathData = this.createBezierPath(startPos, mousePos, offsetDir);
+      this.connectionState.tempPath.setAttribute('d', pathData);
+      
+      // Highlight valid drop targets
+      const targetPin = e.target.closest('.connection-pin');
+      document.querySelectorAll('.connection-pin').forEach(pin => {
+        pin.classList.remove('connection-valid', 'connection-invalid');
+        if (pin !== this.connectionState.startPin) {
+          if (targetPin === pin) {
+            if (this.isValidConnection(this.connectionState.startPin, pin)) {
+              pin.classList.add('connection-valid');
+            } else {
+              pin.classList.add('connection-invalid');
+            }
+          }
+        }
+      });
+    },
+
+    _handleConnectionDragEnd(e) {
+      const endPin = e.target.closest('.connection-pin');
+      
+      // Cleanup temporary visual elements
+      if (this.connectionState.tempPath) {
+        this.connectionState.tempPath.remove();
+        this.connectionState.tempPath = null;
+      }
+      
+      if (this.connectionState.startPin) {
+        this.connectionState.startPin.style.boxShadow = '';
+        this.connectionState.startPin.style.transform = '';
+        this.connectionState.startPin.style.zIndex = '';
+      }
+      
+      // Clear highlighting
+      document.querySelectorAll('.connection-pin').forEach(pin => {
+        pin.classList.remove('connection-valid', 'connection-invalid');
+      });
+      
+      // Create connection if valid
+      if (endPin && this.isValidConnection(this.connectionState.startPin, endPin)) {
+        let startData = this.connectionState.startPin.dataset;
+        let endData = endPin.dataset;
+        
+        // Maintain outlet->inlet convention
+        if (endPin.dataset.pinDir === 'outlet') {
+          endData = this.connectionState.startPin.dataset;
+          startData = endPin.dataset;
+        }
+        
+        // Emit connection created event
+        this.$emit('connection-created', {
+          startNodeId: startData.nodeId,
+          startPort: startData.pinId,
+          endNodeId: endData.nodeId,
+          endPort: endData.pinId
+        });
+      }
+      
+      // Reset state
+      this.connectionState.isDragging = false;
+      this.connectionState.startPin = null;
+      this.connectionState.lastDragEndTime = Date.now(); // Track when drag ended
+    },
+
+    // =============================================================================
+    // NODE DRAG SYSTEM
+    // =============================================================================
 
     _startNodeDrag(e, nodeElement) {
       e.preventDefault();
@@ -578,44 +527,6 @@ export default {
       
       // Don't emit drag start yet - wait for actual movement
       // Don't add visual feedback yet - wait for actual movement
-    },
-    
-    handleMouseMove(e) {
-      // Handle connection dragging
-      if (this.connectionState.isDragging && this.connectionState.tempPath) {
-        this._handleConnectionDragMove(e);
-        return;
-      }
-      
-      // Handle node dragging
-      if (this.nodeDragState.isDragging && this.nodeDragState.draggedNode) {
-        this._handleNodeDragMove(e);
-        return;
-      }
-    },
-
-    _handleConnectionDragMove(e) {
-      const startPos = this.getPinPosition(this.connectionState.startPin);
-      const mousePos = this.transformScreenToSVG(e.clientX, e.clientY);
-      const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
-      
-      const pathData = this.createBezierPath(startPos, mousePos, offsetDir);
-      this.connectionState.tempPath.setAttribute('d', pathData);
-      
-      // Highlight valid drop targets
-      const targetPin = e.target.closest('.connection-pin');
-      document.querySelectorAll('.connection-pin').forEach(pin => {
-        pin.classList.remove('connection-valid', 'connection-invalid');
-        if (pin !== this.connectionState.startPin) {
-          if (targetPin === pin) {
-            if (this.isValidConnection(this.connectionState.startPin, pin)) {
-              pin.classList.add('connection-valid');
-            } else {
-              pin.classList.add('connection-invalid');
-            }
-          }
-        }
-      });
     },
 
     _handleNodeDragMove(e) {
@@ -681,66 +592,6 @@ export default {
       //console.log(`Node ${nodeId} dragged to: (${constrainedX}, ${constrainedY}) [zoom: ${zoomFactor}]`);
     },
     
-    handleMouseUp(e) {
-      // Handle connection drag end
-      if (this.connectionState.isDragging) {
-        this._handleConnectionDragEnd(e);
-        return;
-      }
-      
-      // Handle node drag end
-      if (this.nodeDragState.isDragging) {
-        this._handleNodeDragEnd(e);
-        return;
-      }
-    },
-
-    _handleConnectionDragEnd(e) {
-      const endPin = e.target.closest('.connection-pin');
-      
-      // Cleanup temporary visual elements
-      if (this.connectionState.tempPath) {
-        this.connectionState.tempPath.remove();
-        this.connectionState.tempPath = null;
-      }
-      
-      if (this.connectionState.startPin) {
-        this.connectionState.startPin.style.boxShadow = '';
-        this.connectionState.startPin.style.transform = '';
-        this.connectionState.startPin.style.zIndex = '';
-      }
-      
-      // Clear highlighting
-      document.querySelectorAll('.connection-pin').forEach(pin => {
-        pin.classList.remove('connection-valid', 'connection-invalid');
-      });
-      
-      // Create connection if valid
-      if (endPin && this.isValidConnection(this.connectionState.startPin, endPin)) {
-        let startData = this.connectionState.startPin.dataset;
-        let endData = endPin.dataset;
-        
-        // Maintain outlet->inlet convention
-        if (endPin.dataset.pinDir === 'outlet') {
-          endData = this.connectionState.startPin.dataset;
-          startData = endPin.dataset;
-        }
-        
-        // Emit connection created event
-        this.$emit('connection-created', {
-          startNodeId: startData.nodeId,
-          startPort: startData.pinId,
-          endNodeId: endData.nodeId,
-          endPort: endData.pinId
-        });
-      }
-      
-      // Reset state
-      this.connectionState.isDragging = false;
-      this.connectionState.startPin = null;
-      this.connectionState.lastDragEndTime = Date.now(); // Track when drag ended
-    },
-
     _handleNodeDragEnd(e) {
       const nodeElement = this.nodeDragState.draggedNode;
       const nodeId = nodeElement.dataset.nodeId;
@@ -798,8 +649,12 @@ export default {
       this.nodeDragState.dragOffset = { x: 0, y: 0 };
       this.nodeDragState.hasActuallyMoved = false;
     },
-    
-    // Connection Management Methods
+
+
+    // =============================================================================
+    // CONNECTION MANAGEMENT - PUBLIC API
+    // =============================================================================
+
     addConnectionVisual(edgeData) {
       console.log('🔗 Vue addConnectionVisual called with:', edgeData);
       const { outputNodeId, outletPinId, inputNodeId, inletPinId } = edgeData;
@@ -935,8 +790,177 @@ export default {
         }
       });
     },
+ 
+    // =============================================================================
+    // CONNECTION MANAGEMENT - INTERNAL
+    // =============================================================================
+
+    // Shared internal method for creating connection visuals
+    _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, logPrefix = '', connectionData = null) {
+      // Generate pin IDs in the expected format
+      const startPinId = `outlet__${outputNodeId}__${outletPinId}`;
+      const endPinId = `inlet__${inputNodeId}__${inletPinId}`;
+      
+      console.log(`${logPrefix}Looking for pins:`, { startPinId, endPinId, pathId });
+      
+      const startPin = document.getElementById(startPinId);
+      const endPin = document.getElementById(endPinId);
+      
+      if (!startPin || !endPin) {
+        console.error(`🔗 Vue${logPrefix} could not find pins:`, {
+          startPinId: startPinId,
+          endPinId: endPinId,
+          startPinExists: !!startPin,
+          endPinExists: !!endPin
+        });
+        
+        // List all available pins for debugging
+        const allPins = document.querySelectorAll('.connection-pin');
+        console.log('Available pins:', Array.from(allPins).map(p => p.id));
+        
+        return { success: false, pathElement: null };
+      }
+      
+      // Check if path already exists
+      if (this.connectionPaths.has(pathId)) {
+        console.log(`🔗 Vue${logPrefix} connection already exists:`, pathId);
+        return { success: false, pathElement: null };
+      }
+      
+      // Create SVG path element
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('id', pathId);
+      path.setAttribute('stroke', '#4A90E2'); // Default blue, will be updated by updateConnectionPath
+      path.setAttribute('stroke-width', '2');
+      path.setAttribute('fill', 'none');
+      path.style.pointerEvents = 'stroke';
+      path.style.cursor = 'pointer';
+      
+      this.$refs.svg.appendChild(path);
+      this.connectionPaths.set(pathId, path);
+      
+      console.log(`🔗 Vue${logPrefix} created path element:`, pathId);
+      
+      // Add click handler for connection selection
+      console.log(`🔗 Adding click event listener to${logPrefix} path:`, pathId, path);
+      console.log(`🔗${logPrefix} path element details:`, { 
+        tagName: path.tagName,
+        id: path.id,
+        parentElement: path.parentElement?.tagName,
+        style: path.style.pointerEvents,
+        computedPointerEvents: window.getComputedStyle(path).pointerEvents
+      });
+      
+      path.addEventListener('click', (e) => {
+        console.log(`🔗 Connection path clicked${logPrefix}!`, pathId);
+        console.log(`🔗 Path click event details${logPrefix}:`, { 
+          target: e.target, 
+          currentTarget: e.currentTarget,
+          pathId: pathId,
+          bubbles: e.bubbles,
+          preventDefault: e.defaultPrevented 
+        });
+        e.preventDefault();
+        e.stopPropagation();
+        this._handleConnectionSelection(e, pathId);
+        
+        // Emit connection-clicked event with appropriate data format
+        if (connectionData) {
+          // Internal connections pass connectionData
+          this.$emit('connection-clicked', { pathId, connectionData });
+        } else {
+          // Public API connections pass edgeData (reconstructed)
+          const edgeData = {
+            outputNodeId,
+            outletPinId,
+            inputNodeId,
+            inletPinId
+          };
+          this.$emit('connection-clicked', { pathId, edgeData });
+        }
+      });
+      
+      console.log(`🔗${logPrefix} event listener added to path:`, pathId);
+      
+      // Update path after a brief delay to ensure nodes are rendered
+      this.$nextTick(() => {
+        this.updateConnectionPath(path);
+      });
+      
+      return { success: true, pathElement: path };
+    },
+
+    // Internal method to add connection visual (used by props watcher)
+    _addConnectionVisualInternal(connectionData) {
+      const { id, outputNodeId, outletPinId, inputNodeId, inletPinId } = connectionData;
+      
+      const result = this._createConnectionVisual(
+        outputNodeId, 
+        outletPinId, 
+        inputNodeId, 
+        inletPinId, 
+        id, // Use the connection ID directly as path ID (Format 2)
+        ' (internal)', // Log prefix
+        connectionData // Pass connectionData for event emission
+      );
+      
+      return result.success;
+    },
+
+    // Internal method to remove connection visual (used by props watcher)
+    _removeConnectionVisualInternal(connectionId) {
+      // Use the connection ID (Format 2) to find the path
+      const path = this.connectionPaths.get(connectionId);
+      
+      if (path) {
+        path.remove();
+        this.connectionPaths.delete(connectionId);
+        console.log('🔗 Vue (internal) removed path element:', connectionId);
+        return true;
+      } else {
+        console.log('🔗 Vue (internal) path not found for removal:', connectionId);
+        return false;
+      }
+    },
+
+    // Update connection visuals based on props changes
+    _updateConnectionsFromProps(newConnections, oldConnections) {
+      console.log('🔗 Vue updating connections from props:', { new: newConnections.length, old: oldConnections.length });
+      
+      // Add a small delay to ensure DOM elements are ready
+      this.$nextTick(() => {
+        this._updateConnectionsFromPropsDelayed(newConnections, oldConnections);
+      });
+    },
     
-    // Node Observer Management
+    _updateConnectionsFromPropsDelayed(newConnections, oldConnections) {
+      console.log('🔗 Vue updating connections from props (delayed):', { new: newConnections.length, old: oldConnections.length });
+      
+      // Convert arrays to Maps for easier comparison
+      const oldConnectionMap = new Map(oldConnections.map(c => [c.id, c]));
+      const newConnectionMap = new Map(newConnections.map(c => [c.id, c]));
+      
+      // Remove connections that are no longer in the new list
+      for (const [connectionId, connectionData] of oldConnectionMap) {
+        if (!newConnectionMap.has(connectionId)) {
+          console.log('🔗 Vue removing connection from props:', connectionId);
+          this._removeConnectionVisualInternal(connectionId);
+        }
+      }
+      
+      // Add connections that are new in the list
+      for (const [connectionId, connectionData] of newConnectionMap) {
+        if (!oldConnectionMap.has(connectionId)) {
+          console.log('🔗 Vue adding connection from props:', connectionId);
+          this._addConnectionVisualInternal(connectionData);
+        }
+      }
+    },
+
+    // =============================================================================
+    // NODE OBSERVER SYSTEM
+    // =============================================================================
+    
     addNodeObserver(nodeId) {
       if (!this.mutationObserver || !nodeId) return;
       
@@ -982,39 +1006,267 @@ export default {
         console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found for removal`);
       }
     },
-    
-    _setupHoverObserver(nodeElement) {
-      const lodElement = nodeElement.querySelector('.zoom-pan-lod0');
-      if (!lodElement) return;
+
+    _emitNodePositionChanged(nodeElement, nodeId) {
+      // Don't emit position changes when dragging connections to avoid interference
+      if (this.connectionState.isDragging) {
+        console.log(`🚫 Skipping node position change for ${nodeId} during connection drag`);
+        return;
+      }
       
-      const nodeId = nodeElement.getAttribute('data-node-id');
-      if (!nodeId) return;
+      // Don't emit during active node dragging (we handle this in _handleNodeDragEnd)
+      if (this.nodeDragState.isDragging && this.nodeDragState.draggedNode === nodeElement) {
+        console.log(`🚫 Skipping node position change for ${nodeId} during node drag - will emit on drag end`);
+        return;
+      }
       
-      const scheduleConnectionUpdates = () => {
-        // Immediate update
-        this.updateConnectionsForNode(nodeId);
+      // Also skip if we recently finished a connection drag (timing protection)
+      const now = Date.now();
+      if (this.connectionState.lastDragEndTime && (now - this.connectionState.lastDragEndTime) < 500) {
+        console.log(`🚫 Skipping node position change for ${nodeId} - too soon after connection drag end`);
+        return;
+      }
+      
+      // Debounce position change notifications
+      clearTimeout(nodeElement._positionTimer);
+      nodeElement._positionTimer = setTimeout(() => {
+        const rect = nodeElement.getBoundingClientRect();
+        const containerRect = this.$refs.nodeContainer.getBoundingClientRect();
+        const relativeX = rect.left - containerRect.left;
+        const relativeY = rect.top - containerRect.top;
         
-        // Clear any existing animation timers
-        if (nodeElement._animationTimers) {
-          nodeElement._animationTimers.forEach(timer => clearTimeout(timer));
-        }
-        nodeElement._animationTimers = [];
+        // Debug position calculation
+        const style = nodeElement.style;
+        const styleLeft = parseInt(style.left) || 0;
+        const styleTop = parseInt(style.top) || 0;
         
-        // Schedule additional updates during animations
-        for (let i = 1; i <= 5; i++) {
-          const delay = (200 / 5) * i; // 40ms intervals
-          const timer = setTimeout(() => {
-            this.updateConnectionsForNode(nodeId);
-          }, delay);
-          nodeElement._animationTimers.push(timer);
+        // Validate position - skip if it's (0,0) and we have no good reason for it to be there
+        if (styleLeft === 0 && styleTop === 0) {
+          console.log(`⚠️ Warning: Node ${nodeId} position is (0,0) - this might be erroneous. Skipping position update.`);
+          return;
         }
-      };
-      
-      lodElement.addEventListener('mouseenter', scheduleConnectionUpdates);
-      lodElement.addEventListener('mouseleave', scheduleConnectionUpdates);
+        
+        console.log(`🔍 Node position debug for ${nodeId}:`, {
+          stylePosition: { left: styleLeft, top: styleTop },
+          calculatedPosition: { x: relativeX, y: relativeY },
+          rectLeft: rect.left,
+          rectTop: rect.top,
+          containerLeft: containerRect.left,
+          containerTop: containerRect.top
+        });
+        
+        // Use the style position directly instead of calculated position
+        // as it's more reliable for absolute positioned elements
+        this.$emit('node-position-changed', {
+          nodeId,
+          x: styleLeft,
+          y: styleTop
+        });
+      }, 100);
     },
-    
+
+    // =============================================================================
+    // SELECTION SYSTEM
+    // =============================================================================
+
+    clearSelection() {
+      // Clear visual selection for all nodes
+      this.selectionState.selectedNodes.forEach(nodeId => {
+        this._updateNodeVisualSelection(nodeId, false);
+      });
+      
+      // Clear visual selection for all connections
+      this.selectionState.selectedConnections.forEach(pathId => {
+        this._updateConnectionVisualSelection(pathId, false);
+      });
+      
+      this.selectionState.selectedNodes.clear();
+      this.selectionState.selectedConnections.clear();
+      
+      console.log('🎯 Cleared all selections');
+    },
+
+    getSelection() {
+      return {
+        selectedNodes: Array.from(this.selectionState.selectedNodes),
+        selectedConnections: Array.from(this.selectionState.selectedConnections)
+      };
+    },
+
+    setSelection(selection) {
+      this.clearSelection();
+      
+      if (selection.selectedNodes) {
+        selection.selectedNodes.forEach(nodeId => {
+          this.selectNode(nodeId, true);
+        });
+      }
+      
+      if (selection.selectedConnections) {
+        selection.selectedConnections.forEach(pathId => {
+          this.selectConnection(pathId, true);
+        });
+      }
+    },
+
+    // =============================================================================
+    // NODE SELECTION SYSTEM
+    // =============================================================================
+
+    // Selection Management Methods
+    _handleNodeSelection(e, nodeId) {
+      const multiSelect = e.ctrlKey || e.metaKey;
+      
+      if (multiSelect) {
+        // Toggle selection
+        if (this.selectionState.selectedNodes.has(nodeId)) {
+          this.deselectNode(nodeId);
+        } else {
+          this.selectNode(nodeId, true);
+        }
+      } else {
+        // Clear other selections and select this node
+        this.clearSelection();
+        this.selectNode(nodeId, false);
+      }
+      
+      // Emit selection change to Python
+      this.$emit('selection-changed', {
+        selectedNodes: Array.from(this.selectionState.selectedNodes),
+        selectedConnections: Array.from(this.selectionState.selectedConnections)
+      });
+    },
+
+    selectNode(nodeId, multiSelect = false) {
+      if (!multiSelect) {
+        this.clearSelection();
+      }
+      
+      this.selectionState.selectedNodes.add(nodeId);
+      this._updateNodeVisualSelection(nodeId, true);
+      
+      console.log(`🎯 Selected node: ${nodeId}`);
+    },
+
+    deselectNode(nodeId) {
+      this.selectionState.selectedNodes.delete(nodeId);
+      this._updateNodeVisualSelection(nodeId, false);
+      
+      console.log(`🎯 Deselected node: ${nodeId}`);
+    },
+
+    _updateNodeVisualSelection(nodeId, selected) {
+      const nodeElement = document.getElementById(nodeId);
+      if (nodeElement) {
+        if (selected) {
+          nodeElement.classList.add('node-selected');
+        } else {
+          nodeElement.classList.remove('node-selected');
+        }
+      }
+    },
+
+    // =============================================================================
+    // CONNECTION SELECTION SYSTEM
+    // =============================================================================
+
+    _handleConnectionSelection(e, pathId) {
+      console.log('🎯 _handleConnectionSelection called with pathId:', pathId);
+      e.preventDefault();
+      const multiSelect = e.ctrlKey || e.metaKey;
+      
+      if (multiSelect) {
+        // Toggle selection
+        if (this.selectionState.selectedConnections.has(pathId)) {
+          this.deselectConnection(pathId);
+        } else {
+          this.selectConnection(pathId, true);
+        }
+      } else {
+        // Clear other selections and select this connection
+        this.clearSelection();
+        this.selectConnection(pathId, false);
+      }
+      
+      // Emit selection change to Python
+      this.$emit('selection-changed', {
+        selectedNodes: Array.from(this.selectionState.selectedNodes),
+        selectedConnections: Array.from(this.selectionState.selectedConnections)
+      });
+    },
+
+    selectConnection(pathId, multiSelect = false) {
+      if (!multiSelect) {
+        this.clearSelection();
+      }
+      
+      this.selectionState.selectedConnections.add(pathId);
+      this._updateConnectionVisualSelection(pathId, true);
+      
+      console.log(`🎯 Selected connection: ${pathId}`);
+    },
+
+    deselectConnection(pathId) {
+      this.selectionState.selectedConnections.delete(pathId);
+      this._updateConnectionVisualSelection(pathId, false);
+      
+      console.log(`🎯 Deselected connection: ${pathId}`);
+    },
+
+    _updateConnectionVisualSelection(pathId, selected) {
+      console.log('🎨 _updateConnectionVisualSelection called:', { pathId, selected });
+      const pathElement = this.connectionPaths.get(pathId);
+      console.log('🎨 Found path element:', !!pathElement, pathElement?.id);
+      if (pathElement) {
+        if (selected) {
+          pathElement.classList.add('connection-selected');
+          pathElement.style.strokeWidth = '4';
+          pathElement.style.stroke = '#FF6B35';
+          console.log('🎨 Applied selection styles to path:', pathId);
+        } else {
+          pathElement.classList.remove('connection-selected');
+          pathElement.style.strokeWidth = '2';
+          pathElement.style.stroke = '#4A90E2';
+          console.log('🎨 Removed selection styles from path:', pathId);
+        }
+      } else {
+        console.warn('🎨 Path element not found in connectionPaths map for pathId:', pathId);
+        console.log('🎨 Available paths:', Array.from(this.connectionPaths.keys()));
+      }
+    },
+
+    // =============================================================================
+    // UTILITY & HELPER METHODS
+    // =============================================================================
+
     // Utility Methods
+    parseConnectionId(connectionId) {
+      /**
+       * Parse a connection ID into its components.
+       * Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
+       * Returns: { outletNodeId, outletPinId, inletNodeId, inletPinId }
+       */
+      const parts = connectionId.split('__');
+      if (parts.length !== 7) {
+        console.error(`Invalid connection ID format: ${connectionId}. Expected 7 parts, got ${parts.length}`);
+        return null;
+      }
+      
+      if (parts[0] !== 'connection' || parts[1] !== 'outlet' || parts[4] !== 'inlet') {
+        console.error(`Invalid connection ID structure: ${connectionId}`);
+        return null;
+      }
+      
+      return {
+        outletNodeId: parts[2],
+        outletPinId: parts[3], 
+        inletNodeId: parts[5],
+        inletPinId: parts[6],
+        outletPinFullId: `${parts[1]}__${parts[2]}__${parts[3]}`,  // outlet__node_id__pin_id
+        inletPinFullId: `${parts[4]}__${parts[5]}__${parts[6]}`    // inlet__node_id__pin_id
+      };
+    },
+
     getPinPosition(pinElement) {
       if (!pinElement) return { x: 0, y: 0 };
       
@@ -1122,221 +1374,17 @@ export default {
                    (startDir === 'inlet' && endDir === 'outlet');
       return valid;
     },
-    
-    _emitNodePositionChanged(nodeElement, nodeId) {
-      // Don't emit position changes when dragging connections to avoid interference
-      if (this.connectionState.isDragging) {
-        console.log(`🚫 Skipping node position change for ${nodeId} during connection drag`);
-        return;
-      }
-      
-      // Don't emit during active node dragging (we handle this in _handleNodeDragEnd)
-      if (this.nodeDragState.isDragging && this.nodeDragState.draggedNode === nodeElement) {
-        console.log(`🚫 Skipping node position change for ${nodeId} during node drag - will emit on drag end`);
-        return;
-      }
-      
-      // Also skip if we recently finished a connection drag (timing protection)
-      const now = Date.now();
-      if (this.connectionState.lastDragEndTime && (now - this.connectionState.lastDragEndTime) < 500) {
-        console.log(`🚫 Skipping node position change for ${nodeId} - too soon after connection drag end`);
-        return;
-      }
-      
-      // Debounce position change notifications
-      clearTimeout(nodeElement._positionTimer);
-      nodeElement._positionTimer = setTimeout(() => {
-        const rect = nodeElement.getBoundingClientRect();
-        const containerRect = this.$refs.nodeContainer.getBoundingClientRect();
-        const relativeX = rect.left - containerRect.left;
-        const relativeY = rect.top - containerRect.top;
-        
-        // Debug position calculation
-        const style = nodeElement.style;
-        const styleLeft = parseInt(style.left) || 0;
-        const styleTop = parseInt(style.top) || 0;
-        
-        // Validate position - skip if it's (0,0) and we have no good reason for it to be there
-        if (styleLeft === 0 && styleTop === 0) {
-          console.log(`⚠️ Warning: Node ${nodeId} position is (0,0) - this might be erroneous. Skipping position update.`);
-          return;
-        }
-        
-        console.log(`🔍 Node position debug for ${nodeId}:`, {
-          stylePosition: { left: styleLeft, top: styleTop },
-          calculatedPosition: { x: relativeX, y: relativeY },
-          rectLeft: rect.left,
-          rectTop: rect.top,
-          containerLeft: containerRect.left,
-          containerTop: containerRect.top
-        });
-        
-        // Use the style position directly instead of calculated position
-        // as it's more reliable for absolute positioned elements
-        this.$emit('node-position-changed', {
-          nodeId,
-          x: styleLeft,
-          y: styleTop
-        });
-      }, 100);
-    },
 
-    // Selection Management Methods
-    _handleNodeSelection(e, nodeId) {
-      const multiSelect = e.ctrlKey || e.metaKey;
-      
-      if (multiSelect) {
-        // Toggle selection
-        if (this.selectionState.selectedNodes.has(nodeId)) {
-          this.deselectNode(nodeId);
-        } else {
-          this.selectNode(nodeId, true);
-        }
-      } else {
-        // Clear other selections and select this node
-        this.clearSelection();
-        this.selectNode(nodeId, false);
-      }
-      
-      // Emit selection change to Python
-      this.$emit('selection-changed', {
-        selectedNodes: Array.from(this.selectionState.selectedNodes),
-        selectedConnections: Array.from(this.selectionState.selectedConnections)
-      });
-    },
+    // =============================================================================
+    // DEBUG METHODS
+    // =============================================================================
 
-    _handleConnectionSelection(e, pathId) {
-      console.log('🎯 _handleConnectionSelection called with pathId:', pathId);
-      e.preventDefault();
-      const multiSelect = e.ctrlKey || e.metaKey;
-      
-      if (multiSelect) {
-        // Toggle selection
-        if (this.selectionState.selectedConnections.has(pathId)) {
-          this.deselectConnection(pathId);
-        } else {
-          this.selectConnection(pathId, true);
-        }
-      } else {
-        // Clear other selections and select this connection
-        this.clearSelection();
-        this.selectConnection(pathId, false);
-      }
-      
-      // Emit selection change to Python
-      this.$emit('selection-changed', {
-        selectedNodes: Array.from(this.selectionState.selectedNodes),
-        selectedConnections: Array.from(this.selectionState.selectedConnections)
-      });
-    },
-
-    selectNode(nodeId, multiSelect = false) {
-      if (!multiSelect) {
-        this.clearSelection();
-      }
-      
-      this.selectionState.selectedNodes.add(nodeId);
-      this._updateNodeVisualSelection(nodeId, true);
-      
-      console.log(`🎯 Selected node: ${nodeId}`);
-    },
-
-    deselectNode(nodeId) {
-      this.selectionState.selectedNodes.delete(nodeId);
-      this._updateNodeVisualSelection(nodeId, false);
-      
-      console.log(`🎯 Deselected node: ${nodeId}`);
-    },
-
-    selectConnection(pathId, multiSelect = false) {
-      if (!multiSelect) {
-        this.clearSelection();
-      }
-      
-      this.selectionState.selectedConnections.add(pathId);
-      this._updateConnectionVisualSelection(pathId, true);
-      
-      console.log(`🎯 Selected connection: ${pathId}`);
-    },
-
-    deselectConnection(pathId) {
-      this.selectionState.selectedConnections.delete(pathId);
-      this._updateConnectionVisualSelection(pathId, false);
-      
-      console.log(`🎯 Deselected connection: ${pathId}`);
-    },
-
-    clearSelection() {
-      // Clear visual selection for all nodes
-      this.selectionState.selectedNodes.forEach(nodeId => {
-        this._updateNodeVisualSelection(nodeId, false);
-      });
-      
-      // Clear visual selection for all connections
-      this.selectionState.selectedConnections.forEach(pathId => {
-        this._updateConnectionVisualSelection(pathId, false);
-      });
-      
-      this.selectionState.selectedNodes.clear();
-      this.selectionState.selectedConnections.clear();
-      
-      console.log('🎯 Cleared all selections');
-    },
-
-    getSelection() {
-      return {
-        selectedNodes: Array.from(this.selectionState.selectedNodes),
-        selectedConnections: Array.from(this.selectionState.selectedConnections)
-      };
-    },
-
-    setSelection(selection) {
-      this.clearSelection();
-      
-      if (selection.selectedNodes) {
-        selection.selectedNodes.forEach(nodeId => {
-          this.selectNode(nodeId, true);
-        });
-      }
-      
-      if (selection.selectedConnections) {
-        selection.selectedConnections.forEach(pathId => {
-          this.selectConnection(pathId, true);
-        });
-      }
-    },
-
-    _updateNodeVisualSelection(nodeId, selected) {
-      const nodeElement = document.getElementById(nodeId);
-      if (nodeElement) {
-        if (selected) {
-          nodeElement.classList.add('node-selected');
-        } else {
-          nodeElement.classList.remove('node-selected');
-        }
-      }
-    },
-
-    _updateConnectionVisualSelection(pathId, selected) {
-      console.log('🎨 _updateConnectionVisualSelection called:', { pathId, selected });
-      const pathElement = this.connectionPaths.get(pathId);
-      console.log('🎨 Found path element:', !!pathElement, pathElement?.id);
-      if (pathElement) {
-        if (selected) {
-          pathElement.classList.add('connection-selected');
-          pathElement.style.strokeWidth = '4';
-          pathElement.style.stroke = '#FF6B35';
-          console.log('🎨 Applied selection styles to path:', pathId);
-        } else {
-          pathElement.classList.remove('connection-selected');
-          pathElement.style.strokeWidth = '2';
-          pathElement.style.stroke = '#4A90E2';
-          console.log('🎨 Removed selection styles from path:', pathId);
-        }
-      } else {
-        console.warn('🎨 Path element not found in connectionPaths map for pathId:', pathId);
-        console.log('🎨 Available paths:', Array.from(this.connectionPaths.keys()));
-      }
+    // Debug method to list available pin elements
+    _debugListPinElements() {
+      const pinElements = Array.from(document.querySelectorAll('[id*="__"]')).filter(el => 
+        el.id.startsWith('outlet__') || el.id.startsWith('inlet__')
+      );
+      return pinElements.map(el => ({ id: el.id, exists: true }));
     }
   }
 }
