@@ -415,9 +415,9 @@ export default {
       
       this.connectionState.tempPath.setAttribute('d', initialPath);
       this.connectionState.tempPath.setAttribute('stroke', pinColor);
-      this.connectionState.tempPath.setAttribute('stroke-width', '4');
+      this.connectionState.tempPath.setAttribute('stroke-width', '2');
       this.connectionState.tempPath.setAttribute('fill', 'none');
-      this.connectionState.tempPath.setAttribute('stroke-dasharray', '8,4');
+      this.connectionState.tempPath.setAttribute('stroke-dasharray', '4');
       this.connectionState.tempPath.style.pointerEvents = 'none';
       
       this.$refs.svg.appendChild(this.connectionState.tempPath);
@@ -659,12 +659,10 @@ export default {
       console.log('🔗 Vue addConnectionVisual called with:', edgeData);
       const { outputNodeId, outletPinId, inputNodeId, inletPinId } = edgeData;
       
-      // Generate path ID using the descriptive format
-      const startPinId = `outlet__${outputNodeId}__${outletPinId}`;
-      const endPinId = `inlet__${inputNodeId}__${inletPinId}`;
-      const pathId = `connection__${startPinId}__${endPinId}`;
+      // Generate path ID using the utility function
+      const pathId = this.buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId);
       
-      console.log('🔗 Vue generated pin IDs:', { startPinId, endPinId, pathId });
+      console.log('🔗 Vue generated connection ID:', pathId);
       
       const result = this._createConnectionVisual(
         outputNodeId, 
@@ -680,31 +678,7 @@ export default {
         console.error('🔗 Vue connection creation failed');
         return null;
       }
-      
-      // Additional logging and testing for public API
-      const path = result.pathElement;
-      console.log('🔗 SVG element exists:', !!this.$refs.svg);
-      console.log('🔗 Path element exists:', !!path);
-      console.log('🔗 Path pointer events:', path.style.pointerEvents);
-      console.log('🔗 Path cursor:', path.style.cursor);
-      
-      // Add a test to see if the path element is properly in the DOM
-      setTimeout(() => {
-        const foundPath = document.getElementById(pathId);
-        console.log('🔗 Path found in DOM after timeout:', !!foundPath);
-        if (foundPath) {
-          console.log('🔗 Path bounding box:', foundPath.getBBox());
-        }
-      }, 500);
-      
-      // Update path with additional delay for public API (maintains existing behavior)
-      this.$nextTick(() => {
-        setTimeout(() => {
-          console.log('🔗 Vue updating connection path...');
-          this.updateConnectionPath(path);
-        }, 100);
-      });
-      
+                  
       return pathId;
     },
     
@@ -797,9 +771,9 @@ export default {
 
     // Shared internal method for creating connection visuals
     _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, logPrefix = '', connectionData = null) {
-      // Generate pin IDs in the expected format
-      const startPinId = `outlet__${outputNodeId}__${outletPinId}`;
-      const endPinId = `inlet__${inputNodeId}__${inletPinId}`;
+      // Generate pin IDs using utility functions
+      const startPinId = this.buildOutletPinId(outputNodeId, outletPinId);
+      const endPinId = this.buildInletPinId(inputNodeId, inletPinId);
       
       console.log(`${logPrefix}Looking for pins:`, { startPinId, endPinId, pathId });
       
@@ -815,8 +789,8 @@ export default {
         });
         
         // List all available pins for debugging
-        const allPins = document.querySelectorAll('.connection-pin');
-        console.log('Available pins:', Array.from(allPins).map(p => p.id));
+        //const allPins = document.querySelectorAll('.connection-pin');
+        //console.log('Available pins:', Array.from(allPins).map(p => p.id));
         
         return { success: false, pathElement: null };
       }
@@ -827,10 +801,12 @@ export default {
         return { success: false, pathElement: null };
       }
       
+      const pinColor = startPin.dataset.pinColor || '#000000';
+
       // Create SVG path element
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('id', pathId);
-      path.setAttribute('stroke', '#4A90E2'); // Default blue, will be updated by updateConnectionPath
+      path.setAttribute('stroke', pinColor); // Default blue, will be updated by updateConnectionPath
       path.setAttribute('stroke-width', '2');
       path.setAttribute('fill', 'none');
       path.style.pointerEvents = 'stroke';
@@ -840,26 +816,9 @@ export default {
       this.connectionPaths.set(pathId, path);
       
       console.log(`🔗 Vue${logPrefix} created path element:`, pathId);
-      
-      // Add click handler for connection selection
-      console.log(`🔗 Adding click event listener to${logPrefix} path:`, pathId, path);
-      console.log(`🔗${logPrefix} path element details:`, { 
-        tagName: path.tagName,
-        id: path.id,
-        parentElement: path.parentElement?.tagName,
-        style: path.style.pointerEvents,
-        computedPointerEvents: window.getComputedStyle(path).pointerEvents
-      });
-      
+            
       path.addEventListener('click', (e) => {
         console.log(`🔗 Connection path clicked${logPrefix}!`, pathId);
-        console.log(`🔗 Path click event details${logPrefix}:`, { 
-          target: e.target, 
-          currentTarget: e.currentTarget,
-          pathId: pathId,
-          bubbles: e.bubbles,
-          preventDefault: e.defaultPrevented 
-        });
         e.preventDefault();
         e.stopPropagation();
         this._handleConnectionSelection(e, pathId);
@@ -879,9 +838,7 @@ export default {
           this.$emit('connection-clicked', { pathId, edgeData });
         }
       });
-      
-      console.log(`🔗${logPrefix} event listener added to path:`, pathId);
-      
+            
       // Update path after a brief delay to ensure nodes are rendered
       this.$nextTick(() => {
         this.updateConnectionPath(path);
@@ -1265,6 +1222,33 @@ export default {
         outletPinFullId: `${parts[1]}__${parts[2]}__${parts[3]}`,  // outlet__node_id__pin_id
         inletPinFullId: `${parts[4]}__${parts[5]}__${parts[6]}`    // inlet__node_id__pin_id
       };
+    },
+
+    buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId) {
+      /**
+       * Build a connection ID from components.
+       * Format: connection__outlet__outputNodeId__outletPinId__inlet__inputNodeId__inletPinId
+       * This is the inverse of parseConnectionId()
+       */
+      const outletPin = this.buildOutletPinId(outputNodeId, outletPinId);
+      const inletPin = this.buildInletPinId(inputNodeId, inletPinId);
+      return `connection__${outletPin}__${inletPin}`;
+    },
+
+    buildOutletPinId(nodeId, pinId) {
+      /**
+       * Build an outlet pin ID from components.
+       * Format: outlet__nodeId__pinId
+       */
+      return `outlet__${nodeId}__${pinId}`;
+    },
+
+    buildInletPinId(nodeId, pinId) {
+      /**
+       * Build an inlet pin ID from components.
+       * Format: inlet__nodeId__pinId
+       */
+      return `inlet__${nodeId}__${pinId}`;
     },
 
     getPinPosition(pinElement) {

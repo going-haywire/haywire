@@ -242,7 +242,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         # Update the connections prop (this will trigger the Vue watcher)
         self._props['connections'] = connection_data_list
         print(f"[GraphCanvasVue] ✅ Connections prop updated with {len(connection_data_list)} connections")
-        print(f"[GraphCanvasVue] Connection data: {connection_data_list}")
+        # print(f"[GraphCanvasVue] Connection data: {connection_data_list}")
         
         # Force a prop update by calling update() on the element
         self.update()
