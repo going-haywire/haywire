@@ -249,29 +249,17 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     
     def update_connection_path(self, path_id: str):
         """Update a specific connection path."""
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls) {{
-            canvasEl._graphCanvasControls.updateConnectionPath('{path_id}');
-        }}
-        """)
+        self.run_method('updateConnectionPath', path_id)
     
     def update_all_connections(self):
         """Update all connection paths (throttled)."""
-        ui.run_javascript("""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls) {
-            canvasEl._graphCanvasControls.updateAllConnections();
-        }
-        """)
+        self.run_method('updateAllConnections')
     
     def update_connections_for_node(self, node_id: str):
         """Update all connections for a specific node."""
         # This will trigger the Vue component to refresh connection positions
         # for the specified node by calling the client-side JavaScript
-        self.run_method(f"""
-            canvasEl._graphCanvasControls.updateConnectionsForNode('{node_id}');
-        """)
+        self.run_method('updateConnectionsForNode', node_id)
     
     def force_node_position_update(self, node_id: str, x: float, y: float):
         """Force update a node's position in the Vue component."""
@@ -304,21 +292,11 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
 
     def add_node_observer(self, node_id: str):
         """Add mutation/hover observers for a node."""
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls) {{
-            canvasEl._graphCanvasControls.addNodeObserver('{node_id}');
-        }}
-        """)
+        self.run_method('addNodeObserver', node_id)
     
     def remove_node_observer(self, node_id: str):
         """Remove observers for a node."""
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls) {{
-            canvasEl._graphCanvasControls.removeNodeObserver('{node_id}');
-        }}
-        """)
+        self.run_method('removeNodeObserver', node_id)
     
     def get_pin_position(self, pin_id: str) -> dict:
         """Get the position of a connection pin."""
@@ -351,48 +329,23 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     
     def select_node(self, node_id: str, multi_select: bool = False):
         """Select a node in the Vue component."""
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.selectNode) {{
-            canvasEl._graphCanvasControls.selectNode('{node_id}', {str(multi_select).lower()});
-        }}
-        """)
+        self.run_method('selectNode', node_id, multi_select)
     
     def deselect_node(self, node_id: str):
         """Deselect a node in the Vue component."""
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.deselectNode) {{
-            canvasEl._graphCanvasControls.deselectNode('{node_id}');
-        }}
-        """)
+        self.run_method('deselectNode', node_id)
     
     def select_connection(self, connection_id: str, multi_select: bool = False):
         """Select a connection in the Vue component."""
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.selectConnection) {{
-            canvasEl._graphCanvasControls.selectConnection('{connection_id}', {str(multi_select).lower()});
-        }}
-        """)
+        self.run_method('selectConnection', connection_id, multi_select)
     
     def deselect_connection(self, connection_id: str):
         """Deselect a connection in the Vue component."""
-        ui.run_javascript(f"""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.deselectConnection) {{
-            canvasEl._graphCanvasControls.deselectConnection('{connection_id}');
-        }}
-        """)
+        self.run_method('deselectConnection', connection_id)
     
     def clear_selection(self):
         """Clear all selections in the Vue component."""
-        ui.run_javascript("""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls && canvasEl._graphCanvasControls.clearSelection) {
-            canvasEl._graphCanvasControls.clearSelection();
-        }
-        """)
+        self.run_method('clearSelection')
 
     def get_canvas_size(self) -> Tuple[int, int]:
         """Get canvas dimensions."""
