@@ -225,11 +225,11 @@ export default {
         // Update our local zoom state
         this.zoomState = { zoom, panX, panY, isDragging };
         
-        console.log('🔍 GraphCanvas received zoom/pan update:', this.zoomState);
+        //console.log('🔍 GraphCanvas received zoom/pan update:', this.zoomState);
         
         // Update all connections when zoom/pan changes
         // Note: This is throttled in the zoom container, so we don't need additional throttling
-        this.updateAllConnections();
+        //this.updateAllConnections();
       };
       
       document.addEventListener('zoom-pan-state', this.handleZoomPanUpdate);
@@ -1177,8 +1177,9 @@ export default {
       if (pathElement) {
         if (selected) {
           pathElement.classList.add('connection-selected');
-          pathElement.style.strokeWidth = '4';
-          pathElement.style.stroke = '#FF6B35';
+          pathElement.style.strokeWidth = '3';
+          pathElement.style.stroke = '#4A90E2';
+          // The shadow effect is handled by CSS filter property
           console.log('🎨 Applied selection styles to path:', pathId);
         } else {
           pathElement.classList.remove('connection-selected');
@@ -1443,16 +1444,23 @@ export default {
   cursor: grabbing;
 }
 
-/* Node selection styles */
+/* Node selection styles - Shadow-based instead of outline */
 [data-node-id].node-selected {
-  outline: 3px solid #FF6B35 !important;
-  outline-offset: 2px !important;
-  box-shadow: 0 0 20px rgba(255, 107, 53, 0.3) !important;
+  /* Remove outline, use shadow only */
+  outline: none !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25), 
+              0 0 20px rgba(74, 144, 226, 0.4), 
+              0 0 0 2px rgba(74, 144, 226, 0.3) !important;
+  transform: translateY(-2px) !important;
 }
 
 [data-node-id].node-selected:hover {
-  outline: 3px solid #FF6B35 !important;
-  outline-offset: 2px !important;
+  /* Enhanced shadow on hover */
+  outline: none !important;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3), 
+              0 0 25px rgba(74, 144, 226, 0.5), 
+              0 0 0 2px rgba(74, 144, 226, 0.4) !important;
+  transform: translateY(-3px) !important;
 }
 </style>
 
@@ -1485,16 +1493,22 @@ export default {
   z-index: 10002 !important;
 }
 
-/* Connection selection styles */
+/* Connection selection styles - Enhanced shadow-based */
 .connection-selected {
-  stroke: #FF6B35 !important;
-  stroke-width: 4 !important;
-  filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.5)) !important;
+  /* Keep original stroke but reduce prominence */
+  stroke: #4A90E2 !important;
+  stroke-width: 3 !important;
+  /* Enhanced drop shadow with blue glow */
+  filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) 
+          drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }
 
 path.connection-selected {
-  stroke: #FF6B35 !important;
-  stroke-width: 4 !important;
-  filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.5)) !important;
+  /* Keep original stroke but reduce prominence */
+  stroke: #4A90E2 !important;
+  stroke-width: 3 !important;
+  /* Enhanced drop shadow with blue glow */
+  filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) 
+          drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }
 </style>
