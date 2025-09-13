@@ -14,7 +14,7 @@ a clean interface that integrates with the existing GraphCanvasManager API.
 """
 
 from nicegui import ui, events
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import Dict, List, Optional, Callable
 import uuid
 import json
 
@@ -247,49 +247,12 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         # Force a prop update by calling update() on the element
         self.update()
     
-    def update_connection_path(self, path_id: str):
-        """Update a specific connection path."""
-        self.run_method('updateConnectionPath', path_id)
-    
-    def update_all_connections(self):
-        """Update all connection paths (throttled)."""
-        self.run_method('updateAllConnections')
-    
     def update_connections_for_node(self, node_id: str):
         """Update all connections for a specific node."""
         # This will trigger the Vue component to refresh connection positions
         # for the specified node by calling the client-side JavaScript
         self.run_method('updateConnectionsForNode', node_id)
     
-    def force_node_position_update(self, node_id: str, x: float, y: float):
-        """Force update a node's position in the Vue component."""
-        # Use NiceGUI's client update mechanism instead of direct DOM manipulation
-        self.run_method(f"""
-            // Find the node element
-            const nodeEl = document.getElementById('{node_id}');
-            if (nodeEl) {{
-                // Update the style directly
-                nodeEl.style.left = '{x}px';
-                nodeEl.style.top = '{y}px';
-                
-                // Trigger a custom event to notify Vue component
-                const event = new CustomEvent('nodePositionForceUpdate', {{
-                    detail: {{ nodeId: '{node_id}', x: {x}, y: {y} }}
-                }});
-                nodeEl.dispatchEvent(event);
-                
-                // Also try to trigger mutation observer manually
-                if (window.MutationObserver) {{
-                    const observer = new MutationObserver(function() {{}});
-                    observer.observe(nodeEl, {{ attributes: true, attributeFilter: ['style'] }});
-                    observer.disconnect();
-                }}
-            }}
-        """)
-    
-    # Additional cleanup and utility methods
-    # in the zoom container, so no need to sync state or trigger connection updates
-
     def add_node_observer(self, node_id: str):
         """Add mutation/hover observers for a node."""
         self.run_method('addNodeObserver', node_id)
@@ -297,33 +260,6 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     def remove_node_observer(self, node_id: str):
         """Remove observers for a node."""
         self.run_method('removeNodeObserver', node_id)
-    
-    def get_pin_position(self, pin_id: str) -> dict:
-        """Get the position of a connection pin."""
-        # For methods that return values, we'll need to implement via JS callback
-        # For now, return empty dict - this would need to be implemented differently
-        # if actual return values are needed
-        print(f"[GraphCanvasVue] get_pin_position called for pin {pin_id}")
-        return {}
-    
-    def transform_screen_to_svg(self, client_x: float, client_y: float) -> dict:
-        """Transform screen coordinates to SVG coordinates."""
-        # For methods that return values, we'll need to implement via JS callback
-        # For now, return empty dict - this would need to be implemented differently
-        # if actual return values are needed  
-        print(f"[GraphCanvasVue] transform_screen_to_svg called for ({client_x}, {client_y})")
-        return {}
-    
-    # Convenience Methods
-    
-    def clear_canvas(self):
-        """Clear all connections and reset canvas state."""
-        ui.run_javascript("""
-        const canvasEl = document.querySelector('[data-graph_canvas]');
-        if (canvasEl && canvasEl._graphCanvasControls) {
-            canvasEl._graphCanvasControls.clearAllConnections();
-        }
-        """)
     
     # Selection Management Methods
     
@@ -346,16 +282,6 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     def clear_selection(self):
         """Clear all selections in the Vue component."""
         self.run_method('clearSelection')
-
-    def get_canvas_size(self) -> Tuple[int, int]:
-        """Get canvas dimensions."""
-        return (self._props['canvasWidth'], self._props['canvasHeight'])
-    
-    def set_canvas_size(self, width: int, height: int):
-        """Update canvas size."""
-        self._props['canvasWidth'] = width
-        self._props['canvasHeight'] = height
-        self.update()
         
     # Note: sync_zoom_pan_state removed - zoom/pan is handled by CSS transforms
     # in the zoom container, so no need to sync state or trigger connection updates

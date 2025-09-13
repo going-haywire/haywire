@@ -380,7 +380,6 @@ class GraphCanvasManager:
         
         # Also try the force update method as backup
         if self.canvas_vue:
-            self.canvas_vue.force_node_position_update(node_id, x, y)
             self.canvas_vue.update_connections_for_node(node_id)
         container = self.node_panels[node_id]['container']
         container.style(f'left: {x}px; top: {y}px;')
