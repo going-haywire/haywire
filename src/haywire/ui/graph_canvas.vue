@@ -1024,6 +1024,9 @@ export default {
     // =============================================================================
 
     clearSelection() {
+      // Store previously selected nodes for connection updates
+      const previouslySelectedNodes = Array.from(this.selectionState.selectedNodes);
+      
       // Clear visual selection for all nodes
       this.selectionState.selectedNodes.forEach(nodeId => {
         this._updateNodeVisualSelection(nodeId, false);
@@ -1036,6 +1039,15 @@ export default {
       
       this.selectionState.selectedNodes.clear();
       this.selectionState.selectedConnections.clear();
+      
+      // Update connections for previously selected nodes after fold animation
+      if (previouslySelectedNodes.length > 0) {
+        setTimeout(() => {
+          previouslySelectedNodes.forEach(nodeId => {
+            this.updateConnectionsForNode(nodeId);
+          });
+        }, 350); // Slightly longer than CSS transition to ensure completion
+      }
       
       console.log('🎯 Cleared all selections');
     },
@@ -1099,12 +1111,22 @@ export default {
       this.selectionState.selectedNodes.add(nodeId);
       this._updateNodeVisualSelection(nodeId, true);
       
+      // Update connections after fold/unfold animation completes (0.3s transition)
+      setTimeout(() => {
+        this.updateConnectionsForNode(nodeId);
+      }, 350); // Slightly longer than CSS transition to ensure completion
+      
       console.log(`🎯 Selected node: ${nodeId}`);
     },
 
     deselectNode(nodeId) {
       this.selectionState.selectedNodes.delete(nodeId);
       this._updateNodeVisualSelection(nodeId, false);
+      
+      // Update connections after fold/unfold animation completes (0.3s transition)
+      setTimeout(() => {
+        this.updateConnectionsForNode(nodeId);
+      }, 350); // Slightly longer than CSS transition to ensure completion
       
       console.log(`🎯 Deselected node: ${nodeId}`);
     },
@@ -1535,5 +1557,19 @@ path.connection-selected {
   /* Enhanced drop shadow with blue glow */
   filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) 
           drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
+}
+
+/* Widget fold/unfold functionality - widgets are hidden by default */
+[data-node-id] .widget-container {
+  opacity: 0 !important;
+  transition: opacity 0.3s ease, max-height 0.3s ease !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Show widgets only when node is selected */
+[data-node-id].node-selected .widget-container {
+  opacity: 1 !important;
+  max-height: 200px !important;
 }
 </style>

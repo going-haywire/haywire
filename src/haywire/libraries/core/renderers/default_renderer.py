@@ -37,37 +37,8 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         ui_elements: Dict[str, Any] = {}
         widget_instances: Dict[str, Any] = {}
         
-        # Generate unique node ID for CSS scoping
-        node_id = f"node-{id(node)}"
-        
-        # Add CSS for hover effects with node-specific scoping
-        ui.add_head_html(f'''
-        <style>
-        .{node_id} .widget-container {{
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            max-height: 0;
-            overflow: hidden;
-        }}
-        /* Show widgets on hover OR when any widget inside has focus */
-        .{node_id}:hover .widget-container,
-        .{node_id}:focus-within .widget-container {{
-            opacity: 1;
-            max-height: 200px;
-        }}
-        .{node_id} {{
-            transition: all 0.2s ease;
-        }}
-        /* Apply shadow on hover OR focus-within */
-        .{node_id}:hover,
-        .{node_id}:focus-within {{
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }}
-        </style>
-        ''')
-        
         # Create the main card
-        with ui.card().classes(f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0 {node_id}') as main_card:
+        with ui.card().classes(f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0') as main_card:
             with ui.row().classes('drag-handle zoom-pan-lod1'):
                 ui.icon('drag_indicator').classes('text-grey-6 text-h6 ')
                 ui.label(node.node_label).classes('text-h6')
@@ -107,7 +78,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
         if inlet.is_pooled == False:
             widget = self._render_element('inlet', inlet, ui_elements, widget_instances)
-            # Add widget-container class for hover effects (if element supports classes)
+            # Add widget-container class for fold/unfold functionality (if element supports classes)
             if hasattr(widget, 'classes') and callable(widget.classes):
                 widget.classes('widget-container zoom-pan-lod2')
 
