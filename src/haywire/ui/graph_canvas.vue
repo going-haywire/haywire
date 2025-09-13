@@ -299,7 +299,7 @@ export default {
     },
 
     // Shared internal method for creating connection visuals
-    _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, logPrefix = '') {
+    _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, logPrefix = '', connectionData = null) {
       // Generate pin IDs in the expected format
       const startPinId = `outlet__${outputNodeId}__${outletPinId}`;
       const endPinId = `inlet__${inputNodeId}__${inletPinId}`;
@@ -344,6 +344,47 @@ export default {
       
       console.log(`🔗 Vue${logPrefix} created path element:`, pathId);
       
+      // Add click handler for connection selection
+      console.log(`🔗 Adding click event listener to${logPrefix} path:`, pathId, path);
+      console.log(`🔗${logPrefix} path element details:`, { 
+        tagName: path.tagName,
+        id: path.id,
+        parentElement: path.parentElement?.tagName,
+        style: path.style.pointerEvents,
+        computedPointerEvents: window.getComputedStyle(path).pointerEvents
+      });
+      
+      path.addEventListener('click', (e) => {
+        console.log(`🔗 Connection path clicked${logPrefix}!`, pathId);
+        console.log(`🔗 Path click event details${logPrefix}:`, { 
+          target: e.target, 
+          currentTarget: e.currentTarget,
+          pathId: pathId,
+          bubbles: e.bubbles,
+          preventDefault: e.defaultPrevented 
+        });
+        e.preventDefault();
+        e.stopPropagation();
+        this._handleConnectionSelection(e, pathId);
+        
+        // Emit connection-clicked event with appropriate data format
+        if (connectionData) {
+          // Internal connections pass connectionData
+          this.$emit('connection-clicked', { pathId, connectionData });
+        } else {
+          // Public API connections pass edgeData (reconstructed)
+          const edgeData = {
+            outputNodeId,
+            outletPinId,
+            inputNodeId,
+            inletPinId
+          };
+          this.$emit('connection-clicked', { pathId, edgeData });
+        }
+      });
+      
+      console.log(`🔗${logPrefix} event listener added to path:`, pathId);
+      
       // Update path after a brief delay to ensure nodes are rendered
       this.$nextTick(() => {
         this.updateConnectionPath(path);
@@ -362,33 +403,9 @@ export default {
         inputNodeId, 
         inletPinId, 
         id, // Use the connection ID directly as path ID (Format 2)
-        ' (internal)' // Log prefix
+        ' (internal)', // Log prefix
+        connectionData // Pass connectionData for event emission
       );
-      
-      if (result.success) {
-        // Add click handler for connection selection (only for persistent connections)
-        const path = result.pathElement;
-        const pathId = id;
-        
-        console.log('🔗 Adding click event listener to internal path:', pathId, path);
-        console.log('🔗 Internal path element details:', { 
-          tagName: path.tagName,
-          id: path.id,
-          parentElement: path.parentElement?.tagName,
-          style: path.style.pointerEvents,
-          computedPointerEvents: window.getComputedStyle(path).pointerEvents
-        });
-        
-        path.addEventListener('click', (e) => {
-          console.log('🔗 Connection path clicked (internal)!', pathId);
-          e.preventDefault();
-          e.stopPropagation();
-          this._handleConnectionSelection(e, pathId);
-          this.$emit('connection-clicked', { pathId, connectionData });
-        });
-        
-        console.log('🔗 Internal event listener added to path:', pathId);
-      }
       
       return result.success;
     },
@@ -801,6 +818,7 @@ export default {
         inletPinId, 
         pathId,
         '' // No log prefix for public API
+        // connectionData is null for public API, so edgeData will be reconstructed in _createConnectionVisual
       );
       
       if (!result.success) {
@@ -808,36 +826,8 @@ export default {
         return null;
       }
       
-      // Add click handler for connection selection (only for persistent connections)
-      const path = result.pathElement;
-      
-      console.log('🔗 Adding click event listener to path:', pathId, path);
-      console.log('🔗 Path element details:', { 
-        tagName: path.tagName,
-        id: path.id,
-        parentElement: path.parentElement?.tagName,
-        style: path.style.pointerEvents,
-        computedPointerEvents: window.getComputedStyle(path).pointerEvents
-      });
-      
-      path.addEventListener('click', (e) => {
-        console.log('🔗 Connection path clicked!', pathId);
-        console.log('🔗 Path click event details:', { 
-          target: e.target, 
-          currentTarget: e.currentTarget,
-          pathId: pathId,
-          bubbles: e.bubbles,
-          preventDefault: e.defaultPrevented 
-        });
-        e.preventDefault();
-        e.stopPropagation();
-        this._handleConnectionSelection(e, pathId);
-        this.$emit('connection-clicked', { pathId, edgeData });
-      });
-      
-      console.log('🔗 Event listener added to path:', pathId);
-      
       // Additional logging and testing for public API
+      const path = result.pathElement;
       console.log('🔗 SVG element exists:', !!this.$refs.svg);
       console.log('🔗 Path element exists:', !!path);
       console.log('🔗 Path pointer events:', path.style.pointerEvents);
