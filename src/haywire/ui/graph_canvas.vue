@@ -234,23 +234,7 @@ export default {
       if (!nodeId) return;
       
       const scheduleConnectionUpdates = () => {
-        // Immediate update
-        this.updateConnectionsForNode(nodeId);
-        
-        // Clear any existing animation timers
-        if (nodeElement._animationTimers) {
-          nodeElement._animationTimers.forEach(timer => clearTimeout(timer));
-        }
-        nodeElement._animationTimers = [];
-        
-        // Schedule additional updates during animations
-        for (let i = 1; i <= 5; i++) {
-          const delay = (200 / 5) * i; // 40ms intervals
-          const timer = setTimeout(() => {
-            this.updateConnectionsForNode(nodeId);
-          }, delay);
-          nodeElement._animationTimers.push(timer);
-        }
+        this._scheduleConnectionUpdates(nodeId, nodeElement);
       };
       
       lodElement.addEventListener('mouseenter', scheduleConnectionUpdates);
@@ -1040,14 +1024,10 @@ export default {
       this.selectionState.selectedNodes.clear();
       this.selectionState.selectedConnections.clear();
       
-      // Update connections for previously selected nodes after fold animation
-      if (previouslySelectedNodes.length > 0) {
-        setTimeout(() => {
-          previouslySelectedNodes.forEach(nodeId => {
-            this.updateConnectionsForNode(nodeId);
-          });
-        }, 350); // Slightly longer than CSS transition to ensure completion
-      }
+      // Schedule smooth connection updates for all previously selected nodes during fold animation
+      previouslySelectedNodes.forEach(nodeId => {
+        this._scheduleConnectionUpdates(nodeId, null, 300); // 300ms matches CSS transition
+      });
       
       console.log('🎯 Cleared all selections');
     },
@@ -1111,10 +1091,8 @@ export default {
       this.selectionState.selectedNodes.add(nodeId);
       this._updateNodeVisualSelection(nodeId, true);
       
-      // Update connections after fold/unfold animation completes (0.3s transition)
-      setTimeout(() => {
-        this.updateConnectionsForNode(nodeId);
-      }, 350); // Slightly longer than CSS transition to ensure completion
+      // Schedule smooth connection updates during fold/unfold animation
+      this._scheduleConnectionUpdates(nodeId, null, 300); // 300ms matches CSS transition
       
       console.log(`🎯 Selected node: ${nodeId}`);
     },
@@ -1123,10 +1101,8 @@ export default {
       this.selectionState.selectedNodes.delete(nodeId);
       this._updateNodeVisualSelection(nodeId, false);
       
-      // Update connections after fold/unfold animation completes (0.3s transition)
-      setTimeout(() => {
-        this.updateConnectionsForNode(nodeId);
-      }, 350); // Slightly longer than CSS transition to ensure completion
+      // Schedule smooth connection updates during fold/unfold animation
+      this._scheduleConnectionUpdates(nodeId, null, 300); // 300ms matches CSS transition
       
       console.log(`🎯 Deselected node: ${nodeId}`);
     },
@@ -1407,6 +1383,51 @@ export default {
       const valid = (startDir === 'outlet' && endDir === 'inlet') || 
                    (startDir === 'inlet' && endDir === 'outlet');
       return valid;
+    },
+
+    _scheduleConnectionUpdates(nodeId, nodeElement = null, animationDuration = 300) {
+      /**
+       * Schedule connection updates during animations to ensure smooth transitions.
+       * This method provides immediate update + multiple updates during animation.
+       * 
+       * @param {string} nodeId - The node ID to update connections for
+       * @param {HTMLElement} nodeElement - Optional node element for timer cleanup
+       * @param {number} animationDuration - Animation duration in milliseconds (default: 300ms)
+       */
+      
+      // Immediate update
+      this.updateConnectionsForNode(nodeId);
+      
+      // Find node element if not provided
+      if (!nodeElement && nodeId) {
+        nodeElement = document.getElementById(nodeId);
+      }
+      
+      // Clear any existing animation timers to avoid conflicts
+      if (nodeElement && nodeElement._animationTimers) {
+        nodeElement._animationTimers.forEach(timer => clearTimeout(timer));
+        nodeElement._animationTimers = [];
+      }
+      
+      // Calculate update intervals during animation
+      const updateCount = Math.max(3, Math.min(8, Math.ceil(animationDuration / 50))); // 3-8 updates based on duration
+      const interval = animationDuration / updateCount;
+      
+      // Schedule multiple updates during the animation
+      for (let i = 1; i <= updateCount; i++) {
+        const delay = interval * i;
+        const timer = setTimeout(() => {
+          this.updateConnectionsForNode(nodeId);
+        }, delay);
+        
+        // Store timer for cleanup if we have a node element
+        if (nodeElement) {
+          if (!nodeElement._animationTimers) {
+            nodeElement._animationTimers = [];
+          }
+          nodeElement._animationTimers.push(timer);
+        }
+      }
     },
 
     // =============================================================================
