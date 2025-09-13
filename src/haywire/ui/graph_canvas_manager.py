@@ -78,6 +78,7 @@ class GraphCanvasManager:
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
         self.connection_paths: Dict[str, str] = {}  # edge_key -> path_id
         self.selected_nodes: Set[str] = set()
+        self.selected_connections: Set[str] = set()
         
         # Sync state - prevents recursive updates during graph sync
         self._syncing = False
@@ -126,7 +127,8 @@ class GraphCanvasManager:
                 on_connection_clicked=self._handle_vue_connection_clicked,
                 on_node_position_changed=self._handle_vue_node_position_changed,
                 on_node_drag_start=self._handle_vue_node_drag_start,
-                on_node_drag_end=self._handle_vue_node_drag_end
+                on_node_drag_end=self._handle_vue_node_drag_end,
+                on_selection_changed=self._handle_vue_selection_changed
             )
     
     @property
@@ -191,6 +193,17 @@ class GraphCanvasManager:
             print(f"[GraphCanvasManager] Added fence for drag end: {node_id}")
         elif not position_changed:
             print(f"[GraphCanvasManager] No fence needed - position unchanged for: {node_id}")
+    
+    def _handle_vue_selection_changed(self, selected_nodes: List[str], selected_connections: List[str]):
+        """Handle selection changes from Vue component."""
+        print(f"🎯 Selection changed from Vue: nodes={selected_nodes}, connections={selected_connections}")
+        
+        # Update internal selection state (without triggering visual updates to avoid recursion)
+        self.selected_nodes = set(selected_nodes)
+        self.selected_connections = set(selected_connections)
+        
+        # TODO: Integrate with undo system - create ChangeSelectionAction
+        # This would require implementing the selection state tracking in the undo system
     
     # Deprecated JavaScript setup methods - no longer needed with Vue component
     def setup_client_side_interactions(self):
@@ -489,6 +502,7 @@ class GraphCanvasManager:
         
         # Clear selection
         self.selected_nodes.clear()
+        self.selected_connections.clear()
     
     # Selection Management
     def select_node(self, node_id: str, multi_select: bool = False):
@@ -498,6 +512,13 @@ class GraphCanvasManager:
         
         self.selected_nodes.add(node_id)
         
+        # Update visual selection in Vue component
+        if self.canvas_vue:
+            try:
+                self.canvas_vue._el._graphCanvasControls.selectNode(node_id, multi_select)
+            except (AttributeError, RuntimeError) as e:
+                print(f"Warning: Could not update visual selection for node {node_id}: {e}")
+        
         if self.on_node_selected:
             self.on_node_selected(node_id, True)
     
@@ -505,12 +526,68 @@ class GraphCanvasManager:
         """Deselect a node."""
         self.selected_nodes.discard(node_id)
         
+        # Update visual selection in Vue component
+        if self.canvas_vue:
+            try:
+                self.canvas_vue._el._graphCanvasControls.deselectNode(node_id)
+            except (AttributeError, RuntimeError) as e:
+                print(f"Warning: Could not update visual deselection for node {node_id}: {e}")
+        
         if self.on_node_selected:
             self.on_node_selected(node_id, False)
+    
+    def select_connection(self, edge_key: str, multi_select: bool = False):
+        """Select a connection."""
+        if not multi_select:
+            self.selected_connections.clear()
+        
+        self.selected_connections.add(edge_key)
+        
+        # Update visual selection in Vue component
+        if self.canvas_vue and edge_key in self.connection_paths:
+            try:
+                path_id = self.connection_paths[edge_key]
+                self.canvas_vue._el._graphCanvasControls.selectConnection(path_id, multi_select)
+            except (AttributeError, RuntimeError) as e:
+                print(f"Warning: Could not update visual selection for connection {edge_key}: {e}")
+        
+        print(f"🎯 Selected connection: {edge_key}")
+    
+    def deselect_connection(self, edge_key: str):
+        """Deselect a connection."""
+        self.selected_connections.discard(edge_key)
+        
+        # Update visual selection in Vue component
+        if self.canvas_vue and edge_key in self.connection_paths:
+            try:
+                path_id = self.connection_paths[edge_key]
+                self.canvas_vue._el._graphCanvasControls.deselectConnection(path_id)
+            except (AttributeError, RuntimeError) as e:
+                print(f"Warning: Could not update visual deselection for connection {edge_key}: {e}")
+        
+        print(f"🎯 Deselected connection: {edge_key}")
+    
+    def clear_selection(self):
+        """Clear all selections."""
+        self.selected_nodes.clear()
+        self.selected_connections.clear()
+        
+        # Update visual selection in Vue component
+        if self.canvas_vue:
+            try:
+                self.canvas_vue._el._graphCanvasControls.clearSelection()
+            except (AttributeError, RuntimeError) as e:
+                print(f"Warning: Could not clear visual selection: {e}")
+        
+        print("🎯 Cleared all selections")
     
     def get_selected_nodes(self) -> Set[str]:
         """Get currently selected nodes."""
         return self.selected_nodes.copy()
+    
+    def get_selected_connections(self) -> Set[str]:
+        """Get currently selected connections."""
+        return self.selected_connections.copy()
     
     # Cleanup
     # Note: update_zoom_pan_state method removed - zoom/pan is handled by CSS transforms

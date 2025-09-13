@@ -28,6 +28,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
                  on_connection_removed=None, on_node_position_changed=None,
                  on_connection_clicked=None, zoom_container=None,
                  on_node_drag_start=None, on_node_drag_end=None,
+                 on_selection_changed=None,
                  canvas_width: int = 8000, canvas_height: int = 8000):
         super().__init__()
         
@@ -39,6 +40,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         self._on_connection_clicked = on_connection_clicked
         self._on_node_drag_start = on_node_drag_start
         self._on_node_drag_end = on_node_drag_end
+        self._on_selection_changed = on_selection_changed
         
         # Store zoom container reference if provided
         self.zoom_container = zoom_container
@@ -61,6 +63,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         self.on('nodePositionChanged', self._handle_node_position_changed)
         self.on('nodeDragStart', self._handle_node_drag_start)
         self.on('nodeDragEnd', self._handle_node_drag_end)
+        self.on('selectionChanged', self._handle_selection_changed)
     
     def _handle_node_created(self, event_data):
         """Handle node creation event from Vue component."""
@@ -144,6 +147,16 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
                 self._on_node_drag_end(node_id, position_changed)
             else:
                 print(f"[GraphCanvasVue] Warning: nodeId is missing in drag end event: {args}")
+    
+    def _handle_selection_changed(self, event_data):
+        """Handle selection change event from Vue component."""
+        if self._on_selection_changed:
+            args = event_data.args
+            selected_nodes = args.get('selectedNodes', [])
+            selected_connections = args.get('selectedConnections', [])
+            
+            print(f"[GraphCanvasVue] Selection changed: nodes={selected_nodes}, connections={selected_connections}")
+            self._on_selection_changed(selected_nodes, selected_connections)
     
     # Connection Management Methods
     
