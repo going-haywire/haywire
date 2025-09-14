@@ -60,8 +60,8 @@ class PopupContextMenu:
                 if (dialog) {{
                     // Position the dialog container at cursor coordinates  
                     dialog.style.position = 'fixed';
-                    dialog.style.left = '{x + 5}px';
-                    dialog.style.top = '{y + 5}px';
+                    dialog.style.left = '{x - 50}px';
+                    dialog.style.top = '{y - 50}px';
                     dialog.style.transform = 'none';
                     dialog.style.margin = '0';
                     dialog.style.alignItems = 'flex-start';
@@ -75,27 +75,6 @@ class PopupContextMenu:
                         card.style.margin = '0';
                     }}
                     
-                    // Adjust position if menu would go off screen
-                    const rect = dialog.getBoundingClientRect();
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    
-                    let adjustedX = {x + 5};
-                    let adjustedY = {y + 5};
-                    
-                    if (rect.right > viewportWidth) {{
-                        adjustedX = viewportWidth - rect.width - 10;
-                    }}
-                    if (rect.bottom > viewportHeight) {{
-                        adjustedY = viewportHeight - rect.height - 10;
-                    }}
-                    if (adjustedX < 10) adjustedX = 10;
-                    if (adjustedY < 10) adjustedY = 10;
-                    
-                    if (adjustedX !== {x + 5} || adjustedY !== {y + 5}) {{
-                        dialog.style.left = adjustedX + 'px';
-                        dialog.style.top = adjustedY + 'px';
-                    }}
                 }}
             '''), once=True)
     
