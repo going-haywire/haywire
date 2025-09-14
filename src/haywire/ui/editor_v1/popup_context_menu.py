@@ -111,9 +111,7 @@ class PopupContextMenu:
             'canvas_x': canvas_x if canvas_x is not None else x,
             'canvas_y': canvas_y if canvas_y is not None else y
         }
-        
-        print(f"[PopupContextMenu] Showing canvas menu at ({x}, {y})")
-        
+                
         # Create context menu popup positioned at cursor
         popup = Popup.create_context_menu("Canvas Menu", x + 5, y + 5)
         
@@ -137,9 +135,7 @@ class PopupContextMenu:
         
         # Store node ID for operations
         self._menu_data = {'node_id': node_id}
-        
-        print(f"[PopupContextMenu] Showing node menu for {node_id} at ({x}, {y})")
-        
+                
         # Create context menu popup positioned at cursor
         popup = Popup.create_context_menu("Node Menu", x + 5, y + 5)
         
@@ -166,9 +162,7 @@ class PopupContextMenu:
         
         # Store connection ID for operations  
         self._menu_data = {'connection_id': connection_id}
-        
-        print(f"[PopupContextMenu] Showing connection menu for {connection_id} at ({x}, {y})")
-        
+                
         # Create context menu popup positioned at cursor
         popup = Popup.create_context_menu("Connection Menu", x + 5, y + 5)
         
