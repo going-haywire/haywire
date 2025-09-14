@@ -27,8 +27,8 @@ from haywire.ui.utils import generate_pin_id, parse_pin_id, generate_connection_
 from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
-from haywire.ui.graph_canvas_vue import GraphCanvasVue
-from haywire.ui.context_menu_vue import ContextMenu
+from haywire.ui.editor_v1.graph_canvas_vue import GraphCanvasVue
+from haywire.ui.editor_v1.context_menu_vue import ContextMenu
 
 
 @dataclass

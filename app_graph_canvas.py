@@ -32,8 +32,9 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 # Haywire imports
+from haywire.ui.editor_v1.graph_canvas_manager import GraphCanvasManager, register_canvas_manager, unregister_canvas_manager
+
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
-from haywire.ui.graph_canvas_manager import GraphCanvasManager, register_canvas_manager, unregister_canvas_manager
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
 from haywire.core.node.node_factory import NodeFactory
