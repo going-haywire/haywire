@@ -28,7 +28,7 @@ from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionS
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.ui.editor_v1.graph_canvas_vue import GraphCanvasVue
-from haywire.ui.editor_v1.context_menu_vue import ContextMenu
+from haywire.ui.editor_v1.popup_context_menu import PopupContextMenu
 
 
 @dataclass
@@ -91,7 +91,7 @@ class GraphCanvasManager:
         
         # Vue component for canvas interactions
         self.canvas_vue: Optional[GraphCanvasVue] = None
-        self.context_menu: Optional[ContextMenu] = None
+        self.context_menu: Optional[PopupContextMenu] = None
         
         self._setup_canvas()
     
@@ -115,7 +115,7 @@ class GraphCanvasManager:
             )
             
             # Create context menu component
-            self.context_menu = ContextMenu(
+            self.context_menu = PopupContextMenu(
                 available_nodes=self.available_nodes,
                 on_create_node=self._handle_context_create_node,
                 on_duplicate_node=self._handle_context_duplicate_node,
