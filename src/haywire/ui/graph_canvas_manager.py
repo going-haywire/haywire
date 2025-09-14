@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from haywire.core.graph.graph import HaywireGraph, Edge
 from haywire.core.node.node import BaseNode
-from haywire.core.utils import generate_pin_id, parse_pin_id, generate_connection_id
+from haywire.ui.utils import generate_pin_id, parse_pin_id, generate_connection_id
 from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer

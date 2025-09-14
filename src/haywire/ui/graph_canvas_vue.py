@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Callable
 import uuid
 import json
 
-from haywire.core.utils import generate_connection_id
+from haywire.ui.utils import generate_connection_id
 
 
 class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
