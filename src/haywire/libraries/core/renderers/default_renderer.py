@@ -12,7 +12,7 @@ from haywire.core.data.enums import DataType, FlowType
 from haywire.core.ui.renderer import BaseNodeRenderer
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
 from haywire.core.ui.base import UINodeCard
-from haywire.core.utils import generate_pin_id
+from haywire.ui.utils import generate_pin_id
 from haywire.ui.utils import render_error_info
 
 class DefaultNodeRenderer(BaseNodeRenderer):

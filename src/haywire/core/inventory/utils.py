@@ -3,6 +3,17 @@ from pathlib import Path
 from typing import Dict, Any, Optional 
 import re
 
+def find_repo_root():
+    """Find repository root by looking for .git directory or other indicators."""
+    current = Path(__file__).resolve()
+    
+    for parent in current.parents:
+        if (parent / '.git').exists() or (parent / 'pyproject.toml').exists():
+            return parent
+    
+    # Fallback to current file's directory
+    return current.parent
+
 def reg_key(library_name: str, class_name: str) -> str:
     """Generate the registry key from the library and class name."""
     camel_class_name = camel_to_dot_case(class_name)
