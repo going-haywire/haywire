@@ -1,20 +1,21 @@
 """
-PopupContextMenu - NiceGUI-based context menu component using ui.dialog
+PopupContextMenu - NiceGUI-based context menu component using enhanced Popup class
 
 This component provides context menus for different elements in the graph canvas:
 - Canvas: Node creation menu when Ctrl+clicking on empty space
 - Nodes: Node operations menu when Ctrl+clicking on nodes  
 - Connections: Connection operations menu when Ctrl+clicking on connections
 
-Uses NiceGUI's dialog component positioned at mouse coordinates for proper overlay behavior.
+Uses the enhanced Popup class that creates elements at page root level to avoid zoom/transform inheritance.
 """
 
 from nicegui import ui, app
 from typing import Dict, List, Optional, Callable
+from .popup import Popup
 
 
 class PopupContextMenu:
-    """NiceGUI-based context menu using ui.dialog with cursor positioning."""
+    """NiceGUI-based context menu using enhanced Popup class with cursor positioning."""
     
     def __init__(self, 
                  available_nodes: List[str] = None,
@@ -34,14 +35,15 @@ class PopupContextMenu:
         self._on_delete_connection = on_delete_connection
         
         self.available_nodes = available_nodes or []
-        self._current_dialog: Optional[ui.dialog] = None
+        self._current_popup: Optional[Popup] = None
         self._menu_data: dict = {}
     
     def _close_current_menu(self):
         """Close any currently open menu."""
-        if self._current_dialog:
-            self._current_dialog.close()
-            self._current_dialog = None
+        if self._current_popup:
+            self._current_popup.close()
+            self._current_popup.delete()
+            self._current_popup = None
     
     def _get_node_display_name(self, node_type: str) -> str:
         """Convert node type to display name."""
@@ -49,34 +51,6 @@ class PopupContextMenu:
         if len(parts) > 1:
             return parts[-1].replace('.', ' ').title()
         return node_type
-    
-    def _position_dialog_at_cursor(self, x: float, y: float):
-        """Position the dialog at the cursor location using JavaScript."""
-        if self._current_dialog:
-            # Add a slight delay to ensure dialog is rendered
-            ui.timer(0.01, lambda: ui.run_javascript(f'''
-                // Find the dialog element
-                const dialog = document.querySelector('.q-dialog__inner');
-                if (dialog) {{
-                    // Position the dialog container at cursor coordinates  
-                    dialog.style.position = 'fixed';
-                    dialog.style.left = '{x - 50}px';
-                    dialog.style.top = '{y - 50}px';
-                    dialog.style.transform = 'none';
-                    dialog.style.margin = '0';
-                    dialog.style.alignItems = 'flex-start';
-                    dialog.style.justifyContent = 'flex-start';
-                    
-                    // Ensure the card inside is sized appropriately
-                    const card = dialog.querySelector('.q-card');
-                    if (card) {{
-                        card.style.minWidth = '200px';
-                        card.style.maxWidth = '300px';
-                        card.style.margin = '0';
-                    }}
-                    
-                }}
-            '''), once=True)
     
     # Canvas Actions  
     def _create_node(self, node_type: str):
@@ -140,31 +114,22 @@ class PopupContextMenu:
         
         print(f"[PopupContextMenu] Showing canvas menu at ({x}, {y})")
         
-        # Create dialog with content
-        with ui.dialog() as dialog:
-            with ui.card().style('min-width: 200px; max-width: 300px; padding: 8px'):
-                # Header
-                with ui.row().classes('w-full items-center justify-between mb-2'):
-                    ui.label('Canvas Menu').classes('text-sm font-semibold text-gray-600 uppercase tracking-wide')
-                    ui.button(icon='close', on_click=self._close_current_menu) \
-                      .props('flat round size=sm') \
-                      .classes('text-gray-500')
-                
-                ui.separator()
-                
-                # Node creation section
-                ui.label('Create Node').classes('text-xs font-semibold text-gray-600 uppercase mt-2 mb-1')
-                
+        # Create context menu popup positioned at cursor
+        popup = Popup.create_context_menu("Canvas Menu", x + 5, y + 5)
+        
+        with popup:
+            # Node creation section
+            ui.label('Create Node').classes('text-xs font-semibold text-gray-600 uppercase mb-2')
+            
+            with ui.column().classes('w-full gap-1'):
                 for node_type in self.available_nodes:
                     display_name = self._get_node_display_name(node_type)
-                    ui.button(f'+ {display_name}', 
-                             on_click=lambda nt=node_type: self._create_node(nt)) \
-                      .props('flat align=left') \
-                      .classes('w-full justify-start px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600')
+                    btn = ui.button(f'+ {display_name}', on_click=lambda nt=node_type: self._create_node(nt))
+                    btn.props('flat align=left')
+                    btn.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
         
-        self._current_dialog = dialog
-        dialog.open()
-        self._position_dialog_at_cursor(x, y)
+        popup.open()
+        self._current_popup = popup
     
     def show_node_menu(self, x: float, y: float, node_id: str):
         """Show context menu for node operations."""
@@ -175,37 +140,25 @@ class PopupContextMenu:
         
         print(f"[PopupContextMenu] Showing node menu for {node_id} at ({x}, {y})")
         
-        # Create dialog with content
-        with ui.dialog() as dialog:
-            with ui.card().style('min-width: 200px; max-width: 300px; padding: 8px'):
-                # Header
-                with ui.row().classes('w-full items-center justify-between mb-2'):
-                    ui.label('Node Menu').classes('text-sm font-semibold text-gray-600 uppercase tracking-wide')
-                    ui.button(icon='close', on_click=self._close_current_menu) \
-                      .props('flat round size=sm') \
-                      .classes('text-gray-500')
-                
-                ui.separator()
-                
-                # Node operations
-                ui.button('📋 Duplicate Node', 
-                         on_click=lambda: self._duplicate_node(node_id)) \
-                  .props('flat align=left') \
-                  .classes('w-full justify-start px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600')
-                
-                ui.button('📄 Copy Node', 
-                         on_click=lambda: self._copy_node(node_id)) \
-                  .props('flat align=left') \
-                  .classes('w-full justify-start px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600')
-                
-                ui.button('🗑️ Delete Node', 
-                         on_click=lambda: self._delete_node(node_id)) \
-                  .props('flat align=left') \
-                  .classes('w-full justify-start px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700')
+        # Create context menu popup positioned at cursor
+        popup = Popup.create_context_menu("Node Menu", x + 5, y + 5)
         
-        self._current_dialog = dialog
-        dialog.open()
-        self._position_dialog_at_cursor(x, y)
+        with popup:
+            with ui.column().classes('w-full gap-1'):
+                btn1 = ui.button('📋 Duplicate Node', on_click=lambda: self._duplicate_node(node_id))
+                btn1.props('flat align=left')
+                btn1.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                
+                btn2 = ui.button('📄 Copy Node', on_click=lambda: self._copy_node(node_id))
+                btn2.props('flat align=left')
+                btn2.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                
+                btn3 = ui.button('🗑️ Delete Node', on_click=lambda: self._delete_node(node_id))
+                btn3.props('flat align=left')
+                btn3.classes('w-full justify-start px-3 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm')
+        
+        popup.open()
+        self._current_popup = popup
     
     def show_connection_menu(self, x: float, y: float, connection_id: str):
         """Show context menu for connection operations."""
@@ -216,29 +169,18 @@ class PopupContextMenu:
         
         print(f"[PopupContextMenu] Showing connection menu for {connection_id} at ({x}, {y})")
         
-        # Create dialog with content
-        with ui.dialog() as dialog:
-            with ui.card().style('min-width: 200px; max-width: 300px; padding: 8px'):
-                # Header
-                with ui.row().classes('w-full items-center justify-between mb-2'):
-                    ui.label('Connection Menu').classes('text-sm font-semibold text-gray-600 uppercase tracking-wide')
-                    ui.button(icon='close', on_click=self._close_current_menu) \
-                      .props('flat round size=sm') \
-                      .classes('text-gray-500')
-                
-                ui.separator()
-                
-                # Connection operations
-                ui.button('🔍 Inspect Connection', 
-                         on_click=lambda: self._inspect_connection(connection_id)) \
-                  .props('flat align=left') \
-                  .classes('w-full justify-start px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600')
-                
-                ui.button('🗑️ Delete Connection', 
-                         on_click=lambda: self._delete_connection(connection_id)) \
-                  .props('flat align=left') \
-                  .classes('w-full justify-start px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700')
+        # Create context menu popup positioned at cursor
+        popup = Popup.create_context_menu("Connection Menu", x + 5, y + 5)
         
-        self._current_dialog = dialog
-        dialog.open()
-        self._position_dialog_at_cursor(x, y)
+        with popup:
+            with ui.column().classes('w-full gap-1'):
+                btn1 = ui.button('🔍 Inspect Connection', on_click=lambda: self._inspect_connection(connection_id))
+                btn1.props('flat align=left')
+                btn1.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                
+                btn2 = ui.button('🗑️ Delete Connection', on_click=lambda: self._delete_connection(connection_id))
+                btn2.props('flat align=left')
+                btn2.classes('w-full justify-start px-3 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm')
+        
+        popup.open()
+        self._current_popup = popup
