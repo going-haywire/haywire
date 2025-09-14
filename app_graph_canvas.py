@@ -317,10 +317,7 @@ class UndoRedoTestAppWithCanvasManager:
             # IMPORTANT: Sync with existing graph data when canvas manager is first created
             canvas_manager.sync_with_graph()
             print(f"Canvas manager synced with {len(self.graph.nodes)} existing nodes")
-            
-            # Add canvas click handler for node creation with captured session
-            canvas_manager.canvas.on('click', lambda event: self.on_canvas_click_for_specific_session(session_data, client_id, event))
-            
+                        
             self.create_zoom_controls()
             
             # Update canvas status
@@ -374,63 +371,7 @@ class UndoRedoTestAppWithCanvasManager:
     def on_pan_change_for_specific_session(self, session_data, pan_x, pan_y):
         """Handle pan change events for specific session.""" 
         self.update_displays_for_session(session_data)
-    
-    def on_canvas_click_for_specific_session(self, session_data, client_id, event):
-        """Handle canvas click events for specific session."""
-        if session_data['creation_mode']:
-            try:
-                # Get click position from event
-                click_x = event.args.get('offsetX', 100)
-                click_y = event.args.get('offsetY', 100)
-                
-                # Store creation details for async execution
-                node_type = session_data['creation_mode']
-                session_data['creation_mode'] = None  # Reset immediately
-                
-                # Use timer to execute in proper UI context
-                ui.timer(0.01, lambda: self._create_node_in_specific_session(session_data, client_id, node_type, click_x, click_y), once=True)
-                
-            except Exception as e:
-                ui.notify(f"Error creating node: {str(e)}", type='negative')
-                print(f"Error creating node: {e}")
-    
-    def _create_node_in_specific_session(self, session_data, client_id, node_type: str, click_x: float, click_y: float):
-        """Create node within specific session context."""
-        try:
-            # Create node using shared factory and graph
-            node = self.node_factory.create_instance(
-                node_type,
-                self.graph,  # Use shared graph
-                position=(click_x, click_y)
-            )
-            
-            # Set position attributes
-            node.ui_posX = click_x
-            node.ui_posY = click_y
-            
-            # Use shared undo system
-            if self.history_manager:
-                action = AddNodeAction(self.graph, node)
-                self.history_manager.add_action(action)
-            else:
-                self.graph.add_node(node)
-            
-            # Add visual representation through this session's canvas manager
-            if session_data['canvas_manager'].add_node_visual(node, (click_x, click_y)):
-                # Update global stats
-                self.global_stats['nodes_created'] += 1
-                # Sync all sessions to show the new node
-                self.sync_all_sessions()
-                # Update UI displays for this specific session
-                self.update_displays_for_session(session_data)
-                ui.notify(f"Created {node.__class__.__name__} at ({click_x}, {click_y})")
-            else:
-                ui.notify(f"Failed to create visual for {node.__class__.__name__}", type='negative')
-                
-        except Exception as e:
-            ui.notify(f"Error creating node: {str(e)}", type='negative')
-            print(f"Error creating node: {e}")
-    
+        
     def on_node_moved_for_specific_session(self, session_data, node_id: str, new_position: Tuple[float, float]):
         """Handle node position changes for specific session."""
         try:
