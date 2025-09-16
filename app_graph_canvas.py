@@ -32,8 +32,8 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 # Haywire imports
-from haywire.ui.editor_v1.graph_canvas_manager import GraphCanvasManager, register_canvas_manager, unregister_canvas_manager
-from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
+from haywire.ui.editor_v1.graph_canvas_manager import GraphCanvasManager
+from haywire.core.graph.graph import HaywireGraph
 from haywire.core.node.node import BaseNode
 from haywire.core.node.node_factory import NodeFactory
 from haywire.undo.history_manager import HistoryManager
@@ -177,7 +177,6 @@ class UndoRedoTestAppWithCanvasManager:
                     # Quick action buttons
                     ui.button('Undo', icon='undo', on_click=self.undo_action).props('outline').classes('text-white')
                     ui.button('Redo', icon='redo', on_click=self.redo_action).props('outline').classes('text-white')
-                    ui.button('Clear All', icon='clear_all', on_click=self.clear_graph).props('outline').classes('text-white')
     
     def create_left_panel(self):
         """Create the left control panel."""
@@ -241,10 +240,7 @@ class UndoRedoTestAppWithCanvasManager:
             )
             
             session_data['canvas_manager'] = canvas_manager
-            
-            # Register canvas manager with unique session ID
-            register_canvas_manager(canvas_manager)
-            
+                        
             # IMPORTANT: Sync with existing graph data when canvas manager is first created
             canvas_manager.sync_with_graph()
             print(f"Canvas manager synced with {len(self.graph.nodes)} existing nodes")
@@ -451,29 +447,7 @@ class UndoRedoTestAppWithCanvasManager:
             # Restore original session context
             if original_current_session is not None:
                 self.current_session = original_current_session
-    
-    def clear_graph(self):
-        """Clear the entire graph."""
-        if self.history_manager:
-            # Clear through undo system
-            node_ids = list(self.graph.nodes.keys())
-            for node_id in node_ids:
-                node = self.graph.nodes.get(node_id)
-                if node:
-                    action = RemoveNodeAction(self.graph, node_id, node)
-                    self.history_manager.execute(action)
-        else:
-            self.graph.nodes.clear()
-            self.graph.edges.clear()
-        
-        # Canvas manager handles visual cleanup
-        self.canvas_manager.sync_with_graph()
-        self.selected_nodes.clear()
-        
-        self.update_displays()
-        ui.notify("Graph cleared")
-    
-        
+            
     # Configuration Methods
     def toggle_auto_grouping(self, enabled: bool):
         """Toggle auto-grouping setting."""
@@ -612,7 +586,6 @@ class UndoRedoTestAppWithCanvasManager:
     def cleanup(self):
         """Cleanup resources."""
         if self.canvas_manager:
-            unregister_canvas_manager(self.canvas_manager)
             self.canvas_manager.cleanup()
 
 

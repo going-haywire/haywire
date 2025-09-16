@@ -148,17 +148,12 @@ class GraphCanvasManager:
                 inlet_pin_id=end_port
             )
             
-            # Create AddEdgeAction directly
-            if self.history_manager:
-                action = AddEdgeAction(self.graph, edge)
-                self.history_manager.add_action(action)
-                
-                # Notify app to sync other sessions
-                if self.on_graph_changed:
-                    self.on_graph_changed()
-            else:
-                # Fallback if no history manager
-                self.graph.add_edge(edge)
+            action = AddEdgeAction(self.graph, edge)
+            self.history_manager.add_action(action)
+            
+            # Notify app to sync other sessions
+            if self.on_graph_changed:
+                self.on_graph_changed()
                 
         except Exception as e:
             print(f"Connection creation failed: {e}")
@@ -182,21 +177,12 @@ class GraphCanvasManager:
                             try:
                                 print(f"Connection removal request: {edge.output_node_id} -> {edge.input_node_id}")
                                 
-                                if self.history_manager:
-                                    action = RemoveEdgeAction(self.graph, edge)
-                                    self.history_manager.add_action(action)
-                                    
-                                    # Notify app to sync other sessions
-                                    if self.on_graph_changed:
-                                        self.on_graph_changed()
-                                else:
-                                    # Fallback if no history manager
-                                    self.graph.remove_edge(
-                                        edge.output_node_id, 
-                                        edge.outlet_pin_id,
-                                        edge.input_node_id, 
-                                        edge.inlet_pin_id
-                                    )
+                                action = RemoveEdgeAction(self.graph, edge)
+                                self.history_manager.add_action(action)
+                                
+                                # Notify app to sync other sessions
+                                if self.on_graph_changed:
+                                    self.on_graph_changed()
                                     
                             except Exception as e:
                                 print(f"Error removing connection: {e}")
@@ -223,17 +209,13 @@ class GraphCanvasManager:
             if old_position != new_position:
                 print(f"DEBUG: Node move - {node_id}: {old_position} -> {new_position}")
                 
-                if self.history_manager:
-                    # Create MoveNodeAction directly
-                    action = MoveNodeAction(self.graph, node_id, x, y)
-                    self.history_manager.add_action(action)
-                    
-                    # Notify app to sync other sessions
-                    if self.on_graph_changed:
-                        self.on_graph_changed()
-                else:
-                    # Fallback if no history manager
-                    node.ui_posX, node.ui_posY = new_position
+                # Create MoveNodeAction directly
+                action = MoveNodeAction(self.graph, node_id, x, y)
+                self.history_manager.add_action(action)
+                
+                # Notify app to sync other sessions
+                if self.on_graph_changed:
+                    self.on_graph_changed()
     
     def _handle_vue_node_drag_start(self, node_id: str):
         """Handle node drag start from Vue component - add fence for undo grouping."""
@@ -716,17 +698,12 @@ class GraphCanvasManager:
                 node.ui_posX = x
                 node.ui_posY = y
                 
-                # Create AddNodeAction directly
-                if self.history_manager:
-                    action = AddNodeAction(self.graph, node)
-                    self.history_manager.add_action(action)
-                    
-                    # Notify app to sync other sessions
-                    if self.on_graph_changed:
-                        self.on_graph_changed()
-                else:
-                    # Fallback if no history manager
-                    self.graph.add_node(node)
+                action = AddNodeAction(self.graph, node)
+                self.history_manager.add_action(action)
+                
+                # Notify app to sync other sessions
+                if self.on_graph_changed:
+                    self.on_graph_changed()
                 
                 print(f"✅ Created node {node.node_id} at ({x}, {y})")
             else:
@@ -851,17 +828,3 @@ class GraphCanvasManager:
     def pan_y(self) -> float:
         """Get current pan Y position."""
         return self.zoom_container.pan_y if self.zoom_container else 0.0
-
-
-# Deprecated global callback registry - no longer needed with Vue component
-_canvas_managers: Dict[str, GraphCanvasManager] = {}
-
-def register_canvas_manager(manager: GraphCanvasManager):
-    """Register a canvas manager for JavaScript callbacks."""
-    # No longer needed - Vue component handles callbacks
-    pass
-
-def unregister_canvas_manager(manager: GraphCanvasManager):
-    """Unregister a canvas manager."""
-    # No longer needed - Vue component handles callbacks
-    pass
