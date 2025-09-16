@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
 from haywire.ui.utils import generate_pin_id, parse_pin_id, generate_connection_id
-from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodeAction, AddEdgeAction, RemoveEdgeAction, AddNodeAction
+from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodeAction, AddEdgeAction, RemoveNodeAction, RemoveEdgeAction, AddNodeAction
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.ui.editor_v1.graph_canvas_vue import GraphCanvasVue
@@ -60,8 +60,8 @@ class GraphCanvasManager:
         node_render_factory,
         zoom_container: ZoomPanContainer,
         history_manager,
+        node_factory,
         available_nodes: Optional[List[str]] = None,
-        on_context_create_node: Optional[Callable[[str, float, float], None]] = None,
         on_graph_changed: Optional[Callable[[], None]] = None,
         session_id: Optional[str] = None
     ):
@@ -69,10 +69,10 @@ class GraphCanvasManager:
         self.node_render_factory = node_render_factory
         self.zoom_container = zoom_container
         self.history_manager = history_manager
+        self.node_factory = node_factory
         self.available_nodes = available_nodes or []
         
         # Event callbacks
-        self.on_context_create_node = on_context_create_node
         self.on_graph_changed = on_graph_changed
         self.session_id = session_id
         
@@ -695,15 +695,40 @@ class GraphCanvasManager:
         """Handle node creation from context menu."""
         print(f"📝 Creating node {node_type} at ({x}, {y}) from context menu")
         
-        # TODO: Complete migration - GraphCanvasManager needs node_factory parameter
-        # For now, delegate to app which has the node_factory
-        if self.on_context_create_node:
-            # Delegate to the parent application
-            self.on_context_create_node(node_type, x, y)
-        else:
-            # Fallback notification
+        try:
+            # Create node using the injected factory
+            node = self.node_factory.create_instance(
+                node_type,
+                self.graph,  # Pass the graph to the factory
+                position=(x, y)
+            )
+            
+            if node:
+                # Set position attributes
+                node.ui_posX = x
+                node.ui_posY = y
+                
+                # Create AddNodeAction directly
+                if self.history_manager:
+                    action = AddNodeAction(self.graph, node)
+                    self.history_manager.add_action(action)
+                    
+                    # Notify app to sync other sessions
+                    if self.on_graph_changed:
+                        self.on_graph_changed()
+                else:
+                    # Fallback if no history manager
+                    self.graph.add_node(node)
+                
+                print(f"✅ Created node {node.node_id} at ({x}, {y})")
+            else:
+                from nicegui import ui
+                ui.notify(f"Failed to create node of type: {node_type}", type='negative')
+                
+        except Exception as e:
+            print(f"Error creating node: {e}")
             from nicegui import ui
-            ui.notify(f"Context node creation not implemented: {node_type} at ({x}, {y})")
+            ui.notify(f"Error creating node: {e}", type='negative')
     
     def _handle_context_duplicate_node(self, node_id: str):
         """Handle node duplication from context menu."""
@@ -727,7 +752,6 @@ class GraphCanvasManager:
         if node_id in self.graph.nodes:
             try:
                 # Use history manager to remove node with undo support
-                from haywire.undo.actions.graph_actions import RemoveNodeAction
                 node = self.graph.nodes[node_id]
                 action = RemoveNodeAction(self.graph, node_id, node)
                 self.history_manager.add_action(action)
@@ -765,7 +789,6 @@ class GraphCanvasManager:
         if edge_to_remove:
             try:
                 # Create and execute undo action
-                from haywire.undo.actions.graph_actions import RemoveEdgeAction
                 action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
                 self.history_manager.add_action(action)
                 

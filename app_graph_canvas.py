@@ -249,11 +249,11 @@ class UndoRedoTestAppWithCanvasManager:
                 node_render_factory=self.node_render_factory,  # Use shared render factory
                 zoom_container=zoom_container,
                 history_manager=self.history_manager,  # Pass the shared history manager
+                node_factory=self.node_factory,  # Pass the node factory for context node creation
                 available_nodes=self.get_available_nodes(),  # Pass available nodes for context menu
-                # New unified callback approach - Phase 4 completed
+                # Unified callback approach - Final migration completed
                 on_graph_changed=lambda: self.on_graph_changed_from_session(session_data),
-                session_id=client_id,
-                on_context_create_node=lambda node_type, x, y: self.on_context_create_node_for_session(session_data, node_type, x, y)
+                session_id=client_id
             )
             
             session_data['canvas_manager'] = canvas_manager
@@ -323,7 +323,11 @@ class UndoRedoTestAppWithCanvasManager:
             
     
     def on_context_create_node_for_session(self, session_data, node_type: str, x: float, y: float):
-        """Handle context menu node creation for specific session."""
+        """Handle context menu node creation for specific session.
+        
+        ⚠️ DEPRECATED: This method is no longer called after final migration.
+        Context node creation is now handled directly in GraphCanvasManager._handle_context_create_node()
+        """
         print(f"🎯 Context menu creating node {node_type} at ({x}, {y}) for session")
         
         try:
