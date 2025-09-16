@@ -302,20 +302,6 @@ class UndoRedoTestAppWithCanvasManager:
             ui.button('Zoom In', on_click=lambda: self.current_session['zoom_container'].zoom_in(), icon='zoom_in').props('outline')
             ui.button('Zoom Out', on_click=lambda: self.current_session['zoom_container'].zoom_out(), icon='zoom_out').props('outline')
     
-    # Session-specific Event Handlers
-    def on_zoom_change_for_session(self, zoom_level):
-        """Handle zoom change events for specific session."""
-        self.update_canvas_status()
-    
-    def on_pan_change_for_session(self, pan_x, pan_y):
-        """Handle pan change events for specific session.""" 
-        self.update_canvas_status()
-    
-    # Session-specific Event Handlers with captured session data
-    def on_zoom_change_for_specific_session(self, session_data, zoom_level):
-        """Handle zoom change events for specific session."""
-        self.update_displays_for_session(session_data)
-    
     def on_pan_change_for_specific_session(self, session_data, pan_x, pan_y):
         """Handle pan change events for specific session.""" 
         self.update_displays_for_session(session_data)
@@ -574,22 +560,6 @@ class UndoRedoTestAppWithCanvasManager:
                         ui.label('No nodes selected').classes('text-gray-500')
         except Exception as e:
             print(f"Error updating selection display: {e}")
-   
-    def on_hot_reload(self, registry_key: str, affected_node_ids: List[str]):
-        """Handle hot reload notifications."""
-        print(f"Hot reload detected for {registry_key}, affecting nodes: {affected_node_ids}")
-        ui.notify(f"Hot reload: {registry_key} ({len(affected_node_ids)} nodes)", type='info')
-    
-    # Action Methods
-    def set_creation_mode(self, node_type: str):
-        """Set node creation mode for current session."""
-        if hasattr(self, 'current_session'):
-            self.current_session['creation_mode'] = node_type
-        else:
-            # Fallback for backward compatibility
-            self.creation_mode = node_type
-        print(f"Setting creation mode to: {node_type}")
-        ui.notify(f"Creation mode: {node_type}. Click on canvas to create node.")
             
     
     def undo_action(self):
