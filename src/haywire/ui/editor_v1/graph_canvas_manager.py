@@ -58,16 +58,14 @@ class GraphCanvasManager:
         self, 
         graph: HaywireGraph,
         node_render_factory,
-        zoom_container: ZoomPanContainer,
         history_manager,
         node_factory,
         available_nodes: Optional[List[str]] = None,
         on_graph_changed: Optional[Callable[[], None]] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
     ):
         self.graph = graph
         self.node_render_factory = node_render_factory
-        self.zoom_container = zoom_container
         self.history_manager = history_manager
         self.node_factory = node_factory
         self.available_nodes = available_nodes or []
@@ -75,6 +73,9 @@ class GraphCanvasManager:
         # Event callbacks
         self.on_graph_changed = on_graph_changed
         self.session_id = session_id
+                
+        # Will be created in _setup_canvas()
+        self.zoom_container: Optional[ZoomPanContainer] = None
         
         # Visual state
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
@@ -95,7 +96,14 @@ class GraphCanvasManager:
         """Setup the canvas with Vue component."""
         print("🔧 Setting up GraphCanvasManager with Vue component")
         
-        # Create the Vue-based canvas component
+        # Create zoom container first
+        self.zoom_container = ZoomPanContainer(
+            min_zoom=0.1,
+            max_zoom=3.0,
+            initial_zoom=1.0
+        ).classes('w-full flex-grow border-2 border-gray-300').style('height: calc(100% - 60px);')
+        
+        # Create the Vue-based canvas component inside the zoom container
         with self.zoom_container.content_container:
             self.canvas_vue = GraphCanvasVue(
                 zoom_container=self.zoom_container,
@@ -807,6 +815,42 @@ class GraphCanvasManager:
         self.available_nodes = nodes
         if self.context_menu:
             self.context_menu.update_available_nodes(nodes)
+        
+    # Zoom control convenience methods
+    def zoom_to_fit(self):
+        """Zoom to fit all content."""
+        if self.zoom_container:
+            self.zoom_container.fit_to_content()
+    
+    def reset_zoom(self):
+        """Reset zoom to initial value."""
+        if self.zoom_container:
+            self.zoom_container.reset_view()
+    
+    def zoom_in(self):
+        """Zoom in."""
+        if self.zoom_container:
+            self.zoom_container.zoom_in()
+    
+    def zoom_out(self):
+        """Zoom out."""
+        if self.zoom_container:
+            self.zoom_container.zoom_out()
+    
+    @property
+    def current_zoom(self) -> float:
+        """Get current zoom level."""
+        return self.zoom_container.current_zoom if self.zoom_container else 1.0
+    
+    @property
+    def pan_x(self) -> float:
+        """Get current pan X position."""
+        return self.zoom_container.pan_x if self.zoom_container else 0.0
+    
+    @property
+    def pan_y(self) -> float:
+        """Get current pan Y position."""
+        return self.zoom_container.pan_y if self.zoom_container else 0.0
 
 
 # Deprecated global callback registry - no longer needed with Vue component

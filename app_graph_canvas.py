@@ -33,8 +33,6 @@ if src_path not in sys.path:
 
 # Haywire imports
 from haywire.ui.editor_v1.graph_canvas_manager import GraphCanvasManager, register_canvas_manager, unregister_canvas_manager
-
-from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
 from haywire.core.node.node_factory import NodeFactory
@@ -88,7 +86,6 @@ class UndoRedoTestAppWithCanvasManager:
             # Note: selection is now managed by the shared graph, not per-session
             'creation_mode': None,
             'canvas_manager': None,
-            'zoom_container': None,
             'stats': {
                 'nodes_created': 0,
                 'edges_created': 0,
@@ -232,28 +229,15 @@ class UndoRedoTestAppWithCanvasManager:
             session_data = self.current_session
             client_id = self.current_client_id
             
-            # Create session-specific zoom container with captured session
-            zoom_container = ZoomPanContainer(
-                min_zoom=0.1,
-                max_zoom=3.0,
-                initial_zoom=1.0,
-                on_zoom_change=lambda zoom: self.on_zoom_change_for_specific_session(session_data, zoom),
-                on_pan_change=lambda x, y: self.on_pan_change_for_specific_session(session_data, x, y)
-            ).classes('w-full flex-grow border-2 border-gray-300').style('height: calc(100% - 60px);')
-            
-            session_data['zoom_container'] = zoom_container
-            
-            # Create session-specific canvas manager with captured session
+            # Create session-specific canvas manager - it will create its own zoom container
             canvas_manager = GraphCanvasManager(
                 graph=self.graph,  # Use shared graph
                 node_render_factory=self.node_render_factory,  # Use shared render factory
-                zoom_container=zoom_container,
                 history_manager=self.history_manager,  # Pass the shared history manager
                 node_factory=self.node_factory,  # Pass the node factory for context node creation
                 available_nodes=self.get_available_nodes(),  # Pass available nodes for context menu
-                # Unified callback approach - Final migration completed
                 on_graph_changed=lambda: self.on_graph_changed_from_session(session_data),
-                session_id=client_id
+                session_id=client_id,
             )
             
             session_data['canvas_manager'] = canvas_manager
@@ -264,8 +248,6 @@ class UndoRedoTestAppWithCanvasManager:
             # IMPORTANT: Sync with existing graph data when canvas manager is first created
             canvas_manager.sync_with_graph()
             print(f"Canvas manager synced with {len(self.graph.nodes)} existing nodes")
-                        
-            self.create_zoom_controls()
             
             # Update canvas status
             self.update_canvas_status()
@@ -292,15 +274,7 @@ class UndoRedoTestAppWithCanvasManager:
                 with ui.column() as selection_container:
                     self.current_session['ui_containers']['selection_container'] = selection_container
                     ui.label('No nodes selected').classes('text-gray-500')
-    
-    def create_zoom_controls(self):
-        """Create zoom and pan controls."""
-        with ui.row().classes('gap-2 mt-2'):
-            ui.button('Fit to View', on_click=lambda: self.current_session['zoom_container'].zoom_to_fit(), icon='fit_screen').props('outline')
-            ui.button('Reset Zoom', on_click=lambda: self.current_session['zoom_container'].reset_zoom(), icon='center_focus_strong').props('outline')
-            ui.button('Zoom In', on_click=lambda: self.current_session['zoom_container'].zoom_in(), icon='zoom_in').props('outline')
-            ui.button('Zoom Out', on_click=lambda: self.current_session['zoom_container'].zoom_out(), icon='zoom_out').props('outline')
-    
+        
     def on_graph_changed_from_session(self, originating_session_data):
         """Handle any graph change from any session - unified callback approach."""
         session_id = originating_session_data.get('client_id', 'unknown')
@@ -321,55 +295,7 @@ class UndoRedoTestAppWithCanvasManager:
         """Handle pan change events for specific session.""" 
         self.update_displays_for_session(session_data)
             
-    
-    def on_context_create_node_for_session(self, session_data, node_type: str, x: float, y: float):
-        """Handle context menu node creation for specific session.
-        
-        ⚠️ DEPRECATED: This method is no longer called after final migration.
-        Context node creation is now handled directly in GraphCanvasManager._handle_context_create_node()
-        """
-        print(f"🎯 Context menu creating node {node_type} at ({x}, {y}) for session")
-        
-        try:
-            # Create node using shared factory and graph (same as regular node creation)
-            node = self.node_factory.create_instance(
-                node_type,
-                self.graph,  # Use shared graph
-                position=(x, y)
-            )
             
-            # Set position attributes
-            node.ui_posX = x
-            node.ui_posY = y
-            
-            # Use shared undo system
-            if self.history_manager:
-                from haywire.undo.actions.graph_actions import AddNodeAction
-                action = AddNodeAction(self.graph, node)
-                self.history_manager.add_action(action)
-            else:
-                self.graph.add_node(node)
-            
-            # Add visual representation through this session's canvas manager
-            if session_data['canvas_manager'].add_node_visual(node, (x, y)):
-                # Update global stats
-                self.global_stats['nodes_created'] += 1
-                # Sync all sessions to show the new node
-                self.sync_all_sessions()
-                # Update UI displays for this specific session
-                self.update_displays_for_session(session_data)
-                
-                from nicegui import ui
-                ui.notify(f"Created {node.__class__.__name__} from context menu")
-            else:
-                from nicegui import ui
-                ui.notify(f"Failed to create visual for {node.__class__.__name__}", type='negative')
-                
-        except Exception as e:
-            from nicegui import ui
-            ui.notify(f"Error creating node from context menu: {str(e)}", type='negative')
-            print(f"Error creating node from context menu: {e}")
-        
     def sync_all_sessions(self):
         """Synchronize all active sessions with the shared graph."""
         sessions_to_remove = []
@@ -438,13 +364,12 @@ class UndoRedoTestAppWithCanvasManager:
                 container = containers['canvas_status_container']
                 container.clear()
                 with container:
+                    canvas_manager = session_data['canvas_manager']
                     ui.label(f'✓ Canvas Manager Active').classes('text-green-600 text-sm')
-                    ui.label(f'Visual Nodes: {len(session_data["canvas_manager"].node_panels)}').classes('text-sm')
-                    ui.label(f'Visual Connections: {len(session_data["canvas_manager"].connection_paths)}').classes('text-sm')
-                    if session_data.get('zoom_container'):
-                        zoom_container = session_data['zoom_container']
-                        ui.label(f'Zoom: {zoom_container.current_zoom:.2f}x').classes('text-sm')
-                        ui.label(f'Pan: ({zoom_container.pan_x:.0f}, {zoom_container.pan_y:.0f})').classes('text-sm')
+                    ui.label(f'Visual Nodes: {len(canvas_manager.node_panels)}').classes('text-sm')
+                    ui.label(f'Visual Connections: {len(canvas_manager.connection_paths)}').classes('text-sm')
+                    ui.label(f'Zoom: {canvas_manager.current_zoom:.2f}x').classes('text-sm')
+                    ui.label(f'Pan: ({canvas_manager.pan_x:.0f}, {canvas_manager.pan_y:.0f})').classes('text-sm')
             
             # Update history display for this specific session
             self.update_history_display_for_session(session_data)
@@ -581,6 +506,8 @@ class UndoRedoTestAppWithCanvasManager:
                     ui.label(f'✓ Canvas Manager Active').classes('text-green-600 text-sm')
                     ui.label(f'Visual Nodes: {len(self.canvas_manager.node_panels)}').classes('text-sm')
                     ui.label(f'Visual Connections: {len(self.canvas_manager.connection_paths)}').classes('text-sm')
+                    ui.label(f'Zoom: {self.canvas_manager.current_zoom:.2f}x').classes('text-sm')
+                    ui.label(f'Pan: ({self.canvas_manager.pan_x:.0f}, {self.canvas_manager.pan_y:.0f})').classes('text-sm')
     
     def update_stats_display(self):
         """Update the statistics display for current session."""
