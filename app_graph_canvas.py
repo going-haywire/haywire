@@ -248,12 +248,11 @@ class UndoRedoTestAppWithCanvasManager:
                 graph=self.graph,  # Use shared graph
                 node_render_factory=self.node_render_factory,  # Use shared render factory
                 zoom_container=zoom_container,
-                on_node_position_changed=lambda node_id, pos: self.on_node_moved_for_specific_session(session_data, node_id, pos),
-                on_connection_created=lambda s_id, s_port, e_id, e_port: self.on_connection_created_for_specific_session(session_data, s_id, s_port, e_id, e_port),
-                on_connection_removed=lambda edge: self.on_connection_removed_for_specific_session(session_data, edge),
-                on_node_selected=lambda node_id, selected: self.on_node_selected_for_specific_session(session_data, node_id, selected),
                 history_manager=self.history_manager,  # Pass the shared history manager
                 available_nodes=self.get_available_nodes(),  # Pass available nodes for context menu
+                # New unified callback approach - Phase 4 completed
+                on_graph_changed=lambda: self.on_graph_changed_from_session(session_data),
+                session_id=client_id,
                 on_context_create_node=lambda node_type, x, y: self.on_context_create_node_for_session(session_data, node_type, x, y)
             )
             
@@ -302,104 +301,26 @@ class UndoRedoTestAppWithCanvasManager:
             ui.button('Zoom In', on_click=lambda: self.current_session['zoom_container'].zoom_in(), icon='zoom_in').props('outline')
             ui.button('Zoom Out', on_click=lambda: self.current_session['zoom_container'].zoom_out(), icon='zoom_out').props('outline')
     
+    def on_graph_changed_from_session(self, originating_session_data):
+        """Handle any graph change from any session - unified callback approach."""
+        session_id = originating_session_data.get('client_id', 'unknown')
+        print(f"🔄 Graph changed from session {session_id[:8]}")
+        
+        # Update global stats - the actual graph changes are already handled by GraphCanvasManager
+        self.global_stats['nodes_created'] = len(self.graph.nodes)
+        self.global_stats['edges_created'] = len(self.graph.edges)
+        
+        # Sync ALL sessions (including the originating one for consistency)
+        self.sync_all_sessions()
+        
+        # Update displays for all sessions
+        for session_data in self.sessions.values():
+            self.update_displays_for_session(session_data)
+    
     def on_pan_change_for_specific_session(self, session_data, pan_x, pan_y):
         """Handle pan change events for specific session.""" 
         self.update_displays_for_session(session_data)
-        
-    def on_node_moved_for_specific_session(self, session_data, node_id: str, new_position: Tuple[float, float]):
-        """Handle node position changes for specific session."""
-        try:
-            if node_id in self.graph.nodes:
-                node = self.graph.nodes[node_id]
-                old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
-                
-                # Only create an action if the position has actually changed
-                if old_position != new_position:
-                    print(f"DEBUG: Node move - {node_id}: {old_position} -> {new_position}")
-                    
-                    if self.history_manager:
-                        # Pass individual coordinates, not tuples
-                        action = MoveNodeAction(self.graph, node_id, new_position[0], new_position[1])
-                        self.history_manager.add_action(action)
-                        # NOTE: The action already updates the position, so no need to do it manually
-                        
-                        # Sync all sessions to show the move across all clients
-                        self.sync_all_sessions()
-                    else:
-                        # Fallback if no history manager
-                        node.ui_posX, node.ui_posY = new_position
-                        # Still need to sync for fallback case
-                        self.sync_all_sessions()
-                else:
-                    print(f"DEBUG: Node move ignored - {node_id}: position unchanged {old_position}")
-                
-        except Exception as e:
-            print(f"Error handling node move: {e}")
-    
-    def on_connection_created_for_specific_session(self, session_data, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
-        """Handle new connection creation for specific session."""
-        try:
-            print(f"Connection request from session: {start_node_id}:{start_port} -> {end_node_id}:{end_port}")
             
-            # Create edge in shared graph
-            edge = Edge(
-                edge_type=EdgeType.DATA,
-                output_node_id=start_node_id,
-                outlet_pin_id=start_port,
-                input_node_id=end_node_id,
-                inlet_pin_id=end_port
-            )
-            
-            # Use shared undo system
-            if self.history_manager:
-                action = AddEdgeAction(self.graph, edge)
-                self.history_manager.add_action(action)
-            else:
-                self.graph.add_edge(edge)
-            
-            self.global_stats['edges_created'] += 1
-            self.sync_all_sessions()
-            # Update UI displays for this specific session
-            self.update_displays_for_session(session_data)
-            
-            ui.notify(f"Connected {start_node_id}:{start_port} → {end_node_id}:{end_port}")
-            
-        except Exception as e:
-            ui.notify(f"Connection failed: {str(e)}", type='negative')
-            print(f"Connection error: {e}")
-    
-    def on_connection_removed_for_specific_session(self, session_data, edge: Edge):
-        """Handle connection removal for specific session."""
-        try:
-            print(f"Connection removal request: {edge.output_node_id} -> {edge.input_node_id}")
-            
-            # Remove edge from shared graph
-            removed = self.graph.remove_edge(
-                edge.output_node_id, 
-                edge.outlet_pin_id,
-                edge.input_node_id, 
-                edge.inlet_pin_id
-            )
-            
-            if removed:
-                self.sync_all_sessions()
-                # Update UI displays for this specific session
-                self.update_displays_for_session(session_data)
-                ui.notify("Connection removed")
-            else:
-                ui.notify("Connection not found", type='warning')
-            
-        except Exception as e:
-            print(f"Error removing connection: {e}")
-            ui.notify(f"Error removing connection: {str(e)}", type='negative')
-    
-    def on_node_selected_for_specific_session(self, session_data, node_id: str, selected: bool):
-        """Handle node selection changes for specific session."""
-        # Selection is now managed by the shared graph through undo actions
-        # This callback is deprecated but kept for backward compatibility
-        print(f"Node {node_id} {'selected' if selected else 'deselected'} (handled via undo actions)")
-        # Update selection display for this specific session
-        self.update_selection_display_for_session(session_data)
     
     def on_context_create_node_for_session(self, session_data, node_type: str, x: float, y: float):
         """Handle context menu node creation for specific session."""

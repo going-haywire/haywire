@@ -21,10 +21,10 @@ import json
 import uuid
 from dataclasses import dataclass
 
-from haywire.core.graph.graph import HaywireGraph, Edge
+from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
 from haywire.ui.utils import generate_pin_id, parse_pin_id, generate_connection_id
-from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState
+from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodeAction, AddEdgeAction, RemoveEdgeAction, AddNodeAction
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.ui.editor_v1.graph_canvas_vue import GraphCanvasVue
@@ -60,12 +60,10 @@ class GraphCanvasManager:
         node_render_factory,
         zoom_container: ZoomPanContainer,
         history_manager,
-        on_node_position_changed: Optional[Callable[[str, Tuple[float, float]], None]] = None,
-        on_connection_created: Optional[Callable[[str, str, str, str], None]] = None,
-        on_connection_removed: Optional[Callable[[Edge], None]] = None,
-        on_node_selected: Optional[Callable[[str, bool], None]] = None,
         available_nodes: Optional[List[str]] = None,
-        on_context_create_node: Optional[Callable[[str, float, float], None]] = None
+        on_context_create_node: Optional[Callable[[str, float, float], None]] = None,
+        on_graph_changed: Optional[Callable[[], None]] = None,
+        session_id: Optional[str] = None
     ):
         self.graph = graph
         self.node_render_factory = node_render_factory
@@ -74,11 +72,9 @@ class GraphCanvasManager:
         self.available_nodes = available_nodes or []
         
         # Event callbacks
-        self.on_node_position_changed = on_node_position_changed
-        self.on_connection_created = on_connection_created
-        self.on_connection_removed = on_connection_removed
-        self.on_node_selected = on_node_selected
         self.on_context_create_node = on_context_create_node
+        self.on_graph_changed = on_graph_changed
+        self.session_id = session_id
         
         # Visual state
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
@@ -132,8 +128,32 @@ class GraphCanvasManager:
     
     def _handle_vue_connection_created(self, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
         """Handle connection creation from Vue component."""
-        if self.on_connection_created:
-            self.on_connection_created(start_node_id, start_port, end_node_id, end_port)
+        try:
+            print(f"Connection request: {start_node_id}:{start_port} -> {end_node_id}:{end_port}")
+            
+            # Create edge directly instead of delegating to app
+            edge = Edge(
+                edge_type=EdgeType.DATA,
+                output_node_id=start_node_id,
+                outlet_pin_id=start_port,
+                input_node_id=end_node_id,
+                inlet_pin_id=end_port
+            )
+            
+            # Create AddEdgeAction directly
+            if self.history_manager:
+                action = AddEdgeAction(self.graph, edge)
+                self.history_manager.add_action(action)
+                
+                # Notify app to sync other sessions
+                if self.on_graph_changed:
+                    self.on_graph_changed()
+            else:
+                # Fallback if no history manager
+                self.graph.add_edge(edge)
+                
+        except Exception as e:
+            print(f"Connection creation failed: {e}")
     
     def _handle_vue_connection_clicked(self, path_id: str, edge_data: dict):
         """Handle connection click from Vue component."""
@@ -149,8 +169,29 @@ class GraphCanvasManager:
                     for edge in self.graph.edges:
                         if (edge.output_node_id == output_node_id and edge.outlet_pin_id == outlet_pin_id and
                             edge.input_node_id == input_node_id and edge.inlet_pin_id == inlet_pin_id):
-                            if self.on_connection_removed:
-                                self.on_connection_removed(edge)
+                            
+                            # Create RemoveEdgeAction directly instead of delegating to app
+                            try:
+                                print(f"Connection removal request: {edge.output_node_id} -> {edge.input_node_id}")
+                                
+                                if self.history_manager:
+                                    action = RemoveEdgeAction(self.graph, edge)
+                                    self.history_manager.add_action(action)
+                                    
+                                    # Notify app to sync other sessions
+                                    if self.on_graph_changed:
+                                        self.on_graph_changed()
+                                else:
+                                    # Fallback if no history manager
+                                    self.graph.remove_edge(
+                                        edge.output_node_id, 
+                                        edge.outlet_pin_id,
+                                        edge.input_node_id, 
+                                        edge.inlet_pin_id
+                                    )
+                                    
+                            except Exception as e:
+                                print(f"Error removing connection: {e}")
                             break
                 break
     
@@ -163,10 +204,28 @@ class GraphCanvasManager:
         # Update stored position when user drags
         if node_id in self.node_panels:
             self.node_panels[node_id]['position'] = (x, y)
+        
+        # Create MoveNodeAction directly instead of delegating to app
+        if node_id in self.graph.nodes:
+            node = self.graph.nodes[node_id]
+            old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
+            new_position = (x, y)
             
-        if self.on_node_position_changed:
-            print(f"on_node_position_changed. node_id = {node_id} | x = {x}, y = {y}")
-            self.on_node_position_changed(node_id, (x, y))
+            # Only create an action if the position has actually changed
+            if old_position != new_position:
+                print(f"DEBUG: Node move - {node_id}: {old_position} -> {new_position}")
+                
+                if self.history_manager:
+                    # Create MoveNodeAction directly
+                    action = MoveNodeAction(self.graph, node_id, x, y)
+                    self.history_manager.add_action(action)
+                    
+                    # Notify app to sync other sessions
+                    if self.on_graph_changed:
+                        self.on_graph_changed()
+                else:
+                    # Fallback if no history manager
+                    node.ui_posX, node.ui_posY = new_position
     
     def _handle_vue_node_drag_start(self, node_id: str):
         """Handle node drag start from Vue component - add fence for undo grouping."""
@@ -224,6 +283,10 @@ class GraphCanvasManager:
         # Update local state for fast access (this will be in sync with graph state)
         self.selected_nodes = selected_nodes_set
         self.selected_connections = selected_connections_set
+        
+        # Notify app to sync other sessions
+        if self.on_graph_changed:
+            self.on_graph_changed()
         
     # Node Management
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
@@ -527,9 +590,6 @@ class GraphCanvasManager:
                 self.canvas_vue.select_node(node_id, multi_select)
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not update visual selection for node {node_id}: {e}")
-        
-        if self.on_node_selected:
-            self.on_node_selected(node_id, True)
     
     def deselect_node(self, node_id: str):
         """Deselect a node."""
@@ -541,9 +601,6 @@ class GraphCanvasManager:
                 self.canvas_vue.deselect_node(node_id)
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not update visual deselection for node {node_id}: {e}")
-        
-        if self.on_node_selected:
-            self.on_node_selected(node_id, False)
     
     def select_connection(self, edge_key: str, multi_select: bool = False):
         """Select a connection."""
@@ -638,6 +695,8 @@ class GraphCanvasManager:
         """Handle node creation from context menu."""
         print(f"📝 Creating node {node_type} at ({x}, {y}) from context menu")
         
+        # TODO: Complete migration - GraphCanvasManager needs node_factory parameter
+        # For now, delegate to app which has the node_factory
         if self.on_context_create_node:
             # Delegate to the parent application
             self.on_context_create_node(node_type, x, y)
