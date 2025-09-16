@@ -59,11 +59,11 @@ class GraphCanvasManager:
         graph: HaywireGraph,
         node_render_factory,
         zoom_container: ZoomPanContainer,
+        history_manager,
         on_node_position_changed: Optional[Callable[[str, Tuple[float, float]], None]] = None,
         on_connection_created: Optional[Callable[[str, str, str, str], None]] = None,
         on_connection_removed: Optional[Callable[[Edge], None]] = None,
         on_node_selected: Optional[Callable[[str, bool], None]] = None,
-        history_manager = None,
         available_nodes: Optional[List[str]] = None,
         on_context_create_node: Optional[Callable[[str, float, float], None]] = None
     ):
@@ -173,19 +173,18 @@ class GraphCanvasManager:
         print(f"[GraphCanvasManager] Node drag started: {node_id}")
         
         # Add fence to group all drag-related actions together
-        if self.history_manager:
-            self.history_manager.add_fence()
-            print(f"[GraphCanvasManager] Added fence for drag start: {node_id}")
+        self.history_manager.add_fence()
+        print(f"[GraphCanvasManager] Added fence for drag start: {node_id}")
     
     def _handle_vue_node_drag_end(self, node_id: str, position_changed: bool):
         """Handle node drag end from Vue component - add fence to end grouping."""
         print(f"[GraphCanvasManager] Node drag ended: {node_id}, position changed: {position_changed}")
         
         # Add fence to end the drag operation grouping
-        if self.history_manager and position_changed:
+        if position_changed:
             self.history_manager.add_fence()
             print(f"[GraphCanvasManager] Added fence for drag end: {node_id}")
-        elif not position_changed:
+        else:
             print(f"[GraphCanvasManager] No fence needed - position unchanged for: {node_id}")
     
     def _handle_vue_selection_changed(self, selected_nodes: List[str], selected_connections: List[str]):
@@ -218,13 +217,9 @@ class GraphCanvasManager:
         
         new_selection = SelectionState(selected_nodes_set, selected_edges)
         
-        # Create and execute undo action if history manager is available
-        if self.history_manager:
-            action = ChangeSelectionAction(self.graph, new_selection)
-            self.history_manager.add_action(action)
-        else:
-            # Fallback: Update graph selection directly if no history manager
-            self.graph.set_selection_state(selected_nodes_set, selected_connections_set)
+        # Create and execute undo action
+        action = ChangeSelectionAction(self.graph, new_selection)
+        self.history_manager.add_action(action)
         
         # Update local state for fast access (this will be in sync with graph state)
         self.selected_nodes = selected_nodes_set
@@ -672,14 +667,11 @@ class GraphCanvasManager:
         
         if node_id in self.graph.nodes:
             try:
-                # Use history manager if available, otherwise direct removal
-                if self.history_manager:
-                    from haywire.undo.actions.graph_actions import RemoveNodeAction
-                    node = self.graph.nodes[node_id]
-                    action = RemoveNodeAction(self.graph, node_id, node)
-                    self.history_manager.add_action(action)
-                else:
-                    self.graph.remove_node(node_id)
+                # Use history manager to remove node with undo support
+                from haywire.undo.actions.graph_actions import RemoveNodeAction
+                node = self.graph.nodes[node_id]
+                action = RemoveNodeAction(self.graph, node_id, node)
+                self.history_manager.add_action(action)
                 
                 # Sync visual representation
                 self.sync_with_graph()
@@ -713,30 +705,14 @@ class GraphCanvasManager:
         
         if edge_to_remove:
             try:
-                # Create and execute undo action if history manager is available
-                if self.history_manager:
-                    from haywire.undo.actions.graph_actions import RemoveEdgeAction
-                    action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
-                    self.history_manager.add_action(action)
-                    
-                    # Sync visual representation
-                    self.sync_with_graph()
-                    ui.notify(f"Deleted connection")
-                else:
-                    # Fallback: Use direct removal if no history manager
-                    removed = self.graph.remove_edge(
-                        edge_to_remove.output_node_id,
-                        edge_to_remove.outlet_pin_id,
-                        edge_to_remove.input_node_id,
-                        edge_to_remove.inlet_pin_id
-                    )
-                    
-                    if removed:
-                        # Sync visual representation
-                        self.sync_with_graph()
-                        ui.notify(f"Deleted connection")
-                    else:
-                        ui.notify("Failed to delete connection", type='warning')
+                # Create and execute undo action
+                from haywire.undo.actions.graph_actions import RemoveEdgeAction
+                action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
+                self.history_manager.add_action(action)
+                
+                # Sync visual representation
+                self.sync_with_graph()
+                ui.notify(f"Deleted connection")
                     
             except Exception as e:
                 print(f"Error deleting connection: {e}")
