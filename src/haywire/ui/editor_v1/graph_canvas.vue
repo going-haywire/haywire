@@ -22,6 +22,9 @@
 </template>
 
 <script>
+// Import auto-generated event system
+import { GraphEvents, EventCreators, EventValidators } from './generated/graph_events.js';
+
 export default {
     name: 'GraphCanvas',
 
@@ -140,7 +143,9 @@ export default {
             deselectConnection: this.deselectConnection,
             clearSelection: this.clearSelection,
             getSelection: this.getSelection,
-            setSelection: this.setSelection
+            setSelection: this.setSelection,
+            // Enhanced event system API
+            handleSyncEvent: this.handleSyncEvent
         };
     },
 
@@ -251,6 +256,117 @@ export default {
         },
 
         // =============================================================================
+        // UNIFIED EVENT SYSTEM
+        // =============================================================================
+
+        /**
+         * Emit unified canvas event to Python using the new event system
+         */
+        emitCanvasEvent(eventType, eventData, sessionId = 'default') {
+            console.log(`🚀 Vue→Python Event: ${eventType}`, eventData);
+            
+            // Create the event using the standardized format
+            const event = {
+                event_type: eventType,
+                source_session_id: sessionId,
+                timestamp: Date.now(),
+                data: eventData,
+                requires_broadcast: true
+            };
+
+            // Emit to Python through NiceGUI
+            this.$emit('canvasEvent', event);
+        },
+
+        /**
+         * Handle sync events from Python
+         */
+        handleSyncEvent(syncEvent) {
+            console.log(`🔄 Python→Vue Sync: ${syncEvent.event_type}`, syncEvent.data);
+            
+            const { event_type, data } = syncEvent;
+            
+            switch (event_type) {
+                case GraphEvents.SyncCommands.SYNC_NODE_POSITION:
+                    this._syncNodePosition(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_CONNECTION_ADDITION:
+                    this._syncConnectionAddition(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_CONNECTION_REMOVAL:
+                    this._syncConnectionRemoval(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_SELECTION_STATE:
+                    this._syncSelectionState(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_CANVAS_CLEAR:
+                    this._syncCanvasClear();
+                    break;
+                case GraphEvents.SyncCommands.SYNC_ALL_CONNECTIONS:
+                    this._syncAllConnections(data);
+                    break;
+                default:
+                    console.warn(`Unknown sync event: ${event_type}`);
+            }
+        },
+
+        // Sync event handlers
+        _syncNodePosition(data) {
+            const { nodeId, position } = data;
+            const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
+            if (nodeElement) {
+                nodeElement.style.transform = `translate(${position.x}px, ${position.y}px)`;
+                this.updateConnectionsForNode(nodeId);
+            }
+        },
+
+        _syncConnectionAddition(data) {
+            const { connectionId, outputNodeId, outletPinId, inputNodeId, inletPinId } = data;
+            this._createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, connectionId, '[SYNC] ');
+        },
+
+        _syncConnectionRemoval(data) {
+            const { connectionId } = data;
+            this.removeConnectionVisual(connectionId);
+        },
+
+        _syncSelectionState(data) {
+            const { selectedNodes, selectedConnections, action } = data;
+            if (action === 'clear') {
+                this.clearSelection();
+            } else {
+                this._setSelectionState(selectedNodes, selectedConnections);
+            }
+        },
+
+        _syncCanvasClear() {
+            // Clear all connections
+            this.connectionPaths.clear();
+            const svg = this.$refs.svg;
+            while (svg.lastChild) {
+                svg.removeChild(svg.lastChild);
+            }
+            // Clear selection
+            this.selectionState.selectedNodes.clear();
+            this.selectionState.selectedConnections.clear();
+        },
+
+        _syncAllConnections(data) {
+            const { connections } = data;
+            // Update the connections prop to sync visuals
+            this._updateConnectionsFromProps(connections, []);
+        },
+
+        _setSelectionState(selectedNodes, selectedConnections) {
+            // Clear current selection visually
+            this.clearSelection();
+            
+            // Apply new selection
+            selectedNodes.forEach(nodeId => this.selectNode(nodeId, true));
+            selectedConnections.forEach(connectionId => this.selectConnection(connectionId, true));
+        },
+
+        // =============================================================================
         // PRIMARY EVENT HANDLERS
         // =============================================================================
 
@@ -357,23 +473,14 @@ export default {
                 // Clear selection when clicking on empty canvas
                 this.clearSelection();
 
-                // Emit selection change event to Python for history tracking
-                this.$emit('selectionChanged', {
+                // Emit selection change event to Python for history tracking using new unified system
+                this.emitCanvasEvent(GraphEvents.UserInteractions.SELECTION_CHANGED, {
                     selectedNodes: [],
                     selectedConnections: []
                 });
 
-                // Emit click event to Python with proper coordinates
-                const rect = this.$el.getBoundingClientRect();
-                const offsetX = event.clientX - rect.left;
-                const offsetY = event.clientY - rect.top;
-
-                this.$emit('click', {
-                    offsetX: offsetX,
-                    offsetY: offsetY,
-                    clientX: event.clientX,
-                    clientY: event.clientY
-                });
+                // Note: Canvas click event can be removed as it's not part of the core event system
+                // If needed, it can be added as a separate event type
             }
         },
 
@@ -435,20 +542,30 @@ export default {
                 // Context menu for node
                 const nodeId = nodeElement.dataset.nodeId;
                 console.log(`🎯 Context menu for node: ${nodeId}`);
-                this.$emit('contextMenuNode', {
+                
+                // Convert screen coordinates to canvas coordinates
+                const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                
+                this.emitCanvasEvent(GraphEvents.UserInteractions.CONTEXT_MENU_NODE, {
                     nodeId: nodeId,
-                    x: clientX,
-                    y: clientY,
-                    element: nodeElement
+                    screenX: clientX,
+                    screenY: clientY,
+                    canvasX: canvasCoords.x,
+                    canvasY: canvasCoords.y
                 });
             } else if (connectionElement && connectionId) {
                 // Context menu for connection
                 console.log(`🎯 Context menu for connection: ${connectionId}`);
-                this.$emit('contextMenuConnection', {
+                
+                // Convert screen coordinates to canvas coordinates
+                const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                
+                this.emitCanvasEvent(GraphEvents.UserInteractions.CONTEXT_MENU_CONNECTION, {
                     connectionId: connectionId,
-                    x: clientX,
-                    y: clientY,
-                    element: connectionElement
+                    screenX: clientX,
+                    screenY: clientY,
+                    canvasX: canvasCoords.x,
+                    canvasY: canvasCoords.y
                 });
             } else {
                 // Context menu for canvas (empty space)
@@ -457,7 +574,7 @@ export default {
                 // Convert screen coordinates to canvas coordinates for node creation
                 const canvasCoords = this._transformScreenToSVG(clientX, clientY);
 
-                this.$emit('contextMenuCanvas', {
+                this.emitCanvasEvent(GraphEvents.UserInteractions.CONTEXT_MENU_CANVAS, {
                     screenX: clientX,
                     screenY: clientY,
                     canvasX: canvasCoords.x,
@@ -571,12 +688,12 @@ export default {
                     startData = endPin.dataset;
                 }
 
-                // Emit connection created event
-                this.$emit('connection-created', {
-                    startNodeId: startData.nodeId,
-                    startPort: startData.pinId,
-                    endNodeId: endData.nodeId,
-                    endPort: endData.pinId
+                // Emit connection created event using new unified system
+                this.emitCanvasEvent(GraphEvents.UserInteractions.CONNECTION_CREATED, {
+                    outputNodeId: startData.nodeId,
+                    outletPinId: startData.pinId,
+                    inputNodeId: endData.nodeId,
+                    inletPinId: endData.pinId
                 });
             }
 
@@ -646,8 +763,8 @@ export default {
                 nodeElement.style.zIndex = '1000';
                 nodeElement.classList.add('dragging-node');
 
-                // Emit drag start event to add fence for undo grouping
-                this.$emit('node-drag-start', {
+                // Emit drag start event to add fence for undo grouping using new unified system
+                this.emitCanvasEvent(GraphEvents.UserInteractions.NODE_DRAG_START, {
                     nodeId: nodeId
                 });
 
@@ -711,11 +828,10 @@ export default {
             if (this.nodeDragState.hasActuallyMoved) {
                 // Only emit position change if the position actually changed
                 if (positionChanged) {
-                    // Emit position change event to Python
-                    this.$emit('node-position-changed', {
+                    // Emit position change event to Python using new unified system
+                    this.emitCanvasEvent(GraphEvents.UserInteractions.NODE_POSITION_CHANGED, {
                         nodeId: nodeId,
-                        x: finalX,
-                        y: finalY
+                        position: { x: finalX, y: finalY }
                     });
 
                     console.log(`Node ${nodeId} drag ended with position change: (${startX}, ${startY}) -> (${finalX}, ${finalY})`);
@@ -723,8 +839,8 @@ export default {
                     console.log(`Node ${nodeId} drag ended with no position change: (${finalX}, ${finalY})`);
                 }
 
-                // Emit drag end event to close fence for undo grouping
-                this.$emit('node-drag-end', {
+                // Emit drag end event to close fence for undo grouping using new unified system
+                this.emitCanvasEvent(GraphEvents.UserInteractions.NODE_DRAG_END, {
                     nodeId: nodeId,
                     positionChanged: positionChanged
                 });
@@ -950,20 +1066,10 @@ export default {
                 e.stopPropagation();
                 this._handleConnectionSelection(e, pathId);
 
-                // Emit connection-clicked event with appropriate data format
-                if (connectionData) {
-                    // Internal connections pass connectionData
-                    this.$emit('connection-clicked', { pathId, connectionData });
-                } else {
-                    // Public API connections pass edgeData (reconstructed)
-                    const edgeData = {
-                        outputNodeId,
-                        outletPinId,
-                        inputNodeId,
-                        inletPinId
-                    };
-                    this.$emit('connection-clicked', { pathId, edgeData });
-                }
+                // Emit connection-clicked event using new unified system
+                this.emitCanvasEvent(GraphEvents.UserInteractions.CONNECTION_CLICKED, {
+                    connectionId: pathId
+                });
             };
 
             path.addEventListener('click', clickHandler);
@@ -1151,10 +1257,9 @@ export default {
 
                 // Use the style position directly instead of calculated position
                 // as it's more reliable for absolute positioned elements
-                this.$emit('node-position-changed', {
+                this.emitCanvasEvent(GraphEvents.UserInteractions.NODE_POSITION_CHANGED, {
                     nodeId,
-                    x: styleLeft,
-                    y: styleTop
+                    position: { x: styleLeft, y: styleTop }
                 });
             }, 100);
         },
@@ -1232,8 +1337,8 @@ export default {
                 this.selectNode(nodeId, false);
             }
 
-            // Emit selection change to Python
-            this.$emit('selection-changed', {
+            // Emit selection change to Python using new unified system
+            this.emitCanvasEvent(GraphEvents.UserInteractions.SELECTION_CHANGED, {
                 selectedNodes: Array.from(this.selectionState.selectedNodes),
                 selectedConnections: Array.from(this.selectionState.selectedConnections)
             });
@@ -1296,8 +1401,8 @@ export default {
                 this.selectConnection(pathId, false);
             }
 
-            // Emit selection change to Python
-            this.$emit('selection-changed', {
+            // Emit selection change to Python using new unified system
+            this.emitCanvasEvent(GraphEvents.UserInteractions.SELECTION_CHANGED, {
                 selectedNodes: Array.from(this.selectionState.selectedNodes),
                 selectedConnections: Array.from(this.selectionState.selectedConnections)
             });

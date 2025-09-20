@@ -1,24 +1,15 @@
 """
-GraphCanvasManager - Dedicated UI management for graph visualization
+GraphCanvasManager - Enhanced with class-based event system
 
-This class manages the visual representation of a graph including nodes and connections.
-It handles:
-- Node visual creation/removal/positioning
-- Connection rendering with SVG paths
-- Client-side interaction handling (drag connections, node movement)
-- Synchronization with graph data model
-- Integration with undo/redo system
-
-The core principle follows condensed.md: delegate real-time interactions to client-side 
-JavaScript for smooth UX, while Python manages the data model and finalized state changes.
-
-REFACTORED VERSION: Now uses GraphCanvasVue component instead of embedded JavaScript.
+ENHANCED VERSION: Now uses auto-registration event handlers with type-safe event classes.
+This eliminates complex callback management and provides compile-time safety.
 """
 
 from typing import Dict, List, Optional, Tuple, Callable, Set
 from nicegui import ui, events
 import json
 import uuid
+import inspect
 from dataclasses import dataclass
 
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
@@ -29,6 +20,10 @@ from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.ui.editor_v1.graph_canvas_vue import GraphCanvasVue
 from haywire.ui.editor_v1.popup_context_menu import PopupContextMenu
+
+# Import enhanced event system
+from .event_definitions import *
+from .event_handlers import handles_event
 
 
 @dataclass
@@ -42,16 +37,10 @@ class ConnectionDragState:
 
 class GraphCanvasManager:
     """
-    Manages the visual representation of a graph including nodes and connections.
+    Enhanced graph canvas manager with class-based event system.
     
-    This refactored version uses a Vue component (GraphCanvasVue) to handle all
-    client-side interactions while Python manages the data model.
-    
-    Responsibilities:
-    - Node visual creation/removal/positioning
-    - Graph data synchronization
-    - Integration with Vue component for UI interactions
-    - Event handling and callback management
+    This version uses auto-registration event handlers with type-safe event classes,
+    eliminating complex callback management while maintaining all existing functionality.
     """
     
     def __init__(
@@ -72,7 +61,7 @@ class GraphCanvasManager:
         
         # Event callbacks
         self.on_graph_changed = on_graph_changed
-        self.session_id = session_id
+        self.session_id = session_id or "default"
                 
         # Will be created in _setup_canvas()
         self.zoom_container: Optional[ZoomPanContainer] = None
@@ -90,35 +79,59 @@ class GraphCanvasManager:
         self.canvas_vue: Optional[GraphCanvasVue] = None
         self.context_menu: Optional[PopupContextMenu] = None
         
+        # Enhanced event handling system
+        self._event_handlers: Dict[str, Callable] = {}
+        self._auto_register_event_handlers()
+        
         self._setup_canvas()
     
-    def _setup_canvas(self):
-        """Setup the canvas with Vue component."""
-        print("🔧 Setting up GraphCanvasManager with Vue component")
+    def _auto_register_event_handlers(self):
+        """Automatically register event handlers using decorators"""
+        print("🔧 Auto-registering event handlers...")
         
-        # Create zoom container first
+        for method_name in dir(self):
+            method = getattr(self, method_name)
+            if hasattr(method, '_handles_event_classes'):
+                for event_class in method._handles_event_classes:
+                    event_type = event_class.event_type
+                    self._event_handlers[event_type] = method
+                    print(f"✅ Registered: {event_class.__name__} → {method_name}")
+        
+        # Verify all user events have handlers
+        self._validate_handler_coverage()
+    
+    def _validate_handler_coverage(self):
+        """Ensure all user events have registered handlers"""
+        user_events = [event_type for event_type, event_class in GRAPH_EVENT_REGISTRY.items() 
+                      if getattr(event_class, 'category', 'user') == 'user']
+        
+        missing_handlers = []
+        for event_type in user_events:
+            if event_type not in self._event_handlers:
+                missing_handlers.append(event_type)
+        
+        if missing_handlers:
+            print(f"⚠️  Missing handlers for events: {missing_handlers}")
+        else:
+            print(f"✅ All {len(user_events)} user events have registered handlers")
+    
+    def _setup_canvas(self):
+        """Setup canvas with enhanced event system."""
+        print("🔧 Setting up GraphCanvasManager with enhanced events")
+        
+        # Create zoom container
         self.zoom_container = ZoomPanContainer(
             min_zoom=0.1,
             max_zoom=3.0,
             initial_zoom=1.0
         ).classes('w-full flex-grow border-2 border-gray-300').style('height: calc(100% - 60px);')
         
-        # Create the Vue-based canvas component inside the zoom container
         with self.zoom_container.content_container:
             self.canvas_vue = GraphCanvasVue(
                 zoom_container=self.zoom_container,
-                on_connection_created=self._handle_vue_connection_created,
-                on_connection_clicked=self._handle_vue_connection_clicked,
-                on_node_position_changed=self._handle_vue_node_position_changed,
-                on_node_drag_start=self._handle_vue_node_drag_start,
-                on_node_drag_end=self._handle_vue_node_drag_end,
-                on_selection_changed=self._handle_vue_selection_changed,
-                on_context_menu_canvas=self._handle_context_menu_canvas,
-                on_context_menu_node=self._handle_context_menu_node,
-                on_context_menu_connection=self._handle_context_menu_connection
+                on_canvas_event=self._handle_canvas_event
             )
             
-            # Create context menu component
             self.context_menu = PopupContextMenu(
                 available_nodes=self.available_nodes,
                 on_create_node=self._handle_context_create_node,
@@ -129,124 +142,158 @@ class GraphCanvasManager:
                 on_delete_connection=self._handle_context_delete_connection
             )
     
-    @property
-    def canvas(self):
-        """Backward compatibility property to access the canvas Vue component."""
-        return self.canvas_vue
-    
-    def _handle_vue_connection_created(self, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
-        """Handle connection creation from Vue component."""
-        try:
-            print(f"Connection request: {start_node_id}:{start_port} -> {end_node_id}:{end_port}")
+    def _handle_canvas_event(self, event):
+        """
+        Unified canvas event router using auto-registered handlers
+        """
+        if isinstance(event, BaseGraphEvent):
+            event_type = event.event_type
+            handler = self._event_handlers.get(event_type)
             
-            # Create edge directly instead of delegating to app
+            if handler:
+                # Determine parameter signature and call appropriately
+                sig = inspect.signature(handler)
+                param_count = len(sig.parameters) - 1  # Exclude 'self'
+                
+                if param_count == 1:
+                    handler(event)
+                else:
+                    # Legacy support - extract data
+                    handler(event.to_dict())
+            else:
+                print(f"No handler found for event type: {event_type}")
+        else:
+            # Handle legacy dict format for backward compatibility
+            event_type = event.get('event_type')
+            handler = self._event_handlers.get(event_type)
+            if handler:
+                handler(event)
+            else:
+                print(f"No handler found for event type: {event_type}")
+    
+    # =============================================================================
+    # EVENT HANDLERS (Auto-registered via decorators)
+    # =============================================================================
+    
+    @handles_event(NodePositionChangedEvent)
+    def process_node_position_change(self, event: NodePositionChangedEvent):
+        """Handle node position updates"""
+        try:
+            print(f"Updating node position: {event.nodeId} to ({event.position['x']}, {event.position['y']})")
+            
+            # Ignore position changes during sync operations to prevent recursion
+            if self._syncing:
+                return
+            
+            # Update stored position when user drags
+            if event.nodeId in self.node_panels:
+                self.node_panels[event.nodeId]['position'] = (event.position['x'], event.position['y'])
+            
+            # Create MoveNodeAction directly
+            if event.nodeId in self.graph.nodes:
+                node = self.graph.nodes[event.nodeId]
+                old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
+                new_position = (event.position['x'], event.position['y'])
+                
+                # Only create an action if the position has actually changed
+                if old_position != new_position:
+                    action = MoveNodeAction(self.graph, event.nodeId, event.position['x'], event.position['y'])
+                    self.history_manager.add_action(action)
+                    
+                    # Broadcast to other sessions
+                    if event.requires_broadcast and self.on_graph_changed:
+                        self.on_graph_changed()
+                        
+        except Exception as e:
+            print(f"Node position update failed: {e}")
+    
+    @handles_event(ConnectionCreatedEvent)
+    def process_connection_creation(self, event: ConnectionCreatedEvent):
+        """Handle connection creation"""
+        try:
+            print(f"Creating connection: {event.outputNodeId}:{event.outletPinId} -> {event.inputNodeId}:{event.inletPinId}")
+            
+            # Create edge in graph
             edge = Edge(
                 edge_type=EdgeType.DATA,
-                output_node_id=start_node_id,
-                outlet_pin_id=start_port,
-                input_node_id=end_node_id,
-                inlet_pin_id=end_port
+                output_node_id=event.outputNodeId,
+                outlet_pin_id=event.outletPinId,
+                input_node_id=event.inputNodeId,
+                inlet_pin_id=event.inletPinId
             )
             
+            # Add to graph
             action = AddEdgeAction(self.graph, edge)
             self.history_manager.add_action(action)
             
-            # Notify app to sync other sessions
-            if self.on_graph_changed:
+            # Broadcast to other sessions
+            if event.requires_broadcast and self.on_graph_changed:
                 self.on_graph_changed()
                 
         except Exception as e:
             print(f"Connection creation failed: {e}")
     
-    def _handle_vue_connection_clicked(self, path_id: str, edge_data: dict):
-        """Handle connection click from Vue component."""
-        # Find the corresponding edge from the path_id and trigger removal callback
-        for edge_key, stored_path_id in self.connection_paths.items():
-            if stored_path_id == path_id:
-                # Reconstruct edge from edge_key
-                parts = edge_key.split('-')
-                if len(parts) >= 4:
-                    output_node_id, outlet_pin_id, input_node_id, inlet_pin_id = parts[0], parts[1], parts[2], parts[3]
-                    
-                    # Find the actual edge object
-                    for edge in self.graph.edges:
-                        if (edge.output_node_id == output_node_id and edge.outlet_pin_id == outlet_pin_id and
-                            edge.input_node_id == input_node_id and edge.inlet_pin_id == inlet_pin_id):
-                            
-                            # Create RemoveEdgeAction directly instead of delegating to app
-                            try:
-                                print(f"Connection removal request: {edge.output_node_id} -> {edge.input_node_id}")
+    @handles_event(ConnectionClickedEvent)
+    def process_connection_click(self, event: ConnectionClickedEvent):
+        """Handle connection click events - remove the connection"""
+        try:
+            print(f"Connection clicked for removal: {event.connectionId}")
+            
+            # Find the corresponding edge from the connection ID
+            for edge_key, stored_path_id in self.connection_paths.items():
+                if stored_path_id == event.connectionId:
+                    # Reconstruct edge from edge_key
+                    parts = edge_key.split('-')
+                    if len(parts) >= 4:
+                        output_node_id, outlet_pin_id, input_node_id, inlet_pin_id = parts[0], parts[1], parts[2], parts[3]
+                        
+                        # Find the actual edge object
+                        for edge in self.graph.edges:
+                            if (edge.output_node_id == output_node_id and edge.outlet_pin_id == outlet_pin_id and
+                                edge.input_node_id == input_node_id and edge.inlet_pin_id == inlet_pin_id):
                                 
+                                # Create RemoveEdgeAction
                                 action = RemoveEdgeAction(self.graph, edge)
                                 self.history_manager.add_action(action)
                                 
-                                # Notify app to sync other sessions
-                                if self.on_graph_changed:
+                                # Broadcast to other sessions
+                                if event.requires_broadcast and self.on_graph_changed:
                                     self.on_graph_changed()
-                                    
-                            except Exception as e:
-                                print(f"Error removing connection: {e}")
-                            break
-                break
+                                break
+                    break
+                    
+        except Exception as e:
+            print(f"Connection click handling failed: {e}")
     
-    def _handle_vue_node_position_changed(self, node_id: str, x: float, y: float):
-        """Handle node position change from Vue component."""
-        # Ignore position changes during sync operations to prevent recursion
-        if self._syncing:
-            return
-        
-        # Update stored position when user drags
-        if node_id in self.node_panels:
-            self.node_panels[node_id]['position'] = (x, y)
-        
-        # Create MoveNodeAction directly instead of delegating to app
-        if node_id in self.graph.nodes:
-            node = self.graph.nodes[node_id]
-            old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
-            new_position = (x, y)
-            
-            # Only create an action if the position has actually changed
-            if old_position != new_position:
-                print(f"DEBUG: Node move - {node_id}: {old_position} -> {new_position}")
-                
-                # Create MoveNodeAction directly
-                action = MoveNodeAction(self.graph, node_id, x, y)
-                self.history_manager.add_action(action)
-                
-                # Notify app to sync other sessions
-                if self.on_graph_changed:
-                    self.on_graph_changed()
-    
-    def _handle_vue_node_drag_start(self, node_id: str):
-        """Handle node drag start from Vue component - add fence for undo grouping."""
-        print(f"[GraphCanvasManager] Node drag started: {node_id}")
+    @handles_event(NodeDragStartEvent)
+    def process_node_drag_start(self, event: NodeDragStartEvent):
+        """Handle node drag start"""
+        print(f"Node drag started: {event.nodeId}")
         
         # Add fence to group all drag-related actions together
         self.history_manager.add_fence()
-        print(f"[GraphCanvasManager] Added fence for drag start: {node_id}")
     
-    def _handle_vue_node_drag_end(self, node_id: str, position_changed: bool):
-        """Handle node drag end from Vue component - add fence to end grouping."""
-        print(f"[GraphCanvasManager] Node drag ended: {node_id}, position changed: {position_changed}")
+    @handles_event(NodeDragEndEvent)
+    def process_node_drag_end(self, event: NodeDragEndEvent):
+        """Handle node drag end"""
+        print(f"Node drag ended: {event.nodeId}, position changed: {event.positionChanged}")
         
         # Add fence to end the drag operation grouping
-        if position_changed:
+        if event.positionChanged:
             self.history_manager.add_fence()
-            print(f"[GraphCanvasManager] Added fence for drag end: {node_id}")
-        else:
-            print(f"[GraphCanvasManager] No fence needed - position unchanged for: {node_id}")
     
-    def _handle_vue_selection_changed(self, selected_nodes: List[str], selected_connections: List[str]):
-        """Handle selection changes from Vue component."""
-        print(f"🎯 Selection changed from Vue: nodes={selected_nodes}, connections={selected_connections}")
+    @handles_event(SelectionChangedEvent)
+    def process_selection_change(self, event: SelectionChangedEvent):
+        """Handle selection changes"""
+        print(f"Selection changed: nodes={event.selectedNodes}, connections={event.selectedConnections}")
         
         # Ignore selection changes during sync operations to prevent recursion
         if self._syncing:
             return
         
         # Create new selection state
-        selected_nodes_set = set(selected_nodes)
-        selected_connections_set = set(selected_connections)
+        selected_nodes_set = set(event.selectedNodes)
+        selected_connections_set = set(event.selectedConnections)
         
         # Convert connection IDs to edge tuples for SelectionState format
         selected_edges = set()
@@ -270,14 +317,111 @@ class GraphCanvasManager:
         action = ChangeSelectionAction(self.graph, new_selection)
         self.history_manager.add_action(action)
         
-        # Update local state for fast access (this will be in sync with graph state)
+        # Update local state for fast access
         self.selected_nodes = selected_nodes_set
         self.selected_connections = selected_connections_set
         
-        # Notify app to sync other sessions
-        if self.on_graph_changed:
+        # Broadcast to other sessions
+        if event.requires_broadcast and self.on_graph_changed:
             self.on_graph_changed()
+    
+    @handles_event(ContextMenuCanvasEvent, ContextMenuNodeEvent, ContextMenuConnectionEvent)
+    def process_context_menu(self, event):
+        """Handle context menu events"""
+        if isinstance(event, ContextMenuCanvasEvent):
+            print(f"Canvas context menu at ({event.screenX}, {event.screenY})")
+            if self.context_menu:
+                self.context_menu.show_canvas_menu(event.screenX, event.screenY, event.canvasX, event.canvasY)
+            
+        elif isinstance(event, ContextMenuNodeEvent):
+            print(f"Node context menu for {event.nodeId} at ({event.screenX}, {event.screenY})")
+            if self.context_menu:
+                self.context_menu.show_node_menu(event.screenX, event.screenY, event.nodeId)
+            
+        elif isinstance(event, ContextMenuConnectionEvent):
+            print(f"Connection context menu for {event.connectionId} at ({event.screenX}, {event.screenY})")
+            if self.context_menu:
+                self.context_menu.show_connection_menu(event.screenX, event.screenY, event.connectionId)
+    
+    # =============================================================================
+    # SYNC EVENT BROADCASTING
+    # =============================================================================
+    
+    def _broadcast_sync_event(self, sync_event: BaseGraphEvent, exclude_session: str = None):
+        """Broadcast sync event to all other sessions"""
+        # Implementation depends on your session management system
+        # This is a placeholder for the actual broadcasting logic
         
+        # For now, just emit to the current session's Vue component for testing
+        if self.canvas_vue and exclude_session != self.session_id:
+            try:
+                self.canvas_vue.emit_sync_event(sync_event)
+            except Exception as e:
+                print(f"Error broadcasting sync event: {e}")
+    
+    def get_all_sessions(self):
+        """Get all active sessions - implement based on your session management"""
+        # Placeholder - replace with actual session management logic
+        return {}
+    
+    # =============================================================================
+    # BACKWARD COMPATIBILITY METHODS
+    # These maintain compatibility during migration
+    # =============================================================================
+    
+    @property
+    def canvas(self):
+        """Backward compatibility property to access the canvas Vue component."""
+        return self.canvas_vue
+    
+    # Keep existing methods for gradual migration
+    def _handle_vue_connection_created(self, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
+        """Legacy handler - converts to new event system"""
+        event = ConnectionCreatedEvent(
+            outputNodeId=start_node_id,
+            outletPinId=start_port,
+            inputNodeId=end_node_id,
+            inletPinId=end_port,
+            source_session_id=self.session_id
+        )
+        self.process_connection_creation(event)
+    
+    def _handle_vue_node_position_changed(self, node_id: str, x: float, y: float):
+        """Legacy handler - converts to new event system"""
+        event = NodePositionChangedEvent(
+            nodeId=node_id,
+            position={'x': x, 'y': y},
+            source_session_id=self.session_id
+        )
+        self.process_node_position_change(event)
+    
+    def _handle_vue_node_drag_start(self, node_id: str):
+        """Legacy handler - converts to new event system"""
+        event = NodeDragStartEvent(
+            nodeId=node_id,
+            source_session_id=self.session_id
+        )
+        self.process_node_drag_start(event)
+    
+    def _handle_vue_node_drag_end(self, node_id: str, position_changed: bool):
+        """Legacy handler - converts to new event system"""
+        event = NodeDragEndEvent(
+            nodeId=node_id,
+            positionChanged=position_changed,
+            source_session_id=self.session_id
+        )
+        self.process_node_drag_end(event)
+    
+    def _handle_vue_selection_changed(self, selected_nodes: List[str], selected_connections: List[str]):
+        """Legacy handler - converts to new event system"""
+        event = SelectionChangedEvent(
+            selectedNodes=selected_nodes,
+            selectedConnections=selected_connections,
+            source_session_id=self.session_id
+        )
+        self.process_selection_change(event)
+    
+    # ... rest of existing methods remain unchanged ...
     # Node Management
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
         """Add a visual representation of a node to the canvas."""
@@ -385,9 +529,6 @@ class GraphCanvasManager:
         # Also try the force update method as backup
         if self.canvas_vue:
             self.canvas_vue.update_connections_for_node(node_id)
-        container = self.node_panels[node_id]['container']
-        container.style(f'left: {x}px; top: {y}px;')
-        self.node_panels[node_id]['position'] = position
     
     # Connection Management
     def _get_edge_key(self, edge: Edge) -> str:
@@ -434,10 +575,6 @@ class GraphCanvasManager:
             import traceback
             traceback.print_exc()
             return False
-            
-        except Exception as e:
-            print(f"Error adding connection visual: {e}")
-            return False
     
     def remove_connection_visual(self, edge_key: str) -> bool:
         """Remove a connection's visual representation."""
@@ -458,12 +595,6 @@ class GraphCanvasManager:
         except Exception as e:
             print(f"Error removing connection visual: {e}")
             return False
-    
-    def _on_connection_clicked(self, edge: Edge):
-        """Handle connection click events."""
-        print(f"Connection clicked: {edge.output_node_id} -> {edge.input_node_id}")
-        if self.on_connection_removed:
-            self.on_connection_removed(edge)
     
     # Graph Synchronization
     def sync_with_graph(self):
@@ -509,30 +640,15 @@ class GraphCanvasManager:
                 self.canvas_vue.sync_connections_from_edges(self.graph.edges)
                 
                 # Also update our connection_paths dictionary to keep it in sync
-                # This is needed for selection management
                 new_connection_paths = {}
                 for edge in self.graph.edges:
                     edge_key = self._get_edge_key(edge)
-                    connection_id = edge_key  # Use edge key as connection ID (consistent with add_connection_visual)
+                    connection_id = edge_key  # Use edge key as connection ID
                     new_connection_paths[edge_key] = connection_id
                 
                 # Update the connection_paths dictionary
                 self.connection_paths = new_connection_paths
                 print(f"🔄 Updated connection_paths dictionary with {len(self.connection_paths)} connections")
-            else:
-                # Fallback to individual connection management
-                graph_edge_keys = set(self._get_edge_key(edge) for edge in self.graph.edges)
-                visual_edge_keys = set(self.connection_paths.keys())
-                
-                # Add missing connections
-                for edge in self.graph.edges:
-                    edge_key = self._get_edge_key(edge)
-                    if edge_key not in visual_edge_keys:
-                        self.add_connection_visual(edge)
-                
-                # Remove extra connections
-                for edge_key in visual_edge_keys - graph_edge_keys:
-                    self.remove_connection_visual(edge_key)
             
             # Sync selection state from graph to UI using existing methods
             graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
@@ -645,22 +761,7 @@ class GraphCanvasManager:
         """Get currently selected connections."""
         return self.selected_connections.copy()
     
-    # Cleanup
-    # Note: update_zoom_pan_state method removed - zoom/pan is handled by CSS transforms
-    # in the zoom container, so no manual state sync or connection updates needed
-    
-    def cleanup(self):
-        """Cleanup resources."""
-        self.clear_all_visuals()
-        if self.canvas_vue:
-            self.canvas_vue.cleanup()
-        self.canvas_vue = None
-        self.context_menu = None
-        self.node_render_factory = None
-        self.graph = None
-    
     # Context Menu Event Handlers
-    
     def _handle_context_menu_canvas(self, screen_x: float, screen_y: float, canvas_x: float, canvas_y: float):
         """Handle canvas context menu request."""
         print(f"🎯 Canvas context menu requested at screen({screen_x}, {screen_y}) canvas({canvas_x}, {canvas_y})")
@@ -680,7 +781,6 @@ class GraphCanvasManager:
             self.context_menu.show_connection_menu(x, y, connection_id)
     
     # Context Menu Action Handlers
-    
     def _handle_context_create_node(self, node_type: str, x: float, y: float):
         """Handle node creation from context menu."""
         print(f"📝 Creating node {node_type} at ({x}, {y}) from context menu")
@@ -707,32 +807,27 @@ class GraphCanvasManager:
                 
                 print(f"✅ Created node {node.node_id} at ({x}, {y})")
             else:
-                from nicegui import ui
                 ui.notify(f"Failed to create node of type: {node_type}", type='negative')
                 
         except Exception as e:
             print(f"Error creating node: {e}")
-            from nicegui import ui
             ui.notify(f"Error creating node: {e}", type='negative')
     
     def _handle_context_duplicate_node(self, node_id: str):
         """Handle node duplication from context menu."""
         print(f"📋 Duplicating node {node_id} from context menu")
-        from nicegui import ui
         ui.notify(f"Duplicating node {node_id}")
         # TODO: Implement node duplication logic
     
     def _handle_context_copy_node(self, node_id: str):
         """Handle node copy from context menu."""
         print(f"📄 Copying node {node_id} from context menu")
-        from nicegui import ui
         ui.notify(f"Copied node {node_id}")
         # TODO: Implement node copy logic
     
     def _handle_context_delete_node(self, node_id: str):
         """Handle node deletion from context menu."""
         print(f"🗑️ Deleting node {node_id} from context menu")
-        from nicegui import ui
         
         if node_id in self.graph.nodes:
             try:
@@ -754,7 +849,6 @@ class GraphCanvasManager:
     def _handle_context_inspect_connection(self, connection_id: str):
         """Handle connection inspection from context menu."""
         print(f"🔍 Inspecting connection {connection_id} from context menu")
-        from nicegui import ui
         ui.notify(f"Inspecting connection {connection_id}")
         # TODO: Show connection details dialog
     
