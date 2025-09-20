@@ -97,11 +97,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         # Send to Vue component
         self.run_method('handleSyncEvent', event_dict)
     
-    def update_connections_prop(self, connections):
-        """Update connections prop for Vue component"""
-        self._props['connections'] = connections
-
-    # =============================================================================
+  # =============================================================================
     # BACKWARD COMPATIBILITY METHODS
     # These methods maintain compatibility with existing code during migration
     # =============================================================================

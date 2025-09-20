@@ -132,21 +132,6 @@ export default {
 
         // Expose API to parent/Python
         this.$el._graphCanvasControls = {
-            addConnectionVisual: this.addConnectionVisual,
-            removeConnectionVisual: this.removeConnectionVisual,
-            updateConnectionPath: this.updateConnectionPath,
-            updateAllConnections: this.updateAllConnections,
-            updateConnectionsForNode: this.updateConnectionsForNode,
-            addNodeObserver: this.addNodeObserver,
-            removeNodeObserver: this.removeNodeObserver,
-            // Selection API
-            selectNode: this.selectNode,
-            deselectNode: this.deselectNode,
-            selectConnection: this.selectConnection,
-            deselectConnection: this.deselectConnection,
-            clearSelection: this.clearSelection,
-            getSelection: this.getSelection,
-            setSelection: this.setSelection,
             // Enhanced event system API
             handleSyncEvent: this.handleSyncEvent
         };
@@ -265,20 +250,14 @@ export default {
         /**
          * Emit unified canvas event to Python using the new event system
          */
-        emitCanvasEvent(eventType, eventData, sessionId = 'default') {
-            console.log(`🚀 Vue→Python Event: ${eventType}`, eventData);
-            
-            // Create the event using the standardized format
-            const event = {
-                event_type: eventType,
-                source_session_id: sessionId,
-                timestamp: Date.now(),
-                data: eventData,
-                requires_broadcast: true
-            };
-
-            // Emit to Python through NiceGUI
-            this.$emit('canvasEvent', event);
+        emitCanvasEvent(event) {
+            // Only accept complete event objects from helper methods
+            if (typeof event === 'object' && event.event_type) {
+                console.log(`🚀 Vue→Python Event: ${event.event_type}`, event.data);
+                this.$emit('canvasEvent', event);
+            } else {
+                console.error('emitCanvasEvent now only accepts event objects from EventCreators helper methods');
+            }
         },
 
         /**
@@ -477,10 +456,7 @@ export default {
                 this.clearSelection();
 
                 // Emit selection change event to Python for history tracking using new unified system
-                this.emitCanvasEvent(GraphEvents.UserInteractions.SELECTION_CHANGED, {
-                    selectedNodes: [],
-                    selectedConnections: []
-                });
+                this.emitCanvasEvent(EventCreators.createSelectionChanged([], []));
 
                 // Note: Canvas click event can be removed as it's not part of the core event system
                 // If needed, it can be added as a separate event type
@@ -549,13 +525,9 @@ export default {
                 // Convert screen coordinates to canvas coordinates
                 const canvasCoords = this._transformScreenToSVG(clientX, clientY);
                 
-                this.emitCanvasEvent(GraphEvents.UserInteractions.CONTEXT_MENU_NODE, {
-                    nodeId: nodeId,
-                    screenX: clientX,
-                    screenY: clientY,
-                    canvasX: canvasCoords.x,
-                    canvasY: canvasCoords.y
-                });
+                this.emitCanvasEvent(EventCreators.createContextMenuNode(
+                    clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
+                ));
             } else if (connectionElement && connectionId) {
                 // Context menu for connection
                 console.log(`🎯 Context menu for connection: ${connectionId}`);
@@ -563,13 +535,9 @@ export default {
                 // Convert screen coordinates to canvas coordinates
                 const canvasCoords = this._transformScreenToSVG(clientX, clientY);
                 
-                this.emitCanvasEvent(GraphEvents.UserInteractions.CONTEXT_MENU_CONNECTION, {
-                    connectionId: connectionId,
-                    screenX: clientX,
-                    screenY: clientY,
-                    canvasX: canvasCoords.x,
-                    canvasY: canvasCoords.y
-                });
+                this.emitCanvasEvent(EventCreators.createContextMenuConnection(
+                    clientX, clientY, canvasCoords.x, canvasCoords.y, connectionId
+                ));
             } else {
                 // Context menu for canvas (empty space)
                 console.log(`🎯 Context menu for canvas`);
@@ -577,12 +545,9 @@ export default {
                 // Convert screen coordinates to canvas coordinates for node creation
                 const canvasCoords = this._transformScreenToSVG(clientX, clientY);
 
-                this.emitCanvasEvent(GraphEvents.UserInteractions.CONTEXT_MENU_CANVAS, {
-                    screenX: clientX,
-                    screenY: clientY,
-                    canvasX: canvasCoords.x,
-                    canvasY: canvasCoords.y
-                });
+                this.emitCanvasEvent(EventCreators.createContextMenuCanvas(
+                    clientX, clientY, canvasCoords.x, canvasCoords.y
+                ));
             }
         },
 
@@ -692,12 +657,9 @@ export default {
                 }
 
                 // Emit connection created event using new unified system
-                this.emitCanvasEvent(GraphEvents.UserInteractions.CONNECTION_CREATED, {
-                    outputNodeId: startData.nodeId,
-                    outletPinId: startData.pinId,
-                    inputNodeId: endData.nodeId,
-                    inletPinId: endData.pinId
-                });
+                this.emitCanvasEvent(EventCreators.createConnectionCreated(
+                    startData.nodeId, startData.pinId, endData.nodeId, endData.pinId
+                ));
             }
 
             // Reset state
@@ -767,9 +729,7 @@ export default {
                 nodeElement.classList.add('dragging-node');
 
                 // Emit drag start event to add fence for undo grouping using new unified system
-                this.emitCanvasEvent(GraphEvents.UserInteractions.NODE_DRAG_START, {
-                    nodeId: nodeId
-                });
+                this.emitCanvasEvent(EventCreators.createNodeDragStart(nodeId));
 
                 console.log('Node drag started:', {
                     nodeId: nodeId,
@@ -832,10 +792,9 @@ export default {
                 // Only emit position change if the position actually changed
                 if (positionChanged) {
                     // Emit position change event to Python using new unified system
-                    this.emitCanvasEvent(GraphEvents.UserInteractions.NODE_POSITION_CHANGED, {
-                        nodeId: nodeId,
-                        position: { x: finalX, y: finalY }
-                    });
+                    this.emitCanvasEvent(EventCreators.createNodePositionChanged(
+                        nodeId, { x: finalX, y: finalY }
+                    ));
 
                     console.log(`Node ${nodeId} drag ended with position change: (${startX}, ${startY}) -> (${finalX}, ${finalY})`);
                 } else {
@@ -843,10 +802,9 @@ export default {
                 }
 
                 // Emit drag end event to close fence for undo grouping using new unified system
-                this.emitCanvasEvent(GraphEvents.UserInteractions.NODE_DRAG_END, {
-                    nodeId: nodeId,
-                    positionChanged: positionChanged
-                });
+                this.emitCanvasEvent(EventCreators.createNodeDragEnd(
+                    nodeId, positionChanged
+                ));
             } else {
                 // This was just a click, not a drag - handle as selection now
                 console.log(`Node ${nodeId} was clicked (not dragged) - handling selection`);
@@ -1070,9 +1028,7 @@ export default {
                 this._handleConnectionSelection(e, pathId);
 
                 // Emit connection-clicked event using new unified system
-                this.emitCanvasEvent(GraphEvents.UserInteractions.CONNECTION_CLICKED, {
-                    connectionId: pathId
-                });
+                this.emitCanvasEvent(EventCreators.createConnectionClicked(pathId));
             };
 
             path.addEventListener('click', clickHandler);
@@ -1260,10 +1216,9 @@ export default {
 
                 // Use the style position directly instead of calculated position
                 // as it's more reliable for absolute positioned elements
-                this.emitCanvasEvent(GraphEvents.UserInteractions.NODE_POSITION_CHANGED, {
-                    nodeId,
-                    position: { x: styleLeft, y: styleTop }
-                });
+                this.emitCanvasEvent(EventCreators.createNodePositionChanged(
+                    nodeId, { x: styleLeft, y: styleTop }
+                ));
             }, 100);
         },
 
@@ -1341,10 +1296,10 @@ export default {
             }
 
             // Emit selection change to Python using new unified system
-            this.emitCanvasEvent(GraphEvents.UserInteractions.SELECTION_CHANGED, {
-                selectedNodes: Array.from(this.selectionState.selectedNodes),
-                selectedConnections: Array.from(this.selectionState.selectedConnections)
-            });
+            this.emitCanvasEvent(EventCreators.createSelectionChanged(
+                Array.from(this.selectionState.selectedNodes),
+                Array.from(this.selectionState.selectedConnections)
+            ));
         },
 
         selectNode(nodeId, multiSelect = false) {
@@ -1405,10 +1360,10 @@ export default {
             }
 
             // Emit selection change to Python using new unified system
-            this.emitCanvasEvent(GraphEvents.UserInteractions.SELECTION_CHANGED, {
-                selectedNodes: Array.from(this.selectionState.selectedNodes),
-                selectedConnections: Array.from(this.selectionState.selectedConnections)
-            });
+            this.emitCanvasEvent(EventCreators.createSelectionChanged(
+                Array.from(this.selectionState.selectedNodes),
+                Array.from(this.selectionState.selectedConnections)
+            ));
         },
 
         selectConnection(pathId, multiSelect = false) {

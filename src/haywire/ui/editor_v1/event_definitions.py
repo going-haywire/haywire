@@ -71,10 +71,10 @@ class BaseGraphEvent:
 # USER INTERACTION EVENTS (Vue → Python)
 # =============================================================================
 
-@graph_event("nodeCreated", category="user", description="New node created on canvas")
+@graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
 @dataclass
-class NodeCreatedEvent(BaseGraphEvent):
-    nodeId: str
+class NodeCreateRequestEvent(BaseGraphEvent):
+    nodeType: str
     position: Dict[str, float]  # {x: float, y: float}
 
 @graph_event("nodePositionChanged", category="user", description="Node position updated")
@@ -143,12 +143,6 @@ class ContextMenuConnectionEvent(BaseGraphEvent):
     canvasX: float
     canvasY: float
     connectionId: str
-
-@graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
-@dataclass
-class NodeCreateRequestEvent(BaseGraphEvent):
-    nodeType: str
-    position: Dict[str, float]  # {x: float, y: float}
 
 # =============================================================================
 # SYNC EVENTS (Python → Vue)
