@@ -169,22 +169,15 @@ export default {
 
                         // Only process style changes on node containers, not on children
                         if (nodeId && nodeElement.hasAttribute('data-node-id')) {
-                            /*
-                            console.log(`🔍 Style mutation detected on node ${nodeId}:`, {
-                                oldValue: mutation.oldValue,
-                                currentStyle: nodeElement.style.cssText,
-                                isDragging: this.connectionState.isDragging,
-                                hasLeftTop: nodeElement.style.left || nodeElement.style.top
-                            });
-                            */
 
                             // Only process if the style change actually includes position properties
                             const styleText = nodeElement.style.cssText;
-                            if (styleText.includes('left:') || styleText.includes('top:')) {
+                            if (styleText.includes('left:') || styleText.includes('top:') || styleText.includes('transform:')) {
                                 this.updateConnectionsForNode(nodeId);
-                                this._emitNodePositionChanged(nodeElement, nodeId);
-                            } else {
-                                //console.log(`🚫 Skipping style mutation for ${nodeId} - no position changes detected`);
+                            } 
+                            const transform = nodeElement.style.transform;
+                            if(transform){
+                                this.updateConnectionsForNode(nodeId);
                             }
                         }
                     }
@@ -215,6 +208,13 @@ export default {
                 this._scheduleConnectionUpdates(nodeId, nodeElement);
             };
 
+            // Listen for transform transitions
+            lodElement.addEventListener('transitionstart', (e) => {
+                if (e.propertyName === 'transform') {
+                    this._scheduleConnectionUpdates(nodeId, nodeElement);
+                }
+            });
+           
             lodElement.addEventListener('mouseenter', scheduleConnectionUpdates);
             lodElement.addEventListener('mouseleave', scheduleConnectionUpdates);
         },
@@ -1204,15 +1204,6 @@ export default {
                     console.log(`⚠️ Warning: Node ${nodeId} position is (0,0) - this might be erroneous. Skipping position update.`);
                     return;
                 }
-
-                console.log(`🔍 Node position debug for ${nodeId}:`, {
-                    stylePosition: { left: styleLeft, top: styleTop },
-                    calculatedPosition: { x: relativeX, y: relativeY },
-                    rectLeft: rect.left,
-                    rectTop: rect.top,
-                    containerLeft: containerRect.left,
-                    containerTop: containerRect.top
-                });
 
                 // Use the style position directly instead of calculated position
                 // as it's more reliable for absolute positioned elements
