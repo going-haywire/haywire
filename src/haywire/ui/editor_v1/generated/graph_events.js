@@ -1,8 +1,8 @@
 // Auto-generated from Python event definitions
 // DO NOT EDIT MANUALLY - Run `python generate_vue_events.py` to update
 
-// Event type constants
-export const GraphEvents = {
+// Event type constants - Make available globally
+window.GraphEvents = {
   UserInteractions: {
     NODE_CREATED: 'nodeCreated', // New node created on canvas
     NODE_POSITION_CHANGED: 'nodePositionChanged', // Node position updated
@@ -29,10 +29,9 @@ export const GraphEvents = {
   }
 };
 
-// Event creators
-export class EventCreators {
-
-  static createNodeCreated(nodeId, position, sessionId = 'default') {
+// Event creators - Make available globally
+window.EventCreators = {
+  createNodeCreated(nodeId, position, sessionId = 'default') {
     return {
       event_type: 'nodeCreated',
       source_session_id: sessionId,
@@ -40,9 +39,9 @@ export class EventCreators {
       data: { nodeId, position },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createNodePositionChanged(nodeId, position, sessionId = 'default') {
+  createNodePositionChanged(nodeId, position, sessionId = 'default') {
     return {
       event_type: 'nodePositionChanged',
       source_session_id: sessionId,
@@ -50,9 +49,9 @@ export class EventCreators {
       data: { nodeId, position },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createConnectionCreated(outputNodeId, outletPinId, inputNodeId, inletPinId, sessionId = 'default') {
+  createConnectionCreated(outputNodeId, outletPinId, inputNodeId, inletPinId, sessionId = 'default') {
     return {
       event_type: 'connectionCreated',
       source_session_id: sessionId,
@@ -60,9 +59,9 @@ export class EventCreators {
       data: { outputNodeId, outletPinId, inputNodeId, inletPinId },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createConnectionRemoved(connectionId, sessionId = 'default') {
+  createConnectionRemoved(connectionId, sessionId = 'default') {
     return {
       event_type: 'connectionRemoved',
       source_session_id: sessionId,
@@ -70,9 +69,9 @@ export class EventCreators {
       data: { connectionId },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createConnectionClicked(connectionId, sessionId = 'default') {
+  createConnectionClicked(connectionId, sessionId = 'default') {
     return {
       event_type: 'connectionClicked',
       source_session_id: sessionId,
@@ -80,9 +79,9 @@ export class EventCreators {
       data: { connectionId },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createNodeDragStart(nodeId, sessionId = 'default') {
+  createNodeDragStart(nodeId, sessionId = 'default') {
     return {
       event_type: 'nodeDragStart',
       source_session_id: sessionId,
@@ -90,9 +89,9 @@ export class EventCreators {
       data: { nodeId },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createNodeDragEnd(nodeId, positionChanged, sessionId = 'default') {
+  createNodeDragEnd(nodeId, positionChanged, sessionId = 'default') {
     return {
       event_type: 'nodeDragEnd',
       source_session_id: sessionId,
@@ -100,9 +99,9 @@ export class EventCreators {
       data: { nodeId, positionChanged },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createSelectionChanged(selectedNodes, selectedConnections, sessionId = 'default') {
+  createSelectionChanged(selectedNodes, selectedConnections, sessionId = 'default') {
     return {
       event_type: 'selectionChanged',
       source_session_id: sessionId,
@@ -110,9 +109,9 @@ export class EventCreators {
       data: { selectedNodes, selectedConnections },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createContextMenuCanvas(screenX, screenY, canvasX, canvasY, sessionId = 'default') {
+  createContextMenuCanvas(screenX, screenY, canvasX, canvasY, sessionId = 'default') {
     return {
       event_type: 'contextMenuCanvas',
       source_session_id: sessionId,
@@ -120,9 +119,9 @@ export class EventCreators {
       data: { screenX, screenY, canvasX, canvasY },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createContextMenuNode(screenX, screenY, canvasX, canvasY, nodeId, sessionId = 'default') {
+  createContextMenuNode(screenX, screenY, canvasX, canvasY, nodeId, sessionId = 'default') {
     return {
       event_type: 'contextMenuNode',
       source_session_id: sessionId,
@@ -130,9 +129,9 @@ export class EventCreators {
       data: { screenX, screenY, canvasX, canvasY, nodeId },
       requires_broadcast: true
     };
-  }
+  },
 
-  static createContextMenuConnection(screenX, screenY, canvasX, canvasY, connectionId, sessionId = 'default') {
+  createContextMenuConnection(screenX, screenY, canvasX, canvasY, connectionId, sessionId = 'default') {
     return {
       event_type: 'contextMenuConnection',
       source_session_id: sessionId,
@@ -141,63 +140,63 @@ export class EventCreators {
       requires_broadcast: true
     };
   }
-}
+};
 
-// Event validators  
-export class EventValidators {
-
-  static validateNodeCreated(data) {
+// Event validators - Make available globally  
+window.EventValidators = {
+  validateNodeCreated(data) {
     const requiredFields = ["nodeId", "position"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateNodePositionChanged(data) {
+  validateNodePositionChanged(data) {
     const requiredFields = ["nodeId", "position"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateConnectionCreated(data) {
+  validateConnectionCreated(data) {
     const requiredFields = ["outputNodeId", "outletPinId", "inputNodeId", "inletPinId"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateConnectionRemoved(data) {
+  validateConnectionRemoved(data) {
     const requiredFields = ["connectionId"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateConnectionClicked(data) {
+  validateConnectionClicked(data) {
     const requiredFields = ["connectionId"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateNodeDragStart(data) {
+  validateNodeDragStart(data) {
     const requiredFields = ["nodeId"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateNodeDragEnd(data) {
+  validateNodeDragEnd(data) {
     const requiredFields = ["nodeId", "positionChanged"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateSelectionChanged(data) {
+  validateSelectionChanged(data) {
     const requiredFields = ["selectedNodes", "selectedConnections"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateContextMenuCanvas(data) {
+  validateContextMenuCanvas(data) {
     const requiredFields = ["screenX", "screenY", "canvasX", "canvasY"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateContextMenuNode(data) {
+  validateContextMenuNode(data) {
     const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "nodeId"];
     return requiredFields.every(field => field in data);
-  }
+  },
 
-  static validateContextMenuConnection(data) {
+  validateContextMenuConnection(data) {
     const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "connectionId"];
     return requiredFields.every(field => field in data);
   }
-}
+};
+

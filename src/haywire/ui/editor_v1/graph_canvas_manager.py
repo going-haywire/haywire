@@ -134,12 +134,13 @@ class GraphCanvasManager:
             
             self.context_menu = PopupContextMenu(
                 available_nodes=self.available_nodes,
-                on_create_node=self._handle_context_create_node,
+                on_create_node=self._handle_context_create_node,  # Keep for legacy support
                 on_duplicate_node=self._handle_context_duplicate_node,
                 on_copy_node=self._handle_context_copy_node,
                 on_delete_node=self._handle_context_delete_node,
                 on_inspect_connection=self._handle_context_inspect_connection,
-                on_delete_connection=self._handle_context_delete_connection
+                on_delete_connection=self._handle_context_delete_connection,
+                on_emit_event=self._handle_canvas_event  # New event system
             )
     
     def _handle_canvas_event(self, event):
@@ -151,25 +152,42 @@ class GraphCanvasManager:
             handler = self._event_handlers.get(event_type)
             
             if handler:
-                # Determine parameter signature and call appropriately
-                sig = inspect.signature(handler)
-                param_count = len(sig.parameters) - 1  # Exclude 'self'
-                
-                if param_count == 1:
+                print(f"🔧 Calling handler for {event_type}: {handler.__name__}")
+                try:
+                    # Just call the handler with the event - all our handlers expect (self, event)
                     handler(event)
-                else:
-                    # Legacy support - extract data
-                    handler(event.to_dict())
+                except Exception as e:
+                    print(f"❌ Error calling handler for {event_type}: {e}")
+                    import traceback
+                    traceback.print_exc()
             else:
                 print(f"No handler found for event type: {event_type}")
         else:
             # Handle legacy dict format for backward compatibility
             event_type = event.get('event_type')
-            handler = self._event_handlers.get(event_type)
-            if handler:
-                handler(event)
+            if not event_type:
+                print(f"❌ Event missing event_type: {event}")
+                return
+                
+            # Convert dict to proper event object for new handlers
+            event_class = GRAPH_EVENT_REGISTRY.get(event_type)
+            if event_class:
+                try:
+                    # Create event object from dict - the data is already at the top level
+                    event_obj = event_class(**event)
+                    handler = self._event_handlers.get(event_type)
+                    if handler:
+                        print(f"🔧 Calling handler for {event_type} (from dict): {handler.__name__}")
+                        handler(event_obj)
+                    else:
+                        print(f"No handler found for event type: {event_type}")
+                except Exception as e:
+                    print(f"❌ Error converting dict to event object for {event_type}: {e}")
+                    print(f"Event data: {event}")
+                    import traceback
+                    traceback.print_exc()
             else:
-                print(f"No handler found for event type: {event_type}")
+                print(f"❌ Unknown event type: {event_type}")
     
     # =============================================================================
     # EVENT HANDLERS (Auto-registered via decorators)
@@ -200,8 +218,9 @@ class GraphCanvasManager:
                     action = MoveNodeAction(self.graph, event.nodeId, event.position['x'], event.position['y'])
                     self.history_manager.add_action(action)
                     
-                    # Broadcast to other sessions
-                    if event.requires_broadcast and self.on_graph_changed:
+                    # Always broadcast local user interactions to other sessions
+                    # (The requires_broadcast flag is metadata, not part of the event object)
+                    if self.on_graph_changed:
                         self.on_graph_changed()
                         
         except Exception as e:
@@ -226,8 +245,9 @@ class GraphCanvasManager:
             action = AddEdgeAction(self.graph, edge)
             self.history_manager.add_action(action)
             
-            # Broadcast to other sessions
-            if event.requires_broadcast and self.on_graph_changed:
+            # Always broadcast local user interactions to other sessions
+            # (The requires_broadcast flag is metadata, not part of the event object)
+            if self.on_graph_changed:
                 self.on_graph_changed()
                 
         except Exception as e:
@@ -256,8 +276,9 @@ class GraphCanvasManager:
                                 action = RemoveEdgeAction(self.graph, edge)
                                 self.history_manager.add_action(action)
                                 
-                                # Broadcast to other sessions
-                                if event.requires_broadcast and self.on_graph_changed:
+                                # Always broadcast local user interactions to other sessions
+                                # (The requires_broadcast flag is metadata, not part of the event object)
+                                if self.on_graph_changed:
                                     self.on_graph_changed()
                                 break
                     break
@@ -321,8 +342,9 @@ class GraphCanvasManager:
         self.selected_nodes = selected_nodes_set
         self.selected_connections = selected_connections_set
         
-        # Broadcast to other sessions
-        if event.requires_broadcast and self.on_graph_changed:
+        # Always broadcast local user interactions to other sessions
+        # (The requires_broadcast flag is metadata, not part of the event object)
+        if self.on_graph_changed:
             self.on_graph_changed()
     
     @handles_event(ContextMenuCanvasEvent, ContextMenuNodeEvent, ContextMenuConnectionEvent)
@@ -342,6 +364,41 @@ class GraphCanvasManager:
             print(f"Connection context menu for {event.connectionId} at ({event.screenX}, {event.screenY})")
             if self.context_menu:
                 self.context_menu.show_connection_menu(event.screenX, event.screenY, event.connectionId)
+    
+    @handles_event(NodeCreateRequestEvent)
+    def process_node_creation_request(self, event: NodeCreateRequestEvent):
+        """Handle node creation requests from context menu or other sources."""
+        print(f"📝 Processing node creation request: {event.nodeType} at ({event.position['x']}, {event.position['y']})")
+        
+        try:
+            # Create node using the injected factory
+            node = self.node_factory.create_instance(
+                event.nodeType,
+                self.graph,  # Pass the graph to the factory
+                position=(event.position['x'], event.position['y'])
+            )
+            
+            if node:
+                # Set position attributes
+                node.ui_posX = event.position['x']
+                node.ui_posY = event.position['y']
+                
+                action = AddNodeAction(self.graph, node)
+                self.history_manager.add_action(action)
+                
+                # Always broadcast to other sessions for locally-created nodes
+                # (The requires_broadcast flag is metadata, not part of the event object)
+                if self.on_graph_changed:
+                    self.on_graph_changed()
+                
+                print(f"✅ Created node {node.node_id} at ({event.position['x']}, {event.position['y']})")
+                ui.notify(f"Created {event.nodeType} node", type='positive')
+            else:
+                ui.notify(f"Failed to create node of type: {event.nodeType}", type='negative')
+                
+        except Exception as e:
+            print(f"Error creating node: {e}")
+            ui.notify(f"Error creating node: {e}", type='negative')
     
     # =============================================================================
     # SYNC EVENT BROADCASTING

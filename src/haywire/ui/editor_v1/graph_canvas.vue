@@ -23,7 +23,6 @@
 
 <script>
 // Import auto-generated event system
-import { GraphEvents, EventCreators, EventValidators } from './generated/graph_events.js';
 
 export default {
     name: 'GraphCanvas',
@@ -112,6 +111,10 @@ export default {
         console.log('Container element:', this.$el);
         console.log('Container dimensions:', this.$el.offsetWidth, 'x', this.$el.offsetHeight);
         console.log('🔗 Vue initial connections prop:', this.connections);
+
+        // TEST IF LIBRARY LOADED - ADD THIS
+        console.log('🔍 Testing custom library import:');
+        console.log('GraphEvents available:', typeof GraphEvents !== 'undefined');
 
         // Initialize component
         this._setupEventListeners();

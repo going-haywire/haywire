@@ -12,6 +12,7 @@ Uses the enhanced Popup class that creates elements at page root level to avoid 
 from nicegui import ui, app
 from typing import Dict, List, Optional, Callable
 from .popup import Popup
+from .event_definitions import NodeCreateRequestEvent
 
 
 class PopupContextMenu:
@@ -24,15 +25,19 @@ class PopupContextMenu:
                  on_copy_node: Optional[Callable[[str], None]] = None,
                  on_delete_node: Optional[Callable[[str], None]] = None,
                  on_inspect_connection: Optional[Callable[[str], None]] = None,
-                 on_delete_connection: Optional[Callable[[str], None]] = None):
+                 on_delete_connection: Optional[Callable[[str], None]] = None,
+                 on_emit_event: Optional[Callable[[object], None]] = None):
         
-        # Store callbacks
+        # Store callbacks (legacy support)
         self._on_create_node = on_create_node
         self._on_duplicate_node = on_duplicate_node
         self._on_copy_node = on_copy_node
         self._on_delete_node = on_delete_node
         self._on_inspect_connection = on_inspect_connection
         self._on_delete_connection = on_delete_connection
+        
+        # New event system
+        self._on_emit_event = on_emit_event
         
         self.available_nodes = available_nodes or []
         self._current_popup: Optional[Popup] = None
@@ -60,7 +65,15 @@ class PopupContextMenu:
         
         print(f"[PopupContextMenu] Creating node {node_type} at ({canvas_x}, {canvas_y})")
         
-        if self._on_create_node:
+        # Use new event system if available
+        if self._on_emit_event:
+            event = NodeCreateRequestEvent(
+                nodeType=node_type,
+                position={'x': canvas_x, 'y': canvas_y}
+            )
+            self._on_emit_event(event)
+        elif self._on_create_node:
+            # Fallback to legacy callback system
             self._on_create_node(node_type, canvas_x, canvas_y)
         
         self._close_current_menu()

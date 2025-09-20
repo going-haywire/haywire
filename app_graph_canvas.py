@@ -230,8 +230,6 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Create session-specific canvas manager - it will create its own zoom container
             
-
-            """             
             canvas_manager = GraphCanvasManager(
                 graph=self.graph,  # Use shared graph
                 node_render_factory=self.node_render_factory,  # Use shared render factory
@@ -242,10 +240,9 @@ class UndoRedoTestAppWithCanvasManager:
                 session_id=client_id,
             )
             session_data['canvas_manager'] = canvas_manager
-            """       
                         
             # IMPORTANT: Sync with existing graph data when canvas manager is first created
-            #canvas_manager.sync_with_graph()
+            canvas_manager.sync_with_graph()
             print(f"Canvas manager synced with {len(self.graph.nodes)} existing nodes")
             
             # Update canvas status

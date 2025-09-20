@@ -7,13 +7,30 @@ all client-side graph canvas interactions with the enhanced event system.
 ENHANCED VERSION: Now uses unified event handling with type-safe event classes.
 """
 
-from nicegui import ui, events
 from typing import Dict, List, Optional, Callable
 import uuid
 import json
+from pathlib import Path
+
+from nicegui import ui, events
+from nicegui.dependencies import register_library
 
 from haywire.ui.utils import generate_connection_id
 from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
+
+# Get relative path from current working directory
+# This is the only way to make the generated library work with NiceGUI
+# using a simple import statement withing the Vue component won't work
+script_dir = Path(__file__).parent
+library_path = script_dir / "generated" / "graph_events.js"
+
+if library_path.exists():
+    try:
+        my_library = register_library(library_path, max_time=library_path.stat().st_mtime)
+    except Exception as e:
+        print(f"❌ Failed to register library: {e}")
+else:
+    print(f"❌ Library not found at relative path either: {library_path}")
 
 
 class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
@@ -25,7 +42,8 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
                  canvas_width: int = 8000, 
                  canvas_height: int = 8000):
         super().__init__()
-        
+        self.libraries.append(my_library)
+
         # Single unified event callback
         self._on_canvas_event = on_canvas_event
         

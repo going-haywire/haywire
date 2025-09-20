@@ -144,6 +144,12 @@ class ContextMenuConnectionEvent(BaseGraphEvent):
     canvasY: float
     connectionId: str
 
+@graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
+@dataclass
+class NodeCreateRequestEvent(BaseGraphEvent):
+    nodeType: str
+    position: Dict[str, float]  # {x: float, y: float}
+
 # =============================================================================
 # SYNC EVENTS (Python → Vue)
 # =============================================================================

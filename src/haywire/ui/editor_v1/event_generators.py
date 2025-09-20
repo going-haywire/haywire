@@ -33,12 +33,12 @@ class VueEventGenerator:
             else:
                 sync_events[event_type] = event_info
         
-        # Generate pure JavaScript code (no TypeScript)
+        # Generate pure JavaScript code with global window assignment (NiceGUI compatible)
         js_code = f'''// Auto-generated from Python event definitions
 // DO NOT EDIT MANUALLY - Run `python generate_vue_events.py` to update
 
-// Event type constants
-export const GraphEvents = {{
+// Event type constants - Make available globally
+window.GraphEvents = {{
   UserInteractions: {{
 {VueEventGenerator._format_events_object(user_events)}
   }},
@@ -48,15 +48,16 @@ export const GraphEvents = {{
   }}
 }};
 
-// Event creators
-export class EventCreators {{
+// Event creators - Make available globally
+window.EventCreators = {{
 {VueEventGenerator._generate_event_creators(user_events)}
-}}
+}};
 
-// Event validators  
-export class EventValidators {{
+// Event validators - Make available globally  
+window.EventValidators = {{
 {VueEventGenerator._generate_event_validators(user_events)}
-}}
+}};
+
 '''
         return js_code
     
@@ -117,15 +118,14 @@ export interface {interface_name} {{'''
     
     @staticmethod
     def _generate_event_creators(events: Dict) -> str:
-        """Generate event creator methods in pure JavaScript"""
+        """Generate event creator methods as object methods (not class methods)"""
         methods = []
         for event_type, info in events.items():
             method_name = f"create{info['class_name'].replace('Event', '')}"
             fields_param = ', '.join([f"{field}" for field in info['fields']])
             field_assignments = ', '.join(info['fields'])
             
-            method = f'''
-  static {method_name}({fields_param}, sessionId = 'default') {{
+            method = f'''  {method_name}({fields_param}, sessionId = 'default') {{
     return {{
       event_type: '{event_type}',
       source_session_id: sessionId,
@@ -136,24 +136,23 @@ export interface {interface_name} {{'''
   }}'''
             methods.append(method)
         
-        return '\n'.join(methods)
+        return ',\n\n'.join(methods)
     
     @staticmethod
     def _generate_event_validators(events: Dict) -> str:
-        """Generate event validation methods in pure JavaScript"""
+        """Generate event validation methods as object methods (not class methods)"""
         methods = []
         for event_type, info in events.items():
             method_name = f"validate{info['class_name'].replace('Event', '')}"
             required_fields = info['fields']
             
-            method = f'''
-  static {method_name}(data) {{
+            method = f'''  {method_name}(data) {{
     const requiredFields = {str(required_fields).replace("'", '"')};
     return requiredFields.every(field => field in data);
   }}'''
             methods.append(method)
         
-        return '\n'.join(methods)
+        return ',\n\n'.join(methods)
     
     @staticmethod
     def _camel_to_const(camel_str: str) -> str:
