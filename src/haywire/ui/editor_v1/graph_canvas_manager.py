@@ -421,64 +421,7 @@ class GraphCanvasManager:
         # Placeholder - replace with actual session management logic
         return {}
     
-    # =============================================================================
-    # BACKWARD COMPATIBILITY METHODS
-    # These maintain compatibility during migration
-    # =============================================================================
-    
-    @property
-    def canvas(self):
-        """Backward compatibility property to access the canvas Vue component."""
-        return self.canvas_vue
-    
-    # Keep existing methods for gradual migration
-    def _handle_vue_connection_created(self, start_node_id: str, start_port: str, end_node_id: str, end_port: str):
-        """Legacy handler - converts to new event system"""
-        event = ConnectionCreatedEvent(
-            outputNodeId=start_node_id,
-            outletPinId=start_port,
-            inputNodeId=end_node_id,
-            inletPinId=end_port,
-            source_session_id=self.session_id
-        )
-        self.process_connection_creation(event)
-    
-    def _handle_vue_node_position_changed(self, node_id: str, x: float, y: float):
-        """Legacy handler - converts to new event system"""
-        event = NodePositionChangedEvent(
-            nodeId=node_id,
-            position={'x': x, 'y': y},
-            source_session_id=self.session_id
-        )
-        self.process_node_position_change(event)
-    
-    def _handle_vue_node_drag_start(self, node_id: str):
-        """Legacy handler - converts to new event system"""
-        event = NodeDragStartEvent(
-            nodeId=node_id,
-            source_session_id=self.session_id
-        )
-        self.process_node_drag_start(event)
-    
-    def _handle_vue_node_drag_end(self, node_id: str, position_changed: bool):
-        """Legacy handler - converts to new event system"""
-        event = NodeDragEndEvent(
-            nodeId=node_id,
-            positionChanged=position_changed,
-            source_session_id=self.session_id
-        )
-        self.process_node_drag_end(event)
-    
-    def _handle_vue_selection_changed(self, selected_nodes: List[str], selected_connections: List[str]):
-        """Legacy handler - converts to new event system"""
-        event = SelectionChangedEvent(
-            selectedNodes=selected_nodes,
-            selectedConnections=selected_connections,
-            source_session_id=self.session_id
-        )
-        self.process_selection_change(event)
-    
-    # ... rest of existing methods remain unchanged ...
+ 
     # Node Management
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
         """Add a visual representation of a node to the canvas."""
