@@ -134,12 +134,6 @@ class GraphCanvasManager:
             
             self.context_menu = PopupContextMenu(
                 available_nodes=self.available_nodes,
-                on_create_node=self._handle_context_create_node,  # Keep for legacy support
-                on_duplicate_node=self._handle_context_duplicate_node,
-                on_copy_node=self._handle_context_copy_node,
-                on_delete_node=self._handle_context_delete_node,
-                on_inspect_connection=self._handle_context_inspect_connection,
-                on_delete_connection=self._handle_context_delete_connection,
                 on_emit_event=self._handle_canvas_event  # New event system
             )
     
@@ -163,96 +157,67 @@ class GraphCanvasManager:
             else:
                 print(f"No handler found for event type: {event_type}")
         else:
-            # Handle legacy dict format for backward compatibility
-            event_type = event.get('event_type')
-            if not event_type:
-                print(f"❌ Event missing event_type: {event}")
-                return
-                
-            # Convert dict to proper event object for new handlers
-            event_class = GRAPH_EVENT_REGISTRY.get(event_type)
-            if event_class:
-                try:
-                    # Create event object from dict - the data is already at the top level
-                    event_obj = event_class(**event)
-                    handler = self._event_handlers.get(event_type)
-                    if handler:
-                        print(f"🔧 Calling handler for {event_type} (from dict): {handler.__name__}")
-                        handler(event_obj)
-                    else:
-                        print(f"No handler found for event type: {event_type}")
-                except Exception as e:
-                    print(f"❌ Error converting dict to event object for {event_type}: {e}")
-                    print(f"Event data: {event}")
-                    import traceback
-                    traceback.print_exc()
-            else:
-                print(f"❌ Unknown event type: {event_type}")
+             print(f"❌ Unknown event type: {event}")
     
     # =============================================================================
     # EVENT HANDLERS (Auto-registered via decorators)
     # =============================================================================
     
-    @handles_event(NodePositionChangedEvent)
-    def process_node_position_change(self, event: NodePositionChangedEvent):
-        """Handle node position updates"""
-        try:
-            print(f"Updating node position: {event.nodeId} to ({event.position['x']}, {event.position['y']})")
-            
-            # Ignore position changes during sync operations to prevent recursion
-            if self._syncing:
-                return
-            
-            # Update stored position when user drags
-            if event.nodeId in self.node_panels:
-                self.node_panels[event.nodeId]['position'] = (event.position['x'], event.position['y'])
-            
-            # Create MoveNodeAction directly
-            if event.nodeId in self.graph.nodes:
-                node = self.graph.nodes[event.nodeId]
-                old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
-                new_position = (event.position['x'], event.position['y'])
-                
-                # Only create an action if the position has actually changed
-                if old_position != new_position:
-                    action = MoveNodeAction(self.graph, event.nodeId, event.position['x'], event.position['y'])
-                    self.history_manager.add_action(action)
-                    
-                    # Always broadcast local user interactions to other sessions
-                    # (The requires_broadcast flag is metadata, not part of the event object)
-                    if self.on_graph_changed:
-                        self.on_graph_changed()
-                        
-        except Exception as e:
-            print(f"Node position update failed: {e}")
-    
+                            
     @handles_event(ConnectionCreatedEvent)
     def process_connection_creation(self, event: ConnectionCreatedEvent):
         """Handle connection creation"""
-        try:
-            print(f"Creating connection: {event.outputNodeId}:{event.outletPinId} -> {event.inputNodeId}:{event.inletPinId}")
-            
-            # Create edge in graph
-            edge = Edge(
-                edge_type=EdgeType.DATA,
-                output_node_id=event.outputNodeId,
-                outlet_pin_id=event.outletPinId,
-                input_node_id=event.inputNodeId,
-                inlet_pin_id=event.inletPinId
-            )
-            
-            # Add to graph
-            action = AddEdgeAction(self.graph, edge)
-            self.history_manager.add_action(action)
-            
-            # Always broadcast local user interactions to other sessions
-            # (The requires_broadcast flag is metadata, not part of the event object)
-            if self.on_graph_changed:
-                self.on_graph_changed()
+        print(f"Creating connection: {event.outputNodeId}:{event.outletPinId} -> {event.inputNodeId}:{event.inletPinId}")
+        
+        # Create edge in graph
+        edge = Edge(
+            edge_type=EdgeType.DATA,
+            output_node_id=event.outputNodeId,
+            outlet_pin_id=event.outletPinId,
+            input_node_id=event.inputNodeId,
+            inlet_pin_id=event.inletPinId
+        )
+        
+        # Add to graph
+        action = AddEdgeAction(self.graph, edge)
+        self.history_manager.add_action(action)
+        
+        # Always broadcast local user interactions to other sessions
+        # (The requires_broadcast flag is metadata, not part of the event object)
+        if self.on_graph_changed:
+            self.on_graph_changed()
                 
-        except Exception as e:
-            print(f"Connection creation failed: {e}")
-    
+    @handles_event(ConnectionRemovedEvent)
+    def process_connection_deletion(self, event: ConnectionRemovedEvent):
+        """Handle connection deletion from context menu."""
+        connection_id = event.connectionId
+        print(f"🗑️ Deleting connection {connection_id} from context menu")
+        from nicegui import ui
+        
+        # Find the edge by connection_id
+        edge_to_remove = None
+        for edge in self.graph.edges:
+            edge_key = self._get_edge_key(edge)
+            if edge_key == connection_id:
+                edge_to_remove = edge
+                break
+        
+        if edge_to_remove:
+            try:
+                # Create and execute undo action
+                action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
+                self.history_manager.add_action(action)
+                
+                # Sync visual representation
+                self.sync_with_graph()
+                ui.notify(f"Deleted connection")
+                    
+            except Exception as e:
+                print(f"Error deleting connection: {e}")
+                ui.notify(f"Error deleting connection: {e}", type='negative')
+        else:
+            ui.notify(f"Connection not found", type='warning')
+
     @handles_event(ConnectionClickedEvent)
     def process_connection_click(self, event: ConnectionClickedEvent):
         """Handle connection click events - remove the connection"""
@@ -302,7 +267,36 @@ class GraphCanvasManager:
         # Add fence to end the drag operation grouping
         if event.positionChanged:
             self.history_manager.add_fence()
-    
+
+    @handles_event(NodePositionChangedEvent)
+    def process_node_position_change(self, event: NodePositionChangedEvent):
+        """Handle node position updates"""
+        print(f"Updating node position: {event.nodeId} to ({event.position['x']}, {event.position['y']})")
+        
+        # Ignore position changes during sync operations to prevent recursion
+        if self._syncing:
+            return
+        
+        # Update stored position when user drags
+        if event.nodeId in self.node_panels:
+            self.node_panels[event.nodeId]['position'] = (event.position['x'], event.position['y'])
+        
+        # Create MoveNodeAction directly
+        if event.nodeId in self.graph.nodes:
+            node = self.graph.nodes[event.nodeId]
+            old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
+            new_position = (event.position['x'], event.position['y'])
+            
+            # Only create an action if the position has actually changed
+            if old_position != new_position:
+                action = MoveNodeAction(self.graph, event.nodeId, event.position['x'], event.position['y'])
+                self.history_manager.add_action(action)
+                
+                # Always broadcast local user interactions to other sessions
+                # (The requires_broadcast flag is metadata, not part of the event object)
+                if self.on_graph_changed:
+                    self.on_graph_changed()
+
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Handle selection changes"""
@@ -399,7 +393,30 @@ class GraphCanvasManager:
         except Exception as e:
             print(f"Error creating node: {e}")
             ui.notify(f"Error creating node: {e}", type='negative')
-    
+
+    @handles_event(NodeRemoveRequestEvent)
+    def process_node_deletion_request(self, event: NodeRemoveRequestEvent):
+        """Handle node deletion from context menu."""
+        print(f"🗑️ Deleting node {event.nodeId} from context menu")
+
+        if event.nodeId in self.graph.nodes:
+            try:
+                # Use history manager to remove node with undo support
+                node = self.graph.nodes[event.nodeId]
+                action = RemoveNodeAction(self.graph, event.nodeId, node)
+                self.history_manager.add_action(action)
+                
+                # Sync visual representation
+                self.sync_with_graph()
+                ui.notify(f"Deleted node {event.nodeId}")
+                
+            except Exception as e:
+                print(f"Error deleting node: {e}")
+                ui.notify(f"Error deleting node: {e}", type='negative')
+        else:
+            ui.notify(f"Node {event.nodeId} not found", type='warning')
+
+
     # =============================================================================
     # SYNC EVENT BROADCASTING
     # =============================================================================
@@ -760,133 +777,7 @@ class GraphCanvasManager:
     def get_selected_connections(self) -> Set[str]:
         """Get currently selected connections."""
         return self.selected_connections.copy()
-    
-    # Context Menu Event Handlers
-    def _handle_context_menu_canvas(self, screen_x: float, screen_y: float, canvas_x: float, canvas_y: float):
-        """Handle canvas context menu request."""
-        print(f"🎯 Canvas context menu requested at screen({screen_x}, {screen_y}) canvas({canvas_x}, {canvas_y})")
-        if self.context_menu:
-            self.context_menu.show_canvas_menu(screen_x, screen_y, canvas_x, canvas_y)
-    
-    def _handle_context_menu_node(self, node_id: str, x: float, y: float):
-        """Handle node context menu request."""
-        print(f"🎯 Node context menu requested for {node_id} at ({x}, {y})")
-        if self.context_menu:
-            self.context_menu.show_node_menu(x, y, node_id)
-    
-    def _handle_context_menu_connection(self, connection_id: str, x: float, y: float):
-        """Handle connection context menu request."""
-        print(f"🎯 Connection context menu requested for {connection_id} at ({x}, {y})")
-        if self.context_menu:
-            self.context_menu.show_connection_menu(x, y, connection_id)
-    
-    # Context Menu Action Handlers
-    def _handle_context_create_node(self, node_type: str, x: float, y: float):
-        """Handle node creation from context menu."""
-        print(f"📝 Creating node {node_type} at ({x}, {y}) from context menu")
-        
-        try:
-            # Create node using the injected factory
-            node = self.node_factory.create_instance(
-                node_type,
-                self.graph,  # Pass the graph to the factory
-                position=(x, y)
-            )
-            
-            if node:
-                # Set position attributes
-                node.ui_posX = x
-                node.ui_posY = y
-                
-                action = AddNodeAction(self.graph, node)
-                self.history_manager.add_action(action)
-                
-                # Notify app to sync other sessions
-                if self.on_graph_changed:
-                    self.on_graph_changed()
-                
-                print(f"✅ Created node {node.node_id} at ({x}, {y})")
-            else:
-                ui.notify(f"Failed to create node of type: {node_type}", type='negative')
-                
-        except Exception as e:
-            print(f"Error creating node: {e}")
-            ui.notify(f"Error creating node: {e}", type='negative')
-    
-    def _handle_context_duplicate_node(self, node_id: str):
-        """Handle node duplication from context menu."""
-        print(f"📋 Duplicating node {node_id} from context menu")
-        ui.notify(f"Duplicating node {node_id}")
-        # TODO: Implement node duplication logic
-    
-    def _handle_context_copy_node(self, node_id: str):
-        """Handle node copy from context menu."""
-        print(f"📄 Copying node {node_id} from context menu")
-        ui.notify(f"Copied node {node_id}")
-        # TODO: Implement node copy logic
-    
-    def _handle_context_delete_node(self, node_id: str):
-        """Handle node deletion from context menu."""
-        print(f"🗑️ Deleting node {node_id} from context menu")
-        
-        if node_id in self.graph.nodes:
-            try:
-                # Use history manager to remove node with undo support
-                node = self.graph.nodes[node_id]
-                action = RemoveNodeAction(self.graph, node_id, node)
-                self.history_manager.add_action(action)
-                
-                # Sync visual representation
-                self.sync_with_graph()
-                ui.notify(f"Deleted node {node_id}")
-                
-            except Exception as e:
-                print(f"Error deleting node: {e}")
-                ui.notify(f"Error deleting node: {e}", type='negative')
-        else:
-            ui.notify(f"Node {node_id} not found", type='warning')
-    
-    def _handle_context_inspect_connection(self, connection_id: str):
-        """Handle connection inspection from context menu."""
-        print(f"🔍 Inspecting connection {connection_id} from context menu")
-        ui.notify(f"Inspecting connection {connection_id}")
-        # TODO: Show connection details dialog
-    
-    def _handle_context_delete_connection(self, connection_id: str):
-        """Handle connection deletion from context menu."""
-        print(f"🗑️ Deleting connection {connection_id} from context menu")
-        from nicegui import ui
-        
-        # Find the edge by connection_id
-        edge_to_remove = None
-        for edge in self.graph.edges:
-            edge_key = self._get_edge_key(edge)
-            if edge_key == connection_id:
-                edge_to_remove = edge
-                break
-        
-        if edge_to_remove:
-            try:
-                # Create and execute undo action
-                action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
-                self.history_manager.add_action(action)
-                
-                # Sync visual representation
-                self.sync_with_graph()
-                ui.notify(f"Deleted connection")
-                    
-            except Exception as e:
-                print(f"Error deleting connection: {e}")
-                ui.notify(f"Error deleting connection: {e}", type='negative')
-        else:
-            ui.notify(f"Connection not found", type='warning')
-    
-    def update_available_nodes(self, nodes: List[str]):
-        """Update the list of available nodes for context menu."""
-        self.available_nodes = nodes
-        if self.context_menu:
-            self.context_menu.update_available_nodes(nodes)
-        
+                      
     # Zoom control convenience methods
     def zoom_to_fit(self):
         """Zoom to fit all content."""

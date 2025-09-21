@@ -1125,14 +1125,13 @@ export default {
                 if (nodeElement) {
                     console.log(`[GraphCanvas] Adding observer for node ${nodeId}`, nodeElement);
 
-                    // Setup hover observers for LOD animations
+                    // Setup hover observers for LOD and onhover animations
                     this._setupHoverObserver(nodeElement);
                 } else if (retryCount < 3) {
                     // Retry after a short delay (up to 3 times)
-                    console.log(`[GraphCanvas] Node element with ID ${nodeId} not found, retrying... (${retryCount + 1}/3)`);
                     setTimeout(() => attemptAddObserver(retryCount + 1), 100);
                 } else {
-                    console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found after 3 retries`);
+                    console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found after 3 retries. Unable to observe.`);
                 }
             };
 

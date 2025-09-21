@@ -12,7 +12,7 @@ Uses the enhanced Popup class that creates elements at page root level to avoid 
 from nicegui import ui, app
 from typing import Dict, List, Optional, Callable
 from .popup import Popup
-from .event_definitions import NodeCreateRequestEvent
+from .event_definitions import ConnectionRemovedEvent, NodeCreateRequestEvent, NodeRemoveRequestEvent
 
 
 class PopupContextMenu:
@@ -20,22 +20,8 @@ class PopupContextMenu:
     
     def __init__(self, 
                  available_nodes: List[str] = None,
-                 on_create_node: Optional[Callable[[str, float, float], None]] = None,
-                 on_duplicate_node: Optional[Callable[[str], None]] = None,
-                 on_copy_node: Optional[Callable[[str], None]] = None,
-                 on_delete_node: Optional[Callable[[str], None]] = None,
-                 on_inspect_connection: Optional[Callable[[str], None]] = None,
-                 on_delete_connection: Optional[Callable[[str], None]] = None,
                  on_emit_event: Optional[Callable[[object], None]] = None):
-        
-        # Store callbacks (legacy support)
-        self._on_create_node = on_create_node
-        self._on_duplicate_node = on_duplicate_node
-        self._on_copy_node = on_copy_node
-        self._on_delete_node = on_delete_node
-        self._on_inspect_connection = on_inspect_connection
-        self._on_delete_connection = on_delete_connection
-        
+                
         # New event system
         self._on_emit_event = on_emit_event
         
@@ -62,59 +48,55 @@ class PopupContextMenu:
         """Handle node creation."""
         canvas_x = self._menu_data.get('canvas_x', 0)
         canvas_y = self._menu_data.get('canvas_y', 0)
-        
-        print(f"[PopupContextMenu] Creating node {node_type} at ({canvas_x}, {canvas_y})")
-        
-        # Use new event system if available
-        if self._on_emit_event:
-            event = NodeCreateRequestEvent(
-                nodeType=node_type,
-                position={'x': canvas_x, 'y': canvas_y}
-            )
-            self._on_emit_event(event)
-        elif self._on_create_node:
-            # Fallback to legacy callback system
-            self._on_create_node(node_type, canvas_x, canvas_y)
-        
+                
+        event = NodeCreateRequestEvent(
+            nodeType=node_type,
+            position={'x': canvas_x, 'y': canvas_y}
+        )
+        self._on_emit_event(event)
         self._close_current_menu()
-    
+
+    def _delete_node(self, node_id: str):
+        """Handle node deletion."""
+        event = NodeRemoveRequestEvent(
+            nodeId=node_id
+        )
+        self._on_emit_event(event)
+        self._close_current_menu()
+
+    def _delete_connection(self, connection_id: str):
+        """Handle connection deletion."""
+        event = ConnectionRemovedEvent(
+            connectionId=connection_id
+        )
+        self._on_emit_event(event)
+        self._close_current_menu()
+
     # Node Actions
     def _duplicate_node(self, node_id: str):
         """Handle node duplication."""
-        print(f"[PopupContextMenu] Duplicating node {node_id}")
-        if self._on_duplicate_node:
-            self._on_duplicate_node(node_id)
+        print(f"[PopupContextMenu] Not Yet implemented: Duplicating node {node_id}")
+        # not yet implemented
         self._close_current_menu()
     
     def _copy_node(self, node_id: str):
         """Handle node copying."""
-        print(f"[PopupContextMenu] Copying node {node_id}")
-        if self._on_copy_node:
-            self._on_copy_node(node_id)
+        print(f"[PopupContextMenu] Not Yet implemented: Copying node {node_id}")
+        # not yet impleemented
         self._close_current_menu()
-    
-    def _delete_node(self, node_id: str):
-        """Handle node deletion."""
-        print(f"[PopupContextMenu] Deleting node {node_id}")
-        if self._on_delete_node:
-            self._on_delete_node(node_id)
-        self._close_current_menu()
-    
+        
     # Connection Actions
     def _inspect_connection(self, connection_id: str):
         """Handle connection inspection."""
-        print(f"[PopupContextMenu] Inspecting connection {connection_id}")
-        if self._on_inspect_connection:
-            self._on_inspect_connection(connection_id)
+        print(f"[PopupContextMenu] Not Yet implemented: Inspecting connection {connection_id}")
+        # not yet implemented
         self._close_current_menu()
     
-    def _delete_connection(self, connection_id: str):
-        """Handle connection deletion."""
-        print(f"[PopupContextMenu] Deleting connection {connection_id}")
-        if self._on_delete_connection:
-            self._on_delete_connection(connection_id)
-        self._close_current_menu()
-    
+
+    ##############################################
+    # Drawing Context Menus at Cursor Position 
+    ##############################################
+
     def show_canvas_menu(self, x: float, y: float, canvas_x: float = None, canvas_y: float = None):
         """Show context menu for canvas (node creation)."""
         self._close_current_menu()

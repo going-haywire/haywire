@@ -77,6 +77,11 @@ class NodeCreateRequestEvent(BaseGraphEvent):
     nodeType: str
     position: Dict[str, float]  # {x: float, y: float}
 
+@graph_event("nodeRemoveRequest", category="user", description="Request to remove node from context menu")
+@dataclass
+class NodeRemoveRequestEvent(BaseGraphEvent):
+    nodeId: str
+
 @graph_event("nodePositionChanged", category="user", description="Node position updated")
 @dataclass  
 class NodePositionChangedEvent(BaseGraphEvent):
