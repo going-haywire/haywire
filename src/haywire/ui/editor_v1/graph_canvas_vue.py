@@ -78,11 +78,8 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
                     self._on_canvas_event(event_instance)
                 except Exception as e:
                     print(f"Error creating event instance for {event_type}: {e}")
-                    # Fallback to raw dict for backward compatibility
-                    self._on_canvas_event(event)
             else:
                 print(f"Unknown event type: {event_type}")
-                self._on_canvas_event(event)
     
     def emit_sync_event(self, event: BaseGraphEvent):
         """
@@ -108,39 +105,38 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         
         # Parse pin IDs to extract node and port information
         # Expected format: node_id:port_id
-        try:
-            from_parts = from_pin_id.split(':')
-            to_parts = to_pin_id.split(':')
+        from_parts = from_pin_id.split(':')
+        to_parts = to_pin_id.split(':')
+        
+        if len(from_parts) == 2 and len(to_parts) == 2:
+            output_node_id, outlet_pin_id = from_parts
+            input_node_id, inlet_pin_id = to_parts
             
-            if len(from_parts) == 2 and len(to_parts) == 2:
-                output_node_id, outlet_pin_id = from_parts
-                input_node_id, inlet_pin_id = to_parts
-                
-                # Create connection data
-                connection_data = {
-                    'id': connection_id,
-                    'outputNodeId': output_node_id,
-                    'outletPinId': outlet_pin_id,
-                    'inputNodeId': input_node_id,
-                    'inletPinId': inlet_pin_id
-                }
-                
-                # Add to connections prop
-                current_connections = list(self._props.get('connections', []))
-                # Remove existing connection with same ID if it exists
-                current_connections = [c for c in current_connections if c.get('id') != connection_id]
-                # Add new connection
-                current_connections.append(connection_data)
-                # Update the prop
-                self._props['connections'] = current_connections
-                
-                print(f"[GraphCanvasVue] ✅ Connection added to props: {connection_id}")
-                return True
-            else:
-                print(f"[GraphCanvasVue] Invalid pin ID format: {from_pin_id}, {to_pin_id}")
-                return False
-        except Exception as e:
-            print(f"[GraphCanvasVue] Error parsing pin IDs: {e}")
+            # Create connection data
+            connection_data = {
+                'id': connection_id,
+                'outputNodeId': output_node_id,
+                'outletPinId': outlet_pin_id,
+                'inputNodeId': input_node_id,
+                'inletPinId': inlet_pin_id
+            }
+            
+            # Add to connections prop
+            current_connections = list(self._props.get('connections', []))
+            # Remove existing connection with same ID if it exists
+            current_connections = [c for c in current_connections if c.get('id') != connection_id]
+            # Add new connection
+            current_connections.append(connection_data)
+            # Update the prop
+            self._props['connections'] = current_connections
+
+            # self.run_method('_syncAllConnections')
+            # TODO: creating a sync event  
+
+            print(f"[GraphCanvasVue] ✅ Connection added to props: {connection_id}")
+            return True
+        else:
+            print(f"[GraphCanvasVue] Invalid pin ID format: {from_pin_id}, {to_pin_id}")
             return False
     
     def remove_connection_visual(self, connection_id: str):
@@ -153,40 +149,12 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         updated_connections = [c for c in current_connections if c.get('id') != connection_id]
         # Update the prop
         self._props['connections'] = updated_connections
-        
+
+        # self.run_method('_syncAllConnections')
+        # TODO: creating a sync event  
+
         print(f"[GraphCanvasVue] ✅ Connection removed from props: {connection_id}")
         return len(updated_connections) < len(current_connections)  # Return True if connection was found and removed
-
-    def sync_connections_from_edges(self, edges):
-        """Sync all connections from a list of edges."""
-        print(f"[GraphCanvasVue] sync_connections_from_edges: {len(edges)} edges")
-        
-        # Convert edges to connection data format
-        connection_data_list = []
-        for edge in edges:
-            # Generate connection ID using Format 2 (consistent with canvas manager)
-            connection_id = generate_connection_id(
-                edge.output_node_id,
-                edge.outlet_pin_id, 
-                edge.input_node_id,
-                edge.inlet_pin_id
-            )
-            
-            connection_data = {
-                'id': connection_id,
-                'outputNodeId': edge.output_node_id,
-                'outletPinId': edge.outlet_pin_id,
-                'inputNodeId': edge.input_node_id,
-                'inletPinId': edge.inlet_pin_id
-            }
-            connection_data_list.append(connection_data)
-        
-        # Update the connections prop (this will trigger the Vue watcher)
-        self._props['connections'] = connection_data_list
-        print(f"[GraphCanvasVue] ✅ Connections prop updated with {len(connection_data_list)} connections")
-        
-        # Force a prop update by calling update() on the element
-        self.update()
     
     def update_connections_for_node(self, node_id: str):
         """Update all connections for a specific node."""

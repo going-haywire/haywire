@@ -5,11 +5,9 @@ ENHANCED VERSION: Now uses auto-registration event handlers with type-safe event
 This eliminates complex callback management and provides compile-time safety.
 """
 
+import traceback
 from typing import Dict, List, Optional, Tuple, Callable, Set
 from nicegui import ui, events
-import json
-import uuid
-import inspect
 from dataclasses import dataclass
 
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
@@ -18,10 +16,9 @@ from haywire.ui.utils import generate_pin_id, parse_pin_id, generate_connection_
 from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodeAction, AddEdgeAction, RemoveNodeAction, RemoveEdgeAction, AddNodeAction
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
-from haywire.ui.editor_v1.graph_canvas_vue import GraphCanvasVue
-from haywire.ui.editor_v1.popup_context_menu import PopupContextMenu
 
-# Import enhanced event system
+from .graph_canvas_vue import GraphCanvasVue
+from .popup_context_menu import PopupContextMenu
 from .event_definitions import *
 from .event_handlers import handles_event
 
@@ -136,28 +133,25 @@ class GraphCanvasManager:
                 available_nodes=self.available_nodes,
                 on_emit_event=self._handle_canvas_event  # New event system
             )
-    
-    def _handle_canvas_event(self, event):
+
+    def _handle_canvas_event(self, event: BaseGraphEvent):
         """
         Unified canvas event router using auto-registered handlers
         """
-        if isinstance(event, BaseGraphEvent):
-            event_type = event.event_type
-            handler = self._event_handlers.get(event_type)
-            
-            if handler:
-                print(f"🔧 Calling handler for {event_type}: {handler.__name__}")
-                try:
-                    # Just call the handler with the event - all our handlers expect (self, event)
-                    handler(event)
-                except Exception as e:
-                    print(f"❌ Error calling handler for {event_type}: {e}")
-                    import traceback
-                    traceback.print_exc()
-            else:
-                print(f"No handler found for event type: {event_type}")
+        event_type = event.event_type
+        handler = self._event_handlers.get(event_type)
+        
+        if handler:
+            print(f"🔧 Calling handler for {event_type}: {handler.__name__}")
+            try:
+                # Just call the handler with the event - all our handlers expect (self, event)
+                handler(event)
+            except Exception as e:
+                print(f"❌ Error calling handler for {event_type}: {e}")
+                ui.notify(f"Error while processing {event.description}: {e}", type='negative')
+                traceback.print_exc()
         else:
-             print(f"❌ Unknown event type: {event}")
+            print(f"No handler found for event type: {event_type}")
     
     # =============================================================================
     # EVENT HANDLERS (Auto-registered via decorators)
@@ -203,18 +197,15 @@ class GraphCanvasManager:
                 break
         
         if edge_to_remove:
-            try:
-                # Create and execute undo action
-                action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
-                self.history_manager.add_action(action)
-                
-                # Sync visual representation
-                self.sync_with_graph()
-                ui.notify(f"Deleted connection")
-                    
-            except Exception as e:
-                print(f"Error deleting connection: {e}")
-                ui.notify(f"Error deleting connection: {e}", type='negative')
+            # Create and execute undo action
+            action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
+            self.history_manager.add_action(action)
+            
+            # Always broadcast local user interactions to other sessions
+            # (The requires_broadcast flag is metadata, not part of the event object)
+            if self.on_graph_changed:
+                self.on_graph_changed()
+            ui.notify(f"Deleted connection")                    
         else:
             ui.notify(f"Connection not found", type='warning')
 
@@ -400,19 +391,17 @@ class GraphCanvasManager:
         print(f"🗑️ Deleting node {event.nodeId} from context menu")
 
         if event.nodeId in self.graph.nodes:
-            try:
-                # Use history manager to remove node with undo support
-                node = self.graph.nodes[event.nodeId]
-                action = RemoveNodeAction(self.graph, event.nodeId, node)
-                self.history_manager.add_action(action)
-                
-                # Sync visual representation
-                self.sync_with_graph()
-                ui.notify(f"Deleted node {event.nodeId}")
-                
-            except Exception as e:
-                print(f"Error deleting node: {e}")
-                ui.notify(f"Error deleting node: {e}", type='negative')
+            # Use history manager to remove node with undo support
+            node = self.graph.nodes[event.nodeId]
+            action = RemoveNodeAction(self.graph, event.nodeId, node)
+            self.history_manager.add_action(action)
+            
+            # Always broadcast local user interactions to other sessions
+            # (The requires_broadcast flag is metadata, not part of the event object)
+            if self.on_graph_changed:
+                self.on_graph_changed()
+            ui.notify(f"Deleted node {event.nodeId}")
+            
         else:
             ui.notify(f"Node {event.nodeId} not found", type='warning')
 
@@ -432,187 +421,7 @@ class GraphCanvasManager:
                 self.canvas_vue.emit_sync_event(sync_event)
             except Exception as e:
                 print(f"Error broadcasting sync event: {e}")
-    
-    def get_all_sessions(self):
-        """Get all active sessions - implement based on your session management"""
-        # Placeholder - replace with actual session management logic
-        return {}
-    
- 
-    # Node Management
-    def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
-        """Add a visual representation of a node to the canvas."""
-        try:
-            x, y = position
-            print(f"Adding node visual for {node.node_id} at position ({x}, {y})")
-            
-            with self.canvas_vue:
-                with ui.column().classes('absolute').style(
-                    f'left: {x}px; top: {y}px; z-index: 100;'
-                ).props(f'id="{node.node_id}" data-node-id="{node.node_id}"') as container:
-                    
-                    print(f"Created container for node {node.node_id}")
-                    
-                    # Use UINode for proper rendering
-                    ui_node = UINode(node, self.node_render_factory, container)
-                    ui_node.render()
-                    print(f"Rendered UINode for {node.node_id}")
-                    
-                    # Store reference
-                    self.node_panels[node.node_id] = {
-                        'ui_node': ui_node,
-                        'container': container,
-                        'position': position
-                    }
-                    
-                    # Setup observers for this node via Vue component
-                    if self.canvas_vue:
-                        self.canvas_vue.add_node_observer(node.node_id)
-                        print(f"Setup Vue observers for {node.node_id}")
-            
-            print(f"Successfully added node visual for {node.node_id}")
-            return True
-            
-        except RuntimeError as e:
-            if "client this element belongs to has been deleted" in str(e):
-                # Re-raise client deletion errors so they can be caught by sync_all_sessions
-                print(f"Error adding node visual: {e}")
-                raise
-            else:
-                print(f"Runtime error adding node visual: {e}")
-                import traceback
-                traceback.print_exc()
-                return False
-        except Exception as e:
-            print(f"Error adding node visual: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-    
-    def remove_node_visual(self, node_id: str) -> bool:
-        """Remove a node's visual representation."""
-        if node_id not in self.node_panels:
-            return False
-            
-        try:
-            # Remove all connected edges visually first
-            edges_to_remove = []
-            for edge in self.graph.edges:
-                if edge.input_node_id == node_id or edge.output_node_id == node_id:
-                    edge_key = self._get_edge_key(edge)
-                    edges_to_remove.append(edge_key)
-            
-            for edge_key in edges_to_remove:
-                self.remove_connection_visual(edge_key)
-            
-            # Remove node visual
-            visual_data = self.node_panels[node_id]
-            
-            if 'ui_node' in visual_data:
-                ui_node = visual_data['ui_node']
-                if hasattr(ui_node, 'cleanup'):
-                    ui_node.cleanup()
-            
-            visual_data['container'].delete()
-            del self.node_panels[node_id]
-            
-            # Remove from selection
-            self.selected_nodes.discard(node_id)
-            
-            # Remove observers via Vue component
-            if self.canvas_vue:
-                self.canvas_vue.remove_node_observer(node_id)
-            
-            return True
-            
-        except Exception as e:
-            print(f"Error removing node visual: {e}")
-            return False
-    
-    def update_node_position(self, node_id: str, position: Tuple[float, float]):
-        """Update a node's visual position."""
-        if node_id not in self.node_panels:
-            return
-            
-        x, y = position
-        container = self.node_panels[node_id]['container']
-        
-        # Update the style using NiceGUI's update mechanism
-        container.style(f'left: {x}px; top: {y}px; z-index: 100;')
-        container.update()  # Force update to propagate to all clients
-        
-        self.node_panels[node_id]['position'] = position
-        
-        # Also try the force update method as backup
-        if self.canvas_vue:
-            self.canvas_vue.update_connections_for_node(node_id)
-    
-    # Connection Management
-    def _get_edge_key(self, edge: Edge) -> str:
-        """Generate a unique key for an edge using Format 2."""
-        return generate_connection_id(
-            edge.output_node_id, 
-            edge.outlet_pin_id, 
-            edge.input_node_id, 
-            edge.inlet_pin_id
-        )
-    
-    def add_connection_visual(self, edge: Edge) -> bool:
-        """Add a visual connection between two nodes."""
-        print(f"🔗 Python: Adding connection visual for {edge.output_node_id}:{edge.outlet_pin_id} -> {edge.input_node_id}:{edge.inlet_pin_id}")
-        try:
-            edge_key = self._get_edge_key(edge)
-            
-            # Use Vue component to add connection visual
-            if self.canvas_vue:
-                # Create pin IDs in the expected format
-                from_pin_id = f"{edge.output_node_id}:{edge.outlet_pin_id}"
-                to_pin_id = f"{edge.input_node_id}:{edge.inlet_pin_id}"
-                connection_id = edge_key  # Use edge key as connection ID
-                
-                self.canvas_vue.add_connection_visual(connection_id, from_pin_id, to_pin_id)
-                self.connection_paths[edge_key] = connection_id
-                print(f"🔗 Python: Created connection via Vue component with ID: {connection_id}")
-                return True
-            else:
-                print(f"❌ Vue component not available")
-                return False
-        except RuntimeError as e:
-            if "client this element belongs to has been deleted" in str(e):
-                # Re-raise client deletion errors so they can be caught by sync_all_sessions
-                print(f"🔗 Error adding connection visual: {e}")
-                raise
-            else:
-                print(f"🔗 Runtime error adding connection visual: {e}")
-                import traceback
-                traceback.print_exc()
-                return False
-        except Exception as e:
-            print(f"🔗 Error adding connection visual: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-    
-    def remove_connection_visual(self, edge_key: str) -> bool:
-        """Remove a connection's visual representation."""
-        if edge_key not in self.connection_paths:
-            return False
-            
-        try:
-            path_id = self.connection_paths[edge_key]
-            
-            # Use Vue component to remove connection visual
-            if self.canvas_vue:
-                success = self.canvas_vue.remove_connection_visual(path_id)
-                if success:
-                    del self.connection_paths[edge_key]
-                    return True
-            
-            return False
-        except Exception as e:
-            print(f"Error removing connection visual: {e}")
-            return False
-    
+
     # Graph Synchronization
     def sync_with_graph(self):
         """Synchronize visual representation with the graph state."""
@@ -651,21 +460,28 @@ class GraphCanvasManager:
                     print(f"Updating node {node_id} position: {old_position} -> {new_position}")
                     self.update_node_position(node_id, new_position)
             
-            # Sync connections - use Vue component's reactive prop system
+            # Sync connections - use incremental updates for better performance
             if self.canvas_vue:
-                # Pass all edges to Vue component, let it handle the diff
-                self.canvas_vue.sync_connections_from_edges(self.graph.edges)
+                current_edge_keys = set(self.connection_paths.keys())
+                graph_edge_keys = set()
                 
-                # Also update our connection_paths dictionary to keep it in sync
-                new_connection_paths = {}
+                # Add or update connections from graph
                 for edge in self.graph.edges:
                     edge_key = self._get_edge_key(edge)
-                    connection_id = edge_key  # Use edge key as connection ID
-                    new_connection_paths[edge_key] = connection_id
+                    graph_edge_keys.add(edge_key)
+                    
+                    # Add new connections that don't exist visually
+                    if edge_key not in current_edge_keys:
+                        print(f"🔄 Adding new connection: {edge_key}")
+                        self.add_connection_visual(edge)
                 
-                # Update the connection_paths dictionary
-                self.connection_paths = new_connection_paths
-                print(f"🔄 Updated connection_paths dictionary with {len(self.connection_paths)} connections")
+                # Remove connections no longer in graph
+                connections_to_remove = current_edge_keys - graph_edge_keys
+                for edge_key in connections_to_remove:
+                    print(f"🔄 Removing old connection: {edge_key}")
+                    self.remove_connection_visual(edge_key)
+                
+                print(f"🔄 Incremental connection sync: {len(graph_edge_keys)} total connections")
             
             # Sync selection state from graph to UI using existing methods
             graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
@@ -679,12 +495,134 @@ class GraphCanvasManager:
             
             for connection_id in graph_selected_connections:
                 self.select_connection(connection_id, multi_select=True)
+
+            self.canvas_vue.update()  # Force Vue component to refresh
                 
             print(f"🔄 Selection synced from graph: {len(graph_selected_nodes)} nodes, {len(graph_selected_connections)} connections")
+        except Exception as e:
+            print(f"Error during graph sync: {e}")
+
         finally:
             # Always clear sync flag
             self._syncing = False
+
+    # Node Management
+    def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
+        """Add a visual representation of a node to the canvas."""
+        x, y = position
+        print(f"Adding node visual for {node.node_id} at position ({x}, {y})")
+        
+        with self.canvas_vue:
+            with ui.column().classes('absolute').style(
+                f'left: {x}px; top: {y}px; z-index: 100;'
+            ).props(f'id="{node.node_id}" data-node-id="{node.node_id}"') as container:
+                
+                print(f"Created container for node {node.node_id}")
+                
+                # Use UINode for proper rendering
+                ui_node = UINode(node, self.node_render_factory, container)
+                ui_node.render()
+                print(f"Rendered UINode for {node.node_id}")
+                
+                # Store reference
+                self.node_panels[node.node_id] = {
+                    'ui_node': ui_node,
+                    'container': container,
+                    'position': position
+                }
+                
+                # Setup observers for this node via Vue component
+                if self.canvas_vue:
+                    self.canvas_vue.add_node_observer(node.node_id)
+                    print(f"Setup Vue observers for {node.node_id}")
+        
+        print(f"Successfully added node visual for {node.node_id}")
+        return True
+            
     
+    def remove_node_visual(self, node_id: str) -> bool:
+        """Remove a node's visual representation."""
+        if node_id not in self.node_panels:
+            return False
+            
+        # Remove all connected edges visually first
+        edges_to_remove = []
+        for edge in self.graph.edges:
+            if edge.input_node_id == node_id or edge.output_node_id == node_id:
+                edge_key = self._get_edge_key(edge)
+                edges_to_remove.append(edge_key)
+        
+        for edge_key in edges_to_remove:
+            self.remove_connection_visual(edge_key)
+        
+        # Remove node visual
+        visual_data = self.node_panels[node_id]
+        
+        if 'ui_node' in visual_data:
+            ui_node = visual_data['ui_node']
+            if hasattr(ui_node, 'cleanup'):
+                ui_node.cleanup()
+        
+        visual_data['container'].delete()
+        del self.node_panels[node_id]
+        
+        # Remove from selection
+        self.selected_nodes.discard(node_id)
+        
+        # Remove observers via Vue component
+        if self.canvas_vue:
+            self.canvas_vue.remove_node_observer(node_id)
+        
+        return True
+                
+    def update_node_position(self, node_id: str, position: Tuple[float, float]):
+        """Update a node's visual position."""
+        if node_id not in self.node_panels:
+            return
+            
+        x, y = position
+        container = self.node_panels[node_id]['container']
+        
+        # Update the style using NiceGUI's update mechanism
+        container.style(f'left: {x}px; top: {y}px; z-index: 100;')
+        container.update()  # Force update to propagate to all clients
+        
+        self.node_panels[node_id]['position'] = position
+        
+        # Also try the force update method as backup
+        if self.canvas_vue:
+            self.canvas_vue.update_connections_for_node(node_id)
+        
+    def add_connection_visual(self, edge: Edge) -> bool:
+        """Add a visual connection between two nodes."""
+        print(f"🔗 Python: Adding connection visual for {edge.output_node_id}:{edge.outlet_pin_id} -> {edge.input_node_id}:{edge.inlet_pin_id}")
+        edge_key = self._get_edge_key(edge)
+        
+        # Create pin IDs in the expected format
+        from_pin_id = f"{edge.output_node_id}:{edge.outlet_pin_id}"
+        to_pin_id = f"{edge.input_node_id}:{edge.inlet_pin_id}"
+        connection_id = edge_key  # Use edge key as connection ID
+        
+        self.canvas_vue.add_connection_visual(connection_id, from_pin_id, to_pin_id)
+        self.connection_paths[edge_key] = connection_id
+        print(f"🔗 Python: Created connection via Vue component with ID: {connection_id}")
+        return True
+   
+    def remove_connection_visual(self, edge_key: str) -> bool:
+        """Remove a connection's visual representation."""
+        if edge_key not in self.connection_paths:
+            return False
+            
+        path_id = self.connection_paths[edge_key]
+        
+        # Use Vue component to remove connection visual
+        success = self.canvas_vue.remove_connection_visual(path_id)
+        if success:
+            del self.connection_paths[edge_key]
+            return True
+        
+        return False
+   
     def clear_all_visuals(self):
         """Clear all visual representations."""
         # Clear nodes
@@ -708,22 +646,20 @@ class GraphCanvasManager:
         self.selected_nodes.add(node_id)
         
         # Update visual selection in Vue component
-        if self.canvas_vue:
-            try:
-                self.canvas_vue.select_node(node_id, multi_select)
-            except (AttributeError, RuntimeError) as e:
-                print(f"Warning: Could not update visual selection for node {node_id}: {e}")
+        try:
+            self.canvas_vue.select_node(node_id, multi_select)
+        except (AttributeError, RuntimeError) as e:
+            print(f"Warning: Could not update visual selection for node {node_id}: {e}")
     
     def deselect_node(self, node_id: str):
         """Deselect a node."""
         self.selected_nodes.discard(node_id)
         
         # Update visual selection in Vue component
-        if self.canvas_vue:
-            try:
-                self.canvas_vue.deselect_node(node_id)
-            except (AttributeError, RuntimeError) as e:
-                print(f"Warning: Could not update visual deselection for node {node_id}: {e}")
+        try:
+            self.canvas_vue.deselect_node(node_id)
+        except (AttributeError, RuntimeError) as e:
+            print(f"Warning: Could not update visual deselection for node {node_id}: {e}")
     
     def select_connection(self, edge_key: str, multi_select: bool = False):
         """Select a connection."""
@@ -733,42 +669,39 @@ class GraphCanvasManager:
         self.selected_connections.add(edge_key)
         
         # Update visual selection in Vue component
-        if self.canvas_vue and edge_key in self.connection_paths:
+        if edge_key in self.connection_paths:
             try:
                 path_id = self.connection_paths[edge_key]
                 self.canvas_vue.select_connection(path_id, multi_select)
+                print(f"🎯 Selected connection: {edge_key}")
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not update visual selection for connection {edge_key}: {e}")
-        
-        print(f"🎯 Selected connection: {edge_key}")
     
     def deselect_connection(self, edge_key: str):
         """Deselect a connection."""
         self.selected_connections.discard(edge_key)
         
         # Update visual selection in Vue component
-        if self.canvas_vue and edge_key in self.connection_paths:
+        if edge_key in self.connection_paths:
             try:
                 path_id = self.connection_paths[edge_key]
                 self.canvas_vue.deselect_connection(path_id)
+                print(f"🎯 Deselected connection: {edge_key}")
             except (AttributeError, RuntimeError) as e:
                 print(f"Warning: Could not update visual deselection for connection {edge_key}: {e}")
         
-        print(f"🎯 Deselected connection: {edge_key}")
-    
     def clear_selection(self):
         """Clear all selections."""
         self.selected_nodes.clear()
         self.selected_connections.clear()
         
         # Update visual selection in Vue component
-        if self.canvas_vue:
-            try:
-                self.canvas_vue.clear_selection()
-            except (AttributeError, RuntimeError) as e:
-                print(f"Warning: Could not clear visual selection: {e}")
+        try:
+            self.canvas_vue.clear_selection()
+            print("🎯 Cleared all selections")
+        except (AttributeError, RuntimeError) as e:
+            print(f"Warning: Could not clear visual selection: {e}")
         
-        print("🎯 Cleared all selections")
     
     def get_selected_nodes(self) -> Set[str]:
         """Get currently selected nodes."""
@@ -798,7 +731,17 @@ class GraphCanvasManager:
         """Zoom out."""
         if self.zoom_container:
             self.zoom_container.zoom_out()
-    
+
+    # Connection Management
+    def _get_edge_key(self, edge: Edge) -> str:
+        """Generate a unique key for an edge using Format 2."""
+        return generate_connection_id(
+            edge.output_node_id, 
+            edge.outlet_pin_id, 
+            edge.input_node_id, 
+            edge.inlet_pin_id
+        )
+
     @property
     def current_zoom(self) -> float:
         """Get current zoom level."""
