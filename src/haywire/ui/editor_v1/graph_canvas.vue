@@ -175,10 +175,6 @@ export default {
                             if (styleText.includes('left:') || styleText.includes('top:') || styleText.includes('transform:')) {
                                 this.updateConnectionsForNode(nodeId);
                             } 
-                            const transform = nodeElement.style.transform;
-                            if(transform){
-                                this.updateConnectionsForNode(nodeId);
-                            }
                         }
                     }
                 });
@@ -1128,13 +1124,6 @@ export default {
                 const nodeElement = document.getElementById(nodeId);
                 if (nodeElement) {
                     console.log(`[GraphCanvas] Adding observer for node ${nodeId}`, nodeElement);
-
-                    this.mutationObserver.observe(nodeElement, {
-                        attributes: true,
-                        childList: true,
-                        subtree: true,
-                        attributeFilter: ['style', 'class']
-                    });
 
                     // Setup hover observers for LOD animations
                     this._setupHoverObserver(nodeElement);
