@@ -20,6 +20,19 @@ from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from .graph_canvas_vue import GraphCanvasVue
 from .popup_context_menu import PopupContextMenu
 from .event_definitions import *
+from .event_definitions import (
+    # Sync events for direct dispatch
+    SyncConnectionAdditionEvent,
+    SyncConnectionRemovalEvent,
+    SyncNodePositionEvent,
+    SyncCanvasClearEvent,
+    SyncNodeSelectionEvent,
+    SyncConnectionSelectionEvent,
+    SyncClearAllSelectionsEvent,
+    SyncNodeObserverAddEvent,
+    SyncNodeObserverRemoveEvent,
+    SyncConnectionsUpdateEvent
+)
 from .event_handlers import handles_event
 from .editor import Editor
 
@@ -459,8 +472,9 @@ class GraphCanvasManager:
                     'position': position
                 }
                 
-                # Setup observers for this node via Vue component
-                self.canvas_vue.add_node_observer(node.node_id)
+                sync_event = SyncNodeObserverAddEvent(nodeId=node.node_id)
+                self.canvas_vue.emit_sync_event(sync_event)
+
                 print(f"Setup Vue observers for {node.node_id}")
         
         print(f"Successfully added node visual for {node.node_id}")
@@ -496,8 +510,8 @@ class GraphCanvasManager:
         # Remove from selection
         self.selected_nodes.discard(node_id)
         
-        # Remove observers via Vue component
-        self.canvas_vue.remove_node_observer(node_id)
+        sync_event = SyncNodeObserverRemoveEvent(nodeId=node_id)
+        self.canvas_vue.emit_sync_event(sync_event)
         
         return True
                 
@@ -513,10 +527,14 @@ class GraphCanvasManager:
         container.style(f'left: {x}px; top: {y}px; z-index: 100;')
         container.update()  # Force update to propagate to all clients
         
+        # Update local state
         self.node_panels[node_id]['position'] = position
         
-        # Also try the force update method as backup
-        self.canvas_vue.update_connections_for_node(node_id)
+        sync_event = SyncNodePositionEvent(
+            nodeId=node_id,
+            position={'x': x, 'y': y}
+        )
+        self.canvas_vue.emit_sync_event(sync_event)
         
     def add_connection_visual(self, edge: Edge) -> bool:
         """Add a visual connection between two nodes."""
@@ -529,13 +547,17 @@ class GraphCanvasManager:
             edge.input_node_id, edge.inlet_pin_id
         )
         
-        # Create pin IDs in the expected format
-        from_pin_id = f"{edge.output_node_id}:{edge.outlet_pin_id}"
-        to_pin_id = f"{edge.input_node_id}:{edge.inlet_pin_id}"
-        
-        self.canvas_vue.add_connection_visual(connection_id, from_pin_id, to_pin_id)
+        sync_event = SyncConnectionAdditionEvent(
+            connectionId=connection_id,
+            outputNodeId=edge.output_node_id,
+            outletPinId=edge.outlet_pin_id,
+            inputNodeId=edge.input_node_id,
+            inletPinId=edge.inlet_pin_id
+        )        
+        self.canvas_vue.emit_sync_event(sync_event)
+
         self.connection_paths[edge_key] = connection_id
-        print(f"🔗 Python: Created connection via Vue component with ID: {connection_id}")
+        print(f"🔗 Python: Created connection via direct sync event with ID: {connection_id}")
         return True
    
     def remove_connection_visual(self, edge_key: str) -> bool:
@@ -543,27 +565,22 @@ class GraphCanvasManager:
         if edge_key not in self.connection_paths:
             return False
             
-        path_id = self.connection_paths[edge_key]
+        connection_id = self.connection_paths[edge_key]
         
-        # Use Vue component to remove connection visual
-        success = self.canvas_vue.remove_connection_visual(path_id)
-        if success:
-            del self.connection_paths[edge_key]
-            return True
-        
-        return False
+        sync_event = SyncConnectionRemovalEvent(connectionId=connection_id)
+        self.canvas_vue.emit_sync_event(sync_event)
+
+        del self.connection_paths[edge_key]
+        return True
    
     def clear_all_visuals(self):
         """Clear all visual representations."""
-        # Clear nodes
-        for node_id in list(self.node_panels.keys()):
-            self.remove_node_visual(node_id)
+        sync_event = SyncCanvasClearEvent()        
+        self.canvas_vue.emit_sync_event(sync_event)
         
-        # Clear connections
-        for edge_key in list(self.connection_paths.keys()):
-            self.remove_connection_visual(edge_key)
-        
-        # Clear selection
+        # Clear local state
+        self.node_panels.clear()
+        self.connection_paths.clear()
         self.selected_nodes.clear()
         self.selected_connections.clear()
     
@@ -575,21 +592,23 @@ class GraphCanvasManager:
         
         self.selected_nodes.add(node_id)
         
-        # Update visual selection in Vue component
-        try:
-            self.canvas_vue.select_node(node_id, multi_select)
-        except (AttributeError, RuntimeError) as e:
-            print(f"Warning: Could not update visual selection for node {node_id}: {e}")
+        sync_event = SyncNodeSelectionEvent(
+            nodeId=node_id,
+            selected=True,
+            multiSelect=multi_select
+        )
+        self.canvas_vue.emit_sync_event(sync_event)
     
     def deselect_node(self, node_id: str):
         """Deselect a node."""
         self.selected_nodes.discard(node_id)
         
-        # Update visual selection in Vue component
-        try:
-            self.canvas_vue.deselect_node(node_id)
-        except (AttributeError, RuntimeError) as e:
-            print(f"Warning: Could not update visual deselection for node {node_id}: {e}")
+        sync_event = SyncNodeSelectionEvent(
+            nodeId=node_id,
+            selected=False,
+            multiSelect=False
+        )
+        self.canvas_vue.emit_sync_event(sync_event)
     
     def select_connection(self, edge_key: str, multi_select: bool = False):
         """Select a connection."""
@@ -598,39 +617,43 @@ class GraphCanvasManager:
         
         self.selected_connections.add(edge_key)
         
-        # Update visual selection in Vue component
+        # Convert edge_key to connection_id for Vue
         if edge_key in self.connection_paths:
-            try:
-                path_id = self.connection_paths[edge_key]
-                self.canvas_vue.select_connection(path_id, multi_select)
-                print(f"🎯 Selected connection: {edge_key}")
-            except (AttributeError, RuntimeError) as e:
-                print(f"Warning: Could not update visual selection for connection {edge_key}: {e}")
+            connection_id = self.connection_paths[edge_key]
+            
+            sync_event = SyncConnectionSelectionEvent(
+                connectionId=connection_id,
+                selected=True,
+                multiSelect=multi_select
+            )
+            self.canvas_vue.emit_sync_event(sync_event)
+            print(f"🎯 Selected connection: {edge_key}")
     
     def deselect_connection(self, edge_key: str):
         """Deselect a connection."""
         self.selected_connections.discard(edge_key)
         
-        # Update visual selection in Vue component
+        # Convert edge_key to connection_id for Vue
         if edge_key in self.connection_paths:
-            try:
-                path_id = self.connection_paths[edge_key]
-                self.canvas_vue.deselect_connection(path_id)
-                print(f"🎯 Deselected connection: {edge_key}")
-            except (AttributeError, RuntimeError) as e:
-                print(f"Warning: Could not update visual deselection for connection {edge_key}: {e}")
+            connection_id = self.connection_paths[edge_key]
+            
+            sync_event = SyncConnectionSelectionEvent(
+                connectionId=connection_id,
+                selected=False,
+                multiSelect=False
+            )
+            self.canvas_vue.emit_sync_event(sync_event)
+            print(f"🎯 Deselected connection: {edge_key}")
         
     def clear_selection(self):
         """Clear all selections."""
         self.selected_nodes.clear()
         self.selected_connections.clear()
         
-        # Update visual selection in Vue component
-        try:
-            self.canvas_vue.clear_selection()
-            print("🎯 Cleared all selections")
-        except (AttributeError, RuntimeError) as e:
-            print(f"Warning: Could not clear visual selection: {e}")
+        # DIRECT SYNC EVENT DISPATCH
+        sync_event = SyncClearAllSelectionsEvent()
+        self.canvas_vue.emit_sync_event(sync_event)
+        print("🎯 Cleared all selections")
         
     
     def get_selected_nodes(self) -> Set[str]:
@@ -671,6 +694,22 @@ class GraphCanvasManager:
             edge.input_node_id, 
             edge.inlet_pin_id
         )
+
+    # Observer methods - using sync events
+    def add_node_observer(self, node_id: str):
+        """Add observers for a node."""
+        sync_event = SyncNodeObserverAddEvent(nodeId=node_id)
+        self.canvas_vue.emit_sync_event(sync_event)
+
+    def remove_node_observer(self, node_id: str):
+        """Remove observers for a node."""
+        sync_event = SyncNodeObserverRemoveEvent(nodeId=node_id)
+        self.canvas_vue.emit_sync_event(sync_event)
+
+    def update_connections_for_node(self, node_id: str):
+        """Update connections for a specific node."""
+        sync_event = SyncConnectionsUpdateEvent(nodeId=node_id)
+        self.canvas_vue.emit_sync_event(sync_event)
 
     @property
     def current_zoom(self) -> float:

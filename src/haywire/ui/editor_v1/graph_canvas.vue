@@ -262,6 +262,31 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_CANVAS_CLEAR:
                     this._syncCanvasClear();
                     break;
+                
+                // NEW: Individual selection events using auto-generated constants
+                case GraphEvents.SyncCommands.SYNC_NODE_SELECTION:
+                    this._syncNodeSelection(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_CONNECTION_SELECTION:
+                    this._syncConnectionSelection(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_CLEAR_ALL_SELECTIONS:
+                    this._syncClearAllSelections();
+                    break;
+                
+                // NEW: Node observer events using auto-generated constants
+                case GraphEvents.SyncCommands.SYNC_NODE_OBSERVER_ADD:
+                    this._syncNodeObserverAdd(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_NODE_OBSERVER_REMOVE:
+                    this._syncNodeObserverRemove(data);
+                    break;
+                
+                // NEW: Connection update events using auto-generated constants
+                case GraphEvents.SyncCommands.SYNC_CONNECTIONS_UPDATE:
+                    this._syncConnectionsUpdate(data);
+                    break;
+                
                 default:
                     console.warn(`Unknown sync event: ${event_type}`);
             }
@@ -272,7 +297,6 @@ export default {
             const { nodeId, position } = data;
             const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
             if (nodeElement) {
-                nodeElement.style.transform = `translate(${position.x}px, ${position.y}px)`;
                 this.updateConnectionsForNode(nodeId);
             }
         },
@@ -345,6 +369,54 @@ export default {
             this.selectionState.selectedConnections.clear();
             
             console.log('🔗 Vue ✅ Canvas cleared via sync');
+        },
+
+        // NEW: Individual selection sync handlers
+        _syncNodeSelection(data) {
+            const { nodeId, selected, multiSelect } = data;
+            console.log(`🎯 Vue _syncNodeSelection: ${nodeId}, selected: ${selected}, multi: ${multiSelect}`);
+            
+            if (selected) {
+                this.selectNode(nodeId, multiSelect);
+            } else {
+                this.deselectNode(nodeId);
+            }
+        },
+
+        _syncConnectionSelection(data) {
+            const { connectionId, selected, multiSelect } = data;
+            console.log(`🎯 Vue _syncConnectionSelection: ${connectionId}, selected: ${selected}, multi: ${multiSelect}`);
+            
+            if (selected) {
+                this.selectConnection(connectionId, multiSelect);
+            } else {
+                this.deselectConnection(connectionId);
+            }
+        },
+
+        _syncClearAllSelections() {
+            console.log('🎯 Vue _syncClearAllSelections');
+            this.clearSelection();
+        },
+
+        // NEW: Node observer sync handlers
+        _syncNodeObserverAdd(data) {
+            const { nodeId } = data;
+            console.log(`👁️ Vue _syncNodeObserverAdd: ${nodeId}`);
+            this.addNodeObserver(nodeId);
+        },
+
+        _syncNodeObserverRemove(data) {
+            const { nodeId } = data;
+            console.log(`👁️ Vue _syncNodeObserverRemove: ${nodeId}`);
+            this.removeNodeObserver(nodeId);
+        },
+
+        // NEW: Connection update sync handler
+        _syncConnectionsUpdate(data) {
+            const { nodeId } = data;
+            console.log(`🔄 Vue _syncConnectionsUpdate: ${nodeId}`);
+            this.updateConnectionsForNode(nodeId);
         },
 
         _setSelectionState(selectedNodes, selectedConnections) {

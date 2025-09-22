@@ -4,7 +4,8 @@
 // Event type constants - Make available globally
 window.GraphEvents = {
   UserInteractions: {
-    NODE_CREATED: 'nodeCreated', // New node created on canvas
+    NODE_CREATE_REQUEST: 'nodeCreateRequest', // Request to create node from context menu
+    NODE_REMOVE_REQUEST: 'nodeRemoveRequest', // Request to remove node from context menu
     NODE_POSITION_CHANGED: 'nodePositionChanged', // Node position updated
     CONNECTION_CREATED: 'connectionCreated', // New connection created
     CONNECTION_REMOVED: 'connectionRemoved', // Connection removed
@@ -26,17 +27,33 @@ window.GraphEvents = {
     SYNC_SELECTION_STATE: 'syncSelectionState', // Sync selection state to UI
     SYNC_CANVAS_CLEAR: 'syncCanvasClear', // Clear entire canvas
     SYNC_ALL_CONNECTIONS: 'syncAllConnections', // Sync all connections to UI
+    SYNC_NODE_SELECTION: 'syncNodeSelection', // Select/deselect individual node
+    SYNC_CONNECTION_SELECTION: 'syncConnectionSelection', // Select/deselect individual connection
+    SYNC_CLEAR_ALL_SELECTIONS: 'syncClearAllSelections', // Clear all selections
+    SYNC_NODE_OBSERVER_ADD: 'syncNodeObserverAdd', // Add node observer
+    SYNC_NODE_OBSERVER_REMOVE: 'syncNodeObserverRemove', // Remove node observer
+    SYNC_CONNECTIONS_UPDATE: 'syncConnectionsUpdate', // Update connections for node
   }
 };
 
 // Event creators - Make available globally
 window.EventCreators = {
-  createNodeCreated(nodeId, position, sessionId = 'default') {
+  createNodeCreateRequest(nodeType, position, sessionId = 'default') {
     return {
-      event_type: 'nodeCreated',
+      event_type: 'nodeCreateRequest',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { nodeId, position },
+      data: { nodeType, position },
+      requires_broadcast: true
+    };
+  },
+
+  createNodeRemoveRequest(nodeId, sessionId = 'default') {
+    return {
+      event_type: 'nodeRemoveRequest',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodeId },
       requires_broadcast: true
     };
   },
@@ -144,8 +161,13 @@ window.EventCreators = {
 
 // Event validators - Make available globally  
 window.EventValidators = {
-  validateNodeCreated(data) {
-    const requiredFields = ["nodeId", "position"];
+  validateNodeCreateRequest(data) {
+    const requiredFields = ["nodeType", "position"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateNodeRemoveRequest(data) {
+    const requiredFields = ["nodeId"];
     return requiredFields.every(field => field in data);
   },
 

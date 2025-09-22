@@ -4,23 +4,17 @@ GraphCanvasVue - Vue-based graph canvas component for NiceGUI
 This component provides a clean Python wrapper around a Vue component that handles
 all client-side graph canvas interactions with the enhanced event system.
 
-ENHANCED VERSION: Now uses unified event handling with type-safe event classes.
 """
 
-from typing import Dict, List, Optional, Callable
-import uuid
-import json
+from typing import Optional, Callable
 from pathlib import Path
 
-from nicegui import ui, events
+from nicegui import ui
 from nicegui.dependencies import register_library
 
-from haywire.ui.utils import generate_connection_id
-from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY, SyncConnectionAdditionEvent, SyncConnectionRemovalEvent
+from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 
-# Get relative path from current working directory
-# This is the only way to make the generated library work with NiceGUI
-# using a simple import statement withing the Vue component won't work
+# Register the auto-generated library
 script_dir = Path(__file__).parent
 library_path = script_dir / "generated" / "graph_events.js"
 
@@ -30,11 +24,11 @@ if library_path.exists():
     except Exception as e:
         print(f"❌ Failed to register library: {e}")
 else:
-    print(f"❌ Library not found at relative path either: {library_path}")
+    print(f"❌ Library not found at: {library_path}")
 
 
 class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
-    """Vue-based graph canvas component with enhanced event handling."""
+    """Vue-based graph canvas component with ONLY unified event handling."""
     
     def __init__(self, 
                  on_canvas_event: Optional[Callable[[BaseGraphEvent], None]] = None,
@@ -43,14 +37,12 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
                  canvas_height: int = 8000):
         super().__init__()
         self.libraries.append(my_library)
-
-        # Single unified event callback
-        self._on_canvas_event = on_canvas_event
         
-        # Store zoom container reference
+        self._on_canvas_event = on_canvas_event
         self.zoom_container = zoom_container
         
-        # Props for Vue component  
+        # Props for Vue component
+        self._props['containerId'] = f"graph-canvas-{id(self)}"
         self._props['canvasWidth'] = canvas_width
         self._props['canvasHeight'] = canvas_height
         self._props['data-graph_canvas'] = True
@@ -59,9 +51,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         self.on('canvasEvent', self._handle_canvas_event)
     
     def _handle_canvas_event(self, event_data):
-        """
-        Unified canvas event handler - routes to GraphCanvasManager
-        """
+        """Unified canvas event handler - routes to GraphCanvasManager"""
         if self._on_canvas_event and hasattr(event_data, 'args'):
             event = event_data.args
             event_type = event.get('event_type')
@@ -82,7 +72,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     
     def emit_sync_event(self, event: BaseGraphEvent):
         """
-        Send sync event to Vue component
+        Send sync event to Vue component - THE ONLY COMMUNICATION METHOD
         """
         event_dict = event.to_dict()
         event_type = event_dict.get('event_type')
@@ -90,105 +80,10 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         
         print(f"🔄 Python→Vue Event: {event_type} | Data: {data}")
         
-        # Send to Vue component
+        # Send to Vue component via handleSyncEvent - the ONLY run_method call
         self.run_method('handleSyncEvent', event_dict)
-    
-  # =============================================================================
-    # BACKWARD COMPATIBILITY METHODS
-    # These methods maintain compatibility with existing code during migration
-    # =============================================================================
-    
-    def add_connection_visual(self, connection_id: str, from_pin_id: str, to_pin_id: str):
-        """Add visual connection between pins using sync events."""
-        print(f"[GraphCanvasVue] add_connection_visual: {connection_id} from {from_pin_id} to {to_pin_id}")
-        
-        # Parse pin IDs to extract node and port information
-        # Expected format: node_id:port_id
-        from_parts = from_pin_id.split(':')
-        to_parts = to_pin_id.split(':')
-        
-        if len(from_parts) == 2 and len(to_parts) == 2:
-            output_node_id, outlet_pin_id = from_parts
-            input_node_id, inlet_pin_id = to_parts
-            
-            # Create and send sync event
-            sync_event = SyncConnectionAdditionEvent(
-                connectionId=connection_id,
-                outputNodeId=output_node_id,
-                outletPinId=outlet_pin_id,
-                inputNodeId=input_node_id,
-                inletPinId=inlet_pin_id
-            )
-            
-            self.emit_sync_event(sync_event)
-            print(f"[GraphCanvasVue] ✅ Connection addition sent via sync event: {connection_id}")
-            return True
-        else:
-            print(f"[GraphCanvasVue] Invalid pin ID format: {from_pin_id}, {to_pin_id}")
-            return False
-    
-    def remove_connection_visual(self, connection_id: str):
-        """Remove visual connection using sync events."""
-        print(f"[GraphCanvasVue] remove_connection_visual: {connection_id}")
-        
-        # Create and send sync event
-        sync_event = SyncConnectionRemovalEvent(connectionId=connection_id)
-        
-        self.emit_sync_event(sync_event)
-        print(f"[GraphCanvasVue] ✅ Connection removal sent via sync event: {connection_id}")
-        return True
-    
-    def update_connections_for_node(self, node_id: str):
-        """Update all connections for a specific node."""
-        # This will trigger the Vue component to refresh connection positions
-        # for the specified node by calling the client-side JavaScript
-        self.run_method('updateConnectionsForNode', node_id)
-    
-    def add_node_observer(self, node_id: str):
-        """Add mutation/hover observers for a node."""
-        self.run_method('addNodeObserver', node_id)
-    
-    def remove_node_observer(self, node_id: str):
-        """Remove observers for a node."""
-        self.run_method('removeNodeObserver', node_id)
-    
-    # Selection Management Methods
-    
-    def select_node(self, node_id: str, multi_select: bool = False):
-        """Select a node in the Vue component."""
-        self.run_method('selectNode', node_id, multi_select)
-    
-    def deselect_node(self, node_id: str):
-        """Deselect a node in the Vue component."""
-        self.run_method('deselectNode', node_id)
-    
-    def select_connection(self, connection_id: str, multi_select: bool = False):
-        """Select a connection in the Vue component."""
-        self.run_method('selectConnection', connection_id, multi_select)
-    
-    def deselect_connection(self, connection_id: str):
-        """Deselect a connection in the Vue component."""
-        self.run_method('deselectConnection', connection_id)
-    
-    def clear_selection(self):
-        """Clear all selections in the Vue component."""
-        self.run_method('clearSelection')
-    
-    def clear_all_connections(self):
-        """Clear all connections using sync events."""
-        print(f"[GraphCanvasVue] clear_all_connections")
-        
-        # Create and send sync event
-        from .event_definitions import SyncCanvasClearEvent
-        sync_event = SyncCanvasClearEvent()
-        
-        self.emit_sync_event(sync_event)
-        print(f"[GraphCanvasVue] ✅ All connections cleared via sync event")
-        return True
         
     def cleanup(self):
         """Cleanup resources and references."""
-        # Clear callbacks
         self._on_canvas_event = None
         self.zoom_container = None
-
