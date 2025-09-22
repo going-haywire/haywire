@@ -20,19 +20,6 @@ from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from .graph_canvas_vue import GraphCanvasVue
 from .popup_context_menu import PopupContextMenu
 from .event_definitions import *
-from .event_definitions import (
-    # Sync events for direct dispatch
-    SyncConnectionAdditionEvent,
-    SyncConnectionRemovalEvent,
-    SyncNodePositionEvent,
-    SyncCanvasClearEvent,
-    SyncNodeSelectionEvent,
-    SyncConnectionSelectionEvent,
-    SyncClearAllSelectionsEvent,
-    SyncNodeObserverAddEvent,
-    SyncNodeObserverRemoveEvent,
-    SyncConnectionsUpdateEvent
-)
 from .event_handlers import handles_event
 from .editor import Editor
 
@@ -454,10 +441,23 @@ class GraphCanvasManager:
         print(f"Adding node visual for {node.node_id} at position ({x}, {y})")
         
         with self.canvas_vue:
-            with ui.column().classes('absolute').style(
-                f'left: {x}px; top: {y}px; z-index: 100;'
-            ).props(f'id="{node.node_id}" data-node-id="{node.node_id}"') as container:
-                
+            #with ui.column().classes('absolute').style(
+            #    f'left: {x}px; top: {y}px; z-index: 100;'
+            #).props(f'id="{node.node_id}" data-node-id="{node.node_id}"') as container:
+
+            with ui.element('div').classes(
+                    'absolute'
+                ).style(
+                    f'left: {x}px; top: {y}px; z-index: 100; '
+                    f'transform-origin: top-left; cursor: move;'
+                ).props(
+                    f'id="{node.node_id}" '
+                    f'data-node-id="{node.node_id}" '
+                    f'tabindex="0"'  # Make focusable for keyboard events
+                #    f'role="graphics-object" '
+                #   f'aria-label="Graph node {self.node.node_type}"'
+                ) as container:    
+
                 print(f"Created container for node {node.node_id}")
                 
                 # Use UINode for proper rendering
