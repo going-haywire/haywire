@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
-from haywire.ui.utils import generate_pin_id, parse_pin_id, generate_connection_id
+from haywire.ui.utils import generate_pin_id, parse_pin_id, generate_connection_id, parse_connection_id
 from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodeAction, AddEdgeAction, RemoveNodeAction, RemoveEdgeAction, AddNodeAction
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
@@ -274,16 +274,12 @@ class GraphCanvasManager:
         # Convert connection IDs to edge tuples for SelectionState format
         selected_edges = set()
         for connection_id in selected_connections_set:
-            # Parse connection ID format: connection__outlet__node_id__port__inlet__node_id__port
             try:
-                parts = connection_id.split('__')
-                if len(parts) >= 6 and parts[0] == 'connection' and parts[1] == 'outlet' and parts[4] == 'inlet':
-                    output_node_id = parts[2]
-                    outlet_pin = parts[3]
-                    input_node_id = parts[5]
-                    inlet_pin = parts[6]
-                    selected_edges.add((output_node_id, outlet_pin, input_node_id, inlet_pin))
-            except (IndexError, ValueError):
+                # Use the helper function to parse connection IDs
+                components = parse_connection_id(connection_id)
+                selected_edges.add((components.outlet_node_id, components.outlet_pin_id, 
+                                  components.inlet_node_id, components.inlet_pin_id))
+            except (ValueError, AttributeError):
                 # Skip invalid connection IDs
                 continue
         
@@ -527,10 +523,15 @@ class GraphCanvasManager:
         print(f"🔗 Python: Adding connection visual for {edge.output_node_id}:{edge.outlet_pin_id} -> {edge.input_node_id}:{edge.inlet_pin_id}")
         edge_key = self._get_edge_key(edge)
         
+        # Use the helper function to generate proper connection ID
+        connection_id = generate_connection_id(
+            edge.output_node_id, edge.outlet_pin_id,
+            edge.input_node_id, edge.inlet_pin_id
+        )
+        
         # Create pin IDs in the expected format
         from_pin_id = f"{edge.output_node_id}:{edge.outlet_pin_id}"
         to_pin_id = f"{edge.input_node_id}:{edge.inlet_pin_id}"
-        connection_id = edge_key  # Use edge key as connection ID
         
         self.canvas_vue.add_connection_visual(connection_id, from_pin_id, to_pin_id)
         self.connection_paths[edge_key] = connection_id

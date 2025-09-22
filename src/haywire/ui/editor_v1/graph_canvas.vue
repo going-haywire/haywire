@@ -28,8 +28,7 @@ export default {
     name: 'GraphCanvas',
 
     props: {
-        containerId: { type: String, required: true },
-        connections: { type: Array, default: () => [] }  // Add connections prop
+        containerId: { type: String, required: true }
         // Note: zoomState prop removed - zoom/pan is handled by CSS transforms in parent container
     },
 
@@ -91,14 +90,7 @@ export default {
     // in the zoom container, so SVG paths don't need to be recalculated on zoom/pan changes
 
     watch: {
-        // Watch for changes in connections prop and update visuals
-        connections: {
-            handler(newConnections, oldConnections) {
-                console.log('🔗 Vue connections prop changed:', { newConnections, oldConnections });
-                this._updateConnectionsFromProps(newConnections, oldConnections || []);
-            },
-            deep: true
-        }
+        // No watchers needed - connection management is handled through sync events
     },
 
 
@@ -110,7 +102,6 @@ export default {
         console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
         console.log('Container element:', this.$el);
         console.log('Container dimensions:', this.$el.offsetWidth, 'x', this.$el.offsetHeight);
-        console.log('🔗 Vue initial connections prop:', this.connections);
 
         // TEST IF LIBRARY LOADED - ADD THIS
         console.log('🔍 Testing custom library import:');
@@ -121,15 +112,6 @@ export default {
         this._setupObservers();
         this._setupZoomPanListener();
 
-        // Process initial connections if any exist
-        if (this.connections && this.connections.length > 0) {
-            console.log('🔗 Vue processing initial connections on mount:', this.connections.length);
-            // Use nextTick to ensure DOM is ready
-            this.$nextTick(() => {
-                this._updateConnectionsFromPropsDelayed(this.connections, []);
-            });
-        }
-
         // Expose API to parent/Python
         this.$el._graphCanvasControls = {
             // Enhanced event system API
@@ -138,7 +120,7 @@ export default {
     },
 
     updated() {
-        console.log('🔗 Vue component updated, connections prop now:', this.connections);
+        // Component updated - no longer needed for connections prop
     },
 
     beforeDestroy() {
@@ -280,9 +262,6 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_CANVAS_CLEAR:
                     this._syncCanvasClear();
                     break;
-                case GraphEvents.SyncCommands.SYNC_ALL_CONNECTIONS:
-                    this._syncAllConnections(data);
-                    break;
                 default:
                     console.warn(`Unknown sync event: ${event_type}`);
             }
@@ -300,12 +279,36 @@ export default {
 
         _syncConnectionAddition(data) {
             const { connectionId, outputNodeId, outletPinId, inputNodeId, inletPinId } = data;
-            this._createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, connectionId, '[SYNC] ');
+            console.log('🔗 Vue _syncConnectionAddition called with:', data);
+            
+            // Create connection visual directly
+            const result = this._createConnectionVisual(
+                outputNodeId, 
+                outletPinId, 
+                inputNodeId, 
+                inletPinId, 
+                connectionId, 
+                '[SYNC] '
+            );
+            
+            if (result.success) {
+                console.log('🔗 Vue ✅ Connection added via sync:', connectionId);
+            } else {
+                console.error('🔗 Vue ❌ Failed to add connection via sync:', connectionId);
+            }
         },
 
         _syncConnectionRemoval(data) {
             const { connectionId } = data;
-            this.removeConnectionVisual(connectionId);
+            console.log('🔗 Vue _syncConnectionRemoval called with:', connectionId);
+            
+            const success = this._removeConnectionVisualInternal(connectionId);
+            
+            if (success) {
+                console.log('🔗 Vue ✅ Connection removed via sync:', connectionId);
+            } else {
+                console.error('🔗 Vue ❌ Failed to remove connection via sync:', connectionId);
+            }
         },
 
         _syncSelectionState(data) {
@@ -318,21 +321,30 @@ export default {
         },
 
         _syncCanvasClear() {
+            console.log('🔗 Vue _syncCanvasClear called');
+            
             // Clear all connections
+            this.connectionPaths.forEach((path, pathId) => {
+                path.remove();
+                // Also remove hit areas and gradients
+                const hitArea = document.getElementById(pathId + '_hitarea');
+                if (hitArea) hitArea.remove();
+                const gradient = document.getElementById(`gradient_${pathId}`);
+                if (gradient) gradient.remove();
+            });
+            
             this.connectionPaths.clear();
+            
+            // Clear any SVG paths that might be left over
             const svg = this.$refs.svg;
-            while (svg.lastChild) {
-                svg.removeChild(svg.lastChild);
-            }
+            const paths = svg.querySelectorAll('path');
+            paths.forEach(path => path.remove());
+            
             // Clear selection
             this.selectionState.selectedNodes.clear();
             this.selectionState.selectedConnections.clear();
-        },
-
-        _syncAllConnections(data) {
-            const { connections } = data;
-            // Update the connections prop to sync visuals
-            this._updateConnectionsFromProps(connections, []);
+            
+            console.log('🔗 Vue ✅ Canvas cleared via sync');
         },
 
         _setSelectionState(selectedNodes, selectedConnections) {
@@ -1038,26 +1050,9 @@ export default {
             return { success: true, pathElement: path };
         },
 
-        // Internal method to add connection visual (used by props watcher)
-        _addConnectionVisualInternal(connectionData) {
-            const { id, outputNodeId, outletPinId, inputNodeId, inletPinId } = connectionData;
-
-            const result = this._createConnectionVisual(
-                outputNodeId,
-                outletPinId,
-                inputNodeId,
-                inletPinId,
-                id, // Use the connection ID directly as path ID (Format 2)
-                ' (internal)', // Log prefix
-                connectionData // Pass connectionData for event emission
-            );
-
-            return result.success;
-        },
-
-        // Internal method to remove connection visual (used by props watcher)
+        // Internal method to remove connection visual (used by sync events)
         _removeConnectionVisualInternal(connectionId) {
-            // Use the connection ID (Format 2) to find the path
+            // Use the connection ID to find the path
             const path = this.connectionPaths.get(connectionId);
 
             if (path) {
@@ -1070,45 +1065,17 @@ export default {
                     hitArea.remove();
                 }
 
+                // Also remove any associated gradient
+                const gradient = document.getElementById(`gradient_${connectionId}`);
+                if (gradient) {
+                    gradient.remove();
+                }
+
                 console.log('🔗 Vue (internal) removed path element:', connectionId);
                 return true;
             } else {
                 console.log('🔗 Vue (internal) path not found for removal:', connectionId);
                 return false;
-            }
-        },
-
-        // Update connection visuals based on props changes
-        _updateConnectionsFromProps(newConnections, oldConnections) {
-            console.log('🔗 Vue updating connections from props:', { new: newConnections.length, old: oldConnections.length });
-
-            // Add a small delay to ensure DOM elements are ready
-            this.$nextTick(() => {
-                this._updateConnectionsFromPropsDelayed(newConnections, oldConnections);
-            });
-        },
-
-        _updateConnectionsFromPropsDelayed(newConnections, oldConnections) {
-            console.log('🔗 Vue updating connections from props (delayed):', { new: newConnections.length, old: oldConnections.length });
-
-            // Convert arrays to Maps for easier comparison
-            const oldConnectionMap = new Map(oldConnections.map(c => [c.id, c]));
-            const newConnectionMap = new Map(newConnections.map(c => [c.id, c]));
-
-            // Remove connections that are no longer in the new list
-            for (const [connectionId, connectionData] of oldConnectionMap) {
-                if (!newConnectionMap.has(connectionId)) {
-                    console.log('🔗 Vue removing connection from props:', connectionId);
-                    this._removeConnectionVisualInternal(connectionId);
-                }
-            }
-
-            // Add connections that are new in the list
-            for (const [connectionId, connectionData] of newConnectionMap) {
-                if (!oldConnectionMap.has(connectionId)) {
-                    console.log('🔗 Vue adding connection from props:', connectionId);
-                    this._addConnectionVisualInternal(connectionData);
-                }
             }
         },
 

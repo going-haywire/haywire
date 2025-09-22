@@ -16,7 +16,7 @@ from nicegui import ui, events
 from nicegui.dependencies import register_library
 
 from haywire.ui.utils import generate_connection_id
-from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
+from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY, SyncConnectionAdditionEvent, SyncConnectionRemovalEvent
 
 # Get relative path from current working directory
 # This is the only way to make the generated library work with NiceGUI
@@ -53,7 +53,6 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         # Props for Vue component  
         self._props['canvasWidth'] = canvas_width
         self._props['canvasHeight'] = canvas_height
-        self._props['connections'] = []
         self._props['data-graph_canvas'] = True
         
         # Register single unified event handler
@@ -100,7 +99,7 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     # =============================================================================
     
     def add_connection_visual(self, connection_id: str, from_pin_id: str, to_pin_id: str):
-        """Add visual connection between pins."""
+        """Add visual connection between pins using sync events."""
         print(f"[GraphCanvasVue] add_connection_visual: {connection_id} from {from_pin_id} to {to_pin_id}")
         
         # Parse pin IDs to extract node and port information
@@ -112,49 +111,32 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
             output_node_id, outlet_pin_id = from_parts
             input_node_id, inlet_pin_id = to_parts
             
-            # Create connection data
-            connection_data = {
-                'id': connection_id,
-                'outputNodeId': output_node_id,
-                'outletPinId': outlet_pin_id,
-                'inputNodeId': input_node_id,
-                'inletPinId': inlet_pin_id
-            }
+            # Create and send sync event
+            sync_event = SyncConnectionAdditionEvent(
+                connectionId=connection_id,
+                outputNodeId=output_node_id,
+                outletPinId=outlet_pin_id,
+                inputNodeId=input_node_id,
+                inletPinId=inlet_pin_id
+            )
             
-            # Add to connections prop
-            current_connections = list(self._props.get('connections', []))
-            # Remove existing connection with same ID if it exists
-            current_connections = [c for c in current_connections if c.get('id') != connection_id]
-            # Add new connection
-            current_connections.append(connection_data)
-            # Update the prop
-            self._props['connections'] = current_connections
-
-            # self.run_method('_syncAllConnections')
-            # TODO: creating a sync event  
-
-            print(f"[GraphCanvasVue] ✅ Connection added to props: {connection_id}")
+            self.emit_sync_event(sync_event)
+            print(f"[GraphCanvasVue] ✅ Connection addition sent via sync event: {connection_id}")
             return True
         else:
             print(f"[GraphCanvasVue] Invalid pin ID format: {from_pin_id}, {to_pin_id}")
             return False
     
     def remove_connection_visual(self, connection_id: str):
-        """Remove visual connection."""
+        """Remove visual connection using sync events."""
         print(f"[GraphCanvasVue] remove_connection_visual: {connection_id}")
         
-        # Remove from connections prop
-        current_connections = list(self._props.get('connections', []))
-        # Filter out the connection with matching ID
-        updated_connections = [c for c in current_connections if c.get('id') != connection_id]
-        # Update the prop
-        self._props['connections'] = updated_connections
-
-        # self.run_method('_syncAllConnections')
-        # TODO: creating a sync event  
-
-        print(f"[GraphCanvasVue] ✅ Connection removed from props: {connection_id}")
-        return len(updated_connections) < len(current_connections)  # Return True if connection was found and removed
+        # Create and send sync event
+        sync_event = SyncConnectionRemovalEvent(connectionId=connection_id)
+        
+        self.emit_sync_event(sync_event)
+        print(f"[GraphCanvasVue] ✅ Connection removal sent via sync event: {connection_id}")
+        return True
     
     def update_connections_for_node(self, node_id: str):
         """Update all connections for a specific node."""
@@ -191,6 +173,18 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
     def clear_selection(self):
         """Clear all selections in the Vue component."""
         self.run_method('clearSelection')
+    
+    def clear_all_connections(self):
+        """Clear all connections using sync events."""
+        print(f"[GraphCanvasVue] clear_all_connections")
+        
+        # Create and send sync event
+        from .event_definitions import SyncCanvasClearEvent
+        sync_event = SyncCanvasClearEvent()
+        
+        self.emit_sync_event(sync_event)
+        print(f"[GraphCanvasVue] ✅ All connections cleared via sync event")
+        return True
         
     def cleanup(self):
         """Cleanup resources and references."""
