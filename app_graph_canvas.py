@@ -33,6 +33,7 @@ if src_path not in sys.path:
 
 # Haywire imports
 from haywire.ui.editor_v1.graph_canvas_manager import GraphCanvasManager
+from haywire.ui.editor_v1.editor import Editor
 from haywire.core.graph.graph import HaywireGraph
 from haywire.core.node.node import BaseNode
 from haywire.core.node.node_factory import NodeFactory
@@ -106,6 +107,12 @@ class UndoRedoTestAppWithCanvasManager:
         # Create ONE shared graph for all sessions
         self.graph = HaywireGraph("shared_graph", "Shared Graph Across Sessions")
         
+        # Create shared Editor instance
+        self.editor = Editor(self.graph, self.history_manager, self.node_factory)
+        
+        # Register global change listener for app-level updates
+        self.editor.add_change_callback(self._on_global_graph_change)
+        
         # Global stats (shared across sessions)
         self.global_stats = {
             'nodes_created': 0,
@@ -115,7 +122,20 @@ class UndoRedoTestAppWithCanvasManager:
         }
         
         print(f"History manager available: {self.history_manager is not None}")
+        print(f"Editor created with change callbacks")
         print("Shared services configured successfully.")
+    
+    def _on_global_graph_change(self):
+        """Handle global graph changes (affects all sessions)."""
+        print("🌍 Global graph change detected")
+        
+        # Update global stats
+        self.global_stats['nodes_created'] = len(self.graph.nodes)
+        self.global_stats['edges_created'] = len(self.graph.edges)
+        
+        # Update displays for all sessions
+        for session_data in self.sessions.values():
+            self.update_displays_for_session(session_data)
     
     def setup_library_system(self):
         """Initialize the library system service."""
@@ -230,13 +250,11 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Create session-specific canvas manager - it will create its own zoom container
             
+            # Create session-specific canvas manager with shared Editor
             canvas_manager = GraphCanvasManager(
-                graph=self.graph,  # Use shared graph
-                node_render_factory=self.node_render_factory,  # Use shared render factory
-                history_manager=self.history_manager,  # Pass the shared history manager
-                node_factory=self.node_factory,  # Pass the node factory for context node creation
-                available_nodes=self.get_available_nodes(),  # Pass available nodes for context menu
-                on_graph_changed=lambda: self.on_graph_changed_from_session(session_data),
+                editor=self.editor,  # Pass the shared Editor instance
+                node_render_factory=self.node_render_factory,
+                available_nodes=self.get_available_nodes(),
                 session_id=client_id,
             )
             session_data['canvas_manager'] = canvas_manager
@@ -352,8 +370,8 @@ class UndoRedoTestAppWithCanvasManager:
                     ui.label(f'Connections: {len(self.graph.edges)}')
                     
                     if self.history_manager:
-                        ui.label(f'Can Undo: {self.history_manager.can_undo()}')
-                        ui.label(f'Can Redo: {self.history_manager.can_redo()}')
+                        ui.label(f'Can Undo: {self.editor.can_undo()}')
+                        ui.label(f'Can Redo: {self.editor.can_redo()}')
             
             # Update canvas status
             if 'canvas_status_container' in containers and session_data.get('canvas_manager'):
@@ -409,45 +427,23 @@ class UndoRedoTestAppWithCanvasManager:
             
     
     def undo_action(self):
-        """Perform undo operation."""
-        if self.history_manager and self.history_manager.can_undo():
-            nodes_before = set(self.graph.nodes.keys())
-            self.history_manager.undo()
-            nodes_after = set(self.graph.nodes.keys())
-            
+        """Perform undo operation using Editor."""
+        success = self.editor.undo()
+        if success:
             self.global_stats['undo_operations'] += 1
-            self.sync_ui_with_graph(nodes_before, nodes_after)
             ui.notify("Undo performed")
         else:
             ui.notify("Nothing to undo")
     
     def redo_action(self):
-        """Perform redo operation."""
-        if self.history_manager and self.history_manager.can_redo():
-            nodes_before = set(self.graph.nodes.keys())
-            self.history_manager.redo()
-            nodes_after = set(self.graph.nodes.keys())
-            
+        """Perform redo operation using Editor."""
+        success = self.editor.redo()
+        if success:
             self.global_stats['redo_operations'] += 1
-            self.sync_ui_with_graph(nodes_before, nodes_after)
             ui.notify("Redo performed")
         else:
             ui.notify("Nothing to redo")
     
-    def sync_ui_with_graph(self, nodes_before: set, nodes_after: set):
-        """Synchronize UI with graph changes across all sessions."""
-        # Store current session context to restore later
-        original_current_session = getattr(self, 'current_session', None)
-        
-        try:
-            # Sync all active sessions with the updated graph state
-            self.sync_all_sessions()
-            self.update_displays()
-        finally:
-            # Restore original session context
-            if original_current_session is not None:
-                self.current_session = original_current_session
-            
     # Configuration Methods
     def toggle_auto_grouping(self, enabled: bool):
         """Toggle auto-grouping setting."""

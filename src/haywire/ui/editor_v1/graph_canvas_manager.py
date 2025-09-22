@@ -21,6 +21,7 @@ from .graph_canvas_vue import GraphCanvasVue
 from .popup_context_menu import PopupContextMenu
 from .event_definitions import *
 from .event_handlers import handles_event
+from .editor import Editor
 
 
 @dataclass
@@ -34,31 +35,33 @@ class ConnectionDragState:
 
 class GraphCanvasManager:
     """
-    Enhanced graph canvas manager with class-based event system.
+    Hybrid graph canvas manager: Complex events for UI interactions, simple callbacks for graph changes.
     
-    This version uses auto-registration event handlers with type-safe event classes,
-    eliminating complex callback management while maintaining all existing functionality.
+    This version uses:
+    - Complex event system for Vue → Python interactions (UI events)
+    - Simple callbacks for Python → Python notifications (graph change sync)
+    
+    This eliminates the complexity of circular event flows while maintaining
+    type-safe UI event handling.
     """
     
     def __init__(
         self, 
-        graph: HaywireGraph,
+        editor: Editor,
         node_render_factory,
-        history_manager,
-        node_factory,
         available_nodes: Optional[List[str]] = None,
-        on_graph_changed: Optional[Callable[[], None]] = None,
         session_id: Optional[str] = None,
     ):
-        self.graph = graph
+        self.editor = editor
         self.node_render_factory = node_render_factory
-        self.history_manager = history_manager
-        self.node_factory = node_factory
         self.available_nodes = available_nodes or []
-        
-        # Event callbacks
-        self.on_graph_changed = on_graph_changed
         self.session_id = session_id or "default"
+        
+        # Access graph for read operations (backward compatibility)
+        self.graph = editor.graph
+        
+        # Register for simple graph change notifications
+        self.editor.add_change_callback(self._on_graph_changed)
                 
         # Will be created in _setup_canvas()
         self.zoom_container: Optional[ZoomPanContainer] = None
@@ -69,18 +72,21 @@ class GraphCanvasManager:
         self.selected_nodes: Set[str] = set()
         self.selected_connections: Set[str] = set()
         
-        # Sync state - prevents recursive updates during graph sync
-        self._syncing = False
-        
         # Vue component for canvas interactions
         self.canvas_vue: Optional[GraphCanvasVue] = None
         self.context_menu: Optional[PopupContextMenu] = None
         
-        # Enhanced event handling system
+        # Enhanced event handling system for UI events
         self._event_handlers: Dict[str, Callable] = {}
         self._auto_register_event_handlers()
         
         self._setup_canvas()
+    
+    def _on_graph_changed(self):
+        """Simple callback when anything changes in the graph."""
+        print(f"🔄 GraphCanvasManager[{self.session_id[:8]}]: Graph changed, syncing visuals")
+        # Just re-sync everything - simple and reliable
+        self.sync_with_graph()
     
     def _auto_register_event_handlers(self):
         """Automatically register event handlers using decorators"""
@@ -163,30 +169,24 @@ class GraphCanvasManager:
         """Handle connection creation"""
         print(f"Creating connection: {event.outputNodeId}:{event.outletPinId} -> {event.inputNodeId}:{event.inletPinId}")
         
-        # Create edge in graph
-        edge = Edge(
-            edge_type=EdgeType.DATA,
-            output_node_id=event.outputNodeId,
-            outlet_pin_id=event.outletPinId,
-            input_node_id=event.inputNodeId,
-            inlet_pin_id=event.inletPinId
+        # Use Editor to create connection - it will handle history and notify callbacks
+        success = self.editor.create_connection(
+            event.outputNodeId,
+            event.outletPinId,
+            event.inputNodeId,
+            event.inletPinId
         )
         
-        # Add to graph
-        action = AddEdgeAction(self.graph, edge)
-        self.history_manager.add_action(action)
-        
-        # Always broadcast local user interactions to other sessions
-        # (The requires_broadcast flag is metadata, not part of the event object)
-        if self.on_graph_changed:
-            self.on_graph_changed()
+        if success:
+            print(f"✅ Connection created successfully")
+        else:
+            print(f"❌ Failed to create connection")
                 
     @handles_event(ConnectionRemovedEvent)
     def process_connection_deletion(self, event: ConnectionRemovedEvent):
         """Handle connection deletion from context menu."""
         connection_id = event.connectionId
         print(f"🗑️ Deleting connection {connection_id} from context menu")
-        from nicegui import ui
         
         # Find the edge by connection_id
         edge_to_remove = None
@@ -197,15 +197,12 @@ class GraphCanvasManager:
                 break
         
         if edge_to_remove:
-            # Create and execute undo action
-            action = RemoveEdgeAction(self.graph, edge_to_remove, f"Delete connection from context menu")
-            self.history_manager.add_action(action)
-            
-            # Always broadcast local user interactions to other sessions
-            # (The requires_broadcast flag is metadata, not part of the event object)
-            if self.on_graph_changed:
-                self.on_graph_changed()
-            ui.notify(f"Deleted connection")                    
+            # Use Editor to delete connection - it will handle history and notify callbacks
+            success = self.editor.delete_connection_by_edge(edge_to_remove)
+            if success:
+                ui.notify(f"Deleted connection")
+            else:
+                ui.notify(f"Failed to delete connection", type='negative')
         else:
             ui.notify(f"Connection not found", type='warning')
 
@@ -228,14 +225,8 @@ class GraphCanvasManager:
                             if (edge.output_node_id == output_node_id and edge.outlet_pin_id == outlet_pin_id and
                                 edge.input_node_id == input_node_id and edge.inlet_pin_id == inlet_pin_id):
                                 
-                                # Create RemoveEdgeAction
-                                action = RemoveEdgeAction(self.graph, edge)
-                                self.history_manager.add_action(action)
-                                
-                                # Always broadcast local user interactions to other sessions
-                                # (The requires_broadcast flag is metadata, not part of the event object)
-                                if self.on_graph_changed:
-                                    self.on_graph_changed()
+                                # Use Editor to delete connection
+                                self.editor.delete_connection_by_edge(edge)
                                 break
                     break
                     
@@ -248,7 +239,7 @@ class GraphCanvasManager:
         print(f"Node drag started: {event.nodeId}")
         
         # Add fence to group all drag-related actions together
-        self.history_manager.add_fence()
+        self.editor.add_fence()
     
     @handles_event(NodeDragEndEvent)
     def process_node_drag_end(self, event: NodeDragEndEvent):
@@ -257,45 +248,24 @@ class GraphCanvasManager:
         
         # Add fence to end the drag operation grouping
         if event.positionChanged:
-            self.history_manager.add_fence()
+            self.editor.add_fence()
 
     @handles_event(NodePositionChangedEvent)
     def process_node_position_change(self, event: NodePositionChangedEvent):
         """Handle node position updates"""
         print(f"Updating node position: {event.nodeId} to ({event.position['x']}, {event.position['y']})")
         
-        # Ignore position changes during sync operations to prevent recursion
-        if self._syncing:
-            return
-        
         # Update stored position when user drags
         if event.nodeId in self.node_panels:
             self.node_panels[event.nodeId]['position'] = (event.position['x'], event.position['y'])
         
-        # Create MoveNodeAction directly
-        if event.nodeId in self.graph.nodes:
-            node = self.graph.nodes[event.nodeId]
-            old_position = (getattr(node, 'ui_posX', 0), getattr(node, 'ui_posY', 0))
-            new_position = (event.position['x'], event.position['y'])
-            
-            # Only create an action if the position has actually changed
-            if old_position != new_position:
-                action = MoveNodeAction(self.graph, event.nodeId, event.position['x'], event.position['y'])
-                self.history_manager.add_action(action)
-                
-                # Always broadcast local user interactions to other sessions
-                # (The requires_broadcast flag is metadata, not part of the event object)
-                if self.on_graph_changed:
-                    self.on_graph_changed()
+        # Use Editor to move node - it will handle history and notify callbacks
+        self.editor.move_node(event.nodeId, event.position['x'], event.position['y'])
 
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Handle selection changes"""
         print(f"Selection changed: nodes={event.selectedNodes}, connections={event.selectedConnections}")
-        
-        # Ignore selection changes during sync operations to prevent recursion
-        if self._syncing:
-            return
         
         # Create new selection state
         selected_nodes_set = set(event.selectedNodes)
@@ -317,20 +287,12 @@ class GraphCanvasManager:
                 # Skip invalid connection IDs
                 continue
         
-        new_selection = SelectionState(selected_nodes_set, selected_edges)
-        
-        # Create and execute undo action
-        action = ChangeSelectionAction(self.graph, new_selection)
-        self.history_manager.add_action(action)
+        # Use Editor to set selection - it will handle history and notify callbacks
+        self.editor.set_selection(selected_nodes_set, selected_edges)
         
         # Update local state for fast access
         self.selected_nodes = selected_nodes_set
         self.selected_connections = selected_connections_set
-        
-        # Always broadcast local user interactions to other sessions
-        # (The requires_broadcast flag is metadata, not part of the event object)
-        if self.on_graph_changed:
-            self.on_graph_changed()
     
     @handles_event(ContextMenuCanvasEvent, ContextMenuNodeEvent, ContextMenuConnectionEvent)
     def process_context_menu(self, event):
@@ -356,26 +318,13 @@ class GraphCanvasManager:
         print(f"📝 Processing node creation request: {event.nodeType} at ({event.position['x']}, {event.position['y']})")
         
         try:
-            # Create node using the injected factory
-            node = self.node_factory.create_instance(
+            # Use Editor to create node - it will handle factory, history, and notify callbacks
+            node = self.editor.create_node(
                 event.nodeType,
-                self.graph,  # Pass the graph to the factory
-                position=(event.position['x'], event.position['y'])
+                (event.position['x'], event.position['y'])
             )
             
             if node:
-                # Set position attributes
-                node.ui_posX = event.position['x']
-                node.ui_posY = event.position['y']
-                
-                action = AddNodeAction(self.graph, node)
-                self.history_manager.add_action(action)
-                
-                # Always broadcast to other sessions for locally-created nodes
-                # (The requires_broadcast flag is metadata, not part of the event object)
-                if self.on_graph_changed:
-                    self.on_graph_changed()
-                
                 print(f"✅ Created node {node.node_id} at ({event.position['x']}, {event.position['y']})")
                 ui.notify(f"Created {event.nodeType} node", type='positive')
             else:
@@ -391,43 +340,24 @@ class GraphCanvasManager:
         print(f"🗑️ Deleting node {event.nodeId} from context menu")
 
         if event.nodeId in self.graph.nodes:
-            # Use history manager to remove node with undo support
-            node = self.graph.nodes[event.nodeId]
-            action = RemoveNodeAction(self.graph, event.nodeId, node)
-            self.history_manager.add_action(action)
-            
-            # Always broadcast local user interactions to other sessions
-            # (The requires_broadcast flag is metadata, not part of the event object)
-            if self.on_graph_changed:
-                self.on_graph_changed()
-            ui.notify(f"Deleted node {event.nodeId}")
-            
+            # Use Editor to delete node - it will handle history and notify callbacks
+            success = self.editor.delete_node(event.nodeId)
+            if success:
+                ui.notify(f"Deleted node {event.nodeId}")
+            else:
+                ui.notify(f"Failed to delete node {event.nodeId}", type='negative')
         else:
             ui.notify(f"Node {event.nodeId} not found", type='warning')
 
 
     # =============================================================================
-    # SYNC EVENT BROADCASTING
+    # SYNC UI with GRAPH STATE
     # =============================================================================
     
-    def _broadcast_sync_event(self, sync_event: BaseGraphEvent, exclude_session: str = None):
-        """Broadcast sync event to all other sessions"""
-        # Implementation depends on your session management system
-        # This is a placeholder for the actual broadcasting logic
-        
-        # For now, just emit to the current session's Vue component for testing
-        if self.canvas_vue and exclude_session != self.session_id:
-            try:
-                self.canvas_vue.emit_sync_event(sync_event)
-            except Exception as e:
-                print(f"Error broadcasting sync event: {e}")
 
     # Graph Synchronization
     def sync_with_graph(self):
         """Synchronize visual representation with the graph state."""
-        # Set sync flag to prevent recursive updates
-        self._syncing = True
-        
         try:
             # Sync nodes
             graph_node_ids = set(self.graph.nodes.keys())
@@ -461,27 +391,26 @@ class GraphCanvasManager:
                     self.update_node_position(node_id, new_position)
             
             # Sync connections - use incremental updates for better performance
-            if self.canvas_vue:
-                current_edge_keys = set(self.connection_paths.keys())
-                graph_edge_keys = set()
+            current_edge_keys = set(self.connection_paths.keys())
+            graph_edge_keys = set()
+            
+            # Add or update connections from graph
+            for edge in self.graph.edges:
+                edge_key = self._get_edge_key(edge)
+                graph_edge_keys.add(edge_key)
                 
-                # Add or update connections from graph
-                for edge in self.graph.edges:
-                    edge_key = self._get_edge_key(edge)
-                    graph_edge_keys.add(edge_key)
-                    
-                    # Add new connections that don't exist visually
-                    if edge_key not in current_edge_keys:
-                        print(f"🔄 Adding new connection: {edge_key}")
-                        self.add_connection_visual(edge)
-                
-                # Remove connections no longer in graph
-                connections_to_remove = current_edge_keys - graph_edge_keys
-                for edge_key in connections_to_remove:
-                    print(f"🔄 Removing old connection: {edge_key}")
-                    self.remove_connection_visual(edge_key)
-                
-                print(f"🔄 Incremental connection sync: {len(graph_edge_keys)} total connections")
+                # Add new connections that don't exist visually
+                if edge_key not in current_edge_keys:
+                    print(f"🔄 Adding new connection: {edge_key}")
+                    self.add_connection_visual(edge)
+            
+            # Remove connections no longer in graph
+            connections_to_remove = current_edge_keys - graph_edge_keys
+            for edge_key in connections_to_remove:
+                print(f"🔄 Removing old connection: {edge_key}")
+                self.remove_connection_visual(edge_key)
+            
+            print(f"🔄 Incremental connection sync: {len(graph_edge_keys)} total connections")
             
             # Sync selection state from graph to UI using existing methods
             graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
@@ -496,15 +425,18 @@ class GraphCanvasManager:
             for connection_id in graph_selected_connections:
                 self.select_connection(connection_id, multi_select=True)
 
-            self.canvas_vue.update()  # Force Vue component to refresh
+            # Force Vue component to refresh
+            self.canvas_vue.update() 
                 
             print(f"🔄 Selection synced from graph: {len(graph_selected_nodes)} nodes, {len(graph_selected_connections)} connections")
         except Exception as e:
             print(f"Error during graph sync: {e}")
-
-        finally:
-            # Always clear sync flag
-            self._syncing = False
+    
+    def cleanup(self):
+        """Cleanup resources and unregister from Editor."""
+        if self.editor:
+            self.editor.remove_change_callback(self._on_graph_changed)
+            print(f"🧹 GraphCanvasManager[{self.session_id[:8]}]: Cleanup completed")
 
     # Node Management
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
@@ -532,9 +464,8 @@ class GraphCanvasManager:
                 }
                 
                 # Setup observers for this node via Vue component
-                if self.canvas_vue:
-                    self.canvas_vue.add_node_observer(node.node_id)
-                    print(f"Setup Vue observers for {node.node_id}")
+                self.canvas_vue.add_node_observer(node.node_id)
+                print(f"Setup Vue observers for {node.node_id}")
         
         print(f"Successfully added node visual for {node.node_id}")
         return True
@@ -570,8 +501,7 @@ class GraphCanvasManager:
         self.selected_nodes.discard(node_id)
         
         # Remove observers via Vue component
-        if self.canvas_vue:
-            self.canvas_vue.remove_node_observer(node_id)
+        self.canvas_vue.remove_node_observer(node_id)
         
         return True
                 
@@ -590,8 +520,7 @@ class GraphCanvasManager:
         self.node_panels[node_id]['position'] = position
         
         # Also try the force update method as backup
-        if self.canvas_vue:
-            self.canvas_vue.update_connections_for_node(node_id)
+        self.canvas_vue.update_connections_for_node(node_id)
         
     def add_connection_visual(self, edge: Edge) -> bool:
         """Add a visual connection between two nodes."""

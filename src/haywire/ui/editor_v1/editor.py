@@ -1,0 +1,456 @@
+"""
+Editor - High-level graph manipulation interface with simple callback notifications
+
+This class provides a clean, semantic API for graph operations while using
+simple callbacks for change notifications. It wraps the graph, history manager,
+and node factory to provide convenient methods for graph manipulation.
+
+Design Philosophy:
+- Simple callback-based notifications for graph changes (upstream: graph → UI)
+- Complex event system remains for UI interactions (downstream: UI → graph)
+- Clean separation between business logic and presentation layer
+"""
+
+from typing import Dict, List, Optional, Tuple, Set, Any, Callable
+from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
+from haywire.core.node.node import BaseNode
+from haywire.core.node.node_factory import NodeFactory
+from haywire.undo.interfaces import IHistoryManager
+from haywire.undo.actions.graph_actions import (
+    AddNodeAction, RemoveNodeAction, MoveNodeAction,
+    AddEdgeAction, RemoveEdgeAction, ChangeSelectionAction, SelectionState
+)
+
+
+class Editor:
+    """
+    High-level editor interface with simple callback-based change notifications.
+    
+    This class provides semantic methods for graph operations and abstracts away
+    the complexity of managing the graph, history, and node factory together.
+    Uses simple callbacks for change notifications rather than complex events.
+    """
+    
+    def __init__(self, graph: HaywireGraph, history_manager: IHistoryManager, node_factory: NodeFactory):
+        """
+        Initialize the editor with core components.
+        
+        Args:
+            graph: The HaywireGraph instance to manipulate
+            history_manager: History manager for undo/redo operations  
+            node_factory: Factory for creating new nodes
+        """
+        self.graph = graph
+        self.history_manager = history_manager
+        self.node_factory = node_factory
+        
+        # Simple callback system for change notifications
+        self._change_callbacks: List[Callable[[], None]] = []
+        
+        # Hook into history manager for undo/redo notifications
+        if self.history_manager:
+            self._setup_history_hooks()
+    
+    # =============================================================================
+    # CHANGE NOTIFICATION SYSTEM (Simple Callbacks)
+    # =============================================================================
+    
+    def add_change_callback(self, callback: Callable[[], None]):
+        """
+        Add a simple callback for any graph change.
+        
+        Args:
+            callback: Function to call when graph changes occur
+        """
+        if callback not in self._change_callbacks:
+            self._change_callbacks.append(callback)
+            print(f"📡 Editor: Added change callback (total: {len(self._change_callbacks)})")
+    
+    def remove_change_callback(self, callback: Callable[[], None]):
+        """Remove a change callback."""
+        if callback in self._change_callbacks:
+            self._change_callbacks.remove(callback)
+            print(f"📡 Editor: Removed change callback (total: {len(self._change_callbacks)})")
+    
+    def _notify_change(self, operation_type: str = "unknown"):
+        """Notify all callbacks of a graph change."""
+        print(f"📡 Editor: Notifying {len(self._change_callbacks)} callbacks of change: {operation_type}")
+        
+        # Notify callbacks (with error handling to prevent one bad callback from breaking others)
+        for callback in self._change_callbacks[:]:  # Copy list to prevent modification during iteration
+            try:
+                callback()
+            except Exception as e:
+                print(f"❌ Error in change callback: {e}")
+                # Optionally remove bad callbacks
+                self._change_callbacks.remove(callback)
+    
+    def _setup_history_hooks(self):
+        """Setup hooks to catch undo/redo operations."""
+        original_undo = self.history_manager.undo
+        original_redo = self.history_manager.redo
+        
+        def hooked_undo():
+            result = original_undo()
+            if result:
+                self._notify_change("undo")
+            return result
+            
+        def hooked_redo():
+            result = original_redo()
+            if result:
+                self._notify_change("redo")
+            return result
+        
+        self.history_manager.undo = hooked_undo
+        self.history_manager.redo = hooked_redo
+    
+    # =============================================================================
+    # NODE OPERATIONS
+    # =============================================================================
+    
+    def create_node(self, node_type: str, position: Tuple[float, float] = (100, 100)) -> Optional[BaseNode]:
+        """
+        Create a new node of the specified type at the given position.
+        
+        Args:
+            node_type: Type of node to create
+            position: (x, y) position for the node
+            
+        Returns:
+            The created node or None if creation failed
+        """
+        try:
+            # Create node using the factory
+            node = self.node_factory.create_instance(node_type, self.graph, position=position)
+            
+            if node:
+                # Set position attributes
+                node.ui_posX = position[0]
+                node.ui_posY = position[1]
+                
+                # Create and execute undo action
+                action = AddNodeAction(self.graph, node)
+                self.history_manager.add_action(action)
+                
+                # Notify callbacks
+                self._notify_change("create_node")
+                
+                print(f"✅ Editor: Created node {node.node_id} of type {node_type} at {position}")
+                return node
+            else:
+                print(f"❌ Editor: Failed to create node of type {node_type}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Editor: Error creating node of type {node_type}: {e}")
+            return None
+    
+    def delete_node(self, node_id: str) -> bool:
+        """
+        Delete a node from the graph.
+        
+        Args:
+            node_id: ID of the node to delete
+            
+        Returns:
+            True if node was deleted, False otherwise
+        """
+        if node_id not in self.graph.nodes:
+            print(f"⚠️ Editor: Node {node_id} not found for deletion")
+            return False
+        
+        try:
+            node = self.graph.nodes[node_id]
+            action = RemoveNodeAction(self.graph, node_id, node)
+            self.history_manager.add_action(action)
+            
+            # Notify callbacks
+            self._notify_change("delete_node")
+            
+            print(f"✅ Editor: Deleted node {node_id}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Editor: Error deleting node {node_id}: {e}")
+            return False
+    
+    def move_node(self, node_id: str, x: float, y: float) -> bool:
+        """
+        Move a node to a new position.
+        
+        Args:
+            node_id: ID of the node to move
+            x: New X position
+            y: New Y position
+            
+        Returns:
+            True if node was moved, False otherwise
+        """
+        if node_id not in self.graph.nodes:
+            print(f"⚠️ Editor: Node {node_id} not found for move operation")
+            return False
+        
+        try:
+            # Create and execute move action
+            action = MoveNodeAction(self.graph, node_id, x, y)
+            self.history_manager.add_action(action)
+            
+            # Notify callbacks
+            self._notify_change("move_node")
+            
+            print(f"✅ Editor: Moved node {node_id} to ({x}, {y})")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Editor: Error moving node {node_id}: {e}")
+            return False
+    
+    def get_node(self, node_id: str) -> Optional[BaseNode]:
+        """Get a node by ID."""
+        return self.graph.nodes.get(node_id)
+    
+    def list_nodes(self) -> List[BaseNode]:
+        """Get a list of all nodes in the graph."""
+        return list(self.graph.nodes.values())
+    
+    # =============================================================================
+    # CONNECTION OPERATIONS
+    # =============================================================================
+    
+    def create_connection(self, output_node_id: str, outlet_pin: str, input_node_id: str, inlet_pin: str) -> bool:
+        """
+        Create a connection between two nodes.
+        
+        Args:
+            output_node_id: ID of the output node
+            outlet_pin: Name of the output pin
+            input_node_id: ID of the input node  
+            inlet_pin: Name of the input pin
+            
+        Returns:
+            True if connection was created, False otherwise
+        """
+        try:
+            # Create edge
+            edge = Edge(
+                edge_type=EdgeType.DATA,
+                output_node_id=output_node_id,
+                outlet_pin_id=outlet_pin,
+                input_node_id=input_node_id,
+                inlet_pin_id=inlet_pin
+            )
+            
+            # Create and execute action
+            action = AddEdgeAction(self.graph, edge)
+            self.history_manager.add_action(action)
+            
+            # Notify callbacks
+            self._notify_change("create_connection")
+            
+            print(f"✅ Editor: Created connection {output_node_id}:{outlet_pin} -> {input_node_id}:{inlet_pin}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Editor: Error creating connection: {e}")
+            return False
+    
+    def delete_connection(self, output_node_id: str, outlet_pin: str, input_node_id: str, inlet_pin: str) -> bool:
+        """
+        Delete a connection between two nodes.
+        
+        Args:
+            output_node_id: ID of the output node
+            outlet_pin: Name of the output pin
+            input_node_id: ID of the input node
+            inlet_pin: Name of the input pin
+            
+        Returns:
+            True if connection was deleted, False otherwise
+        """
+        # Find the edge
+        edge_to_remove = None
+        for edge in self.graph.edges:
+            if (edge.output_node_id == output_node_id and edge.outlet_pin_id == outlet_pin and
+                edge.input_node_id == input_node_id and edge.inlet_pin_id == inlet_pin):
+                edge_to_remove = edge
+                break
+        
+        if edge_to_remove:
+            return self.delete_connection_by_edge(edge_to_remove)
+        else:
+            print(f"⚠️ Editor: Connection not found: {output_node_id}:{outlet_pin} -> {input_node_id}:{inlet_pin}")
+            return False
+    
+    def delete_connection_by_edge(self, edge: Edge) -> bool:
+        """
+        Delete a connection by edge object.
+        
+        Args:
+            edge: The edge to delete
+            
+        Returns:
+            True if connection was deleted, False otherwise
+        """
+        try:
+            action = RemoveEdgeAction(self.graph, edge, "Delete connection via Editor")
+            self.history_manager.add_action(action)
+            
+            # Notify callbacks
+            self._notify_change("delete_connection")
+            
+            print(f"✅ Editor: Deleted connection {edge.output_node_id}:{edge.outlet_pin_id} -> {edge.input_node_id}:{edge.inlet_pin_id}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Editor: Error deleting connection: {e}")
+            return False
+    
+    def list_connections(self) -> List[Edge]:
+        """Get a list of all connections in the graph."""
+        return list(self.graph.edges)
+    
+    # =============================================================================
+    # SELECTION OPERATIONS  
+    # =============================================================================
+    
+    def set_selection(self, selected_nodes: Set[str] = None, selected_connections: Set[Tuple[str, str, str, str]] = None) -> bool:
+        """
+        Set the current selection.
+        
+        Args:
+            selected_nodes: Set of selected node IDs
+            selected_connections: Set of selected connection tuples (output_node, outlet_pin, input_node, inlet_pin)
+            
+        Returns:
+            True if selection was updated, False otherwise
+        """
+        try:
+            selected_nodes = selected_nodes or set()
+            selected_connections = selected_connections or set()
+            
+            new_selection = SelectionState(selected_nodes, selected_connections)
+            action = ChangeSelectionAction(self.graph, new_selection)
+            self.history_manager.add_action(action)
+            
+            # Notify callbacks
+            self._notify_change("set_selection")
+            
+            print(f"✅ Editor: Set selection to {len(selected_nodes)} nodes, {len(selected_connections)} connections")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Editor: Error setting selection: {e}")
+            return False
+    
+    def add_to_selection(self, node_ids: Set[str] = None, connection_ids: Set[Tuple[str, str, str, str]] = None) -> bool:
+        """
+        Add items to the current selection.
+        
+        Args:
+            node_ids: Node IDs to add to selection
+            connection_ids: Connection tuples to add to selection
+            
+        Returns:
+            True if selection was updated, False otherwise
+        """
+        try:
+            # Get current selection
+            current_nodes, current_connections = self.graph.get_selection_state()
+            
+            # Add new items
+            new_nodes = current_nodes | (node_ids or set())
+            new_connections = current_connections | (connection_ids or set())
+            
+            return self.set_selection(new_nodes, new_connections)
+            
+        except Exception as e:
+            print(f"❌ Editor: Error adding to selection: {e}")
+            return False
+    
+    def clear_selection(self) -> bool:
+        """Clear the current selection."""
+        return self.set_selection(set(), set())
+    
+    def get_selection(self) -> Tuple[Set[str], Set[Tuple[str, str, str, str]]]:
+        """Get the current selection state."""
+        return self.graph.get_selection_state()
+    
+    # =============================================================================
+    # HISTORY OPERATIONS
+    # =============================================================================
+    
+    def undo(self) -> bool:
+        """
+        Perform an undo operation.
+        
+        Returns:
+            True if undo was performed, False otherwise
+        """
+        if self.history_manager and self.history_manager.can_undo():
+            try:
+                result = self.history_manager.undo()
+                if result:
+                    print("✅ Editor: Undo performed")
+                return result
+            except Exception as e:
+                print(f"❌ Editor: Error during undo: {e}")
+                return False
+        else:
+            print("⚠️ Editor: Nothing to undo")
+            return False
+    
+    def redo(self) -> bool:
+        """
+        Perform a redo operation.
+        
+        Returns:
+            True if redo was performed, False otherwise
+        """
+        if self.history_manager and self.history_manager.can_redo():
+            try:
+                result = self.history_manager.redo()
+                if result:
+                    print("✅ Editor: Redo performed")
+                return result
+            except Exception as e:
+                print(f"❌ Editor: Error during redo: {e}")
+                return False
+        else:
+            print("⚠️ Editor: Nothing to redo")
+            return False
+    
+    def can_undo(self) -> bool:
+        """Check if undo is available."""
+        return self.history_manager and self.history_manager.can_undo()
+    
+    def can_redo(self) -> bool:
+        """Check if redo is available."""
+        return self.history_manager and self.history_manager.can_redo()
+    
+    def add_fence(self) -> None:
+        """Add a fence to group operations."""
+        if self.history_manager:
+            self.history_manager.add_fence()
+    
+    # =============================================================================
+    # GRAPH STATE
+    # =============================================================================
+    
+    def get_graph_info(self) -> Dict[str, Any]:
+        """Get information about the current graph state."""
+        return {
+            'graph_id': self.graph.graph_id,
+            'node_count': len(self.graph.nodes),
+            'connection_count': len(self.graph.edges),
+            'can_undo': self.can_undo(),
+            'can_redo': self.can_redo(),
+            'history_size': len(self.history_manager.history) if self.history_manager else 0,
+            'current_history_index': self.history_manager.current_index if self.history_manager else -1
+        }
+    
+    def is_valid(self) -> bool:
+        """Check if the editor is in a valid state."""
+        return (self.graph is not None and 
+                self.history_manager is not None and 
+                self.node_factory is not None)
