@@ -2,14 +2,6 @@
     <div :id="containerId" ref="container" class="graph-canvas" :class="{
         dragging: connectionState.isDragging,
     }" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
-        <!-- SVG layer for connections -->
-        <svg id="connection-svg" ref="svg" class="connection-svg" :style="svgTransform">
-            <defs ref="defs">
-                <!-- Dynamic gradients will be added here -->
-            </defs>
-            <!-- Dynamic paths will be added here -->
-        </svg>
-
         <!-- Node container slot -->
         <div id="node-container" ref="nodeContainer" class="node-container" :style="nodeContainerTransform">
             <!-- Debug info to verify component is working -->
@@ -18,6 +10,14 @@
             </div>
             <slot></slot>
         </div>
+        <!-- SVG layer for connections -->
+        <svg id="connection-svg" ref="svg" class="connection-svg" :style="svgTransform">
+            <defs ref="defs">
+                <!-- Dynamic gradients will be added here -->
+            </defs>
+            <!-- Dynamic paths will be added here -->
+        </svg>
+
     </div>
 </template>
 
@@ -302,7 +302,7 @@ export default {
         },
 
         _syncConnectionAddition(data) {
-            const { connectionId, outputNodeId, outletPinId, inputNodeId, inletPinId } = data;
+            const { connectionId, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid } = data;
             console.log('🔗 Vue _syncConnectionAddition called with:', data);
             
             // Create connection visual directly
@@ -312,6 +312,7 @@ export default {
                 inputNodeId, 
                 inletPinId, 
                 connectionId, 
+                isValid,
                 '[SYNC] '
             );
             
@@ -326,7 +327,7 @@ export default {
             const { connectionId } = data;
             console.log('🔗 Vue _syncConnectionRemoval called with:', connectionId);
             
-            const success = this._removeConnectionVisualInternal(connectionId);
+            const success = this._removeConnectionVisual(connectionId);
             
             if (success) {
                 console.log('🔗 Vue ✅ Connection removed via sync:', connectionId);
@@ -914,57 +915,6 @@ export default {
         // CONNECTION MANAGEMENT - PUBLIC API
         // =============================================================================
 
-        addConnectionVisual(edgeData) {
-            console.log('🔗 Vue addConnectionVisual called with:', edgeData);
-            const { outputNodeId, outletPinId, inputNodeId, inletPinId } = edgeData;
-
-            // Generate path ID using the utility function
-            const pathId = this._buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId);
-
-            console.log('🔗 Vue generated connection ID:', pathId);
-
-            const result = this._createConnectionVisual(
-                outputNodeId,
-                outletPinId,
-                inputNodeId,
-                inletPinId,
-                pathId,
-                '' // No log prefix for public API
-                // connectionData is null for public API, so edgeData will be reconstructed in _createConnectionVisual
-            );
-
-            if (!result.success) {
-                console.error('🔗 Vue connection creation failed');
-                return null;
-            }
-
-            return pathId;
-        },
-
-        removeConnectionVisual(pathId) {
-            const path = this.connectionPaths.get(pathId);
-            if (path) {
-                path.remove();
-                this.connectionPaths.delete(pathId);
-
-                // Also remove the invisible hit area
-                const hitArea = document.getElementById(pathId + '_hitarea');
-                if (hitArea) {
-                    hitArea.remove();
-                }
-
-                // Also remove any associated gradient
-                const gradientId = `gradient_${pathId}`;
-                const gradient = document.getElementById(gradientId);
-                if (gradient) {
-                    gradient.remove();
-                }
-
-                return true;
-            }
-            return false;
-        },
-
         updateConnectionPath(pathElement) {
             if (!pathElement || !pathElement.id) return;
 
@@ -995,8 +945,17 @@ export default {
 
             pathElement.setAttribute('d', pathData);
 
+            const isValid = pathElement.dataset.isValid === 'true';
+
+            let startColor = startPin.dataset.pinColor || '#000000';
+            let endColor = endPin.dataset.pinColor || '#000000';
+            if (!isValid) {
+                startColor = '#FF0000';
+                endColor = '#FF0000';
+            } 
+
             // Update stroke with gradient
-            const stroke = this._createBezierStroke(startPos, endPos, startPin.dataset.pinColor, endPin.dataset.pinColor, pathId);
+            const stroke = this._createBezierStroke(startPos, endPos, startColor, endColor, pathId);
             pathElement.setAttribute('stroke', stroke);
 
             // Set consistent stroke width
@@ -1041,7 +1000,7 @@ export default {
         // =============================================================================
 
         // Shared internal method for creating connection visuals
-        _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, logPrefix = '', connectionData = null) {
+        _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, isValid, logPrefix = '', connectionData = null) {
             // Generate pin IDs using utility functions
             const startPinId = this._buildOutletPinId(outputNodeId, outletPinId);
             const endPinId = this._buildInletPinId(inputNodeId, inletPinId);
@@ -1059,10 +1018,6 @@ export default {
                     endPinExists: !!endPin
                 });
 
-                // List all available pins for debugging
-                //const allPins = document.querySelectorAll('.connection-pin');
-                //console.log('Available pins:', Array.from(allPins).map(p => p.id));
-
                 return { success: false, pathElement: null };
             }
 
@@ -1072,13 +1027,21 @@ export default {
                 return { success: false, pathElement: null };
             }
 
-            const pinColor = startPin.dataset.pinColor || '#000000';
+            let pinColor = startPin.dataset.pinColor || '#000000';
+            let strokeWidth = 2;
 
+            
             // Create SVG path element
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.dataset.isValid = isValid.toString();
             path.setAttribute('id', pathId);
-            path.setAttribute('data-connection-id', pathId); // Add data attribute for context menu
-            path.setAttribute('stroke', pinColor); // Default blue, will be updated by updateConnectionPath
+            path.setAttribute('data-connection-id', pathId); 
+            if (isValid) {
+                path.setAttribute('stroke', pinColor); 
+            } else {
+                path.setAttribute('stroke', '#FF0000'); 
+                path.setAttribute('stroke-dasharray', '2');
+            }
             path.setAttribute('stroke-width', '2');
             path.setAttribute('fill', 'none');
             path.style.pointerEvents = 'stroke';
@@ -1097,8 +1060,6 @@ export default {
             this.$refs.svg.appendChild(path);
             this.$refs.svg.appendChild(hitArea); // Add hit area after visible path
             this.connectionPaths.set(pathId, path);
-
-            console.log(`🔗 Vue${logPrefix} created path element:`, pathId);
 
             // Add click event to both visible path and hit area
             const clickHandler = (e) => {
@@ -1123,7 +1084,7 @@ export default {
         },
 
         // Internal method to remove connection visual (used by sync events)
-        _removeConnectionVisualInternal(connectionId) {
+        _removeConnectionVisual(connectionId) {
             // Use the connection ID to find the path
             const path = this.connectionPaths.get(connectionId);
 
@@ -1405,23 +1366,16 @@ export default {
         _updateConnectionVisualSelection(pathId, selected) {
             console.log('🎨 _updateConnectionVisualSelection called:', { pathId, selected });
             const pathElement = this.connectionPaths.get(pathId);
-            console.log('🎨 Found path element:', !!pathElement, pathElement?.id);
             if (pathElement) {
                 if (selected) {
                     pathElement.classList.add('connection-selected');
                     pathElement.style.strokeWidth = '3';
-                    pathElement.style.stroke = '#4A90E2';
-                    // The shadow effect is handled by CSS filter property
-                    console.log('🎨 Applied selection styles to path:', pathId);
                 } else {
                     pathElement.classList.remove('connection-selected');
                     pathElement.style.strokeWidth = '2';
-                    pathElement.style.stroke = '#4A90E2';
-                    console.log('🎨 Removed selection styles from path:', pathId);
                 }
             } else {
                 console.warn('🎨 Path element not found in connectionPaths map for pathId:', pathId);
-                console.log('🎨 Available paths:', Array.from(this.connectionPaths.keys()));
             }
         },
 
@@ -1804,17 +1758,11 @@ export default {
 
 /* Connection selection styles - Enhanced shadow-based */
 .connection-selected {
-    /* Keep original stroke but reduce prominence */
-    stroke: #4A90E2 !important;
-    stroke-width: 3 !important;
     /* Enhanced drop shadow with blue glow */
     filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }
 
 path.connection-selected {
-    /* Keep original stroke but reduce prominence */
-    stroke: #4A90E2 !important;
-    stroke-width: 3 !important;
     /* Enhanced drop shadow with blue glow */
     filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }

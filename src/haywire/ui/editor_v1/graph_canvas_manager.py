@@ -168,20 +168,18 @@ class GraphCanvasManager:
     def process_connection_creation(self, event: ConnectionCreatedEvent):
         """Handle connection creation"""
         print(f"Creating connection: {event.outputNodeId}:{event.outletPinId} -> {event.inputNodeId}:{event.inletPinId}")
-        
+
         # Use Editor to create connection - it will handle history and notify callbacks
-        success = self.editor.create_connection(
+        if self.editor.create_connection(
             event.outputNodeId,
             event.outletPinId,
             event.inputNodeId,
             event.inletPinId
-        )
-        
-        if success:
-            print(f"✅ Connection created successfully")
+        ):
+            ui.notify(f"Connection created")
         else:
-            print(f"❌ Failed to create connection")
-                
+            ui.notify(f"Failed to create connection", type='negative')
+
     @handles_event(ConnectionRemovedEvent)
     def process_connection_deletion(self, event: ConnectionRemovedEvent):
         """Handle connection deletion from context menu."""
@@ -210,26 +208,8 @@ class GraphCanvasManager:
     def process_connection_click(self, event: ConnectionClickedEvent):
         """Handle connection click events - remove the connection"""
         try:
-            print(f"Connection clicked for removal: {event.connectionId}")
-            
-            # Find the corresponding edge from the connection ID
-            for edge_key, stored_path_id in self.connection_paths.items():
-                if stored_path_id == event.connectionId:
-                    # Reconstruct edge from edge_key
-                    parts = edge_key.split('-')
-                    if len(parts) >= 4:
-                        output_node_id, outlet_pin_id, input_node_id, inlet_pin_id = parts[0], parts[1], parts[2], parts[3]
-                        
-                        # Find the actual edge object
-                        for edge in self.graph.edges:
-                            if (edge.output_node_id == output_node_id and edge.outlet_pin_id == outlet_pin_id and
-                                edge.input_node_id == input_node_id and edge.inlet_pin_id == inlet_pin_id):
+            print(f"Connection clicked: {event.connectionId}")
                                 
-                                # Use Editor to delete connection
-                                self.editor.delete_connection_by_edge(edge)
-                                break
-                    break
-                    
         except Exception as e:
             print(f"Connection click handling failed: {e}")
     
@@ -448,14 +428,13 @@ class GraphCanvasManager:
             with ui.element('div').classes(
                     'absolute'
                 ).style(
-                    f'left: {x}px; top: {y}px; z-index: 100; '
+                    f'left: {x}px; '
+                    f'top: {y}px; '
+                    f'z-index: 100; '
                     f'transform-origin: top-left; cursor: move;'
                 ).props(
                     f'id="{node.node_id}" '
                     f'data-node-id="{node.node_id}" '
-                    f'tabindex="0"'  # Make focusable for keyboard events
-                #    f'role="graphics-object" '
-                #   f'aria-label="Graph node {self.node.node_type}"'
                 ) as container:    
 
                 print(f"Created container for node {node.node_id}")
@@ -552,7 +531,8 @@ class GraphCanvasManager:
             outputNodeId=edge.output_node_id,
             outletPinId=edge.outlet_pin_id,
             inputNodeId=edge.input_node_id,
-            inletPinId=edge.inlet_pin_id
+            inletPinId=edge.inlet_pin_id,
+            isValid=edge.is_valid
         )        
         self.canvas_vue.emit_sync_event(sync_event)
 

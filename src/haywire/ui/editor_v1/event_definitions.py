@@ -178,6 +178,7 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
     outletPinId: str
     inputNodeId: str
     inletPinId: str
+    isValid: bool
 
 @graph_event("syncConnectionRemoval", category="sync", description="Sync connection removal from UI")
 @dataclass

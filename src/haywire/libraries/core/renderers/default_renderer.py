@@ -137,7 +137,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         
         if pin.flow_type == FlowType.CTRL.value:
             # Pin connector
-            ui.icon('label', color='blue', size='xs').classes(
+            ui.icon('label', color='#0000ff', size='xs').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
@@ -147,7 +147,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'data-node-id="{node.node_id}" '
                 f'data-pin-id="{pin.id}" '
                 f'data-pin-flow-type="{pin.flow_type}" '
-                f'data-pin-color="#000000" '
+                f'data-pin-color="#0000ff" '
                 f'data-pin-dir="{pin_direction}"'
             )
         elif pin.flow_type == FlowType.CALLBACK.value:

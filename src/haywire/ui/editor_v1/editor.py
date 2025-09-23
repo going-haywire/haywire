@@ -376,6 +376,7 @@ class Editor:
         """Get the current selection state."""
         return self.graph.get_selection_state()
     
+
     # =============================================================================
     # HISTORY OPERATIONS
     # =============================================================================

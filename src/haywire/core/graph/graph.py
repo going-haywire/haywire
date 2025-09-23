@@ -38,6 +38,8 @@ class Edge:
     # Optional fields with defaults
     outlet_pin_data_type: str | None = None
     inlet_pin_data_type: str | None = None
+
+    is_valid: bool = True
     
     def to_dict(self) -> dict[str, Any]:
         """Serialize edge to dictionary"""
@@ -48,7 +50,8 @@ class Edge:
             "outlet_pin_data_type": self.outlet_pin_data_type,
             "input_node_id": self.input_node_id,
             "inlet_pin_id": self.inlet_pin_id,
-            "inlet_pin_data_type": self.inlet_pin_data_type
+            "inlet_pin_data_type": self.inlet_pin_data_type,
+            "is_valid": self.is_valid
         }
 
 
