@@ -519,31 +519,9 @@ export default {
                 return;
             }
 
-            console.log('Canvas click event target:', event.target.tagName, event.target.id);
-
-            // Don't handle clicks on SVG path elements (connections)
-            if (event.target.tagName === 'path') {
-                console.log('Click on SVG path - letting it handle its own click');
-                return;
-            }
-
-            // Don't handle clicks on connection pins
-            if (event.target.closest('.connection-pin')) {
-                console.log('Click on connection pin - letting it handle its own click');
-                return;
-            }
-
-            // Don't handle clicks on nodes (they have their own selection handling)
-            if (event.target.closest('[data-node-id]')) {
-                console.log('Click on node - letting it handle its own click');
-                return;
-            }
-
             // Only handle clicks on the canvas itself or empty space
-            if (event.target === this.$el ||
-                event.target === this.$refs.nodeContainer ||
-                event.target === this.$refs.svg ||
-                event.target.classList.contains('graph-canvas')) {
+            if (event.target === this.$refs.nodeContainer ||
+                event.target === this.$refs.svg) {
 
                 console.log('Click on empty canvas - clearing selection');
 
@@ -552,10 +530,9 @@ export default {
 
                 // Emit selection change event to Python for history tracking using new unified system
                 this.emitCanvasEvent(EventCreators.createSelectionChanged([], []));
-
-                // Note: Canvas click event can be removed as it's not part of the core event system
-                // If needed, it can be added as a separate event type
             }
+
+            return;
         },
 
         handleContextMenu(event) {
@@ -1085,9 +1062,6 @@ export default {
 
             const offsetDir = startPin.dataset.pinDir === 'inlet' ? -1 : 1;
             const pathData = this._createBezierPath(startPos, endPos, offsetDir);
-
-            //const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
-            //const pathData = `M ${startPos.x} ${startPos.y} C ${startPos.x + controlOffset} ${startPos.y}, ${endPos.x - controlOffset} ${endPos.y}, ${endPos.x} ${endPos.y}`;
 
             pathElement.setAttribute('d', pathData);
             // Also update the hit area if it exists
