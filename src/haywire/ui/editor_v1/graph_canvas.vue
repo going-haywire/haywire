@@ -40,7 +40,11 @@ export default {
                 startPin: null,
                 tempPath: null,
                 hasNodes: false,
-                lastDragEndTime: null
+                lastDragEndTime: null,
+                // NEW: Add suggestion state
+                suggestedConnections: new Map(), // pin -> path element
+                nearestSuggestedPin: null,
+                suggestionProximityRange: 150 // pixels - adjust as needed
             },
             // Add node dragging state
             nodeDragState: {
@@ -136,10 +140,12 @@ export default {
         // =============================================================================
 
         _setupEventListeners() {
+            console.log('🔗 Setting up event listeners on document.body');
             // Mouse events for connection creation
             document.body.addEventListener('mousedown', this.handleMouseDown, true);
             document.body.addEventListener('mousemove', this.handleMouseMove, true);
             document.body.addEventListener('mouseup', this.handleMouseUp, true);
+            console.log('🔗 Event listeners set up - mousedown, mousemove, mouseup');
         },
 
         _setupObservers() {
@@ -664,7 +670,7 @@ export default {
             this.connectionState.tempPath.setAttribute('fill', 'none');
             this.connectionState.tempPath.setAttribute('stroke-dasharray', '4');
             this.connectionState.tempPath.style.pointerEvents = 'none';
-
+            
             this.$refs.svg.appendChild(this.connectionState.tempPath);
 
             // Visual feedback on start pin
@@ -674,14 +680,28 @@ export default {
         },
 
         _handleConnectionDragMove(e) {
+            console.log('🔗 _handleConnectionDragMove called:', {
+                hasTempPath: !!this.connectionState.tempPath,
+                hasStartPin: !!this.connectionState.startPin,
+                mousePos: { x: e.clientX, y: e.clientY }
+            });
+
+            if (!this.connectionState.tempPath) {
+                console.error('🔗 No tempPath found in drag move!');
+                return;
+            }
+            
             const startPos = this._getPinPosition(this.connectionState.startPin);
             const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
             const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
 
+            // Update dragging path
             const pathData = this._createBezierPath(startPos, mousePos, offsetDir);
             this.connectionState.tempPath.setAttribute('d', pathData);
 
-            // Clear all previous highlighting
+            // Clear all previous highlighting and suggestions
+            this._clearConnectionSuggestions();
+
             document.querySelectorAll('.connection-pin').forEach(pin => {
                 pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
             });
@@ -689,6 +709,8 @@ export default {
             // Highlight pins based on proximity and compatibility
             const targetPin = e.target.closest('.connection-pin');
             const proximityRange = 200; // pixels - adjust this value as needed
+            let nearestCompatiblePin = null;
+            let nearestDistance = Infinity;
             
             document.querySelectorAll('.connection-pin').forEach(pin => {
                 if (pin === this.connectionState.startPin) return;
@@ -698,6 +720,7 @@ export default {
                 if (isValid) {
                     // Calculate distance from mouse to pin
                     const pinPos = this._getPinPosition(pin);
+
                     const distance = Math.sqrt(
                         Math.pow(mousePos.x - pinPos.x, 2) + 
                         Math.pow(mousePos.y - pinPos.y, 2)
@@ -706,10 +729,21 @@ export default {
                     if (pin === targetPin) {
                         // Closest pin (directly under cursor)
                         pin.classList.add('connection-valid');
-                    } else if (distance <= proximityRange) {
+                        nearestCompatiblePin = pin;
+                        nearestDistance = 0; // Direct hover takes priority
+                    } 
+                    else if (distance <= proximityRange) {
                         if(this.connectionState.startPin.dataset.pinDataType === pin.dataset.pinDataType) {
-                            // Compatible pins within range
+                             // Compatible pins within range
                             pin.classList.add('connection-compatible');
+                             
+                            this._createSuggestionPath(pin);
+
+                            // Track nearest compatible pin within suggestion range
+                            if (distance <= this.connectionState.suggestionProximityRange && distance < nearestDistance) {
+                                nearestCompatiblePin = pin;
+                                nearestDistance = distance;
+                            }
                         }
                     }
                 } else if (pin === targetPin) {
@@ -717,10 +751,25 @@ export default {
                     pin.classList.add('connection-invalid');
                 }
             });
+
+            this.connectionState.nearestSuggestedPin = nearestCompatiblePin;
+            
+            // Highlight the nearest suggestion if within range
+            if (nearestCompatiblePin && nearestDistance <= this.connectionState.suggestionProximityRange && nearestDistance > 0) {
+                const suggestionPath = this.connectionState.suggestedConnections.get(nearestCompatiblePin);
+                if (suggestionPath) {
+                    suggestionPath.classList.add('connection-suggestion-nearest');
+                }
+            }
         },
 
         _handleConnectionDragEnd(e) {
-            const endPin = e.target.closest('.connection-pin');
+            let endPin = e.target.closest('.connection-pin');
+            
+            // If no direct pin target but we have a nearest suggested pin, use that instead
+            if (!endPin && this.connectionState.nearestSuggestedPin) {
+                endPin = this.connectionState.nearestSuggestedPin;
+            }
 
             // Cleanup temporary visual elements
             if (this.connectionState.tempPath) {
@@ -733,6 +782,9 @@ export default {
                 this.connectionState.startPin.style.transform = '';
                 this.connectionState.startPin.style.zIndex = '';
             }
+
+            // Clear connection suggestions
+            this._clearConnectionSuggestions();
 
             // Clear highlighting
             document.querySelectorAll('.connection-pin').forEach(pin => {
@@ -759,7 +811,46 @@ export default {
             // Reset state
             this.connectionState.isDragging = false;
             this.connectionState.startPin = null;
+            this.connectionState.nearestSuggestedPin = null;
             this.connectionState.lastDragEndTime = Date.now(); // Track when drag ended
+        },
+
+        // Add these methods for connection suggestions
+        _createSuggestionPath(targetPin) {
+            // Don't create duplicate suggestions
+            if (this.connectionState.suggestedConnections.has(targetPin)) {
+                return;
+            }
+
+            const startPos = this._getPinPosition(this.connectionState.startPin);
+            const endPos = this._getPinPosition(targetPin);
+            const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
+
+            // Create suggestion path
+            const suggestionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const pathData = this._createBezierPath(startPos, endPos, offsetDir);
+
+            suggestionPath.setAttribute('d', pathData);
+            suggestionPath.setAttribute('stroke', this.connectionState.startPin.dataset.pinColor || '#4CAF50');
+            suggestionPath.setAttribute('stroke-width', '2');
+            suggestionPath.setAttribute('fill', 'none');
+            suggestionPath.setAttribute('stroke-dasharray', '8 4'); // Longer dashes than temp path
+            suggestionPath.setAttribute('opacity', '0.6');
+            suggestionPath.style.pointerEvents = 'none';
+            suggestionPath.classList.add('connection-suggestion');
+
+            this.$refs.svg.appendChild(suggestionPath);
+            this.connectionState.suggestedConnections.set(targetPin, suggestionPath);
+        },
+
+        _clearConnectionSuggestions() {
+            // Remove all suggestion paths from DOM
+            this.connectionState.suggestedConnections.forEach((path, pin) => {
+                path.remove();
+            });
+            
+            // Clear the map
+            this.connectionState.suggestedConnections.clear();
         },
 
         // =============================================================================
@@ -1786,4 +1877,17 @@ path.connection-selected {
     opacity: 1 !important;
     max-height: 200px !important;
 }
+
+/* Connection suggestion styles */
+.connection-suggestion {
+    transition: opacity 0.2s ease, stroke-width 0.2s ease !important;
+}
+
+.connection-suggestion-nearest {
+    opacity: 0.9 !important;
+    stroke-width: 3 !important;
+    stroke-dasharray: 12 6 !important; /* More prominent dashing */
+    animation: connection-suggestion-pulse 1.5s ease-in-out infinite !important;
+}
+
 </style>
