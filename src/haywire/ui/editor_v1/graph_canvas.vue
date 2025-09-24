@@ -703,18 +703,40 @@ export default {
             const pathData = this._createBezierPath(startPos, mousePos, offsetDir);
             this.connectionState.tempPath.setAttribute('d', pathData);
 
-            // Highlight valid drop targets
-            const targetPin = e.target.closest('.connection-pin');
+            // Clear all previous highlighting
             document.querySelectorAll('.connection-pin').forEach(pin => {
-                pin.classList.remove('connection-valid', 'connection-invalid');
-                if (pin !== this.connectionState.startPin) {
-                    if (targetPin === pin) {
-                        if (this._isValidConnection(this.connectionState.startPin, pin)) {
-                            pin.classList.add('connection-valid');
-                        } else {
-                            pin.classList.add('connection-invalid');
+                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
+            });
+
+            // Highlight pins based on proximity and compatibility
+            const targetPin = e.target.closest('.connection-pin');
+            const proximityRange = 200; // pixels - adjust this value as needed
+            
+            document.querySelectorAll('.connection-pin').forEach(pin => {
+                if (pin === this.connectionState.startPin) return;
+
+                const isValid = this._isValidConnection(this.connectionState.startPin, pin);
+                
+                if (isValid) {
+                    // Calculate distance from mouse to pin
+                    const pinPos = this._getPinPosition(pin);
+                    const distance = Math.sqrt(
+                        Math.pow(mousePos.x - pinPos.x, 2) + 
+                        Math.pow(mousePos.y - pinPos.y, 2)
+                    );
+
+                    if (pin === targetPin) {
+                        // Closest pin (directly under cursor)
+                        pin.classList.add('connection-valid');
+                    } else if (distance <= proximityRange) {
+                        if(this.connectionState.startPin.dataset.pinDataType === pin.dataset.pinDataType) {
+                            // Compatible pins within range
+                            pin.classList.add('connection-compatible');
                         }
                     }
+                } else if (pin === targetPin) {
+                    // Invalid pin directly under cursor
+                    pin.classList.add('connection-invalid');
                 }
             });
         },
@@ -736,7 +758,7 @@ export default {
 
             // Clear highlighting
             document.querySelectorAll('.connection-pin').forEach(pin => {
-                pin.classList.remove('connection-valid', 'connection-invalid');
+                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
             });
 
             // Create connection if valid
@@ -1035,7 +1057,7 @@ export default {
         },
 
         // =============================================================================
-        // CONNECTION MANAGEMENT - PUBLIC API
+        // CONNECTION MANAGEMENT
         // =============================================================================
 
         updateConnectionPath(pathElement) {
@@ -1751,6 +1773,14 @@ export default {
     border-color: #f44336 !important;
     transform: scale(1.2) !important;
     z-index: 10002 !important;
+}
+
+.connection-pin.connection-compatible {
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6) !important;
+    border-color: rgba(76, 175, 80, 0.8) !important;
+    transform: scale(1.2) !important;
+    z-index: 10001 !important;
+    opacity: 0.8 !important;
 }
 
 /* Connection selection styles - Enhanced shadow-based */

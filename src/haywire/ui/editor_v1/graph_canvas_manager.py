@@ -44,7 +44,10 @@ class GraphCanvasManager:
     This eliminates the complexity of circular event flows while maintaining
     type-safe UI event handling.
     """
-    
+
+    # TODO: When an edge gets invalidated, the sync_with_graph() method needs to be able to detect and update it.
+    # This might need to clone the edge internally to detect changes.
+
     def __init__(
         self, 
         editor: Editor,

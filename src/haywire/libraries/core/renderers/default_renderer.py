@@ -180,6 +180,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'data-node-id="{node.node_id}" '
                 f'data-pin-id="{pin.id}" '
                 f'data-pin-flow-type="{pin.flow_type}" '
+                f'data-pin-data-type="{pin.data.type}" '
                 f'data-pin-color="{self._get_port_color(pin.data.type)}" '
                 f'data-pin-dir="{pin_direction}"'
             )
