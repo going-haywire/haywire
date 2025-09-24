@@ -1,7 +1,15 @@
 <template>
     <div :id="containerId" ref="container" class="graph-canvas" :class="{
         dragging: connectionState.isDragging,
+        'box-selecting': boxSelectionState.isActive
     }" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
+        <!-- Box selection rectangle -->
+        <div 
+            v-if="boxSelectionState.isActive" 
+            class="selection-box"
+            :style="selectionBoxStyle"
+        ></div>
+
         <!-- SVG layer for connections -->
         <svg id="connection-svg" ref="svg" class="connection-svg" :style="svgTransform">
             <defs ref="defs">
@@ -65,6 +73,13 @@ export default {
                 lastClickTime: 0,
                 clickThreshold: 300 // ms to distinguish between click and drag
             },
+            // Add box selection state
+            boxSelectionState: {
+                isActive: false,
+                startPos: { x: 0, y: 0 },
+                currentPos: { x: 0, y: 0 },
+                selectionRect: null
+            },
             connectionPaths: new Map(), // path_id -> path_element
             updateConnectionsThrottled: false,
             resizeObserver: null,
@@ -87,6 +102,25 @@ export default {
         nodeContainerTransform() {
             // No transformation needed - zoom container handles all transformations
             return '';
+        },
+
+        selectionBoxStyle() {
+            if (!this.boxSelectionState.isActive) return {};
+            
+            const start = this.boxSelectionState.startPos;
+            const current = this.boxSelectionState.currentPos;
+            
+            const left = Math.min(start.x, current.x);
+            const top = Math.min(start.y, current.y);
+            const width = Math.abs(current.x - start.x);
+            const height = Math.abs(current.y - start.y);
+            
+            return {
+                left: `${left}px`,
+                top: `${top}px`,
+                width: `${width}px`,
+                height: `${height}px`
+            };
         }
     },
 
@@ -489,9 +523,25 @@ export default {
                     return;
                 }
             }
+
+            // Check for connection click
+            const connectionElement = e.target.closest('path[data-connection-id]');
+            if (connectionElement) {
+                // Let connection selection handle this
+                return;
+            }
+
+            // If we get here, it's a click on empty canvas - start box selection
+            this._startBoxSelection(e);
         },
 
         handleMouseMove(e) {
+            // Handle box selection
+            if (this.boxSelectionState.isActive) {
+                this._updateBoxSelection(e);
+                return;
+            }
+
             // Handle connection dragging
             if (this.connectionState.isDragging && this.connectionState.tempPath) {
                 this._handleConnectionDragMove(e);
@@ -506,6 +556,12 @@ export default {
         },
 
         handleMouseUp(e) {
+            // Handle box selection end
+            if (this.boxSelectionState.isActive) {
+                this._endBoxSelection(e);
+                return;
+            }
+
             // Handle connection drag end
             if (this.connectionState.isDragging) {
                 this._handleConnectionDragEnd(e);
@@ -1341,6 +1397,212 @@ export default {
         },
 
         // =============================================================================
+        // BOX SELECTION SYSTEM
+        // =============================================================================
+
+        _startBoxSelection(e) {
+            console.log('🔲 Starting box selection');
+            
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Convert screen coordinates to canvas coordinates
+            const canvasPos = this._transformScreenToCanvas(e.clientX, e.clientY);
+            
+            this.boxSelectionState.isActive = true;
+            this.boxSelectionState.startPos = canvasPos;
+            this.boxSelectionState.currentPos = canvasPos;
+
+            // Clear existing selection unless Ctrl/Cmd is held
+            if (!e.ctrlKey && !e.metaKey) {
+                this.clearSelection();
+            }
+        },
+
+        _updateBoxSelection(e) {
+            if (!this.boxSelectionState.isActive) return;
+
+            // Convert screen coordinates to canvas coordinates
+            const canvasPos = this._transformScreenToCanvas(e.clientX, e.clientY);
+            this.boxSelectionState.currentPos = canvasPos;
+
+            // Continuously update selection during drag
+            this._updateBoxSelectionTargets(e.ctrlKey || e.metaKey);
+        },
+
+        _endBoxSelection(e) {
+            console.log('🔲 Ending box selection');
+
+            if (!this.boxSelectionState.isActive) return;
+
+            // Final selection update
+            this._updateBoxSelectionTargets(e.ctrlKey || e.metaKey);
+
+            // Reset box selection state
+            this.boxSelectionState.isActive = false;
+            this.boxSelectionState.startPos = { x: 0, y: 0 };
+            this.boxSelectionState.currentPos = { x: 0, y: 0 };
+
+            // Emit selection change event to Python
+            this.emitCanvasEvent(EventCreators.createSelectionChanged(
+                Array.from(this.selectionState.selectedNodes),
+                Array.from(this.selectionState.selectedConnections)
+            ));
+
+            console.log('🔲 Box selection completed:', {
+                selectedNodes: Array.from(this.selectionState.selectedNodes),
+                selectedConnections: Array.from(this.selectionState.selectedConnections)
+            });
+        },
+
+        _updateBoxSelectionTargets(multiSelect) {
+            const selectionRect = this._getSelectionRectangle();
+            
+            // Find nodes that intersect with selection rectangle
+            const intersectingNodes = this._findNodesInRectangle(selectionRect);
+            const intersectingConnections = this._findConnectionsInRectangle(selectionRect);
+
+            if (multiSelect) {
+                // Add to existing selection
+                intersectingNodes.forEach(nodeId => {
+                    this.selectionState.selectedNodes.add(nodeId);
+                    this._updateNodeVisualSelection(nodeId, true);
+                });
+                
+                intersectingConnections.forEach(connectionId => {
+                    this.selectionState.selectedConnections.add(connectionId);
+                    this._updateConnectionVisualSelection(connectionId, true);
+                });
+            } else {
+                // Replace selection
+                // First clear visual selection
+                this.selectionState.selectedNodes.forEach(nodeId => {
+                    if (!intersectingNodes.includes(nodeId)) {
+                        this._updateNodeVisualSelection(nodeId, false);
+                    }
+                });
+                
+                this.selectionState.selectedConnections.forEach(connectionId => {
+                    if (!intersectingConnections.includes(connectionId)) {
+                        this._updateConnectionVisualSelection(connectionId, false);
+                    }
+                });
+
+                // Update selection sets
+                this.selectionState.selectedNodes.clear();
+                this.selectionState.selectedConnections.clear();
+                
+                // Add new selections
+                intersectingNodes.forEach(nodeId => {
+                    this.selectionState.selectedNodes.add(nodeId);
+                    this._updateNodeVisualSelection(nodeId, true);
+                });
+                
+                intersectingConnections.forEach(connectionId => {
+                    this.selectionState.selectedConnections.add(connectionId);
+                    this._updateConnectionVisualSelection(connectionId, true);
+                });
+            }
+        },
+
+        _getSelectionRectangle() {
+            const start = this.boxSelectionState.startPos;
+            const current = this.boxSelectionState.currentPos;
+            
+            return {
+                left: Math.min(start.x, current.x),
+                top: Math.min(start.y, current.y),
+                right: Math.max(start.x, current.x),
+                bottom: Math.max(start.y, current.y),
+                width: Math.abs(current.x - start.x),
+                height: Math.abs(current.y - start.y)
+            };
+        },
+
+        _findNodesInRectangle(rect) {
+            const intersectingNodes = [];
+            const nodeElements = document.querySelectorAll('[data-node-id]');
+            
+            nodeElements.forEach(nodeElement => {
+                const nodeId = nodeElement.dataset.nodeId;
+                if (!nodeId) return;
+
+                const nodeRect = this._getNodeBoundingRect(nodeElement);
+                
+                if (this._rectanglesIntersect(rect, nodeRect)) {
+                    intersectingNodes.push(nodeId);
+                }
+            });
+
+            return intersectingNodes;
+        },
+
+        _findConnectionsInRectangle(rect) {
+            const intersectingConnections = [];
+            
+            this.connectionPaths.forEach((pathElement, connectionId) => {
+                // Check if any part of the connection path intersects the selection rectangle
+                // For simplicity, we'll check if the path's bounding box intersects
+                try {
+                    const pathBBox = pathElement.getBBox();
+                    const pathRect = {
+                        left: pathBBox.x,
+                        top: pathBBox.y,
+                        right: pathBBox.x + pathBBox.width,
+                        bottom: pathBBox.y + pathBBox.height
+                    };
+
+                    if (this._rectanglesIntersect(rect, pathRect)) {
+                        intersectingConnections.push(connectionId);
+                    }
+                } catch (e) {
+                    console.warn('Error getting path bounding box for selection:', e);
+                }
+            });
+
+            return intersectingConnections;
+        },
+
+        _getNodeBoundingRect(nodeElement) {
+            // Get node position and dimensions in canvas coordinates
+            const style = nodeElement.style;
+            const left = parseInt(style.left) || 0;
+            const top = parseInt(style.top) || 0;
+            
+            // Get dimensions from the element
+            const width = nodeElement.offsetWidth || 100; // fallback width
+            const height = nodeElement.offsetHeight || 50; // fallback height
+            
+            return {
+                left: left,
+                top: top,
+                right: left + width,
+                bottom: top + height
+            };
+        },
+
+        _rectanglesIntersect(rect1, rect2) {
+            return !(rect1.right < rect2.left || 
+                    rect1.left > rect2.right || 
+                    rect1.bottom < rect2.top || 
+                    rect1.top > rect2.bottom);
+        },
+
+        _transformScreenToCanvas(clientX, clientY) {
+            // Get the node container rect (our canvas coordinate system)
+            const containerRect = this.$refs.nodeContainer.getBoundingClientRect();
+            
+            // Apply zoom transformation
+            const { zoom, panX, panY } = this.zoomState;
+            
+            // Convert screen coordinates to canvas coordinates
+            const x = (clientX - containerRect.left) / zoom;
+            const y = (clientY - containerRect.top) / zoom;
+            
+            return { x, y };
+        },
+
+        // =============================================================================
         // NODE SELECTION SYSTEM
         // =============================================================================
 
@@ -1777,6 +2039,24 @@ export default {
 
 .graph-canvas.dragging {
     cursor: grabbing;
+}
+
+/* Box selection styles */
+.selection-box {
+    position: absolute;
+    border: 2px solid rgba(74, 144, 226, 0.8);
+    background-color: rgba(74, 144, 226, 0.1);
+    pointer-events: none;
+    z-index: 999;
+    border-radius: 2px;
+}
+
+.graph-canvas.box-selecting {
+    cursor: crosshair !important;
+}
+
+.graph-canvas.box-selecting * {
+    cursor: crosshair !important;
 }
 
 /* Node dragging styles */
