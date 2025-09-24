@@ -1706,16 +1706,19 @@ export default {
 
 /* Node dragging styles */
 [data-node-id] {
+    z-index: 10; /* Base z-index for all nodes */
     pointer-events: auto; /* Re-enable pointer events on actual node elements */
     cursor: grab;
     user-select: none;
 }
 
 [data-node-id]:hover {
+    z-index: 1001 !important;
     cursor: grab;
 }
 
 [data-node-id].dragging-node {
+    z-index: 1001 !important; /* Selected nodes on top */
     cursor: grabbing !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
     transform: translateZ(0);
@@ -1729,6 +1732,7 @@ export default {
 /* Node selection styles - Shadow-based instead of outline */
 [data-node-id].node-selected {
     /* Remove outline, use shadow only */
+    z-index: 1000 !important; /* Selected nodes on top */
     outline: none !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25),
         0 0 20px rgba(74, 144, 226, 0.4),
