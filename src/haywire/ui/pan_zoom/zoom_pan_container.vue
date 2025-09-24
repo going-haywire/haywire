@@ -9,11 +9,6 @@
     }"
     tabindex="0"
     @wheel.prevent="handleWheel"
-    @mousedown="handleMouseDown"
-    @mousemove="handleMouseMove"
-    @mouseup="handleMouseUp"
-    @mouseleave="handleMouseUp"
-    @keydown="handleKeyDown"
   >
     <div 
       ref="content"
@@ -44,7 +39,14 @@ export default {
       isDragging: false,
       lastMouseX: 0,
       lastMouseY: 0,
-      updateTimeout: null
+      updateTimeout: null,
+      
+      // Add gesture state
+      gestureState: {
+        ctrlPressed: false,
+        shiftPressed: false,
+        isGesturing: false
+      }
     };
   },
   
@@ -59,6 +61,9 @@ export default {
     // Initialize
     this._updateTransformDirect();
     
+    // Setup keyboard listeners
+    this._setupKeyboardListeners();
+
     // API exposure
     this.$el._zoomPanControls = {
       setZoom: (zoom, centerX, centerY) => this._setZoomDirect(zoom, centerX, centerY),
@@ -84,91 +89,57 @@ export default {
   },
   
   methods: {
+
+    _setupKeyboardListeners() {
+      // Listen for modifier key changes
+      document.addEventListener('keydown', this.handleGlobalKeyDown);
+      document.addEventListener('keyup', this.handleGlobalKeyUp);
+    },
+    
+    _cleanupKeyboardListeners() {
+      document.removeEventListener('keydown', this.handleGlobalKeyDown);
+      document.removeEventListener('keyup', this.handleGlobalKeyUp);
+    },
+    
+    handleGlobalKeyDown(e) {
+      // Track modifier key states
+      if (e.key === 'Control' || e.key === 'Meta') { // Meta for Cmd on Mac
+        this.gestureState.ctrlPressed = true;
+      }
+      
+      if (e.key === 'Shift') {
+        this.gestureState.shiftPressed = true;
+      }
+    },
+    
+    handleGlobalKeyUp(e) {
+      // Track modifier key states
+      if (e.key === 'Control' || e.key === 'Meta') {
+        this.gestureState.ctrlPressed = false;
+      }
+      
+      if (e.key === 'Shift') {
+        this.gestureState.shiftPressed = false;
+      }
+    },
+    
     handleWheel(e) {
       // Immediate processing - no batching
-      const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
-      this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
-    },
-    
-    handleMouseDown(e) {
-      if (e.button === 0) {
-        // Check if the target is an interactive element
-        const target = e.target;
-        
-        // Basic form controls and buttons
-        const isBasicInteractiveElement = target.matches('input, textarea, select, button, [contenteditable], .q-field__native, .q-field__input') ||
-                                        target.closest('.q-field') ||
-                                        target.closest('input') ||
-                                        target.closest('button') ||
-                                        target.closest('[role="button"]');
-        
-        // Node-specific interactive elements
-        const isNodeInteractiveElement = target.closest('.node-card') ||           // Node cards themselves
-                                       target.closest('.drag-handle') ||          // Drag handles on nodes
-                                       target.closest('.port') ||                 // Input/output ports
-                                       target.closest('.output-port') ||          // Output ports specifically
-                                       target.closest('.input-port') ||           // Input ports specifically
-                                       target.closest('[data-draggable="true"]') ||// Draggable elements
-                                       target.closest('[draggable="true"]') ||     // HTML5 draggable elements
-                                       target.closest('.q-btn') ||                 // Quasar buttons
-                                       target.closest('.clickable');               // Elements marked as clickable
-        
-        // Custom interactive elements (you can extend this list)
-        const isCustomInteractiveElement = target.closest('[data-interactive="true"]') ||  // Custom marker
-                                         target.closest('.interactive') ||                 // Custom class
-                                         target.closest('[data-node-id]') ||              // Elements with node IDs
-                                         target.closest('[data-port-name]') ||            // Port elements
-                                         target.hasAttribute('data-draggable') ||         // Custom draggable attribute
-                                         target.classList.contains('no-pan');             // Elements that should never pan
-        
-        // Combine all checks
-        if (isBasicInteractiveElement || isNodeInteractiveElement || isCustomInteractiveElement) {
-          // Don't start dragging if clicking on interactive elements
-          return;
-        }
-        
-        this.isDragging = true;
-        this.$el.classList.add('dragging');
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
-        e.preventDefault();
+      // Check if we're in a special gesture mode
+      const isCtrlGesture = this.gestureState.ctrlPressed;
+      const isShiftGesture = this.gestureState.shiftPressed;
+       
+      if (isCtrlGesture) {
+        const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
+        this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
       }
-    },
-    
-    handleMouseMove(e) {
-      if (this.isDragging) {
-        const deltaX = (e.clientX - this.lastMouseX) * this.panSensitivity;
-        const deltaY = (e.clientY - this.lastMouseY) * this.panSensitivity;
-        
+      else if (isShiftGesture) {
+        const deltaX = (-e.deltaX) * this.panSensitivity;
+        const deltaY = (-e.deltaY) * this.panSensitivity;
         this._setPanDirect(this._panX + deltaX, this._panY + deltaY);
-        
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
       }
     },
-    
-    handleMouseUp() {
-      this.isDragging = false;
-      this.$el.classList.remove('dragging');
-    },
-    
-    handleKeyDown(e) {
-      if (!this.enableKeyboard) return;
-      
-      if (e.key === '+' || e.key === '=') {
-        e.preventDefault();
-        this._setZoomDirect(this._zoom + this.zoomSensitivity);
-      } else if (e.key === '-') {
-        e.preventDefault();
-        this._setZoomDirect(this._zoom - this.zoomSensitivity);
-      } else if (e.key === '0') {
-        e.preventDefault();
-        this._zoom = this.initialZoom;
-        this._panX = 0;
-        this._panY = 0;
-        this._updateTransformDirect();
-      }
-    },
+
 
     _setZoomDirect(newZoom, centerX = null, centerY = null) {
       const oldZoom = this._zoom;
