@@ -307,13 +307,13 @@ export default {
             
 
             // Check if path already exists
-            if (this.connectionPaths.has(pathId)) {
+            if (this.connectionPaths.has(connectionId)) {
                 if (path.dataset.isValid === String(isValid)) {
-                    console.log(`🔗 Vue connection already exists and is valid:`, pathId);
+                    console.log(`🔗 Vue connection already exists and is valid:`, connectionId);
                     return;
                 } else {
                     // Remove existing path to replace with new validity state
-                    console.log(`🔗 Vue connection exists but validity changed, replacing:`, pathId);
+                    console.log(`🔗 Vue connection exists but validity changed, replacing:`, connectionId);
                     this._removeConnectionVisual(connectionId);
                 }
             }
@@ -955,7 +955,7 @@ export default {
             path.setAttribute('id', pathId);
             path.setAttribute('data-connection-id', pathId); 
             if (isValid) {
-                path.setAttribute('stroke', pinColor); 
+                path.setAttribute('stroke', startPin.dataset.pinColor); 
                 path.dataset.startColor = startPin.dataset.pinColor || '#bbbbbb';
                 path.dataset.endColor = endPin.dataset.pinColor || '#333333';
             } else {

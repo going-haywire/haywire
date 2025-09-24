@@ -68,7 +68,7 @@ class GraphCanvasManager:
         
         # Visual state
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
-        self.connection_paths: Dict[str, str] = {}  # edge_key -> path_id
+        self.connection_paths: Dict[str, Edge] = {}  # connection_id -> Edge object
         self.selected_nodes: Set[str] = set()
         self.selected_connections: Set[str] = set()
         
@@ -186,16 +186,9 @@ class GraphCanvasManager:
         connection_id = event.connectionId
         print(f"🗑️ Deleting connection {connection_id} from context menu")
         
-        # Find the edge by connection_id
-        edge_to_remove = None
-        for edge in self.graph.edges:
-            edge_key = self._get_edge_key(edge)
-            if edge_key == connection_id:
-                edge_to_remove = edge
-                break
-        
-        if edge_to_remove:
-            # Use Editor to delete connection - it will handle history and notify callbacks
+        # Direct lookup instead of searching through all edges
+        if connection_id in self.connection_paths:
+            edge_to_remove = self.connection_paths[connection_id]
             success = self.editor.delete_connection_by_edge(edge_to_remove)
             if success:
                 ui.notify(f"Deleted connection")
@@ -367,26 +360,29 @@ class GraphCanvasManager:
                     self.update_node_position(node_id, new_position)
             
             # Sync connections - use incremental updates for better performance
-            current_edge_keys = set(self.connection_paths.keys())
-            graph_edge_keys = set()
+            current_connection_ids = set(self.connection_paths.keys())
+            graph_connection_ids = set()
             
             # Add or update connections from graph
             for edge in self.graph.edges:
-                edge_key = self._get_edge_key(edge)
-                graph_edge_keys.add(edge_key)
+                connection_id = generate_connection_id(
+                    edge.output_node_id, edge.outlet_pin_id,
+                    edge.input_node_id, edge.inlet_pin_id
+                )
+                graph_connection_ids.add(connection_id)
                 
                 # Add new connections that don't exist visually
-                if edge_key not in current_edge_keys:
-                    print(f"🔄 Adding new connection: {edge_key}")
+                if connection_id not in current_connection_ids:
+                    print(f"🔄 Adding new connection: {connection_id}")
                     self.add_connection_visual(edge)
             
             # Remove connections no longer in graph
-            connections_to_remove = current_edge_keys - graph_edge_keys
-            for edge_key in connections_to_remove:
-                print(f"🔄 Removing old connection: {edge_key}")
-                self.remove_connection_visual(edge_key)
+            connections_to_remove = current_connection_ids - graph_connection_ids
+            for connection_id in connections_to_remove:
+                print(f"🔄 Removing old connection: {connection_id}")
+                self.remove_connection_visual(connection_id)
             
-            print(f"🔄 Incremental connection sync: {len(graph_edge_keys)} total connections")
+            print(f"🔄 Incremental connection sync: {len(graph_connection_ids)} total connections")
             
             # Sync selection state from graph to UI using existing methods
             graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
@@ -469,11 +465,14 @@ class GraphCanvasManager:
         edges_to_remove = []
         for edge in self.graph.edges:
             if edge.input_node_id == node_id or edge.output_node_id == node_id:
-                edge_key = self._get_edge_key(edge)
-                edges_to_remove.append(edge_key)
+                connection_id = generate_connection_id(
+                    edge.output_node_id, edge.outlet_pin_id,
+                    edge.input_node_id, edge.inlet_pin_id
+                )
+                edges_to_remove.append(connection_id)
         
-        for edge_key in edges_to_remove:
-            self.remove_connection_visual(edge_key)
+        for connection_id in edges_to_remove:
+            self.remove_connection_visual(connection_id)
         
         # Remove node visual
         visual_data = self.node_panels[node_id]
@@ -518,9 +517,6 @@ class GraphCanvasManager:
     def add_connection_visual(self, edge: Edge) -> bool:
         """Add a visual connection between two nodes."""
         print(f"🔗 Python: Adding connection visual for {edge.output_node_id}:{edge.outlet_pin_id} -> {edge.input_node_id}:{edge.inlet_pin_id}")
-        edge_key = self._get_edge_key(edge)
-        
-        # Use the helper function to generate proper connection ID
         connection_id = generate_connection_id(
             edge.output_node_id, edge.outlet_pin_id,
             edge.input_node_id, edge.inlet_pin_id
@@ -536,21 +532,21 @@ class GraphCanvasManager:
         )        
         self.canvas_vue.emit_sync_event(sync_event)
 
-        self.connection_paths[edge_key] = connection_id
+        self.connection_paths[connection_id] = edge
         print(f"🔗 Python: Created connection via direct sync event with ID: {connection_id}")
         return True
    
-    def remove_connection_visual(self, edge_key: str) -> bool:
+    def remove_connection_visual(self, connection_id: str) -> bool:
         """Remove a connection's visual representation."""
-        if edge_key not in self.connection_paths:
+        if connection_id not in self.connection_paths:
             return False
             
-        connection_id = self.connection_paths[edge_key]
+        edge = self.connection_paths[connection_id]
         
         sync_event = SyncConnectionRemovalEvent(connectionId=connection_id)
         self.canvas_vue.emit_sync_event(sync_event)
 
-        del self.connection_paths[edge_key]
+        del self.connection_paths[connection_id]
         return True
    
     def clear_all_visuals(self):
@@ -590,40 +586,36 @@ class GraphCanvasManager:
         )
         self.canvas_vue.emit_sync_event(sync_event)
     
-    def select_connection(self, edge_key: str, multi_select: bool = False):
+    def select_connection(self, connection_id: str, multi_select: bool = False):
         """Select a connection."""
         if not multi_select:
             self.selected_connections.clear()
         
-        self.selected_connections.add(edge_key)
+        self.selected_connections.add(connection_id)
         
-        # Convert edge_key to connection_id for Vue
-        if edge_key in self.connection_paths:
-            connection_id = self.connection_paths[edge_key]
-            
+        # Send to Vue component
+        if connection_id in self.connection_paths:
             sync_event = SyncConnectionSelectionEvent(
                 connectionId=connection_id,
                 selected=True,
                 multiSelect=multi_select
             )
             self.canvas_vue.emit_sync_event(sync_event)
-            print(f"🎯 Selected connection: {edge_key}")
+            print(f"🎯 Selected connection: {connection_id}")
     
-    def deselect_connection(self, edge_key: str):
+    def deselect_connection(self, connection_id: str):
         """Deselect a connection."""
-        self.selected_connections.discard(edge_key)
+        self.selected_connections.discard(connection_id)
         
-        # Convert edge_key to connection_id for Vue
-        if edge_key in self.connection_paths:
-            connection_id = self.connection_paths[edge_key]
-            
+        # Send to Vue component
+        if connection_id in self.connection_paths:
             sync_event = SyncConnectionSelectionEvent(
                 connectionId=connection_id,
                 selected=False,
                 multiSelect=False
             )
             self.canvas_vue.emit_sync_event(sync_event)
-            print(f"🎯 Deselected connection: {edge_key}")
+            print(f"🎯 Deselected connection: {connection_id}")
         
     def clear_selection(self):
         """Clear all selections."""
@@ -664,16 +656,6 @@ class GraphCanvasManager:
         """Zoom out."""
         if self.zoom_container:
             self.zoom_container.zoom_out()
-
-    # Connection Management
-    def _get_edge_key(self, edge: Edge) -> str:
-        """Generate a unique key for an edge using Format 2."""
-        return generate_connection_id(
-            edge.output_node_id, 
-            edge.outlet_pin_id, 
-            edge.input_node_id, 
-            edge.inlet_pin_id
-        )
 
     # Observer methods - using sync events
     def add_node_observer(self, node_id: str):
