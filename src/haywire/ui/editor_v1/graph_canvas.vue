@@ -41,10 +41,10 @@ export default {
                 tempPath: null,
                 hasNodes: false,
                 lastDragEndTime: null,
-                // NEW: Add suggestion state
-                suggestedConnections: new Map(), // pin -> path element
-                nearestSuggestedPin: null,
-                suggestionProximityRange: 150 // pixels - adjust as needed
+                lockProximityRange: 150, 
+                suggestionProximityRange: 200 ,
+                suggestedConnections: new Map(),
+                nearestSuggestedPin: null
             },
             // Add node dragging state
             nodeDragState: {
@@ -708,7 +708,6 @@ export default {
 
             // Highlight pins based on proximity and compatibility
             const targetPin = e.target.closest('.connection-pin');
-            const proximityRange = 200; // pixels - adjust this value as needed
             let nearestCompatiblePin = null;
             let nearestDistance = Infinity;
             
@@ -731,16 +730,15 @@ export default {
                         pin.classList.add('connection-valid');
                         nearestCompatiblePin = pin;
                         nearestDistance = 0; // Direct hover takes priority
-                    } 
-                    else if (distance <= proximityRange) {
+                    } else if (distance <= this.connectionState.suggestionProximityRange) {
                         if(this.connectionState.startPin.dataset.pinDataType === pin.dataset.pinDataType) {
                              // Compatible pins within range
                             pin.classList.add('connection-compatible');
                              
-                            this._createSuggestionPath(pin);
+                            this._createSuggestionPath(pin, distance);
 
                             // Track nearest compatible pin within suggestion range
-                            if (distance <= this.connectionState.suggestionProximityRange && distance < nearestDistance) {
+                            if (distance < nearestDistance) {
                                 nearestCompatiblePin = pin;
                                 nearestDistance = distance;
                             }
@@ -816,7 +814,7 @@ export default {
         },
 
         // Add these methods for connection suggestions
-        _createSuggestionPath(targetPin) {
+        _createSuggestionPath(targetPin, distance) {
             // Don't create duplicate suggestions
             if (this.connectionState.suggestedConnections.has(targetPin)) {
                 return;
@@ -834,7 +832,6 @@ export default {
             suggestionPath.setAttribute('stroke', this.connectionState.startPin.dataset.pinColor || '#4CAF50');
             suggestionPath.setAttribute('stroke-width', '2');
             suggestionPath.setAttribute('fill', 'none');
-            suggestionPath.setAttribute('stroke-dasharray', '8 4'); // Longer dashes than temp path
             suggestionPath.setAttribute('opacity', '0.6');
             suggestionPath.style.pointerEvents = 'none';
             suggestionPath.classList.add('connection-suggestion');
@@ -1880,14 +1877,15 @@ path.connection-selected {
 
 /* Connection suggestion styles */
 .connection-suggestion {
-    transition: opacity 0.2s ease, stroke-width 0.2s ease !important;
+    opacity: 0.3 !important;
+    stroke-width: 2 !important;
+    stroke-dasharray: 12 6 !important; /* More prominent dashing */
 }
 
 .connection-suggestion-nearest {
-    opacity: 0.9 !important;
+    opacity: 0.8 !important;
+    stroke-dasharray: 8 4 !important; /* More prominent dashing */
     stroke-width: 3 !important;
-    stroke-dasharray: 12 6 !important; /* More prominent dashing */
-    animation: connection-suggestion-pulse 1.5s ease-in-out infinite !important;
 }
 
 </style>
