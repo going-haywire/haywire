@@ -800,10 +800,12 @@ export default {
                     startData = endPin.dataset;
                 }
 
-                // Emit connection created event using new unified system
-                this.emitCanvasEvent(EventCreators.createConnectionCreated(
-                    startData.nodeId, startData.pinId, endData.nodeId, endData.pinId
-                ));
+                if (!this._connectionExists(startData.nodeId, startData.pinId, endData.nodeId, endData.pinId)) {
+                    // Emit connection created event using new unified system
+                    this.emitCanvasEvent(EventCreators.createConnectionCreated(
+                        startData.nodeId, startData.pinId, endData.nodeId, endData.pinId
+                    ));
+                }
             }
 
             // Reset state
@@ -1704,6 +1706,14 @@ export default {
                     nodeElement._animationTimers.push(timer);
                 }
             }
+        },
+
+        _connectionExists(outputNodeId, outletPinId, inputNodeId, inletPinId) {
+            // Build the connection ID using the same format as your system
+            const connectionId = this._buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId);
+            
+            // Check if it exists in the connectionPaths map
+            return this.connectionPaths.has(connectionId);
         },
 
         // =============================================================================
