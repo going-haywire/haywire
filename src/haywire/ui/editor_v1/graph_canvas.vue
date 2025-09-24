@@ -1083,8 +1083,11 @@ export default {
             const startPos = this._getPinPosition(startPin);
             const endPos = this._getPinPosition(endPin);
 
-            const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
-            const pathData = `M ${startPos.x} ${startPos.y} C ${startPos.x + controlOffset} ${startPos.y}, ${endPos.x - controlOffset} ${endPos.y}, ${endPos.x} ${endPos.y}`;
+            const offsetDir = startPin.dataset.pinDir === 'inlet' ? -1 : 1;
+            const pathData = this._createBezierPath(startPos, endPos, offsetDir);
+
+            //const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
+            //const pathData = `M ${startPos.x} ${startPos.y} C ${startPos.x + controlOffset} ${startPos.y}, ${endPos.x - controlOffset} ${endPos.y}, ${endPos.x} ${endPos.y}`;
 
             pathElement.setAttribute('d', pathData);
             // Also update the hit area if it exists
