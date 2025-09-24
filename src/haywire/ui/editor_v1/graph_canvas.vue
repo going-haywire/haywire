@@ -305,6 +305,19 @@ export default {
             const { connectionId, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid } = data;
             console.log('🔗 Vue _syncConnectionAddition called with:', data);
             
+
+            // Check if path already exists
+            if (this.connectionPaths.has(pathId)) {
+                if (path.dataset.isValid === String(isValid)) {
+                    console.log(`🔗 Vue connection already exists and is valid:`, pathId);
+                    return;
+                } else {
+                    // Remove existing path to replace with new validity state
+                    console.log(`🔗 Vue connection exists but validity changed, replacing:`, pathId);
+                    this._removeConnectionVisual(connectionId);
+                }
+            }
+
             // Create connection visual directly
             const result = this._createConnectionVisual(
                 outputNodeId, 
@@ -910,91 +923,6 @@ export default {
             this.nodeDragState.mouseDownEvent = null;
         },
 
-
-        // =============================================================================
-        // CONNECTION MANAGEMENT - PUBLIC API
-        // =============================================================================
-
-        updateConnectionPath(pathElement) {
-            if (!pathElement || !pathElement.id) return;
-
-            const pathId = pathElement.id;
-            const connectionInfo = this._parseConnectionId(pathId);
-
-            if (!connectionInfo) {
-                console.error(`Failed to parse connection ID: ${pathId}`);
-                pathElement.remove();
-                this.connectionPaths.delete(pathId);
-                return;
-            }
-
-            const startPin = document.getElementById(connectionInfo.outletPinFullId);
-            const endPin = document.getElementById(connectionInfo.inletPinFullId);
-
-            if (!startPin || !endPin) {
-                pathElement.remove();
-                this.connectionPaths.delete(pathId);
-                return;
-            }
-
-            const startPos = this._getPinPosition(startPin);
-            const endPos = this._getPinPosition(endPin);
-
-            const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
-            const pathData = `M ${startPos.x} ${startPos.y} C ${startPos.x + controlOffset} ${startPos.y}, ${endPos.x - controlOffset} ${endPos.y}, ${endPos.x} ${endPos.y}`;
-
-            pathElement.setAttribute('d', pathData);
-
-            const isValid = pathElement.dataset.isValid === 'true';
-
-            let startColor = startPin.dataset.pinColor || '#000000';
-            let endColor = endPin.dataset.pinColor || '#000000';
-            if (!isValid) {
-                startColor = '#FF0000';
-                endColor = '#FF0000';
-            } 
-
-            // Update stroke with gradient
-            const stroke = this._createBezierStroke(startPos, endPos, startColor, endColor, pathId);
-            pathElement.setAttribute('stroke', stroke);
-
-            // Set consistent stroke width
-            pathElement.setAttribute('stroke-width', '2');
-
-            // Also update the hit area if it exists
-            const hitArea = document.getElementById(pathId + '_hitarea');
-            if (hitArea) {
-                hitArea.setAttribute('d', pathData);
-            }
-        },
-
-        updateAllConnections() {
-            if (this.updateConnectionsThrottled) return;
-            this.updateConnectionsThrottled = true;
-
-            requestAnimationFrame(() => {
-                this.connectionPaths.forEach(path => {
-                    this.updateConnectionPath(path);
-                });
-
-                // Reset throttle
-                setTimeout(() => {
-                    this.updateConnectionsThrottled = false;
-                }, 16); // ~60fps
-            });
-        },
-
-        updateConnectionsForNode(nodeId) {
-            if (!nodeId) return;
-
-            // Find all paths connected to this node
-            this.connectionPaths.forEach((path, pathId) => {
-                if (pathId.includes(nodeId)) {
-                    this.updateConnectionPath(path);
-                }
-            });
-        },
-
         // =============================================================================
         // CONNECTION MANAGEMENT - INTERNAL
         // =============================================================================
@@ -1020,16 +948,6 @@ export default {
 
                 return { success: false, pathElement: null };
             }
-
-            // Check if path already exists
-            if (this.connectionPaths.has(pathId)) {
-                console.log(`🔗 Vue${logPrefix} connection already exists:`, pathId);
-                return { success: false, pathElement: null };
-            }
-
-            let pinColor = startPin.dataset.pinColor || '#000000';
-            let strokeWidth = 2;
-
             
             // Create SVG path element
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1038,9 +956,13 @@ export default {
             path.setAttribute('data-connection-id', pathId); 
             if (isValid) {
                 path.setAttribute('stroke', pinColor); 
+                path.dataset.startColor = startPin.dataset.pinColor || '#bbbbbb';
+                path.dataset.endColor = endPin.dataset.pinColor || '#333333';
             } else {
                 path.setAttribute('stroke', '#FF0000'); 
                 path.setAttribute('stroke-dasharray', '2');
+                path.dataset.startColor = '#FF0000';
+                path.dataset.endColor = '#990000';
             }
             path.setAttribute('stroke-width', '2');
             path.setAttribute('fill', 'none');
@@ -1090,7 +1012,6 @@ export default {
 
             if (path) {
                 path.remove();
-                this.connectionPaths.delete(connectionId);
 
                 // Also remove the invisible hit area
                 const hitArea = document.getElementById(connectionId + '_hitarea');
@@ -1104,12 +1025,88 @@ export default {
                     gradient.remove();
                 }
 
+                this.connectionPaths.delete(connectionId);
                 console.log('🔗 Vue (internal) removed path element:', connectionId);
                 return true;
             } else {
                 console.log('🔗 Vue (internal) path not found for removal:', connectionId);
                 return false;
             }
+        },
+
+        // =============================================================================
+        // CONNECTION MANAGEMENT - PUBLIC API
+        // =============================================================================
+
+        updateConnectionPath(pathElement) {
+            if (!pathElement || !pathElement.id) return;
+
+            const pathId = pathElement.id;
+            const connectionInfo = this._parseConnectionId(pathId);
+
+            if (!connectionInfo) {
+                console.error(`Failed to parse connection ID: ${pathId}`);
+                return;
+            }
+
+            const startPin = document.getElementById(connectionInfo.outletPinFullId);
+            const endPin = document.getElementById(connectionInfo.inletPinFullId);
+
+            if (!startPin || !endPin) {
+                console.error(`Failed to find pins for connection ID: ${pathId}`);
+                return;
+            }
+
+            const startPos = this._getPinPosition(startPin);
+            const endPos = this._getPinPosition(endPin);
+
+            const controlOffset = Math.abs(endPos.x - startPos.x) * 0.5;
+            const pathData = `M ${startPos.x} ${startPos.y} C ${startPos.x + controlOffset} ${startPos.y}, ${endPos.x - controlOffset} ${endPos.y}, ${endPos.x} ${endPos.y}`;
+
+            pathElement.setAttribute('d', pathData);
+            // Also update the hit area if it exists
+            const hitArea = document.getElementById(pathId + '_hitarea');
+            if (hitArea) {
+                hitArea.setAttribute('d', pathData);
+            }
+
+            const isValid = pathElement.dataset.isValid === 'true';
+
+            let startColor = pathElement.dataset.startColor || '#000000';
+            let endColor = pathElement.dataset.endColor || '#000000';
+
+            // Update stroke with gradient
+            const stroke = this._createBezierStroke(startPos, endPos, startColor, endColor, pathId);
+
+            pathElement.setAttribute('stroke', stroke);
+
+        },
+
+        updateAllConnections() {
+            if (this.updateConnectionsThrottled) return;
+            this.updateConnectionsThrottled = true;
+
+            requestAnimationFrame(() => {
+                this.connectionPaths.forEach(path => {
+                    this.updateConnectionPath(path);
+                });
+
+                // Reset throttle
+                setTimeout(() => {
+                    this.updateConnectionsThrottled = false;
+                }, 16); // ~60fps
+            });
+        },
+
+        updateConnectionsForNode(nodeId) {
+            if (!nodeId) return;
+
+            // Find all paths connected to this node
+            this.connectionPaths.forEach((path, pathId) => {
+                if (pathId.includes(nodeId)) {
+                    this.updateConnectionPath(path);
+                }
+            });
         },
 
         // =============================================================================
