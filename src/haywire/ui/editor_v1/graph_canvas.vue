@@ -2,6 +2,14 @@
     <div :id="containerId" ref="container" class="graph-canvas" :class="{
         dragging: connectionState.isDragging,
     }" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
+        <!-- SVG layer for connections -->
+        <svg id="connection-svg" ref="svg" class="connection-svg" :style="svgTransform">
+            <defs ref="defs">
+                <!-- Dynamic gradients will be added here -->
+            </defs>
+            <!-- Dynamic paths will be added here -->
+        </svg>
+
         <!-- Node container slot -->
         <div id="node-container" ref="nodeContainer" class="node-container" :style="nodeContainerTransform">
             <!-- Debug info to verify component is working -->
@@ -10,13 +18,6 @@
             </div>
             <slot></slot>
         </div>
-        <!-- SVG layer for connections -->
-        <svg id="connection-svg" ref="svg" class="connection-svg" :style="svgTransform">
-            <defs ref="defs">
-                <!-- Dynamic gradients will be added here -->
-            </defs>
-            <!-- Dynamic paths will be added here -->
-        </svg>
 
     </div>
 </template>
@@ -1683,14 +1684,9 @@ export default {
     left: 0;
     width: 8000px;
     height: 8000px;
-    pointer-events: none;
-    z-index: 10;
-    /* Above nodes to ensure path clicks work */
-}
-
-.connection-svg path {
-    pointer-events: stroke;
-    /* stroke-width is set by SVG attributes, not overridden by CSS */
+    pointer-events: auto;
+    z-index: 1;
+    /* Behind nodes - connections render behind node elements */
 }
 
 .node-container {
@@ -1699,6 +1695,7 @@ export default {
     left: 0;
     width: 8000px;
     height: 8000px;
+    pointer-events: none; /* Disable on container */
     z-index: 2;
     /* In front of canvas background */
 }
@@ -1709,6 +1706,7 @@ export default {
 
 /* Node dragging styles */
 [data-node-id] {
+    pointer-events: auto; /* Re-enable pointer events on actual node elements */
     cursor: grab;
     user-select: none;
 }
