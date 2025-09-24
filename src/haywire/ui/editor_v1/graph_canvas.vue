@@ -576,24 +576,7 @@ export default {
         },
 
         handleCanvasClick(event) {
-            // Prevent context menu handling if this was a context click
-            if (event.button === 2 || event.which === 3) {
-                return;
-            }
-
-            // Only handle clicks on the canvas itself or empty space
-            if (event.target === this.$refs.nodeContainer ||
-                event.target === this.$refs.svg) {
-
-                console.log('Click on empty canvas - clearing selection');
-
-                // Clear selection when clicking on empty canvas
-                this.clearSelection();
-
-                // Emit selection change event to Python for history tracking using new unified system
-                this.emitCanvasEvent(EventCreators.createSelectionChanged([], []));
-            }
-
+            // we do everything inside this.handleMouseDown
             return;
         },
 
@@ -1434,6 +1417,10 @@ export default {
             console.log('🔲 Ending box selection');
 
             if (!this.boxSelectionState.isActive) return;
+
+            // IMPORTANT: Prevent the event from bubbling to canvas click handler
+            e.preventDefault();
+            e.stopPropagation();
 
             // Final selection update
             this._updateBoxSelectionTargets(e.ctrlKey || e.metaKey);
