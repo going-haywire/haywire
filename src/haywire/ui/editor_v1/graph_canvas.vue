@@ -73,6 +73,13 @@ export default {
                 lastClickTime: 0,
                 clickThreshold: 300 // ms to distinguish between click and drag
             },
+            // Add selection drag state
+            selectionDragState: {
+                isMultiDragging: false,
+                dragStartPositions: new Map(), // nodeId -> {x, y}
+                initialMousePos: { x: 0, y: 0 },
+                hasActuallyMoved: false
+            },
             // Add box selection state
             boxSelectionState: {
                 isActive: false,
@@ -587,11 +594,11 @@ export default {
             // This provides intuitive interaction without requiring modifier keys
             // Context menu will appear for: right-click, two-finger click, or Ctrl+click
 
-            // Check if Ctrl key is pressed (Cmd key on Mac)
+            // Check if Shift key is pressed (for future use if needed)
             /*
-            const isCtrlPressed = event.ctrlKey || event.metaKey;
-            if (!isCtrlPressed) {
-                return; // Only show context menu when Ctrl is pressed
+            const isShiftPressed = event.shiftKey;
+            if (!isShiftPressed) {
+                return; // Only show context menu when Shift is pressed
             }
             */
 
@@ -635,26 +642,63 @@ export default {
             }
 
             if (nodeElement) {
-                // Context menu for node
+                // Check if clicked node is part of current selection
                 const nodeId = nodeElement.dataset.nodeId;
-                console.log(`🎯 Context menu for node: ${nodeId}`);
+                const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
+                const hasMultipleNodesSelected = this.selectionState.selectedNodes.size > 1;
+                const hasConnectionsSelected = this.selectionState.selectedConnections.size > 0;
                 
-                // Convert screen coordinates to canvas coordinates
-                const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                
-                this.emitCanvasEvent(EventCreators.createContextMenuNode(
-                    clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
-                ));
+                if (isNodeSelected && (hasMultipleNodesSelected || hasConnectionsSelected)) {
+                    // Context menu for selected elements (multi-selection)
+                    console.log(`🎯 Context menu for selected elements: ${this.selectionState.selectedNodes.size} nodes, ${this.selectionState.selectedConnections.size} connections`);
+                    
+                    // Convert screen coordinates to canvas coordinates
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    
+                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y,
+                        Array.from(this.selectionState.selectedNodes),
+                        Array.from(this.selectionState.selectedConnections)
+                    ));
+                } else {
+                    // Context menu for individual node
+                    console.log(`🎯 Context menu for node: ${nodeId}`);
+                    
+                    // Convert screen coordinates to canvas coordinates
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    
+                    this.emitCanvasEvent(EventCreators.createContextMenuNode(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
+                    ));
+                }
             } else if (connectionElement && connectionId) {
-                // Context menu for connection
-                console.log(`🎯 Context menu for connection: ${connectionId}`);
+                // Check if clicked connection is part of current selection
+                const isConnectionSelected = this.selectionState.selectedConnections.has(connectionId);
+                const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedConnections.size > 1;
                 
-                // Convert screen coordinates to canvas coordinates
-                const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                
-                this.emitCanvasEvent(EventCreators.createContextMenuConnection(
-                    clientX, clientY, canvasCoords.x, canvasCoords.y, connectionId
-                ));
+                if (isConnectionSelected && hasMultipleSelected) {
+                    // Context menu for selected elements (multi-selection)
+                    console.log(`🎯 Context menu for selected elements: ${this.selectionState.selectedNodes.size} nodes, ${this.selectionState.selectedConnections.size} connections`);
+                    
+                    // Convert screen coordinates to canvas coordinates
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    
+                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y,
+                        Array.from(this.selectionState.selectedNodes),
+                        Array.from(this.selectionState.selectedConnections)
+                    ));
+                } else {
+                    // Context menu for individual connection
+                    console.log(`🎯 Context menu for connection: ${connectionId}`);
+                    
+                    // Convert screen coordinates to canvas coordinates
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    
+                    this.emitCanvasEvent(EventCreators.createContextMenuConnection(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, connectionId
+                    ));
+                }
             } else {
                 // Context menu for canvas (empty space)
                 console.log(`🎯 Context menu for canvas`);
@@ -908,8 +952,7 @@ export default {
 
             // Store the mouse down event details for selection handling on mouse up
             this.nodeDragState.mouseDownEvent = {
-                ctrlKey: e.ctrlKey,
-                metaKey: e.metaKey,
+                shiftKey: e.shiftKey,
                 nodeId: nodeElement.dataset.nodeId
             };
 
@@ -944,15 +987,47 @@ export default {
                 // First time we've moved enough - this is when drag actually starts
                 this.nodeDragState.hasActuallyMoved = true;
 
-                console.log('Starting actual node drag for:', nodeId);
+                // Check if we're doing multi-node drag
+                const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
+                const selectedNodeCount = this.selectionState.selectedNodes.size;
+                const isMultiNodeDrag = isNodeSelected && selectedNodeCount > 1;
 
-                // Add visual feedback now
-                nodeElement.style.cursor = 'grabbing';
-                nodeElement.style.zIndex = '1000';
-                nodeElement.classList.add('dragging-node');
+                if (isMultiNodeDrag) {
+                    // Multi-node drag mode
+                    console.log('Starting multi-node drag for:', selectedNodeCount, 'nodes');
+                    this.selectionDragState.isMultiDragging = true;
+                    this.selectionDragState.initialMousePos = { x: e.clientX, y: e.clientY };
+                    this.selectionDragState.hasActuallyMoved = true;
 
-                // Emit drag start event to add fence for undo grouping using new unified system
-                this.emitCanvasEvent(EventCreators.createNodeDragStart(nodeId));
+                    // Store initial positions of all selected nodes
+                    this.selectionState.selectedNodes.forEach(selectedNodeId => {
+                        const selectedNodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
+                        if (selectedNodeElement) {
+                            const currentX = parseInt(selectedNodeElement.style.left) || 0;
+                            const currentY = parseInt(selectedNodeElement.style.top) || 0;
+                            this.selectionDragState.dragStartPositions.set(selectedNodeId, { x: currentX, y: currentY });
+                            
+                            // Add visual feedback to all selected nodes
+                            selectedNodeElement.style.cursor = 'grabbing';
+                            selectedNodeElement.style.zIndex = '1000';
+                            selectedNodeElement.classList.add('dragging-node');
+                        }
+                    });
+
+                    // Emit selection drag start event
+                    this.emitCanvasEvent(EventCreators.createSelectionDragStart(selectedNodeCount));
+                } else {
+                    // Single node drag mode (existing behavior)
+                    console.log('Starting single node drag for:', nodeId);
+
+                    // Add visual feedback now
+                    nodeElement.style.cursor = 'grabbing';
+                    nodeElement.style.zIndex = '1000';
+                    nodeElement.classList.add('dragging-node');
+
+                    // Emit single node drag start event
+                    this.emitCanvasEvent(EventCreators.createNodeDragStart(nodeId));
+                }
 
                 console.log('Node drag started:', {
                     nodeId: nodeId,
@@ -972,20 +1047,50 @@ export default {
             const canvasDeltaX = mouseDeltaX / zoomFactor;
             const canvasDeltaY = mouseDeltaY / zoomFactor;
 
-            // Calculate new position relative to start position
-            const newX = this.nodeDragState.startNodePos.x + canvasDeltaX;
-            const newY = this.nodeDragState.startNodePos.y + canvasDeltaY;
+            if (this.selectionDragState.isMultiDragging) {
+                // Multi-node drag mode - move all selected nodes by the same delta
+                this.selectionState.selectedNodes.forEach(selectedNodeId => {
+                    const selectedNodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
+                    if (selectedNodeElement) {
+                        const startPos = this.selectionDragState.dragStartPositions.get(selectedNodeId);
+                        if (startPos) {
+                            // Calculate new position relative to start position
+                            const newX = startPos.x + canvasDeltaX;
+                            const newY = startPos.y + canvasDeltaY;
 
-            // Apply constraints to keep node within canvas bounds
-            const constrainedX = Math.max(0, Math.min(newX, 7500)); // Leave some margin
-            const constrainedY = Math.max(0, Math.min(newY, 7500));
+                            // Apply constraints to keep node within canvas bounds
+                            const constrainedX = Math.max(0, Math.min(newX, 7500));
+                            const constrainedY = Math.max(0, Math.min(newY, 7500));
 
-            // Update node position
-            nodeElement.style.left = `${constrainedX}px`;
-            nodeElement.style.top = `${constrainedY}px`;
+                            // Update node position
+                            selectedNodeElement.style.left = `${constrainedX}px`;
+                            selectedNodeElement.style.top = `${constrainedY}px`;
 
-            // Update connections immediately for smooth dragging
-            this.updateConnectionsForNode(nodeId);
+                            // Update connections immediately for smooth dragging
+                            this.updateConnectionsForNode(selectedNodeId);
+                        }
+                    }
+                });
+
+                // Emit position change event for multi-node drag (only the delta, not per-node positions)
+                this.emitCanvasEvent(EventCreators.createSelectionPositionChanged(canvasDeltaX, canvasDeltaY));
+            } else {
+                // Single node drag mode (existing behavior)
+                // Calculate new position relative to start position
+                const newX = this.nodeDragState.startNodePos.x + canvasDeltaX;
+                const newY = this.nodeDragState.startNodePos.y + canvasDeltaY;
+
+                // Apply constraints to keep node within canvas bounds
+                const constrainedX = Math.max(0, Math.min(newX, 7500)); // Leave some margin
+                const constrainedY = Math.max(0, Math.min(newY, 7500));
+
+                // Update node position
+                nodeElement.style.left = `${constrainedX}px`;
+                nodeElement.style.top = `${constrainedY}px`;
+
+                // Update connections immediately for smooth dragging
+                this.updateConnectionsForNode(nodeId);
+            }
 
             //console.log(`Node ${nodeId} dragged to: (${constrainedX}, ${constrainedY}) [zoom: ${zoomFactor}]`);
         },
@@ -1005,29 +1110,70 @@ export default {
             const startY = this.nodeDragState.startNodePos.y;
             const positionChanged = (finalX !== startX || finalY !== startY);
 
-            // Remove visual feedback (if any was added)
-            nodeElement.style.cursor = 'grab';
-            nodeElement.style.zIndex = '100';
-            nodeElement.classList.remove('dragging-node');
-
             // Only emit events if we actually dragged (moved beyond threshold)
             if (this.nodeDragState.hasActuallyMoved) {
-                // Only emit position change if the position actually changed
-                if (positionChanged) {
-                    // Emit position change event to Python using new unified system
-                    this.emitCanvasEvent(EventCreators.createNodePositionChanged(
-                        nodeId, { x: finalX, y: finalY }
-                    ));
+                if (this.selectionDragState.isMultiDragging) {
+                    // Multi-node drag end
+                    const selectedNodeCount = this.selectionState.selectedNodes.size;
+                    let anyNodeMoved = false;
 
-                    console.log(`Node ${nodeId} drag ended with position change: (${startX}, ${startY}) -> (${finalX}, ${finalY})`);
+                    // Remove visual feedback from all selected nodes and check for position changes
+                    this.selectionState.selectedNodes.forEach(selectedNodeId => {
+                        const selectedNodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
+                        if (selectedNodeElement) {
+                            // Remove visual feedback
+                            selectedNodeElement.style.cursor = 'grab';
+                            selectedNodeElement.style.zIndex = '100';
+                            selectedNodeElement.classList.remove('dragging-node');
+
+                            // Check if this node actually moved
+                            const currentX = parseInt(selectedNodeElement.style.left) || 0;
+                            const currentY = parseInt(selectedNodeElement.style.top) || 0;
+                            const startPos = this.selectionDragState.dragStartPositions.get(selectedNodeId);
+                            if (startPos && (currentX !== startPos.x || currentY !== startPos.y)) {
+                                anyNodeMoved = true;
+                                
+                                // Emit individual position change events for each moved node
+                                this.emitCanvasEvent(EventCreators.createNodePositionChanged(
+                                    selectedNodeId, { x: currentX, y: currentY }
+                                ));
+                            }
+                        }
+                    });
+
+                    console.log(`Multi-node drag ended for ${selectedNodeCount} nodes, any moved: ${anyNodeMoved}`);
+
+                    // Emit selection drag end event
+                    this.emitCanvasEvent(EventCreators.createSelectionDragEnd(selectedNodeCount, anyNodeMoved));
+
+                    // Reset selection drag state
+                    this.selectionDragState.isMultiDragging = false;
+                    this.selectionDragState.hasActuallyMoved = false;
+                    this.selectionDragState.dragStartPositions.clear();
                 } else {
-                    console.log(`Node ${nodeId} drag ended with no position change: (${finalX}, ${finalY})`);
-                }
+                    // Single node drag end (existing behavior)
+                    // Remove visual feedback
+                    nodeElement.style.cursor = 'grab';
+                    nodeElement.style.zIndex = '100';
+                    nodeElement.classList.remove('dragging-node');
 
-                // Emit drag end event to close fence for undo grouping using new unified system
-                this.emitCanvasEvent(EventCreators.createNodeDragEnd(
-                    nodeId, positionChanged
-                ));
+                    // Only emit position change if the position actually changed
+                    if (positionChanged) {
+                        // Emit position change event to Python using new unified system
+                        this.emitCanvasEvent(EventCreators.createNodePositionChanged(
+                            nodeId, { x: finalX, y: finalY }
+                        ));
+
+                        console.log(`Node ${nodeId} drag ended with position change: (${startX}, ${startY}) -> (${finalX}, ${finalY})`);
+                    } else {
+                        console.log(`Node ${nodeId} drag ended with no position change: (${finalX}, ${finalY})`);
+                    }
+
+                    // Emit drag end event to close fence for undo grouping using new unified system
+                    this.emitCanvasEvent(EventCreators.createNodeDragEnd(
+                        nodeId, positionChanged
+                    ));
+                }
             } else {
                 // This was just a click, not a drag - handle as selection now
                 console.log(`Node ${nodeId} was clicked (not dragged) - handling selection`);
@@ -1035,8 +1181,7 @@ export default {
                 // Handle selection using stored event details
                 if (this.nodeDragState.mouseDownEvent) {
                     const mockEvent = {
-                        ctrlKey: this.nodeDragState.mouseDownEvent.ctrlKey,
-                        metaKey: this.nodeDragState.mouseDownEvent.metaKey
+                        shiftKey: this.nodeDragState.mouseDownEvent.shiftKey
                     };
                     this._handleNodeSelection(mockEvent, nodeId);
                 }
@@ -1050,6 +1195,11 @@ export default {
             this.nodeDragState.dragOffset = { x: 0, y: 0 };
             this.nodeDragState.hasActuallyMoved = false;
             this.nodeDragState.mouseDownEvent = null;
+
+            // Reset selection drag state (in case it wasn't reset above)
+            this.selectionDragState.isMultiDragging = false;
+            this.selectionDragState.hasActuallyMoved = false;
+            this.selectionDragState.dragStartPositions.clear();
         },
 
         // =============================================================================
@@ -1396,8 +1546,8 @@ export default {
             this.boxSelectionState.startPos = canvasPos;
             this.boxSelectionState.currentPos = canvasPos;
 
-            // Clear existing selection unless Ctrl/Cmd is held
-            if (!e.ctrlKey && !e.metaKey) {
+            // Clear existing selection unless Shift is held
+            if (!e.shiftKey) {
                 this.clearSelection();
             }
         },
@@ -1410,7 +1560,7 @@ export default {
             this.boxSelectionState.currentPos = canvasPos;
 
             // Continuously update selection during drag
-            this._updateBoxSelectionTargets(e.ctrlKey || e.metaKey);
+            this._updateBoxSelectionTargets(e.shiftKey);
         },
 
         _endBoxSelection(e) {
@@ -1423,7 +1573,7 @@ export default {
             e.stopPropagation();
 
             // Final selection update
-            this._updateBoxSelectionTargets(e.ctrlKey || e.metaKey);
+            this._updateBoxSelectionTargets(e.shiftKey);
 
             // Reset box selection state
             this.boxSelectionState.isActive = false;
@@ -1595,7 +1745,7 @@ export default {
 
         // Selection Management Methods
         _handleNodeSelection(e, nodeId) {
-            const multiSelect = e.ctrlKey || e.metaKey;
+            const multiSelect = e.shiftKey;
 
             if (multiSelect) {
                 // Toggle selection
@@ -1659,7 +1809,7 @@ export default {
         _handleConnectionSelection(e, pathId) {
             console.log('🎯 _handleConnectionSelection called with pathId:', pathId);
             e.preventDefault();
-            const multiSelect = e.ctrlKey || e.metaKey;
+            const multiSelect = e.shiftKey;
 
             if (multiSelect) {
                 // Toggle selection

@@ -238,6 +238,40 @@ class GraphCanvasManager:
         # Use Editor to move node - it will handle history and notify callbacks
         self.editor.move_node(event.nodeId, event.position['x'], event.position['y'])
 
+    @handles_event(SelectionDragStartEvent)
+    def process_selection_drag_start(self, event: SelectionDragStartEvent):
+        """Handle selection drag start"""
+        current_selected_count = len(self.selected_nodes)
+        if event.selectedNodeCount != current_selected_count:
+            print(f"⚠️ Selection count mismatch: event={event.selectedNodeCount}, current={current_selected_count}")
+            return
+            
+        print(f"Selection drag started for {event.selectedNodeCount} nodes")
+        # Add fence to group all selection drag actions together
+        self.editor.add_fence()
+        # TODO: Implement additional selection drag start logic
+
+    @handles_event(SelectionDragEndEvent)
+    def process_selection_drag_end(self, event: SelectionDragEndEvent):
+        """Handle selection drag end"""
+        current_selected_count = len(self.selected_nodes)
+        if event.selectedNodeCount != current_selected_count:
+            print(f"⚠️ Selection count mismatch: event={event.selectedNodeCount}, current={current_selected_count}")
+            return
+            
+        print(f"Selection drag ended for {event.selectedNodeCount} nodes, actually moved: {event.actuallyMoved}")
+        # Add fence to end the selection drag operation grouping
+        if event.actuallyMoved:
+            self.editor.add_fence()
+        # TODO: Implement additional selection drag end logic
+
+    @handles_event(SelectionPositionChangedEvent)
+    def process_selection_position_change(self, event: SelectionPositionChangedEvent):
+        """Handle selection position updates during drag"""
+        print(f"Selection position changed by delta: ({event.deltaX}, {event.deltaY})")
+        # TODO: Implement selection position change logic - apply deltaX/deltaY to all selected nodes
+        pass
+
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Handle selection changes"""
@@ -266,7 +300,7 @@ class GraphCanvasManager:
         self.selected_nodes = selected_nodes_set
         self.selected_connections = selected_connections_set
     
-    @handles_event(ContextMenuCanvasEvent, ContextMenuNodeEvent, ContextMenuConnectionEvent)
+    @handles_event(ContextMenuCanvasEvent, ContextMenuNodeEvent, ContextMenuConnectionEvent, ContextMenuSelectedEvent)
     def process_context_menu(self, event):
         """Handle context menu events"""
         if isinstance(event, ContextMenuCanvasEvent):
@@ -283,6 +317,11 @@ class GraphCanvasManager:
             print(f"Connection context menu for {event.connectionId} at ({event.screenX}, {event.screenY})")
             if self.context_menu:
                 self.context_menu.show_connection_menu(event.screenX, event.screenY, event.connectionId)
+        
+        elif isinstance(event, ContextMenuSelectedEvent):
+            print(f"Selected context menu at ({event.screenX}, {event.screenY}) for {len(event.selectedNodes)} nodes, {len(event.selectedConnections)} connections")
+            if self.context_menu:
+                self.context_menu.show_selected_menu(event.screenX, event.screenY, event.selectedNodes, event.selectedConnections)
     
     @handles_event(NodeCreateRequestEvent)
     def process_node_creation_request(self, event: NodeCreateRequestEvent):

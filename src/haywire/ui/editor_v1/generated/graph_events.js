@@ -12,10 +12,14 @@ window.GraphEvents = {
     CONNECTION_CLICKED: 'connectionClicked', // Connection clicked
     NODE_DRAG_START: 'nodeDragStart', // Node drag started
     NODE_DRAG_END: 'nodeDragEnd', // Node drag ended
+    SELECTION_DRAG_START: 'selectionDragStart', // Selection drag started
+    SELECTION_DRAG_END: 'selectionDragEnd', // Selection drag ended
+    SELECTION_POSITION_CHANGED: 'selectionPositionChanged', // Selection position updated during drag
     SELECTION_CHANGED: 'selectionChanged', // Selection state changed
     CONTEXT_MENU_CANVAS: 'contextMenuCanvas', // Canvas context menu triggered
     CONTEXT_MENU_NODE: 'contextMenuNode', // Node context menu triggered
     CONTEXT_MENU_CONNECTION: 'contextMenuConnection', // Connection context menu triggered
+    CONTEXT_MENU_SELECTED: 'contextMenuSelected', // Context menu triggered on selected elements
   },
   
   SyncCommands: {
@@ -118,6 +122,36 @@ window.EventCreators = {
     };
   },
 
+  createSelectionDragStart(selectedNodeCount, sessionId = 'default') {
+    return {
+      event_type: 'selectionDragStart',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { selectedNodeCount },
+      requires_broadcast: true
+    };
+  },
+
+  createSelectionDragEnd(selectedNodeCount, actuallyMoved, sessionId = 'default') {
+    return {
+      event_type: 'selectionDragEnd',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { selectedNodeCount, actuallyMoved },
+      requires_broadcast: true
+    };
+  },
+
+  createSelectionPositionChanged(deltaX, deltaY, sessionId = 'default') {
+    return {
+      event_type: 'selectionPositionChanged',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { deltaX, deltaY },
+      requires_broadcast: true
+    };
+  },
+
   createSelectionChanged(selectedNodes, selectedConnections, sessionId = 'default') {
     return {
       event_type: 'selectionChanged',
@@ -154,6 +188,16 @@ window.EventCreators = {
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { screenX, screenY, canvasX, canvasY, connectionId },
+      requires_broadcast: true
+    };
+  },
+
+  createContextMenuSelected(screenX, screenY, canvasX, canvasY, selectedNodes, selectedConnections, sessionId = 'default') {
+    return {
+      event_type: 'contextMenuSelected',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { screenX, screenY, canvasX, canvasY, selectedNodes, selectedConnections },
       requires_broadcast: true
     };
   }
@@ -201,6 +245,21 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
+  validateSelectionDragStart(data) {
+    const requiredFields = ["selectedNodeCount"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateSelectionDragEnd(data) {
+    const requiredFields = ["selectedNodeCount", "actuallyMoved"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateSelectionPositionChanged(data) {
+    const requiredFields = ["deltaX", "deltaY"];
+    return requiredFields.every(field => field in data);
+  },
+
   validateSelectionChanged(data) {
     const requiredFields = ["selectedNodes", "selectedConnections"];
     return requiredFields.every(field => field in data);
@@ -218,6 +277,11 @@ window.EventValidators = {
 
   validateContextMenuConnection(data) {
     const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "connectionId"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateContextMenuSelected(data) {
+    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "selectedNodes", "selectedConnections"];
     return requiredFields.every(field => field in data);
   }
 };

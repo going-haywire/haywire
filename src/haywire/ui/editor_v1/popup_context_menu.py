@@ -173,3 +173,83 @@ class PopupContextMenu:
         
         popup.open()
         self._current_popup = popup
+    
+    def show_selected_menu(self, x: float, y: float, selected_nodes: List[str], selected_connections: List[str]):
+        """Show context menu for multi-selection operations."""
+        self._close_current_menu()
+        
+        # Store selection data for operations  
+        self._menu_data = {
+            'selected_nodes': selected_nodes,
+            'selected_connections': selected_connections
+        }
+        
+        # Create a meaningful title based on selection
+        node_count = len(selected_nodes)
+        connection_count = len(selected_connections)
+        
+        if node_count > 0 and connection_count > 0:
+            title = f"Selection ({node_count} nodes, {connection_count} connections)"
+        elif node_count > 0:
+            title = f"Selection ({node_count} {'node' if node_count == 1 else 'nodes'})"
+        elif connection_count > 0:
+            title = f"Selection ({connection_count} {'connection' if connection_count == 1 else 'connections'})"
+        else:
+            title = "Selection"
+                
+        # Create context menu popup positioned at cursor
+        popup = Popup.create_context_menu(title, x + 5, y + 5)
+        
+        with popup:
+            with ui.column().classes('w-full gap-1'):
+                # Delete all selected items
+                if node_count > 0 or connection_count > 0:
+                    btn1 = ui.button('🗑️ Delete Selected', on_click=lambda: self._delete_selected())
+                    btn1.props('flat align=left')
+                    btn1.classes('w-full justify-start px-3 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm')
+                
+                # Group selected (placeholder - not implemented yet)
+                if node_count > 1:
+                    btn2 = ui.button('📦 Group Nodes', on_click=lambda: self._group_selected_nodes())
+                    btn2.props('flat align=left')
+                    btn2.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                
+                # Copy selected (placeholder - not implemented yet)
+                if node_count > 0:
+                    btn3 = ui.button('📋 Copy Selected', on_click=lambda: self._copy_selected_nodes())
+                    btn3.props('flat align=left')
+                    btn3.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+        
+        popup.open()
+        self._current_popup = popup
+    
+    def _delete_selected(self):
+        """Handle deletion of all selected items."""
+        selected_nodes = self._menu_data.get('selected_nodes', [])
+        selected_connections = self._menu_data.get('selected_connections', [])
+        
+        # Delete selected nodes
+        for node_id in selected_nodes:
+            event = NodeRemoveRequestEvent(nodeId=node_id)
+            self._on_emit_event(event)
+        
+        # Delete selected connections
+        for connection_id in selected_connections:
+            event = ConnectionRemovedEvent(connectionId=connection_id)
+            self._on_emit_event(event)
+        
+        self._close_current_menu()
+    
+    def _group_selected_nodes(self):
+        """Handle grouping of selected nodes (placeholder)."""
+        selected_nodes = self._menu_data.get('selected_nodes', [])
+        print(f"[PopupContextMenu] Not Yet implemented: Grouping {len(selected_nodes)} nodes")
+        # TODO: Implement node grouping
+        self._close_current_menu()
+    
+    def _copy_selected_nodes(self):
+        """Handle copying of selected nodes (placeholder)."""
+        selected_nodes = self._menu_data.get('selected_nodes', [])
+        print(f"[PopupContextMenu] Not Yet implemented: Copying {len(selected_nodes)} nodes")
+        # TODO: Implement multi-node copying
+        self._close_current_menu()

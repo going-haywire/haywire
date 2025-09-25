@@ -117,6 +117,23 @@ class NodeDragEndEvent(BaseGraphEvent):
     nodeId: str
     positionChanged: bool
 
+@graph_event("selectionDragStart", category="user", description="Selection drag started")
+@dataclass
+class SelectionDragStartEvent(BaseGraphEvent):
+    selectedNodeCount: int  # For validation against current selection
+
+@graph_event("selectionDragEnd", category="user", description="Selection drag ended")
+@dataclass
+class SelectionDragEndEvent(BaseGraphEvent):
+    selectedNodeCount: int  # For validation against current selection
+    actuallyMoved: bool
+
+@graph_event("selectionPositionChanged", category="user", description="Selection position updated during drag")
+@dataclass
+class SelectionPositionChangedEvent(BaseGraphEvent):
+    deltaX: float  # Same delta applies to all selected nodes
+    deltaY: float
+
 @graph_event("selectionChanged", category="user", description="Selection state changed")
 @dataclass
 class SelectionChangedEvent(BaseGraphEvent):
@@ -148,6 +165,16 @@ class ContextMenuConnectionEvent(BaseGraphEvent):
     canvasX: float
     canvasY: float
     connectionId: str
+
+@graph_event("contextMenuSelected", category="user", description="Context menu triggered on selected elements")
+@dataclass
+class ContextMenuSelectedEvent(BaseGraphEvent):
+    screenX: float
+    screenY: float
+    canvasX: float
+    canvasY: float
+    selectedNodes: List[str]
+    selectedConnections: List[str]
 
 # =============================================================================
 # SYNC EVENTS (Python → Vue)
