@@ -176,6 +176,29 @@ export default {
             });
         },
 
+        _setupHoverObserver(nodeElement) {
+            const lodElement = nodeElement.querySelector('.zoom-pan-lod0');
+            if (!lodElement) return;
+
+            const nodeId = nodeElement.getAttribute('data-node-id');
+            if (!nodeId) return;
+
+            const scheduleConnectionUpdates = () => {
+                this._scheduleConnectionUpdates(nodeId, nodeElement);
+            };
+
+            // Listen for transform transitions (zoom scaling effects)
+            lodElement.addEventListener('transitionstart', (e) => {
+                if (e.propertyName === 'transform') {
+                    this._scheduleConnectionUpdates(nodeId, nodeElement);
+                }
+            });
+        
+            // Listen for hover enter/leave for size changes
+            lodElement.addEventListener('mouseenter', scheduleConnectionUpdates);
+            lodElement.addEventListener('mouseleave', scheduleConnectionUpdates);
+        },
+
         _setupZoomPanListener() {
             this.handleZoomPanUpdate = (event) => {
                 const { zoom, panX, panY, containerId, isDragging } = event.detail;
@@ -1369,6 +1392,7 @@ export default {
                 const nodeElement = document.getElementById(nodeId);
                 if (nodeElement) {
                     console.log(`[GraphCanvas] Adding observer for node ${nodeId}`, nodeElement);
+                    this._setupHoverObserver(nodeElement);
                 } else if (retryCount < 3) {
                     setTimeout(() => attemptAddObserver(retryCount + 1), 100);
                 } else {

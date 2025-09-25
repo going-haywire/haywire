@@ -384,6 +384,7 @@ class GraphCanvasManager:
             print(f"🔄 Selection synced from graph: {len(graph_selected_nodes)} nodes, {len(graph_selected_connections)} connections")
         except Exception as e:
             print(f"Error during graph sync: {e}")
+            traceback.print_exc()
     
     def cleanup(self):
         """Cleanup resources and unregister from Editor."""
