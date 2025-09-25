@@ -168,7 +168,7 @@ export default {
                         if (nodeId && nodeElement.hasAttribute('data-node-id')) {
                             const styleText = nodeElement.style.cssText;
                             if (styleText.includes('left:') || styleText.includes('top:') || styleText.includes('transform:')) {
-                                this.updateConnectionsForNode(nodeId);
+                                this._updateConnectionsForNode(nodeId);
                             } 
                         }
                     }
@@ -285,7 +285,7 @@ export default {
             const { nodeId, position } = data;
             const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
             if (nodeElement) {
-                this.updateConnectionsForNode(nodeId);
+                this._updateConnectionsForNode(nodeId);
             }
         },
 
@@ -404,23 +404,23 @@ export default {
 
         _syncNodeObserverAdd(data) {
             const { nodeId } = data;
-            this.addNodeObserver(nodeId);
+            this._addNodeObserver(nodeId);
         },
 
         _syncNodeObserverRemove(data) {
             const { nodeId } = data;
-            this.removeNodeObserver(nodeId);
+            this._removeNodeObserver(nodeId);
         },
 
         _syncConnectionsUpdate(data) {
             const { nodeId } = data;
-            this.updateConnectionsForNode(nodeId);
+            this._updateConnectionsForNode(nodeId);
         },
 
         _setSelectionState(selectedNodes, selectedConnections) {
-            this.clearSelection();
-            selectedNodes.forEach(nodeId => this.selectElement('node', nodeId, true));
-            selectedConnections.forEach(connectionId => this.selectElement('connection', connectionId, true));
+            this._clearSelection();
+            selectedNodes.forEach(nodeId => this._selectElement('node', nodeId, true));
+            selectedConnections.forEach(connectionId => this._selectElement('connection', connectionId, true));
         },
 
         // =============================================================================
@@ -634,7 +634,7 @@ export default {
 
                         element.element.style.left = `${newX}px`;
                         element.element.style.top = `${newY}px`;
-                        this.updateConnectionsForNode(element.id);
+                        this._updateConnectionsForNode(element.id);
                     }
                 }
             });
@@ -710,23 +710,23 @@ export default {
             if (isShiftClick) {
                 // Toggle selection
                 if (this._isElementSelected(elementType, elementId)) {
-                    this.deselectElement(elementType, elementId);
+                    this._deSelectElement(elementType, elementId);
                 } else {
-                    this.selectElement(elementType, elementId, true);
+                    this._selectElement(elementType, elementId, true);
                 }
             } else {
                 // Clear other selections and select this element
-                this.clearSelection();
-                this.selectElement(elementType, elementId, false);
+                this._clearSelection();
+                this._selectElement(elementType, elementId, false);
             }
 
             // Emit unified selection change event
             this._emitSelectionChanged();
         },
 
-        selectElement(elementType, elementId, multiSelect = false) {
+        _selectElement(elementType, elementId, multiSelect = false) {
             if (!multiSelect) {
-                this.clearSelection();
+                this._clearSelection();
             }
 
             if (elementType === 'node') {
@@ -741,7 +741,7 @@ export default {
             console.log(`🎯 Selected ${elementType}: ${elementId}`);
         },
 
-        deselectElement(elementType, elementId) {
+        _deSelectElement(elementType, elementId) {
             if (elementType === 'node') {
                 this.selectionState.selectedNodes.delete(elementId);
                 this._updateNodeVisualSelection(elementId, false);
@@ -763,7 +763,7 @@ export default {
             return false;
         },
 
-        clearSelection() {
+        _clearSelection() {
             const previouslySelectedNodes = Array.from(this.selectionState.selectedNodes);
 
             this.selectionState.selectedNodes.forEach(nodeId => {
@@ -807,7 +807,7 @@ export default {
             this.boxSelectionState.currentPos = canvasPos;
 
             if (!e.shiftKey) {
-                this.clearSelection();
+                this._clearSelection();
             }
         },
 
@@ -1003,7 +1003,7 @@ export default {
                     const clickPoint = { x: clientX, y: clientY };
 
                     for (const path of paths) {
-                        if (this.isPointNearPath(path, clickPoint)) {
+                        if (this._isPointNearPath(path, clickPoint)) {
                             connectionElement = path;
                             connectionId = path.getAttribute('data-connection-id') || path.id;
                             break;
@@ -1052,7 +1052,7 @@ export default {
             }
         },
 
-        isPointNearPath(pathElement, point) {
+        _isPointNearPath(pathElement, point) {
             try {
                 const rect = pathElement.getBoundingClientRect();
                 const tolerance = 10;
@@ -1064,15 +1064,6 @@ export default {
             } catch (e) {
                 console.warn('Error checking point near path:', e);
                 return false;
-            }
-        },
-
-        // Unified removal method for delete key / context menu
-        removeSelectedElements() {
-            const elementsToRemove = this._getSelectedElementsForRemoval();
-            
-            if (elementsToRemove.length > 0) {
-                this.emitCanvasEvent(EventCreators.createUserRemove(elementsToRemove));
             }
         },
 
@@ -1326,7 +1317,7 @@ export default {
             hitArea.addEventListener('click', clickHandler);
 
             this.$nextTick(() => {
-                this.updateConnectionPath(path);
+                this._updateConnectionPath(path);
             });
 
             return { success: true, pathElement: path };
@@ -1355,7 +1346,7 @@ export default {
             }
         },
 
-        updateConnectionPath(pathElement) {
+        _updateConnectionPath(pathElement) {
             if (!pathElement || !pathElement.id) return;
 
             const pathId = pathElement.id;
@@ -1394,16 +1385,16 @@ export default {
             pathElement.setAttribute('stroke', stroke);
         },
 
-        updateConnectionsForNode(nodeId) {
+        _updateConnectionsForNode(nodeId) {
             if (!nodeId) return;
             this.connectionPaths.forEach((path, pathId) => {
                 if (pathId.includes(nodeId)) {
-                    this.updateConnectionPath(path);
+                    this._updateConnectionPath(path);
                 }
             });
         },
 
-        addNodeObserver(nodeId) {
+        _addNodeObserver(nodeId) {
             const attemptAddObserver = (retryCount = 0) => {
                 const nodeElement = document.getElementById(nodeId);
                 if (nodeElement) {
@@ -1418,7 +1409,7 @@ export default {
             attemptAddObserver();
         },
 
-        removeNodeObserver(nodeId) {
+        _removeNodeObserver(nodeId) {
             // Find the node element by ID
             const nodeElement = document.getElementById(nodeId);
             if (nodeElement) {
@@ -1628,7 +1619,7 @@ export default {
         },
 
         _scheduleConnectionUpdates(nodeId, nodeElement = null, animationDuration = 300) {
-            this.updateConnectionsForNode(nodeId);
+            this._updateConnectionsForNode(nodeId);
 
             if (!nodeElement && nodeId) {
                 nodeElement = document.getElementById(nodeId);
@@ -1645,7 +1636,7 @@ export default {
             for (let i = 1; i <= updateCount; i++) {
                 const delay = interval * i;
                 const timer = setTimeout(() => {
-                    this.updateConnectionsForNode(nodeId);
+                    this._updateConnectionsForNode(nodeId);
                 }, delay);
 
                 if (nodeElement) {
