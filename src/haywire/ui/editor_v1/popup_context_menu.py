@@ -12,7 +12,7 @@ Uses the enhanced Popup class that creates elements at page root level to avoid 
 from nicegui import ui, app
 from typing import Dict, List, Optional, Callable
 from .popup import Popup
-from .event_definitions import ConnectionRemovedEvent, NodeCreateRequestEvent, NodeRemoveRequestEvent
+from .event_definitions import  NodeCreateRequestEvent, UserRemoveEvent
 
 
 class PopupContextMenu:
@@ -58,17 +58,19 @@ class PopupContextMenu:
 
     def _delete_node(self, node_id: str):
         """Handle node deletion."""
-        event = NodeRemoveRequestEvent(
-            nodeId=node_id
-        )
+        event = UserRemoveEvent(
+            nodes = [node_id,],
+            connections=[]
+            )
         self._on_emit_event(event)
         self._close_current_menu()
 
     def _delete_connection(self, connection_id: str):
         """Handle connection deletion."""
-        event = ConnectionRemovedEvent(
-            connectionId=connection_id
-        )
+        event = UserRemoveEvent(
+            nodes = [],
+            connections = [connection_id,]
+            )
         self._on_emit_event(event)
         self._close_current_menu()
 
@@ -227,16 +229,12 @@ class PopupContextMenu:
         """Handle deletion of all selected items."""
         selected_nodes = self._menu_data.get('selected_nodes', [])
         selected_connections = self._menu_data.get('selected_connections', [])
-        
-        # Delete selected nodes
-        for node_id in selected_nodes:
-            event = NodeRemoveRequestEvent(nodeId=node_id)
-            self._on_emit_event(event)
-        
-        # Delete selected connections
-        for connection_id in selected_connections:
-            event = ConnectionRemovedEvent(connectionId=connection_id)
-            self._on_emit_event(event)
+
+        event = UserRemoveEvent(
+            nodes = selected_nodes,
+            connections = selected_connections
+        )
+        self._on_emit_event(event)
         
         self._close_current_menu()
     

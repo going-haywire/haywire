@@ -4,17 +4,13 @@
 // Event type constants - Make available globally
 window.GraphEvents = {
   UserInteractions: {
+    USER_DRAG_START: 'userDragStart', // User started dragging nodes
+    USER_DRAG_UPDATE: 'userDragUpdate', // User is dragging nodes
+    USER_DRAG_END: 'userDragEnd', // User finished dragging nodes
+    USER_REMOVE: 'userRemove', // User wants to remove elements
     NODE_CREATE_REQUEST: 'nodeCreateRequest', // Request to create node from context menu
-    NODE_REMOVE_REQUEST: 'nodeRemoveRequest', // Request to remove node from context menu
-    NODE_POSITION_CHANGED: 'nodePositionChanged', // Node position updated
     CONNECTION_CREATED: 'connectionCreated', // New connection created
-    CONNECTION_REMOVED: 'connectionRemoved', // Connection removed
     CONNECTION_CLICKED: 'connectionClicked', // Connection clicked
-    NODE_DRAG_START: 'nodeDragStart', // Node drag started
-    NODE_DRAG_END: 'nodeDragEnd', // Node drag ended
-    SELECTION_DRAG_START: 'selectionDragStart', // Selection drag started
-    SELECTION_DRAG_END: 'selectionDragEnd', // Selection drag ended
-    SELECTION_POSITION_CHANGED: 'selectionPositionChanged', // Selection position updated during drag
     SELECTION_CHANGED: 'selectionChanged', // Selection state changed
     CONTEXT_MENU_CANVAS: 'contextMenuCanvas', // Canvas context menu triggered
     CONTEXT_MENU_NODE: 'contextMenuNode', // Node context menu triggered
@@ -42,32 +38,52 @@ window.GraphEvents = {
 
 // Event creators - Make available globally
 window.EventCreators = {
+  createUserDragStart(nodes, sessionId = 'default') {
+    return {
+      event_type: 'userDragStart',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodes },
+      requires_broadcast: true
+    };
+  },
+
+  createUserDragUpdate(nodes, deltaX, deltaY, sessionId = 'default') {
+    return {
+      event_type: 'userDragUpdate',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodes, deltaX, deltaY },
+      requires_broadcast: true
+    };
+  },
+
+  createUserDragEnd(nodes, sessionId = 'default') {
+    return {
+      event_type: 'userDragEnd',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodes },
+      requires_broadcast: true
+    };
+  },
+
+  createUserRemove(nodes, connections, sessionId = 'default') {
+    return {
+      event_type: 'userRemove',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodes, connections },
+      requires_broadcast: true
+    };
+  },
+
   createNodeCreateRequest(nodeType, position, sessionId = 'default') {
     return {
       event_type: 'nodeCreateRequest',
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { nodeType, position },
-      requires_broadcast: true
-    };
-  },
-
-  createNodeRemoveRequest(nodeId, sessionId = 'default') {
-    return {
-      event_type: 'nodeRemoveRequest',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { nodeId },
-      requires_broadcast: true
-    };
-  },
-
-  createNodePositionChanged(nodeId, position, sessionId = 'default') {
-    return {
-      event_type: 'nodePositionChanged',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { nodeId, position },
       requires_broadcast: true
     };
   },
@@ -82,72 +98,12 @@ window.EventCreators = {
     };
   },
 
-  createConnectionRemoved(connectionId, sessionId = 'default') {
-    return {
-      event_type: 'connectionRemoved',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { connectionId },
-      requires_broadcast: true
-    };
-  },
-
   createConnectionClicked(connectionId, sessionId = 'default') {
     return {
       event_type: 'connectionClicked',
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { connectionId },
-      requires_broadcast: true
-    };
-  },
-
-  createNodeDragStart(nodeId, sessionId = 'default') {
-    return {
-      event_type: 'nodeDragStart',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { nodeId },
-      requires_broadcast: true
-    };
-  },
-
-  createNodeDragEnd(nodeId, positionChanged, sessionId = 'default') {
-    return {
-      event_type: 'nodeDragEnd',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { nodeId, positionChanged },
-      requires_broadcast: true
-    };
-  },
-
-  createSelectionDragStart(selectedNodeCount, sessionId = 'default') {
-    return {
-      event_type: 'selectionDragStart',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { selectedNodeCount },
-      requires_broadcast: true
-    };
-  },
-
-  createSelectionDragEnd(selectedNodeCount, actuallyMoved, sessionId = 'default') {
-    return {
-      event_type: 'selectionDragEnd',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { selectedNodeCount, actuallyMoved },
-      requires_broadcast: true
-    };
-  },
-
-  createSelectionPositionChanged(deltaX, deltaY, sessionId = 'default') {
-    return {
-      event_type: 'selectionPositionChanged',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { deltaX, deltaY },
       requires_broadcast: true
     };
   },
@@ -205,18 +161,28 @@ window.EventCreators = {
 
 // Event validators - Make available globally  
 window.EventValidators = {
+  validateUserDragStart(data) {
+    const requiredFields = ["nodes"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateUserDragUpdate(data) {
+    const requiredFields = ["nodes", "deltaX", "deltaY"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateUserDragEnd(data) {
+    const requiredFields = ["nodes"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateUserRemove(data) {
+    const requiredFields = ["nodes", "connections"];
+    return requiredFields.every(field => field in data);
+  },
+
   validateNodeCreateRequest(data) {
     const requiredFields = ["nodeType", "position"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateNodeRemoveRequest(data) {
-    const requiredFields = ["nodeId"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateNodePositionChanged(data) {
-    const requiredFields = ["nodeId", "position"];
     return requiredFields.every(field => field in data);
   },
 
@@ -225,38 +191,8 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
-  validateConnectionRemoved(data) {
-    const requiredFields = ["connectionId"];
-    return requiredFields.every(field => field in data);
-  },
-
   validateConnectionClicked(data) {
     const requiredFields = ["connectionId"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateNodeDragStart(data) {
-    const requiredFields = ["nodeId"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateNodeDragEnd(data) {
-    const requiredFields = ["nodeId", "positionChanged"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateSelectionDragStart(data) {
-    const requiredFields = ["selectedNodeCount"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateSelectionDragEnd(data) {
-    const requiredFields = ["selectedNodeCount", "actuallyMoved"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateSelectionPositionChanged(data) {
-    const requiredFields = ["deltaX", "deltaY"];
     return requiredFields.every(field => field in data);
   },
 

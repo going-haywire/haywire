@@ -1,6 +1,6 @@
 <template>
     <div :id="containerId" ref="container" class="graph-canvas" :class="{
-        dragging: connectionState.isDragging,
+        dragging: dragState.isDragging,
         'box-selecting': boxSelectionState.isActive
     }" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
         <!-- Box selection rectangle -->
@@ -38,7 +38,6 @@ export default {
 
     props: {
         containerId: { type: String, required: true }
-        // Note: zoomState prop removed - zoom/pan is handled by CSS transforms in parent container
     },
 
     data() {
@@ -50,47 +49,44 @@ export default {
                 hasNodes: false,
                 lastDragEndTime: null,
                 lockProximityRange: 150, 
-                suggestionProximityRange: 200 ,
+                suggestionProximityRange: 200,
                 suggestedConnections: new Map(),
                 nearestSuggestedPin: null
             },
-            // Add node dragging state
-            nodeDragState: {
+            
+            // Unified drag state for all draggable elements
+            dragState: {
                 isDragging: false,
-                draggedNode: null,
+                draggedElements: [], // [{type: 'node', id: 'node1', element: HTMLElement}, ...]
                 startMousePos: { x: 0, y: 0 },
-                startNodePos: { x: 0, y: 0 },
+                startPositions: new Map(), // elementId -> {x, y}
                 dragOffset: { x: 0, y: 0 },
                 hasActuallyMoved: false,
-                dragThreshold: 5, // pixels - minimum movement to consider it a drag
-                // Store event details for selection handling on mouse up
+                dragThreshold: 5,
                 mouseDownEvent: null
             },
-            // Add selection state
+            
+            // Unified selection state
             selectionState: {
                 selectedNodes: new Set(),
                 selectedConnections: new Set(),
                 lastClickTime: 0,
-                clickThreshold: 300 // ms to distinguish between click and drag
+                clickThreshold: 300
             },
-            // Add selection drag state
-            selectionDragState: {
-                isMultiDragging: false,
-                dragStartPositions: new Map(), // nodeId -> {x, y}
-                initialMousePos: { x: 0, y: 0 },
-                hasActuallyMoved: false
-            },
-            // Add box selection state
+            
+            // Box selection state
             boxSelectionState: {
                 isActive: false,
                 startPos: { x: 0, y: 0 },
                 currentPos: { x: 0, y: 0 },
                 selectionRect: null
             },
-            connectionPaths: new Map(), // path_id -> path_element
+            
+            connectionPaths: new Map(),
             updateConnectionsThrottled: false,
             resizeObserver: null,
             mutationObserver: null,
+            
             // Store current zoom/pan state from the zoom container
             zoomState: {
                 zoom: 1,
@@ -99,15 +95,14 @@ export default {
                 isDragging: false
             }
         };
-    }, computed: {
+    },
+
+    computed: {
         svgTransform() {
-            // No transformation needed - zoom container handles all transformations
-            // This is just for coordinate calculations if needed
             return '';
         },
 
         nodeContainerTransform() {
-            // No transformation needed - zoom container handles all transformations
             return '';
         },
 
@@ -131,28 +126,9 @@ export default {
         }
     },
 
-
-    // Note: No watcher for zoomState needed - zoom/pan is handled by CSS transforms
-    // in the zoom container, so SVG paths don't need to be recalculated on zoom/pan changes
-
-    watch: {
-        // No watchers needed - connection management is handled through sync events
-    },
-
-
-    // =============================================================================
-    // LIFECYCLE METHODS
-    // =============================================================================
-
     mounted() {
         console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
-        console.log('Container element:', this.$el);
-        console.log('Container dimensions:', this.$el.offsetWidth, 'x', this.$el.offsetHeight);
-
-        // TEST IF LIBRARY LOADED - ADD THIS
-        console.log('🔍 Testing custom library import:');
-        console.log('GraphEvents available:', typeof GraphEvents !== 'undefined');
-
+        
         // Initialize component
         this._setupEventListeners();
         this._setupObservers();
@@ -160,13 +136,8 @@ export default {
 
         // Expose API to parent/Python
         this.$el._graphCanvasControls = {
-            // Enhanced event system API
             handleSyncEvent: this.handleSyncEvent
         };
-    },
-
-    updated() {
-        // Component updated - no longer needed for connections prop
     },
 
     beforeDestroy() {
@@ -182,25 +153,19 @@ export default {
 
         _setupEventListeners() {
             console.log('🔗 Setting up event listeners on document.body');
-            // Mouse events for connection creation
             document.body.addEventListener('mousedown', this.handleMouseDown, true);
             document.body.addEventListener('mousemove', this.handleMouseMove, true);
             document.body.addEventListener('mouseup', this.handleMouseUp, true);
-            console.log('🔗 Event listeners set up - mousedown, mousemove, mouseup');
         },
 
         _setupObservers() {
-            // Mutation observer for node position changes
             this.mutationObserver = new MutationObserver((mutations) => {
                 mutations.forEach(mutation => {
                     if (mutation.attributeName === 'style') {
                         const nodeElement = mutation.target;
                         const nodeId = nodeElement.dataset.nodeId;
 
-                        // Only process style changes on node containers, not on children
                         if (nodeId && nodeElement.hasAttribute('data-node-id')) {
-
-                            // Only process if the style change actually includes position properties
                             const styleText = nodeElement.style.cssText;
                             if (styleText.includes('left:') || styleText.includes('top:') || styleText.includes('transform:')) {
                                 this.updateConnectionsForNode(nodeId);
@@ -212,37 +177,12 @@ export default {
         },
 
         _setupZoomPanListener() {
-            // Listen for zoom/pan state changes from the zoom container
             this.handleZoomPanUpdate = (event) => {
                 const { zoom, panX, panY, containerId, isDragging } = event.detail;
-
-                // Update our local zoom state
                 this.zoomState = { zoom, panX, panY, isDragging };
             };
 
             document.addEventListener('zoom-pan-state', this.handleZoomPanUpdate);
-        },
-
-        _setupHoverObserver(nodeElement) {
-            const lodElement = nodeElement.querySelector('.zoom-pan-lod0');
-            if (!lodElement) return;
-
-            const nodeId = nodeElement.getAttribute('data-node-id');
-            if (!nodeId) return;
-
-            const scheduleConnectionUpdates = () => {
-                this._scheduleConnectionUpdates(nodeId, nodeElement);
-            };
-
-            // Listen for transform transitions
-            lodElement.addEventListener('transitionstart', (e) => {
-                if (e.propertyName === 'transform') {
-                    this._scheduleConnectionUpdates(nodeId, nodeElement);
-                }
-            });
-           
-            lodElement.addEventListener('mouseenter', scheduleConnectionUpdates);
-            lodElement.addEventListener('mouseleave', scheduleConnectionUpdates);
         },
 
         _cleanupEventListeners() {
@@ -273,11 +213,7 @@ export default {
         // UNIFIED EVENT SYSTEM
         // =============================================================================
 
-        /**
-         * Emit unified canvas event to Python using the new event system
-         */
         emitCanvasEvent(event) {
-            // Only accept complete event objects from helper methods
             if (typeof event === 'object' && event.event_type) {
                 console.log(`🚀 Vue→Python Event: ${event.event_type}`, event.data);
                 this.$emit('canvasEvent', event);
@@ -286,9 +222,6 @@ export default {
             }
         },
 
-        /**
-         * Handle sync events from Python
-         */
         handleSyncEvent(syncEvent) {
             console.log(`🔄 Python→Vue Sync: ${syncEvent.event_type}`, syncEvent.data);
             
@@ -310,8 +243,6 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_CANVAS_CLEAR:
                     this._syncCanvasClear();
                     break;
-                
-                // NEW: Individual selection events using auto-generated constants
                 case GraphEvents.SyncCommands.SYNC_NODE_SELECTION:
                     this._syncNodeSelection(data);
                     break;
@@ -321,26 +252,21 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_CLEAR_ALL_SELECTIONS:
                     this._syncClearAllSelections();
                     break;
-                
-                // NEW: Node observer events using auto-generated constants
                 case GraphEvents.SyncCommands.SYNC_NODE_OBSERVER_ADD:
                     this._syncNodeObserverAdd(data);
                     break;
                 case GraphEvents.SyncCommands.SYNC_NODE_OBSERVER_REMOVE:
                     this._syncNodeObserverRemove(data);
                     break;
-                
-                // NEW: Connection update events using auto-generated constants
                 case GraphEvents.SyncCommands.SYNC_CONNECTIONS_UPDATE:
                     this._syncConnectionsUpdate(data);
                     break;
-                
                 default:
                     console.warn(`Unknown sync event: ${event_type}`);
             }
         },
 
-        // Sync event handlers
+        // Sync event handlers (keeping these as-is for backward compatibility)
         _syncNodePosition(data) {
             const { nodeId, position } = data;
             const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
@@ -351,22 +277,15 @@ export default {
 
         _syncConnectionAddition(data) {
             const { connectionId, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid } = data;
-            console.log('🔗 Vue _syncConnectionAddition called with:', data);
             
-
-            // Check if path already exists
             if (this.connectionPaths.has(connectionId)) {
                 if (path.dataset.isValid === String(isValid)) {
-                    console.log(`🔗 Vue connection already exists and is valid:`, connectionId);
                     return;
                 } else {
-                    // Remove existing path to replace with new validity state
-                    console.log(`🔗 Vue connection exists but validity changed, replacing:`, connectionId);
                     this._removeConnectionVisual(connectionId);
                 }
             }
 
-            // Create connection visual directly
             const result = this._createConnectionVisual(
                 outputNodeId, 
                 outletPinId, 
@@ -386,8 +305,6 @@ export default {
 
         _syncConnectionRemoval(data) {
             const { connectionId } = data;
-            console.log('🔗 Vue _syncConnectionRemoval called with:', connectionId);
-            
             const success = this._removeConnectionVisual(connectionId);
             
             if (success) {
@@ -407,12 +324,8 @@ export default {
         },
 
         _syncCanvasClear() {
-            console.log('🔗 Vue _syncCanvasClear called');
-            
-            // Clear all connections
             this.connectionPaths.forEach((path, pathId) => {
                 path.remove();
-                // Also remove hit areas and gradients
                 const hitArea = document.getElementById(pathId + '_hitarea');
                 if (hitArea) hitArea.remove();
                 const gradient = document.getElementById(`gradient_${pathId}`);
@@ -420,88 +333,64 @@ export default {
             });
             
             this.connectionPaths.clear();
-            
-            // Clear any SVG paths that might be left over
             const svg = this.$refs.svg;
             const paths = svg.querySelectorAll('path');
             paths.forEach(path => path.remove());
             
-            // Clear selection
             this.selectionState.selectedNodes.clear();
             this.selectionState.selectedConnections.clear();
-            
-            console.log('🔗 Vue ✅ Canvas cleared via sync');
         },
 
-        // NEW: Individual selection sync handlers
         _syncNodeSelection(data) {
             const { nodeId, selected, multiSelect } = data;
-            console.log(`🎯 Vue _syncNodeSelection: ${nodeId}, selected: ${selected}, multi: ${multiSelect}`);
-            
             if (selected) {
-                this.selectNode(nodeId, multiSelect);
+                this.selectElement('node', nodeId, multiSelect);
             } else {
-                this.deselectNode(nodeId);
+                this.deselectElement('node', nodeId);
             }
         },
 
         _syncConnectionSelection(data) {
             const { connectionId, selected, multiSelect } = data;
-            console.log(`🎯 Vue _syncConnectionSelection: ${connectionId}, selected: ${selected}, multi: ${multiSelect}`);
-            
             if (selected) {
-                this.selectConnection(connectionId, multiSelect);
+                this.selectElement('connection', connectionId, multiSelect);
             } else {
-                this.deselectConnection(connectionId);
+                this.deselectElement('connection', connectionId);
             }
         },
 
         _syncClearAllSelections() {
-            console.log('🎯 Vue _syncClearAllSelections');
             this.clearSelection();
         },
 
-        // NEW: Node observer sync handlers
         _syncNodeObserverAdd(data) {
             const { nodeId } = data;
-            console.log(`👁️ Vue _syncNodeObserverAdd: ${nodeId}`);
             this.addNodeObserver(nodeId);
         },
 
         _syncNodeObserverRemove(data) {
             const { nodeId } = data;
-            console.log(`👁️ Vue _syncNodeObserverRemove: ${nodeId}`);
             this.removeNodeObserver(nodeId);
         },
 
-        // NEW: Connection update sync handler
         _syncConnectionsUpdate(data) {
             const { nodeId } = data;
-            console.log(`🔄 Vue _syncConnectionsUpdate: ${nodeId}`);
             this.updateConnectionsForNode(nodeId);
         },
 
         _setSelectionState(selectedNodes, selectedConnections) {
-            // Clear current selection visually
             this.clearSelection();
-            
-            // Apply new selection
-            selectedNodes.forEach(nodeId => this.selectNode(nodeId, true));
-            selectedConnections.forEach(connectionId => this.selectConnection(connectionId, true));
+            selectedNodes.forEach(nodeId => this.selectElement('node', nodeId, true));
+            selectedConnections.forEach(connectionId => this.selectElement('connection', connectionId, true));
         },
 
         // =============================================================================
-        // PRIMARY EVENT HANDLERS
+        // UNIFIED EVENT HANDLERS
         // =============================================================================
 
         handleMouseDown(e) {
-            // Skip node selection/dragging for right-clicks and two-finger clicks
-            // These will be handled by the contextmenu event instead
-            if (e.button === 2) { // Right mouse button or two-finger click
-                return;
-            }
+            if (e.button === 2) return; // Skip right-click
             
-            // Store click time for distinguishing clicks from drags
             const clickTime = Date.now();
             this.selectionState.lastClickTime = clickTime;
 
@@ -512,1021 +401,355 @@ export default {
                 return;
             }
 
-            // Check if clicking on interactive widget elements - avoid dragging if so
-            const isInteractiveWidget = this._isInteractiveWidgetElement(e.target);
-            if (isInteractiveWidget) {
-                console.log('Click on interactive widget element - skipping node drag');
-                return; // Let the widget handle its own interaction
-            }
-
-            // Check for node dragging/selection - look for node container
-            const nodeElement = e.target.closest('[data-node-id]');
-            if (nodeElement && !e.target.closest('.connection-pin')) {
-                const nodeId = nodeElement.dataset.nodeId;
-                if (nodeId) {
-                    // Don't handle selection on mouse down anymore - defer to mouse up
-                    // Store the event details for selection handling later
-                    this._startNodeDrag(e, nodeElement);
-                    return;
-                }
-            }
-
-            // Check for connection click
-            const connectionElement = e.target.closest('path[data-connection-id]');
-            if (connectionElement) {
-                // Let connection selection handle this
+            // Check for interactive widgets
+            if (this._isInteractiveWidgetElement(e.target)) {
+                console.log('Click on interactive widget element - skipping drag');
                 return;
             }
 
-            // If we get here, it's a click on empty canvas - start box selection
+            // Check for elements that can be dragged
+            const draggableElement = this._findDraggableElement(e.target);
+            if (draggableElement) {
+                this._startUnifiedDrag(e, draggableElement);
+                return;
+            }
+
+            // Start box selection on empty canvas
             this._startBoxSelection(e);
         },
 
         handleMouseMove(e) {
-            // Handle box selection
             if (this.boxSelectionState.isActive) {
                 this._updateBoxSelection(e);
                 return;
             }
 
-            // Handle connection dragging
             if (this.connectionState.isDragging && this.connectionState.tempPath) {
                 this._handleConnectionDragMove(e);
                 return;
             }
 
-            // Handle node dragging
-            if (this.nodeDragState.isDragging && this.nodeDragState.draggedNode) {
-                this._handleNodeDragMove(e);
+            if (this.dragState.isDragging) {
+                this._handleUnifiedDragMove(e);
                 return;
             }
         },
 
         handleMouseUp(e) {
-            // Handle box selection end
             if (this.boxSelectionState.isActive) {
                 this._endBoxSelection(e);
                 return;
             }
 
-            // Handle connection drag end
             if (this.connectionState.isDragging) {
                 this._handleConnectionDragEnd(e);
                 return;
             }
 
-            // Handle node drag end
-            if (this.nodeDragState.isDragging) {
-                this._handleNodeDragEnd(e);
+            if (this.dragState.isDragging) {
+                this._handleUnifiedDragEnd(e);
                 return;
             }
         },
 
-        handleCanvasClick(event) {
-            // we do everything inside this.handleMouseDown
-            return;
+        // =============================================================================
+        // UNIFIED DRAG SYSTEM
+        // =============================================================================
+
+        _findDraggableElement(target) {
+            // Check for node
+            const nodeElement = target.closest('[data-node-id]');
+            if (nodeElement && !target.closest('.connection-pin')) {
+                return {
+                    type: 'node',
+                    id: nodeElement.dataset.nodeId,
+                    element: nodeElement
+                };
+            }
+
+            // Check for connection
+            const connectionElement = target.closest('path[data-connection-id]');
+            if (connectionElement) {
+                return {
+                    type: 'connection',
+                    id: connectionElement.getAttribute('data-connection-id'),
+                    element: connectionElement
+                };
+            }
+
+            return null;
         },
 
-        handleContextMenu(event) {
-            event.preventDefault(); // Prevent browser context menu
+        _startUnifiedDrag(e, draggedElement) {
+            e.preventDefault();
+            e.stopPropagation();
 
-            // Allow context menu on natural right-click or two-finger click (Mac trackpad)
-            // This provides intuitive interaction without requiring modifier keys
-            // Context menu will appear for: right-click, two-finger click, or Ctrl+click
+            console.log('Starting unified drag for:', draggedElement.type, draggedElement.id);
 
-            // Check if Shift key is pressed (for future use if needed)
-            /*
-            const isShiftPressed = event.shiftKey;
-            if (!isShiftPressed) {
-                return; // Only show context menu when Shift is pressed
-            }
-            */
+            this.dragState.isDragging = true;
+            this.dragState.startMousePos = { x: e.clientX, y: e.clientY };
+            this.dragState.hasActuallyMoved = false;
 
-            const clientX = event.clientX;
-            const clientY = event.clientY;
+            // Store mouse down event for selection handling
+            this.dragState.mouseDownEvent = {
+                shiftKey: e.shiftKey,
+                elementType: draggedElement.type,
+                elementId: draggedElement.id
+            };
 
-            console.log('Context menu event on:', event.target.tagName, event.target);
+            // Determine what elements to drag
+            this.dragState.draggedElements = this._getDraggedElements(draggedElement, e.shiftKey);
 
-            // Determine what was clicked
-            const target = event.target;
-
-            // Check for node first
-            const nodeElement = target.closest('[data-node-id]');
-
-            // Check for connection (SVG path)
-            let connectionElement = null;
-            let connectionId = null;
-
-            if (target.tagName === 'path') {
-                // Direct click on SVG path
-                connectionId = target.getAttribute('data-connection-id') || target.id;
-                connectionElement = target;
-                console.log('Direct path click, connection ID:', connectionId);
-            } else {
-                // Check if we're inside an SVG and there's a path nearby
-                const svgElement = target.closest('svg');
-                if (svgElement) {
-                    // Find all paths in the SVG and check if click is near any of them
-                    const paths = svgElement.querySelectorAll('path[data-connection-id]');
-                    const clickPoint = { x: clientX, y: clientY };
-
-                    for (const path of paths) {
-                        if (this.isPointNearPath(path, clickPoint)) {
-                            connectionElement = path;
-                            connectionId = path.getAttribute('data-connection-id') || path.id;
-                            console.log('Found nearby path, connection ID:', connectionId);
-                            break;
-                        }
-                    }
+            // Store initial positions for all dragged elements
+            this.dragState.startPositions.clear();
+            this.dragState.draggedElements.forEach(element => {
+                if (element.type === 'node') {
+                    const nodeElement = element.element;
+                    const currentLeft = parseInt(nodeElement.style.left) || 0;
+                    const currentTop = parseInt(nodeElement.style.top) || 0;
+                    this.dragState.startPositions.set(element.id, { x: currentLeft, y: currentTop });
                 }
-            }
+            });
 
-            if (nodeElement) {
-                // Check if clicked node is part of current selection
-                const nodeId = nodeElement.dataset.nodeId;
+            // Calculate drag offset for the primary element
+            if (draggedElement.type === 'node') {
+                const nodePos = this.dragState.startPositions.get(draggedElement.id);
+                this.dragState.dragOffset = {
+                    x: e.clientX - nodePos.x,
+                    y: e.clientY - nodePos.y
+                };
+            }
+        },
+
+        _getDraggedElements(primaryElement, isShiftClick) {
+            const elements = [];
+
+            if (primaryElement.type === 'node') {
+                const nodeId = primaryElement.id;
                 const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
                 const hasMultipleNodesSelected = this.selectionState.selectedNodes.size > 1;
-                const hasConnectionsSelected = this.selectionState.selectedConnections.size > 0;
-                
-                if (isNodeSelected && (hasMultipleNodesSelected || hasConnectionsSelected)) {
-                    // Context menu for selected elements (multi-selection)
-                    console.log(`🎯 Context menu for selected elements: ${this.selectionState.selectedNodes.size} nodes, ${this.selectionState.selectedConnections.size} connections`);
-                    
-                    // Convert screen coordinates to canvas coordinates
-                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                    
-                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y,
-                        Array.from(this.selectionState.selectedNodes),
-                        Array.from(this.selectionState.selectedConnections)
-                    ));
-                } else {
-                    // Context menu for individual node
-                    console.log(`🎯 Context menu for node: ${nodeId}`);
-                    
-                    // Convert screen coordinates to canvas coordinates
-                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                    
-                    this.emitCanvasEvent(EventCreators.createContextMenuNode(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
-                    ));
-                }
-            } else if (connectionElement && connectionId) {
-                // Check if clicked connection is part of current selection
-                const isConnectionSelected = this.selectionState.selectedConnections.has(connectionId);
-                const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedConnections.size > 1;
-                
-                if (isConnectionSelected && hasMultipleSelected) {
-                    // Context menu for selected elements (multi-selection)
-                    console.log(`🎯 Context menu for selected elements: ${this.selectionState.selectedNodes.size} nodes, ${this.selectionState.selectedConnections.size} connections`);
-                    
-                    // Convert screen coordinates to canvas coordinates
-                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                    
-                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y,
-                        Array.from(this.selectionState.selectedNodes),
-                        Array.from(this.selectionState.selectedConnections)
-                    ));
-                } else {
-                    // Context menu for individual connection
-                    console.log(`🎯 Context menu for connection: ${connectionId}`);
-                    
-                    // Convert screen coordinates to canvas coordinates
-                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                    
-                    this.emitCanvasEvent(EventCreators.createContextMenuConnection(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, connectionId
-                    ));
-                }
-            } else {
-                // Context menu for canvas (empty space)
-                console.log(`🎯 Context menu for canvas`);
 
-                // Convert screen coordinates to canvas coordinates for node creation
-                const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-
-                this.emitCanvasEvent(EventCreators.createContextMenuCanvas(
-                    clientX, clientY, canvasCoords.x, canvasCoords.y
-                ));
-            }
-        },
-
-        // Helper method to check if a point is near a path
-        isPointNearPath(pathElement, point) {
-            try {
-                const rect = pathElement.getBoundingClientRect();
-                const tolerance = 10; // pixels
-
-                return point.x >= rect.left - tolerance &&
-                    point.x <= rect.right + tolerance &&
-                    point.y >= rect.top - tolerance &&
-                    point.y <= rect.bottom + tolerance;
-            } catch (e) {
-                console.warn('Error checking point near path:', e);
-                return false;
-            }
-        },
-
-        // =============================================================================
-        // CONNECTION DRAG SYSTEM
-        // =============================================================================
-
-        _startConnectionDrag(e, pin) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            this.connectionState.isDragging = true;
-            this.connectionState.startPin = pin;
-
-            const startPos = this._getPinPosition(pin);
-            const offsetDir = pin.dataset.pinDir === 'inlet' ? -1 : 1;
-            const pinColor = pin.dataset.pinColor || '#000000';
-
-            // Create temporary path
-            this.connectionState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const initialPath = this._createBezierPath(startPos, startPos, offsetDir);
-
-            this.connectionState.tempPath.setAttribute('d', initialPath);
-            this.connectionState.tempPath.setAttribute('stroke', pinColor);
-            this.connectionState.tempPath.setAttribute('stroke-width', '2');
-            this.connectionState.tempPath.setAttribute('fill', 'none');
-            this.connectionState.tempPath.setAttribute('stroke-dasharray', '4');
-            this.connectionState.tempPath.style.pointerEvents = 'none';
-            
-            this.$refs.svg.appendChild(this.connectionState.tempPath);
-
-            // Visual feedback on start pin
-            pin.style.boxShadow = '0 0 15px #4A90E2';
-            pin.style.transform = 'scale(1.8)';
-            pin.style.zIndex = '10003';
-        },
-
-        _handleConnectionDragMove(e) {
-            console.log('🔗 _handleConnectionDragMove called:', {
-                hasTempPath: !!this.connectionState.tempPath,
-                hasStartPin: !!this.connectionState.startPin,
-                mousePos: { x: e.clientX, y: e.clientY }
-            });
-
-            if (!this.connectionState.tempPath) {
-                console.error('🔗 No tempPath found in drag move!');
-                return;
-            }
-            
-            const startPos = this._getPinPosition(this.connectionState.startPin);
-            const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
-            const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
-
-            // Update dragging path
-            const pathData = this._createBezierPath(startPos, mousePos, offsetDir);
-            this.connectionState.tempPath.setAttribute('d', pathData);
-
-            // Clear all previous highlighting and suggestions
-            this._clearConnectionSuggestions();
-
-            document.querySelectorAll('.connection-pin').forEach(pin => {
-                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
-            });
-
-            // Highlight pins based on proximity and compatibility
-            const targetPin = e.target.closest('.connection-pin');
-            let nearestCompatiblePin = null;
-            let nearestDistance = Infinity;
-            
-            document.querySelectorAll('.connection-pin').forEach(pin => {
-                if (pin === this.connectionState.startPin) return;
-
-                const isValid = this._isValidConnection(this.connectionState.startPin, pin);
-                
-                if (isValid) {
-                    // Calculate distance from mouse to pin
-                    const pinPos = this._getPinPosition(pin);
-
-                    const distance = Math.sqrt(
-                        Math.pow(mousePos.x - pinPos.x, 2) + 
-                        Math.pow(mousePos.y - pinPos.y, 2)
-                    );
-
-                    if (pin === targetPin) {
-                        // Closest pin (directly under cursor)
-                        pin.classList.add('connection-valid');
-                        nearestCompatiblePin = pin;
-                        nearestDistance = 0; // Direct hover takes priority
-                    } else if (distance <= this.connectionState.suggestionProximityRange) {
-                        if(this.connectionState.startPin.dataset.pinDataType === pin.dataset.pinDataType) {
-                             // Compatible pins within range
-                            pin.classList.add('connection-compatible');
-                             
-                            this._createSuggestionPath(pin, distance);
-
-                            // Track nearest compatible pin within suggestion range
-                            if (distance < nearestDistance) {
-                                nearestCompatiblePin = pin;
-                                nearestDistance = distance;
-                            }
-                        }
-                    }
-                } else if (pin === targetPin) {
-                    // Invalid pin directly under cursor
-                    pin.classList.add('connection-invalid');
-                }
-            });
-
-            this.connectionState.nearestSuggestedPin = nearestCompatiblePin;
-            
-            // Highlight the nearest suggestion if within range
-            if (nearestCompatiblePin && nearestDistance <= this.connectionState.suggestionProximityRange && nearestDistance > 0) {
-                const suggestionPath = this.connectionState.suggestedConnections.get(nearestCompatiblePin);
-                if (suggestionPath) {
-                    suggestionPath.classList.add('connection-suggestion-nearest');
-                }
-            }
-        },
-
-        _handleConnectionDragEnd(e) {
-            let endPin = e.target.closest('.connection-pin');
-            
-            // If no direct pin target but we have a nearest suggested pin, use that instead
-            if (!endPin && this.connectionState.nearestSuggestedPin) {
-                endPin = this.connectionState.nearestSuggestedPin;
-            }
-
-            // Cleanup temporary visual elements
-            if (this.connectionState.tempPath) {
-                this.connectionState.tempPath.remove();
-                this.connectionState.tempPath = null;
-            }
-
-            if (this.connectionState.startPin) {
-                this.connectionState.startPin.style.boxShadow = '';
-                this.connectionState.startPin.style.transform = '';
-                this.connectionState.startPin.style.zIndex = '';
-            }
-
-            // Clear connection suggestions
-            this._clearConnectionSuggestions();
-
-            // Clear highlighting
-            document.querySelectorAll('.connection-pin').forEach(pin => {
-                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
-            });
-
-            // Create connection if valid
-            if (endPin && this._isValidConnection(this.connectionState.startPin, endPin)) {
-                let startData = this.connectionState.startPin.dataset;
-                let endData = endPin.dataset;
-
-                // Maintain outlet->inlet convention
-                if (endPin.dataset.pinDir === 'outlet') {
-                    endData = this.connectionState.startPin.dataset;
-                    startData = endPin.dataset;
-                }
-
-                if (!this._connectionExists(startData.nodeId, startData.pinId, endData.nodeId, endData.pinId)) {
-                    // Emit connection created event using new unified system
-                    this.emitCanvasEvent(EventCreators.createConnectionCreated(
-                        startData.nodeId, startData.pinId, endData.nodeId, endData.pinId
-                    ));
-                }
-            }
-
-            // Reset state
-            this.connectionState.isDragging = false;
-            this.connectionState.startPin = null;
-            this.connectionState.nearestSuggestedPin = null;
-            this.connectionState.lastDragEndTime = Date.now(); // Track when drag ended
-        },
-
-        // Add these methods for connection suggestions
-        _createSuggestionPath(targetPin, distance) {
-            // Don't create duplicate suggestions
-            if (this.connectionState.suggestedConnections.has(targetPin)) {
-                return;
-            }
-
-            const startPos = this._getPinPosition(this.connectionState.startPin);
-            const endPos = this._getPinPosition(targetPin);
-            const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
-
-            // Create suggestion path
-            const suggestionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const pathData = this._createBezierPath(startPos, endPos, offsetDir);
-
-            suggestionPath.setAttribute('d', pathData);
-            suggestionPath.setAttribute('stroke', this.connectionState.startPin.dataset.pinColor || '#4CAF50');
-            suggestionPath.setAttribute('stroke-width', '2');
-            suggestionPath.setAttribute('fill', 'none');
-            suggestionPath.setAttribute('opacity', '0.6');
-            suggestionPath.style.pointerEvents = 'none';
-            suggestionPath.classList.add('connection-suggestion');
-
-            this.$refs.svg.appendChild(suggestionPath);
-            this.connectionState.suggestedConnections.set(targetPin, suggestionPath);
-        },
-
-        _clearConnectionSuggestions() {
-            // Remove all suggestion paths from DOM
-            this.connectionState.suggestedConnections.forEach((path, pin) => {
-                path.remove();
-            });
-            
-            // Clear the map
-            this.connectionState.suggestedConnections.clear();
-        },
-
-        // =============================================================================
-        // NODE DRAG SYSTEM
-        // =============================================================================
-
-        _startNodeDrag(e, nodeElement) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            console.log('Preparing node drag for:', nodeElement.dataset.nodeId);
-
-            this.nodeDragState.isDragging = true;
-            this.nodeDragState.draggedNode = nodeElement;
-            this.nodeDragState.startMousePos = { x: e.clientX, y: e.clientY };
-            this.nodeDragState.hasActuallyMoved = false;
-
-            // Store the mouse down event details for selection handling on mouse up
-            this.nodeDragState.mouseDownEvent = {
-                shiftKey: e.shiftKey,
-                nodeId: nodeElement.dataset.nodeId
-            };
-
-            // Get current node position from style
-            const computedStyle = nodeElement.style;
-            const currentLeft = parseInt(computedStyle.left) || 0;
-            const currentTop = parseInt(computedStyle.top) || 0;
-            this.nodeDragState.startNodePos = { x: currentLeft, y: currentTop };
-
-            // Calculate drag offset
-            this.nodeDragState.dragOffset = {
-                x: e.clientX - currentLeft,
-                y: e.clientY - currentTop
-            };
-
-            // Don't emit drag start yet - wait for actual movement
-            // Don't add visual feedback yet - wait for actual movement
-        },
-
-        _handleNodeDragMove(e) {
-            const nodeElement = this.nodeDragState.draggedNode;
-            const nodeId = nodeElement.dataset.nodeId;
-
-            // Calculate mouse movement
-            const mouseDeltaX = e.clientX - this.nodeDragState.startMousePos.x;
-            const mouseDeltaY = e.clientY - this.nodeDragState.startMousePos.y;
-
-            // Check if we've moved enough to be considered a drag
-            const distance = Math.sqrt(mouseDeltaX * mouseDeltaX + mouseDeltaY * mouseDeltaY);
-
-            if (!this.nodeDragState.hasActuallyMoved && distance > this.nodeDragState.dragThreshold) {
-                // First time we've moved enough - this is when drag actually starts
-                this.nodeDragState.hasActuallyMoved = true;
-
-                // Check if we're doing multi-node drag
-                const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
-                const selectedNodeCount = this.selectionState.selectedNodes.size;
-                const isMultiNodeDrag = isNodeSelected && selectedNodeCount > 1;
-
-                if (isMultiNodeDrag) {
-                    // Multi-node drag mode
-                    console.log('Starting multi-node drag for:', selectedNodeCount, 'nodes');
-                    this.selectionDragState.isMultiDragging = true;
-                    this.selectionDragState.initialMousePos = { x: e.clientX, y: e.clientY };
-                    this.selectionDragState.hasActuallyMoved = true;
-
-                    // Store initial positions of all selected nodes
+                if (isNodeSelected && hasMultipleNodesSelected && !isShiftClick) {
+                    // Drag all selected nodes
                     this.selectionState.selectedNodes.forEach(selectedNodeId => {
-                        const selectedNodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
-                        if (selectedNodeElement) {
-                            const currentX = parseInt(selectedNodeElement.style.left) || 0;
-                            const currentY = parseInt(selectedNodeElement.style.top) || 0;
-                            this.selectionDragState.dragStartPositions.set(selectedNodeId, { x: currentX, y: currentY });
-                            
-                            // Add visual feedback to all selected nodes
-                            selectedNodeElement.style.cursor = 'grabbing';
-                            selectedNodeElement.style.zIndex = '1000';
-                            selectedNodeElement.classList.add('dragging-node');
+                        const nodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
+                        if (nodeElement) {
+                            elements.push({
+                                type: 'node',
+                                id: selectedNodeId,
+                                element: nodeElement
+                            });
                         }
                     });
-
-                    // Emit selection drag start event
-                    this.emitCanvasEvent(EventCreators.createSelectionDragStart(selectedNodeCount));
                 } else {
-                    // Single node drag mode (existing behavior)
-                    console.log('Starting single node drag for:', nodeId);
-
-                    // Add visual feedback now
-                    nodeElement.style.cursor = 'grabbing';
-                    nodeElement.style.zIndex = '1000';
-                    nodeElement.classList.add('dragging-node');
-
-                    // Emit single node drag start event
-                    this.emitCanvasEvent(EventCreators.createNodeDragStart(nodeId));
+                    // Drag only this node
+                    elements.push(primaryElement);
                 }
+            }
+            // Note: Connections can't be dragged, so we only handle nodes
 
-                console.log('Node drag started:', {
-                    nodeId: nodeId,
-                    startPos: this.nodeDragState.startNodePos,
-                    mousePos: this.nodeDragState.startMousePos,
-                    offset: this.nodeDragState.dragOffset
+            return elements;
+        },
+
+        _handleUnifiedDragMove(e) {
+            // Calculate mouse movement
+            const mouseDeltaX = e.clientX - this.dragState.startMousePos.x;
+            const mouseDeltaY = e.clientY - this.dragState.startMousePos.y;
+            const distance = Math.sqrt(mouseDeltaX * mouseDeltaX + mouseDeltaY * mouseDeltaY);
+
+            if (!this.dragState.hasActuallyMoved && distance > this.dragState.dragThreshold) {
+                this.dragState.hasActuallyMoved = true;
+                
+                // Emit unified drag start event
+                this.emitCanvasEvent(EventCreators.createUserDragStart(
+                    this._extractNodeIds(this.dragState.draggedElements)
+                ));
+
+                // Add visual feedback
+                this.dragState.draggedElements.forEach(element => {
+                    if (element.type === 'node') {
+                        element.element.style.cursor = 'grabbing';
+                        element.element.style.zIndex = '1000';
+                        element.element.classList.add('dragging-node');
+                    }
                 });
             }
 
-            // Only proceed with position updates if we're actually dragging
-            if (!this.nodeDragState.hasActuallyMoved) {
-                return;
-            }
+            if (!this.dragState.hasActuallyMoved) return;
 
-            // Adjust for zoom level - divide by zoom to get correct canvas coordinates
+            // Apply movement to all dragged elements
             const zoomFactor = this.zoomState.zoom || 1;
             const canvasDeltaX = mouseDeltaX / zoomFactor;
             const canvasDeltaY = mouseDeltaY / zoomFactor;
 
-            if (this.selectionDragState.isMultiDragging) {
-                // Multi-node drag mode - move all selected nodes by the same delta
-                this.selectionState.selectedNodes.forEach(selectedNodeId => {
-                    const selectedNodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
-                    if (selectedNodeElement) {
-                        const startPos = this.selectionDragState.dragStartPositions.get(selectedNodeId);
-                        if (startPos) {
-                            // Calculate new position relative to start position
-                            const newX = startPos.x + canvasDeltaX;
-                            const newY = startPos.y + canvasDeltaY;
+            // Store the final delta values for the drag end event
+            this.dragState.finalDeltaX = canvasDeltaX;
+            this.dragState.finalDeltaY = canvasDeltaY;
 
-                            // Apply constraints to keep node within canvas bounds
-                            const constrainedX = Math.max(0, Math.min(newX, 7500));
-                            const constrainedY = Math.max(0, Math.min(newY, 7500));
+            this.dragState.draggedElements.forEach(element => {
+                if (element.type === 'node') {
+                    const startPos = this.dragState.startPositions.get(element.id);
+                    if (startPos) {
+                        const newX = Math.max(0, Math.min(startPos.x + canvasDeltaX, 7500));
+                        const newY = Math.max(0, Math.min(startPos.y + canvasDeltaY, 7500));
 
-                            // Update node position
-                            selectedNodeElement.style.left = `${constrainedX}px`;
-                            selectedNodeElement.style.top = `${constrainedY}px`;
+                        element.element.style.left = `${newX}px`;
+                        element.element.style.top = `${newY}px`;
+                        this.updateConnectionsForNode(element.id);
+                    }
+                }
+            });
+        },
 
-                            // Update connections immediately for smooth dragging
-                            this.updateConnectionsForNode(selectedNodeId);
-                        }
+        _extractNodeIds(draggedElements) {
+            return draggedElements
+                .filter(element => element.type === 'node')
+                .map(element => element.id);
+        },
+
+        _handleUnifiedDragEnd(e) {
+            console.log('Ending unified drag, hasActuallyMoved:', this.dragState.hasActuallyMoved);
+
+            if (this.dragState.hasActuallyMoved) {
+                // Remove visual feedback
+                this.dragState.draggedElements.forEach(element => {
+                    if (element.type === 'node') {
+                        element.element.style.cursor = 'grab';
+                        element.element.style.zIndex = '100';
+                        element.element.classList.remove('dragging-node');
                     }
                 });
 
-                // Emit position change event for multi-node drag (only the delta, not per-node positions)
-                this.emitCanvasEvent(EventCreators.createSelectionPositionChanged(canvasDeltaX, canvasDeltaY));
+                // Emit unified drag update event with final position
+                this.emitCanvasEvent(EventCreators.createUserDragUpdate(
+                    this._extractNodeIds(this.dragState.draggedElements),
+                    this.dragState.finalDeltaX || 0,
+                    this.dragState.finalDeltaY || 0
+                ));
+
+                // Emit unified drag end event
+                this.emitCanvasEvent(EventCreators.createUserDragEnd(
+                    this._extractNodeIds(this.dragState.draggedElements)
+                ));
             } else {
-                // Single node drag mode (existing behavior)
-                // Calculate new position relative to start position
-                const newX = this.nodeDragState.startNodePos.x + canvasDeltaX;
-                const newY = this.nodeDragState.startNodePos.y + canvasDeltaY;
-
-                // Apply constraints to keep node within canvas bounds
-                const constrainedX = Math.max(0, Math.min(newX, 7500)); // Leave some margin
-                const constrainedY = Math.max(0, Math.min(newY, 7500));
-
-                // Update node position
-                nodeElement.style.left = `${constrainedX}px`;
-                nodeElement.style.top = `${constrainedY}px`;
-
-                // Update connections immediately for smooth dragging
-                this.updateConnectionsForNode(nodeId);
-            }
-
-            //console.log(`Node ${nodeId} dragged to: (${constrainedX}, ${constrainedY}) [zoom: ${zoomFactor}]`);
-        },
-
-        _handleNodeDragEnd(e) {
-            const nodeElement = this.nodeDragState.draggedNode;
-            const nodeId = nodeElement.dataset.nodeId;
-
-            console.log('Ending node interaction for:', nodeId, 'hasActuallyMoved:', this.nodeDragState.hasActuallyMoved);
-
-            // Get final position
-            const finalX = parseInt(nodeElement.style.left) || 0;
-            const finalY = parseInt(nodeElement.style.top) || 0;
-
-            // Check if position actually changed from start
-            const startX = this.nodeDragState.startNodePos.x;
-            const startY = this.nodeDragState.startNodePos.y;
-            const positionChanged = (finalX !== startX || finalY !== startY);
-
-            // Only emit events if we actually dragged (moved beyond threshold)
-            if (this.nodeDragState.hasActuallyMoved) {
-                if (this.selectionDragState.isMultiDragging) {
-                    // Multi-node drag end
-                    const selectedNodeCount = this.selectionState.selectedNodes.size;
-                    let anyNodeMoved = false;
-
-                    // Remove visual feedback from all selected nodes and check for position changes
-                    this.selectionState.selectedNodes.forEach(selectedNodeId => {
-                        const selectedNodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
-                        if (selectedNodeElement) {
-                            // Remove visual feedback
-                            selectedNodeElement.style.cursor = 'grab';
-                            selectedNodeElement.style.zIndex = '100';
-                            selectedNodeElement.classList.remove('dragging-node');
-
-                            // Check if this node actually moved
-                            const currentX = parseInt(selectedNodeElement.style.left) || 0;
-                            const currentY = parseInt(selectedNodeElement.style.top) || 0;
-                            const startPos = this.selectionDragState.dragStartPositions.get(selectedNodeId);
-                            if (startPos && (currentX !== startPos.x || currentY !== startPos.y)) {
-                                anyNodeMoved = true;
-                                
-                                // Emit individual position change events for each moved node
-                                this.emitCanvasEvent(EventCreators.createNodePositionChanged(
-                                    selectedNodeId, { x: currentX, y: currentY }
-                                ));
-                            }
-                        }
-                    });
-
-                    console.log(`Multi-node drag ended for ${selectedNodeCount} nodes, any moved: ${anyNodeMoved}`);
-
-                    // Emit selection drag end event
-                    this.emitCanvasEvent(EventCreators.createSelectionDragEnd(selectedNodeCount, anyNodeMoved));
-
-                    // Reset selection drag state
-                    this.selectionDragState.isMultiDragging = false;
-                    this.selectionDragState.hasActuallyMoved = false;
-                    this.selectionDragState.dragStartPositions.clear();
-                } else {
-                    // Single node drag end (existing behavior)
-                    // Remove visual feedback
-                    nodeElement.style.cursor = 'grab';
-                    nodeElement.style.zIndex = '100';
-                    nodeElement.classList.remove('dragging-node');
-
-                    // Only emit position change if the position actually changed
-                    if (positionChanged) {
-                        // Emit position change event to Python using new unified system
-                        this.emitCanvasEvent(EventCreators.createNodePositionChanged(
-                            nodeId, { x: finalX, y: finalY }
-                        ));
-
-                        console.log(`Node ${nodeId} drag ended with position change: (${startX}, ${startY}) -> (${finalX}, ${finalY})`);
-                    } else {
-                        console.log(`Node ${nodeId} drag ended with no position change: (${finalX}, ${finalY})`);
-                    }
-
-                    // Emit drag end event to close fence for undo grouping using new unified system
-                    this.emitCanvasEvent(EventCreators.createNodeDragEnd(
-                        nodeId, positionChanged
-                    ));
-                }
-            } else {
-                // This was just a click, not a drag - handle as selection now
-                console.log(`Node ${nodeId} was clicked (not dragged) - handling selection`);
-
-                // Handle selection using stored event details
-                if (this.nodeDragState.mouseDownEvent) {
-                    const mockEvent = {
-                        shiftKey: this.nodeDragState.mouseDownEvent.shiftKey
-                    };
-                    this._handleNodeSelection(mockEvent, nodeId);
+                // This was a click - handle selection
+                if (this.dragState.mouseDownEvent) {
+                    this._handleElementSelection(
+                        this.dragState.mouseDownEvent.shiftKey,
+                        this.dragState.mouseDownEvent.elementType,
+                        this.dragState.mouseDownEvent.elementId
+                    );
                 }
             }
 
             // Reset drag state
-            this.nodeDragState.isDragging = false;
-            this.nodeDragState.draggedNode = null;
-            this.nodeDragState.startMousePos = { x: 0, y: 0 };
-            this.nodeDragState.startNodePos = { x: 0, y: 0 };
-            this.nodeDragState.dragOffset = { x: 0, y: 0 };
-            this.nodeDragState.hasActuallyMoved = false;
-            this.nodeDragState.mouseDownEvent = null;
+            this.dragState.isDragging = false;
+            this.dragState.draggedElements = [];
+            this.dragState.startMousePos = { x: 0, y: 0 };
+            this.dragState.startPositions.clear();
+            this.dragState.dragOffset = { x: 0, y: 0 };
+            this.dragState.hasActuallyMoved = false;
+            this.dragState.mouseDownEvent = null;
+            this.dragState.finalDeltaX = 0;
+            this.dragState.finalDeltaY = 0;
+        },
 
-            // Reset selection drag state (in case it wasn't reset above)
-            this.selectionDragState.isMultiDragging = false;
-            this.selectionDragState.hasActuallyMoved = false;
-            this.selectionDragState.dragStartPositions.clear();
+        _serializeDraggedElements(elements) {
+            return elements.map(element => ({
+                type: element.type,
+                id: element.id
+            }));
         },
 
         // =============================================================================
-        // CONNECTION MANAGEMENT - INTERNAL
+        // UNIFIED SELECTION SYSTEM
         // =============================================================================
 
-        // Shared internal method for creating connection visuals
-        _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, isValid, logPrefix = '', connectionData = null) {
-            // Generate pin IDs using utility functions
-            const startPinId = this._buildOutletPinId(outputNodeId, outletPinId);
-            const endPinId = this._buildInletPinId(inputNodeId, inletPinId);
+        _handleElementSelection(isShiftClick, elementType, elementId) {
+            console.log(`Element clicked: ${elementType}:${elementId}, shift: ${isShiftClick}`);
 
-            console.log(`${logPrefix}Looking for pins:`, { startPinId, endPinId, pathId });
-
-            const startPin = document.getElementById(startPinId);
-            const endPin = document.getElementById(endPinId);
-
-            if (!startPin || !endPin) {
-                console.error(`🔗 Vue${logPrefix} could not find pins:`, {
-                    startPinId: startPinId,
-                    endPinId: endPinId,
-                    startPinExists: !!startPin,
-                    endPinExists: !!endPin
-                });
-
-                return { success: false, pathElement: null };
-            }
-            
-            // Create SVG path element
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.dataset.isValid = isValid.toString();
-            path.setAttribute('id', pathId);
-            path.setAttribute('data-connection-id', pathId); 
-            if (isValid) {
-                path.setAttribute('stroke', startPin.dataset.pinColor); 
-                path.dataset.startColor = startPin.dataset.pinColor || '#bbbbbb';
-                path.dataset.endColor = endPin.dataset.pinColor || '#333333';
-            } else {
-                path.setAttribute('stroke', '#FF0000'); 
-                path.setAttribute('stroke-dasharray', '2');
-                path.dataset.startColor = '#FF0000';
-                path.dataset.endColor = '#990000';
-            }
-            path.setAttribute('stroke-width', '2');
-            path.setAttribute('fill', 'none');
-            path.style.pointerEvents = 'stroke';
-            path.style.cursor = 'pointer';
-
-            // Add invisible thicker path for easier clicking/context menu
-            const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            hitArea.setAttribute('id', pathId + '_hitarea');
-            hitArea.setAttribute('data-connection-id', pathId); // Same connection ID
-            hitArea.setAttribute('stroke', 'transparent');
-            hitArea.setAttribute('stroke-width', '10'); // Much thicker for easier interaction
-            hitArea.setAttribute('fill', 'none');
-            hitArea.style.pointerEvents = 'stroke';
-            hitArea.style.cursor = 'pointer';
-
-            this.$refs.svg.appendChild(path);
-            this.$refs.svg.appendChild(hitArea); // Add hit area after visible path
-            this.connectionPaths.set(pathId, path);
-
-            // Add click event to both visible path and hit area
-            const clickHandler = (e) => {
-                console.log(`🔗 Connection path clicked${logPrefix}!`, pathId);
-                e.preventDefault();
-                e.stopPropagation();
-                this._handleConnectionSelection(e, pathId);
-
-                // Emit connection-clicked event using new unified system
-                this.emitCanvasEvent(EventCreators.createConnectionClicked(pathId));
-            };
-
-            path.addEventListener('click', clickHandler);
-            hitArea.addEventListener('click', clickHandler);
-
-            // Update path after a brief delay to ensure nodes are rendered
-            this.$nextTick(() => {
-                this.updateConnectionPath(path);
-            });
-
-            return { success: true, pathElement: path };
-        },
-
-        // Internal method to remove connection visual (used by sync events)
-        _removeConnectionVisual(connectionId) {
-            // Use the connection ID to find the path
-            const path = this.connectionPaths.get(connectionId);
-
-            if (path) {
-                path.remove();
-
-                // Also remove the invisible hit area
-                const hitArea = document.getElementById(connectionId + '_hitarea');
-                if (hitArea) {
-                    hitArea.remove();
-                }
-
-                // Also remove any associated gradient
-                const gradient = document.getElementById(`gradient_${connectionId}`);
-                if (gradient) {
-                    gradient.remove();
-                }
-
-                this.connectionPaths.delete(connectionId);
-                console.log('🔗 Vue (internal) removed path element:', connectionId);
-                return true;
-            } else {
-                console.log('🔗 Vue (internal) path not found for removal:', connectionId);
-                return false;
-            }
-        },
-
-        // =============================================================================
-        // CONNECTION MANAGEMENT
-        // =============================================================================
-
-        updateConnectionPath(pathElement) {
-            if (!pathElement || !pathElement.id) return;
-
-            const pathId = pathElement.id;
-            const connectionInfo = this._parseConnectionId(pathId);
-
-            if (!connectionInfo) {
-                console.error(`Failed to parse connection ID: ${pathId}`);
-                return;
-            }
-
-            const startPin = document.getElementById(connectionInfo.outletPinFullId);
-            const endPin = document.getElementById(connectionInfo.inletPinFullId);
-
-            if (!startPin || !endPin) {
-                console.error(`Failed to find pins for connection ID: ${pathId}`);
-                return;
-            }
-
-            const startPos = this._getPinPosition(startPin);
-            const endPos = this._getPinPosition(endPin);
-
-            const offsetDir = startPin.dataset.pinDir === 'inlet' ? -1 : 1;
-            const pathData = this._createBezierPath(startPos, endPos, offsetDir);
-
-            pathElement.setAttribute('d', pathData);
-            // Also update the hit area if it exists
-            const hitArea = document.getElementById(pathId + '_hitarea');
-            if (hitArea) {
-                hitArea.setAttribute('d', pathData);
-            }
-
-            const isValid = pathElement.dataset.isValid === 'true';
-
-            let startColor = pathElement.dataset.startColor || '#000000';
-            let endColor = pathElement.dataset.endColor || '#000000';
-
-            // Update stroke with gradient
-            const stroke = this._createBezierStroke(startPos, endPos, startColor, endColor, pathId);
-
-            pathElement.setAttribute('stroke', stroke);
-
-        },
-
-        updateAllConnections() {
-            if (this.updateConnectionsThrottled) return;
-            this.updateConnectionsThrottled = true;
-
-            requestAnimationFrame(() => {
-                this.connectionPaths.forEach(path => {
-                    this.updateConnectionPath(path);
-                });
-
-                // Reset throttle
-                setTimeout(() => {
-                    this.updateConnectionsThrottled = false;
-                }, 16); // ~60fps
-            });
-        },
-
-        updateConnectionsForNode(nodeId) {
-            if (!nodeId) return;
-
-            // Find all paths connected to this node
-            this.connectionPaths.forEach((path, pathId) => {
-                if (pathId.includes(nodeId)) {
-                    this.updateConnectionPath(path);
-                }
-            });
-        },
-
-        // =============================================================================
-        // NODE OBSERVER SYSTEM
-        // =============================================================================
-
-        addNodeObserver(nodeId) {
-            if (!this.mutationObserver || !nodeId) return;
-
-            // Function to attempt adding the observer
-            const attemptAddObserver = (retryCount = 0) => {
-                const nodeElement = document.getElementById(nodeId);
-                if (nodeElement) {
-                    console.log(`[GraphCanvas] Adding observer for node ${nodeId}`, nodeElement);
-
-                    // Setup hover observers for LOD and onhover animations
-                    this._setupHoverObserver(nodeElement);
-                } else if (retryCount < 3) {
-                    // Retry after a short delay (up to 3 times)
-                    setTimeout(() => attemptAddObserver(retryCount + 1), 100);
+            if (isShiftClick) {
+                // Toggle selection
+                if (this._isElementSelected(elementType, elementId)) {
+                    this.deselectElement(elementType, elementId);
                 } else {
-                    console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found after 3 retries. Unable to observe.`);
+                    this.selectElement(elementType, elementId, true);
                 }
-            };
-
-            // Start the attempt
-            attemptAddObserver();
-        },
-
-        removeNodeObserver(nodeId) {
-            if (!nodeId) return;
-
-            // Find the node element by ID
-            const nodeElement = document.getElementById(nodeId);
-            if (nodeElement) {
-                console.log(`[GraphCanvas] Removing observer for node ${nodeId}`);
-                // Note: MutationObserver doesn't have a way to unobserve specific elements
-                // This would require tracking observed elements separately if needed
-                // For now, we just log the removal
             } else {
-                console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found for removal`);
+                // Clear other selections and select this element
+                this.clearSelection();
+                this.selectElement(elementType, elementId, false);
             }
+
+            // Emit unified selection change event
+            this._emitSelectionChanged();
         },
 
-        _emitNodePositionChanged(nodeElement, nodeId) {
-            // Don't emit position changes when dragging connections to avoid interference
-            if (this.connectionState.isDragging) {
-                console.log(`🚫 Skipping node position change for ${nodeId} during connection drag`);
-                return;
+        selectElement(elementType, elementId, multiSelect = false) {
+            if (!multiSelect) {
+                this.clearSelection();
             }
 
-            // Don't emit during active node dragging (we handle this in _handleNodeDragEnd)
-            if (this.nodeDragState.isDragging && this.nodeDragState.draggedNode === nodeElement) {
-                console.log(`🚫 Skipping node position change for ${nodeId} during node drag - will emit on drag end`);
-                return;
+            if (elementType === 'node') {
+                this.selectionState.selectedNodes.add(elementId);
+                this._updateNodeVisualSelection(elementId, true);
+                this._scheduleConnectionUpdates(elementId, null, 300);
+            } else if (elementType === 'connection') {
+                this.selectionState.selectedConnections.add(elementId);
+                this._updateConnectionVisualSelection(elementId, true);
             }
 
-            // Also skip if we recently finished a connection drag (timing protection)
-            const now = Date.now();
-            if (this.connectionState.lastDragEndTime && (now - this.connectionState.lastDragEndTime) < 500) {
-                console.log(`🚫 Skipping node position change for ${nodeId} - too soon after connection drag end`);
-                return;
-            }
-
-            // Debounce position change notifications
-            clearTimeout(nodeElement._positionTimer);
-            nodeElement._positionTimer = setTimeout(() => {
-                const rect = nodeElement.getBoundingClientRect();
-                const containerRect = this.$refs.nodeContainer.getBoundingClientRect();
-                const relativeX = rect.left - containerRect.left;
-                const relativeY = rect.top - containerRect.top;
-
-                // Debug position calculation
-                const style = nodeElement.style;
-                const styleLeft = parseInt(style.left) || 0;
-                const styleTop = parseInt(style.top) || 0;
-
-                // Validate position - skip if it's (0,0) and we have no good reason for it to be there
-                if (styleLeft === 0 && styleTop === 0) {
-                    console.log(`⚠️ Warning: Node ${nodeId} position is (0,0) - this might be erroneous. Skipping position update.`);
-                    return;
-                }
-
-                // Use the style position directly instead of calculated position
-                // as it's more reliable for absolute positioned elements
-                this.emitCanvasEvent(EventCreators.createNodePositionChanged(
-                    nodeId, { x: styleLeft, y: styleTop }
-                ));
-            }, 100);
+            console.log(`🎯 Selected ${elementType}: ${elementId}`);
         },
 
-        // =============================================================================
-        // SELECTION SYSTEM
-        // =============================================================================
+        deselectElement(elementType, elementId) {
+            if (elementType === 'node') {
+                this.selectionState.selectedNodes.delete(elementId);
+                this._updateNodeVisualSelection(elementId, false);
+                this._scheduleConnectionUpdates(elementId, null, 300);
+            } else if (elementType === 'connection') {
+                this.selectionState.selectedConnections.delete(elementId);
+                this._updateConnectionVisualSelection(elementId, false);
+            }
+
+            console.log(`🎯 Deselected ${elementType}: ${elementId}`);
+        },
+
+        _isElementSelected(elementType, elementId) {
+            if (elementType === 'node') {
+                return this.selectionState.selectedNodes.has(elementId);
+            } else if (elementType === 'connection') {
+                return this.selectionState.selectedConnections.has(elementId);
+            }
+            return false;
+        },
 
         clearSelection() {
-            // Store previously selected nodes for connection updates
             const previouslySelectedNodes = Array.from(this.selectionState.selectedNodes);
 
-            // Clear visual selection for all nodes
             this.selectionState.selectedNodes.forEach(nodeId => {
                 this._updateNodeVisualSelection(nodeId, false);
             });
 
-            // Clear visual selection for all connections
-            this.selectionState.selectedConnections.forEach(pathId => {
-                this._updateConnectionVisualSelection(pathId, false);
+            this.selectionState.selectedConnections.forEach(connectionId => {
+                this._updateConnectionVisualSelection(connectionId, false);
             });
 
             this.selectionState.selectedNodes.clear();
             this.selectionState.selectedConnections.clear();
 
-            // Schedule smooth connection updates for all previously selected nodes during fold animation
             previouslySelectedNodes.forEach(nodeId => {
-                this._scheduleConnectionUpdates(nodeId, null, 300); // 300ms matches CSS transition
+                this._scheduleConnectionUpdates(nodeId, null, 300);
             });
 
             console.log('🎯 Cleared all selections');
         },
 
-        getSelection() {
-            return {
-                selectedNodes: Array.from(this.selectionState.selectedNodes),
-                selectedConnections: Array.from(this.selectionState.selectedConnections)
-            };
-        },
-
-        setSelection(selection) {
-            this.clearSelection();
-
-            if (selection.selectedNodes) {
-                selection.selectedNodes.forEach(nodeId => {
-                    this.selectNode(nodeId, true);
-                });
-            }
-
-            if (selection.selectedConnections) {
-                selection.selectedConnections.forEach(pathId => {
-                    this.selectConnection(pathId, true);
-                });
-            }
+        _emitSelectionChanged() {
+            this.emitCanvasEvent(EventCreators.createSelectionChanged(
+                Array.from(this.selectionState.selectedNodes),
+                Array.from(this.selectionState.selectedConnections)
+            ));
         },
 
         // =============================================================================
@@ -1535,18 +758,15 @@ export default {
 
         _startBoxSelection(e) {
             console.log('🔲 Starting box selection');
-            
             e.preventDefault();
             e.stopPropagation();
 
-            // Convert screen coordinates to canvas coordinates
             const canvasPos = this._transformScreenToCanvas(e.clientX, e.clientY);
             
             this.boxSelectionState.isActive = true;
             this.boxSelectionState.startPos = canvasPos;
             this.boxSelectionState.currentPos = canvasPos;
 
-            // Clear existing selection unless Shift is held
             if (!e.shiftKey) {
                 this.clearSelection();
             }
@@ -1555,11 +775,9 @@ export default {
         _updateBoxSelection(e) {
             if (!this.boxSelectionState.isActive) return;
 
-            // Convert screen coordinates to canvas coordinates
             const canvasPos = this._transformScreenToCanvas(e.clientX, e.clientY);
             this.boxSelectionState.currentPos = canvasPos;
 
-            // Continuously update selection during drag
             this._updateBoxSelectionTargets(e.shiftKey);
         },
 
@@ -1568,39 +786,25 @@ export default {
 
             if (!this.boxSelectionState.isActive) return;
 
-            // IMPORTANT: Prevent the event from bubbling to canvas click handler
             e.preventDefault();
             e.stopPropagation();
 
-            // Final selection update
             this._updateBoxSelectionTargets(e.shiftKey);
 
-            // Reset box selection state
             this.boxSelectionState.isActive = false;
             this.boxSelectionState.startPos = { x: 0, y: 0 };
             this.boxSelectionState.currentPos = { x: 0, y: 0 };
 
-            // Emit selection change event to Python
-            this.emitCanvasEvent(EventCreators.createSelectionChanged(
-                Array.from(this.selectionState.selectedNodes),
-                Array.from(this.selectionState.selectedConnections)
-            ));
-
-            console.log('🔲 Box selection completed:', {
-                selectedNodes: Array.from(this.selectionState.selectedNodes),
-                selectedConnections: Array.from(this.selectionState.selectedConnections)
-            });
+            this._emitSelectionChanged();
         },
 
         _updateBoxSelectionTargets(multiSelect) {
             const selectionRect = this._getSelectionRectangle();
             
-            // Find nodes that intersect with selection rectangle
             const intersectingNodes = this._findNodesInRectangle(selectionRect);
             const intersectingConnections = this._findConnectionsInRectangle(selectionRect);
 
             if (multiSelect) {
-                // Add to existing selection
                 intersectingNodes.forEach(nodeId => {
                     this.selectionState.selectedNodes.add(nodeId);
                     this._updateNodeVisualSelection(nodeId, true);
@@ -1611,8 +815,6 @@ export default {
                     this._updateConnectionVisualSelection(connectionId, true);
                 });
             } else {
-                // Replace selection
-                // First clear visual selection
                 this.selectionState.selectedNodes.forEach(nodeId => {
                     if (!intersectingNodes.includes(nodeId)) {
                         this._updateNodeVisualSelection(nodeId, false);
@@ -1625,11 +827,9 @@ export default {
                     }
                 });
 
-                // Update selection sets
                 this.selectionState.selectedNodes.clear();
                 this.selectionState.selectedConnections.clear();
                 
-                // Add new selections
                 intersectingNodes.forEach(nodeId => {
                     this.selectionState.selectedNodes.add(nodeId);
                     this._updateNodeVisualSelection(nodeId, true);
@@ -1678,8 +878,6 @@ export default {
             const intersectingConnections = [];
             
             this.connectionPaths.forEach((pathElement, connectionId) => {
-                // Check if any part of the connection path intersects the selection rectangle
-                // For simplicity, we'll check if the path's bounding box intersects
                 try {
                     const pathBBox = pathElement.getBBox();
                     const pathRect = {
@@ -1701,14 +899,12 @@ export default {
         },
 
         _getNodeBoundingRect(nodeElement) {
-            // Get node position and dimensions in canvas coordinates
             const style = nodeElement.style;
             const left = parseInt(style.left) || 0;
             const top = parseInt(style.top) || 0;
             
-            // Get dimensions from the element
-            const width = nodeElement.offsetWidth || 100; // fallback width
-            const height = nodeElement.offsetHeight || 50; // fallback height
+            const width = nodeElement.offsetWidth || 100;
+            const height = nodeElement.offsetHeight || 50;
             
             return {
                 left: left,
@@ -1726,13 +922,9 @@ export default {
         },
 
         _transformScreenToCanvas(clientX, clientY) {
-            // Get the node container rect (our canvas coordinate system)
             const containerRect = this.$refs.nodeContainer.getBoundingClientRect();
-            
-            // Apply zoom transformation
             const { zoom, panX, panY } = this.zoomState;
             
-            // Convert screen coordinates to canvas coordinates
             const x = (clientX - containerRect.left) / zoom;
             const y = (clientY - containerRect.top) / zoom;
             
@@ -1740,56 +932,469 @@ export default {
         },
 
         // =============================================================================
-        // NODE SELECTION SYSTEM
+        // CONTEXT MENU & REMOVAL SYSTEM
         // =============================================================================
 
-        // Selection Management Methods
-        _handleNodeSelection(e, nodeId) {
-            const multiSelect = e.shiftKey;
+        handleCanvasClick(event) {
+            // All click handling is done in handleMouseDown/Up
+            return;
+        },
 
-            if (multiSelect) {
-                // Toggle selection
-                if (this.selectionState.selectedNodes.has(nodeId)) {
-                    this.deselectNode(nodeId);
+        handleContextMenu(event) {
+            event.preventDefault();
+
+            const clientX = event.clientX;
+            const clientY = event.clientY;
+            const target = event.target;
+
+            // Check for node
+            const nodeElement = target.closest('[data-node-id]');
+            
+            // Check for connection
+            let connectionElement = null;
+            let connectionId = null;
+
+            if (target.tagName === 'path') {
+                connectionId = target.getAttribute('data-connection-id') || target.id;
+                connectionElement = target;
+            } else {
+                const svgElement = target.closest('svg');
+                if (svgElement) {
+                    const paths = svgElement.querySelectorAll('path[data-connection-id]');
+                    const clickPoint = { x: clientX, y: clientY };
+
+                    for (const path of paths) {
+                        if (this.isPointNearPath(path, clickPoint)) {
+                            connectionElement = path;
+                            connectionId = path.getAttribute('data-connection-id') || path.id;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+
+            if (nodeElement) {
+                const nodeId = nodeElement.dataset.nodeId;
+                const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
+                const hasMultipleSelected = this.selectionState.selectedNodes.size > 1 || this.selectionState.selectedConnections.size > 0;
+                
+                if (isNodeSelected && hasMultipleSelected) {
+                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y,
+                        Array.from(this.selectionState.selectedNodes),
+                        Array.from(this.selectionState.selectedConnections)
+                    ));
                 } else {
-                    this.selectNode(nodeId, true);
+                    this.emitCanvasEvent(EventCreators.createContextMenuNode(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
+                    ));
+                }
+            } else if (connectionElement && connectionId) {
+                const isConnectionSelected = this.selectionState.selectedConnections.has(connectionId);
+                const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedConnections.size > 1;
+                
+                if (isConnectionSelected && hasMultipleSelected) {
+                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y,
+                        Array.from(this.selectionState.selectedNodes),
+                        Array.from(this.selectionState.selectedConnections)
+                    ));
+                } else {
+                    this.emitCanvasEvent(EventCreators.createContextMenuConnection(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, connectionId
+                    ));
                 }
             } else {
-                // Clear other selections and select this node
-                this.clearSelection();
-                this.selectNode(nodeId, false);
+                this.emitCanvasEvent(EventCreators.createContextMenuCanvas(
+                    clientX, clientY, canvasCoords.x, canvasCoords.y
+                ));
+            }
+        },
+
+        isPointNearPath(pathElement, point) {
+            try {
+                const rect = pathElement.getBoundingClientRect();
+                const tolerance = 10;
+
+                return point.x >= rect.left - tolerance &&
+                    point.x <= rect.right + tolerance &&
+                    point.y >= rect.top - tolerance &&
+                    point.y <= rect.bottom + tolerance;
+            } catch (e) {
+                console.warn('Error checking point near path:', e);
+                return false;
+            }
+        },
+
+        // Unified removal method for delete key / context menu
+        removeSelectedElements() {
+            const elementsToRemove = this._getSelectedElementsForRemoval();
+            
+            if (elementsToRemove.length > 0) {
+                this.emitCanvasEvent(EventCreators.createUserRemove(elementsToRemove));
+            }
+        },
+
+        _getSelectedElementsForRemoval() {
+            const elements = [];
+            
+            // Add selected nodes
+            this.selectionState.selectedNodes.forEach(nodeId => {
+                elements.push({ type: 'node', id: nodeId });
+            });
+            
+            // Add selected connections
+            this.selectionState.selectedConnections.forEach(connectionId => {
+                elements.push({ type: 'connection', id: connectionId });
+            });
+            
+            return elements;
+        },
+
+        // =============================================================================
+        // CONNECTION DRAG SYSTEM (keeping as-is)
+        // =============================================================================
+
+        _startConnectionDrag(e, pin) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            this.connectionState.isDragging = true;
+            this.connectionState.startPin = pin;
+
+            const startPos = this._getPinPosition(pin);
+            const offsetDir = pin.dataset.pinDir === 'inlet' ? -1 : 1;
+            const pinColor = pin.dataset.pinColor || '#000000';
+
+            this.connectionState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const initialPath = this._createBezierPath(startPos, startPos, offsetDir);
+
+            this.connectionState.tempPath.setAttribute('d', initialPath);
+            this.connectionState.tempPath.setAttribute('stroke', pinColor);
+            this.connectionState.tempPath.setAttribute('stroke-width', '2');
+            this.connectionState.tempPath.setAttribute('fill', 'none');
+            this.connectionState.tempPath.setAttribute('stroke-dasharray', '4');
+            this.connectionState.tempPath.style.pointerEvents = 'none';
+            
+            this.$refs.svg.appendChild(this.connectionState.tempPath);
+
+            pin.style.boxShadow = '0 0 15px #4A90E2';
+            pin.style.transform = 'scale(1.8)';
+            pin.style.zIndex = '10003';
+        },
+
+        _handleConnectionDragMove(e) {
+            if (!this.connectionState.tempPath) return;
+            
+            const startPos = this._getPinPosition(this.connectionState.startPin);
+            const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
+            const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
+
+            const pathData = this._createBezierPath(startPos, mousePos, offsetDir);
+            this.connectionState.tempPath.setAttribute('d', pathData);
+
+            this._clearConnectionSuggestions();
+
+            document.querySelectorAll('.connection-pin').forEach(pin => {
+                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
+            });
+
+            const targetPin = e.target.closest('.connection-pin');
+            let nearestCompatiblePin = null;
+            let nearestDistance = Infinity;
+            
+            document.querySelectorAll('.connection-pin').forEach(pin => {
+                if (pin === this.connectionState.startPin) return;
+
+                const isValid = this._isValidConnection(this.connectionState.startPin, pin);
+                
+                if (isValid) {
+                    const pinPos = this._getPinPosition(pin);
+                    const distance = Math.sqrt(
+                        Math.pow(mousePos.x - pinPos.x, 2) + 
+                        Math.pow(mousePos.y - pinPos.y, 2)
+                    );
+
+                    if (pin === targetPin) {
+                        pin.classList.add('connection-valid');
+                        nearestCompatiblePin = pin;
+                        nearestDistance = 0;
+                    } else if (distance <= this.connectionState.suggestionProximityRange) {
+                        if(this.connectionState.startPin.dataset.pinDataType === pin.dataset.pinDataType) {
+                            pin.classList.add('connection-compatible');
+                            this._createSuggestionPath(pin, distance);
+
+                            if (distance < nearestDistance) {
+                                nearestCompatiblePin = pin;
+                                nearestDistance = distance;
+                            }
+                        }
+                    }
+                } else if (pin === targetPin) {
+                    pin.classList.add('connection-invalid');
+                }
+            });
+
+            this.connectionState.nearestSuggestedPin = nearestCompatiblePin;
+            
+            if (nearestCompatiblePin && nearestDistance <= this.connectionState.suggestionProximityRange && nearestDistance > 0) {
+                const suggestionPath = this.connectionState.suggestedConnections.get(nearestCompatiblePin);
+                if (suggestionPath) {
+                    suggestionPath.classList.add('connection-suggestion-nearest');
+                }
+            }
+        },
+
+        _handleConnectionDragEnd(e) {
+            let endPin = e.target.closest('.connection-pin');
+            
+            if (!endPin && this.connectionState.nearestSuggestedPin) {
+                endPin = this.connectionState.nearestSuggestedPin;
             }
 
-            // Emit selection change to Python using new unified system
-            this.emitCanvasEvent(EventCreators.createSelectionChanged(
-                Array.from(this.selectionState.selectedNodes),
-                Array.from(this.selectionState.selectedConnections)
-            ));
-        },
-
-        selectNode(nodeId, multiSelect = false) {
-            if (!multiSelect) {
-                this.clearSelection();
+            if (this.connectionState.tempPath) {
+                this.connectionState.tempPath.remove();
+                this.connectionState.tempPath = null;
             }
 
-            this.selectionState.selectedNodes.add(nodeId);
-            this._updateNodeVisualSelection(nodeId, true);
+            if (this.connectionState.startPin) {
+                this.connectionState.startPin.style.boxShadow = '';
+                this.connectionState.startPin.style.transform = '';
+                this.connectionState.startPin.style.zIndex = '';
+            }
 
-            // Schedule smooth connection updates during fold/unfold animation
-            this._scheduleConnectionUpdates(nodeId, null, 300); // 300ms matches CSS transition
+            this._clearConnectionSuggestions();
 
-            console.log(`🎯 Selected node: ${nodeId}`);
+            document.querySelectorAll('.connection-pin').forEach(pin => {
+                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
+            });
+
+            if (endPin && this._isValidConnection(this.connectionState.startPin, endPin)) {
+                let startData = this.connectionState.startPin.dataset;
+                let endData = endPin.dataset;
+
+                if (endPin.dataset.pinDir === 'outlet') {
+                    endData = this.connectionState.startPin.dataset;
+                    startData = endPin.dataset;
+                }
+
+                if (!this._connectionExists(startData.nodeId, startData.pinId, endData.nodeId, endData.pinId)) {
+                    this.emitCanvasEvent(EventCreators.createConnectionCreated(
+                        startData.nodeId, startData.pinId, endData.nodeId, endData.pinId
+                    ));
+                }
+            }
+
+            this.connectionState.isDragging = false;
+            this.connectionState.startPin = null;
+            this.connectionState.nearestSuggestedPin = null;
+            this.connectionState.lastDragEndTime = Date.now();
         },
 
-        deselectNode(nodeId) {
-            this.selectionState.selectedNodes.delete(nodeId);
-            this._updateNodeVisualSelection(nodeId, false);
+        _createSuggestionPath(targetPin, distance) {
+            if (this.connectionState.suggestedConnections.has(targetPin)) {
+                return;
+            }
 
-            // Schedule smooth connection updates during fold/unfold animation
-            this._scheduleConnectionUpdates(nodeId, null, 300); // 300ms matches CSS transition
+            const startPos = this._getPinPosition(this.connectionState.startPin);
+            const endPos = this._getPinPosition(targetPin);
+            const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
 
-            console.log(`🎯 Deselected node: ${nodeId}`);
+            const suggestionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const pathData = this._createBezierPath(startPos, endPos, offsetDir);
+
+            suggestionPath.setAttribute('d', pathData);
+            suggestionPath.setAttribute('stroke', this.connectionState.startPin.dataset.pinColor || '#4CAF50');
+            suggestionPath.setAttribute('stroke-width', '2');
+            suggestionPath.setAttribute('fill', 'none');
+            suggestionPath.setAttribute('opacity', '0.6');
+            suggestionPath.style.pointerEvents = 'none';
+            suggestionPath.classList.add('connection-suggestion');
+
+            this.$refs.svg.appendChild(suggestionPath);
+            this.connectionState.suggestedConnections.set(targetPin, suggestionPath);
         },
+
+        _clearConnectionSuggestions() {
+            this.connectionState.suggestedConnections.forEach((path, pin) => {
+                path.remove();
+            });
+            this.connectionState.suggestedConnections.clear();
+        },
+
+        // =============================================================================
+        // CONNECTION MANAGEMENT (keeping connection visual methods as-is)
+        // =============================================================================
+
+        _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, isValid, logPrefix = '', connectionData = null) {
+            const startPinId = this._buildOutletPinId(outputNodeId, outletPinId);
+            const endPinId = this._buildInletPinId(inputNodeId, inletPinId);
+
+            const startPin = document.getElementById(startPinId);
+            const endPin = document.getElementById(endPinId);
+
+            if (!startPin || !endPin) {
+                console.error(`🔗 Vue${logPrefix} could not find pins:`, {
+                    startPinId: startPinId,
+                    endPinId: endPinId,
+                    startPinExists: !!startPin,
+                    endPinExists: !!endPin
+                });
+                return { success: false, pathElement: null };
+            }
+            
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.dataset.isValid = isValid.toString();
+            path.setAttribute('id', pathId);
+            path.setAttribute('data-connection-id', pathId); 
+            if (isValid) {
+                path.setAttribute('stroke', startPin.dataset.pinColor); 
+                path.dataset.startColor = startPin.dataset.pinColor || '#bbbbbb';
+                path.dataset.endColor = endPin.dataset.pinColor || '#333333';
+            } else {
+                path.setAttribute('stroke', '#FF0000'); 
+                path.setAttribute('stroke-dasharray', '2');
+                path.dataset.startColor = '#FF0000';
+                path.dataset.endColor = '#990000';
+            }
+            path.setAttribute('stroke-width', '2');
+            path.setAttribute('fill', 'none');
+            path.style.pointerEvents = 'stroke';
+            path.style.cursor = 'pointer';
+
+            const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            hitArea.setAttribute('id', pathId + '_hitarea');
+            hitArea.setAttribute('data-connection-id', pathId);
+            hitArea.setAttribute('stroke', 'transparent');
+            hitArea.setAttribute('stroke-width', '10');
+            hitArea.setAttribute('fill', 'none');
+            hitArea.style.pointerEvents = 'stroke';
+            hitArea.style.cursor = 'pointer';
+
+            this.$refs.svg.appendChild(path);
+            this.$refs.svg.appendChild(hitArea);
+            this.connectionPaths.set(pathId, path);
+
+            const clickHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.emitCanvasEvent(EventCreators.createConnectionClicked(pathId));
+            };
+
+            path.addEventListener('click', clickHandler);
+            hitArea.addEventListener('click', clickHandler);
+
+            this.$nextTick(() => {
+                this.updateConnectionPath(path);
+            });
+
+            return { success: true, pathElement: path };
+        },
+
+        _removeConnectionVisual(connectionId) {
+            const path = this.connectionPaths.get(connectionId);
+
+            if (path) {
+                path.remove();
+
+                const hitArea = document.getElementById(connectionId + '_hitarea');
+                if (hitArea) {
+                    hitArea.remove();
+                }
+
+                const gradient = document.getElementById(`gradient_${connectionId}`);
+                if (gradient) {
+                    gradient.remove();
+                }
+
+                this.connectionPaths.delete(connectionId);
+                return true;
+            } else {
+                return false;
+            }
+        },
+
+        updateConnectionPath(pathElement) {
+            if (!pathElement || !pathElement.id) return;
+
+            const pathId = pathElement.id;
+            const connectionInfo = this._parseConnectionId(pathId);
+
+            if (!connectionInfo) {
+                console.error(`Failed to parse connection ID: ${pathId}`);
+                return;
+            }
+
+            const startPin = document.getElementById(connectionInfo.outletPinFullId);
+            const endPin = document.getElementById(connectionInfo.inletPinFullId);
+
+            if (!startPin || !endPin) {
+                console.error(`Failed to find pins for connection ID: ${pathId}`);
+                return;
+            }
+
+            const startPos = this._getPinPosition(startPin);
+            const endPos = this._getPinPosition(endPin);
+
+            const offsetDir = startPin.dataset.pinDir === 'inlet' ? -1 : 1;
+            const pathData = this._createBezierPath(startPos, endPos, offsetDir);
+
+            pathElement.setAttribute('d', pathData);
+            const hitArea = document.getElementById(pathId + '_hitarea');
+            if (hitArea) {
+                hitArea.setAttribute('d', pathData);
+            }
+
+            const isValid = pathElement.dataset.isValid === 'true';
+            let startColor = pathElement.dataset.startColor || '#000000';
+            let endColor = pathElement.dataset.endColor || '#000000';
+
+            const stroke = this._createBezierStroke(startPos, endPos, startColor, endColor, pathId);
+            pathElement.setAttribute('stroke', stroke);
+        },
+
+        updateConnectionsForNode(nodeId) {
+            if (!nodeId) return;
+            this.connectionPaths.forEach((path, pathId) => {
+                if (pathId.includes(nodeId)) {
+                    this.updateConnectionPath(path);
+                }
+            });
+        },
+
+        addNodeObserver(nodeId) {
+            const attemptAddObserver = (retryCount = 0) => {
+                const nodeElement = document.getElementById(nodeId);
+                if (nodeElement) {
+                    console.log(`[GraphCanvas] Adding observer for node ${nodeId}`, nodeElement);
+                } else if (retryCount < 3) {
+                    setTimeout(() => attemptAddObserver(retryCount + 1), 100);
+                } else {
+                    console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found after 3 retries. Unable to observe.`);
+                }
+            };
+            attemptAddObserver();
+        },
+
+        removeNodeObserver(nodeId) {
+            // Find the node element by ID
+            const nodeElement = document.getElementById(nodeId);
+            if (nodeElement) {
+                console.log(`[GraphCanvas] Removing observer for node ${nodeId}`);
+                // Note: MutationObserver doesn't have a way to unobserve specific elements
+                // This would require tracking observed elements separately if needed
+                // For now, we just log the removal
+            } else {
+                console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found for removal`);
+            }
+        },
+
+
+        // =============================================================================
+        // VISUAL SELECTION UPDATES
+        // =============================================================================
 
         _updateNodeVisualSelection(nodeId, selected) {
             const nodeElement = document.getElementById(nodeId);
@@ -1802,55 +1407,7 @@ export default {
             }
         },
 
-        // =============================================================================
-        // CONNECTION SELECTION SYSTEM
-        // =============================================================================
-
-        _handleConnectionSelection(e, pathId) {
-            console.log('🎯 _handleConnectionSelection called with pathId:', pathId);
-            e.preventDefault();
-            const multiSelect = e.shiftKey;
-
-            if (multiSelect) {
-                // Toggle selection
-                if (this.selectionState.selectedConnections.has(pathId)) {
-                    this.deselectConnection(pathId);
-                } else {
-                    this.selectConnection(pathId, true);
-                }
-            } else {
-                // Clear other selections and select this connection
-                this.clearSelection();
-                this.selectConnection(pathId, false);
-            }
-
-            // Emit selection change to Python using new unified system
-            this.emitCanvasEvent(EventCreators.createSelectionChanged(
-                Array.from(this.selectionState.selectedNodes),
-                Array.from(this.selectionState.selectedConnections)
-            ));
-        },
-
-        selectConnection(pathId, multiSelect = false) {
-            if (!multiSelect) {
-                this.clearSelection();
-            }
-
-            this.selectionState.selectedConnections.add(pathId);
-            this._updateConnectionVisualSelection(pathId, true);
-
-            console.log(`🎯 Selected connection: ${pathId}`);
-        },
-
-        deselectConnection(pathId) {
-            this.selectionState.selectedConnections.delete(pathId);
-            this._updateConnectionVisualSelection(pathId, false);
-
-            console.log(`🎯 Deselected connection: ${pathId}`);
-        },
-
         _updateConnectionVisualSelection(pathId, selected) {
-            console.log('🎨 _updateConnectionVisualSelection called:', { pathId, selected });
             const pathElement = this.connectionPaths.get(pathId);
             if (pathElement) {
                 if (selected) {
@@ -1860,8 +1417,6 @@ export default {
                     pathElement.classList.remove('connection-selected');
                     pathElement.style.strokeWidth = '2';
                 }
-            } else {
-                console.warn('🎨 Path element not found in connectionPaths map for pathId:', pathId);
             }
         },
 
@@ -1869,43 +1424,25 @@ export default {
         // UTILITY & HELPER METHODS
         // =============================================================================
 
-        // Interactive Widget Detection
         _isInteractiveWidgetElement(element) {
-            /**
-             * Check if the clicked element is an interactive widget that should not trigger node dragging.
-             * This includes input fields, buttons, sliders, checkboxes, etc.
-             */
-
-            // Check for basic form controls and interactive elements
             const isFormElement = element.matches('input, textarea, select, button, [contenteditable]') ||
                 element.closest('input, textarea, select, button, [contenteditable]');
 
-            // Check for NiceGUI/Quasar specific elements
             const isQuasarElement = element.closest('.q-field, .q-btn, .q-checkbox, .q-radio, .q-toggle, .q-slider, .q-knob, .q-select') ||
                 element.closest('[role="button"], [role="checkbox"], [role="radio"], [role="slider"]');
 
-            // Check for elements within widget containers (when widgets are unfolded)
             const isWidgetContainer = element.closest('.widget-container');
-
-            // Check for elements marked as interactive
             const isMarkedInteractive = element.closest('[data-interactive="true"], .interactive, .clickable');
-
-            // Check for drag handle specifically - this should allow dragging
             const isDragHandle = element.closest('.drag-handle');
+            
             if (isDragHandle) {
-                return false; // Allow dragging on drag handles
+                return false;
             }
 
             return isFormElement || isQuasarElement || isWidgetContainer || isMarkedInteractive;
         },
 
-        // Utility Methods
         _parseConnectionId(connectionId) {
-            /**
-             * Parse a connection ID into its components.
-             * Format: connection__outlet__node_id__pin_id__inlet__node_id__pin_id
-             * Returns: { outletNodeId, outletPinId, inletNodeId, inletPinId }
-             */
             const parts = connectionId.split('__');
             if (parts.length !== 7) {
                 console.error(`Invalid connection ID format: ${connectionId}. Expected 7 parts, got ${parts.length}`);
@@ -1922,35 +1459,22 @@ export default {
                 outletPinId: parts[3],
                 inletNodeId: parts[5],
                 inletPinId: parts[6],
-                outletPinFullId: `${parts[1]}__${parts[2]}__${parts[3]}`,  // outlet__node_id__pin_id
-                inletPinFullId: `${parts[4]}__${parts[5]}__${parts[6]}`    // inlet__node_id__pin_id
+                outletPinFullId: `${parts[1]}__${parts[2]}__${parts[3]}`,
+                inletPinFullId: `${parts[4]}__${parts[5]}__${parts[6]}`
             };
         },
 
         _buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId) {
-            /**
-             * Build a connection ID from components.
-             * Format: connection__outlet__outputNodeId__outletPinId__inlet__inputNodeId__inletPinId
-             * This is the inverse of parseConnectionId()
-             */
             const outletPin = this._buildOutletPinId(outputNodeId, outletPinId);
             const inletPin = this._buildInletPinId(inputNodeId, inletPinId);
             return `connection__${outletPin}__${inletPin}`;
         },
 
         _buildOutletPinId(nodeId, pinId) {
-            /**
-             * Build an outlet pin ID from components.
-             * Format: outlet__nodeId__pinId
-             */
             return `outlet__${nodeId}__${pinId}`;
         },
 
         _buildInletPinId(nodeId, pinId) {
-            /**
-             * Build an inlet pin ID from components.
-             * Format: inlet__nodeId__pinId
-             */
             return `inlet__${nodeId}__${pinId}`;
         },
 
@@ -1970,12 +1494,8 @@ export default {
             if (!this.$refs.svg) return { x: clientX, y: clientY };
 
             const svgRect = this.$refs.svg.getBoundingClientRect();
-
-            // Use current zoom/pan state from zoom container events
             const { zoom, panX, panY } = this.zoomState;
 
-            // Apply inverse transform accounting for current zoom/pan
-            // This matches the old implementation's coordinate transformation
             let x = (clientX - svgRect.left) / zoom;
             let y = (clientY - svgRect.top) / zoom;
 
@@ -1992,7 +1512,6 @@ export default {
                 return startColor || '#ff0000';
             }
 
-            // Ensure we have defs element
             let defs = this.$refs.defs;
             if (!defs) {
                 defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -2000,8 +1519,6 @@ export default {
             }
 
             const gradientId = `gradient_${pathId}`;
-
-            // Check if gradient already exists
             let gradient = document.getElementById(gradientId);
             if (!gradient) {
                 gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
@@ -2025,7 +1542,6 @@ export default {
                 gradient.appendChild(stop2);
                 defs.appendChild(gradient);
             } else {
-                // Update existing gradient colors
                 const stops = gradient.querySelectorAll('stop');
                 if (stops.length >= 2) {
                     stops[0].setAttribute('stop-color', startColor);
@@ -2046,58 +1562,40 @@ export default {
             const endNodeId = endPin.dataset.nodeId;
             const endFlowType = endPin.dataset.pinFlowType;
 
-            // Cannot connect to same node
             if (startNodeId === endNodeId) {
                 return false;
             }
 
-            // Must have matching flow types
             if (startFlowType !== endFlowType) {
                 return false;
             }
 
-            // Must connect output to input or input to output
             const valid = (startDir === 'outlet' && endDir === 'inlet') ||
                 (startDir === 'inlet' && endDir === 'outlet');
             return valid;
         },
 
         _scheduleConnectionUpdates(nodeId, nodeElement = null, animationDuration = 300) {
-            /**
-             * Schedule connection updates during animations to ensure smooth transitions.
-             * This method provides immediate update + multiple updates during animation.
-             * 
-             * @param {string} nodeId - The node ID to update connections for
-             * @param {HTMLElement} nodeElement - Optional node element for timer cleanup
-             * @param {number} animationDuration - Animation duration in milliseconds (default: 300ms)
-             */
-
-            // Immediate update
             this.updateConnectionsForNode(nodeId);
 
-            // Find node element if not provided
             if (!nodeElement && nodeId) {
                 nodeElement = document.getElementById(nodeId);
             }
 
-            // Clear any existing animation timers to avoid conflicts
             if (nodeElement && nodeElement._animationTimers) {
                 nodeElement._animationTimers.forEach(timer => clearTimeout(timer));
                 nodeElement._animationTimers = [];
             }
 
-            // Calculate update intervals during animation
-            const updateCount = Math.max(3, Math.min(8, Math.ceil(animationDuration / 50))); // 3-8 updates based on duration
+            const updateCount = Math.max(3, Math.min(8, Math.ceil(animationDuration / 50)));
             const interval = animationDuration / updateCount;
 
-            // Schedule multiple updates during the animation
             for (let i = 1; i <= updateCount; i++) {
                 const delay = interval * i;
                 const timer = setTimeout(() => {
                     this.updateConnectionsForNode(nodeId);
                 }, delay);
 
-                // Store timer for cleanup if we have a node element
                 if (nodeElement) {
                     if (!nodeElement._animationTimers) {
                         nodeElement._animationTimers = [];
@@ -2108,23 +1606,8 @@ export default {
         },
 
         _connectionExists(outputNodeId, outletPinId, inputNodeId, inletPinId) {
-            // Build the connection ID using the same format as your system
             const connectionId = this._buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId);
-            
-            // Check if it exists in the connectionPaths map
             return this.connectionPaths.has(connectionId);
-        },
-
-        // =============================================================================
-        // DEBUG METHODS
-        // =============================================================================
-
-        // Debug method to list available pin elements
-        _debugListPinElements() {
-            const pinElements = Array.from(document.querySelectorAll('[id*="__"]')).filter(el =>
-                el.id.startsWith('outlet__') || el.id.startsWith('inlet__')
-            );
-            return pinElements.map(el => ({ id: el.id, exists: true }));
         }
     }
 }
@@ -2136,8 +1619,6 @@ export default {
     width: 8000px;
     height: 8000px;
     overflow: visible;
-    /* Allow content to extend beyond bounds */
-    /* border: 2px solid red; /* Temporary debug border - remove in production */
 }
 
 .debug-info {
@@ -2160,7 +1641,6 @@ export default {
     height: 8000px;
     pointer-events: auto;
     z-index: 1;
-    /* Behind nodes - connections render behind node elements */
 }
 
 .node-container {
@@ -2169,16 +1649,14 @@ export default {
     left: 0;
     width: 8000px;
     height: 8000px;
-    pointer-events: none; /* Disable on container */
+    pointer-events: none;
     z-index: 2;
-    /* In front of canvas background */
 }
 
 .graph-canvas.dragging {
     cursor: grabbing;
 }
 
-/* Box selection styles */
 .selection-box {
     position: absolute;
     border: 2px solid rgba(74, 144, 226, 0.8);
@@ -2196,10 +1674,9 @@ export default {
     cursor: crosshair !important;
 }
 
-/* Node dragging styles */
 [data-node-id] {
-    z-index: 10; /* Base z-index for all nodes */
-    pointer-events: auto; /* Re-enable pointer events on actual node elements */
+    z-index: 10;
+    pointer-events: auto;
     cursor: grab;
     user-select: none;
 }
@@ -2210,21 +1687,18 @@ export default {
 }
 
 [data-node-id].dragging-node {
-    z-index: 1001 !important; /* Selected nodes on top */
+    z-index: 1001 !important;
     cursor: grabbing !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
     transform: translateZ(0);
-    /* Force hardware acceleration */
 }
 
 [data-node-id]:active {
     cursor: grabbing;
 }
 
-/* Node selection styles - Shadow-based instead of outline */
 [data-node-id].node-selected {
-    /* Remove outline, use shadow only */
-    z-index: 1000 !important; /* Selected nodes on top */
+    z-index: 1000 !important;
     outline: none !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25),
         0 0 20px rgba(74, 144, 226, 0.4),
@@ -2232,7 +1706,6 @@ export default {
 }
 
 [data-node-id].node-selected:hover {
-    /* Enhanced shadow on hover */
     outline: none !important;
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3),
         0 0 25px rgba(74, 144, 226, 0.5),
@@ -2277,18 +1750,14 @@ export default {
     opacity: 0.8 !important;
 }
 
-/* Connection selection styles - Enhanced shadow-based */
 .connection-selected {
-    /* Enhanced drop shadow with blue glow */
     filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }
 
 path.connection-selected {
-    /* Enhanced drop shadow with blue glow */
     filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }
 
-/* Widget fold/unfold functionality - widgets are hidden by default */
 [data-node-id] .widget-container {
     opacity: 0 !important;
     transition: opacity 0.3s ease, max-height 0.3s ease !important;
@@ -2296,23 +1765,20 @@ path.connection-selected {
     overflow: hidden !important;
 }
 
-/* Show widgets only when node is selected */
 [data-node-id].node-selected .widget-container {
     opacity: 1 !important;
     max-height: 200px !important;
 }
 
-/* Connection suggestion styles */
 .connection-suggestion {
     opacity: 0.3 !important;
     stroke-width: 2 !important;
-    stroke-dasharray: 12 6 !important; /* More prominent dashing */
+    stroke-dasharray: 12 6 !important;
 }
 
 .connection-suggestion-nearest {
     opacity: 0.8 !important;
-    stroke-dasharray: 8 4 !important; /* More prominent dashing */
+    stroke-dasharray: 8 4 !important;
     stroke-width: 3 !important;
 }
-
 </style>

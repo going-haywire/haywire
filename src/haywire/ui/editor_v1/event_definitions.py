@@ -1,11 +1,12 @@
 """
-Event definitions for the enhanced graph canvas event system.
+Event definitions for the enhanced graph canvas event system - CONSOLIDATED VERSION
 
 This module provides:
 - Class-based event definitions using dataclasses
 - Type-safe event registration and serialization
 - Single source of truth for all event types
 - Automatic code generation support
+- Consolidated drag, selection, and removal events
 """
 
 import dataclasses
@@ -66,26 +67,38 @@ class BaseGraphEvent:
             timestamp=data.get('timestamp', time.time()),
             requires_broadcast=data.get('requires_broadcast', True)
         )
-    
+
 # =============================================================================
-# USER INTERACTION EVENTS (Vue → Python)
+# CONSOLIDATED USER INTERACTION EVENTS (Vue → Python)
 # =============================================================================
+
+@graph_event("userDragStart", category="user", description="User started dragging nodes")
+@dataclass
+class UserDragStartEvent(BaseGraphEvent):
+    nodes: List[str]  # List of node IDs being dragged
+
+@graph_event("userDragUpdate", category="user", description="User is dragging nodes")
+@dataclass
+class UserDragUpdateEvent(BaseGraphEvent):
+    nodes: List[str]  # List of node IDs being dragged
+    deltaX: float
+    deltaY: float
+
+@graph_event("userDragEnd", category="user", description="User finished dragging nodes")
+@dataclass
+class UserDragEndEvent(BaseGraphEvent):
+    nodes: List[str]  # List of node IDs that were dragged
+
+@graph_event("userRemove", category="user", description="User wants to remove elements")
+@dataclass
+class UserRemoveEvent(BaseGraphEvent):
+    nodes: List[str]
+    connections: List[str]
 
 @graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
 @dataclass
 class NodeCreateRequestEvent(BaseGraphEvent):
     nodeType: str
-    position: Dict[str, float]  # {x: float, y: float}
-
-@graph_event("nodeRemoveRequest", category="user", description="Request to remove node from context menu")
-@dataclass
-class NodeRemoveRequestEvent(BaseGraphEvent):
-    nodeId: str
-
-@graph_event("nodePositionChanged", category="user", description="Node position updated")
-@dataclass  
-class NodePositionChangedEvent(BaseGraphEvent):
-    nodeId: str
     position: Dict[str, float]  # {x: float, y: float}
 
 @graph_event("connectionCreated", category="user", description="New connection created")
@@ -96,43 +109,10 @@ class ConnectionCreatedEvent(BaseGraphEvent):
     inputNodeId: str
     inletPinId: str
 
-@graph_event("connectionRemoved", category="user", description="Connection removed")
-@dataclass
-class ConnectionRemovedEvent(BaseGraphEvent):
-    connectionId: str
-
 @graph_event("connectionClicked", category="user", description="Connection clicked")
 @dataclass
 class ConnectionClickedEvent(BaseGraphEvent):
     connectionId: str
-
-@graph_event("nodeDragStart", category="user", description="Node drag started")
-@dataclass
-class NodeDragStartEvent(BaseGraphEvent):
-    nodeId: str
-
-@graph_event("nodeDragEnd", category="user", description="Node drag ended")
-@dataclass
-class NodeDragEndEvent(BaseGraphEvent):
-    nodeId: str
-    positionChanged: bool
-
-@graph_event("selectionDragStart", category="user", description="Selection drag started")
-@dataclass
-class SelectionDragStartEvent(BaseGraphEvent):
-    selectedNodeCount: int  # For validation against current selection
-
-@graph_event("selectionDragEnd", category="user", description="Selection drag ended")
-@dataclass
-class SelectionDragEndEvent(BaseGraphEvent):
-    selectedNodeCount: int  # For validation against current selection
-    actuallyMoved: bool
-
-@graph_event("selectionPositionChanged", category="user", description="Selection position updated during drag")
-@dataclass
-class SelectionPositionChangedEvent(BaseGraphEvent):
-    deltaX: float  # Same delta applies to all selected nodes
-    deltaY: float
 
 @graph_event("selectionChanged", category="user", description="Selection state changed")
 @dataclass
@@ -177,7 +157,7 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
     selectedConnections: List[str]
 
 # =============================================================================
-# SYNC EVENTS (Python → Vue)
+# SYNC EVENTS (Python → Vue) - Unchanged
 # =============================================================================
 
 @graph_event("syncNodeAddition", category="sync", description="Sync node addition to UI")
