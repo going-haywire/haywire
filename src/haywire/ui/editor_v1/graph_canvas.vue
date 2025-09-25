@@ -339,37 +339,45 @@ export default {
             const newNodes = new Set(nodes || []);
             const newConnections = new Set(connections || []);
             
-            // Find nodes to deselect (in current but not in new)
-            currentNodes.forEach(nodeId => {
-                if (!newNodes.has(nodeId)) {
-                    this._updateNodeVisualSelection(nodeId, false);
-                }
-            });
+            // only iterate connections if there's a change
+            if (!this._setsAreEqual(currentNodes, newNodes)) {
+                // Find nodes to deselect (in current but not in new)
+                currentNodes.forEach(nodeId => {
+                    if (!newNodes.has(nodeId)) {
+                        this._updateNodeVisualSelection(nodeId, false);
+                        this._scheduleConnectionUpdates(nodeId, null, 300);
+                    }
+                });
+                
+                // Find nodes to select (in new but not in current)
+                newNodes.forEach(nodeId => {
+                    if (!currentNodes.has(nodeId)) {
+                        this._updateNodeVisualSelection(nodeId, true);
+                        this._scheduleConnectionUpdates(nodeId, null, 300);
+                    }
+                });
+                // Update internal state to match new selection
+                this.selectionState.selectedNodes = newNodes;
+            }
             
-            // Find nodes to select (in new but not in current)
-            newNodes.forEach(nodeId => {
-                if (!currentNodes.has(nodeId)) {
-                    this._updateNodeVisualSelection(nodeId, true);
-                }
-            });
-            
-            // Find connections to deselect (in current but not in new)
-            currentConnections.forEach(connectionId => {
-                if (!newConnections.has(connectionId)) {
-                    this._updateConnectionVisualSelection(connectionId, false);
-                }
-            });
-            
-            // Find connections to select (in new but not in current)
-            newConnections.forEach(connectionId => {
-                if (!currentConnections.has(connectionId)) {
-                    this._updateConnectionVisualSelection(connectionId, true);
-                }
-            });
-            
-            // Update internal state to match new selection
-            this.selectionState.selectedNodes = newNodes;
-            this.selectionState.selectedConnections = newConnections;
+            // only iterate connections if there's a change
+            if (!this._setsAreEqual(currentConnections, newConnections)) {
+                // Find connections to deselect (in current but not in new)
+                currentConnections.forEach(connectionId => {
+                    if (!newConnections.has(connectionId)) {
+                        this._updateConnectionVisualSelection(connectionId, false);
+                    }
+                });
+                
+                // Find connections to select (in new but not in current)
+                newConnections.forEach(connectionId => {
+                    if (!currentConnections.has(connectionId)) {
+                        this._updateConnectionVisualSelection(connectionId, true);
+                    }
+                });
+                // Update internal state to match new selection
+                this.selectionState.selectedConnections = newConnections;
+            }
             
             console.log(`🔄 Synced selections: ${(nodes || []).length} nodes, ${(connections || []).length} connections`);
         },
@@ -1455,6 +1463,18 @@ export default {
         // =============================================================================
         // UTILITY & HELPER METHODS
         // =============================================================================
+
+        _setsAreEqual(set1, set2) {
+            if (set1.size !== set2.size) {
+                return false;
+            }
+            for (const item of set1) {
+                if (!set2.has(item)) {
+                    return false;
+                }
+            }
+            return true;
+        },
 
         _isInteractiveWidgetElement(element) {
             const isFormElement = element.matches('input, textarea, select, button, [contenteditable]') ||
