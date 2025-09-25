@@ -192,12 +192,11 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
 class SyncConnectionRemovalEvent(BaseGraphEvent):
     connectionId: str
 
-@graph_event("syncSelectionState", category="sync", description="Sync selection state to UI")
+@graph_event("syncSelections", category="sync", description="Sync selection state to UI")
 @dataclass
-class SyncSelectionStateEvent(BaseGraphEvent):
-    selectedNodes: List[str]
-    selectedConnections: List[str]
-    action: str = "set"  # "set" or "clear"
+class SyncSelectionsEvent(BaseGraphEvent):
+    nodes: List[str]
+    connections: List[str]
 
 @graph_event("syncCanvasClear", category="sync", description="Clear entire canvas")
 @dataclass
@@ -208,25 +207,6 @@ class SyncCanvasClearEvent(BaseGraphEvent):
 @dataclass
 class SyncAllConnectionsEvent(BaseGraphEvent):
     connections: List[Dict[str, Any]]
-
-@graph_event("syncNodeSelection", category="sync", description="Select/deselect individual node")
-@dataclass
-class SyncNodeSelectionEvent(BaseGraphEvent):
-    nodeId: str
-    selected: bool
-    multiSelect: bool = False
-
-@graph_event("syncConnectionSelection", category="sync", description="Select/deselect individual connection")
-@dataclass
-class SyncConnectionSelectionEvent(BaseGraphEvent):
-    connectionId: str
-    selected: bool
-    multiSelect: bool = False
-
-@graph_event("syncClearAllSelections", category="sync", description="Clear all selections")
-@dataclass
-class SyncClearAllSelectionsEvent(BaseGraphEvent):
-    pass
 
 @graph_event("syncNodeObserverAdd", category="sync", description="Add node observer")
 @dataclass

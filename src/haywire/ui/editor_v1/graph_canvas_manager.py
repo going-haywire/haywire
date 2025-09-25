@@ -170,8 +170,7 @@ class GraphCanvasManager:
                 position = self.node_panels[node_id]['position']
                 posX = position[0] + event.deltaX
                 posY = position[1] + event.deltaY
-                self.node_panels[node_id]['position'] = (posX, posY)
-
+ 
                 print(f"Node {node_id} dragging from ({position[0]}, {position[1]}) to ({posX}, {posY})")
             
                 # Update node position via editor
@@ -371,13 +370,15 @@ class GraphCanvasManager:
             # Sync selection state from graph to UI
             graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
             
-            self.clear_selection()
+            # Update selection state without emitting events until the end
+            self.selected_nodes.clear()
+            self.selected_connections.clear()
             
-            for node_id in graph_selected_nodes:
-                self.select_node(node_id, multi_select=True)
+            self.selected_nodes.update(graph_selected_nodes)
+            self.selected_connections.update(graph_selected_connections)
             
-            for connection_id in graph_selected_connections:
-                self.select_connection(connection_id, multi_select=True)
+            # Emit single consolidated selection sync event
+            self.sync_selections()
 
             self.canvas_vue.update() 
                 
@@ -386,16 +387,6 @@ class GraphCanvasManager:
             print(f"Error during graph sync: {e}")
             traceback.print_exc()
     
-    def cleanup(self):
-        """Cleanup resources and unregister from Editor."""
-        if self.editor:
-            self.editor.remove_change_callback(self._on_graph_changed)
-            print(f"🧹 GraphCanvasManager[{self.session_id[:8]}]: Cleanup completed")
-
-    # =============================================================================
-    # NODE MANAGEMENT (unchanged from original)
-    # =============================================================================
-
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
         """Add a visual representation of a node to the canvas."""
         x, y = position
@@ -535,132 +526,12 @@ class GraphCanvasManager:
         self.connection_paths.clear()
         self.selected_nodes.clear()
         self.selected_connections.clear()
-    
-    # =============================================================================
-    # SELECTION MANAGEMENT (unchanged from original)
-    # =============================================================================
-    
-    def select_node(self, node_id: str, multi_select: bool = False):
-        """Select a node."""
-        if not multi_select:
-            self.selected_nodes.clear()
         
-        self.selected_nodes.add(node_id)
-        
-        sync_event = SyncNodeSelectionEvent(
-            nodeId=node_id,
-            selected=True,
-            multiSelect=multi_select
+    def sync_selections(self):
+        """Helper method to emit the consolidated selection sync event."""
+        sync_event = SyncSelectionsEvent(
+            nodes=list(self.selected_nodes),
+            connections=list(self.selected_connections)
         )
         self.canvas_vue.emit_sync_event(sync_event)
-    
-    def deselect_node(self, node_id: str):
-        """Deselect a node."""
-        self.selected_nodes.discard(node_id)
-        
-        sync_event = SyncNodeSelectionEvent(
-            nodeId=node_id,
-            selected=False,
-            multiSelect=False
-        )
-        self.canvas_vue.emit_sync_event(sync_event)
-    
-    def select_connection(self, connection_id: str, multi_select: bool = False):
-        """Select a connection."""
-        if not multi_select:
-            self.selected_connections.clear()
-        
-        self.selected_connections.add(connection_id)
-        
-        if connection_id in self.connection_paths:
-            sync_event = SyncConnectionSelectionEvent(
-                connectionId=connection_id,
-                selected=True,
-                multiSelect=multi_select
-            )
-            self.canvas_vue.emit_sync_event(sync_event)
-            print(f"🎯 Selected connection: {connection_id}")
-    
-    def deselect_connection(self, connection_id: str):
-        """Deselect a connection."""
-        self.selected_connections.discard(connection_id)
-        
-        if connection_id in self.connection_paths:
-            sync_event = SyncConnectionSelectionEvent(
-                connectionId=connection_id,
-                selected=False,
-                multiSelect=False
-            )
-            self.canvas_vue.emit_sync_event(sync_event)
-            print(f"🎯 Deselected connection: {connection_id}")
-        
-    def clear_selection(self):
-        """Clear all selections."""
-        self.selected_nodes.clear()
-        self.selected_connections.clear()
-        
-        sync_event = SyncClearAllSelectionsEvent()
-        self.canvas_vue.emit_sync_event(sync_event)
-        print("🎯 Cleared all selections")
-        
-    def get_selected_nodes(self) -> Set[str]:
-        """Get currently selected nodes."""
-        return self.selected_nodes.copy()
-    
-    def get_selected_connections(self) -> Set[str]:
-        """Get currently selected connections."""
-        return self.selected_connections.copy()
-                      
-    # =============================================================================
-    # ZOOM CONTROL AND OBSERVERS (unchanged from original)
-    # =============================================================================
-    
-    def zoom_to_fit(self):
-        """Zoom to fit all content."""
-        if self.zoom_container:
-            self.zoom_container.fit_to_content()
-    
-    def reset_zoom(self):
-        """Reset zoom to initial value."""
-        if self.zoom_container:
-            self.zoom_container.reset_view()
-    
-    def zoom_in(self):
-        """Zoom in."""
-        if self.zoom_container:
-            self.zoom_container.zoom_in()
-    
-    def zoom_out(self):
-        """Zoom out."""
-        if self.zoom_container:
-            self.zoom_container.zoom_out()
-
-    def add_node_observer(self, node_id: str):
-        """Add observers for a node."""
-        sync_event = SyncNodeObserverAddEvent(nodeId=node_id)
-        self.canvas_vue.emit_sync_event(sync_event)
-
-    def remove_node_observer(self, node_id: str):
-        """Remove observers for a node."""
-        sync_event = SyncNodeObserverRemoveEvent(nodeId=node_id)
-        self.canvas_vue.emit_sync_event(sync_event)
-
-    def update_connections_for_node(self, node_id: str):
-        """Update connections for a specific node."""
-        sync_event = SyncConnectionsUpdateEvent(nodeId=node_id)
-        self.canvas_vue.emit_sync_event(sync_event)
-
-    @property
-    def current_zoom(self) -> float:
-        """Get current zoom level."""
-        return self.zoom_container.current_zoom if self.zoom_container else 1.0
-    
-    @property
-    def pan_x(self) -> float:
-        """Get current pan X position."""
-        return self.zoom_container.pan_x if self.zoom_container else 0.0
-    
-    @property
-    def pan_y(self) -> float:
-        """Get current pan Y position."""
-        return self.zoom_container.pan_y if self.zoom_container else 0.0
+                   

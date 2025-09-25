@@ -24,12 +24,9 @@ window.GraphEvents = {
     SYNC_NODE_POSITION: 'syncNodePosition', // Sync node position to UI
     SYNC_CONNECTION_ADDITION: 'syncConnectionAddition', // Sync connection addition to UI
     SYNC_CONNECTION_REMOVAL: 'syncConnectionRemoval', // Sync connection removal from UI
-    SYNC_SELECTION_STATE: 'syncSelectionState', // Sync selection state to UI
+    SYNC_SELECTIONS: 'syncSelections', // Sync selection state to UI
     SYNC_CANVAS_CLEAR: 'syncCanvasClear', // Clear entire canvas
     SYNC_ALL_CONNECTIONS: 'syncAllConnections', // Sync all connections to UI
-    SYNC_NODE_SELECTION: 'syncNodeSelection', // Select/deselect individual node
-    SYNC_CONNECTION_SELECTION: 'syncConnectionSelection', // Select/deselect individual connection
-    SYNC_CLEAR_ALL_SELECTIONS: 'syncClearAllSelections', // Clear all selections
     SYNC_NODE_OBSERVER_ADD: 'syncNodeObserverAdd', // Add node observer
     SYNC_NODE_OBSERVER_REMOVE: 'syncNodeObserverRemove', // Remove node observer
     SYNC_CONNECTIONS_UPDATE: 'syncConnectionsUpdate', // Update connections for node

@@ -260,20 +260,11 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_CONNECTION_REMOVAL:
                     this._syncConnectionRemoval(data);
                     break;
-                case GraphEvents.SyncCommands.SYNC_SELECTION_STATE:
-                    this._syncSelectionState(data);
+                case GraphEvents.SyncCommands.SYNC_SELECTIONS:
+                    this._syncSelections(data);
                     break;
                 case GraphEvents.SyncCommands.SYNC_CANVAS_CLEAR:
                     this._syncCanvasClear();
-                    break;
-                case GraphEvents.SyncCommands.SYNC_NODE_SELECTION:
-                    this._syncNodeSelection(data);
-                    break;
-                case GraphEvents.SyncCommands.SYNC_CONNECTION_SELECTION:
-                    this._syncConnectionSelection(data);
-                    break;
-                case GraphEvents.SyncCommands.SYNC_CLEAR_ALL_SELECTIONS:
-                    this._syncClearAllSelections();
                     break;
                 case GraphEvents.SyncCommands.SYNC_NODE_OBSERVER_ADD:
                     this._syncNodeObserverAdd(data);
@@ -337,13 +328,50 @@ export default {
             }
         },
 
-        _syncSelectionState(data) {
-            const { selectedNodes, selectedConnections, action } = data;
-            if (action === 'clear') {
-                this.clearSelection();
-            } else {
-                this._setSelectionState(selectedNodes, selectedConnections);
-            }
+        _syncSelections(data) {
+            const { nodes, connections } = data;
+            
+            // Get current selection sets
+            const currentNodes = this.selectionState.selectedNodes;
+            const currentConnections = this.selectionState.selectedConnections;
+            
+            // Convert arrays to sets for comparison
+            const newNodes = new Set(nodes || []);
+            const newConnections = new Set(connections || []);
+            
+            // Find nodes to deselect (in current but not in new)
+            currentNodes.forEach(nodeId => {
+                if (!newNodes.has(nodeId)) {
+                    this._updateNodeVisualSelection(nodeId, false);
+                }
+            });
+            
+            // Find nodes to select (in new but not in current)
+            newNodes.forEach(nodeId => {
+                if (!currentNodes.has(nodeId)) {
+                    this._updateNodeVisualSelection(nodeId, true);
+                }
+            });
+            
+            // Find connections to deselect (in current but not in new)
+            currentConnections.forEach(connectionId => {
+                if (!newConnections.has(connectionId)) {
+                    this._updateConnectionVisualSelection(connectionId, false);
+                }
+            });
+            
+            // Find connections to select (in new but not in current)
+            newConnections.forEach(connectionId => {
+                if (!currentConnections.has(connectionId)) {
+                    this._updateConnectionVisualSelection(connectionId, true);
+                }
+            });
+            
+            // Update internal state to match new selection
+            this.selectionState.selectedNodes = newNodes;
+            this.selectionState.selectedConnections = newConnections;
+            
+            console.log(`🔄 Synced selections: ${(nodes || []).length} nodes, ${(connections || []).length} connections`);
         },
 
         _syncCanvasClear() {
@@ -364,27 +392,7 @@ export default {
             this.selectionState.selectedConnections.clear();
         },
 
-        _syncNodeSelection(data) {
-            const { nodeId, selected, multiSelect } = data;
-            if (selected) {
-                this.selectElement('node', nodeId, multiSelect);
-            } else {
-                this.deselectElement('node', nodeId);
-            }
-        },
 
-        _syncConnectionSelection(data) {
-            const { connectionId, selected, multiSelect } = data;
-            if (selected) {
-                this.selectElement('connection', connectionId, multiSelect);
-            } else {
-                this.deselectElement('connection', connectionId);
-            }
-        },
-
-        _syncClearAllSelections() {
-            this.clearSelection();
-        },
 
         _syncNodeObserverAdd(data) {
             const { nodeId } = data;
