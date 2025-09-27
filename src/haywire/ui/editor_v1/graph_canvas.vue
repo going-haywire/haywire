@@ -301,13 +301,12 @@ export default {
             }
 
             const result = this._createConnectionVisual(
+                connectionUUID,
                 outputNodeId, 
                 outletPinId, 
                 inputNodeId, 
                 inletPinId, 
-                connectionUUID, 
-                isValid,
-                '[SYNC] '
+                isValid
             );
             
             if (result.success) {
@@ -507,11 +506,11 @@ export default {
             }
 
             // Check for connection
-            const connectionElement = target.closest('path[data-connection-id]');
+            const connectionElement = target.closest('path[data-connection-uuid]');
             if (connectionElement) {
                 return {
                     type: 'connection',
-                    id: connectionElement.getAttribute('data-connection-id'),
+                    id: connectionElement.getAttribute('data-connection-uuid'),
                     element: connectionElement
                 };
             }
@@ -994,18 +993,18 @@ export default {
             let connectionUUID = null;
 
             if (target.tagName === 'path') {
-                connectionUUID = target.getAttribute('data-connection-id') || target.id;
+                connectionUUID = target.getAttribute('data-connection-uuid') || target.id;
                 connectionElement = target;
             } else {
                 const svgElement = target.closest('svg');
                 if (svgElement) {
-                    const paths = svgElement.querySelectorAll('path[data-connection-id]');
+                    const paths = svgElement.querySelectorAll('path[data-connection-uuid]');
                     const clickPoint = { x: clientX, y: clientY };
 
                     for (const path of paths) {
                         if (this._isPointNearPath(path, clickPoint)) {
                             connectionElement = path;
-                            connectionUUID = path.getAttribute('data-connection-id') || path.id;
+                            connectionUUID = path.getAttribute('data-connection-uuid') || path.id;
                             break;
                         }
                     }
@@ -1258,7 +1257,7 @@ export default {
         // CONNECTION MANAGEMENT (keeping connection visual methods as-is)
         // =============================================================================
 
-        _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, connectionUUID, isValid, logPrefix = '', connectionData = null) {
+        _createConnectionVisual(connectionUUID, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid) {
             const startPinId = this._buildOutletPinUUID(outputNodeId, outletPinId);
             const endPinId = this._buildInletPinUUID(inputNodeId, inletPinId);
 
@@ -1266,7 +1265,7 @@ export default {
             const endPin = document.getElementById(endPinId);
 
             if (!startPin || !endPin) {
-                console.error(`🔗 Vue${logPrefix} could not find pins:`, {
+                console.error(`🔗 Vue could not find pins:`, {
                     startPinId: startPinId,
                     endPinId: endPinId,
                     startPinExists: !!startPin,
@@ -1278,7 +1277,7 @@ export default {
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.dataset.isValid = isValid.toString();
             path.setAttribute('id', connectionUUID);
-            path.setAttribute('data-connection-id', connectionUUID); 
+            path.setAttribute('data-connection-uuid', connectionUUID); 
             if (isValid) {
                 path.setAttribute('stroke', startPin.dataset.pinColor); 
                 path.dataset.startColor = startPin.dataset.pinColor || '#bbbbbb';
@@ -1296,7 +1295,7 @@ export default {
 
             const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             hitArea.setAttribute('id', connectionUUID + '_hitarea');
-            hitArea.setAttribute('data-connection-id', connectionUUID);
+            hitArea.setAttribute('data-connection-uuid', connectionUUID);
             hitArea.setAttribute('stroke', 'transparent');
             hitArea.setAttribute('stroke-width', '10');
             hitArea.setAttribute('fill', 'none');
