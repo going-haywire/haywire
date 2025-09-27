@@ -306,9 +306,9 @@ class HaywireGraph:
             output_node_id, outlet_pin_id, input_node_id, inlet_pin_id
         )
         
-        return self.remove_edge_by_id(connection_uuid) is not None
+        return self.remove_edge_by_uuid(connection_uuid) is not None
     
-    def remove_edge_by_id(self, connection_uuid: str) -> Edge | None:
+    def remove_edge_by_uuid(self, connection_uuid: str) -> Edge | None:
         """Remove edge by connection uuid
         
         Args:
@@ -372,8 +372,7 @@ class HaywireGraph:
         """
         output_node = self.nodes.get(output_node_id)
         if not output_node:
-            # If node doesn't exist, default to DATA type
-            return EdgeType.DATA
+            raise ValueError(f"Determining edge type: node '{output_node_id}' not found in graph")
         
         # Check if the outlet exists on the node
         if hasattr(output_node, 'outlets') and outlet_pin_id in output_node.outlets:
@@ -391,8 +390,9 @@ class HaywireGraph:
                 # For 'none' or any unknown type, default to DATA
                 return EdgeType.DATA
         
-        # If outlet doesn't exist or node doesn't have outlets, default to DATA
-        return EdgeType.DATA
+        raise ValueError(f"Determining edge type: inside node '{output_node_id}' no outlet id:'{outlet_pin_id}' found in graph")
+    
+
 
     # ========================================================================
     # Variable Management

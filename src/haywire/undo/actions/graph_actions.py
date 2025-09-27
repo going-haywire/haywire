@@ -128,7 +128,7 @@ class AddEdgeAction(ActionBase):
     
     def _undo_impl(self) -> None:
         """Remove the edge from the graph."""
-        self.graph.remove_edge_by_id(self.connection_uuid)
+        self.graph.remove_edge_by_uuid(self.connection_uuid)
 
 
 class RemoveEdgeAction(ActionBase):
@@ -154,7 +154,7 @@ class RemoveEdgeAction(ActionBase):
     
     def _execute_impl(self) -> None:
         """Remove the edge from the graph."""
-        self.graph.remove_edge_by_id(self.connection_uuid)
+        self.graph.remove_edge_by_uuid(self.connection_uuid)
     
     def _undo_impl(self) -> None:
         """Add the edge back to the graph."""
