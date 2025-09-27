@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from ..node.node import BaseNode
+from ...ui.utils import generate_connection_uuid, parse_connection_uuid
 
 
 # ============================================================================
@@ -119,12 +120,12 @@ class HaywireGraph:
         
         # Core containers
         self.nodes: dict[str, BaseNode] = {}
-        self.edges: list[Edge] = []
+        self.edges: dict[str, Edge] = {}
         self.variables: dict[str, Variable] = {}
         
         # Selection state - shared across all sessions
         self.selected_nodes: set[str] = set()
-        self.selected_connections: set[str] = set()  # Using connection IDs (edge keys)
+        self.selected_connections: set[str] = set()  # Using connection uuids (edge keys)
         
         # Metadata
         self.description: str = ""
@@ -170,10 +171,12 @@ class HaywireGraph:
             return None
         
         # Remove all edges connected to this node
-        self.edges = [
-            edge for edge in self.edges 
-            if edge.input_node_id != node_id and edge.output_node_id != node_id
+        edges_to_remove = [
+            connection_uuid for connection_uuid, edge in self.edges.items()
+            if edge.input_node_id == node_id or edge.output_node_id == node_id
         ]
+        for connection_uuid in edges_to_remove:
+            self.edges.pop(connection_uuid)
         
         return self.nodes.pop(node_id)
     
@@ -233,34 +236,61 @@ class HaywireGraph:
                  
         pass
 
+
     # ========================================================================
     # Edge Management
     # ========================================================================
     
-    def add_edge(self, edge: Edge) -> Edge:
-        """Add an edge to the graph
+    def add_edge(self, output_node_id: str, outlet_pin_id: str, input_node_id: str, inlet_pin_id: str) -> str:
+        """Add edge by node and pin identifiers and return its connection uuid
         
         Args:
-            edge: Edge instance to add
+            output_node_id: ID of the output node
+            outlet_pin_id: ID of the outlet pin
+            input_node_id: ID of the input node
+            inlet_pin_id: ID of the inlet pin
             
         Returns:
-            The added edge
+            The connection uuid (UUID)
             
         Raises:
-            ValueError: If referenced nodes don't exist
+            ValueError: If referenced nodes don't exist or connection already exists
         """
-        # Validate that referenced nodes exist
-        if edge.output_node_id not in self.nodes:
-            raise ValueError(f"Output node '{edge.output_node_id}' not found in graph")
-        if edge.input_node_id not in self.nodes:
-            raise ValueError(f"Input node '{edge.input_node_id}' not found in graph")
+        # Generate connection UUID from components
+        connection_uuid = generate_connection_uuid(
+            output_node_id, outlet_pin_id, input_node_id, inlet_pin_id
+        )
         
-        self.edges.append(edge)
-        return edge
+        # Prevent duplicates
+        if connection_uuid in self.edges:
+            raise ValueError(f"Connection already exists: {connection_uuid}")
+        
+        # Validate that referenced nodes exist
+        if output_node_id not in self.nodes:
+            raise ValueError(f"Output node '{output_node_id}' not found in graph")
+        if input_node_id not in self.nodes:
+            raise ValueError(f"Input node '{input_node_id}' not found in graph")
+        
+        # Evaluate edge type from the node and outlet that is referenced
+        edge_type = self._determine_edge_type(output_node_id, outlet_pin_id)
+        
+        # TODO: Validate that connection is valid (pin types match or adapter exists)
+        
+        # Create Edge instance
+        edge = Edge(
+            edge_type=edge_type,
+            output_node_id=output_node_id,
+            outlet_pin_id=outlet_pin_id,
+            input_node_id=input_node_id,
+            inlet_pin_id=inlet_pin_id
+        )
+        
+        self.edges[connection_uuid] = edge
+        return connection_uuid
     
     def remove_edge(self, output_node_id: str, outlet_pin_id: str, 
                    input_node_id: str, inlet_pin_id: str) -> bool:
-        """Remove an edge from the graph
+        """Remove an edge from the graph (backward compatibility)
         
         Args:
             output_node_id: ID of the output node
@@ -271,14 +301,42 @@ class HaywireGraph:
         Returns:
             True if edge was found and removed, False otherwise
         """
-        for i, edge in enumerate(self.edges):
-            if (edge.output_node_id == output_node_id and 
-                edge.outlet_pin_id == outlet_pin_id and
-                edge.input_node_id == input_node_id and 
-                edge.inlet_pin_id == inlet_pin_id):
-                self.edges.pop(i)
-                return True
-        return False
+        # Generate connection UUID from components
+        connection_uuid = generate_connection_uuid(
+            output_node_id, outlet_pin_id, input_node_id, inlet_pin_id
+        )
+        
+        return self.remove_edge_by_id(connection_uuid) is not None
+    
+    def remove_edge_by_id(self, connection_uuid: str) -> Edge | None:
+        """Remove edge by connection uuid
+        
+        Args:
+            connection_uuid: Connection UUID to remove
+            
+        Returns:
+            The removed edge, or None if not found
+        """
+        return self.edges.pop(connection_uuid, None)
+    
+    def get_edge(self, connection_uuid: str) -> Edge | None:
+        """Get edge by connection uuid
+        
+        Args:
+            connection_uuid: Connection UUID to retrieve
+            
+        Returns:
+            The edge if found, None otherwise
+        """
+        return self.edges.get(connection_uuid)
+    
+    def list_edges(self) -> list[Edge]:
+        """Get all edges as list
+        
+        Returns:
+            List of all edges in the graph
+        """
+        return list(self.edges.values())
     
     def get_edges_from_node(self, node_id: str) -> list[Edge]:
         """Get all edges originating from a node
@@ -289,7 +347,7 @@ class HaywireGraph:
         Returns:
             List of edges from the node
         """
-        return [edge for edge in self.edges if edge.output_node_id == node_id]
+        return [edge for edge in self.edges.values() if edge.output_node_id == node_id]
     
     def get_edges_to_node(self, node_id: str) -> list[Edge]:
         """Get all edges going to a node
@@ -300,8 +358,42 @@ class HaywireGraph:
         Returns:
             List of edges to the node
         """
-        return [edge for edge in self.edges if edge.input_node_id == node_id]
-    
+        return [edge for edge in self.edges.values() if edge.input_node_id == node_id]
+
+    def _determine_edge_type(self, output_node_id: str, outlet_pin_id: str) -> EdgeType:
+        """Determine the edge type based on the output node's outlet flow type
+        
+        Args:
+            output_node_id: ID of the output node
+            outlet_pin_id: ID of the outlet pin
+            
+        Returns:
+            EdgeType based on the outlet's flow type
+        """
+        output_node = self.nodes.get(output_node_id)
+        if not output_node:
+            # If node doesn't exist, default to DATA type
+            return EdgeType.DATA
+        
+        # Check if the outlet exists on the node
+        if hasattr(output_node, 'outlets') and outlet_pin_id in output_node.outlets:
+            outlet = output_node.outlets[outlet_pin_id]
+            flow_type = outlet.flow_type
+            
+            # Map FlowType to EdgeType
+            if flow_type == 'control':
+                return EdgeType.CONTROL
+            elif flow_type == 'data':
+                return EdgeType.DATA
+            elif flow_type == 'callback':
+                return EdgeType.CALLBACK
+            else:
+                # For 'none' or any unknown type, default to DATA
+                return EdgeType.DATA
+        
+        # If outlet doesn't exist or node doesn't have outlets, default to DATA
+        return EdgeType.DATA
+
     # ========================================================================
     # Variable Management
     # ========================================================================
@@ -391,11 +483,11 @@ class HaywireGraph:
         errors = []
         
         # Check for orphaned edges (edges referencing non-existent nodes)
-        for edge in self.edges:
+        for connection_uuid, edge in self.edges.items():
             if edge.output_node_id not in self.nodes:
-                errors.append(f"Edge references non-existent output node: {edge.output_node_id}")
+                errors.append(f"Edge {connection_uuid} references non-existent output node: {edge.output_node_id}")
             if edge.input_node_id not in self.nodes:
-                errors.append(f"Edge references non-existent input node: {edge.input_node_id}")
+                errors.append(f"Edge {connection_uuid} references non-existent input node: {edge.input_node_id}")
         
         return errors
     
@@ -415,7 +507,7 @@ class HaywireGraph:
             component.append(node_id)
             
             # Follow all edges from this node
-            for edge in self.edges:
+            for edge in self.edges.values():
                 if edge.output_node_id == node_id:
                     dfs(edge.input_node_id, component)
                 elif edge.input_node_id == node_id:
@@ -433,8 +525,21 @@ class HaywireGraph:
     # Selection Management
     # ========================================================================
     
+    def set_selection(self, selected_nodes: set[str] = None, 
+                     selected_connections: set[str] = None):
+        """Set selection using consistent ID formats
+        
+        Args:
+            selected_nodes: Set of node IDs to select (None keeps current)
+            selected_connections: Set of connection UUIDs to select (None keeps current)
+        """
+        if selected_nodes is not None:
+            self.selected_nodes = selected_nodes.copy()
+        if selected_connections is not None:
+            self.selected_connections = selected_connections.copy()
+    
     def set_selection_state(self, selected_nodes: set[str], selected_connections: set[str]):
-        """Set the complete selection state."""
+        """Set the complete selection state (backward compatibility)."""
         self.selected_nodes = selected_nodes.copy()
         self.selected_connections = selected_connections.copy()
     
@@ -455,17 +560,17 @@ class HaywireGraph:
         """Deselect a node."""
         self.selected_nodes.discard(node_id)
     
-    def select_connection(self, connection_id: str, multi_select: bool = False):
+    def select_connection(self, connection_uuid: str, multi_select: bool = False):
         """Select a connection."""
         if not multi_select:
             self.selected_nodes.clear()
             self.selected_connections.clear()
         
-        self.selected_connections.add(connection_id)
+        self.selected_connections.add(connection_uuid)
     
-    def deselect_connection(self, connection_id: str):
+    def deselect_connection(self, connection_uuid: str):
         """Deselect a connection."""
-        self.selected_connections.discard(connection_id)
+        self.selected_connections.discard(connection_uuid)
     
     def clear_selection(self):
         """Clear all selections."""
@@ -476,9 +581,9 @@ class HaywireGraph:
         """Check if a node is selected."""
         return node_id in self.selected_nodes
     
-    def is_connection_selected(self, connection_id: str) -> bool:
+    def is_connection_selected(self, connection_uuid: str) -> bool:
         """Check if a connection is selected."""
-        return connection_id in self.selected_connections
+        return connection_uuid in self.selected_connections
 
     # ========================================================================
     # Cleanup
@@ -511,7 +616,7 @@ class HaywireGraph:
             "created_at": self.created_at,
             "modified_at": self.modified_at,
             "nodes": {node_id: node.to_dict() for node_id, node in self.nodes.items()},
-            "edges": [edge.to_dict() for edge in self.edges],
+            "edges": {connection_uuid: edge.to_dict() for connection_uuid, edge in self.edges.items()},
             "variables": {name: var.to_dict() for name, var in self.variables.items()}
         }
     

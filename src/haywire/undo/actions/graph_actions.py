@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from ..base_action import ActionBase, CompositeAction
 from ...core.graph.graph import HaywireGraph, Edge
 from ...core.node.node import BaseNode
+from ...ui.utils import generate_connection_uuid
 
 
 class AddNodeAction(ActionBase):
@@ -70,7 +71,7 @@ class RemoveNodeAction(ActionBase):
         
         # Store all edges connected to this node
         self.removed_edges = []
-        for edge in self.graph.edges[:]:  # Copy list to avoid modification during iteration
+        for edge in list(self.graph.edges.values()):  # Copy list to avoid modification during iteration
             if edge.input_node_id == self.node_id or edge.output_node_id == self.node_id:
                 self.removed_edges.append(edge)
         
@@ -87,7 +88,12 @@ class RemoveNodeAction(ActionBase):
         
         # Restore all edges
         for edge in self.removed_edges:
-            self.graph.add_edge(edge)
+            self.graph.add_edge(
+                edge.output_node_id,
+                edge.outlet_pin_id,
+                edge.input_node_id,
+                edge.inlet_pin_id
+            )
 
 
 class AddEdgeAction(ActionBase):
@@ -105,19 +111,24 @@ class AddEdgeAction(ActionBase):
         super().__init__(description or f"Connect {edge.output_node_id} to {edge.input_node_id}")
         self.graph = graph
         self.edge = edge
+        # Generate connection UUID for the new API
+        self.connection_uuid = generate_connection_uuid(
+            edge.output_node_id, edge.outlet_pin_id, 
+            edge.input_node_id, edge.inlet_pin_id
+        )
     
     def _execute_impl(self) -> None:
         """Add the edge to the graph."""
-        self.graph.add_edge(self.edge)
-    
-    def _undo_impl(self) -> None:
-        """Remove the edge from the graph."""
-        self.graph.remove_edge(
+        self.graph.add_edge(
             self.edge.output_node_id,
             self.edge.outlet_pin_id,
             self.edge.input_node_id,
             self.edge.inlet_pin_id
         )
+    
+    def _undo_impl(self) -> None:
+        """Remove the edge from the graph."""
+        self.graph.remove_edge_by_id(self.connection_uuid)
 
 
 class RemoveEdgeAction(ActionBase):
@@ -135,19 +146,24 @@ class RemoveEdgeAction(ActionBase):
         super().__init__(description or f"Disconnect {edge.output_node_id} from {edge.input_node_id}")
         self.graph = graph
         self.edge = edge
+        # Generate connection UUID for the new API
+        self.connection_uuid = generate_connection_uuid(
+            edge.output_node_id, edge.outlet_pin_id, 
+            edge.input_node_id, edge.inlet_pin_id
+        )
     
     def _execute_impl(self) -> None:
         """Remove the edge from the graph."""
-        self.graph.remove_edge(
+        self.graph.remove_edge_by_id(self.connection_uuid)
+    
+    def _undo_impl(self) -> None:
+        """Add the edge back to the graph."""
+        self.graph.add_edge(
             self.edge.output_node_id,
             self.edge.outlet_pin_id,
             self.edge.input_node_id,
             self.edge.inlet_pin_id
         )
-    
-    def _undo_impl(self) -> None:
-        """Add the edge back to the graph."""
-        self.graph.add_edge(self.edge)
 
 
 class MoveNodeAction(ActionBase):
@@ -269,7 +285,7 @@ class MoveNodesAction(ActionBase):
 class SelectionState:
     """Represents a selection state."""
     selected_nodes: set[str]
-    selected_edges: set[tuple[str, str, str, str]]  # (output_node, outlet_pin, input_node, inlet_pin)
+    selected_connections: set[str]  # Connection UUIDs
 
 
 class ChangeSelectionAction(ActionBase):
@@ -295,36 +311,11 @@ class ChangeSelectionAction(ActionBase):
     def _get_current_selection(self) -> SelectionState:
         """Get the current selection state from the graph."""
         selected_nodes, selected_connections = self.graph.get_selection_state()
-        
-        # Convert connection IDs to edge tuples for SelectionState format
-        selected_edges = set()
-        for connection_id in selected_connections:
-            # Parse connection ID format: connection__outlet__node_id__port__inlet__node_id__port
-            try:
-                parts = connection_id.split('__')
-                if len(parts) >= 6 and parts[0] == 'connection' and parts[1] == 'outlet' and parts[4] == 'inlet':
-                    output_node_id = parts[2]
-                    outlet_pin = parts[3]
-                    input_node_id = parts[5]
-                    inlet_pin = parts[6]
-                    selected_edges.add((output_node_id, outlet_pin, input_node_id, inlet_pin))
-            except (IndexError, ValueError):
-                # Skip invalid connection IDs
-                continue
-        
-        return SelectionState(selected_nodes, selected_edges)
+        return SelectionState(selected_nodes, selected_connections)
     
     def _apply_selection(self, selection: SelectionState) -> None:
         """Apply a selection state to the graph."""
-        # Convert edge tuples back to connection IDs
-        selected_connection_ids = set()
-        for edge_tuple in selection.selected_edges:
-            output_node_id, outlet_pin, input_node_id, inlet_pin = edge_tuple
-            connection_id = f"connection__outlet__{output_node_id}__{outlet_pin}__inlet__{input_node_id}__{inlet_pin}"
-            selected_connection_ids.add(connection_id)
-        
-        # Apply the selection to the graph
-        self.graph.set_selection_state(selection.selected_nodes, selected_connection_ids)
+        self.graph.set_selection_state(selection.selected_nodes, selection.selected_connections)
     
     def _execute_impl(self) -> None:
         """Apply the new selection."""

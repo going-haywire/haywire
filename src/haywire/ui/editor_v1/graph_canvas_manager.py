@@ -349,11 +349,7 @@ class GraphCanvasManager:
             current_connection_uuids = set(self.connection_paths.keys())
             graph_connection_uuids = set()
             
-            for edge in self.graph.edges:
-                connection_uuid = generate_connection_uuid(
-                    edge.output_node_id, edge.outlet_pin_id,
-                    edge.input_node_id, edge.inlet_pin_id
-                )
+            for connection_uuid, edge in self.graph.edges.items():
                 graph_connection_uuids.add(connection_uuid)
                 
                 if connection_uuid not in current_connection_uuids:
@@ -432,12 +428,8 @@ class GraphCanvasManager:
             
         # Remove all connected edges visually first
         edges_to_remove = []
-        for edge in self.graph.edges:
+        for connection_uuid, edge in self.graph.edges.items():
             if edge.input_node_id == node_id or edge.output_node_id == node_id:
-                connection_uuid = generate_connection_uuid(
-                    edge.output_node_id, edge.outlet_pin_id,
-                    edge.input_node_id, edge.inlet_pin_id
-                )
                 edges_to_remove.append(connection_uuid)
         
         for connection_uuid in edges_to_remove:

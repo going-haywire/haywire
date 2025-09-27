@@ -268,13 +268,9 @@ class Editor:
         Returns:
             True if connection was deleted, False otherwise
         """
-        # Find the edge
-        edge_to_remove = None
-        for edge in self.graph.edges:
-            if (edge.output_node_id == output_node_id and edge.outlet_pin_id == outlet_pin and
-                edge.input_node_id == input_node_id and edge.inlet_pin_id == inlet_pin):
-                edge_to_remove = edge
-                break
+        # Find the edge using connection ID
+        connection_id = f"{output_node_id}|{outlet_pin}|{input_node_id}|{inlet_pin}"
+        edge_to_remove = self.graph.get_edge_by_connection_id(connection_id)
         
         if edge_to_remove:
             return self.delete_connection_by_edge(edge_to_remove)
@@ -308,7 +304,7 @@ class Editor:
     
     def list_connections(self) -> List[Edge]:
         """Get a list of all connections in the graph."""
-        return list(self.graph.edges)
+        return list(self.graph.edges.values())
     
     # =============================================================================
     # SELECTION OPERATIONS  
@@ -329,7 +325,14 @@ class Editor:
             selected_nodes = selected_nodes or set()
             selected_connections = selected_connections or set()
             
-            new_selection = SelectionState(selected_nodes, selected_connections)
+            # Convert connection tuples to connection UUIDs
+            from ..utils import generate_connection_uuid
+            selected_connection_uuids = set()
+            for output_node, outlet_pin, input_node, inlet_pin in selected_connections:
+                connection_uuid = generate_connection_uuid(output_node, outlet_pin, input_node, inlet_pin)
+                selected_connection_uuids.add(connection_uuid)
+            
+            new_selection = SelectionState(selected_nodes, selected_connection_uuids)
             action = ChangeSelectionAction(self.graph, new_selection)
             self.history_manager.add_action(action)
             
