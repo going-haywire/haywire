@@ -290,13 +290,13 @@ export default {
         },
 
         _syncConnectionAddition(data) {
-            const { connectionId, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid } = data;
+            const { connectionUUID, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid } = data;
             
-            if (this.connectionPaths.has(connectionId)) {
+            if (this.connectionPaths.has(connectionUUID)) {
                 if (path.dataset.isValid === String(isValid)) {
                     return;
                 } else {
-                    this._removeConnectionVisual(connectionId);
+                    this._removeConnectionVisual(connectionUUID);
                 }
             }
 
@@ -305,26 +305,26 @@ export default {
                 outletPinId, 
                 inputNodeId, 
                 inletPinId, 
-                connectionId, 
+                connectionUUID, 
                 isValid,
                 '[SYNC] '
             );
             
             if (result.success) {
-                console.log('🔗 Vue ✅ Connection added via sync:', connectionId);
+                console.log('🔗 Vue ✅ Connection added via sync:', connectionUUID);
             } else {
-                console.error('🔗 Vue ❌ Failed to add connection via sync:', connectionId);
+                console.error('🔗 Vue ❌ Failed to add connection via sync:', connectionUUID);
             }
         },
 
         _syncConnectionRemoval(data) {
-            const { connectionId } = data;
-            const success = this._removeConnectionVisual(connectionId);
+            const { connectionUUID } = data;
+            const success = this._removeConnectionVisual(connectionUUID);
             
             if (success) {
-                console.log('🔗 Vue ✅ Connection removed via sync:', connectionId);
+                console.log('🔗 Vue ✅ Connection removed via sync:', connectionUUID);
             } else {
-                console.error('🔗 Vue ❌ Failed to remove connection via sync:', connectionId);
+                console.error('🔗 Vue ❌ Failed to remove connection via sync:', connectionUUID);
             }
         },
 
@@ -363,16 +363,16 @@ export default {
             // only iterate connections if there's a change
             if (!this._setsAreEqual(currentConnections, newConnections)) {
                 // Find connections to deselect (in current but not in new)
-                currentConnections.forEach(connectionId => {
-                    if (!newConnections.has(connectionId)) {
-                        this._updateConnectionVisualSelection(connectionId, false);
+                currentConnections.forEach(connectionUUID => {
+                    if (!newConnections.has(connectionUUID)) {
+                        this._updateConnectionVisualSelection(connectionUUID, false);
                     }
                 });
                 
                 // Find connections to select (in new but not in current)
-                newConnections.forEach(connectionId => {
-                    if (!currentConnections.has(connectionId)) {
-                        this._updateConnectionVisualSelection(connectionId, true);
+                newConnections.forEach(connectionUUID => {
+                    if (!currentConnections.has(connectionUUID)) {
+                        this._updateConnectionVisualSelection(connectionUUID, true);
                     }
                 });
                 // Update internal state to match new selection
@@ -383,11 +383,11 @@ export default {
         },
 
         _syncCanvasClear() {
-            this.connectionPaths.forEach((path, pathId) => {
+            this.connectionPaths.forEach((path, connectionUUID) => {
                 path.remove();
-                const hitArea = document.getElementById(pathId + '_hitarea');
+                const hitArea = document.getElementById(connectionUUID + '_hitarea');
                 if (hitArea) hitArea.remove();
-                const gradient = document.getElementById(`gradient_${pathId}`);
+                const gradient = document.getElementById(`gradient_${connectionUUID}`);
                 if (gradient) gradient.remove();
             });
             
@@ -420,7 +420,7 @@ export default {
         _setSelectionState(selectedNodes, selectedConnections) {
             this._clearSelection();
             selectedNodes.forEach(nodeId => this._selectElement('node', nodeId, true));
-            selectedConnections.forEach(connectionId => this._selectElement('connection', connectionId, true));
+            selectedConnections.forEach(connectionUUID => this._selectElement('connection', connectionUUID, true));
         },
 
         // =============================================================================
@@ -770,8 +770,8 @@ export default {
                 this._updateNodeVisualSelection(nodeId, false);
             });
 
-            this.selectionState.selectedConnections.forEach(connectionId => {
-                this._updateConnectionVisualSelection(connectionId, false);
+            this.selectionState.selectedConnections.forEach(connectionUUID => {
+                this._updateConnectionVisualSelection(connectionUUID, false);
             });
 
             this.selectionState.selectedNodes.clear();
@@ -849,9 +849,9 @@ export default {
                     this._updateNodeVisualSelection(nodeId, true);
                 });
                 
-                intersectingConnections.forEach(connectionId => {
-                    this.selectionState.selectedConnections.add(connectionId);
-                    this._updateConnectionVisualSelection(connectionId, true);
+                intersectingConnections.forEach(connectionUUID => {
+                    this.selectionState.selectedConnections.add(connectionUUID);
+                    this._updateConnectionVisualSelection(connectionUUID, true);
                 });
             } else {
                 this.selectionState.selectedNodes.forEach(nodeId => {
@@ -860,9 +860,9 @@ export default {
                     }
                 });
                 
-                this.selectionState.selectedConnections.forEach(connectionId => {
-                    if (!intersectingConnections.includes(connectionId)) {
-                        this._updateConnectionVisualSelection(connectionId, false);
+                this.selectionState.selectedConnections.forEach(connectionUUID => {
+                    if (!intersectingConnections.includes(connectionUUID)) {
+                        this._updateConnectionVisualSelection(connectionUUID, false);
                     }
                 });
 
@@ -874,9 +874,9 @@ export default {
                     this._updateNodeVisualSelection(nodeId, true);
                 });
                 
-                intersectingConnections.forEach(connectionId => {
-                    this.selectionState.selectedConnections.add(connectionId);
-                    this._updateConnectionVisualSelection(connectionId, true);
+                intersectingConnections.forEach(connectionUUID => {
+                    this.selectionState.selectedConnections.add(connectionUUID);
+                    this._updateConnectionVisualSelection(connectionUUID, true);
                 });
             }
         },
@@ -916,7 +916,7 @@ export default {
         _findConnectionsInRectangle(rect) {
             const intersectingConnections = [];
             
-            this.connectionPaths.forEach((pathElement, connectionId) => {
+            this.connectionPaths.forEach((pathElement, connectionUUID) => {
                 try {
                     const pathBBox = pathElement.getBBox();
                     const pathRect = {
@@ -927,7 +927,7 @@ export default {
                     };
 
                     if (this._rectanglesIntersect(rect, pathRect)) {
-                        intersectingConnections.push(connectionId);
+                        intersectingConnections.push(connectionUUID);
                     }
                 } catch (e) {
                     console.warn('Error getting path bounding box for selection:', e);
@@ -991,10 +991,10 @@ export default {
             
             // Check for connection
             let connectionElement = null;
-            let connectionId = null;
+            let connectionUUID = null;
 
             if (target.tagName === 'path') {
-                connectionId = target.getAttribute('data-connection-id') || target.id;
+                connectionUUID = target.getAttribute('data-connection-id') || target.id;
                 connectionElement = target;
             } else {
                 const svgElement = target.closest('svg');
@@ -1005,7 +1005,7 @@ export default {
                     for (const path of paths) {
                         if (this._isPointNearPath(path, clickPoint)) {
                             connectionElement = path;
-                            connectionId = path.getAttribute('data-connection-id') || path.id;
+                            connectionUUID = path.getAttribute('data-connection-id') || path.id;
                             break;
                         }
                     }
@@ -1030,8 +1030,8 @@ export default {
                         clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
                     ));
                 }
-            } else if (connectionElement && connectionId) {
-                const isConnectionSelected = this.selectionState.selectedConnections.has(connectionId);
+            } else if (connectionElement && connectionUUID) {
+                const isConnectionSelected = this.selectionState.selectedConnections.has(connectionUUID);
                 const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedConnections.size > 1;
                 
                 if (isConnectionSelected && hasMultipleSelected) {
@@ -1042,7 +1042,7 @@ export default {
                     ));
                 } else {
                     this.emitCanvasEvent(EventCreators.createContextMenuConnection(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, connectionId
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, connectionUUID
                     ));
                 }
             } else {
@@ -1076,8 +1076,8 @@ export default {
             });
             
             // Add selected connections
-            this.selectionState.selectedConnections.forEach(connectionId => {
-                elements.push({ type: 'connection', id: connectionId });
+            this.selectionState.selectedConnections.forEach(connectionUUID => {
+                elements.push({ type: 'connection', id: connectionUUID });
             });
             
             return elements;
@@ -1258,9 +1258,9 @@ export default {
         // CONNECTION MANAGEMENT (keeping connection visual methods as-is)
         // =============================================================================
 
-        _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, pathId, isValid, logPrefix = '', connectionData = null) {
-            const startPinId = this._buildOutletPinId(outputNodeId, outletPinId);
-            const endPinId = this._buildInletPinId(inputNodeId, inletPinId);
+        _createConnectionVisual(outputNodeId, outletPinId, inputNodeId, inletPinId, connectionUUID, isValid, logPrefix = '', connectionData = null) {
+            const startPinId = this._buildOutletPinUUID(outputNodeId, outletPinId);
+            const endPinId = this._buildInletPinUUID(inputNodeId, inletPinId);
 
             const startPin = document.getElementById(startPinId);
             const endPin = document.getElementById(endPinId);
@@ -1277,8 +1277,8 @@ export default {
             
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.dataset.isValid = isValid.toString();
-            path.setAttribute('id', pathId);
-            path.setAttribute('data-connection-id', pathId); 
+            path.setAttribute('id', connectionUUID);
+            path.setAttribute('data-connection-id', connectionUUID); 
             if (isValid) {
                 path.setAttribute('stroke', startPin.dataset.pinColor); 
                 path.dataset.startColor = startPin.dataset.pinColor || '#bbbbbb';
@@ -1295,8 +1295,8 @@ export default {
             path.style.cursor = 'pointer';
 
             const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            hitArea.setAttribute('id', pathId + '_hitarea');
-            hitArea.setAttribute('data-connection-id', pathId);
+            hitArea.setAttribute('id', connectionUUID + '_hitarea');
+            hitArea.setAttribute('data-connection-id', connectionUUID);
             hitArea.setAttribute('stroke', 'transparent');
             hitArea.setAttribute('stroke-width', '10');
             hitArea.setAttribute('fill', 'none');
@@ -1305,12 +1305,12 @@ export default {
 
             this.$refs.svg.appendChild(path);
             this.$refs.svg.appendChild(hitArea);
-            this.connectionPaths.set(pathId, path);
+            this.connectionPaths.set(connectionUUID, path);
 
             const clickHandler = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.emitCanvasEvent(EventCreators.createConnectionClicked(pathId));
+                this.emitCanvasEvent(EventCreators.createConnectionClicked(connectionUUID));
             };
 
             path.addEventListener('click', clickHandler);
@@ -1323,23 +1323,23 @@ export default {
             return { success: true, pathElement: path };
         },
 
-        _removeConnectionVisual(connectionId) {
-            const path = this.connectionPaths.get(connectionId);
+        _removeConnectionVisual(connectionUUID) {
+            const path = this.connectionPaths.get(connectionUUID);
 
             if (path) {
                 path.remove();
 
-                const hitArea = document.getElementById(connectionId + '_hitarea');
+                const hitArea = document.getElementById(connectionUUID + '_hitarea');
                 if (hitArea) {
                     hitArea.remove();
                 }
 
-                const gradient = document.getElementById(`gradient_${connectionId}`);
+                const gradient = document.getElementById(`gradient_${connectionUUID}`);
                 if (gradient) {
                     gradient.remove();
                 }
 
-                this.connectionPaths.delete(connectionId);
+                this.connectionPaths.delete(connectionUUID);
                 return true;
             } else {
                 return false;
@@ -1349,11 +1349,11 @@ export default {
         _updateConnectionPath(pathElement) {
             if (!pathElement || !pathElement.id) return;
 
-            const pathId = pathElement.id;
-            const connectionInfo = this._parseConnectionId(pathId);
+            const connectionUUID = pathElement.id;
+            const connectionInfo = this._parseconnectionUUID(connectionUUID);
 
             if (!connectionInfo) {
-                console.error(`Failed to parse connection ID: ${pathId}`);
+                console.error(`Failed to parse connection ID: ${connectionUUID}`);
                 return;
             }
 
@@ -1361,7 +1361,7 @@ export default {
             const endPin = document.getElementById(connectionInfo.inletPinFullId);
 
             if (!startPin || !endPin) {
-                console.error(`Failed to find pins for connection ID: ${pathId}`);
+                console.error(`Failed to find pins for connection ID: ${connectionUUID}`);
                 return;
             }
 
@@ -1372,7 +1372,7 @@ export default {
             const pathData = this._createBezierPath(startPos, endPos, offsetDir);
 
             pathElement.setAttribute('d', pathData);
-            const hitArea = document.getElementById(pathId + '_hitarea');
+            const hitArea = document.getElementById(connectionUUID + '_hitarea');
             if (hitArea) {
                 hitArea.setAttribute('d', pathData);
             }
@@ -1381,14 +1381,14 @@ export default {
             let startColor = pathElement.dataset.startColor || '#000000';
             let endColor = pathElement.dataset.endColor || '#000000';
 
-            const stroke = this._createBezierStroke(startPos, endPos, startColor, endColor, pathId);
+            const stroke = this._createBezierStroke(startPos, endPos, startColor, endColor, connectionUUID);
             pathElement.setAttribute('stroke', stroke);
         },
 
         _updateConnectionsForNode(nodeId) {
             if (!nodeId) return;
-            this.connectionPaths.forEach((path, pathId) => {
-                if (pathId.includes(nodeId)) {
+            this.connectionPaths.forEach((path, connectionUUID) => {
+                if (connectionUUID.includes(nodeId)) {
                     this._updateConnectionPath(path);
                 }
             });
@@ -1438,8 +1438,8 @@ export default {
             }
         },
 
-        _updateConnectionVisualSelection(pathId, selected) {
-            const pathElement = this.connectionPaths.get(pathId);
+        _updateConnectionVisualSelection(connectionUUID, selected) {
+            const pathElement = this.connectionPaths.get(connectionUUID);
             if (pathElement) {
                 if (selected) {
                     pathElement.classList.add('connection-selected');
@@ -1485,15 +1485,15 @@ export default {
             return isFormElement || isQuasarElement || isWidgetContainer || isMarkedInteractive;
         },
 
-        _parseConnectionId(connectionId) {
-            const parts = connectionId.split('__');
+        _parseconnectionUUID(connectionUUID) {
+            const parts = connectionUUID.split('__');
             if (parts.length !== 7) {
-                console.error(`Invalid connection ID format: ${connectionId}. Expected 7 parts, got ${parts.length}`);
+                console.error(`Invalid connection ID format: ${connectionUUID}. Expected 7 parts, got ${parts.length}`);
                 return null;
             }
 
             if (parts[0] !== 'connection' || parts[1] !== 'outlet' || parts[4] !== 'inlet') {
-                console.error(`Invalid connection ID structure: ${connectionId}`);
+                console.error(`Invalid connection ID structure: ${connectionUUID}`);
                 return null;
             }
 
@@ -1507,17 +1507,17 @@ export default {
             };
         },
 
-        _buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId) {
-            const outletPin = this._buildOutletPinId(outputNodeId, outletPinId);
-            const inletPin = this._buildInletPinId(inputNodeId, inletPinId);
+        _buildconnectionUUID(outputNodeId, outletPinId, inputNodeId, inletPinId) {
+            const outletPin = this._buildOutletPinUUID(outputNodeId, outletPinId);
+            const inletPin = this._buildInletPinUUID(inputNodeId, inletPinId);
             return `connection__${outletPin}__${inletPin}`;
         },
 
-        _buildOutletPinId(nodeId, pinId) {
+        _buildOutletPinUUID(nodeId, pinId) {
             return `outlet__${nodeId}__${pinId}`;
         },
 
-        _buildInletPinId(nodeId, pinId) {
+        _buildInletPinUUID(nodeId, pinId) {
             return `inlet__${nodeId}__${pinId}`;
         },
 
@@ -1550,8 +1550,8 @@ export default {
             return `M ${start.x} ${start.y} C ${start.x + controlOffset} ${start.y}, ${end.x - controlOffset} ${end.y}, ${end.x} ${end.y}`;
         },
 
-        _createBezierStroke(startPos, endPos, startColor, endColor, pathId) {
-            if (!endColor || !pathId) {
+        _createBezierStroke(startPos, endPos, startColor, endColor, connectionUUID) {
+            if (!endColor || !connectionUUID) {
                 return startColor || '#ff0000';
             }
 
@@ -1561,7 +1561,7 @@ export default {
                 this.$refs.svg.appendChild(defs);
             }
 
-            const gradientId = `gradient_${pathId}`;
+            const gradientId = `gradient_${connectionUUID}`;
             let gradient = document.getElementById(gradientId);
             if (!gradient) {
                 gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
@@ -1649,8 +1649,8 @@ export default {
         },
 
         _connectionExists(outputNodeId, outletPinId, inputNodeId, inletPinId) {
-            const connectionId = this._buildConnectionId(outputNodeId, outletPinId, inputNodeId, inletPinId);
-            return this.connectionPaths.has(connectionId);
+            const connectionUUID = this._buildconnectionUUID(outputNodeId, outletPinId, inputNodeId, inletPinId);
+            return this.connectionPaths.has(connectionUUID);
         }
     }
 }

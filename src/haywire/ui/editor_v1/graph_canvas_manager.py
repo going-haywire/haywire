@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
-from haywire.ui.utils import generate_pin_id, parse_pin_id, generate_connection_id, parse_connection_id
+from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
 from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodeAction, AddEdgeAction, RemoveNodeAction, RemoveEdgeAction, AddNodeAction
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
@@ -234,7 +234,7 @@ class GraphCanvasManager:
     def process_connection_click(self, event: ConnectionClickedEvent):
         """Handle connection click events"""
         try:
-            print(f"Connection clicked: {event.connectionId}")
+            print(f"Connection clicked: {event.connectionUUID}")
         except Exception as e:
             print(f"Connection click handling failed: {e}")
 
@@ -251,7 +251,7 @@ class GraphCanvasManager:
         selected_edges = set()
         for connection_id in selected_connections_set:
             try:
-                components = parse_connection_id(connection_id)
+                components = parse_connection_uuid(connection_id)
                 selected_edges.add((components.outlet_node_id, components.outlet_pin_id, 
                                   components.inlet_node_id, components.inlet_pin_id))
             except (ValueError, AttributeError):
@@ -278,9 +278,9 @@ class GraphCanvasManager:
                 self.context_menu.show_node_menu(event.screenX, event.screenY, event.nodeId)
             
         elif isinstance(event, ContextMenuConnectionEvent):
-            print(f"Connection context menu for {event.connectionId} at ({event.screenX}, {event.screenY})")
+            print(f"Connection context menu for {event.connectionUUID} at ({event.screenX}, {event.screenY})")
             if self.context_menu:
-                self.context_menu.show_connection_menu(event.screenX, event.screenY, event.connectionId)
+                self.context_menu.show_connection_menu(event.screenX, event.screenY, event.connectionUUID)
         
         elif isinstance(event, ContextMenuSelectedEvent):
             print(f"Selected context menu at ({event.screenX}, {event.screenY}) for {len(event.selectedNodes)} nodes, {len(event.selectedConnections)} connections")
@@ -350,7 +350,7 @@ class GraphCanvasManager:
             graph_connection_ids = set()
             
             for edge in self.graph.edges:
-                connection_id = generate_connection_id(
+                connection_id = generate_connection_uuid(
                     edge.output_node_id, edge.outlet_pin_id,
                     edge.input_node_id, edge.inlet_pin_id
                 )
@@ -434,7 +434,7 @@ class GraphCanvasManager:
         edges_to_remove = []
         for edge in self.graph.edges:
             if edge.input_node_id == node_id or edge.output_node_id == node_id:
-                connection_id = generate_connection_id(
+                connection_id = generate_connection_uuid(
                     edge.output_node_id, edge.outlet_pin_id,
                     edge.input_node_id, edge.inlet_pin_id
                 )
@@ -484,13 +484,13 @@ class GraphCanvasManager:
     def add_connection_visual(self, edge: Edge) -> bool:
         """Add a visual connection between two nodes."""
         print(f"🔗 Python: Adding connection visual for {edge.output_node_id}:{edge.outlet_pin_id} -> {edge.input_node_id}:{edge.inlet_pin_id}")
-        connection_id = generate_connection_id(
+        connection_uuid = generate_connection_uuid(
             edge.output_node_id, edge.outlet_pin_id,
             edge.input_node_id, edge.inlet_pin_id
         )
         
         sync_event = SyncConnectionAdditionEvent(
-            connectionId=connection_id,
+            connectionUUID=connection_uuid,
             outputNodeId=edge.output_node_id,
             outletPinId=edge.outlet_pin_id,
             inputNodeId=edge.input_node_id,
@@ -499,21 +499,21 @@ class GraphCanvasManager:
         )        
         self.canvas_vue.emit_sync_event(sync_event)
 
-        self.connection_paths[connection_id] = edge
-        print(f"🔗 Python: Created connection via direct sync event with ID: {connection_id}")
+        self.connection_paths[connection_uuid] = edge
+        print(f"🔗 Python: Created connection via direct sync event with ID: {connection_uuid}")
         return True
    
-    def remove_connection_visual(self, connection_id: str) -> bool:
+    def remove_connection_visual(self, connection_uuid: str) -> bool:
         """Remove a connection's visual representation."""
-        if connection_id not in self.connection_paths:
+        if connection_uuid not in self.connection_paths:
             return False
             
-        edge = self.connection_paths[connection_id]
+        edge = self.connection_paths[connection_uuid]
         
-        sync_event = SyncConnectionRemovalEvent(connectionId=connection_id)
+        sync_event = SyncConnectionRemovalEvent(connectionUUID=connection_uuid)
         self.canvas_vue.emit_sync_event(sync_event)
 
-        del self.connection_paths[connection_id]
+        del self.connection_paths[connection_uuid]
         return True
    
     def clear_all_visuals(self):

@@ -12,7 +12,7 @@ from haywire.core.data.enums import DataType, FlowType
 from haywire.core.ui.renderer import BaseNodeRenderer
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
 from haywire.core.ui.base import UINodeCard
-from haywire.ui.utils import generate_pin_id
+from haywire.ui.utils import generate_pin_uuid
 from haywire.ui.utils import render_error_info
 
 class DefaultNodeRenderer(BaseNodeRenderer):
@@ -132,7 +132,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
         pin_direction = 'inlet' if pin.is_inlet else 'outlet'
-        pin_id = generate_pin_id(pin_direction, node.node_id, pin.id)
+        pin_uuid = generate_pin_uuid(pin_direction, node.node_id, pin.id)
         flow_type = pin.flow_type
         
         if pin.flow_type == FlowType.CTRL.value:
@@ -143,7 +143,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'position: absolute; {direction}: -20px; '
                 f'cursor: crosshair;'
             ).props(
-                f'id="{pin_id}" '
+                f'id="{pin_uuid}" '
                 f'data-node-id="{node.node_id}" '
                 f'data-pin-id="{pin.id}" '
                 f'data-pin-flow-type="{pin.flow_type}" '
@@ -158,7 +158,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'position: absolute; {direction}: -20px; '
                 f'cursor: crosshair;'
             ).props(
-                f'id="{pin_id}" '
+                f'id="{pin_uuid}" '
                 f'data-node-id="{node.node_id}" '
                 f'data-pin-id="{pin.id}" '
                 f'data-pin-flow-type="{pin.flow_type}" '
@@ -176,7 +176,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'border-radius: 50%; '
                 f'cursor: crosshair;'
             ).props(
-                f'id="{pin_id}" '
+                f'id="{pin_uuid}" '
                 f'data-node-id="{node.node_id}" '
                 f'data-pin-id="{pin.id}" '
                 f'data-pin-flow-type="{pin.flow_type}" '

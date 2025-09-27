@@ -112,7 +112,7 @@ class ConnectionCreatedEvent(BaseGraphEvent):
 @graph_event("connectionClicked", category="user", description="Connection clicked")
 @dataclass
 class ConnectionClickedEvent(BaseGraphEvent):
-    connectionId: str
+    connectionUUID: str
 
 @graph_event("selectionChanged", category="user", description="Selection state changed")
 @dataclass
@@ -144,7 +144,7 @@ class ContextMenuConnectionEvent(BaseGraphEvent):
     screenY: float
     canvasX: float
     canvasY: float
-    connectionId: str
+    connectionUUID: str
 
 @graph_event("contextMenuSelected", category="user", description="Context menu triggered on selected elements")
 @dataclass
@@ -180,7 +180,7 @@ class SyncNodePositionEvent(BaseGraphEvent):
 @graph_event("syncConnectionAddition", category="sync", description="Sync connection addition to UI")
 @dataclass
 class SyncConnectionAdditionEvent(BaseGraphEvent):
-    connectionId: str
+    connectionUUID: str
     outputNodeId: str
     outletPinId: str
     inputNodeId: str
@@ -190,7 +190,7 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
 @graph_event("syncConnectionRemoval", category="sync", description="Sync connection removal from UI")
 @dataclass
 class SyncConnectionRemovalEvent(BaseGraphEvent):
-    connectionId: str
+    connectionUUID: str
 
 @graph_event("syncSelections", category="sync", description="Sync selection state to UI")
 @dataclass

@@ -29,11 +29,11 @@ class Edge:
     
     # Output node information
     output_node_id: str
-    outlet_pin_id: str
+    outlet_pin_id: str # also known as the id of an outlet
     
     # Input node information
     input_node_id: str
-    inlet_pin_id: str
+    inlet_pin_id: str # also known as the id of an inlet
     
     # Optional fields with defaults
     outlet_pin_data_type: str | None = None
