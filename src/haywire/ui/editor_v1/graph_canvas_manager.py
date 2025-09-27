@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
 from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
-from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodesAction, AddEdgeAction, RemoveNodeAction, RemoveEdgeAction, AddNodeAction
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 
@@ -176,31 +175,11 @@ class GraphCanvasManager:
         total_elements = len(event.nodes) + len(event.connections)
         print(f"🗑️ Removing {total_elements} elements: {len(event.nodes)} nodes, {len(event.connections)} connections")
         
-        success_count = 0
-        
-        # Remove nodes
-        for node_id in event.nodes:
-            if node_id in self.graph.nodes:
-                if self.editor.delete_node(node_id):
-                    success_count += 1
-                    print(f"✅ Deleted node: {node_id}")
-                else:
-                    print(f"❌ Failed to delete node: {node_id}")
-        
-        # Remove connections
-        for connection_uuid in event.connections:
-            if connection_uuid in self.connection_paths:
-                edge_to_remove = self.connection_paths[connection_uuid]
-                if self.editor.delete_connection_by_edge(edge_to_remove):
-                    success_count += 1
-                    print(f"✅ Deleted connection: {connection_uuid}")
-                else:
-                    print(f"❌ Failed to delete connection: {connection_uuid}")
-        
-        if success_count > 0:
-            ui.notify(f"Deleted {success_count} element(s)", type='positive')
+        # Use the new unified removal method
+        if self.editor.remove_elements(event.nodes, event.connections):
+            ui.notify(f"Deleted {total_elements} element(s)", type='positive')
         else:
-            ui.notify("No elements could be deleted", type='warning')
+            ui.notify("Failed to delete elements", type='warning')
     
                             
     @handles_event(ConnectionCreatedEvent)

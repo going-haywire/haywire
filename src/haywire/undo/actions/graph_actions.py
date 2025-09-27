@@ -41,61 +41,6 @@ class AddNodeAction(ActionBase):
         """Remove the node from the graph."""
         self.graph.remove_node(self.node_id)
 
-
-class RemoveNodeAction(ActionBase):
-    """Action for removing a node from the graph."""
-    
-    def __init__(self, graph: HaywireGraph, node_id: str, description: Optional[str] = None):
-        """
-        Initialize the remove node action.
-        
-        Args:
-            graph: The graph to remove the node from
-            node_id: ID of the node to remove
-            description: Optional description override
-        """
-        super().__init__(description or f"Remove node '{node_id}'")
-        self.graph = graph
-        self.node_id = node_id
-        
-        # Store the node and its connections for restoration
-        self.removed_node: Optional[BaseNode] = None
-        self.removed_edges: List[Edge] = []
-    
-    def _execute_impl(self) -> None:
-        """Remove the node and store it for undo."""
-        # Store the node before removing it
-        self.removed_node = self.graph.get_node(self.node_id)
-        if self.removed_node is None:
-            raise ValueError(f"Node {self.node_id} not found in graph")
-        
-        # Store all edges connected to this node
-        self.removed_edges = []
-        for edge in list(self.graph.edges.values()):  # Copy list to avoid modification during iteration
-            if edge.input_node_id == self.node_id or edge.output_node_id == self.node_id:
-                self.removed_edges.append(edge)
-        
-        # Remove the node (this should also remove connected edges)
-        self.graph.remove_node(self.node_id)
-    
-    def _undo_impl(self) -> None:
-        """Restore the node and its connections."""
-        if self.removed_node is None:
-            raise RuntimeError("Cannot undo: no node was stored")
-        
-        # Add the node back
-        self.graph.add_node(self.removed_node)
-        
-        # Restore all edges
-        for edge in self.removed_edges:
-            self.graph.add_edge(
-                edge.output_node_id,
-                edge.outlet_pin_id,
-                edge.input_node_id,
-                edge.inlet_pin_id
-            )
-
-
 class AddEdgeAction(ActionBase):
     """Action for adding an edge to the graph."""
     
@@ -129,42 +74,6 @@ class AddEdgeAction(ActionBase):
     def _undo_impl(self) -> None:
         """Remove the edge from the graph."""
         self.graph.remove_edge_by_uuid(self.connection_uuid)
-
-
-class RemoveEdgeAction(ActionBase):
-    """Action for removing an edge from the graph."""
-    
-    def __init__(self, graph: HaywireGraph, edge: Edge, description: Optional[str] = None):
-        """
-        Initialize the remove edge action.
-        
-        Args:
-            graph: The graph to remove the edge from
-            edge: The edge to remove
-            description: Optional description override
-        """
-        super().__init__(description or f"Disconnect {edge.output_node_id} from {edge.input_node_id}")
-        self.graph = graph
-        self.edge = edge
-        # Generate connection UUID for the new API
-        self.connection_uuid = generate_connection_uuid(
-            edge.output_node_id, edge.outlet_pin_id, 
-            edge.input_node_id, edge.inlet_pin_id
-        )
-    
-    def _execute_impl(self) -> None:
-        """Remove the edge from the graph."""
-        self.graph.remove_edge_by_uuid(self.connection_uuid)
-    
-    def _undo_impl(self) -> None:
-        """Add the edge back to the graph."""
-        self.graph.add_edge(
-            self.edge.output_node_id,
-            self.edge.outlet_pin_id,
-            self.edge.input_node_id,
-            self.edge.inlet_pin_id
-        )
-
 
 class MoveNodesAction(ActionBase):
     """Action for moving one or multiple nodes using delta values."""
@@ -233,6 +142,99 @@ class MoveNodesAction(ActionBase):
         merged = MoveNodesAction(self.graph, self.nodes, combined_deltaX, combined_deltaY, description)
         
         return merged
+
+class RemoveElementsAction(ActionBase):
+    """Action for removing multiple nodes and connections in a single operation."""
+    
+    def __init__(self, graph: HaywireGraph, nodes: List[str] = None, connections: List[str] = None,
+                 description: Optional[str] = None):
+        """
+        Initialize the remove elements action.
+        
+        Args:
+            graph: The graph to remove elements from
+            nodes: List of node IDs to remove
+            connections: List of connection UUIDs to remove
+            description: Optional description override
+        """
+        nodes = nodes or []
+        connections = connections or []
+        
+        total_count = len(nodes) + len(connections)
+        if total_count == 0:
+            raise ValueError("Must specify at least one node or connection to remove")
+        elif total_count == 1:
+            if nodes:
+                super().__init__(description or f"Remove node '{nodes[0]}'")
+            else:
+                super().__init__(description or f"Remove connection")
+        else:
+            super().__init__(description or f"Remove {total_count} elements")
+        
+        self.graph = graph
+        self.nodes = nodes
+        self.connections = connections
+        
+        # Store removed elements for restoration
+        self.removed_nodes: Dict[str, BaseNode] = {}
+        self.removed_edges: Dict[str, Edge] = {}
+        self.node_connected_edges: Dict[str, List[Edge]] = {}  # node_id -> edges that were connected to it
+    
+    def _execute_impl(self) -> None:
+        """Remove all specified elements and store them for undo."""
+        # First, store and remove connections
+        for connection_uuid in self.connections:
+            edge = self.graph.get_edge(connection_uuid)
+            if edge:
+                self.removed_edges[connection_uuid] = edge
+                self.graph.remove_edge_by_uuid(connection_uuid)
+        
+        # Then, store and remove nodes (which will also remove any remaining connected edges)
+        for node_id in self.nodes:
+            node = self.graph.get_node(node_id)
+            if node:
+                self.removed_nodes[node_id] = node
+                
+                # Store all edges connected to this node for restoration
+                connected_edges = []
+                for edge in list(self.graph.edges.values()):
+                    if edge.input_node_id == node_id or edge.output_node_id == node_id:
+                        connected_edges.append(edge)
+                
+                self.node_connected_edges[node_id] = connected_edges
+                
+                # Remove the node (this will also remove connected edges)
+                self.graph.remove_node(node_id)
+    
+    def _undo_impl(self) -> None:
+        """Restore all removed elements."""
+        # First, restore nodes
+        for node_id, node in self.removed_nodes.items():
+            self.graph.add_node(node)
+            
+            # Restore edges that were connected to this node
+            for edge in self.node_connected_edges.get(node_id, []):
+                # Only restore if both nodes still exist
+                if (self.graph.get_node(edge.input_node_id) and 
+                    self.graph.get_node(edge.output_node_id)):
+                    self.graph.add_edge(
+                        edge.output_node_id,
+                        edge.outlet_pin_id,
+                        edge.input_node_id,
+                        edge.inlet_pin_id
+                    )
+        
+        # Then, restore standalone connections (that weren't connected to removed nodes)
+        for connection_uuid, edge in self.removed_edges.items():
+            # Only restore if both nodes still exist
+            if (self.graph.get_node(edge.input_node_id) and 
+                self.graph.get_node(edge.output_node_id)):
+                self.graph.add_edge(
+                    edge.output_node_id,
+                    edge.outlet_pin_id,
+                    edge.input_node_id,
+                    edge.inlet_pin_id
+                )
 
 
 @dataclass
@@ -318,24 +320,3 @@ class DuplicateNodeAction(CompositeAction):
         # and would need to properly copy all node properties and state
         raise NotImplementedError("Node cloning not implemented yet")
 
-
-class DeleteNodesWithEdgesAction(CompositeAction):
-    """Composite action for deleting nodes and their connected edges."""
-    
-    def __init__(self, graph: HaywireGraph, node_ids: List[str]):
-        """
-        Initialize the delete nodes with edges action.
-        
-        Args:
-            graph: The graph
-            node_ids: List of node IDs to delete
-        """
-        actions = []
-        
-        # Create remove actions for each node
-        # The RemoveNodeAction already handles connected edges
-        for node_id in node_ids:
-            actions.append(RemoveNodeAction(graph, node_id))
-        
-        description = f"Delete {len(node_ids)} node{'s' if len(node_ids) != 1 else ''}"
-        super().__init__(actions, description)

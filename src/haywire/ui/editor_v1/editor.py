@@ -16,10 +16,7 @@ from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
 from haywire.core.node.node_factory import NodeFactory
 from haywire.undo.interfaces import IHistoryManager
-from haywire.undo.actions.graph_actions import (
-    AddNodeAction, RemoveNodeAction, MoveNodesAction,
-    AddEdgeAction, RemoveEdgeAction, ChangeSelectionAction, SelectionState
-)
+from haywire.undo.actions.graph_actions import *
 
 
 class Editor:
@@ -145,35 +142,7 @@ class Editor:
         except Exception as e:
             print(f"❌ Editor: Error creating node of type {node_type}: {e}")
             return None
-    
-    def delete_node(self, node_id: str) -> bool:
-        """
-        Delete a node from the graph.
-        
-        Args:
-            node_id: ID of the node to delete
-            
-        Returns:
-            True if node was deleted, False otherwise
-        """
-        if node_id not in self.graph.nodes:
-            print(f"⚠️ Editor: Node {node_id} not found for deletion")
-            return False
-        
-        try:
-            node = self.graph.nodes[node_id]
-            action = RemoveNodeAction(self.graph, node_id, node)
-            self.history_manager.add_action(action)
-            
-            # Notify callbacks
-            self._notify_change("delete_node")
-            
-            print(f"✅ Editor: Deleted node {node_id}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Editor: Error deleting node {node_id}: {e}")
-            return False
+
     
     def move_nodes(self, nodes: List[str], deltaX: float, deltaY: float) -> bool:
         """
@@ -203,6 +172,51 @@ class Editor:
             
         except Exception as e:
             print(f"❌ Editor: Error moving nodes by delta: {e}")
+            return False
+    
+    def remove_elements(self, nodes: List[str] = None, connections: List[str] = None) -> bool:
+        """
+        Remove multiple nodes and connections in a single operation.
+        
+        Args:
+            nodes: List of node IDs to remove
+            connections: List of connection UUIDs to remove
+            
+        Returns:
+            True if elements were removed, False otherwise
+        """
+        nodes = nodes or []
+        connections = connections or []
+        
+        if not nodes and not connections:
+            return False
+        
+        # Validate nodes exist
+        missing_nodes = [node_id for node_id in nodes if node_id not in self.graph.nodes]
+        if missing_nodes:
+            print(f"⚠️ Editor: Nodes not found for removal: {missing_nodes}")
+            return False
+        
+        # Validate connections exist
+        missing_connections = [conn_id for conn_id in connections if not self.graph.get_edge(conn_id)]
+        if missing_connections:
+            print(f"⚠️ Editor: Connections not found for removal: {missing_connections}")
+            return False
+        
+        try:
+            # Create and execute remove elements action
+            action = RemoveElementsAction(self.graph, nodes, connections)
+            self.history_manager.add_action(action)
+            
+            # Notify callbacks
+            self._notify_change("remove_elements")
+            
+            total_count = len(nodes) + len(connections)
+            print(f"✅ Editor: Removed {total_count} elements ({len(nodes)} nodes, {len(connections)} connections)")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Editor: Error removing elements: {e}")
             return False
     
     def get_node(self, node_id: str) -> Optional[BaseNode]:
@@ -345,38 +359,6 @@ class Editor:
             print(f"❌ Editor: Error setting selection: {e}")
             return False
     
-    def add_to_selection(self, node_ids: Set[str] = None, connection_ids: Set[Tuple[str, str, str, str]] = None) -> bool:
-        """
-        Add items to the current selection.
-        
-        Args:
-            node_ids: Node IDs to add to selection
-            connection_ids: Connection tuples to add to selection
-            
-        Returns:
-            True if selection was updated, False otherwise
-        """
-        try:
-            # Get current selection
-            current_nodes, current_connections = self.graph.get_selection_state()
-            
-            # Add new items
-            new_nodes = current_nodes | (node_ids or set())
-            new_connections = current_connections | (connection_ids or set())
-            
-            return self.set_selection(new_nodes, new_connections)
-            
-        except Exception as e:
-            print(f"❌ Editor: Error adding to selection: {e}")
-            return False
-    
-    def clear_selection(self) -> bool:
-        """Clear the current selection."""
-        return self.set_selection(set(), set())
-    
-    def get_selection(self) -> Tuple[Set[str], Set[Tuple[str, str, str, str]]]:
-        """Get the current selection state."""
-        return self.graph.get_selection_state()
     
 
     # =============================================================================
