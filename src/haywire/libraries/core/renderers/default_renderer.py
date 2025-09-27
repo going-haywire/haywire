@@ -133,7 +133,24 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         # Create unique pin ID and determine port type for connection system
         pin_direction = 'inlet' if pin.is_inlet else 'outlet'
         pin_uuid = generate_pin_uuid(pin_direction, node.node_id, pin.id)
-        flow_type = pin.flow_type
+        
+        # Calculate 2D direction vector components based on pin type
+        if pin.is_inlet:
+            # Inlets point left (negative X)
+            dir_x, dir_y = "-1", "-1"
+        else:
+            # Outlets point right (positive X)
+            dir_x, dir_y = "1", "1"
+        
+        common_props = (
+            f'id="{pin_uuid}" '
+            f'data-node-id="{node.node_id}" '
+            f'data-pin-id="{pin.id}" '
+            f'data-pin-flow-type="{pin.flow_type}" '
+            f'data-pin-dir="{pin_direction}" '
+            f'data-pin-dir-x="{dir_x}" '
+            f'data-pin-dir-y="{dir_y}"'
+        )
         
         if pin.flow_type == FlowType.CTRL.value:
             # Pin connector
@@ -143,12 +160,8 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'position: absolute; {direction}: -20px; '
                 f'cursor: crosshair;'
             ).props(
-                f'id="{pin_uuid}" '
-                f'data-node-id="{node.node_id}" '
-                f'data-pin-id="{pin.id}" '
-                f'data-pin-flow-type="{pin.flow_type}" '
-                f'data-pin-color="#0000ff" '
-                f'data-pin-dir="{pin_direction}"'
+                f'{common_props} '
+                f'data-pin-color="#0000ff"'
             )
         elif pin.flow_type == FlowType.CALLBACK.value:
             # Pin connector
@@ -158,32 +171,26 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'position: absolute; {direction}: -20px; '
                 f'cursor: crosshair;'
             ).props(
-                f'id="{pin_uuid}" '
-                f'data-node-id="{node.node_id}" '
-                f'data-pin-id="{pin.id}" '
-                f'data-pin-flow-type="{pin.flow_type}" '
-                f'data-pin-color="#ff0000" '
-                f'data-pin-dir="{pin_direction}"'
+                f'{common_props} '
+                f'data-pin-color="#ff0000"'
             )
         elif pin.flow_type == FlowType.DATA.value:
+            pin_color = self._get_port_color(pin.data.type)
             ui.element('div').classes(
                 'port output-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
                 f'width: 15px; height: 15px; '
-                f'background: {self._get_port_color(pin.data.type)}; '
+                f'background: {pin_color}; '
                 f'border: 2px solid white; '
                 f'border-radius: 50%; '
                 f'cursor: crosshair;'
             ).props(
-                f'id="{pin_uuid}" '
-                f'data-node-id="{node.node_id}" '
-                f'data-pin-id="{pin.id}" '
-                f'data-pin-flow-type="{pin.flow_type}" '
+                f'{common_props} '
                 f'data-pin-data-type="{pin.data.type}" '
-                f'data-pin-color="{self._get_port_color(pin.data.type)}" '
-                f'data-pin-dir="{pin_direction}"'
+                f'data-pin-color="{pin_color}"'
             )
+
     
     def _get_port_color(self, data_type: str | DataType) -> str:
         """Get the color for a port based on its data type."""

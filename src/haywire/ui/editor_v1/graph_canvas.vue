@@ -293,7 +293,8 @@ export default {
             const { connectionUUID, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid } = data;
             
             if (this.connectionPaths.has(connectionUUID)) {
-                if (path.dataset.isValid === String(isValid)) {
+                const connectionInfo = this.connectionPaths.get(connectionUUID);
+                if (connectionInfo.isValid === isValid) {
                     return;
                 } else {
                     this._removeConnection(connectionUUID);
@@ -1112,11 +1113,12 @@ export default {
             this.connectionState.startPin = pin;
 
             const startPos = this._getPinPosition(pin);
-            const offsetDir = pin.dataset.pinDir === 'inlet' ? -1 : 1;
+            const [dirX, dirY] = this._getPinDirectionVector(this.connectionState.startPin);
+
             const pinColor = pin.dataset.pinColor || '#000000';
 
             this.connectionState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const initialPath = this._createBezierPathLegacy(startPos, startPos, offsetDir);
+            const initialPath = this._createBezierPath(startPos, startPos, [dirX, dirY], [-dirX, -dirY]);
 
             this.connectionState.tempPath.setAttribute('d', initialPath);
             this.connectionState.tempPath.setAttribute('stroke', pinColor);
@@ -1137,9 +1139,9 @@ export default {
             
             const startPos = this._getPinPosition(this.connectionState.startPin);
             const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
-            const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
+            const [dirX, dirY] = this._getPinDirectionVector(this.connectionState.startPin);
 
-            const pathData = this._createBezierPathLegacy(startPos, mousePos, offsetDir);
+            const pathData = this._createBezierPath(startPos, mousePos, [dirX, dirY], [-dirX, -dirY]);
             this.connectionState.tempPath.setAttribute('d', pathData);
 
             this._clearConnectionSuggestions();
@@ -1247,11 +1249,11 @@ export default {
 
             const startPos = this._getPinPosition(this.connectionState.startPin);
             const endPos = this._getPinPosition(targetPin);
-            const offsetDir = this.connectionState.startPin.dataset.pinDir === 'inlet' ? -1 : 1;
+            const [dirX, dirY] = this._getPinDirectionVector(this.connectionState.startPin);
+
+            const pathData = this._createBezierPath(startPos, endPos, [dirX, dirY], [-dirX, -dirY]);
 
             const suggestionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const pathData = this._createBezierPathLegacy(startPos, endPos, offsetDir);
-
             suggestionPath.setAttribute('d', pathData);
             suggestionPath.setAttribute('stroke', this.connectionState.startPin.dataset.pinColor || '#4CAF50');
             suggestionPath.setAttribute('stroke-width', '2');
@@ -1296,9 +1298,8 @@ export default {
             const inletPos = this._getPinPosition(inletPin);
             const outletColor = outletPin.dataset.pinColor || '#bbbbbb';
             const inletColor = inletPin.dataset.pinColor || '#333333';
-            const dirX = outletPin.dataset.pinDir === 'inlet' ? -1 : 1;
-            const outletConnectDir = [dirX, 0];
-            const inletConnectDir = [-dirX, 0];
+            const outletConnectDir = this._getPinDirectionVector(outletPin);
+            const inletConnectDir = this._getPinDirectionVector(inletPin);
             
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.dataset.isValid = isValid.toString();
@@ -1306,13 +1307,9 @@ export default {
             path.setAttribute('data-connection-uuid', connectionUUID); 
             if (isValid) {
                 path.setAttribute('stroke', outletColor); 
-                path.dataset.startColor = outletColor;
-                path.dataset.endColor = inletColor;
             } else {
                 path.setAttribute('stroke', '#FF0000'); 
                 path.setAttribute('stroke-dasharray', '2');
-                path.dataset.startColor = '#FF0000';
-                path.dataset.endColor = '#990000';
             }
             path.setAttribute('stroke-width', '2');
             path.setAttribute('fill', 'none');
@@ -1410,7 +1407,7 @@ export default {
             connectionInfo.outletPos = this._getPinPosition(outletPin);
             connectionInfo.inletPos = this._getPinPosition(inletPin);
 
-            const pathData = this._createBezierPath(connectionUUID);
+            const pathData = this._createBezierPathForConnection(connectionUUID);
 
             connectionInfo.path.setAttribute('d', pathData);
             const hitArea = document.getElementById(connectionUUID + '_hitarea');
@@ -1613,40 +1610,35 @@ export default {
             return { x, y };
         },
 
-        _createBezierPath(connectionUUID) {
-            const connectionInfo = this.connectionPaths.get(connectionUUID);
-            if (!connectionInfo) {
-                console.error(`Connection not found: ${connectionUUID}`);
-                return '';
-            }
-
-            const start = connectionInfo.outletPos;
-            const end = connectionInfo.inletPos;
-            const outletDir = connectionInfo.outletConnectDir;
-            const inletDir = connectionInfo.inletConnectDir;
-            
+        _createBezierPath(startPos, endPos, startDir = [1, 0], endDir = [-1, 0]) {
             // Calculate control point distance based on connection length
-            const distance = Math.abs(end.x - start.x);
+            const distance = Math.abs(endPos.x - startPos.x);
             const controlDistance = Math.max(50, distance * 0.5);
             
             // Calculate control points using direction vectors
-            const outletControl = {
-                x: start.x + (outletDir[0] * controlDistance),
-                y: start.y + (outletDir[1] * controlDistance)
+            const startControl = {
+                x: startPos.x + (startDir[0] * controlDistance),
+                y: startPos.y + (startDir[1] * controlDistance)
             };
             
-            const inletControl = {
-                x: end.x + (inletDir[0] * controlDistance),
-                y: end.y + (inletDir[1] * controlDistance)
+            const endControl = {
+                x: endPos.x + (endDir[0] * controlDistance),
+                y: endPos.y + (endDir[1] * controlDistance)
             };
             
-            return `M ${start.x} ${start.y} C ${outletControl.x} ${outletControl.y}, ${inletControl.x} ${inletControl.y}, ${end.x} ${end.y}`;
+            return `M ${startPos.x} ${startPos.y} C ${startControl.x} ${startControl.y}, ${endControl.x} ${endControl.y}, ${endPos.x} ${endPos.y}`;
         },
 
-        // Legacy compatibility method for connection drag system
-        _createBezierPathLegacy(start, end, offsetDir) {
-            const controlOffset = Math.abs(end.x - start.x) * 0.5 * offsetDir;
-            return `M ${start.x} ${start.y} C ${start.x + controlOffset} ${start.y}, ${end.x - controlOffset} ${end.y}, ${end.x} ${end.y}`;
+        // Wrapper method for established connections
+        _createBezierPathForConnection(connectionUUID) {
+            const connectionInfo = this.connectionPaths.get(connectionUUID);
+
+            return this._createBezierPath(
+                connectionInfo.outletPos,
+                connectionInfo.inletPos,
+                connectionInfo.outletConnectDir,
+                connectionInfo.inletConnectDir
+            );
         },
 
         _createBezierStroke(connectionUUID) {
@@ -1761,6 +1753,18 @@ export default {
         _connectionExists(outputNodeId, outletPinId, inputNodeId, inletPinId) {
             const connectionUUID = this._buildconnectionUUID(outputNodeId, outletPinId, inputNodeId, inletPinId);
             return this.connectionPaths.has(connectionUUID);
+        },
+
+        _getPinDirectionVector(pinElement) {
+            // Get the 2D direction vector from pin data attributes
+            const dirX = pinElement.dataset.pinDirX;
+            const dirY = pinElement.dataset.pinDirY;
+            
+            if (dirX !== undefined && dirY !== undefined) {
+                return [parseFloat(dirX), parseFloat(dirY)];
+            }
+            
+            return [1, 0]; // Default fallback
         }
     }
 }
