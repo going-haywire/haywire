@@ -17,7 +17,7 @@ from haywire.core.node.node import BaseNode
 from haywire.core.node.node_factory import NodeFactory
 from haywire.undo.interfaces import IHistoryManager
 from haywire.undo.actions.graph_actions import (
-    AddNodeAction, RemoveNodeAction, MoveNodeAction,
+    AddNodeAction, RemoveNodeAction, MoveNodesAction,
     AddEdgeAction, RemoveEdgeAction, ChangeSelectionAction, SelectionState
 )
 
@@ -175,35 +175,34 @@ class Editor:
             print(f"❌ Editor: Error deleting node {node_id}: {e}")
             return False
     
-    def move_node(self, node_id: str, x: float, y: float) -> bool:
+    def move_nodes(self, nodes: List[str], deltaX: float, deltaY: float) -> bool:
         """
-        Move a node to a new position.
+        Move multiple nodes by delta amounts.
         
         Args:
-            node_id: ID of the node to move
-            x: New X position
-            y: New Y position
+            nodes: List of node IDs to move
+            deltaX: Delta X amount to move all nodes
+            deltaY: Delta Y amount to move all nodes
             
         Returns:
-            True if node was moved, False otherwise
+            True if nodes were moved, False otherwise
         """
-        if node_id not in self.graph.nodes:
-            print(f"⚠️ Editor: Node {node_id} not found for move operation")
+        if not nodes:
             return False
-        
+                
         try:
-            # Create and execute move action
-            action = MoveNodeAction(self.graph, node_id, x, y)
+            # Create and execute delta move action
+            action = MoveNodesAction(self.graph, nodes, deltaX, deltaY)
             self.history_manager.add_action(action)
             
             # Notify callbacks
-            self._notify_change("move_node")
+            self._notify_change("move_nodes_delta")
             
-            print(f"✅ Editor: Moved node {node_id} to ({x}, {y})")
+            print(f"✅ Editor: Moved {len(nodes)} nodes by delta ({deltaX}, {deltaY})")
             return True
             
         except Exception as e:
-            print(f"❌ Editor: Error moving node {node_id}: {e}")
+            print(f"❌ Editor: Error moving nodes by delta: {e}")
             return False
     
     def get_node(self, node_id: str) -> Optional[BaseNode]:

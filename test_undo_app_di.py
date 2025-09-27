@@ -42,7 +42,7 @@ from haywire.undo.history_manager import HistoryManager
 from haywire.undo.interfaces import IHistoryManager
 from haywire.undo.config import UndoConfig, DEVELOPMENT_CONFIG
 from haywire.undo.actions.graph_actions import (
-    AddNodeAction, RemoveNodeAction, MoveNodeAction, 
+    AddNodeAction, RemoveNodeAction, MoveNodesAction, 
     AddEdgeAction, RemoveEdgeAction, ChangeSelectionAction, SelectionState
 )
 

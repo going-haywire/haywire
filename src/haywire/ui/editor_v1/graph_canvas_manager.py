@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.node import BaseNode
 from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
-from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodeAction, AddEdgeAction, RemoveNodeAction, RemoveEdgeAction, AddNodeAction
+from haywire.undo.actions.graph_actions import ChangeSelectionAction, SelectionState, MoveNodesAction, AddEdgeAction, RemoveNodeAction, RemoveEdgeAction, AddNodeAction
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 
@@ -161,20 +161,8 @@ class GraphCanvasManager:
     def process_drag_update(self, event: UserDragUpdateEvent):
         """Handle unified drag updates for nodes"""
         print(f"Dragging {len(event.nodes)} nodes by ({event.deltaX}, {event.deltaY})")
-       
-        # Update positions for dragged nodes
-        for node_id in event.nodes:
-            # Update stored position when user drags
-            if node_id in self.node_panels:
-                
-                position = self.node_panels[node_id]['position']
-                posX = position[0] + event.deltaX
-                posY = position[1] + event.deltaY
- 
-                print(f"Node {node_id} dragging from ({position[0]}, {position[1]}) to ({posX}, {posY})")
-            
-                # Update node position via editor
-                self.editor.move_node(node_id, posX, posY)
+               
+        self.editor.move_nodes(event.nodes, event.deltaX, event.deltaY)
     
     @handles_event(UserDragEndEvent)
     def process_drag_end(self, event: UserDragEndEvent):

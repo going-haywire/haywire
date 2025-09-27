@@ -166,119 +166,73 @@ class RemoveEdgeAction(ActionBase):
         )
 
 
-class MoveNodeAction(ActionBase):
-    """Action for moving a single node."""
-    
-    def __init__(self, graph: HaywireGraph, node_id: str, new_x: float, new_y: float, 
-                 description: Optional[str] = None):
-        """
-        Initialize the move node action.
-        
-        Args:
-            graph: The graph containing the node
-            node_id: ID of the node to move
-            new_x: New X position
-            new_y: New Y position
-            description: Optional description override
-        """
-        super().__init__(description or f"Move node '{node_id}'")
-        self.graph = graph
-        self.node_id = node_id
-        self.new_x = new_x
-        self.new_y = new_y
-        
-        # Store original position for undo
-        node = self.graph.get_node(node_id)
-        if node:
-            self.old_x = node.ui_posX
-            self.old_y = node.ui_posY
-        else:
-            self.old_x = 0.0
-            self.old_y = 0.0
-    
-    def _execute_impl(self) -> None:
-        """Move the node to the new position."""
-        node = self.graph.get_node(self.node_id)
-        if node is None:
-            raise ValueError(f"Node {self.node_id} not found in graph")
-        
-        node.ui_posX = self.new_x
-        node.ui_posY = self.new_y
-    
-    def _undo_impl(self) -> None:
-        """Move the node back to its original position."""
-        node = self.graph.get_node(self.node_id)
-        if node is None:
-            raise ValueError(f"Node {self.node_id} not found in graph")
-        
-        node.ui_posX = self.old_x
-        node.ui_posY = self.old_y
-    
-    def can_merge(self, other) -> bool:
-        """Check if this move can be merged with another move of the same node."""
-        return (isinstance(other, MoveNodeAction) and 
-                other.node_id == self.node_id and
-                super().can_merge(other))
-    
-    def merge(self, other) -> Optional['MoveNodeAction']:
-        """Merge with another move action for the same node."""
-        if not self.can_merge(other):
-            return None
-        
-        # Create a new action with the combined movement
-        merged = MoveNodeAction(
-            self.graph, 
-            self.node_id, 
-            other.new_x, 
-            other.new_y,
-            f"Move node '{self.node_id}'"
-        )
-        # Keep the original starting position
-        merged.old_x = self.old_x
-        merged.old_y = self.old_y
-        
-        return merged
-
-
 class MoveNodesAction(ActionBase):
-    """Action for moving multiple nodes together."""
+    """Action for moving one or multiple nodes using delta values."""
     
-    def __init__(self, graph: HaywireGraph, node_movements: Dict[str, tuple[float, float]], 
+    def __init__(self, graph: HaywireGraph, nodes: List[str], deltaX: float, deltaY: float, 
                  description: Optional[str] = None):
         """
         Initialize the move nodes action.
         
         Args:
             graph: The graph containing the nodes
-            node_movements: Dict mapping node_id to (new_x, new_y)
+            nodes: List of node IDs to move
+            deltaX: Delta X amount to move all nodes
+            deltaY: Delta Y amount to move all nodes
             description: Optional description override
         """
-        super().__init__(description or f"Move {len(node_movements)} nodes")
-        self.graph = graph
-        self.node_movements = node_movements
-        self.original_positions: Dict[str, tuple[float, float]] = {}
+        node_count = len(nodes)
+        if node_count == 1:
+            super().__init__(description or f"Move node '{nodes[0]}'")
+        else:
+            super().__init__(description or f"Move {node_count} nodes")
         
-        # Store original positions
-        for node_id in node_movements:
-            node = self.graph.get_node(node_id)
-            if node:
-                self.original_positions[node_id] = (node.ui_posX, node.ui_posY)
+        self.graph = graph
+        self.nodes = nodes
+        self.deltaX = deltaX
+        self.deltaY = deltaY
     
     def _execute_impl(self) -> None:
-        """Move all nodes to their new positions."""
-        for node_id, (new_x, new_y) in self.node_movements.items():
+        """Move all nodes by their delta amounts."""
+        for node_id in self.nodes:
             node = self.graph.get_node(node_id)
             if node:
-                node.ui_posX = new_x
-                node.ui_posY = new_y
+                node.ui_posX += self.deltaX
+                node.ui_posY += self.deltaY
     
     def _undo_impl(self) -> None:
-        """Move all nodes back to their original positions."""
-        for node_id, (old_x, old_y) in self.original_positions.items():
+        """Move all nodes back by subtracting the delta amounts."""
+        for node_id in self.nodes:
             node = self.graph.get_node(node_id)
             if node:
-                node.ui_posX = old_x
-                node.ui_posY = old_y
+                node.ui_posX -= self.deltaX
+                node.ui_posY -= self.deltaY
+    
+    def can_merge(self, other) -> bool:
+        """Check if this move can be merged with another delta move of the same nodes."""
+        return (isinstance(other, MoveNodesAction) and 
+                set(other.nodes) == set(self.nodes) and
+                super().can_merge(other))
+    
+    def merge(self, other) -> Optional['MoveNodesAction']:
+        """Merge with another delta move action for the same nodes."""
+        if not self.can_merge(other):
+            return None
+        
+        # Combine the deltas
+        combined_deltaX = self.deltaX + other.deltaX
+        combined_deltaY = self.deltaY + other.deltaY
+        
+        # Create merged action with combined deltas but original starting positions
+        node_count = len(self.nodes)
+        if node_count == 1:
+            description = f"Move node '{self.nodes[0]}'"
+        else:
+            description = f"Move {node_count} nodes"
+        
+        merged = MoveNodesAction(self.graph, self.nodes, combined_deltaX, combined_deltaY, description)
+        
+        return merged
 
 
 @dataclass
