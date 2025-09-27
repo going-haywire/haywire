@@ -53,7 +53,7 @@ class GraphCanvasManager:
                 
         # Visual state
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
-        self.connection_paths: Dict[str, Edge] = {}  # connection_id -> Edge object
+        self.connection_paths: Dict[str, Edge] = {}  # connection_uuid -> Edge object
         self.selected_nodes: Set[str] = set()
         self.selected_connections: Set[str] = set()
         
@@ -200,14 +200,14 @@ class GraphCanvasManager:
                     print(f"❌ Failed to delete node: {node_id}")
         
         # Remove connections
-        for connection_id in event.connections:
-            if connection_id in self.connection_paths:
-                edge_to_remove = self.connection_paths[connection_id]
+        for connection_uuid in event.connections:
+            if connection_uuid in self.connection_paths:
+                edge_to_remove = self.connection_paths[connection_uuid]
                 if self.editor.delete_connection_by_edge(edge_to_remove):
                     success_count += 1
-                    print(f"✅ Deleted connection: {connection_id}")
+                    print(f"✅ Deleted connection: {connection_uuid}")
                 else:
-                    print(f"❌ Failed to delete connection: {connection_id}")
+                    print(f"❌ Failed to delete connection: {connection_uuid}")
         
         if success_count > 0:
             ui.notify(f"Deleted {success_count} element(s)", type='positive')
@@ -249,9 +249,9 @@ class GraphCanvasManager:
         
         # Convert connection IDs to edge tuples for SelectionState format
         selected_edges = set()
-        for connection_id in selected_connections_set:
+        for connection_uuid in selected_connections_set:
             try:
-                components = parse_connection_uuid(connection_id)
+                components = parse_connection_uuid(connection_uuid)
                 selected_edges.add((components.outlet_node_id, components.outlet_pin_id, 
                                   components.inlet_node_id, components.inlet_pin_id))
             except (ValueError, AttributeError):
@@ -346,26 +346,26 @@ class GraphCanvasManager:
                     self.update_node_position(node_id, new_position)
             
             # Sync connections
-            current_connection_ids = set(self.connection_paths.keys())
-            graph_connection_ids = set()
+            current_connection_uuids = set(self.connection_paths.keys())
+            graph_connection_uuids = set()
             
             for edge in self.graph.edges:
-                connection_id = generate_connection_uuid(
+                connection_uuid = generate_connection_uuid(
                     edge.output_node_id, edge.outlet_pin_id,
                     edge.input_node_id, edge.inlet_pin_id
                 )
-                graph_connection_ids.add(connection_id)
+                graph_connection_uuids.add(connection_uuid)
                 
-                if connection_id not in current_connection_ids:
-                    print(f"🔄 Adding new connection: {connection_id}")
+                if connection_uuid not in current_connection_uuids:
+                    print(f"🔄 Adding new connection: {connection_uuid}")
                     self.add_connection_visual(edge)
             
-            connections_to_remove = current_connection_ids - graph_connection_ids
-            for connection_id in connections_to_remove:
-                print(f"🔄 Removing old connection: {connection_id}")
-                self.remove_connection_visual(connection_id)
+            connections_to_remove = current_connection_uuids - graph_connection_uuids
+            for connection_uuid in connections_to_remove:
+                print(f"🔄 Removing old connection: {connection_uuid}")
+                self.remove_connection_visual(connection_uuid)
             
-            print(f"🔄 Incremental connection sync: {len(graph_connection_ids)} total connections")
+            print(f"🔄 Incremental connection sync: {len(graph_connection_uuids)} total connections")
             
             # Sync selection state from graph to UI
             graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
@@ -434,14 +434,14 @@ class GraphCanvasManager:
         edges_to_remove = []
         for edge in self.graph.edges:
             if edge.input_node_id == node_id or edge.output_node_id == node_id:
-                connection_id = generate_connection_uuid(
+                connection_uuid = generate_connection_uuid(
                     edge.output_node_id, edge.outlet_pin_id,
                     edge.input_node_id, edge.inlet_pin_id
                 )
-                edges_to_remove.append(connection_id)
+                edges_to_remove.append(connection_uuid)
         
-        for connection_id in edges_to_remove:
-            self.remove_connection_visual(connection_id)
+        for connection_uuid in edges_to_remove:
+            self.remove_connection_visual(connection_uuid)
         
         # Remove node visual
         visual_data = self.node_panels[node_id]

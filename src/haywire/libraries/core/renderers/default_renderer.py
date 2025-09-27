@@ -137,10 +137,10 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         # Calculate 2D direction vector components based on pin type
         if pin.is_inlet:
             # Inlets point left (negative X)
-            dir_x, dir_y = "-1", "-1"
+            dir_x, dir_y = "-1", "0"
         else:
             # Outlets point right (positive X)
-            dir_x, dir_y = "1", "1"
+            dir_x, dir_y = "1", "0"
         
         common_props = (
             f'id="{pin_uuid}" '
