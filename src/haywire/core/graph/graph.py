@@ -221,7 +221,7 @@ class HaywireGraph:
         """
         return [
             node for node in self.nodes.values() 
-            if hasattr(node, 'registry_key') and node.registry_key == registry_key
+            if node.identity.registry_key == registry_key
         ]
 
     def replace_nodes_of_type(self, registry_key: str, new_node: BaseNode):

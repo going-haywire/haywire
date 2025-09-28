@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Tuple
 # Haywire imports
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
-from haywire.core.node.node import BaseNode
+from haywire.core.node.node import BaseNode, node_identity
 from haywire.core.node.node_factory import NodeFactory
 from haywire.core.inventory.registry.node import NodeRegistry
 from haywire.undo.history_manager import HistoryManager
@@ -30,17 +30,17 @@ from haywire.undo.actions.graph_actions import (
 
 
 # Mock Node Classes for Testing
+@node_identity(
+    label="Math Node",
+    description="Performs mathematical operations",
+    search_tags=["math", "calculation", "operation"],
+    menu="Test/Math"
+)
 class TestMathNode(BaseNode):
     """A simple math node for testing."""
     
-    def __init__(self, node_id: str, graph: HaywireGraph, registry_key: str):
-        super().__init__(node_id, graph, registry_key)
-        
-        # Configure identity
-        self.identity.label = "Math Node"
-        self.identity.search_tags = ["math", "calculation", "operation"]
-        self.identity.menu = "Test/Math"
-        self.identity.description = "Performs mathematical operations"
+    def __init__(self, node_id: str, graph: HaywireGraph):
+        super().__init__(node_id, graph)
         
         # Configure UI state
         self.ui_state.posX = 0.0
@@ -51,17 +51,17 @@ class TestMathNode(BaseNode):
         return None
 
 
+@node_identity(
+    label="Source Node",
+    description="Generates data",
+    search_tags=["source", "input", "generator"],
+    menu="Test/Source"
+)
 class TestSourceNode(BaseNode):
     """A source node for testing."""
     
-    def __init__(self, node_id: str, graph: HaywireGraph, registry_key: str):
-        super().__init__(node_id, graph, registry_key)
-        
-        # Configure identity
-        self.identity.label = "Source Node"
-        self.identity.search_tags = ["source", "input", "generator"]
-        self.identity.menu = "Test/Source"
-        self.identity.description = "Generates data"
+    def __init__(self, node_id: str, graph: HaywireGraph):
+        super().__init__(node_id, graph)
         
         # Configure UI state
         self.ui_state.posX = 0.0
@@ -72,17 +72,17 @@ class TestSourceNode(BaseNode):
         return None
 
 
+@node_identity(
+    label="Sink Node",
+    description="Consumes data",
+    search_tags=["sink", "output", "consumer"],
+    menu="Test/Sink"
+)
 class TestSinkNode(BaseNode):
     """A sink node for testing."""
     
-    def __init__(self, node_id: str, graph: HaywireGraph, registry_key: str):
-        super().__init__(node_id, graph, registry_key)
-        
-        # Configure identity
-        self.identity.label = "Sink Node"
-        self.identity.search_tags = ["sink", "output", "consumer"]
-        self.identity.menu = "Test/Sink"
-        self.identity.description = "Consumes data"
+    def __init__(self, node_id: str, graph: HaywireGraph):
+        super().__init__(node_id, graph)
         
         # Configure UI state
         self.ui_state.posX = 0.0

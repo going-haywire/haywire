@@ -1,20 +1,20 @@
 
-from haywire.core.node.node import BaseNode
+from haywire.core.node.node import BaseNode, node_identity
 from haywire.core.node.elements import Inlet, Outlet
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.data.fields import SingleField
 
+@node_identity(
+    label='Display',
+    description='Displays input values for debugging',
+    search_tags=['display', 'debug', 'output', 'basic'],
+    menu='example/basic'
+)
 class DisplayNode(BaseNode):
     """Node that displays input values"""
     
-    def __init__(self, node_id, graph, registry_key):
-        super().__init__(node_id, graph, registry_key)
-        
-        # Configure identity
-        self.identity.label = 'Display'
-        self.identity.description = 'Displays input values for debugging'
-        self.identity.search_tags = ['display', 'debug', 'output', 'basic']
-        self.identity.menu = 'example/basic'
+    def __init__(self, node_id, graph):
+        super().__init__(node_id, graph)
         
         # Configure behavior
         self.behavior.is_data_node = True

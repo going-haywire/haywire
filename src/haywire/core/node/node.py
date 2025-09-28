@@ -68,6 +68,7 @@ class NodeIdentity:
     menu: str = 'misc/custom'
     help_md: str | None = None
     help_url: str = 'https://haywire.io/docs/node-help'
+    registry_key: str = ''  # Set by registry during registration
 
 @dataclass
 class NodeBehavior:
@@ -111,6 +112,51 @@ class NodeMetadata:
     notes: list[str] = field(default_factory=list)
     custom: dict[str, Any] = field(default_factory=dict)
 
+
+# ============================================================================
+# Node Identity Decorator and Metaclass
+# ============================================================================
+
+def node_identity(label: str, description: str = '', search_tags: list[str] = None, 
+                 menu: str = 'misc/custom', help_md: str = None, 
+                 help_url: str = 'https://haywire.io/docs/node-help'):
+    """Decorator to attach node metadata"""
+    def decorator(cls):
+        cls.class_identity = NodeIdentity(
+            label=label,
+            description=description,
+            search_tags=search_tags or [],
+            menu=menu,
+            help_md=help_md,
+            help_url=help_url
+        )
+        return cls
+    return decorator
+
+
+class NodeMeta(type):
+    """Metaclass that automatically copies class_identity to instance identity"""
+    def __new__(cls, name, bases, attrs):
+        # Create the class normally
+        new_class = super().__new__(cls, name, bases, attrs)
+        
+        # Store original __init__ method
+        original_init = new_class.__init__
+        
+        def enhanced_init(self, *args, **kwargs):
+            # Call original __init__
+            original_init(self, *args, **kwargs)
+            
+            # Auto-copy class_identity to instance identity if it exists
+            if hasattr(self.__class__, 'class_identity'):
+                # Copy the dataclass to avoid shared references
+                from copy import deepcopy
+                self.identity = deepcopy(self.__class__.class_identity)
+        
+        # Replace the __init__ method
+        new_class.__init__ = enhanced_init
+        
+        return new_class
 
 
 @abstractmethod
@@ -202,19 +248,18 @@ class NodeData():
         }
 
 @abstractmethod
-class BaseNode(NodeData):
+class BaseNode(NodeData, metaclass=NodeMeta):
     """Base class combining HaywireNode requirements with NodeData"""
     
-    def __init__(self, node_id: str, graph: Any, registry_key: str):
+    def __init__(self, node_id: str, graph: Any):
         super().__init__()
         self.node_id = node_id
         self.graph = graph
-        self.registry_key = registry_key
         self.error_info: NodeErrorInfo | None = None
         
         # Organized attribute groups
         self.library: LibraryMetadata | None = None  # Set during registration
-        self.identity = NodeIdentity()
+        self.identity = NodeIdentity()  # Will be overridden by metaclass if class_identity exists
         self.behavior = NodeBehavior()
         self.ui_config = NodeUIConfig()
         self.ui_state = NodeUIState()
@@ -232,7 +277,7 @@ class BaseNode(NodeData):
         
         return {
             'node_id': self.node_id,
-            'registry_key': self.registry_key,
+            'registry_key': self.identity.registry_key,
             'library': asdict(self.library) if self.library else None,
             'identity': asdict(self.identity),
             'behavior': asdict(self.behavior),

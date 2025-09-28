@@ -44,12 +44,12 @@ class NodeSnapshot:
             self.metadata = {}
     
     @classmethod
-    def from_node(cls, node: BaseNode, registry_key: str) -> 'NodeSnapshot':
+    def from_node(cls, node: BaseNode) -> 'NodeSnapshot':
         """Create a snapshot from an existing node."""
         return cls(
             node_id=node.node_id,
-            registry_key=registry_key,
-            name=node.name,
+            registry_key=node.identity.registry_key,
+            name=node.identity.label,
             posX=node.ui_state.posX,
             posY=node.ui_state.posY,
             is_collapsed=node.ui_state.is_collapsed,
@@ -118,8 +118,8 @@ class NodeFactory:
         if error_info is not None:
             raise ValueError(f"Failed to get node class '{registry_key}': {error_info}")
         
-        # Create the node instance
-        node = node_class(node_id, graph, registry_key)
+        # Create the node instance (registry_key now set by metaclass from class_identity)
+        node = node_class(node_id, graph)
         
         # Set the library metadata from the class default
         if hasattr(node_class, '_default_library_metadata'):
@@ -177,13 +177,8 @@ class NodeFactory:
         Returns:
             The cloned node instance (not added to graph)
         """
-        # Get the registry key for the source node
-        registry_key = self._node_registry_keys.get(source_node.node_id)
-        if registry_key is None:
-            raise ValueError(f"Source node {source_node.node_id} not tracked by factory")
-        
         # Create snapshot and modify for clone
-        snapshot = NodeSnapshot.from_node(source_node, registry_key)
+        snapshot = NodeSnapshot.from_node(source_node)
         
         if new_node_id:
             snapshot.node_id = new_node_id
@@ -246,9 +241,8 @@ class NodeFactory:
             return None
         
         node = self._active_nodes[node_id]
-        registry_key = self._node_registry_keys[node_id]
         
-        return NodeSnapshot.from_node(node, registry_key)
+        return NodeSnapshot.from_node(node)
     
     def get_nodes_by_registry_key(self, registry_key: str) -> List[BaseNode]:
         """

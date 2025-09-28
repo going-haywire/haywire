@@ -39,6 +39,10 @@ class NodeRegistry(BaseClassRegistry):
         node_cls._default_library_metadata = library_metadata
         node_cls._default_registry_key = registry_key
 
+        # Set the registry_key in the class_identity if it exists
+        if hasattr(node_cls, 'class_identity'):
+            node_cls.class_identity.registry_key = registry_key
+
         self._register(registry_key, node_cls, library_metadata)
 
     def unregister_node(self, name) -> type[BaseNode] | None:
@@ -124,16 +128,28 @@ class NodeRegistry(BaseClassRegistry):
 
         for key in self.list_names():
             node_class = self.get(key)
-            menu_path = getattr(node_class, 'node_menu', 'misc')
+            
+            # Use class_identity if available, fallback to old attributes
+            if hasattr(node_class, 'class_identity'):
+                identity = node_class.class_identity
+                menu_path = identity.menu
+                label = identity.label
+                description = identity.description
+                tags = identity.search_tags
+            else:
+                menu_path = getattr(node_class, 'node_menu', 'misc')
+                label = node_class._default_library_metadata.label
+                description = node_class._default_library_metadata.description
+                tags = getattr(node_class, 'node_search_tags', [])
 
             if menu_path not in menu:
                 menu[menu_path] = []
 
             menu[menu_path].append({
-                'label': node_class._default_library_metadata.label,           # Display name
-                'key': key,                               # Registry key
-                'description': node_class._default_library_metadata.description,
-                'tags': getattr(node_class, 'node_search_tags', [])
+                'label': label,           # Display name
+                'key': key,               # Registry key
+                'description': description,
+                'tags': tags
             })
 
         return menu
@@ -154,18 +170,29 @@ class NodeRegistry(BaseClassRegistry):
         for key in self.list_names():
             node_class = self.get(key)
 
+            # Use class_identity if available, fallback to old attributes
+            if hasattr(node_class, 'class_identity'):
+                identity = node_class.class_identity
+                label = identity.label
+                description = identity.description
+                tags = identity.search_tags
+            else:
+                label = node_class._default_library_metadata.label
+                description = node_class._default_library_metadata.description
+                tags = getattr(node_class, 'node_search_tags', [])
+
             # Search in label, description, and tags
             searchable = [
-                node_class._default_library_metadata.label.lower(),
-                node_class._default_library_metadata.description.lower(),
-                *[tag.lower() for tag in getattr(node_class, 'node_search_tags', [])]
+                label.lower(),
+                description.lower(),
+                *[tag.lower() for tag in tags]
             ]
 
             if any(query_lower in text for text in searchable):
                 results.append({
-                    'label': node_class._default_library_metadata.label,
+                    'label': label,
                     'key': key,
-                    'description': node_class._default_library_metadata.description,
+                    'description': description,
                     'library': self.get_metadata(key)['library_name']
                 })
 
@@ -187,10 +214,20 @@ class NodeRegistry(BaseClassRegistry):
             metadata = self.get_metadata(registry_key)
             if metadata and metadata.get('library_name') == library_name:
                 node_class = self.get(registry_key)
+                
+                # Use class_identity if available, fallback to old attributes
+                if hasattr(node_class, 'class_identity'):
+                    identity = node_class.class_identity
+                    label = identity.label
+                    description = identity.description
+                else:
+                    label = node_class._default_library_metadata.label
+                    description = node_class._default_library_metadata.description
+                
                 results.append({
-                    'label': node_class._default_library_metadata.label,
+                    'label': label,
                     'key': registry_key,
-                    'description': node_class._default_library_metadata.description
+                    'description': description
                 })
 
         return results

@@ -3,21 +3,21 @@ Basic core node implementations
 """
 
 # Import the node system base class
-from haywire.core.node.node import BaseNode
+from haywire.core.node.node import BaseNode, node_identity
 from haywire.core.node.elements import Inlet, Outlet
 from haywire.core.data.enums import DataType, DataCategory, FlowType
 from haywire.core.data.fields import SingleField
 
+@node_identity(
+    label='Test Node One',
+    search_tags=['constant', 'value', 'output', 'basic'],
+    menu='core/basic'
+)
 class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
-    def __init__(self, node_id, graph, registry_key):
-        super().__init__(node_id, graph, registry_key)
-        
-        # Configure identity
-        self.identity.label = 'Test Node One'
-        self.identity.search_tags = ['constant', 'value', 'output', 'basic']
-        self.identity.menu = 'core/basic'
+    def __init__(self, node_id, graph):
+        super().__init__(node_id, graph)
         
         # Configure behavior
         self.behavior.is_data_node = True
