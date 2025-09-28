@@ -1,5 +1,18 @@
 """
-NodeMenuBuilder - Creates hierarchical NiceGUI menus from NodeFactory data
+NodeMenuBuilder - Creates hierarchical NiceGUI menus fro                # Create "Add Nodes" button with complete menu
+                with ui.button("➕ Add Nodes").props('flat') \
+                    .classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'):
+                    with ui.menu() as main_menu:
+                        # Add recent nodes section if provided
+                        if recent_nodes:
+                            self._add_recent_nodes_section(recent_nodes, on_node_selected)
+                            ui.separator()
+                        
+                        # Build hierarchical menu
+                        self._build_hierarchical_menu(on_node_selected)
+                        
+                        # Add global menu leave behavior
+                        main_menu.on('mouseleave', self._create_global_menu_leave_handler())ry data
 
 This component builds organized, hierarchical menus using node identity information
 from the NodeFactory, creating nested ui.menu structures based on the menu paths
@@ -39,6 +52,9 @@ class NodeMenuBuilder:
         Returns:
             ui.column containing the complete menu interface
         """
+        # Store the callback for use in search results
+        self._on_node_selected = on_node_selected
+        
         with ui.column().classes('w-full') as menu_container:
             
             # Search functionality if requested
@@ -46,22 +62,26 @@ class NodeMenuBuilder:
                 search_input = ui.input(
                     placeholder='Search nodes...',
                     on_change=lambda e: self._handle_search(e.value, menu_container)
-                ).classes('w-full mb-2')
+                ).props('autofocus').classes('w-full mb-2')
                 
                 # Container for search results (initially hidden)
                 self._search_results = ui.column().classes('w-full gap-1').style('display: none')
             
-            # Main menu content
+            # Main menu content - "Add Nodes" button with menu
             self._main_menu = ui.column().classes('w-full')
             
             with self._main_menu:
-                # Add recent nodes section if provided
-                if recent_nodes:
-                    self._add_recent_nodes_section(recent_nodes, on_node_selected)
-                    ui.separator().classes('my-2')
-                
-                # Build hierarchical menu
-                self._build_hierarchical_menu(on_node_selected)
+                # Create "Add Nodes" button with complete menu
+                with ui.button("➕ Add Nodes").props('flat') \
+                    .classes('w-fulltext-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'):
+                    with ui.menu():
+                        # Add recent nodes section if provided
+                        if recent_nodes:
+                            self._add_recent_nodes_section(recent_nodes, on_node_selected)
+                            ui.separator()
+                        
+                        # Build hierarchical menu
+                        self._build_hierarchical_menu(on_node_selected)
         
         return menu_container
     
@@ -103,7 +123,7 @@ class NodeMenuBuilder:
         
         btn = ui.button(
             f"+ {node_info['label']}", 
-            on_click=lambda ni=node_info: self._handle_node_selection(ni['key'])
+            on_click=lambda ni=node_info: self._on_node_selected(ni['key'])
         )
         btn.props('flat align=left')
         btn.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
@@ -118,14 +138,24 @@ class NodeMenuBuilder:
         btn.tooltip(tooltip_text)
     
     def _add_recent_nodes_section(self, recent_nodes: List[str], on_node_selected: Callable[[str], None]):
-        """Add section for recently created nodes."""
-        ui.label('Recent').classes('text-xs font-semibold text-gray-600 uppercase mb-1')
+        """Add section for recently created nodes using native menu with hover functionality."""
+        if not recent_nodes:
+            return
         
-        with ui.column().classes('w-full gap-1 ml-2'):
-            for registry_key in recent_nodes:
-                node_info = self.node_factory.get_node_info(registry_key)
-                if node_info:
-                    self._create_node_button(node_info, on_node_selected)
+        with ui.menu_item("⏱️ Recent Nodes", auto_close=False) as menu_item:
+            with ui.item_section().props('side'):
+                ui.icon('keyboard_arrow_right')
+            
+            # Create submenu that opens on hover
+            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
+            with submenu:
+                for registry_key in recent_nodes:
+                    node_info = self.node_factory.get_node_info(registry_key)
+                    if node_info:
+                        self._create_menu_item_for_node(node_info, on_node_selected)
+            
+            # Add hover functionality with better mouse handling
+            self._add_hover_behavior(menu_item, submenu)
     
     def _build_hierarchical_menu(self, on_node_selected: Callable[[str], None]):
         """Build hierarchical menu using menu paths from node identities."""
@@ -180,7 +210,7 @@ class NodeMenuBuilder:
         return tree
     
     def _create_menu_tree_ui(self, menu_tree: Dict, on_node_selected: Callable[[str], None], level: int = 0):
-        """Create UI elements for the menu tree."""
+        """Create UI elements for the menu tree using native ui.menu components."""
         for category_name, category_data in sorted(menu_tree.items()):
             nodes = category_data.get('_nodes', [])
             children = category_data.get('_children', {})
@@ -188,24 +218,178 @@ class NodeMenuBuilder:
             if not nodes and not children:
                 continue
             
-            # Create expandable section for this category
-            with ui.expansion(category_name, icon='folder').classes('w-full') as expansion:
-                expansion.props('dense')
-                
-                # Add nodes in this category
-                if nodes:
-                    with ui.column().classes('w-full gap-1 ml-2'):
-                        for node_info in sorted(nodes, key=lambda x: x['label']):
-                            self._create_node_button(node_info, on_node_selected)
-                
-                # Add subcategories recursively
-                if children:
-                    if nodes:  # Add some spacing if we have both nodes and children
-                        ui.space().classes('h-2')
-                    self._create_menu_tree_ui(children, on_node_selected, level + 1)
+            # Create menu button and associated menu
+            if children and nodes:
+                # Category has both subcategories and direct nodes
+                self._create_mixed_category_menu(category_name, nodes, children, on_node_selected)
+            elif children:
+                # Category only has subcategories
+                self._create_submenu_category(category_name, children, on_node_selected)
+            else:
+                # Category only has direct nodes
+                self._create_leaf_category_menu(category_name, nodes, on_node_selected)
     
+    def _create_mixed_category_menu(self, category_name: str, nodes: List[Dict], children: Dict, on_node_selected: Callable[[str], None]):
+        """Create menu for category that has both direct nodes and subcategories with hover functionality."""
+        with ui.menu_item(f"📁 {category_name}", auto_close=False) as menu_item:
+            with ui.item_section().props('side'):
+                ui.icon('keyboard_arrow_right')
+            
+            # Create submenu that opens on hover
+            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
+            with submenu:
+                # Add direct nodes first
+                for node_info in sorted(nodes, key=lambda x: x['label']):
+                    node_item = self._create_menu_item_for_node(node_info, on_node_selected)
+                    # Add hover behavior to prevent menu closing on leaf nodes
+                    node_item.on('mouseenter', lambda: None)  # Keep menu open
+                
+                if nodes:  # Add separator if we have both nodes and subcategories
+                    ui.separator()
+                
+                # Add subcategories
+                for subcat_name, subcat_data in sorted(children.items()):
+                    self._create_submenu_item(subcat_name, subcat_data, on_node_selected)
+            
+            # Add hover functionality with better mouse handling
+            self._add_hover_behavior(menu_item, submenu)
+
+    def _create_submenu_category(self, category_name: str, children: Dict, on_node_selected: Callable[[str], None]):
+        """Create menu for category that only has subcategories with hover functionality."""
+        with ui.menu_item(f"📁 {category_name}", auto_close=False) as menu_item:
+            with ui.item_section().props('side'):
+                ui.icon('keyboard_arrow_right')
+            
+            # Create submenu that opens on hover
+            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
+            with submenu:
+                for subcat_name, subcat_data in sorted(children.items()):
+                    self._create_submenu_item(subcat_name, subcat_data, on_node_selected)
+            
+            # Add hover functionality with better mouse handling
+            self._add_hover_behavior(menu_item, submenu)
+
+    def _create_leaf_category_menu(self, category_name: str, nodes: List[Dict], on_node_selected: Callable[[str], None]):
+        """Create menu for category that only has direct nodes with hover functionality."""
+        with ui.menu_item(f"📁 {category_name}", auto_close=False) as menu_item:
+            with ui.item_section().props('side'):
+                ui.icon('keyboard_arrow_right')
+            
+            # Create submenu that opens on hover
+            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
+            with submenu:
+                for node_info in sorted(nodes, key=lambda x: x['label']):
+                    self._create_menu_item_for_node(node_info, on_node_selected)
+            
+            # Add hover functionality with better mouse handling
+            self._add_hover_behavior(menu_item, submenu)
+
+    def _create_submenu_item(self, subcat_name: str, subcat_data: Dict, on_node_selected: Callable[[str], None]):
+        """Create a submenu item for a subcategory with hover functionality."""
+        subnodes = subcat_data.get('_nodes', [])
+        subchildren = subcat_data.get('_children', {})
+        
+        if not subnodes and not subchildren:
+            return
+        
+        # Create menu item with hover-triggered submenu
+        with ui.menu_item(f"📁 {subcat_name}", auto_close=False) as menu_item:
+            with ui.item_section().props('side'):
+                ui.icon('keyboard_arrow_right')
+            
+            # Create submenu that opens on hover
+            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
+            with submenu:
+                # Add direct nodes if any
+                for node_info in sorted(subnodes, key=lambda x: x['label']):
+                    self._create_menu_item_for_node(node_info, on_node_selected)
+                
+                if subnodes and subchildren:
+                    ui.separator()
+                
+                # Add nested subcategories
+                for nested_name, nested_data in sorted(subchildren.items()):
+                    self._create_submenu_item(nested_name, nested_data, on_node_selected)
+            
+            # Add hover functionality with better mouse handling
+            self._add_hover_behavior(menu_item, submenu)
+
+    def _create_menu_item_for_node(self, node_info: Dict[str, str], on_node_selected: Callable[[str], None]):
+        """Create a menu item for a single node."""
+        # Get the correct key field
+        registry_key = node_info.get('registry_key') or node_info.get('key')
+        
+        menu_item = ui.menu_item(
+            f"+ {node_info['label']}", 
+            lambda rk=registry_key: on_node_selected(rk)
+        )
+        
+        # Add tooltip with description and tags if available
+        if node_info.get('description'):
+            tooltip_text = node_info['description']
+            if node_info.get('search_tags'):
+                tooltip_text += f"\nTags: {', '.join(node_info['search_tags'])}"
+            menu_item.tooltip(tooltip_text)
+        
+        return menu_item
+
+    def _add_hover_behavior(self, menu_item, submenu):
+        """Add hover behavior with delay to prevent premature closing."""
+        import asyncio
+        
+        # Store timer reference
+        close_timer = None
+        
+        def open_submenu():
+            nonlocal close_timer
+            # Cancel any pending close timer
+            if close_timer:
+                close_timer.cancel()
+                close_timer = None
+            submenu.open()
+        
+        def schedule_close():
+            nonlocal close_timer
+            # Schedule closing with a longer delay
+            async def delayed_close():
+                await asyncio.sleep(0.8)  # Increased to 800ms delay
+                submenu.close()
+            
+            if close_timer:
+                close_timer.cancel()
+            close_timer = asyncio.create_task(delayed_close())
+        
+        def cancel_close():
+            nonlocal close_timer
+            # Cancel scheduled close when mouse enters submenu
+            if close_timer:
+                close_timer.cancel()
+                close_timer = None
+        
+        # Add hover events to menu item - only trigger close when leaving the menu item
+        menu_item.on('mouseenter', open_submenu)
+        menu_item.on('mouseleave', schedule_close)
+        
+        # Add hover events to submenu to prevent closing when mouse is over submenu content
+        submenu.on('mouseenter', cancel_close)
+        
+        # Store the cancel_close function on the submenu so child nodes can access it
+        submenu._cancel_close = cancel_close
+
+    def _create_global_menu_leave_handler(self):
+        """Create a handler that closes all open submenus when leaving the main menu area."""
+        import asyncio
+        
+        async def close_all_submenus():
+            await asyncio.sleep(0.5)  # Longer delay for main menu
+            # This will close all open submenus
+            # The individual submenu close handlers will handle their own menus
+            pass
+        
+        return lambda: asyncio.create_task(close_all_submenus())
+
     def _create_node_button(self, node_info: Dict[str, str], on_node_selected: Callable[[str], None]):
-        """Create a button for a single node."""
+        """Create a button for a single node (used in recent nodes section)."""
         # Get the correct key field
         registry_key = node_info.get('registry_key') or node_info.get('key')
         
@@ -224,8 +408,3 @@ class NodeMenuBuilder:
             btn.tooltip(tooltip_text)
         
         return btn
-    
-    def _handle_node_selection(self, registry_key: str):
-        """Handle node selection - to be overridden by container."""
-        # This will be set by the callback passed to create_node_menu
-        pass
