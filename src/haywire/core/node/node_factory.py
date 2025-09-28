@@ -322,6 +322,175 @@ class NodeFactory:
             self._nodes_by_registry_key[registry_key].discard(node_id)
             del self._node_registry_keys[node_id]
     
+    # ============================================================================
+    # Node Discovery and UI Services (moved from NodeRegistry)
+    # ============================================================================
+    
+    def get_menu_structure(self) -> Dict[str, List[Dict[str, str]]]:
+        """
+        Get nodes organized by menu path for UI building.
+
+        Returns:
+            Dictionary mapping menu paths to lists of node info dicts
+        """
+        menu = {}
+
+        for key in self.node_registry.list_names():
+            node_class = self.node_registry.get(key)
+            
+            # Use class_identity if available, fallback to old attributes
+            if hasattr(node_class, 'class_identity'):
+                identity = node_class.class_identity
+                menu_path = identity.menu
+                label = identity.label
+                description = identity.description
+                tags = identity.search_tags
+            else:
+                menu_path = getattr(node_class, 'node_menu', 'misc')
+                label = node_class._default_library_metadata.label
+                description = node_class._default_library_metadata.description
+                tags = getattr(node_class, 'node_search_tags', [])
+
+            if menu_path not in menu:
+                menu[menu_path] = []
+
+            menu[menu_path].append({
+                'label': label,           # Display name
+                'key': key,               # Registry key
+                'description': description,
+                'tags': tags
+            })
+
+        return menu
+
+    def search_nodes(self, query: str) -> List[Dict[str, str]]:
+        """
+        Search for nodes matching a query string.
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of matching node info dicts
+        """
+        results = []
+        query_lower = query.lower()
+
+        for key in self.node_registry.list_names():
+            node_class = self.node_registry.get(key)
+
+            # Use class_identity if available, fallback to old attributes
+            if hasattr(node_class, 'class_identity'):
+                identity = node_class.class_identity
+                label = identity.label
+                description = identity.description
+                tags = identity.search_tags
+            else:
+                label = node_class._default_library_metadata.label
+                description = node_class._default_library_metadata.description
+                tags = getattr(node_class, 'node_search_tags', [])
+
+            # Search in label, description, and tags
+            searchable = [
+                label.lower(),
+                description.lower(),
+                *[tag.lower() for tag in tags]
+            ]
+
+            if any(query_lower in text for text in searchable):
+                results.append({
+                    'label': label,
+                    'key': key,
+                    'description': description,
+                    'library': self.node_registry.get_metadata(key)['library_name']
+                })
+
+        return results
+
+    def get_nodes_by_library(self, library_name: str) -> List[Dict[str, str]]:
+        """
+        Get all nodes from a specific library.
+
+        Args:
+            library_name: Name of the library
+
+        Returns:
+            List of node info dicts from the specified library
+        """
+        results = []
+
+        for registry_key in self.node_registry.list_names():
+            metadata = self.node_registry.get_metadata(registry_key)
+            if metadata and metadata.get('library_name') == library_name:
+                node_class = self.node_registry.get(registry_key)
+                
+                # Use class_identity if available, fallback to old attributes
+                if hasattr(node_class, 'class_identity'):
+                    identity = node_class.class_identity
+                    label = identity.label
+                    description = identity.description
+                else:
+                    label = node_class._default_library_metadata.label
+                    description = node_class._default_library_metadata.description
+                
+                results.append({
+                    'label': label,
+                    'key': registry_key,
+                    'description': description
+                })
+
+        return results
+
+    def list_all_nodes(self) -> List[str]:
+        """
+        Get list of all registered node registry keys.
+
+        Returns:
+            List of all registry keys
+        """
+        return self.node_registry.list_names()
+
+    def get_node_info(self, registry_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed information about a specific node.
+
+        Args:
+            registry_key: Registry key of the node
+
+        Returns:
+            Dictionary with node information or None if not found
+        """
+        if not self.node_registry.has(registry_key):
+            return None
+        
+        node_class = self.node_registry.get(registry_key)
+        metadata = self.node_registry.get_metadata(registry_key)
+        
+        # Use class_identity if available, fallback to old attributes
+        if hasattr(node_class, 'class_identity'):
+            identity = node_class.class_identity
+            label = identity.label
+            description = identity.description
+            tags = identity.search_tags
+            menu = identity.menu
+        else:
+            label = node_class._default_library_metadata.label
+            description = node_class._default_library_metadata.description
+            tags = getattr(node_class, 'node_search_tags', [])
+            menu = getattr(node_class, 'node_menu', 'misc')
+        
+        return {
+            'registry_key': registry_key,
+            'label': label,
+            'description': description,
+            'search_tags': tags,
+            'menu': menu,
+            'library_name': metadata.get('library_name') if metadata else None,
+            'library_version': metadata.get('library_version') if metadata else None,
+            'class_name': node_class.__name__,
+            'module': node_class.__module__
+        }
+
     def get_factory_stats(self) -> Dict[str, Any]:
         """Get statistics about the factory state."""
         return {
