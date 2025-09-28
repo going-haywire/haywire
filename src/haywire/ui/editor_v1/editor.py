@@ -123,8 +123,8 @@ class Editor:
             
             if node:
                 # Set position attributes
-                node.ui_posX = position[0]
-                node.ui_posY = position[1]
+                node.ui_state.posX = position[0]
+                node.ui_state.posY = position[1]
                 
                 # Create and execute undo action
                 action = AddNodeAction(self.graph, node)
@@ -227,6 +227,10 @@ class Editor:
         """Get a list of all nodes in the graph."""
         return list(self.graph.nodes.values())
     
+    def get_available_node_regkeys(self) -> List[str]:
+        """Get a list of all available node types from the factory."""
+        return self.node_factory.node_registry.list_names()
+
     # =============================================================================
     # CONNECTION OPERATIONS
     # =============================================================================
@@ -266,53 +270,6 @@ class Editor:
             
         except Exception as e:
             print(f"❌ Editor: Error creating connection: {e}")
-            return False
-    
-    def delete_connection(self, output_node_id: str, outlet_pin: str, input_node_id: str, inlet_pin: str) -> bool:
-        """
-        Delete a connection between two nodes.
-        
-        Args:
-            output_node_id: ID of the output node
-            outlet_pin: Name of the output pin
-            input_node_id: ID of the input node
-            inlet_pin: Name of the input pin
-            
-        Returns:
-            True if connection was deleted, False otherwise
-        """
-        # Find the edge using connection ID
-        connection_id = f"{output_node_id}|{outlet_pin}|{input_node_id}|{inlet_pin}"
-        edge_to_remove = self.graph.get_edge_by_connection_id(connection_id)
-        
-        if edge_to_remove:
-            return self.delete_connection_by_edge(edge_to_remove)
-        else:
-            print(f"⚠️ Editor: Connection not found: {output_node_id}:{outlet_pin} -> {input_node_id}:{inlet_pin}")
-            return False
-    
-    def delete_connection_by_edge(self, edge: Edge) -> bool:
-        """
-        Delete a connection by edge object.
-        
-        Args:
-            edge: The edge to delete
-            
-        Returns:
-            True if connection was deleted, False otherwise
-        """
-        try:
-            action = RemoveEdgeAction(self.graph, edge, "Delete connection via Editor")
-            self.history_manager.add_action(action)
-            
-            # Notify callbacks
-            self._notify_change("delete_connection")
-            
-            print(f"✅ Editor: Deleted connection {edge.output_node_id}:{edge.outlet_pin_id} -> {edge.input_node_id}:{edge.inlet_pin_id}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Editor: Error deleting connection: {e}")
             return False
     
     def list_connections(self) -> List[Edge]:

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from .elements import Inlet, Outlet
+from ..inventory.base import LibraryMetadata
 
 
 # ============================================================================
@@ -58,44 +59,59 @@ class NodeErrorInfo:
         """Add a note to the error info"""
         self.note.append(note)
 
-class NodeMeta(type):  # Assuming HaywireMeta inherits from type
-    def __new__(cls, name, bases, attrs):
-        # Automatically identify metadata attributes
-        metadata_attrs = []
-        for attr_name, attr_value in attrs.items():
-            if attr_name.startswith('node_') and not callable(attr_value):
-                metadata_attrs.append(attr_name)
-        
-        attrs['_node_metadata_attrs'] = metadata_attrs
-               
-        # Skip validation for abstract base classes
-        # Check if this is an abstract class or the base BaseNode class
-        is_abstract = (
-            name == 'BaseNode' or  # Skip the base class itself
-            attrs.get('__abstractmethods__') or  # Has abstract methods
-            any(hasattr(base, '__abstractmethods__') and base.__abstractmethods__ for base in bases)  # Inherits abstract methods
-        )
-        
-        if not is_abstract:
-            # Validate that required node attributes are set
-            required_attrs = [
-                'node_label',
-                'node_search_tags',
-                'node_menu'
-            ]
-            
-            missing_attrs = []
-            for required_attr in required_attrs:
-                if required_attr not in attrs:
-                    missing_attrs.append(required_attr)
-            
-            if missing_attrs:                
-                raise NodeValidationError(
-                    f"Node class '{name}' is missing required attributes: {missing_attrs}\n"
-                    f"Set them explicitly in the class"
-                )
-        
-        return super().__new__(cls, name, bases, attrs)
+@dataclass
+class NodeIdentity:
+    """Core identifying attributes of a node"""
+    label: str = 'Node Name'
+    description: str = 'Node Description'
+    search_tags: list[str] = field(default_factory=lambda: ['add', 'sub', 'math', 'vector'])
+    menu: str = 'misc/custom'
+    help_md: str | None = None
+    help_url: str = 'https://haywire.io/docs/node-help'
+
+@dataclass
+class NodeBehavior:
+    """Behavioral configuration of a node"""
+    is_control_node: bool = False
+    is_data_node: bool = True
+    is_loopback_node: bool = False
+    is_mutable: bool = False
+    allows_variables: bool = False
+    mute_connection: list[str] = field(default_factory=lambda: ['control_in_ID', 'control_out_ID'])
+
+@dataclass
+class NodeUIConfig:
+    """UI configuration and capabilities"""
+    is_collapsable: bool = True
+    is_condensable: bool = True
+    default_color: str = '#FFFFFF'
+    icon: str | None = None
+    node_renderer: str | None = None
+    props_renderer: str | None = None
+    custom_gui: str | None = None
+
+@dataclass
+class NodeUIState:
+    """Runtime UI state"""
+    is_muted: bool = False
+    is_collapsed: bool = False
+    is_condensed: bool = False
+    is_pinned: bool = False
+    custom_color: str = '#000000'
+    posX: float = 0
+    posY: float = 0
+    width: float = 100
+    height: float = 100
+    width_min: float = -1
+    height_min: float = -1
+
+@dataclass
+class NodeMetadata:
+    """User-defined metadata"""
+    notes: list[str] = field(default_factory=list)
+    custom: dict[str, Any] = field(default_factory=dict)
+
+
 
 @abstractmethod
 class NodeData():
@@ -186,81 +202,45 @@ class NodeData():
         }
 
 @abstractmethod
-class BaseNode(NodeData, metaclass=NodeMeta):
+class BaseNode(NodeData):
     """Base class combining HaywireNode requirements with NodeData"""
     
-    # Type annotation for dynamically created attribute by NodeMetadataMeta
-    # This is set by the NodeMetadataMeta metaclass in __new__
-    _node_metadata_attrs: list[str] = []
-    def __init__(self, node_id: str, graph: Any):
+    def __init__(self, node_id: str, graph: Any, registry_key: str):
         super().__init__()
         self.node_id = node_id
         self.graph = graph
+        self.registry_key = registry_key
         self.error_info: NodeErrorInfo | None = None
-        self.registry_key = '' # set upon registration - library.name:node.name
-
-        # library attributes set automatically upon registration
-        self.library_name = ''
-        self.library_version = ''
-        self.library_url = ''
-        self.library_help_url = ''
-        self.library_author = ''
-        self.library_author_url = ''
-
-        ## identifying attributes
-        self.node_label = 'Node Name'
-        self.node_description = 'Node Description'
-        self.node_search_tags = ['add', 'sub', 'math', 'vector']
-        self.node_menu = 'misc/custom'
-        self.node_help_md = None
-        self.node_help_url = 'https://haywire.io/docs/node-help'
-
-        # Behavioral attributes
-        self.is_control_node = False
-        self.is_data_node = True
-        self.is_loopback_node = False
-        self.ui_is_collapsable = True
-        self.ui_is_condensable = True
-        self.is_mutable = False
-        self.mute_connection = ['control_in_ID', 'control_out_ID']
-        self.allows_variables = False # Not sure if this is needed, but it is here for now
-
-        # Runtime attributes
-        self.is_muted = False
-        self.ui_is_collapsed = False
-        self.ui_is_condensed = False
-        self.ui_is_pinned = False
-        self.ui_default_color = '#FFFFFF'
-        self.ui_custom_color = '#000000'
-        self.ui_posX = 0
-        self.ui_posY = 0
-        self.ui_width = 100
-        self.ui_height = 100
-        self.ui_width_min = -1
-        self.ui_height_min = -1
-        self.ui_icon = None
-        self.ui_node_renderer = None # A renderer to render the node in the UI
-        self.ui_props_renderer = None # A renderer to render the node properties in the UI
-        self.ui_custom_gui = None # A renderer to render a customer GUI for controlling user interaction with the node
-
-        # metadata attributes
-        self.notes = [str] # List of notes for this node
-        self.metadata = {} # Dictionary for additional userdefined metadata
+        
+        # Organized attribute groups
+        self.library: LibraryMetadata | None = None  # Set during registration
+        self.identity = NodeIdentity()
+        self.behavior = NodeBehavior()
+        self.ui_config = NodeUIConfig()
+        self.ui_state = NodeUIState()
+        self.metadata = NodeMetadata()
 
 
     @abstractmethod
     def worker(self, context: dict) -> dict | None:
         """The main execution logic of the node. Override in subclasses."""
-        pass    
+        pass
            
-    def get_metadata_dict(self):
-        """Get current instance metadata for serialization"""
-        return {attr: getattr(self, attr) for attr in self._node_metadata_attrs 
-                if hasattr(self, attr)}
-    
-    def get_class_metadata_dict(self):
-        """Get current class metadata for comparison"""
-        return {attr: getattr(self.__class__, attr) for attr in self._node_metadata_attrs 
-                if hasattr(self.__class__, attr)}
+    def to_dict(self) -> dict:
+        """Serialize node to dictionary"""
+        from dataclasses import asdict
+        
+        return {
+            'node_id': self.node_id,
+            'registry_key': self.registry_key,
+            'library': asdict(self.library) if self.library else None,
+            'identity': asdict(self.identity),
+            'behavior': asdict(self.behavior),
+            'ui_config': asdict(self.ui_config),
+            'ui_state': asdict(self.ui_state),
+            'metadata': asdict(self.metadata),
+            'inlets': {k: v.to_dict() for k, v in self.inlets.items()},
+            'outlets': {k: v.to_dict() for k, v in self.outlets.items()}
+        }
 
 

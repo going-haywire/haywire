@@ -373,7 +373,7 @@ class UndoRedoTestAppDI:
                 self.update_history_display()
                 
                 # Get node name safely
-                node_name = getattr(node, 'node_label', None) or getattr(node, 'name', None) or node.node_id or node.__class__.__name__
+                node_name = node.library.label or node.identity.name or node.node_id or node.__class__.__name__
                 ui.notify(f"Created {node_name} at ({click_x}, {click_y})")
                 
                 # Reset creation mode (single-shot creation)
@@ -433,8 +433,8 @@ class UndoRedoTestAppDI:
                 
                 with ui.column().classes('p-2 gap-1'):
                     # Get node display name safely
-                    node_name = getattr(node, 'node_label', None) or getattr(node, 'name', None) or node.node_id or node.__class__.__name__
-                    node_desc = getattr(node, 'node_description', None) or getattr(node, 'description', 'Node')
+                    node_name = node.library.label or node.identity.name or node.node_id or node.__class__.__name__
+                    node_desc = node.library.description or 'Node'
                     
                     ui.label(node_name).classes('text-white font-bold text-sm')
                     ui.label(node_desc).classes('text-white text-xs opacity-80')
@@ -571,8 +571,8 @@ class UndoRedoTestAppDI:
                 node = self.graph.nodes[node_id]
                 print(f"Creating visual for node {node_id}")
                 # Recreate visual representation
-                x = getattr(node, 'ui_posX', 100)
-                y = getattr(node, 'ui_posY', 100)
+                x = node.ui_state.posX
+                y = node.ui_state.posY
                 self.create_node_visual(node, x, y)
         
         # Update info display

@@ -18,12 +18,7 @@ Key improvements:
 
 import os
 import sys
-from pathlib import Path
-from nicegui import ui, events
-import time
-import random
-import json
-from typing import Dict, List, Optional, Tuple
+from nicegui import ui
 
 # Add project paths
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__)))
@@ -35,18 +30,10 @@ if src_path not in sys.path:
 from haywire.ui.editor_v1.graph_canvas_manager import GraphCanvasManager
 from haywire.ui.editor_v1.editor import Editor
 from haywire.core.graph.graph import HaywireGraph
-from haywire.core.node.node import BaseNode
-from haywire.core.node.node_factory import NodeFactory
-from haywire.undo.history_manager import HistoryManager
-from haywire.undo.interfaces import IHistoryManager
-from haywire.undo.config import UndoConfig, DEVELOPMENT_CONFIG
+from haywire.undo.config import DEVELOPMENT_CONFIG
 
 # DI imports  
 from haywire.core.di.config import create_library_system_service
-
-# Import UI components for proper node rendering
-from haywire.ui.ui_node import UINode
-
 
 class UndoRedoTestAppWithCanvasManager:
     """Enhanced test application with dedicated GraphCanvasManager."""
@@ -156,13 +143,6 @@ class UndoRedoTestAppWithCanvasManager:
         # Remove the old global service setup
         pass
     
-    def get_available_nodes(self):
-        """Get available node types from the registry."""
-        # Use shared node registry
-        available_nodes = self.node_registry.list_names()
-        print(f"Available nodes from registry: {available_nodes}")
-        return available_nodes
-    
     def create_ui(self):
         """Create the main UI."""
         @ui.page('/', title="Enhanced Haywire Test App with Canvas Manager")
@@ -250,7 +230,6 @@ class UndoRedoTestAppWithCanvasManager:
             canvas_manager = GraphCanvasManager(
                 editor=self.editor,  # Pass the shared Editor instance
                 node_render_factory=self.node_render_factory,
-                available_nodes=self.get_available_nodes(),
                 session_id=client_id,
             )
             session_data['canvas_manager'] = canvas_manager
@@ -378,8 +357,6 @@ class UndoRedoTestAppWithCanvasManager:
                     ui.label(f'✓ Canvas Manager Active').classes('text-green-600 text-sm')
                     ui.label(f'Visual Nodes: {len(canvas_manager.node_panels)}').classes('text-sm')
                     ui.label(f'Visual Connections: {len(canvas_manager.connection_paths)}').classes('text-sm')
-                    ui.label(f'Zoom: {canvas_manager.current_zoom:.2f}x').classes('text-sm')
-                    ui.label(f'Pan: ({canvas_manager.pan_x:.0f}, {canvas_manager.pan_y:.0f})').classes('text-sm')
             
             # Update history display for this specific session
             self.update_history_display_for_session(session_data)

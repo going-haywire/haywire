@@ -34,16 +34,10 @@ class NodeRegistry(BaseClassRegistry):
         if self.has(registry_key):
             raise ValueError(f"Node already registered: {registry_key}")
 
-        # Set the registry key on the node class
-        setattr(node_cls, 'registry_key', registry_key)
-
-        # Set library-derived attributes on the node class
-        setattr(node_cls, 'library_name', library_metadata.name)
-        setattr(node_cls, 'library_version', library_metadata.version)
-        setattr(node_cls, 'library_url', library_metadata.url)
-        setattr(node_cls, 'library_help_url', library_metadata.help_url)
-        setattr(node_cls, 'library_author', library_metadata.author)
-        setattr(node_cls, 'library_author_url', library_metadata.author_url)
+        # Store the library metadata and registry key as class attributes 
+        # This will be used as the default for new instances
+        node_cls._default_library_metadata = library_metadata
+        node_cls._default_registry_key = registry_key
 
         self._register(registry_key, node_cls, library_metadata)
 
@@ -136,9 +130,9 @@ class NodeRegistry(BaseClassRegistry):
                 menu[menu_path] = []
 
             menu[menu_path].append({
-                'label': node_class.node_label,           # Display name
+                'label': node_class._default_library_metadata.label,           # Display name
                 'key': key,                               # Registry key
-                'description': node_class.node_description,
+                'description': node_class._default_library_metadata.description,
                 'tags': getattr(node_class, 'node_search_tags', [])
             })
 
@@ -162,16 +156,16 @@ class NodeRegistry(BaseClassRegistry):
 
             # Search in label, description, and tags
             searchable = [
-                node_class.node_label.lower(),
-                node_class.node_description.lower(),
+                node_class._default_library_metadata.label.lower(),
+                node_class._default_library_metadata.description.lower(),
                 *[tag.lower() for tag in getattr(node_class, 'node_search_tags', [])]
             ]
 
             if any(query_lower in text for text in searchable):
                 results.append({
-                    'label': node_class.node_label,
+                    'label': node_class._default_library_metadata.label,
                     'key': key,
-                    'description': node_class.node_description,
+                    'description': node_class._default_library_metadata.description,
                     'library': self.get_metadata(key)['library_name']
                 })
 
@@ -194,9 +188,9 @@ class NodeRegistry(BaseClassRegistry):
             if metadata and metadata.get('library_name') == library_name:
                 node_class = self.get(registry_key)
                 results.append({
-                    'label': node_class.node_label,
+                    'label': node_class._default_library_metadata.label,
                     'key': registry_key,
-                    'description': node_class.node_description
+                    'description': node_class._default_library_metadata.description
                 })
 
         return results

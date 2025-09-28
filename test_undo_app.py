@@ -33,52 +33,64 @@ from haywire.undo.actions.graph_actions import (
 class TestMathNode(BaseNode):
     """A simple math node for testing."""
     
-    # Required class attributes
-    node_label = "Math Node"
-    node_search_tags = ["math", "calculation", "operation"]
-    node_menu = "Test/Math"
+    def __init__(self, node_id: str, graph: HaywireGraph, registry_key: str):
+        super().__init__(node_id, graph, registry_key)
+        
+        # Configure identity
+        self.identity.label = "Math Node"
+        self.identity.search_tags = ["math", "calculation", "operation"]
+        self.identity.menu = "Test/Math"
+        self.identity.description = "Performs mathematical operations"
+        
+        # Configure UI state
+        self.ui_state.posX = 0.0
+        self.ui_state.posY = 0.0
+        self.ui_state.custom_color = "#4A90E2"
     
-    def __init__(self, node_id: str, graph: HaywireGraph):
-        super().__init__(node_id, graph)
-        self.name = "Math Node"
-        self.description = "Performs mathematical operations"
-        self.ui_posX = 0.0
-        self.ui_posY = 0.0
-        self.ui_color = "#4A90E2"
+    def worker(self, context: dict) -> dict | None:
+        return None
 
 
 class TestSourceNode(BaseNode):
     """A source node for testing."""
     
-    # Required class attributes
-    node_label = "Source Node"
-    node_search_tags = ["source", "input", "generator"]
-    node_menu = "Test/Source"
+    def __init__(self, node_id: str, graph: HaywireGraph, registry_key: str):
+        super().__init__(node_id, graph, registry_key)
+        
+        # Configure identity
+        self.identity.label = "Source Node"
+        self.identity.search_tags = ["source", "input", "generator"]
+        self.identity.menu = "Test/Source"
+        self.identity.description = "Generates data"
+        
+        # Configure UI state
+        self.ui_state.posX = 0.0
+        self.ui_state.posY = 0.0
+        self.ui_state.custom_color = "#7ED321"
     
-    def __init__(self, node_id: str, graph: HaywireGraph):
-        super().__init__(node_id, graph)
-        self.name = "Source Node"
-        self.description = "Generates data"
-        self.ui_posX = 0.0
-        self.ui_posY = 0.0
-        self.ui_color = "#7ED321"
+    def worker(self, context: dict) -> dict | None:
+        return None
 
 
 class TestSinkNode(BaseNode):
     """A sink node for testing."""
     
-    # Required class attributes
-    node_label = "Sink Node"
-    node_search_tags = ["sink", "output", "consumer"]
-    node_menu = "Test/Sink"
+    def __init__(self, node_id: str, graph: HaywireGraph, registry_key: str):
+        super().__init__(node_id, graph, registry_key)
+        
+        # Configure identity
+        self.identity.label = "Sink Node"
+        self.identity.search_tags = ["sink", "output", "consumer"]
+        self.identity.menu = "Test/Sink"
+        self.identity.description = "Consumes data"
+        
+        # Configure UI state
+        self.ui_state.posX = 0.0
+        self.ui_state.posY = 0.0
+        self.ui_state.custom_color = "#F5A623"
     
-    def __init__(self, node_id: str, graph: HaywireGraph):
-        super().__init__(node_id, graph)
-        self.name = "Sink Node"
-        self.description = "Consumes data"
-        self.ui_posX = 0.0
-        self.ui_posY = 0.0
-        self.ui_color = "#F5A623"
+    def worker(self, context: dict) -> dict | None:
+        return None
 
 
 class UndoRedoTestApp:
@@ -400,7 +412,7 @@ class UndoRedoTestApp:
     
     def create_node_ui(self, node: BaseNode):
         """Create UI representation for a node."""
-        print(f"Creating UI for node {node.node_id} at ({node.ui_posX}, {node.ui_posY})")
+        print(f"Creating UI for node {node.node_id} at ({node.ui_state.posX}, {node.ui_state.posY})")
         print(f"Canvas object: {self.canvas}")
         print(f"Canvas classes: {self.canvas.classes if hasattr(self.canvas, 'classes') else 'N/A'}")
         print(f"Zoom container: {self.zoom_container}")
@@ -412,8 +424,8 @@ class UndoRedoTestApp:
         try:
             with self.canvas:
                 node_card = ui.card().classes('absolute cursor-pointer select-none').style(
-                    f'left: {node.ui_posX}px; top: {node.ui_posY}px; '
-                    f'background-color: {getattr(node, "ui_color", "#ffffff")}; '
+                    f'left: {node.ui_state.posX}px; top: {node.ui_state.posY}px; '
+                    f'background-color: {node.ui_state.custom_color or "#ffffff"}; '
                     f'min-width: 120px; z-index: 10; '
                     f'border: 2px solid red; '  # Debug border to make nodes visible
                     f'opacity: 1 !important; '  # Force opacity
@@ -435,7 +447,7 @@ class UndoRedoTestApp:
                 node_card.on('click', lambda e, n=node: self.select_node(n))
                 
                 self.node_panels[node.node_id] = node_card
-                print(f"Created UI panel for node {node.node_id} with style: left: {node.ui_posX}px; top: {node.ui_posY}px")
+                print(f"Created UI panel for node {node.node_id} with style: left: {node.ui_state.posX}px; top: {node.ui_state.posY}px")
                 
                 # Force multiple updates to ensure rendering
                 node_card.update()
@@ -465,8 +477,8 @@ class UndoRedoTestApp:
             # Direct move (for real-time drag feedback)
             node = self.graph.get_node(node_id)
             if node:
-                node.ui_posX = x
-                node.ui_posY = y
+                node.ui_state.posX = x
+                node.ui_state.posY = y
                 
                 # Update UI position
                 if node_id in self.node_panels:

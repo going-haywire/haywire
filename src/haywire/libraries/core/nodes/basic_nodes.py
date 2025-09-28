@@ -11,18 +11,17 @@ from haywire.core.data.fields import SingleField
 class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
-    # Required metadata for node discovery
-    node_label = 'Test Node One'
-    node_search_tags = ['constant', 'value', 'output', 'basic']
-    node_menu = 'core/basic'
-    
-    def __init__(self, node_id, graph):
-        super().__init__(node_id, graph)
+    def __init__(self, node_id, graph, registry_key):
+        super().__init__(node_id, graph, registry_key)
         
-        # This would normally be set up with proper inlet/outlet definitions
-        # For now, just demonstrate the structure
-        self.is_data_node = True
-        self.is_control_node = False
+        # Configure identity
+        self.identity.label = 'Test Node One'
+        self.identity.search_tags = ['constant', 'value', 'output', 'basic']
+        self.identity.menu = 'core/basic'
+        
+        # Configure behavior
+        self.behavior.is_data_node = True
+        self.behavior.is_control_node = False
 
         # Add configs with different widget types
         _ = self.add_inlet(Inlet(
@@ -110,7 +109,7 @@ class TestNodeOne(BaseNode):
         )
 
     
-    def execute(self):
+    def worker(self, context: dict) -> dict | None:
         """Execute the node - return the constant value"""
         return None
 

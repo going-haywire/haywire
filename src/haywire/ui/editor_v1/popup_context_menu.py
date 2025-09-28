@@ -11,6 +11,8 @@ Uses the enhanced Popup class that creates elements at page root level to avoid 
 
 from nicegui import ui, app
 from typing import Dict, List, Optional, Callable
+
+from haywire.ui.editor_v1.editor import Editor
 from .popup import Popup
 from .event_definitions import  NodeCreateRequestEvent, UserRemoveEvent
 
@@ -19,13 +21,13 @@ class PopupContextMenu:
     """NiceGUI-based context menu using enhanced Popup class with cursor positioning."""
     
     def __init__(self, 
-                 available_nodes: List[str] = None,
+                 editor: Editor,
                  on_emit_event: Optional[Callable[[object], None]] = None):
                 
         # New event system
         self._on_emit_event = on_emit_event
+        self.editor = editor
         
-        self.available_nodes = available_nodes or []
         self._current_popup: Optional[Popup] = None
         self._menu_data: dict = {}
     
@@ -117,7 +119,7 @@ class PopupContextMenu:
             ui.label('Create Node').classes('text-xs font-semibold text-gray-600 uppercase mb-2')
             
             with ui.column().classes('w-full gap-1'):
-                for node_type in self.available_nodes:
+                for node_type in self.editor.get_available_node_regkeys():
                     display_name = self._get_node_display_name(node_type)
                     btn = ui.button(f'+ {display_name}', on_click=lambda nt=node_type: self._create_node(nt))
                     btn.props('flat align=left')

@@ -26,8 +26,8 @@ class AddNodeAction(ActionBase):
             node: The node to add
             description: Optional description override
         """
-        # Use node_label if available, otherwise fallback to node_id or class name
-        node_name = getattr(node, 'node_label', None) or getattr(node, 'name', None) or node.node_id or node.__class__.__name__
+        # Use library label if available, otherwise fallback to identity name or node_id or class name
+        node_name = node.identity.label or node.identity.name or node.node_id or node.__class__.__name__
         super().__init__(description or f"Add node '{node_name}'")
         self.graph = graph
         self.node = node
@@ -106,16 +106,16 @@ class MoveNodesAction(ActionBase):
         for node_id in self.nodes:
             node = self.graph.get_node(node_id)
             if node:
-                node.ui_posX += self.deltaX
-                node.ui_posY += self.deltaY
+                node.ui_state.posX += self.deltaX
+                node.ui_state.posY += self.deltaY
     
     def _undo_impl(self) -> None:
         """Move all nodes back by subtracting the delta amounts."""
         for node_id in self.nodes:
             node = self.graph.get_node(node_id)
             if node:
-                node.ui_posX -= self.deltaX
-                node.ui_posY -= self.deltaY
+                node.ui_state.posX -= self.deltaX
+                node.ui_state.posY -= self.deltaY
     
     def can_merge(self, other) -> bool:
         """Check if this move can be merged with another delta move of the same nodes."""
@@ -304,8 +304,8 @@ class DuplicateNodeAction(CompositeAction):
         # Create the duplicated node (this would need proper cloning logic)
         # For now, we'll assume there's a clone method
         new_node = self._clone_node(source_node, new_node_id)
-        new_node.ui_posX = source_node.ui_posX + offset_x
-        new_node.ui_posY = source_node.ui_posY + offset_y
+        new_node.ui_state.posX = source_node.ui_state.posX + offset_x
+        new_node.ui_state.posY = source_node.ui_state.posY + offset_y
         
         # Create the sub-actions
         actions = [

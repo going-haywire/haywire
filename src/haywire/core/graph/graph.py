@@ -206,8 +206,8 @@ class HaywireGraph:
         if node is None:
             return False
         
-        node.ui_posX = new_x
-        node.ui_posY = new_y
+        node.ui_state.posX = new_x
+        node.ui_state.posY = new_y
         return True
     
     def get_nodes_by_type(self, registry_key: str) -> list[BaseNode]:

@@ -117,7 +117,13 @@ def main():
                 
                 try:
                     error, node_class = node_registry.get_node_class("example:Display2")
-                    node_instance = node_class('unique_id', None)
+                    node_instance = node_class('unique_id', None, "example:Display2")
+                    
+                    # Set library metadata from class default
+                    if hasattr(node_class, '_default_library_metadata'):
+                        node_instance.library = node_class._default_library_metadata
+                    if error:
+                        node_instance.error_info = error
                     if error:
                         node_instance.error_info = error
 
@@ -177,7 +183,13 @@ def main():
 
                 try:
                     error, node_class = node_registry.get_node_class("haywire.core:test.node.one")
-                    node_instance = node_class('unique_id', None)
+                    node_instance = node_class('unique_id', None, "haywire.core:test.node.one")
+                    
+                    # Set library metadata from class default
+                    if hasattr(node_class, '_default_library_metadata'):
+                        node_instance.library = node_class._default_library_metadata
+                    if error:
+                        node_instance.error_info = error
                     if error:
                         node_instance.error_info = error
 

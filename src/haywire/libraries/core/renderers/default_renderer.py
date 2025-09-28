@@ -40,8 +40,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         # Create the main card
         with ui.card().classes(f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0') as main_card:
             with ui.row().classes('drag-handle zoom-pan-lod1'):
-                ui.icon('drag_indicator').classes('text-grey-6 text-h6 ')
-                ui.label(node.node_label).classes('text-h6')
+                ui.label(node.identity.label).classes('text-h6')
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):

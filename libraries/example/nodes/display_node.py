@@ -7,19 +7,21 @@ from haywire.core.data.fields import SingleField
 class DisplayNode(BaseNode):
     """Node that displays input values"""
     
-    # Required metadata for node discovery
-    node_label = 'Display'
-    node_description = 'Displays input values for debugging'
-    node_search_tags = ['display', 'debug', 'output', 'basic']
-    node_menu = 'example/basic'
-    
-    def __init__(self, node_id, graph):
-        super().__init__(node_id, graph)
+    def __init__(self, node_id, graph, registry_key):
+        super().__init__(node_id, graph, registry_key)
         
-        # This would normally be set up with proper inlet/outlet definitions
-        self.is_data_node = True
-        self.is_control_node = False
-        self.renderer = 'example.renderer'
+        # Configure identity
+        self.identity.label = 'Display'
+        self.identity.description = 'Displays input values for debugging'
+        self.identity.search_tags = ['display', 'debug', 'output', 'basic']
+        self.identity.menu = 'example/basic'
+        
+        # Configure behavior
+        self.behavior.is_data_node = True
+        self.behavior.is_control_node = False
+        
+        # Configure UI
+        self.ui_config.node_renderer = 'example.renderer'
 
         # Math node
         _ = self.add_inlet(
@@ -55,8 +57,9 @@ class DisplayNode(BaseNode):
         )   
     
 
-    def execute(self, input_value=None):
+    def worker(self, context: dict) -> dict | None:
         """Execute the node - display the input value"""
+        input_value = context.get('input_value')
         if input_value is not None:
             print(f"Display Node [{self.node_id}]: {input_value}")
-        return
+        return None

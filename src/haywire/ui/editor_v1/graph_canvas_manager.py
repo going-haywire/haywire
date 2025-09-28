@@ -36,12 +36,10 @@ class GraphCanvasManager:
         self, 
         editor: Editor,
         node_render_factory,
-        available_nodes: Optional[List[str]] = None,
         session_id: Optional[str] = None,
     ):
         self.editor = editor
         self.node_render_factory = node_render_factory
-        self.available_nodes = available_nodes or []
         self.session_id = session_id or "default"
         
         # Access graph for read operations
@@ -126,7 +124,7 @@ class GraphCanvasManager:
             )
             
             self.context_menu = PopupContextMenu(
-                available_nodes=self.available_nodes,
+                editor=self.editor,
                 on_emit_event=self._handle_canvas_event
             )
 
@@ -147,7 +145,7 @@ class GraphCanvasManager:
             print(f"No handler found for event type: {event_type}")
     
     # =============================================================================
-    # CONSOLIDATED EVENT HANDLERS
+    #  EVENT HANDLERS
     # =============================================================================
     
     @handles_event(UserDragStartEvent)
@@ -181,7 +179,6 @@ class GraphCanvasManager:
         else:
             ui.notify("Failed to delete elements", type='warning')
     
-                            
     @handles_event(ConnectionCreatedEvent)
     def process_connection_creation(self, event: ConnectionCreatedEvent):
         """Handle connection creation"""
@@ -290,8 +287,8 @@ class GraphCanvasManager:
             for node_id in graph_node_ids - visual_node_ids:
                 node = self.graph.nodes[node_id]
                 position = (
-                    getattr(node, 'ui_posX', 100),
-                    getattr(node, 'ui_posY', 100)
+                    node.ui_state.posX,
+                    node.ui_state.posY
                 )
                 self.add_node_visual(node, position)
             
@@ -303,8 +300,8 @@ class GraphCanvasManager:
             for node_id in graph_node_ids.intersection(visual_node_ids):
                 node = self.graph.nodes[node_id]
                 new_position = (
-                    getattr(node, 'ui_posX', 100),
-                    getattr(node, 'ui_posY', 100)
+                    node.ui_state.posX,
+                    node.ui_state.posY
                 )
                 old_position = self.node_panels[node_id]['position']
                 

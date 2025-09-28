@@ -30,11 +30,11 @@ class NodeSnapshot:
     name: str
     
     # Position and UI state
-    ui_posX: float = 0.0
-    ui_posY: float = 0.0
-    ui_is_collapsed: bool = False
-    ui_is_condensed: bool = False
-    ui_custom_color: Optional[str] = None
+    posX: float = 0.0
+    posY: float = 0.0
+    is_collapsed: bool = False
+    is_condensed: bool = False
+    custom_color: Optional[str] = None
     
     # Node configuration (would be expanded based on actual node structure)
     metadata: Dict[str, Any] = None
@@ -50,11 +50,11 @@ class NodeSnapshot:
             node_id=node.node_id,
             registry_key=registry_key,
             name=node.name,
-            ui_posX=getattr(node, 'ui_posX', 0.0),
-            ui_posY=getattr(node, 'ui_posY', 0.0),
-            ui_is_collapsed=getattr(node, 'ui_is_collapsed', False),
-            ui_is_condensed=getattr(node, 'ui_is_condensed', False),
-            ui_custom_color=getattr(node, 'ui_custom_color', None),
+            posX=node.ui_state.posX,
+            posY=node.ui_state.posY,
+            is_collapsed=node.ui_state.is_collapsed,
+            is_condensed=node.ui_state.is_condensed,
+            custom_color=node.ui_state.custom_color,
             metadata={}  # Would include more node-specific data
         )
 
@@ -119,11 +119,18 @@ class NodeFactory:
             raise ValueError(f"Failed to get node class '{registry_key}': {error_info}")
         
         # Create the node instance
-        node = node_class(node_id, graph)
+        node = node_class(node_id, graph, registry_key)
+        
+        # Set the library metadata from the class default
+        if hasattr(node_class, '_default_library_metadata'):
+            node.library = node_class._default_library_metadata
+        
+        if error_info:
+            node.error_info = error_info
         
         # Set position if provided
         if position:
-            node.ui_posX, node.ui_posY = position
+            node.ui_state.posX, node.ui_state.posY = position
         
         # Track the node for hot reload support
         self._track_node(node, registry_key)
@@ -184,8 +191,8 @@ class NodeFactory:
             snapshot.node_id = self._generate_node_id()
         
         if offset:
-            snapshot.ui_posX += offset[0]
-            snapshot.ui_posY += offset[1]
+            snapshot.posX += offset[0]
+            snapshot.posY += offset[1]
         
         # Create the cloned node
         return self.create_node_from_snapshot(snapshot, graph)
@@ -209,17 +216,14 @@ class NodeFactory:
             snapshot.registry_key, 
             graph, 
             snapshot.node_id,
-            (snapshot.ui_posX, snapshot.ui_posY)
+            (snapshot.posX, snapshot.posY)
         )
         
         # Restore additional state
-        node.name = snapshot.name
-        if hasattr(node, 'ui_is_collapsed'):
-            node.ui_is_collapsed = snapshot.ui_is_collapsed
-        if hasattr(node, 'ui_is_condensed'):
-            node.ui_is_condensed = snapshot.ui_is_condensed
-        if hasattr(node, 'ui_custom_color'):
-            node.ui_custom_color = snapshot.ui_custom_color
+        node.identity.name = snapshot.name
+        node.ui_state.is_collapsed = snapshot.is_collapsed
+        node.ui_state.is_condensed = snapshot.is_condensed
+        node.ui_state.custom_color = snapshot.custom_color
         
         # Restore metadata
         for key, value in snapshot.metadata.items():
