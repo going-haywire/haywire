@@ -5,6 +5,8 @@ CONSOLIDATED VERSION: Simplified drag, selection, and removal events.
 """
 
 import traceback
+import time
+import uuid
 from typing import Dict, List, Optional, Tuple, Callable, Set
 from nicegui import ui, events
 from dataclasses import dataclass
@@ -20,6 +22,7 @@ from .popup_context_menu import PopupContextMenu
 from .event_definitions import *
 from .event_handlers import handles_event
 from .editor import Editor
+from ...undo.actions.graph_actions import ClipboardData, PasteClipboardAction
 
 
 class GraphCanvasManager:
@@ -58,6 +61,9 @@ class GraphCanvasManager:
         self.canvas_vue: Optional[GraphCanvasVue] = None
         self.context_menu: Optional[PopupContextMenu] = None
         self.zoom_container: Optional[ZoomPanContainer] = None
+        
+        # Session clipboard for copy/paste functionality
+        self.clipboard: Optional[ClipboardData] = None
         
         # Enhanced event handling system for UI events
         self._event_handlers: Dict[str, Callable] = {}
@@ -125,7 +131,8 @@ class GraphCanvasManager:
             
             self.context_menu = PopupContextMenu(
                 editor=self.editor,
-                on_emit_event=self._handle_canvas_event
+                on_emit_event=self._handle_canvas_event,
+                clipboard_checker=self._has_clipboard_content
             )
 
     def _handle_canvas_event(self, event: BaseGraphEvent):
@@ -271,6 +278,122 @@ class GraphCanvasManager:
         except Exception as e:
             print(f"Error creating node: {e}")
             ui.notify(f"Error creating node: {e}", type='negative')
+
+    @handles_event(UserCopySelectedEvent)
+    def process_copy_selection(self, event: UserCopySelectedEvent):
+        """Handle copying selected elements to clipboard."""
+        print(f"📋 Copying {len(event.selectedNodes)} nodes and {len(event.selectedConnections)} connections")
+        
+        try:
+            # Filter connections - only between selected nodes
+            valid_edges = []
+            for conn_uuid in event.selectedConnections:
+                edge = self.graph.get_edge(conn_uuid)
+                if edge and edge.output_node_id in event.selectedNodes and edge.input_node_id in event.selectedNodes:
+                    valid_edges.append((conn_uuid, edge))
+            
+            # Calculate bounding box for positioning
+            bounding_box = self._calculate_selection_bounds(event.selectedNodes)
+            
+            # Create new node instances with new IDs
+            new_nodes = {}
+            id_mapping = {}
+            
+            for original_node_id in event.selectedNodes:
+                original_node = self.graph.get_node(original_node_id)
+                if not original_node:
+                    continue
+                
+                # Generate new ID and create new instance
+                new_node_id = f"copy_{uuid.uuid4().hex[:8]}_{original_node_id}"
+                new_node = self.editor.node_factory.create_instance(
+                    registry_key=original_node.identity.registry_key,
+                    graph=None,  # Clipboard nodes don't belong to any graph
+                    node_id=new_node_id
+                )
+                
+                # Clone inlet/outlet data and configuration
+                self._clone_node_data(original_node, new_node)
+                
+                # Copy position
+                new_node.ui_state.posX = original_node.ui_state.posX
+                new_node.ui_state.posY = original_node.ui_state.posY
+                
+                new_nodes[new_node_id] = new_node
+                id_mapping[original_node_id] = new_node_id
+            
+            # Create new edges with mapped node IDs
+            new_edges = {}
+            for conn_uuid, edge in valid_edges:
+                if edge.output_node_id in id_mapping and edge.input_node_id in id_mapping:
+                    new_conn_uuid = generate_connection_uuid(
+                        id_mapping[edge.output_node_id], edge.outlet_pin_id,
+                        id_mapping[edge.input_node_id], edge.inlet_pin_id
+                    )
+                    
+                    new_edge = Edge(
+                        edge_type=edge.edge_type,
+                        output_node_id=id_mapping[edge.output_node_id],
+                        outlet_pin_id=edge.outlet_pin_id,
+                        input_node_id=id_mapping[edge.input_node_id],
+                        inlet_pin_id=edge.inlet_pin_id,
+                        outlet_pin_data_type=edge.outlet_pin_data_type,
+                        inlet_pin_data_type=edge.inlet_pin_data_type,
+                        is_valid=edge.is_valid
+                    )
+                    
+                    new_edges[new_conn_uuid] = new_edge
+            
+            # Store in session clipboard
+            self.clipboard = ClipboardData(
+                nodes=new_nodes,
+                edges=new_edges,
+                original_to_new_ids=id_mapping,
+                bounding_box=bounding_box,
+                timestamp=time.time(),
+                source_session_id=self.session_id
+            )
+            
+            print(f"✅ Copied {len(new_nodes)} nodes and {len(new_edges)} connections to clipboard")
+            ui.notify(f"Copied {len(new_nodes)} nodes to clipboard", type='positive')
+            
+        except Exception as e:
+            print(f"❌ Error during copy operation: {e}")
+            ui.notify(f"Copy failed: {e}", type='negative')
+            traceback.print_exc()
+    
+    @handles_event(UserPasteClipboardEvent)
+    def process_paste_clipboard(self, event: UserPasteClipboardEvent):
+        """Handle pasting clipboard contents."""
+        if not self.clipboard:
+            print("❌ No clipboard content to paste")
+            ui.notify("Nothing to paste", type='warning')
+            return
+            
+        print(f"📄 Pasting {len(self.clipboard.nodes)} nodes and {len(self.clipboard.edges)} connections at ({event.canvasX}, {event.canvasY})")
+        
+        try:
+            # Create and execute paste action
+            paste_action = PasteClipboardAction(
+                graph=self.graph,
+                clipboard_data=self.clipboard,
+                paste_x=event.canvasX,
+                paste_y=event.canvasY
+            )
+            
+            # Execute through editor's history manager for undo/redo support
+            self.editor.history_manager.add_action(paste_action)
+            
+            # Notify change callbacks
+            self.editor._notify_change("paste_clipboard")
+            
+            print("✅ Paste operation completed successfully")
+            ui.notify(f"Pasted {len(self.clipboard.nodes)} nodes", type='positive')
+                
+        except Exception as e:
+            print(f"❌ Error during paste operation: {e}")
+            ui.notify(f"Paste failed: {e}", type='negative')
+            traceback.print_exc()
 
     # =============================================================================
     # SYNC UI with GRAPH STATE (unchanged from original)
@@ -490,4 +613,62 @@ class GraphCanvasManager:
             connections=list(self.selected_connections)
         )
         self.canvas_vue.emit_sync_event(sync_event)
+    
+    # =============================================================================
+    # CLIPBOARD HELPER METHODS
+    # =============================================================================
+    
+    def _has_clipboard_content(self) -> bool:
+        """Check if clipboard has content available for pasting."""
+        return self.clipboard is not None and len(self.clipboard.nodes) > 0
+    
+    def _calculate_selection_bounds(self, node_ids: List[str]) -> Dict[str, float]:
+        """Calculate bounding box of selected nodes."""
+        if not node_ids:
+            return {'min_x': 0, 'min_y': 0, 'max_x': 0, 'max_y': 0}
+        
+        positions = []
+        for node_id in node_ids:
+            node = self.graph.get_node(node_id)
+            if node:
+                positions.append((node.ui_state.posX, node.ui_state.posY))
+        
+        if not positions:
+            return {'min_x': 0, 'min_y': 0, 'max_x': 0, 'max_y': 0}
+        
+        min_x = min(pos[0] for pos in positions)
+        min_y = min(pos[1] for pos in positions)
+        max_x = max(pos[0] for pos in positions)
+        max_y = max(pos[1] for pos in positions)
+        
+        return {
+            'min_x': min_x,
+            'min_y': min_y,
+            'max_x': max_x,
+            'max_y': max_y
+        }
+    
+    def _clone_node_data(self, source_node: BaseNode, target_node: BaseNode):
+        """Clone inlet/outlet data and configuration from source to target node."""
+        try:
+            # Copy behavior, ui_config, and metadata
+            target_node.behavior = source_node.behavior
+            target_node.ui_config = source_node.ui_config
+            target_node.metadata = source_node.metadata
+            
+            # Deep copy inlets and outlets
+            from copy import deepcopy
+            
+            for inlet_id, inlet in source_node.inlets.items():
+                target_node.inlets[inlet_id] = deepcopy(inlet)
+                
+            for outlet_id, outlet in source_node.outlets.items():
+                target_node.outlets[outlet_id] = deepcopy(outlet)
+            
+            # Reset cache
+            target_node._cache_dirty = True
+            
+        except Exception as e:
+            print(f"Warning: Could not fully clone node data: {e}")
+            # Continue with basic copy - at minimum the node factory created the basic structure
                    

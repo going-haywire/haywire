@@ -5,6 +5,7 @@ This module contains actions that operate on the graph structure,
 including node and edge manipulation, positioning, and selection.
 """
 
+import time
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 
@@ -319,4 +320,82 @@ class DuplicateNodeAction(CompositeAction):
         # This is a placeholder - actual implementation would depend on the node structure
         # and would need to properly copy all node properties and state
         raise NotImplementedError("Node cloning not implemented yet")
+
+
+@dataclass
+class ClipboardData:
+    """Session-specific clipboard containing actual node and edge instances"""
+    
+    # Core data - actual instances, not serialized data
+    nodes: Dict[str, BaseNode]  # new_node_id -> node_instance
+    edges: Dict[str, Edge]      # new_connection_uuid -> edge_instance
+    
+    # Mapping for paste operations
+    original_to_new_ids: Dict[str, str]  # original_node_id -> new_node_id
+    
+    # Positioning data
+    bounding_box: Dict[str, float]  # min_x, min_y, max_x, max_y
+    
+    # Metadata
+    timestamp: float
+    source_session_id: str
+    
+    def get_paste_offset(self, target_x: float, target_y: float) -> Tuple[float, float]:
+        """Calculate offset to position upper-left corner at target position"""
+        return (target_x - self.bounding_box['min_x'], 
+                target_y - self.bounding_box['min_y'])
+
+
+class PasteClipboardAction(CompositeAction):
+    """Composite action for pasting clipboard contents."""
+    
+    def __init__(self, graph: HaywireGraph, clipboard_data: 'ClipboardData', 
+                 paste_x: float, paste_y: float, description: Optional[str] = None):
+        """
+        Initialize the paste clipboard action.
+        
+        Args:
+            graph: The graph to paste into
+            clipboard_data: The clipboard data containing nodes and edges
+            paste_x: X position where to paste (upper-left corner)
+            paste_y: Y position where to paste (upper-left corner)
+            description: Optional description override
+        """
+        self.clipboard_data = clipboard_data
+        self.paste_position = (paste_x, paste_y)
+        
+        # Calculate position offset
+        offset_x, offset_y = clipboard_data.get_paste_offset(paste_x, paste_y)
+        
+        # Create sub-actions for each node and edge
+        actions = []
+        
+        # Add node actions
+        for node_id, node in clipboard_data.nodes.items():
+            # Apply position offset
+            node.ui_state.posX += offset_x
+            node.ui_state.posY += offset_y
+            
+            # Set graph reference
+            node.graph = graph
+            
+            # Create add node action
+            actions.append(AddNodeAction(graph, node, f"Paste node '{node.identity.label}'"))
+        
+        # Add edge actions
+        for connection_uuid, edge in clipboard_data.edges.items():
+            actions.append(AddEdgeAction(graph, edge, f"Paste connection"))
+        
+        # Determine description
+        node_count = len(clipboard_data.nodes)
+        edge_count = len(clipboard_data.edges)
+        if description is None:
+            if node_count > 0 and edge_count > 0:
+                description = f"Paste {node_count} nodes and {edge_count} connections"
+            elif node_count > 0:
+                description = f"Paste {node_count} {'node' if node_count == 1 else 'nodes'}"
+            else:
+                description = "Paste clipboard contents"
+        
+        super().__init__(actions, description)
 

@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Callable
 
 from haywire.ui.editor_v1.editor import Editor
 from .popup import Popup
-from .event_definitions import  NodeCreateRequestEvent, UserRemoveEvent
+from .event_definitions import  NodeCreateRequestEvent, UserRemoveEvent, UserCopySelectedEvent, UserPasteClipboardEvent
 from .node_menu_builder import NodeMenuBuilder
 
 
@@ -23,11 +23,13 @@ class PopupContextMenu:
     
     def __init__(self, 
                  editor: Editor,
-                 on_emit_event: Optional[Callable[[object], None]] = None):
+                 on_emit_event: Optional[Callable[[object], None]] = None,
+                 clipboard_checker: Optional[Callable[[], bool]] = None):
                 
         # New event system
         self._on_emit_event = on_emit_event
         self.editor = editor
+        self._clipboard_checker = clipboard_checker
         
         self._current_popup: Optional[Popup] = None
         self._menu_data: dict = {}
@@ -70,6 +72,24 @@ class PopupContextMenu:
         )
         self._on_emit_event(event)
         self._close_current_menu()
+    
+    def _paste_clipboard(self):
+        """Handle paste operation at canvas position."""
+        canvas_x = self._menu_data.get('canvas_x', 0)
+        canvas_y = self._menu_data.get('canvas_y', 0)
+        
+        event = UserPasteClipboardEvent(
+            canvasX=canvas_x,
+            canvasY=canvas_y
+        )
+        self._on_emit_event(event)
+        self._close_current_menu()
+    
+    def _has_clipboard_content(self) -> bool:
+        """Check if clipboard has content available for pasting."""
+        if self._clipboard_checker:
+            return self._clipboard_checker()
+        return False
 
     def _delete_node(self, node_id: str):
         """Handle node deletion."""
@@ -97,9 +117,12 @@ class PopupContextMenu:
         self._close_current_menu()
     
     def _copy_node(self, node_id: str):
-        """Handle node copying."""
-        print(f"[PopupContextMenu] Not Yet implemented: Copying node {node_id}")
-        # not yet impleemented
+        """Handle single node copying."""
+        event = UserCopySelectedEvent(
+            selectedNodes=[node_id],
+            selectedConnections=[]
+        )
+        self._on_emit_event(event)
         self._close_current_menu()
         
     # Connection Actions
@@ -128,12 +151,22 @@ class PopupContextMenu:
         popup = Popup.create_context_menu("Create Node", x + 5, y + 5)
         
         with popup:
-            # Create the hierarchical node menu using NodeMenuBuilder
-            self._menu_builder.create_node_menu(
-                on_node_selected=self._handle_node_selection,
-                recent_nodes=self._recent_nodes,
-                show_search=True
-            )
+            with ui.column().classes('w-full gap-1'):
+                # Add paste option if clipboard has content
+                if self._has_clipboard_content():
+                    btn_paste = ui.button('📄 Paste', on_click=lambda: self._paste_clipboard())
+                    btn_paste.props('flat align=left')
+                    btn_paste.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                    
+                    # Add separator if we have paste option
+                    ui.separator().classes('w-full my-1')
+                
+                # Create the hierarchical node menu using NodeMenuBuilder
+                self._menu_builder.create_node_menu(
+                    on_node_selected=self._handle_node_selection,
+                    recent_nodes=self._recent_nodes,
+                    show_search=True
+                )
         
         popup.open()
         self._current_popup = popup
@@ -264,8 +297,13 @@ class PopupContextMenu:
         self._close_current_menu()
     
     def _copy_selected_nodes(self):
-        """Handle copying of selected nodes (placeholder)."""
+        """Handle copying of selected nodes and connections."""
         selected_nodes = self._menu_data.get('selected_nodes', [])
-        print(f"[PopupContextMenu] Not Yet implemented: Copying {len(selected_nodes)} nodes")
-        # TODO: Implement multi-node copying
+        selected_connections = self._menu_data.get('selected_connections', [])
+        
+        event = UserCopySelectedEvent(
+            selectedNodes=selected_nodes,
+            selectedConnections=selected_connections
+        )
+        self._on_emit_event(event)
         self._close_current_menu()

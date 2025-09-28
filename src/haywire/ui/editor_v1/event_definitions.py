@@ -156,6 +156,18 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
     selectedNodes: List[str]
     selectedConnections: List[str]
 
+@graph_event("userCopySelected", category="user", description="Copy selected elements to clipboard")
+@dataclass
+class UserCopySelectedEvent(BaseGraphEvent):
+    selectedNodes: List[str]
+    selectedConnections: List[str]
+
+@graph_event("userPasteClipboard", category="user", description="Paste clipboard contents")
+@dataclass
+class UserPasteClipboardEvent(BaseGraphEvent):
+    canvasX: float
+    canvasY: float
+
 # =============================================================================
 # SYNC EVENTS (Python → Vue) - Unchanged
 # =============================================================================
