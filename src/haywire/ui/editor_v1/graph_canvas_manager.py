@@ -285,21 +285,50 @@ class GraphCanvasManager:
         print(f"📋 Copying {len(event.selectedNodes)} nodes and {len(event.selectedConnections)} connections")
         
         try:
+            # Calculate bounding box for positioning
+            bounding_box = self._calculate_selection_bounds(event.selectedNodes)
+ 
+            # Store in session clipboard
+            self.clipboard = ClipboardData(
+                nodes=event.selectedNodes,
+                edges=event.selectedConnections,
+                original_to_new_ids={},  # Not needed for copy
+                bounding_box=bounding_box,
+                timestamp=time.time(),
+                source_session_id=self.session_id
+            )
+                        
+        except Exception as e:
+            print(f"❌ Error during copy operation: {e}")
+            ui.notify(f"Copy failed: {e}", type='negative')
+            traceback.print_exc()
+    
+    @handles_event(UserPasteClipboardEvent)
+    def process_paste_clipboard(self, event: UserPasteClipboardEvent):
+        """Handle pasting clipboard contents."""
+        if not self.clipboard:
+            print("❌ No clipboard content to paste")
+            ui.notify("Nothing to paste", type='warning')
+            return
+            
+        print(f"📄 Pasting {len(self.clipboard.nodes)} nodes and {len(self.clipboard.edges)} connections at ({event.canvasX}, {event.canvasY})")
+        
+        try:
             # Filter connections - only between selected nodes
             valid_edges = []
-            for conn_uuid in event.selectedConnections:
+            for conn_uuid in self.clipboard.edges:
                 edge = self.graph.get_edge(conn_uuid)
-                if edge and edge.output_node_id in event.selectedNodes and edge.input_node_id in event.selectedNodes:
+                if edge and edge.output_node_id in self.clipboard.edges and edge.input_node_id in event.selectedNodes:
                     valid_edges.append((conn_uuid, edge))
             
             # Calculate bounding box for positioning
-            bounding_box = self._calculate_selection_bounds(event.selectedNodes)
+            bounding_box = self._calculate_selection_bounds(self.clipboard.edges)
             
             # Create new node instances with new IDs
             new_nodes = {}
             id_mapping = {}
             
-            for original_node_id in event.selectedNodes:
+            for original_node_id in self.clipboard.nodes:
                 original_node = self.graph.get_node(original_node_id)
                 if not original_node:
                     continue
@@ -345,7 +374,7 @@ class GraphCanvasManager:
                     new_edges[new_conn_uuid] = new_edge
             
             # Store in session clipboard
-            self.clipboard = ClipboardData(
+            tmp_clipboard = ClipboardData(
                 nodes=new_nodes,
                 edges=new_edges,
                 original_to_new_ids=id_mapping,
@@ -354,29 +383,10 @@ class GraphCanvasManager:
                 source_session_id=self.session_id
             )
             
-            print(f"✅ Copied {len(new_nodes)} nodes and {len(new_edges)} connections to clipboard")
-            ui.notify(f"Copied {len(new_nodes)} nodes to clipboard", type='positive')
-            
-        except Exception as e:
-            print(f"❌ Error during copy operation: {e}")
-            ui.notify(f"Copy failed: {e}", type='negative')
-            traceback.print_exc()
-    
-    @handles_event(UserPasteClipboardEvent)
-    def process_paste_clipboard(self, event: UserPasteClipboardEvent):
-        """Handle pasting clipboard contents."""
-        if not self.clipboard:
-            print("❌ No clipboard content to paste")
-            ui.notify("Nothing to paste", type='warning')
-            return
-            
-        print(f"📄 Pasting {len(self.clipboard.nodes)} nodes and {len(self.clipboard.edges)} connections at ({event.canvasX}, {event.canvasY})")
-        
-        try:
             # Create and execute paste action
             paste_action = PasteClipboardAction(
                 graph=self.graph,
-                clipboard_data=self.clipboard,
+                clipboard_data=tmp_clipboard,
                 paste_x=event.canvasX,
                 paste_y=event.canvasY
             )
