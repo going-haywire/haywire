@@ -398,11 +398,14 @@ class NodeFactory:
             ]
 
             if any(query_lower in text for text in searchable):
+                metadata = self.node_registry.get_metadata(key)
+                library_name = metadata.name if metadata else 'Unknown'
+                
                 results.append({
                     'label': label,
                     'key': key,
                     'description': description,
-                    'library': self.node_registry.get_metadata(key)['library_name']
+                    'library': library_name
                 })
 
         return results
@@ -421,7 +424,7 @@ class NodeFactory:
 
         for registry_key in self.node_registry.list_names():
             metadata = self.node_registry.get_metadata(registry_key)
-            if metadata and metadata.get('library_name') == library_name:
+            if metadata and metadata.name == library_name:
                 node_class = self.node_registry.get(registry_key)
                 
                 # Use class_identity if available, fallback to old attributes
@@ -485,8 +488,8 @@ class NodeFactory:
             'description': description,
             'search_tags': tags,
             'menu': menu,
-            'library_name': metadata.get('library_name') if metadata else None,
-            'library_version': metadata.get('library_version') if metadata else None,
+            'library_name': metadata.name if metadata else None,
+            'library_version': metadata.version if metadata else None,
             'class_name': node_class.__name__,
             'module': node_class.__module__
         }

@@ -86,14 +86,14 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
                     if node.inlets:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.inlets.values():
-                            self._render_inlet(inlet, ui_elements, widget_instances)
+                            self._render_inlet(inlet, ui_elements, widget_instances, node)
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
                     if node.outlets:
                         ui.label('Outputs').classes('font-bold text-sm')
                         for outlet in node.outlets.values():
-                            self._render_outlet(outlet)
+                            self._render_outlet(outlet, node)
 
             # Footer with port counts
             with ui.row().classes('w-full justify-between mt-2'):

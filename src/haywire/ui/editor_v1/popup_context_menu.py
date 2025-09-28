@@ -9,12 +9,13 @@ This component provides context menus for different elements in the graph canvas
 Uses the enhanced Popup class that creates elements at page root level to avoid zoom/transform inheritance.
 """
 
-from nicegui import ui, app
+from nicegui import ui, app, events
 from typing import Dict, List, Optional, Callable
 
 from haywire.ui.editor_v1.editor import Editor
 from .popup import Popup
 from .event_definitions import  NodeCreateRequestEvent, UserRemoveEvent
+from .node_menu_builder import NodeMenuBuilder
 
 
 class PopupContextMenu:
@@ -30,6 +31,13 @@ class PopupContextMenu:
         
         self._current_popup: Optional[Popup] = None
         self._menu_data: dict = {}
+        
+        # Node menu builder for creating hierarchical menus
+        self._menu_builder = NodeMenuBuilder(editor.node_factory)
+        self._recent_nodes: List[str] = []  # Track recently created nodes
+        
+        # Setup hot reload listener
+        self._setup_hot_reload_listener()
     
     def _close_current_menu(self):
         """Close any currently open menu."""
@@ -38,18 +46,23 @@ class PopupContextMenu:
             self._current_popup.delete()
             self._current_popup = None
     
-    def _get_node_display_name(self, node_type: str) -> str:
-        """Convert node type to display name."""
-        parts = node_type.split(':')
-        if len(parts) > 1:
-            return parts[-1].replace('.', ' ').title()
-        return node_type
+    def _setup_hot_reload_listener(self):
+        """Setup listener for node hot reload events."""
+        self.editor.node_factory.add_hot_reload_listener(
+            lambda registry_key, affected_nodes: self._menu_builder.invalidate_cache()
+        )
     
     # Canvas Actions  
     def _create_node(self, node_type: str):
         """Handle node creation."""
         canvas_x = self._menu_data.get('canvas_x', 0)
         canvas_y = self._menu_data.get('canvas_y', 0)
+        
+        # Track recently created nodes
+        if node_type not in self._recent_nodes:
+            self._recent_nodes.insert(0, node_type)
+            # Keep only last 5 recent nodes
+            self._recent_nodes = self._recent_nodes[:5]
                 
         event = NodeCreateRequestEvent(
             nodeType=node_type,
@@ -102,7 +115,7 @@ class PopupContextMenu:
     ##############################################
 
     def show_canvas_menu(self, x: float, y: float, canvas_x: float = None, canvas_y: float = None):
-        """Show context menu for canvas (node creation)."""
+        """Show enhanced context menu for canvas (node creation) using NodeMenuBuilder."""
         self._close_current_menu()
         
         # Store canvas coordinates for node creation
@@ -112,22 +125,25 @@ class PopupContextMenu:
         }
                 
         # Create context menu popup positioned at cursor
-        popup = Popup.create_context_menu("Canvas Menu", x + 5, y + 5)
+        popup = Popup.create_context_menu("Create Node", x + 5, y + 5)
         
         with popup:
-            # Node creation section
-            ui.label('Create Node').classes('text-xs font-semibold text-gray-600 uppercase mb-2')
-            
-            with ui.column().classes('w-full gap-1'):
-                for node_type in self.editor.get_available_node_regkeys():
-                    display_name = self._get_node_display_name(node_type)
-                    btn = ui.button(f'+ {display_name}', on_click=lambda nt=node_type: self._create_node(nt))
-                    btn.props('flat align=left')
-                    btn.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+            # Create the hierarchical node menu using NodeMenuBuilder
+            self._menu_builder.create_node_menu(
+                on_node_selected=self._handle_node_selection,
+                recent_nodes=self._recent_nodes,
+                show_search=True
+            )
         
         popup.open()
         self._current_popup = popup
     
+    def _handle_node_selection(self, registry_key: str):
+        """Handle when a node is selected from the menu."""
+        self._create_node(registry_key)
+    
+
+
     def show_node_menu(self, x: float, y: float, node_id: str):
         """Show context menu for node operations."""
         self._close_current_menu()
