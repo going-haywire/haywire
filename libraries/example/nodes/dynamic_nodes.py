@@ -53,7 +53,7 @@ class ConfigurableMathNode(BaseNode):
     )
     
     # Regular data inlets
-    value_a = PinBuilder.inlet(FLOAT(value==0.0), 'Value A')
+    value_a = PinBuilder.inlet(FLOAT(value=0.0), 'Value A')
     value_b = PinBuilder.inlet(FLOAT(value=0.0), 'Value B')
     
     # Data outlet

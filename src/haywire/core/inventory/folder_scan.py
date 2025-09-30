@@ -152,34 +152,9 @@ def _catch_import_modules(module_name: str) -> ModuleType | None:
                         if line_num == line_number:
                             # This is the error line - show it with >> marker
                             logging.error(f"Source: >>line {line_num:2d}: {line_content}")
-                            
-                            # Try to highlight the specific error location if available
-                            if hasattr(exc_value, 'offset') and exc_value.offset:
-                                # For SyntaxError, we can show the exact position
-                                prefix_len = len(f"Source: >>line {line_num:2d}: ")
-                                spaces = ' ' * (prefix_len + exc_value.offset - 1)
-                                logging.error(f"Source: >>{spaces}~~~~")
-                            else:
-                                # For other errors, try to highlight based on error message
-                                error_msg = str(exc_value)
-                                
-                                # Look for strings enclosed in single quotes in the error message
-                                quoted_matches = re.findall(r"'([^']+)'", error_msg)
-                                
-                                highlighted = False
-                                for quoted_string in quoted_matches:
-                                    if quoted_string in line_content:
-                                        name_pos = line_content.find(quoted_string)
-                                        prefix_len = len(f"line {line_num:2d}: ")
-                                        spaces = ' ' * (prefix_len + name_pos)
-                                        highlight = '~' * len(quoted_string)
-                                        logging.error(f"Source: >>{spaces}{highlight}")
-                                        highlighted = True
-                                        break
-                                
-                                # Fallback: if no quoted strings found or matched, don't show highlighting
-                                if not highlighted:
-                                    logging.debug(f"Could not highlight error in line: {line_content}")
+                            prefix_len = len(line_content)
+                            highlight = '~' * (prefix_len)
+                            logging.error(f"Source: >>line {line_num:2d}: >{highlight}<")
                         else:
                             # Context line - show with .. marker
                             logging.error(f"Source: ..line {line_num:2d}: {line_content}")

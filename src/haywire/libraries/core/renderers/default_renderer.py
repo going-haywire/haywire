@@ -130,11 +130,11 @@ class DefaultNodeRenderer(BaseNodeRenderer):
     def _render_pin(self, pin: ConfigurableElement, direction: str = 'left', node: BaseNode = None):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
-        pin_direction = 'inlet' if pin.is_inlet else 'outlet'
+        pin_direction = 'inlet' if pin.is_inlet() else 'outlet'
         pin_uuid = generate_pin_uuid(pin_direction, node.node_id, pin.id)
         
         # Calculate 2D direction vector components based on pin type
-        if pin.is_inlet:
+        if pin.is_inlet():
             # Inlets point left (negative X)
             dir_x, dir_y = "-1", "0"
         else:
