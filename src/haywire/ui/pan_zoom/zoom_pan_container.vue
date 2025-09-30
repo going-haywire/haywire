@@ -104,6 +104,7 @@ export default {
     handleGlobalKeyDown(e) {
       // Track modifier key states
       if (e.key === 'Control' || e.key === 'Meta') { // Meta for Cmd on Mac
+        // currently ignored
         this.gestureState.ctrlPressed = true;
       }
       
@@ -115,6 +116,7 @@ export default {
     handleGlobalKeyUp(e) {
       // Track modifier key states
       if (e.key === 'Control' || e.key === 'Meta') {
+        // currently ignored
         this.gestureState.ctrlPressed = false;
       }
       
@@ -126,10 +128,10 @@ export default {
     handleWheel(e) {
       // Immediate processing - no batching
       // Check if we're in a special gesture mode
-      const isCtrlGesture = this.gestureState.ctrlPressed;
+      // const isCtrlGesture = this.gestureState.ctrlPressed; -> currently ignored
       const isShiftGesture = this.gestureState.shiftPressed;
        
-      if (isCtrlGesture) {
+      if (!isShiftGesture) {
         const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
         this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
       }
