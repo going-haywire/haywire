@@ -320,10 +320,7 @@ class GraphCanvasManager:
                 edge = self.graph.get_edge(conn_uuid)
                 if edge and edge.output_node_id in self.clipboard.edges and edge.input_node_id in event.selectedNodes:
                     valid_edges.append((conn_uuid, edge))
-            
-            # Calculate bounding box for positioning
-            bounding_box = self._calculate_selection_bounds(self.clipboard.edges)
-            
+                        
             # Create new node instances with new IDs
             new_nodes = {}
             id_mapping = {}
@@ -378,7 +375,7 @@ class GraphCanvasManager:
                 nodes=new_nodes,
                 edges=new_edges,
                 original_to_new_ids=id_mapping,
-                bounding_box=bounding_box,
+                bounding_box=self.clipboard.bounding_box,
                 timestamp=time.time(),
                 source_session_id=self.session_id
             )
