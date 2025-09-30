@@ -5,7 +5,9 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .elements import Inlet, Outlet
+from haywire.core.data.enums import FlowType
+
+from .elements import Inlet, Outlet, PinSpec
 from ..inventory.base import LibraryMetadata
 
 
@@ -133,29 +135,56 @@ def node_identity(label: str, description: str = '', search_tags: list[str] = No
         return cls
     return decorator
 
-
 class NodeMeta(type):
-    """Metaclass that automatically copies class_identity to instance identity"""
+    """Metaclass that processes pin declarations"""
+    
     def __new__(cls, name, bases, attrs):
-        # Create the class normally
         new_class = super().__new__(cls, name, bases, attrs)
         
-        # Store original __init__ method
+        # Collect PinSpecs from class attributes
+        pin_specs = {}
+        for attr_name, attr_value in attrs.items():
+            if isinstance(attr_value, PinSpec):
+                pin_specs[attr_name] = attr_value
+        
         original_init = new_class.__init__
         
         def enhanced_init(self, *args, **kwargs):
-            # Call original __init__
+            # Initialize storage dictionaries
+            self.configs = {}
+            self.properties = {}
+
+            
+            # Call original init
             original_init(self, *args, **kwargs)
             
-            # Auto-copy class_identity to instance identity if it exists
+            # Create static pins from class-level PinSpecs
+            for attr_name, pin_spec in pin_specs.items():
+
+                # Route to appropriate storage
+                if pin_spec.is_config:
+                    pin = pin_spec.create_inlet(attr_name)
+                    self.configs[attr_name] = pin
+                elif pin_spec.is_property:
+                    pin = pin_spec.create_inlet(attr_name)
+                    self.properties[attr_name] = pin
+                elif pin_spec.flow_type in (FlowType.CTRL, FlowType.DATA, FlowType.CALLBACK):
+                    pin = pin_spec.create_inlet(attr_name)
+                    self.inlets[attr_name] = pin
+                else:
+                    pin = pin_spec.create_outlet(attr_name)
+                    self.outlets[attr_name] = pin
+                
+                setattr(self, attr_name, pin)
+            
+            self._cache_dirty = True
+            
+            # Copy class identity
             if hasattr(self.__class__, 'class_identity'):
-                # Copy the dataclass to avoid shared references
                 from copy import deepcopy
                 self.identity = deepcopy(self.__class__.class_identity)
         
-        # Replace the __init__ method
         new_class.__init__ = enhanced_init
-        
         return new_class
 
 
@@ -167,8 +196,8 @@ class NodeData():
         self.outlets: Dict[str, Outlet] = {}
         
         # Performance optimization: direct access caches
-        self._inlet_data_cache: dict[str, Any] = {}
-        self._cache_dirty = True
+        # self._inlet_data_cache: dict[str, Any] = {}
+        # self._cache_dirty = True
        
     def add_inlet(self, inlet: Inlet) -> Inlet:
         """Add an inlet element"""
@@ -186,66 +215,7 @@ class NodeData():
             raise ValueError("Outlet ID cannot contain double underscores '__'")
         self.outlets[outlet.id] = outlet
         return outlet
-    
-    def get_inlet_value(self, inlet_id: str) -> Any:
-        """Fast access to inlet value (cached)"""
-        if self._cache_dirty:
-            self._rebuild_cache()
         
-        if inlet_id in self._inlet_data_cache:
-            data = self._inlet_data_cache[inlet_id]
-            return data.get_value()
-        return None
-    
-    def get_inlet_values_list(self, inlet_id: str) -> List[Any]:
-        """Get inlet values as list (useful for many-coupling inlets)"""
-        if self._cache_dirty:
-            self._rebuild_cache()
-        
-        if inlet_id in self._inlet_data_cache:
-            data = self._inlet_data_cache[inlet_id]
-            return data.get_values_list()
-        return []
-    
-    def set_outlet_value(self, outlet_id: str, value: Any):
-        """Set outlet value and propagate through pipes"""
-        if outlet_id in self.outlets:
-            outlet = self.outlets[outlet_id]
-            if outlet.data:
-                outlet.data.set_value(value)
-            
-            # Propagate to connected inlets through pipes
-            for pipe in outlet.pipes:
-                pipe.propagate(value)
-    
-    def _rebuild_cache(self):
-        """Rebuild inlet data cache for performance"""
-        self._inlet_data_cache = {
-            inlet_id: inlet.data 
-            for inlet_id, inlet in self.inlets.items() 
-            if inlet.data
-        }
-        self._cache_dirty = False
-    
-    def get_dirty_inlets(self) -> List[str]:
-        """Get list of dirty inlet IDs"""
-        return [
-            inlet_id for inlet_id, inlet in self.inlets.items()
-            if inlet.data and inlet.data.is_dirty
-        ]
-    
-    def mark_inlets_clean(self):
-        """Mark all inlets as clean after processing"""
-        for inlet in self.inlets.values():
-            if inlet.data:
-                inlet.data.mark_clean()
-    
-    def to_dict(self) -> Dict:
-        """Serialize to dict structure"""
-        return {
-            'inlets': {k: v.to_dict() for k, v in self.inlets.items()},
-            'outlets': {k: v.to_dict() for k, v in self.outlets.items()}
-        }
 
 @abstractmethod
 class BaseNode(NodeData, metaclass=NodeMeta):

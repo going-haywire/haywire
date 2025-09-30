@@ -1,9 +1,11 @@
 import logging
+import re
 import os
 import importlib
 import inspect
 import sys
 import traceback
+from types import ModuleType
 from typing import List, Type, Optional, Callable
 from pathlib import Path
 
@@ -85,7 +87,7 @@ def module_scan_for_classes(module_name: str,
         # to ensure it is the latest version that is reloaded
         del sys.modules[module_name]
     
-    module = importlib.import_module(module_name)
+    module = _catch_import_modules(module_name)
 
     # Inspect all classes in the module
     for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -101,3 +103,94 @@ def module_scan_for_classes(module_name: str,
                 continue
 
     return discovered_classes
+
+def _catch_import_modules(module_name: str) -> ModuleType | None:
+    """
+    Attempt to import a module by name, catching and logging any ImportError.
+    
+    Args:
+        module_name: Name of the module to import
+    Returns:
+
+        The imported module, or None if import failed
+
+    """
+    try:
+        return importlib.import_module(module_name)
+    except Exception as e:
+        exc_type, exc_value, exc_tb = sys.exc_info()
+        
+        # Get the last frame where the error occurred
+        while exc_tb.tb_next:
+            exc_tb = exc_tb.tb_next
+        
+        frame = exc_tb.tb_frame
+        filename = frame.f_code.co_filename
+        line_number = exc_tb.tb_lineno
+        
+        # Try to read the actual source line with context
+        try:
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+                if line_number <= len(lines):
+                    error_line = lines[line_number - 1].rstrip()
+                    
+                    # Create detailed error output
+                    logging.error(" ========= Import Failed ============")
+                    logging.error(f"Module: {module_name}")
+                    logging.error(f"File  : {filename}")
+                    
+                    # Show context lines around the error
+                    context_range = 2  # Show 2 lines before and after
+                    start_line = max(0, line_number - context_range - 1)
+                    end_line = min(len(lines), line_number + context_range)
+                    
+                    for i in range(start_line, end_line):
+                        line_content = lines[i].rstrip()
+                        line_num = i + 1
+                        
+                        if line_num == line_number:
+                            # This is the error line - show it with >> marker
+                            logging.error(f"Source: >>line {line_num:2d}: {line_content}")
+                            
+                            # Try to highlight the specific error location if available
+                            if hasattr(exc_value, 'offset') and exc_value.offset:
+                                # For SyntaxError, we can show the exact position
+                                prefix_len = len(f"Source: >>line {line_num:2d}: ")
+                                spaces = ' ' * (prefix_len + exc_value.offset - 1)
+                                logging.error(f"Source: >>{spaces}~~~~")
+                            else:
+                                # For other errors, try to highlight based on error message
+                                error_msg = str(exc_value)
+                                
+                                # Look for strings enclosed in single quotes in the error message
+                                quoted_matches = re.findall(r"'([^']+)'", error_msg)
+                                
+                                highlighted = False
+                                for quoted_string in quoted_matches:
+                                    if quoted_string in line_content:
+                                        name_pos = line_content.find(quoted_string)
+                                        prefix_len = len(f"line {line_num:2d}: ")
+                                        spaces = ' ' * (prefix_len + name_pos)
+                                        highlight = '~' * len(quoted_string)
+                                        logging.error(f"Source: >>{spaces}{highlight}")
+                                        highlighted = True
+                                        break
+                                
+                                # Fallback: if no quoted strings found or matched, don't show highlighting
+                                if not highlighted:
+                                    logging.debug(f"Could not highlight error in line: {line_content}")
+                        else:
+                            # Context line - show with .. marker
+                            logging.error(f"Source: ..line {line_num:2d}: {line_content}")
+                    
+                    logging.error(f"Error : {exc_type.__name__}: {exc_value}")
+                    logging.error(" ========= Import Failed ============")
+                else:
+                    # Fallback to standard traceback
+                    logging.error(''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+        except (IOError, OSError):
+            # If we can't read the file, fall back to standard traceback
+            logging.error(''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+        
+        raise Exception(f"Failed to import module {module_name}: {e}")
