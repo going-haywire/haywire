@@ -128,14 +128,14 @@ export default {
     handleWheel(e) {
       // Immediate processing - no batching
       // Check if we're in a special gesture mode
-      // const isCtrlGesture = this.gestureState.ctrlPressed; -> currently ignored
+      const isCtrlGesture = this.gestureState.ctrlPressed;
       const isShiftGesture = this.gestureState.shiftPressed;
        
-      if (!isShiftGesture) {
+      if (isCtrlGesture) {
         const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
         this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
       }
-      else if (isShiftGesture) {
+      else if (!isCtrlGesture) {
         const deltaX = (-e.deltaX) * this.panSensitivity;
         const deltaY = (-e.deltaY) * this.panSensitivity;
         this._setPanDirect(this._panX + deltaX, this._panY + deltaY);
