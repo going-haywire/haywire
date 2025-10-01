@@ -100,6 +100,7 @@ class PinSpec:
     callback: Optional[Callable] = None
     is_config: bool = False
     is_property: bool = False
+    is_outlet: bool = False
     
     def create_inlet(self, element_id: str, node_instance=None) -> Inlet:
         """Instantiate an Inlet from this spec"""
@@ -195,6 +196,7 @@ class PinBuilder:
             flow_type=FlowType.DATA,
             data_spec=spec,
             label=label,
+            is_outlet=True,
             **kwargs
         )
     
@@ -203,5 +205,6 @@ class PinBuilder:
         return PinSpec(
             flow_type=FlowType.CTRL,
             label=label,
+            is_outlet=True,
             **kwargs
         )
