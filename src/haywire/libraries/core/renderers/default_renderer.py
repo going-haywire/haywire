@@ -38,7 +38,11 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         widget_instances: Dict[str, Any] = {}
         
         # Create the main card
-        with ui.card().classes(f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0') as main_card:
+        with ui.card().classes(
+                f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
+            ).style(
+                'background-color: rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px);'
+            ) as main_card:
             with ui.row().classes('drag-handle'):
                 ui.label(node.identity.label).classes('text-h6')
 
