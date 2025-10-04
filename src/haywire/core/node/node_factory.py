@@ -8,6 +8,7 @@ lifecycle or undo operations - those are handled by Graph and Actions respective
 
 import time
 import uuid
+import logging
 from typing import Dict, List, Optional, Any, Callable, Tuple
 from dataclasses import dataclass
 from collections import defaultdict
@@ -15,6 +16,7 @@ from collections import defaultdict
 from .node import BaseNode
 from ..graph.graph import HaywireGraph
 from ..inventory.registry.node import NodeRegistry
+from ..errors import log_detailed_error, DetailedError
 
 
 class NodeFactory:
@@ -68,8 +70,18 @@ class NodeFactory:
         if error_info is not None:
             raise ValueError(f"Failed to get node class '{registry_key}': {error_info}")
         
-        # Create the node instance 
-        node = node_class(node_id, graph)
+        # Create the node instance with detailed error handling
+        try:
+            node = node_class(node_id, graph)
+        except Exception as e:
+            # Create detailed error with context about the node instantiation
+            detailed_error = log_detailed_error(
+                exception=e,
+                operation="instantiate node",
+                module_name=getattr(node_class, '__module__', None),
+                message=f"Failed to instantiate node '{registry_key}'"
+            )
+            raise detailed_error
         
         # Set the library metadata from the class default
         if hasattr(node_class, '_default_library_metadata'):

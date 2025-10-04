@@ -1,15 +1,16 @@
 import logging
-import re
 import os
 import importlib
 import inspect
 import sys
 import traceback
+import re
 from types import ModuleType
 from typing import List, Type, Optional, Callable
 from pathlib import Path
 
 from haywire.core.inventory.utils import resolve_module_name
+from haywire.core.errors import log_detailed_error, DetailedError
 
 def folder_scan_for_classes(library_path: str, 
                          class_filter: Callable[[Type], bool],
@@ -111,61 +112,16 @@ def _catch_import_modules(module_name: str) -> ModuleType | None:
     Args:
         module_name: Name of the module to import
     Returns:
-
         The imported module, or None if import failed
-
     """
     try:
         return importlib.import_module(module_name)
     except Exception as e:
-        exc_type, exc_value, exc_tb = sys.exc_info()
-        
-        # Get the last frame where the error occurred
-        while exc_tb.tb_next:
-            exc_tb = exc_tb.tb_next
-        
-        frame = exc_tb.tb_frame
-        filename = frame.f_code.co_filename
-        line_number = exc_tb.tb_lineno
-        
-        # Try to read the actual source line with context
-        try:
-            with open(filename, 'r') as f:
-                lines = f.readlines()
-                if line_number <= len(lines):
-                    error_line = lines[line_number - 1].rstrip()
-                    
-                    # Create detailed error output
-                    logging.error(" ========= Import Failed ============")
-                    logging.error(f"Module: {module_name}")
-                    logging.error(f"File  : {filename}")
-                    
-                    # Show context lines around the error
-                    context_range = 2  # Show 2 lines before and after
-                    start_line = max(0, line_number - context_range - 1)
-                    end_line = min(len(lines), line_number + context_range)
-                    
-                    for i in range(start_line, end_line):
-                        line_content = lines[i].rstrip()
-                        line_num = i + 1
-                        
-                        if line_num == line_number:
-                            # This is the error line - show it with >> marker
-                            logging.error(f"Source: >>line {line_num:2d}: {line_content}")
-                            prefix_len = len(line_content)
-                            highlight = '~' * (prefix_len)
-                            logging.error(f"Source: >>line {line_num:2d}: >{highlight}<")
-                        else:
-                            # Context line - show with .. marker
-                            logging.error(f"Source: ..line {line_num:2d}: {line_content}")
-                    
-                    logging.error(f"Error : {exc_type.__name__}: {exc_value}")
-                    logging.error(" ========= Import Failed ============")
-                else:
-                    # Fallback to standard traceback
-                    logging.error(''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
-        except (IOError, OSError):
-            # If we can't read the file, fall back to standard traceback
-            logging.error(''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
-        
-        raise Exception(f"Failed to import module {module_name}: {e}")
+        # Create detailed error with context about the module import
+        detailed_error = log_detailed_error(
+            exception=e,
+            operation="import",
+            module_name=module_name,
+            message=f"Failed to import module '{module_name}'"
+        )
+        raise detailed_error

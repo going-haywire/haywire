@@ -11,6 +11,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from haywire.core.inventory.base import BaseLibrary, FileChangeEvent, FileEventType
+from haywire.core.errors import log_detailed_error, DetailedError
 
 
 class LibraryFileHandler(FileSystemEventHandler):
@@ -215,7 +216,16 @@ class FileWatcher:
                     logging.info(f"Notifying library '{library_name}' about {event.event_type.value}: {event.file_path}")
                     library.handle_file_change(event)
                 except Exception as e:
-                    logging.error(f"Failed notifying '{library_name}': {e}")
+                    try:
+                        log_detailed_error(
+                            exception=e,
+                            operation="library notification",
+                            message=f"Failed notifying library '{library_name}' about file change"
+                        )
+                    except Exception as logging_error:
+                        # Fallback to simple logging if detailed error fails
+                        logging.error(f"Failed notifying '{library_name}': {e}")
+                        logging.error(f"Error logging failed: {logging_error}")
 
     def _validate_python_file(self, file_path: str) -> bool:
         """
@@ -228,16 +238,16 @@ class FileWatcher:
             # Try to parse the AST
             ast.parse(source_code, filename=file_path)
             return True
-        except SyntaxError as e:
-            # Get specific syntax error details
-            error_details = [
-                f"Syntax error in {file_path}:",
-                f"  Line {e.lineno}: {e.text.strip() if e.text else 'N/A'}",
-                f"  Error: {e.msg}",
-                f"  Position: {' ' * (e.offset - 1) if e.offset else ''}^" if e.offset else ""
-            ]
-            logging.error("\n".join(filter(None, error_details)))
-            return False
         except Exception as e:
-            logging.error(f"Error reading/parsing {file_path}: {e}")
+            # Use detailed error logging for syntax validation
+            try:
+                log_detailed_error(
+                    exception=e,
+                    operation="syntax validation",
+                    message=f"Syntax error in {file_path}"
+                )
+            except Exception as logging_error:
+                # Fallback to simple logging if detailed error fails
+                logging.error(f"Syntax error in {file_path}: {e}")
+                logging.error(f"Error logging failed: {logging_error}")
             return False
