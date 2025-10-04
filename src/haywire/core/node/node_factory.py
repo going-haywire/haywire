@@ -79,14 +79,13 @@ class NodeFactory:
                 exception=e,
                 operation="instantiate node",
                 module_name=getattr(node_class, '__module__', None),
+                registry_key=registry_key,
+                class_name=node_class.__name__,
+                library_name=node_class.class_library.name,
                 message=f"Failed to instantiate node '{registry_key}'"
             )
             raise detailed_error
-        
-        # Set the library metadata from the class default
-        if hasattr(node_class, '_default_library_metadata'):
-            node.library = node_class._default_library_metadata
-        
+                
         if error_info:
             node.error_info = error_info
         
@@ -170,8 +169,8 @@ class NodeFactory:
                 tags = identity.search_tags
             else:
                 menu_path = getattr(node_class, 'node_menu', 'misc')
-                label = node_class._default_library_metadata.label
-                description = node_class._default_library_metadata.description
+                label = node_class.class_library.label
+                description = node_class.class_library.description
                 tags = getattr(node_class, 'node_search_tags', [])
 
             if menu_path not in menu:
@@ -209,8 +208,8 @@ class NodeFactory:
                 description = identity.description
                 tags = identity.search_tags
             else:
-                label = node_class._default_library_metadata.label
-                description = node_class._default_library_metadata.description
+                label = node_class.class_library.label
+                description = node_class.class_library.description
                 tags = getattr(node_class, 'node_search_tags', [])
 
             # Search in label, description, and tags
@@ -266,8 +265,8 @@ class NodeFactory:
             tags = identity.search_tags
             menu = identity.menu
         else:
-            label = node_class._default_library_metadata.label
-            description = node_class._default_library_metadata.description
+            label = node_class.class_library.label
+            description = node_class.class_library.description
             tags = getattr(node_class, 'node_search_tags', [])
             menu = getattr(node_class, 'node_menu', 'misc')
         

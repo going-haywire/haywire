@@ -36,8 +36,7 @@ class NodeRegistry(BaseClassRegistry):
 
         # Store the library metadata and registry key as class attributes 
         # This will be used as the default for new instances
-        node_cls._default_library_metadata = library_metadata
-        node_cls._default_registry_key = registry_key
+        node_cls.class_library = library_metadata
 
         # Set the registry_key in the class_identity if it exists
         if hasattr(node_cls, 'class_identity'):

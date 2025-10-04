@@ -27,6 +27,7 @@ def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryM
 
     widgets = folder_scan_for_classes(
         library_path=__path__[0],
+        metadata=library_metadata,
         class_filter=is_widget
     )
 

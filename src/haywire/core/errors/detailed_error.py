@@ -19,41 +19,45 @@ class ErrorContext:
     line_number: int
     source_line: str
     context_lines: List[str]
+    message: str  # High-level error message for the user
     highlight_position: Optional[int] = None
     module_name: Optional[str] = None
     operation: Optional[str] = None  # 'import', 'instantiation', 'syntax_check'
-
-
-class DetailedError(Exception):
-    """Custom exception with structured error data"""
-    
-    def __init__(self, message: str, context: ErrorContext, original_exception: Exception):
-        super().__init__(message)
-        self.context = context
-        self.original_exception = original_exception
+    library_name: Optional[str] = None
+    registry_key: Optional[str] = None
+    class_name: Optional[str] = None
     
     def format_detailed_message(self) -> str:
         """Format the error as a detailed message"""
         lines = [
             "\n",
             "========= Error Details ============",
-            f"Operation: {self.context.operation or 'Unknown'}",
+            f"Operation: {self.operation or 'Unknown'}",
         ]
         
-        if self.context.module_name:
-            lines.append(f"Module: {self.context.module_name}")
+        if self.library_name:
+            lines.append(f"Library : {self.library_name}")
+            
+        if self.registry_key:
+            lines.append(f"Registry: {self.registry_key}")
+            
+        if self.class_name:
+            lines.append(f"Class   : {self.class_name}")
+        
+        if self.module_name:
+            lines.append(f"Module  : {self.module_name}")
             
         lines.extend([
-            f"File  : {self.context.filename}",
+            f"File    : {self.filename}",
             "",
             "       ┆"
         ])
         
         # Add context lines with fancy box drawing
-        for i, line in enumerate(self.context.context_lines):
-            if i == len(self.context.context_lines) // 2:  # Middle line is the error line
+        for i, line in enumerate(self.context_lines):
+            if i == len(self.context_lines) // 2:  # Middle line is the error line
                 # Calculate content width: line prefix + line content + 6 padding
-                line_prefix = f" »line {self.context.line_number:2d}: "
+                line_prefix = f" »line {self.line_number:2d}: "
                 content_line = f"{line_prefix}{line}"
                 total_content_width = len(content_line) + 6
                 
@@ -76,14 +80,14 @@ class DetailedError(Exception):
                 lines.append(f"Source:┡{bottom_border}┛")
             else:
                 # Calculate actual line number for context
-                offset = i - len(self.context.context_lines) // 2
-                actual_line_num = self.context.line_number + offset
+                offset = i - len(self.context_lines) // 2
+                actual_line_num = self.line_number + offset
                 lines.append(f"Source:│  line {actual_line_num:2d}: {line}")
         
         lines.extend([
             "       ┆",
             "",
-            f"Error : {self.context.error_type}: {self.context.error_message}",
+            f"Error : {self.error_type}: {self.error_message}",
             "========= Error Details ============"
         ])
         
@@ -92,7 +96,11 @@ class DetailedError(Exception):
 
 def analyze_exception(exception: Exception, 
                      operation: str = None,
-                     module_name: str = None) -> ErrorContext:
+                     module_name: str = None,
+                     library_name: str = None,
+                     registry_key: str = None,
+                     class_name: str = None,
+                     message: str = None) -> ErrorContext:
     """
     Analyze an exception and extract detailed error context.
     
@@ -100,6 +108,10 @@ def analyze_exception(exception: Exception,
         exception: The caught exception
         operation: Description of what operation failed ('import', 'instantiation', etc.)
         module_name: The module being processed when error occurred
+        library_name: Name of the library (if available)
+        registry_key: Registry ID of the node/class (if available)
+        class_name: Name of the class (if available)
+        message: High-level error message for the user
         
     Returns:
         ErrorContext with detailed error information
@@ -163,37 +175,7 @@ def analyze_exception(exception: Exception,
         context_lines = [f"<Could not read source from {filename}>"]
         source_line = "<unavailable>"
     
-    return ErrorContext(
-        error_type=exc_type.__name__,
-        error_message=str(exc_value),
-        filename=filename,
-        line_number=line_number,
-        source_line=source_line,
-        context_lines=context_lines,
-        highlight_position=highlight_position,
-        module_name=module_name,
-        operation=operation
-    )
-
-
-def create_detailed_exception(exception: Exception,
-                            operation: str = None,
-                            module_name: str = None,
-                            message: str = None) -> DetailedError:
-    """
-    Create a DetailedError from an exception with structured context.
-    
-    Args:
-        exception: The original exception
-        operation: What operation was being performed
-        module_name: Module being processed
-        message: Custom error message
-        
-    Returns:
-        DetailedError with structured context
-    """
-    context = analyze_exception(exception, operation, module_name)
-    
+    # Generate default message if not provided
     if message is None:
         if operation and module_name:
             message = f"Failed to {operation} module '{module_name}'"
@@ -202,18 +184,39 @@ def create_detailed_exception(exception: Exception,
         else:
             message = f"Operation failed: {exception}"
     
-    return DetailedError(
+    return ErrorContext(
+        error_type=exc_type.__name__,
+        error_message=str(exc_value),
+        filename=filename,
+        line_number=line_number,
+        source_line=source_line,
+        context_lines=context_lines,
         message=message,
-        context=context,
-        original_exception=exception
+        highlight_position=highlight_position,
+        module_name=module_name,
+        operation=operation,
+        library_name=library_name,
+        registry_key=registry_key,
+        class_name=class_name
     )
+
+class DetailedError(Exception):
+    """Custom exception with structured error data"""
+    
+    def __init__(self, context: ErrorContext, original_exception: Exception):
+        super().__init__(context.message)
+        self.context = context
+        self.original_exception = original_exception
 
 
 def log_detailed_error(exception: Exception,
                       operation: str = None,
                       module_name: str = None,
                       message: str = None,
-                      logger: logging.Logger = None) -> DetailedError:
+                      logger: logging.Logger = None,
+                      library_name: str = None,
+                      registry_key: str = None,
+                      class_name: str = None) -> DetailedError:
     """
     Create and log a detailed error.
     
@@ -223,15 +226,24 @@ def log_detailed_error(exception: Exception,
         module_name: Module being processed
         message: Custom error message
         logger: Logger to use (defaults to root logger)
+        library_name: Name of the library (if available)
+        registry_id: Registry ID of the node/class (if available)
+        class_name: Name of the class (if available)
         
     Returns:
         DetailedError with structured context
     """
-    detailed_error = create_detailed_exception(exception, operation, module_name, message)
-    
+
+    context = analyze_exception(exception, operation, module_name, library_name, registry_key, class_name, message)
+
+    detailed_error = DetailedError(
+        context=context,
+        original_exception=exception
+    )
+
     if logger is None:
         logger = logging.getLogger()
     
-    logger.error(detailed_error.format_detailed_message())
+    logger.error(context.format_detailed_message())
     
     return detailed_error

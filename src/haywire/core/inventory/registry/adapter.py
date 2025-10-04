@@ -33,7 +33,7 @@ class AdapterRegistry(BaseClassRegistry):
 
         # Register with base registry for metadata tracking
         adapter_name = f"{source_key}_to_{target_key}"
-        super()._register(adapter_name, adapter_class)
+        super()._register(adapter_name, adapter_class, metadata)
 
     def unregister_adapter(self, adapter_name: str) -> type[BaseAdapter] | None:
         """ Unregister an adapter by its haywire name.

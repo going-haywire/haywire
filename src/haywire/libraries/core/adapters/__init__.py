@@ -46,6 +46,7 @@ def register_adapters(adapter_registry: AdapterRegistry, library_metadata: Libra
     # Discover all adapter classes in this library
     adapters = folder_scan_for_classes(
         library_path=__path__[0],
+        metadata=library_metadata,
         class_filter=is_adapter
     )
 

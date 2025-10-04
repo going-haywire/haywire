@@ -17,6 +17,7 @@ def register_nodes(node_registry: NodeRegistry, library_metadata: LibraryMetadat
     # Discover all node classes in this library
     nodes = folder_scan_for_classes(
         library_path=__path__[0],
+        metadata=library_metadata,
         class_filter=is_node
     )
 

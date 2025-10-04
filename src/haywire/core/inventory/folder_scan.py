@@ -13,6 +13,7 @@ from haywire.core.inventory.utils import resolve_module_name
 from haywire.core.errors import log_detailed_error, DetailedError
 
 def folder_scan_for_classes(library_path: str, 
+                            metadata: Optional[object],
                          class_filter: Callable[[Type], bool],
                          exclude_patterns: Optional[List[str]] = None) -> List[Type]:
     """
@@ -56,7 +57,7 @@ def folder_scan_for_classes(library_path: str,
             # Import the module
             module_name = f"{module_prefix}.{py_file.stem}"
 
-            discovered_classes.extend(module_scan_for_classes(module_name, class_filter, False))
+            discovered_classes.extend(module_scan_for_classes(module_name, metadata, class_filter, False))
                    
         except Exception as e:
             logging.warning(f"Could not import {py_file.name}: {e} \n{traceback.format_exc()}")
@@ -66,6 +67,7 @@ def folder_scan_for_classes(library_path: str,
 
 
 def module_scan_for_classes(module_name: str, 
+                            metadata: Optional[object],
                          class_filter: Callable[[Type], bool],
                          force_reload: bool = False) -> List[Type]:
     """
@@ -88,7 +90,7 @@ def module_scan_for_classes(module_name: str,
         # to ensure it is the latest version that is reloaded
         del sys.modules[module_name]
     
-    module = _catch_import_modules(module_name)
+    module = _catch_import_modules(module_name, metadata)
 
     # Inspect all classes in the module
     for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -105,7 +107,7 @@ def module_scan_for_classes(module_name: str,
 
     return discovered_classes
 
-def _catch_import_modules(module_name: str) -> ModuleType | None:
+def _catch_import_modules(module_name: str, metadata: Optional[object]) -> ModuleType | None:
     """
     Attempt to import a module by name, catching and logging any ImportError.
     
@@ -122,6 +124,7 @@ def _catch_import_modules(module_name: str) -> ModuleType | None:
             exception=e,
             operation="import",
             module_name=module_name,
+            library_name=getattr(metadata, 'name', 'unknown') if metadata else 'unknown',
             message=f"Failed to import module '{module_name}'"
         )
         raise detailed_error

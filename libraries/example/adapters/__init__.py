@@ -15,6 +15,7 @@ def register_adapters(adapter_registry: AdapterRegistry, library_metadata: Libra
     # List of adapter classes to register (self-registering pattern)
     adapters = folder_scan_for_classes(
         library_path=__path__[0],
+        metadata=library_metadata,
         class_filter=is_adapter
     )
 

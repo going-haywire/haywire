@@ -220,7 +220,8 @@ class FileWatcher:
                         log_detailed_error(
                             exception=e,
                             operation="library notification",
-                            message=f"Failed notifying library '{library_name}' about file change"
+                            message=f"Failed notifying library '{library_name}' about file change",
+                            library_name=library_name
                         )
                     except Exception as logging_error:
                         # Fallback to simple logging if detailed error fails
@@ -241,7 +242,7 @@ class FileWatcher:
         except Exception as e:
             # Use detailed error logging for syntax validation
             try:
-                log_detailed_error(
+                detailed_error = log_detailed_error(
                     exception=e,
                     operation="syntax validation",
                     message=f"Syntax error in {file_path}"

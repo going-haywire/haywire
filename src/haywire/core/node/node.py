@@ -1,5 +1,6 @@
 from __future__ import annotations
 import inspect
+from copy import deepcopy
 from typing import Any, Dict, List
 from abc import abstractmethod
 from dataclasses import dataclass, field
@@ -185,10 +186,13 @@ class NodeData():
                     setattr(self, attr_name, pin)
         
         self._cache_dirty = True
-        
+
+        # Set the class metadata from the class default
+
         if hasattr(self.__class__, 'class_identity'):
-            from copy import deepcopy
             self.identity = deepcopy(self.__class__.class_identity)
+        if hasattr(self.__class__, 'class_library'):
+            self.library = deepcopy(self.__class__.class_library)
     
     # deprecated methods for dynamic pin management
     def add_inlet(self, inlet: Inlet) -> Inlet:

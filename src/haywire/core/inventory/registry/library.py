@@ -20,7 +20,7 @@ class LibraryRegistry(BaseRegistry):
         """Register a library instance with its path"""
         library_name = library_instance.metadata.name
 
-        self._register(library_name, library_instance)
+        self._register(library_name, library_instance, library_instance.metadata)
 
         self._library_paths[library_name] = library_path
         if library_name not in self._load_order:
