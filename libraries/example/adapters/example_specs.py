@@ -1,5 +1,5 @@
 # Custom data type for testing
-from haywire.core.data.enums import DataCategory, DataType
+from haywire.core.data.enums import DataContainerType, DataType
 from haywire.core.data.specs import specs_factory
 
 TEMPERATURE = specs_factory(
@@ -7,7 +7,7 @@ TEMPERATURE = specs_factory(
     label='Temperature',
     description='Temperature data type',
     type=DataType.FLOAT,
-    category=DataCategory.SCALAR,
+    container=DataContainerType.SINGLE,
     widget='example:temperature.widget',
     ui={'properties': {'unit': '°C'}}
 )

@@ -13,9 +13,9 @@ class DataType(Enum):
     OBJECT = 'object'
 
 
-class DataCategory(Enum):
-    """Defines the category or structure of the data."""
-    SCALAR = 'scalar'
+class DataContainerType(Enum):
+    """Defines the container or structure of the data."""
+    SINGLE = 'single'
     TUPLE = 'tuple'
     LIST = 'list'
     SET = 'set'

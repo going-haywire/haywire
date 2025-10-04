@@ -13,7 +13,7 @@ import time
 import logging
 from dataclasses import dataclass
 
-from haywire.core.inventory.folder_scan import module_scan_for_classes
+from haywire.core.inventory.folder_scan import _catch_import_modules, module_scan_for_classes
 from haywire.core.inventory.utils import resolve_module_name
 
 class RegistryFolder(Enum):
@@ -206,7 +206,8 @@ class BaseClassRegistry(BaseRegistry):
                 
             # this gets the module that has already been forcefully reloaded
             # by the module_scan_for_classes function
-            module = importlib.import_module(module_name)
+
+            module = _catch_import_modules(module_name)
             
             # Re-register classes from reloaded module  
             for mod_class_name in mod_to_hw_class_name_mapping:

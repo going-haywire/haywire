@@ -3,14 +3,14 @@ This module exports the core data components of the Haywire library, including e
 data field specifications, and factory functions for creating data fields.
 """
 
-from .enums import DataType, DataCategory, FlowType
+from .enums import DataType, DataContainerType, FlowType
 from .specs import DataFieldSpec, specs_factory
 from .fields import DataField, SingleField, PooledField
 
 __all__ = [
     # Enums
     "DataType",
-    "DataCategory",
+    "DataContainerType",
     "FlowType",
     # Specs
     "DataFieldSpec",

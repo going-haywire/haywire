@@ -5,7 +5,7 @@ Basic core node implementations
 # Import the node system base class
 from haywire.core.node.node import BaseNode, node_identity
 from haywire.core.node.elements import Inlet, Outlet
-from haywire.core.data.enums import DataType, DataCategory, FlowType
+from haywire.core.data.enums import DataType, DataContainerType, FlowType
 from haywire.core.data.fields import SingleField
 
 @node_identity(
@@ -35,7 +35,7 @@ class TestNodeOne(BaseNode):
                 id='temperature',  # id as first positional parameter
                 label='Temperature',
                 flow_type=FlowType.NONE,
-                data=SingleField('temp_val', DataType.FLOAT, DataCategory.SCALAR, 25.0, False),
+                data=SingleField('temp_val', DataType.FLOAT, 25.0, False),
                 widget='example:temperature.widget',
                 ui={'properties': {'unit': 'celsius'}}
             )
@@ -46,7 +46,7 @@ class TestNodeOne(BaseNode):
                 label='Select',
                 flow_type=FlowType.DATA,
                 is_pooled=False,
-                data=SingleField('string_val', DataType.STRING, DataCategory.SCALAR, "Option 1", False),
+                data=SingleField('string_val', DataType.STRING, "Option 1", False),
                 widget='haywire.core:select.widget',
                 ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
             )
@@ -55,7 +55,7 @@ class TestNodeOne(BaseNode):
                 'float_slider',  # element_id as first positional parameter
                 label='Float Slider',
                 flow_type=FlowType.DATA,
-                data=SingleField('float_val', DataType.FLOAT, DataCategory.SCALAR, 50.0, False),
+                data=SingleField('float_val', DataType.FLOAT, 50.0, False),
                 widget='haywire.core:slider.widget',
                 ui={'properties': {'min': 0, 'max': 100, 'step': 1}}
             )
@@ -64,7 +64,7 @@ class TestNodeOne(BaseNode):
                 'bool_switch',  # element_id as first positional parameter
                 label='Boolean Switch',
                 flow_type=FlowType.DATA,
-                data=SingleField('bool_val', DataType.BOOL, DataCategory.SCALAR, True, False),
+                data=SingleField('bool_val', DataType.BOOL, True, False),
                 widget='haywire.core:switch.widget',
                 ui={'properties': {'text': 'Enable Feature'}}
             )
@@ -73,7 +73,7 @@ class TestNodeOne(BaseNode):
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',
                 flow_type=FlowType.DATA,
-                data=SingleField('str_val', DataType.STRING, DataCategory.SCALAR, 'Hello', False),
+                data=SingleField('str_val', DataType.STRING, 'Hello', False),
                 widget='haywire.core:text.input.widget',
                 ui={'properties': {'placeholder': 'Enter text...'}}
             )   
@@ -82,7 +82,7 @@ class TestNodeOne(BaseNode):
                 'nonexistent',  # element_id as first positional parameter
                 label='Missing Widget',
                 flow_type=FlowType.DATA,
-                data=SingleField('missing_val', DataType.INT, DataCategory.SCALAR, 42, False),
+                data=SingleField('missing_val', DataType.INT, 42, False),
                 widget='haywire.core:number.widget',
                 ui={'properties': {}}
             )
@@ -104,7 +104,7 @@ class TestNodeOne(BaseNode):
                 'nonexistent',  # element_id as first positional parameter
                 label='Missing Widget',
                 flow_type=FlowType.DATA,
-                data=SingleField('missing_val', DataType.INT, DataCategory.SCALAR, 42, False),
+                data=SingleField('missing_val', DataType.INT, 42, False),
             )
         )
 

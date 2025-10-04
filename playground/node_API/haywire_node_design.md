@@ -170,7 +170,7 @@ def worker(self, context):
 # Wrapped in dict as you specified
 complex_data = DataField(
     DataType.OBJECT, 
-    DataCategory.DICT,
+    DataContainerType.DICT,
     value={'type': 'mesh', 'vertices': [...], 'faces': [...]}
 )
 ```
@@ -179,7 +179,7 @@ complex_data = DataField(
 ```python
 # Add any UI-specific metadata
 Property('color', 'Color', 
-    data=DataField(DataType.STR, DataCategory.SCALAR, '#FF0000'),
+    data=DataField(DataType.STR, DataContainerType.SINGLE, '#FF0000'),
     ui_hint='color_picker',
     show_alpha=True  # Custom metadata
 )
@@ -292,7 +292,7 @@ class DataField:
 ```python
 class MultiDataField(DataField):
     """Special DataField for many-coupling inlets"""
-    def __init__(self, type: DataType, category: DataCategory):
+    def __init__(self, type: DataType, category: DataContainerType):
         super().__init__(type, category)
         self.value = {}  # {source_id: value}
         
@@ -358,7 +358,7 @@ class Inlet(ConfigurableElement):
         if not self._aggregated_data:
             self._aggregated_data = DataField(
                 self.data.type,
-                DataCategory.DICT  # Always return as dict
+                DataContainerType.DICT  # Always return as dict
             )
         
         # Aggregate all source values
@@ -374,7 +374,7 @@ class Inlet(ConfigurableElement):
         if self.coupling_type == 'many':
             return self._aggregated_data or DataField(
                 self.data.type, 
-                DataCategory.DICT, 
+                DataContainerType.DICT, 
                 {}
             )
         # Original logic for single coupling

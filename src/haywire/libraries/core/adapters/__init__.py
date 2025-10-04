@@ -8,7 +8,7 @@ from haywire.core.adapter.base import is_adapter
 from haywire.core.inventory.registry.adapter import AdapterRegistry
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
 from haywire.core.inventory.registry.library import LibraryMetadata
-from haywire.core.data.enums import DataType, DataCategory
+from haywire.core.data.enums import DataType, DataContainerType
 from haywire.core.data.specs import DataFieldSpec, specs_factory
 
 
@@ -18,7 +18,7 @@ INT = specs_factory(
         label='Integer', 
         description='Integer data type',
         type=DataType.INT,
-        category=DataCategory.SCALAR,
+        container=DataContainerType.SINGLE,
         widget='haywire.core:number.widget',
     )
 
@@ -27,7 +27,7 @@ FLOAT = specs_factory(
         label='Float', 
         description='Float data type',
         type=DataType.FLOAT,
-        category=DataCategory.SCALAR,
+        container=DataContainerType.SINGLE,
         widget='haywire.core:number.widget',
     )
     
@@ -36,7 +36,7 @@ STRING = specs_factory(
         label='String', 
         description='String data type',
         type=DataType.STRING,
-        category=DataCategory.SCALAR,
+        container=DataContainerType.SINGLE,
         widget='haywire.core:text.input.widget',
     )
 

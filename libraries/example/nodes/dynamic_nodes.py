@@ -5,7 +5,7 @@ Basic core node implementations
 # Import the node system base class
 from haywire.core.node.node import BaseNode, node_identity
 from haywire.core.node.elements import Inlet, Outlet
-from haywire.core.data.enums import DataType, DataCategory, FlowType
+from haywire.core.data.enums import DataType, DataContainerType, FlowType
 from haywire.core.data.fields import SingleField
 
 from haywire.core.node.node import BaseNode, node_identity
@@ -32,7 +32,7 @@ class ConfigurableMathNode(BaseNode):
         ui={'properties': {'options': ['add', 'multiply', 'power']}},
         callback=lambda self: self._on_operation_changed()
     )
-    
+
     precision_config = PinBuilder.config(
         INT(value=2),
         label='Decimal Precision',
@@ -90,7 +90,7 @@ class ConfigurableMathNode(BaseNode):
             self.add_inlet(
                 Inlet(
                     id='exponent',  # id as first positional parameter
-                    data=SingleField('exponent', DataType.FLOAT, DataCategory.SCALAR, 25.0, False),
+                    data=SingleField('exponent', DataType.FLOAT, 25.0, False),
                 )
             )
 

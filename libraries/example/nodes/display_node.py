@@ -29,7 +29,7 @@ class DisplayNode(BaseNode):
                 id='a', 
                 label='Value A', 
                 flow_type=FlowType.DATA,
-                data=SingleField('a', DataType.FLOAT, 'scalar', 10.0, False), 
+                data=SingleField('a', DataType.FLOAT, 'single', 10.0, False), 
                 widget='core.number')
         )
         _ = self.add_inlet(
@@ -37,7 +37,7 @@ class DisplayNode(BaseNode):
                 id='b', 
                 label='Value B', 
                 flow_type=FlowType.DATA,
-                data=SingleField('b', DataType.FLOAT, 'scalar', 5.0, False), 
+                data=SingleField('b', DataType.FLOAT, 'single', 5.0, False), 
                 widget='core.number')
             )
         _ = self.add_outlet(
@@ -45,14 +45,14 @@ class DisplayNode(BaseNode):
                 id='result', 
                 flow_type=FlowType.DATA, 
                 label='Result', 
-                data=SingleField('result', DataType.FLOAT, 'scalar', None, False))
+                data=SingleField('result', DataType.FLOAT, 'single', None, False))
         )
         _ = self.add_inlet (
             Inlet(
                 id='operation', 
                 label='Operation', 
                 flow_type=FlowType.DATA,
-                data=SingleField('operation', DataType.STRING, 'scalar', 'add', False), 
+                data=SingleField('operation', DataType.STRING, 'single', 'add', False), 
                 widget='core.select')
         )   
     

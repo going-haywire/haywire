@@ -3,7 +3,7 @@ from typing import Any, Callable, Set, List
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from .enums import DataType, DataCategory
+from .enums import DataType, DataContainerType
 
 
 @dataclass
@@ -11,7 +11,6 @@ class DataField(ABC):
     """Abstract base class for data fields with change notification"""
     id: str
     type: str  | DataType
-    category: str | DataCategory
     value: Any
     is_pooled: bool
     is_dirty: bool = field(default=True, init=False, repr=False)
@@ -21,8 +20,6 @@ class DataField(ABC):
     def __post_init__(self):
         if isinstance(self.type, DataType):
             self.type = self.type.value
-        if isinstance(self.category, DataCategory):
-            self.category = self.category.value
 
         self._default_value = self.value
 
@@ -87,7 +84,7 @@ class DataField(ABC):
         return {
             'id': self.id,
             'type': self.type.value if hasattr(self.type, 'value') else self.type,
-            'category': self.category.value if hasattr(self.category, 'value') else self.category,
+            'container': self.container.value if hasattr(self.container, 'value') else self.container,
             'value': self._default_value,
             'is_dirty': self.is_dirty,
             'is_pooled': self.is_pooled,

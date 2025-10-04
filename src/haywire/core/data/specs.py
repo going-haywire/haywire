@@ -4,18 +4,18 @@ from dataclasses import dataclass, field, replace
 
 from haywire.core.data.fields import SingleField, PooledField, DataField
 
-from .enums import DataType, DataCategory
+from .enums import DataType, DataContainerType
 
 @dataclass
 class DataFieldSpec:
     """Defines the specification for a data field.
 
-    Provides metadata about a field's type, category, default value, and UI hints.
+    Provides metadata about a field's type, container, default value, and UI hints.
     This is a flexible class where only 'type' is strictly required.
 
     Attributes:
         type: The fundamental data type (e.g., INT, FLOAT).
-        category: The data structure category (e.g., SCALAR, LIST).
+        container: The data structure container (e.g., SCALAR, LIST).
         value: The default value for the field.
         is_pooled: Whether the field accepts multiple input sources.
         id: Unique identifier, auto-generated if not provided.
@@ -25,7 +25,7 @@ class DataFieldSpec:
         ui: Dictionary for extra UI-specific configurations.
     """
     type: DataType
-    category: DataCategory = DataCategory.SCALAR
+    container: DataContainerType = DataContainerType.SINGLE
     value: Any = None
     id: str | None = None
     label: str | None = None
@@ -37,19 +37,19 @@ class DataFieldSpec:
         """Generate default values for optional fields after initialization."""
         # Generate a unique ID if not provided, e.g., "INT_SCALAR"
         if self.id is None:
-            self.id = f"{self.type.value.upper()}_{self.category.value.upper()}"
+            self.id = f"{self.type.value.upper()}_{self.container.value.upper()}"
 
         # Generate a human-readable label if not provided, e.g., "Int:Scalar"
         if self.label is None:
-            self.label = f"{self.type.value.capitalize()}:{self.category.value.capitalize()}"
+            self.label = f"{self.type.value.capitalize()}:{self.container.value.capitalize()}"
 
         # Ensure description is a string
         if self.description is None:
             self.description = ""
 
-        # Set a default value if none is provided, based on type and category
+        # Set a default value if none is provided, based on type and container
         if self.value is None:
-            if self.category == DataCategory.SCALAR:
+            if self.container == DataContainerType.SINGLE:
                 if self.type == DataType.FLOAT:
                     self.value = 0.0
                 elif self.type == DataType.INT:
@@ -60,9 +60,9 @@ class DataFieldSpec:
                     self.value = ""
                 else:
                     self.value = None  # Default for OBJECT, etc.
-            elif self.category in [DataCategory.LIST, DataCategory.SET]:
+            elif self.container in [DataContainerType.LIST, DataContainerType.SET]:
                 self.value = []
-            elif self.category == DataCategory.DICT:
+            elif self.container == DataContainerType.DICT:
                 self.value = {}
 
 
@@ -72,7 +72,6 @@ class DataFieldSpec:
             return PooledField(
                 id=self.id,
                 type=self.type,
-                category=self.category,
                 value={},
                 is_pooled=True
             )
@@ -80,7 +79,6 @@ class DataFieldSpec:
             return SingleField(
                 id=self.id,
                 type=self.type,
-                category=self.category,
                 value=self.value,
                 is_pooled=False
             )

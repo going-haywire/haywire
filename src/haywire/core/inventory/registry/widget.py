@@ -1,6 +1,6 @@
 import logging
 
-from haywire.core.data.enums import DataCategory, DataType
+from haywire.core.data.enums import DataContainerType, DataType
 from haywire.core.data.fields import DataField
 from haywire.core.ui.base import BaseWidget, is_widget
 
@@ -99,7 +99,7 @@ class WidgetRegistry(BaseClassRegistry):
             return self.get(widget_name)
 
         # 2. Fallback to default for scalar types
-        if data_field.category == DataCategory.SCALAR:
+        if data_field.container == DataContainerType.SINGLE:
             default_widget_name = self._default_widgets.get(data_field.type)
             if default_widget_name and self.has(default_widget_name):
                 return self.get(default_widget_name)
