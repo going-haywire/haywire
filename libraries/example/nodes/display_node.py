@@ -45,7 +45,7 @@ class DisplayNode(BaseNode):
                 id='result', 
                 flow_type=FlowType.DATA, 
                 label='Result', 
-                data=SingleField('result', DataType.FLOAT, 'single', None, False))
+                data=SingleField('result', DataType.FLOAT, 'single', None, False)),
         )
         _ = self.add_inlet (
             Inlet(

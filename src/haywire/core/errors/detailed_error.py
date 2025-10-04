@@ -35,7 +35,8 @@ class DetailedError(Exception):
     def format_detailed_message(self) -> str:
         """Format the error as a detailed message"""
         lines = [
-            " ========= Error Details ============",
+            "\n",
+            "========= Error Details ============",
             f"Operation: {self.context.operation or 'Unknown'}",
         ]
         
@@ -45,27 +46,45 @@ class DetailedError(Exception):
         lines.extend([
             f"File  : {self.context.filename}",
             "",
-            "Source Context:"
+            "       ┆"
         ])
         
-        # Add context lines
+        # Add context lines with fancy box drawing
         for i, line in enumerate(self.context.context_lines):
             if i == len(self.context.context_lines) // 2:  # Middle line is the error line
-                lines.append(f"Source: >>line {self.context.line_number:2d}: {line}")
-                if self.context.highlight_position is not None:
-                    prefix = f"Source: >>line {self.context.line_number:2d}: "
-                    spaces = " " * (len(prefix) + self.context.highlight_position)
-                    lines.append(f"Source: >>{spaces}^^^^")
+                # Calculate content width: line prefix + line content + 6 padding
+                line_prefix = f" »line {self.context.line_number:2d}: "
+                content_line = f"{line_prefix}{line}"
+                total_content_width = len(content_line) + 6
+                
+                # Create border patterns with gap in the middle
+                left_pattern = "━━╍╍╍┅┅┅┅┉┉┉"
+                right_pattern = "┉┉┅┅┅╍╍╍━━"
+                gap_width = max(20, total_content_width - len(left_pattern) - len(right_pattern))
+                gap_spaces = " " * gap_width
+                
+                top_border = left_pattern + gap_spaces + right_pattern
+                bottom_border = left_pattern + gap_spaces + right_pattern
+                
+                # Format the error line content with padding
+                padded_content = content_line + " " * 6
+                content_width = len(top_border)
+                
+                # Add the box
+                lines.append(f"Source:┢{top_border}┓")
+                lines.append(f"Source:┃{padded_content:<{content_width}}┃")
+                lines.append(f"Source:┡{bottom_border}┛")
             else:
                 # Calculate actual line number for context
                 offset = i - len(self.context.context_lines) // 2
                 actual_line_num = self.context.line_number + offset
-                lines.append(f"Source: ..line {actual_line_num:2d}: {line}")
+                lines.append(f"Source:│  line {actual_line_num:2d}: {line}")
         
         lines.extend([
+            "       ┆",
             "",
             f"Error : {self.context.error_type}: {self.context.error_message}",
-            " ========= Error Details ============"
+            "========= Error Details ============"
         ])
         
         return "\n".join(lines)
