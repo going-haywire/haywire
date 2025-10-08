@@ -10,11 +10,11 @@ from haywire.core.ui.base import BaseWidget
 class TextInputWidget(BaseWidget):
     """Text input widget for string data"""
 
-    def _update_ui_value(self, value: float):  
+    def on_model_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 'empty'    
 
-    def _create_element(self) -> Any:
+    def create_element(self) -> Any:
         """Create a text input element"""
         input_kwargs = {
             'value': self.get_value() or ''
@@ -25,25 +25,16 @@ class TextInputWidget(BaseWidget):
             if prop in self.ui_properties:
                 input_kwargs[prop] = self.ui_properties[prop]
 
-        self.ui_element = ui.input(**input_kwargs).classes('w-full')
-
-        def _on_ui_change(e):
-            self.update_value(e.sender.value)
-        
-        #self.ui_element.on('update:modelValue', _on_ui_change)
-        self.ui_element.on("keydown.enter", _on_ui_change)
-        self.ui_element.on("blur", _on_ui_change)
-		
-        return self.ui_element
+        return ui.input(**input_kwargs).classes('w-full')
 
 class NumberWidget(BaseWidget):
     """Number input widget for numeric data"""
 
-    def _update_ui_value(self, value: float):  
+    def on_model_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
      
-    def _create_element(self) -> Any:
+    def create_element(self) -> Any:
         """Create a number input element"""
         number_kwargs = {
             'value': self.get_value() or 0
@@ -55,25 +46,16 @@ class NumberWidget(BaseWidget):
                 number_kwargs[prop] = self.ui_properties[prop]
         
 		# Create the UI element  
-        self.ui_element = ui.number(**number_kwargs).classes('w-full')
-
-        def _on_ui_change(e):
-            self.update_value(e.sender.value)
-
-        self.ui_element.on('update:modelValue', _on_ui_change)
-        #self.ui_element.on("keydown.enter", _on_ui_change)
-        #self.ui_element.on("blur", _on_ui_change)
-		
-        return self.ui_element
+        return ui.number(**number_kwargs).classes('w-full')
 
 class CheckboxWidget(BaseWidget):
     """Checkbox widget for boolean data"""
     
-    def _update_ui_value(self, value: float):  
+    def on_model_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else False    
 
-    def _create_element(self) -> Any:
+    def create_element(self) -> Any:
         """Create a checkbox element"""
         checkbox_kwargs = {
             'value': bool(self.get_value())
@@ -84,25 +66,16 @@ class CheckboxWidget(BaseWidget):
             if prop in self.ui_properties:
                 checkbox_kwargs[prop] = self.ui_properties[prop]
 
-        self.ui_element =  ui.checkbox(**checkbox_kwargs).classes('w-full')
-
-        def _on_ui_change(e):
-            self.update_value(e.sender.value)
-
-        #self.ui_element.on('update:modelValue', _on_ui_change)
-        self.ui_element.on("keydown.enter", _on_ui_change)
-        self.ui_element.on("blur", _on_ui_change)
-		
-        return self.ui_element
+        return ui.checkbox(**checkbox_kwargs).classes('w-full')
 
 class SwitchWidget(BaseWidget):
     """Switch widget for boolean data"""
 
-    def _update_ui_value(self, value: float):  
+    def on_model_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else False    
 
-    def _create_element(self) -> Any:
+    def create_element(self) -> Any:
         """Create a switch element"""
         switch_kwargs = {
             'value': bool(self.get_value())
@@ -113,25 +86,16 @@ class SwitchWidget(BaseWidget):
             if prop in self.ui_properties:
                 switch_kwargs[prop] = self.ui_properties[prop]
 
-        self.ui_element = ui.switch(**switch_kwargs).classes('w-full')
-
-        def _on_ui_change(e):
-            self.update_value(e.sender.value)
-
-        #self.ui_element.on('update:modelValue', _on_ui_change)
-        self.ui_element.on("keydown.enter", _on_ui_change)
-        self.ui_element.on("blur", _on_ui_change)
-		
-        return self.ui_element
+        return ui.switch(**switch_kwargs).classes('w-full')
 
 class SelectWidget(BaseWidget):
     """Dropdown select widget for choice-based data"""
     
-    def _update_ui_value(self, value: float):  
+    def on_model_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
 
-    def _create_element(self) -> Any:
+    def create_element(self) -> Any:
         """Create a dropdown select element"""
         select_kwargs = {
             'options': self.ui_properties.get('options', []),
@@ -146,25 +110,17 @@ class SelectWidget(BaseWidget):
         def update_value(e):
             self.update_value(e.value)
 
-        self.ui_element = ui.select(**select_kwargs, on_change=update_value).classes('w-full')
+        return ui.select(**select_kwargs, on_change=update_value).classes('w-full')
 
-        def _on_ui_change(e):
-            self.update_value(e.sender.value)
-
-        #self.ui_element.on('update:modelValue', _on_ui_change)
-        self.ui_element.on("keydown.enter", _on_ui_change)
-        self.ui_element.on("blur", _on_ui_change)
-		
-        return self.ui_element
 
 class SliderWidget(BaseWidget):
     """Slider widget for numeric data with range"""
 
-    def _update_ui_value(self, value: float):  
+    def on_model_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
 
-    def _create_element(self) -> Any:
+    def create_element(self) -> Any:
         """Create a slider element"""
         slider_kwargs = {
             'value': self.get_value() or 0
@@ -184,25 +140,16 @@ class SliderWidget(BaseWidget):
         def update_value(e):
             self.update_value(e.value)
 
-        self.ui_element = ui.slider(**slider_kwargs, on_change=update_value).classes('w-full').props('label-always')
-
-        def _on_ui_change(e):
-            self.update_value(e.sender.value)
-
-        #self.ui_element.on('update:modelValue', _on_ui_change)
-        self.ui_element.on("keydown.enter", _on_ui_change)
-        self.ui_element.on("blur", _on_ui_change)
-		
-        return self.ui_element
+        return ui.slider(**slider_kwargs, on_change=update_value).classes('w-full').props('label-always')
 
 class KnobWidget(BaseWidget):
     """Knob widget for numeric data with rotary control"""
 
-    def _update_ui_value(self, value: float):  
+    def on_model_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
 
-    def _create_element(self) -> Any:
+    def create_element(self) -> Any:
         """Create a knob element"""
         knob_kwargs = {
             'value': self.get_value() or 0,
@@ -215,13 +162,7 @@ class KnobWidget(BaseWidget):
                 knob_kwargs[prop] = self.ui_properties[prop]
 
         with ui.row().classes('w-full justify-center'):
-            self.ui_element = ui.knob(**knob_kwargs)
+            knob = ui.knob(**knob_kwargs)
 
-        def _on_ui_change(e):
-            self.update_value(e.sender.value)
-        
-        #self.ui_element.on('update:modelValue', _on_ui_change)
-        self.ui_element.on("keydown.enter", _on_ui_change)
-        self.ui_element.on("blur", _on_ui_change)
-		
-        return self.ui_element
+        return knob.classes('w-32 h-32')
+

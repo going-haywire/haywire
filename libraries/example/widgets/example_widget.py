@@ -7,42 +7,74 @@ from haywire.core.ui.base import BaseWidget
 class TemperatureWidget(BaseWidget):
     """Custom widget for temperature values with Celsius/Fahrenheit display"""
 
-    def _update_ui_value(self, value: float):  
-        """Update the number input's value"""  
-        self.ui_element.value = value if value is not None else 0    
+    def __init__(self, element):
+        super().__init__(element)
+        self.conversion_label = None
+        self.unit = self.ui_properties.get('unit', 'celsius')
 
-    def _create_element(self) -> Any:
+    def _celsius_to_fahrenheit(self, celsius: float) -> float:
+        """Convert Celsius to Fahrenheit"""
+        return (celsius * 9/5) + 32
+
+    def _fahrenheit_to_celsius(self, fahrenheit: float) -> float:
+        """Convert Fahrenheit to Celsius"""
+        return (fahrenheit - 32) * 5/9
+
+    def _get_display_value(self, celsius_value: float) -> float:
+        """Get the display value based on the current unit"""
+        return celsius_value if self.unit == 'celsius' else self._celsius_to_fahrenheit(celsius_value)
+
+    def _get_conversion_display(self, celsius_value: float) -> str:
+        """Get the conversion display text"""
+        if self.unit == 'celsius':
+            fahrenheit_value = self._celsius_to_fahrenheit(celsius_value)
+            return f"({fahrenheit_value:.1f}°F)"
+        else:
+            return f"({celsius_value:.1f}°C)"
+
+    def on_model_change(self, value: float):  
+        """Update the UI elements when the model value changes"""  
+        celsius_value = value
+        display_value = self._get_display_value(celsius_value)
+        
+        # Update the main input
+        if self.ui_element is not None:
+            self.ui_element.value = display_value
+        
+        # Update the conversion label
+        if self.conversion_label is not None:
+            self.conversion_label.text = self._get_conversion_display(celsius_value)
+
+    def on_ui_change(self, e):
+        """Override to handle unit conversion before updating the model"""
+        display_value = e.sender.value
+        # Convert display value back to Celsius for storage
+        celsius_value = display_value if self.unit == 'celsius' else self._fahrenheit_to_celsius(display_value)
+        
+        # Update the model with Celsius value
+        self.update_value(celsius_value)
+        
+        # Update the conversion label
+        if self.conversion_label is not None:
+            self.conversion_label.text = self._get_conversion_display(celsius_value)
+
+    def create_element(self) -> Any:
         """Create a temperature widget with unit conversion"""
         temp_celsius = self.get_value() or 0
-        temp_fahrenheit = (temp_celsius * 9/5) + 32
-
-        # Get unit preference from props
-        unit = self.ui_properties.get('unit', 'celsius')
-        display_value = temp_celsius if unit == 'celsius' else temp_fahrenheit
+        display_value = self._get_display_value(temp_celsius)
 
         with ui.column().classes('w-full') as wrapper:
             # Number input for the temperature
             number_kwargs = {
                 'value': display_value,
-                'suffix': '°C' if unit == 'celsius' else '°F',
+                'suffix': '°C' if self.unit == 'celsius' else '°F',
                 'step': 0.1,
                 'precision': 1
             }
 
-            def update_value(e):
-                # Convert back to Celsius if needed
-                celsius_value = e.value if unit == 'celsius' else (e.value - 32) * 5/9
-                self.update_value(celsius_value)
-                # Update the conversion display
-                other_value = (celsius_value * 9/5) + 32 if unit == 'celsius' else celsius_value
-                other_unit = '°F' if unit == 'celsius' else '°C'
-                conversion_label.text = f"({other_value:.1f}{other_unit})"
-
-            temp_input = ui.number(**number_kwargs, on_change=update_value).classes('w-full')
+            temp_input = ui.number(**number_kwargs).classes('w-full')
 
             # Display conversion
-            other_value = temp_fahrenheit if unit == 'celsius' else temp_celsius
-            other_unit = '°F' if unit == 'celsius' else '°C'
-            conversion_label = ui.label(f"({other_value:.1f}{other_unit})").classes('text-sm text-gray-500')
+            self.conversion_label = ui.label(self._get_conversion_display(temp_celsius)).classes('text-sm text-gray-500')
 
-        return wrapper
+        return temp_input

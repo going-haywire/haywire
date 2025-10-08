@@ -81,20 +81,20 @@ class BaseWidget(ABC):
         self.ui_element = None
     
         # Add change handler for the data field
-        self.data_field.on_changed += self._on_model_changed
-    
-    def _on_model_changed(self, new_value: Any):
+        self.data_field.on_changed += self._call_on_model_changed
+
+    def _call_on_model_changed(self, new_value: Any):
         """Handle data field changes by updating the UI"""
-        if self.ui_element is not None:
-            self._update_ui_value(new_value)
+        if self.ui_element is not None and new_value is not None:
+            self.on_model_change(new_value)
     
     @abstractmethod
-    def _update_ui_value(self, value: Any):
+    def on_model_change(self, value: Any):
         """Update the UI element with a new value"""
         pass
             
     @abstractmethod
-    def _create_element(self) -> Any:
+    def create_element(self) -> Any:
         """Create and return the NiceGUI element"""
         pass
     
@@ -105,16 +105,19 @@ class BaseWidget(ABC):
     def get_value(self) -> Any:
         """Get the current data field value"""
         return self.data_field.get_value()
-    
+
+    def on_ui_change(self, e):
+        self.update_value(e.sender.value)
+
     def render(self) -> Any:
         """Render the widget and return the UI element"""
         if self.ui_element is None:
-            self.ui_element = self._create_element()
+            self.ui_element = self.create_element()
+            self.ui_element.on('update:modelValue', self.on_ui_change)
             self.ui_element.client.on_disconnect(lambda: self.cleanup())
         return self.ui_element
 
     def cleanup(self):
         """Clean up event handlers"""
-        print(f"Widget {self.element_id} disconnected")
-        self.data_field.on_changed -= self._on_model_changed
+        self.data_field.on_changed -= self._call_on_model_changed
 
