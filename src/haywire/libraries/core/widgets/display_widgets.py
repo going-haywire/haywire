@@ -9,8 +9,12 @@ from haywire.core.ui.base import BaseWidget
 
 class LabelWidget(BaseWidget):
     """Read-only label widget for displaying data"""
-    
-    def create_element(self) -> Any:
+
+    def _update_ui_value(self, value: float):  
+        """Update the number input's value"""  
+        self.ui_element.value = value if value is not None else ' '   
+
+    def _create_element(self) -> Any:
         """Create a label element"""
         text = str(self.get_value()) if self.get_value() is not None else ''
         
@@ -24,8 +28,12 @@ class LabelWidget(BaseWidget):
 
 class ProgressWidget(BaseWidget):
     """Progress bar widget for numeric data"""
-    
-    def create_element(self) -> Any:
+
+    def _update_ui_value(self, value: float):  
+        """Update the number input's value"""  
+        self.ui_element.value = value if value is not None else 0    
+
+    def _create_element(self) -> Any:
         """Create a progress bar element"""
         value = self.get_value() or 0
         
@@ -45,8 +53,12 @@ class ProgressWidget(BaseWidget):
 
 class BadgeWidget(BaseWidget):
     """Badge widget for displaying status or short text"""
-    
-    def create_element(self) -> Any:
+
+    def _update_ui_value(self, value: float):  
+        """Update the number input's value"""  
+        self.ui_element.value = value if value is not None else ''    
+
+    def _create_element(self) -> Any:
         """Create a badge element"""
         text = str(self.get_value()) if self.get_value() is not None else ''
         color = self.ui_properties.get('color', 'primary')

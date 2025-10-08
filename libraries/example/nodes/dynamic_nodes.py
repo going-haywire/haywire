@@ -94,7 +94,6 @@ class ConfigurableMathNode(BaseNode):
                 )
             )
 
-
     def worker(self, context: dict) -> dict | None:
         """Execute the node"""
         # Access config values (read-only in worker)

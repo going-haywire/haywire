@@ -80,8 +80,21 @@ class BaseWidget(ABC):
         self.ui_properties: Dict[str, Any] = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}
         self.ui_element = None
     
+        # Add change handler for the data field
+        self.data_field.on_changed += self._on_model_changed
+    
+    def _on_model_changed(self, new_value: Any):
+        """Handle data field changes by updating the UI"""
+        if self.ui_element is not None:
+            self._update_ui_value(new_value)
+    
     @abstractmethod
-    def create_element(self) -> Any:
+    def _update_ui_value(self, value: Any):
+        """Update the UI element with a new value"""
+        pass
+            
+    @abstractmethod
+    def _create_element(self) -> Any:
         """Create and return the NiceGUI element"""
         pass
     
@@ -96,6 +109,12 @@ class BaseWidget(ABC):
     def render(self) -> Any:
         """Render the widget and return the UI element"""
         if self.ui_element is None:
-            self.ui_element = self.create_element()
+            self.ui_element = self._create_element()
+            self.ui_element.client.on_disconnect(lambda: self.cleanup())
         return self.ui_element
+
+    def cleanup(self):
+        """Clean up event handlers"""
+        print(f"Widget {self.element_id} disconnected")
+        self.data_field.on_changed -= self._on_model_changed
 

@@ -7,7 +7,11 @@ from haywire.core.ui.base import BaseWidget
 class TemperatureWidget(BaseWidget):
     """Custom widget for temperature values with Celsius/Fahrenheit display"""
 
-    def create_element(self) -> Any:
+    def _update_ui_value(self, value: float):  
+        """Update the number input's value"""  
+        self.ui_element.value = value if value is not None else 0    
+
+    def _create_element(self) -> Any:
         """Create a temperature widget with unit conversion"""
         temp_celsius = self.get_value() or 0
         temp_fahrenheit = (temp_celsius * 9/5) + 32
