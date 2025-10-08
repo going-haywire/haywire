@@ -4,24 +4,23 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
 from .enums import DataType, DataContainerType
+from .event import Event, T
 
 
 @dataclass
 class DataField(ABC):
     """Abstract base class for data fields with change notification"""
-    id: str
     type: str  | DataType
-    value: Any
+    value: T 
     is_pooled: bool
-    is_dirty: bool = field(default=True, init=False, repr=False)
-    _default_value: Any = field(default=None, init=False, repr=False)
-    _observers: Set[Callable] = field(default_factory=set, init=False, repr=False)
-    
+
     def __post_init__(self):
         if isinstance(self.type, DataType):
             self.type = self.type.value
 
-        self._default_value = self.value
+        self._default_value: T = self.value
+        self.on_changed: Event[T] = Event[T]()
+        self.is_dirty: bool = True
 
     @abstractmethod
     def set_value(self, value: Any, source_id: str | None = None):
@@ -55,20 +54,15 @@ class DataField(ABC):
     
     def add_observer(self, callback: Callable):
         """Add a callback for value changes"""
-        self._observers.add(callback)
+        self.on_changed.append(callback)
     
     def remove_observer(self, callback: Callable):
         """Remove a callback for value changes"""
-        self._observers.discard(callback)
+        self.on_changed.remove(callback)
     
-    def _notify_observers(self):
+    def fire(self):
         """Notify all observers of value change"""
-        for callback in self._observers:
-            try:
-                callback(self.get_value())
-            except Exception as e:
-                # Log error but don't break the chain
-                print(f"Observer callback error: {e}")
+        self.on_changed(self.value)
     
     def mark_clean(self):
         """Mark field as clean after processing"""
@@ -82,7 +76,6 @@ class DataField(ABC):
     def to_dict(self) -> dict:
         """Convert to dict for serialization"""
         return {
-            'id': self.id,
             'type': self.type.value if hasattr(self.type, 'value') else self.type,
             'container': self.container.value if hasattr(self.container, 'value') else self.container,
             'value': self._default_value,
@@ -107,7 +100,7 @@ class SingleField(DataField):
             if source_id is None:
                 # if the value is set via UI, it is the default value   
                 self._default_value = value
-            self._notify_observers()
+            self.fire()
     
     def get_value(self):
         """Get the current value"""
@@ -117,7 +110,7 @@ class SingleField(DataField):
         """Remove source - for scalar fields, set back to default value"""
         self.value = self._default_value
         self.is_dirty = True    
-        self._notify_observers()
+        self.fire()
     
     def has_sources(self) -> bool:
         """Check if field has a value"""
@@ -154,7 +147,7 @@ class PooledField(DataField):
             self.value[source_id] = value
             self._aggregated_value = None  # Invalidate cache
             self.is_dirty = True
-            self._notify_observers()
+            self.fire()
     
     def get_value(self):
         """Get aggregated value as dict"""
@@ -168,7 +161,7 @@ class PooledField(DataField):
             del self.value[source_id]
             self._aggregated_value = None
             self.is_dirty = True
-            self._notify_observers()
+            self.fire()
     
     def has_sources(self) -> bool:
         """Check if field has any sources"""
@@ -192,7 +185,7 @@ class PooledField(DataField):
             self.value.clear()
             self._aggregated_value = None
             self.is_dirty = True
-            self._notify_observers()
+            self.fire()
     
     def to_dict(self) -> dict:
         """Convert to dict for serialization"""

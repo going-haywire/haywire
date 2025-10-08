@@ -70,14 +70,12 @@ class DataFieldSpec:
         """Create appropriate DataField instance based on pooled flag"""
         if is_pooled:
             return PooledField(
-                id=self.id,
                 type=self.type,
                 value={},
                 is_pooled=True
             )
         else:
             return SingleField(
-                id=self.id,
                 type=self.type,
                 value=self.value,
                 is_pooled=False
