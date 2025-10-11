@@ -3,12 +3,12 @@ Basic core node implementations
 """
 
 # Import the node system base class
-from haywire.core.node.node import BaseNode, node_identity
+from haywire.core.node.node import BaseNode, node
 from haywire.core.node.elements import Inlet, Outlet
 from haywire.core.data.enums import DataType, DataContainerType, FlowType
 from haywire.core.data.fields import SingleField
 
-@node_identity(
+@node(
     label='Test Node One',
     search_tags=['constant', 'value', 'output', 'basic'],
     menu='core/basic'

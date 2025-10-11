@@ -9,7 +9,9 @@ from nicegui import ui
 from haywire.core.data.fields import DataField
 from haywire.core.ui.base import BaseWidget
 from haywire.core.node.elements import ConfigurableElement
+from haywire.core.inventory.registry.widget_reg import widget
 
+@widget(is_error_widget=True, description="Widget displayed when no appropriate widget is found")
 class ErrorWidget(BaseWidget):
     """Widget displayed when no appropriate widget is found"""
     

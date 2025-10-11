@@ -1,12 +1,12 @@
 
 from typing import Dict, Any, Optional
-from haywire.core.node.node import BaseNode, node_identity
+from haywire.core.node.node import BaseNode, node
 
 # ============================================================================
 # Error Node (returned when a node cannot be loaded)
 # ============================================================================
 
-@node_identity(
+@node(
     label='Error Node',
     description='Placeholder for node that could not be loaded',
     search_tags=['error', 'system', 'placeholder'],

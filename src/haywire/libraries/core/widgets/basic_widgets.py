@@ -6,7 +6,9 @@ from typing import Any, Dict
 from nicegui import ui
 
 from haywire.core.ui.base import BaseWidget
+from haywire.core.inventory.registry.widget_reg import widget
 
+@widget(description="Text input widget for string data", default_for=["STRING", "BYTES"])
 class TextInputWidget(BaseWidget):
     """Text input widget for string data"""
 
@@ -27,6 +29,7 @@ class TextInputWidget(BaseWidget):
 
         return ui.input(**input_kwargs).classes('w-full')
 
+@widget(description="Number input widget for numeric data", default_for=["INT", "FLOAT"])
 class NumberWidget(BaseWidget):
     """Number input widget for numeric data"""
 
@@ -48,6 +51,7 @@ class NumberWidget(BaseWidget):
 		# Create the UI element  
         return ui.number(**number_kwargs).classes('w-full')
 
+@widget(description="Checkbox widget for boolean data", default_for=["BOOL"])
 class CheckboxWidget(BaseWidget):
     """Checkbox widget for boolean data"""
     
@@ -68,6 +72,7 @@ class CheckboxWidget(BaseWidget):
 
         return ui.checkbox(**checkbox_kwargs).classes('w-full')
 
+@widget(description="Switch widget for boolean data")
 class SwitchWidget(BaseWidget):
     """Switch widget for boolean data"""
 
@@ -88,6 +93,7 @@ class SwitchWidget(BaseWidget):
 
         return ui.switch(**switch_kwargs).classes('w-full')
 
+@widget(description="Dropdown select widget for choice-based data")
 class SelectWidget(BaseWidget):
     """Dropdown select widget for choice-based data"""
     
@@ -112,7 +118,7 @@ class SelectWidget(BaseWidget):
 
         return ui.select(**select_kwargs, on_change=update_value).classes('w-full')
 
-
+@widget(description="Slider widget for numeric data with range")
 class SliderWidget(BaseWidget):
     """Slider widget for numeric data with range"""
 
@@ -142,6 +148,7 @@ class SliderWidget(BaseWidget):
 
         return ui.slider(**slider_kwargs, on_change=update_value).classes('w-full').props('label-always')
 
+@widget(description="Knob widget for numeric data with rotary control")
 class KnobWidget(BaseWidget):
     """Knob widget for numeric data with rotary control"""
 

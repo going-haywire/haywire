@@ -2,8 +2,9 @@ from typing import Any
 from nicegui import ui
 
 from haywire.core.ui.base import BaseWidget
+from haywire.core.inventory.registry.widget_reg import widget
 
-
+@widget(description="Custom widget for temperature values with Celsius/Fahrenheit display")
 class TemperatureWidget(BaseWidget):
     """Custom widget for temperature values with Celsius/Fahrenheit display"""
 

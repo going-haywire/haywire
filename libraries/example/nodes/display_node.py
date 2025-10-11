@@ -1,10 +1,10 @@
 
-from haywire.core.node.node import BaseNode, node_identity
+from haywire.core.node.node import BaseNode, node
 from haywire.core.node.elements import Inlet, Outlet
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.data.fields import SingleField
 
-@node_identity(
+@node(
     label='Display',
     description='Displays input values for debugging',
     search_tags=['display', 'debug', 'output', 'basic'],

@@ -14,7 +14,9 @@ from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
 from haywire.core.ui.base import UINodeCard
 from haywire.ui.utils import generate_pin_uuid
 from haywire.ui.utils import render_error_info
+from haywire.core.inventory.registry.renderer_reg import renderer
 
+@renderer(description="Default renderer that provides the standard node appearance", is_default=True)
 class DefaultNodeRenderer(BaseNodeRenderer):
     """
     Default renderer that provides the standard node appearance.

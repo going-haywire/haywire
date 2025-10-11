@@ -9,9 +9,11 @@ from nicegui import ui
 from haywire.core.node.node import BaseNode, NodeErrorInfo
 from haywire.core.ui.base import UINodeCard
 from haywire.ui.utils import render_error_info
+from haywire.core.inventory.registry.renderer_reg import renderer
 
 from .default_renderer import DefaultNodeRenderer
 
+@renderer(description="Error renderer that provides error styling for nodes", is_error=True)
 class ErrorNodeRenderer(DefaultNodeRenderer):
     """
     Error renderer that provides error styling for nodes.

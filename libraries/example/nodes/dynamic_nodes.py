@@ -3,16 +3,14 @@ Basic core node implementations
 """
 
 # Import the node system base class
-from haywire.core.node.node import BaseNode, node_identity
+from haywire.core.node.node import BaseNode, node
 from haywire.core.node.elements import Inlet, Outlet
 from haywire.core.data.enums import DataType, DataContainerType, FlowType
 from haywire.core.data.fields import SingleField
-
-from haywire.core.node.node import BaseNode, node_identity
 from haywire.core.node.elements import PinBuilder
 from haywire.libraries.core.adapters import FLOAT, INT, STRING
 
-@node_identity(
+@node(
     label='Configurable Math Node',
     search_tags=['math', 'operation', 'configurable'],
     menu='math/basic'
