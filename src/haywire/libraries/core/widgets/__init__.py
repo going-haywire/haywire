@@ -4,7 +4,6 @@ Core widget registration and exports
 
 from haywire.core.inventory.registry.widget import WidgetRegistry
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
-from haywire.core.inventory.registry.library import LibraryMetadata
 from haywire.core.data.enums import DataType
 from haywire.core.inventory.utils import camel_to_dot_case
 from haywire.core.ui.base import is_widget
@@ -22,30 +21,32 @@ from .display_widgets import (
 )
 
 
-def register_widgets(widget_registry: WidgetRegistry, library_metadata: LibraryMetadata):
+def register_widgets(library):
     """Register all core widgets with the widget registry"""
 
     widgets = folder_scan_for_classes(
         library_path=__path__[0],
-        metadata=library_metadata,
+        metadata=library.metadata,
         class_filter=is_widget
     )
 
-    # Register all discovered widgets
-    for widget_class in widgets:
-        widget_registry.register_widget(widget_class, library_metadata)
+    reg = library.get_registry(WidgetRegistry)
+    if reg:
+        # Register all discovered widgets
+        for widget_class in widgets:
+            reg.register_widget(widget_class, library.metadata)
 
-    # Register default widgets for scalar data types
-    widget_registry.register_default_widget(DataType.STRING, TextInputWidget)
-    widget_registry.register_default_widget(DataType.INT, NumberWidget)
-    widget_registry.register_default_widget(DataType.FLOAT, NumberWidget)
-    widget_registry.register_default_widget(DataType.BOOL, CheckboxWidget)
-    widget_registry.register_default_widget(DataType.BYTES, TextInputWidget)  # Display as text
-    widget_registry.register_default_widget(DataType.DICT, LabelWidget)  # Read-only for complex types
-    widget_registry.register_default_widget(DataType.OBJECT, LabelWidget)  # Read-only for complex types
+        # Register default widgets for scalar data types
+        reg.register_default_widget(DataType.STRING, TextInputWidget)
+        reg.register_default_widget(DataType.INT, NumberWidget)
+        reg.register_default_widget(DataType.FLOAT, NumberWidget)
+        reg.register_default_widget(DataType.BOOL, CheckboxWidget)
+        reg.register_default_widget(DataType.BYTES, TextInputWidget)  # Display as text
+        reg.register_default_widget(DataType.DICT, LabelWidget)  # Read-only for complex types
+        reg.register_default_widget(DataType.OBJECT, LabelWidget)  # Read-only for complex types
 
-    # Register error widget
-    widget_registry.register_error_widget(ErrorWidget)
+        # Register error widget
+        reg.register_error_widget(ErrorWidget)
 
 
 __all__ = [

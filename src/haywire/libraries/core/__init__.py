@@ -33,19 +33,19 @@ LIBRARY_METADATA = {
 class Library(BaseLibrary):
     """Core Haywire library implementation"""
 
-    def register_components(self, widget_registry: WidgetRegistry, renderer_registry: RendererRegistry, adapter_registry: AdapterRegistry, node_registry: NodeRegistry):
+    def register_components(self):
         """Register all core components with the global registries"""
         # Register widgets
-        register_widgets(widget_registry, library_metadata=self.metadata)
+        register_widgets(self)
         
         # Register adapters (now includes data types)
-        register_adapters(adapter_registry, library_metadata=self.metadata)
+        register_adapters(self)
         
         # Register renderers (node renderers)
-        register_renderers(renderer_registry, library_metadata=self.metadata)
+        register_renderers(self)
         
         # Register nodes
-        register_nodes(node_registry, library_metadata=self.metadata)
+        register_nodes(self)
 
     def validate(self) -> bool:
         """Validate that the core library is properly structured"""

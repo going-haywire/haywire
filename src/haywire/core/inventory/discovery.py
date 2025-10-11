@@ -13,6 +13,7 @@ import traceback
 from .registry.renderer import RendererRegistry
 from .registry.adapter import AdapterRegistry
 from .registry.widget import WidgetRegistry
+from .registry.node import NodeRegistry
 from .registry.library import LibraryRegistry
 
 from .base import BaseLibrary, LibraryMetadata, REQUIRED_LIB_DIRS, HAYWIRE_CORE_LIB_NAME
@@ -63,7 +64,7 @@ class LibraryDiscovery:
                       widget_registry: WidgetRegistry, 
                       adapter_registry: AdapterRegistry,
                       renderer_registry: RendererRegistry,
-                      node_registry) -> List[str]:
+                      node_registry: NodeRegistry) -> List[str]:
         """
         Load all discovered valid libraries.
         Returns list of successfully loaded library names.
@@ -107,13 +108,14 @@ class LibraryDiscovery:
                         library_info['path']
                     )
                     
+                    # Add registries to the library
+                    library_instance.add_registry(type(widget_registry), widget_registry)
+                    library_instance.add_registry(type(renderer_registry), renderer_registry)
+                    library_instance.add_registry(type(adapter_registry), adapter_registry)
+                    library_instance.add_registry(type(node_registry), node_registry)
+                    
                     # Let the library register its components
-                    library_instance._register_components(
-                        widget_registry, 
-                        renderer_registry,
-                        adapter_registry, 
-                        node_registry
-                    )
+                    library_instance.register_components()
                     
                     # Add to the loaded libraries list
                     loaded_libraries.append(library_instance.metadata.name)

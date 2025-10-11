@@ -242,25 +242,18 @@ class BaseLibrary(ABC):
     def __init__(self, metadata: LibraryMetadata, file_path: str):
         self.metadata = metadata
         self.file_path = file_path
-        self._widget_registry = None
-        self._renderer_registry = None
-        self._adapter_registry = None
-        self._node_registry = None
+        self.registries = {}
 
-    def _register_components(self, widget_registry, renderers_registry, adapter_registry, node_registry):
-        """
-        First: Register this global registries with the library
-        Then: Let the library register its components
-        """
-        self._widget_registry = widget_registry
-        self._renderer_registry = renderers_registry
-        self._adapter_registry = adapter_registry
-        self._node_registry = node_registry
+    def add_registry(self, cls, instance):
+        """Add a registry instance for a given registry class"""
+        self.registries[cls] = instance
 
-        self.register_components(widget_registry, renderers_registry, adapter_registry, node_registry)
+    def get_registry(self, cls):
+        """Get a registry instance by its class type"""
+        return self.registries.get(cls)
 
     @abstractmethod
-    def register_components(self, widget_registry, renderers_registry, adapter_registry, node_registry):
+    def register_components(self):
         """Register this library's components with the global registries"""
         pass
 
@@ -282,14 +275,10 @@ class BaseLibrary(ABC):
         path_parts = module.split(".")
         if len(path_parts) > 1:
             # Map directory to registry and handle the change
-            if self._node_registry and self._node_registry.directory_name == path_parts[1]:
-                self._node_registry.handle_module_change(module, event, self.metadata)
-            elif self._widget_registry and self._widget_registry.directory_name == path_parts[1]:
-                self._widget_registry.handle_module_change(module, event, self.metadata)
-            elif self._adapter_registry and self._adapter_registry.directory_name == path_parts[1]:
-                self._adapter_registry.handle_module_change(module, event, self.metadata)
-            elif self._renderer_registry and self._renderer_registry.directory_name == path_parts[1]:
-                self._renderer_registry.handle_module_change(module, event, self.metadata)
+            for registry in self.registries.values():
+                if hasattr(registry, 'directory_name') and registry.directory_name == path_parts[1]:
+                    registry.handle_module_change(module, event, self.metadata)
+                    break
 
 
 
