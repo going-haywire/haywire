@@ -14,9 +14,20 @@ def node(cls: Type[T] = None, /, *,
          search_tags: Optional[list[str]] = None,
          menu: str = 'misc/custom',
          help_md: Optional[str] = None,
-         help_url: str = 'https://haywire.io/docs/node-help') -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+         help_url: str = 'https://haywire.io/docs/node-help',
+         is_error: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a Haywire node.
+    
+    Args:
+        registry_id: Unique identifier for the node
+        label: Human-readable label
+        description: Detailed description
+        search_tags: Tags for searching/filtering
+        menu: Menu category path
+        help_md: Markdown help content
+        help_url: URL to help documentation
+        is_error: Whether this node should handle error cases
 
     Usage:
         @node
@@ -24,6 +35,9 @@ def node(cls: Type[T] = None, /, *,
 
         @node(label="Custom Node", description="Does custom things")
         class MyNode(BaseNode): ...
+        
+        @node(is_error=True, label="Error Node")
+        class ErrorNode(BaseNode): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseNode):
@@ -40,9 +54,10 @@ def node(cls: Type[T] = None, /, *,
             search_tags=search_tags or [],
             menu=menu,
             help_md=help_md,
-            help_url=help_url
+            help_url=help_url,
+            is_error=is_error
         )
-
+        
         return inner_cls
 
     if cls is None:

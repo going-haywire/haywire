@@ -11,7 +11,8 @@ from haywire.core.node.node import BaseNode
     label='Error Node',
     description='Placeholder for node that could not be loaded',
     search_tags=['error', 'system', 'placeholder'],
-    menu='system/error'
+    menu='system/error',
+    is_error=True
 )
 class ErrorNode(BaseNode):
     """Special node to represent nodes that couldn't be loaded properly"""
