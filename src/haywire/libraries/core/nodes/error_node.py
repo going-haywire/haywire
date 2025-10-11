@@ -1,6 +1,7 @@
 
 from typing import Dict, Any, Optional
-from haywire.core.node.node import BaseNode, node
+from haywire.core.inventory.registry.node_reg import node
+from haywire.core.node.node import BaseNode
 
 # ============================================================================
 # Error Node (returned when a node cannot be loaded)

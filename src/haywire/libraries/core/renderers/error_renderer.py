@@ -13,7 +13,9 @@ from haywire.core.inventory.registry.renderer_reg import renderer
 
 from .default_renderer import DefaultNodeRenderer
 
-@renderer(description="Error renderer that provides error styling for nodes", is_error=True)
+@renderer(
+    description="Error renderer that provides error styling for nodes", 
+    is_error=True)
 class ErrorNodeRenderer(DefaultNodeRenderer):
     """
     Error renderer that provides error styling for nodes.

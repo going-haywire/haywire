@@ -8,7 +8,9 @@ from nicegui import ui
 from haywire.core.ui.base import BaseWidget
 from haywire.core.inventory.registry.widget_reg import widget
 
-@widget(description="Read-only label widget for displaying data", default_for=["DICT", "OBJECT"])
+@widget(
+    description="Read-only label widget for displaying data", 
+    default_for=["DICT", "OBJECT"])
 class LabelWidget(BaseWidget):
     """Read-only label widget for displaying data"""
 
@@ -27,7 +29,8 @@ class LabelWidget(BaseWidget):
             self.data_field, 'value', backward=lambda x: str(x) if x is not None else ''
         )
 
-@widget(description="Progress bar widget for numeric data")
+@widget(
+    description="Progress bar widget for numeric data")
 class ProgressWidget(BaseWidget):
     """Progress bar widget for numeric data"""
 
@@ -52,7 +55,8 @@ class ProgressWidget(BaseWidget):
             backward=lambda x: max(0, min(1, (x - min_val) / (max_val - min_val))) if x is not None else 0
         )
 
-@widget(description="Badge widget for displaying status or short text")
+@widget(
+    description="Badge widget for displaying status or short text")
 class BadgeWidget(BaseWidget):
     """Badge widget for displaying status or short text"""
 

@@ -1,5 +1,6 @@
 
-from haywire.core.node.node import BaseNode, node
+from haywire.core.inventory.registry.node_reg import node
+from haywire.core.node.node import BaseNode
 from haywire.core.node.elements import Inlet, Outlet
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.data.fields import SingleField

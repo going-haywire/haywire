@@ -1,8 +1,54 @@
 # No typing imports needed for current functionality
 
-from haywire.core.node.node import BaseNode, NodeDiscoveryError, NodeErrorInfo, is_node
+from typing import Callable, Type, TypeVar, Optional, Union
+from haywire.core.node.node import BaseNode, NodeDiscoveryError, NodeErrorInfo, NodeIdentity, is_node
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
+
+T = TypeVar('T')
+
+def node(cls: Type[T] = None, /, *,
+         registry_id: Optional[str] = None,
+         label: Optional[str] = None,
+         description: Optional[str] = None,
+         search_tags: Optional[list[str]] = None,
+         menu: str = 'misc/custom',
+         help_md: Optional[str] = None,
+         help_url: str = 'https://haywire.io/docs/node-help') -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+    """
+    Decorator to register a class as a Haywire node.
+
+    Usage:
+        @node
+        class MyNode(BaseNode): ...
+
+        @node(label="Custom Node", description="Does custom things")
+        class MyNode(BaseNode): ...
+    """
+    def decorator(inner_cls: Type[T]) -> Type[T]:
+        if not issubclass(inner_cls, BaseNode):
+            raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
+
+        # Use class name as fallback for label and registry_id
+        final_label = label or inner_cls.__name__
+        final_registry_id = registry_id or inner_cls.__name__.lower()
+
+        inner_cls.class_identity = NodeIdentity(
+            registry_id=final_registry_id,
+            label=final_label,
+            description=description or '',
+            search_tags=search_tags or [],
+            menu=menu,
+            help_md=help_md,
+            help_url=help_url
+        )
+
+        return inner_cls
+
+    if cls is None:
+        return decorator
+    return decorator(cls)
+
 
 class NodeRegistry(BaseClassRegistry):
     """Simplified registry for managing nodes using library.name:node.name keys"""

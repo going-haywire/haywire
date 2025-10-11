@@ -9,7 +9,7 @@ from haywire.core.inventory.utils import camel_to_dot_case
 from haywire.core.ui.base import is_widget
 
 # Import all widget classes
-from .base import ErrorWidget
+from .error_widget import ErrorWidget
 from .basic_widgets import (
     TextInputWidget, 
     NumberWidget, 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import inspect
 from copy import deepcopy
-from typing import Any, Dict, List, Type, TypeVar, Optional, Callable, Union
+from typing import Any, Dict, List, TypeVar, Optional, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -69,13 +69,13 @@ class NodeErrorInfo:
 class NodeIdentity:
     """Core identifying attributes of a node"""
     registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
+    registry_key: str = ''  # Set by registry during registration. combination of library-registry-id and node-registry-id.
     label: str = 'Node Name'
     description: str = 'Node Description'
     search_tags: list[str] = field(default_factory=lambda: ['add', 'sub', 'math', 'vector'])
     menu: str = 'misc/custom'
     help_md: str | None = None
     help_url: str = 'https://haywire.io/docs/node-help'
-    registry_key: str = ''  # Set by registry during registration. combination of library-registry-id and node-registry-id.
 
 @dataclass
 class NodeBehavior:
@@ -121,69 +121,8 @@ class NodeUserMetadata:
 
 
 # ============================================================================
-# Node Identity Decorator and Metaclass
+# Node Metaclass
 # ============================================================================
-
-def node(cls: Type[T] = None, /, *,
-         registry_id: Optional[str] = None,
-         label: Optional[str] = None, 
-         description: Optional[str] = None,
-         search_tags: Optional[list[str]] = None, 
-         menu: str = 'misc/custom', 
-         help_md: Optional[str] = None, 
-         help_url: str = 'https://haywire.io/docs/node-help') -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
-    """
-    Decorator to register a class as a Haywire node.
-    
-    Usage:
-        @node
-        class MyNode(BaseNode): ...
-        
-        @node(label="Custom Node", description="Does custom things")
-        class MyNode(BaseNode): ...
-    """
-    def decorator(inner_cls: Type[T]) -> Type[T]:        
-        if not issubclass(inner_cls, BaseNode):
-            raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
-        
-        # Use class name as fallback for label and registry_id
-        final_label = label or inner_cls.__name__
-        final_registry_id = registry_id or inner_cls.__name__.lower()
-        
-        inner_cls.class_identity = NodeIdentity(
-            registry_id=final_registry_id,
-            label=final_label,
-            description=description or '',
-            search_tags=search_tags or [],
-            menu=menu,
-            help_md=help_md,
-            help_url=help_url
-        )
-        
-        return inner_cls
-    
-    if cls is None:
-        return decorator
-    return decorator(cls)
-
-
-# Legacy decorator for backward compatibility
-def node_identity(label: str, description: str = '', search_tags: list[str] = None, 
-                 menu: str = 'misc/custom', help_md: str = None, 
-                 help_url: str = 'https://haywire.io/docs/node-help'):
-    """Decorator to attach node metadata - DEPRECATED: Use @node instead"""
-    def decorator(cls):
-        cls.class_identity = NodeIdentity(
-            registry_id=cls.__name__.lower(),
-            label=label,
-            description=description,
-            search_tags=search_tags or [],
-            menu=menu,
-            help_md=help_md,
-            help_url=help_url
-        )
-        return cls
-    return decorator
 
 class NodeMeta(type):
     """Metaclass that processes pin declarations"""

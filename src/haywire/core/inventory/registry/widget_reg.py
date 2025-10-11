@@ -10,7 +10,6 @@ from ..utils import camel_to_dot_case, reg_key
 
 T = TypeVar('T')
 
-
 def widget(cls: Type[T] = None, /, *, 
            registry_id: Optional[str] = None, 
            description: Optional[str] = None,
