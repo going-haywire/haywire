@@ -110,7 +110,7 @@ class NodeUIState:
     height_min: float = -1
 
 @dataclass
-class NodeMetadata:
+class NodeUserMetadata:
     """User-defined metadata"""
     notes: list[str] = field(default_factory=list)
     custom: dict[str, Any] = field(default_factory=dict)
@@ -186,13 +186,6 @@ class NodeData():
                     setattr(self, attr_name, pin)
         
         self._cache_dirty = True
-
-        # Set the class metadata from the class default
-
-        if hasattr(self.__class__, 'class_identity'):
-            self.identity = deepcopy(self.__class__.class_identity)
-        if hasattr(self.__class__, 'class_library'):
-            self.library = deepcopy(self.__class__.class_library)
     
     # deprecated methods for dynamic pin management
     def add_inlet(self, inlet: Inlet) -> Inlet:
@@ -339,7 +332,7 @@ class NodeData():
         if 'ui_state' in state_dict:
             self.ui_state = NodeUIState.from_dict(state_dict['ui_state'])
         if 'metadata' in state_dict:
-            self.metadata = NodeMetadata.from_dict(state_dict['metadata'])
+            self.metadata = NodeUserMetadata.from_dict(state_dict['metadata'])
         
         self._cache_dirty = True        
 
@@ -352,22 +345,19 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         self.node_id = node_id
         self.graph = graph
         self.error_info: NodeErrorInfo | None = None
-        
-        # Organized attribute groups
-        self.library: LibraryMetadata | None = None  # Set during registration
-
-        # Copy class identity if it exists, otherwise use default
-        if hasattr(self.__class__, 'class_identity'):
-            from copy import deepcopy
-            self.identity = deepcopy(self.__class__.class_identity)
-        else:
-            self.identity = NodeIdentity()
-            
+                    
         self.behavior = NodeBehavior()
         self.ui_config = NodeUIConfig()
         self.ui_state = NodeUIState()
-        self.metadata = NodeMetadata()
+        self.metadata = NodeUserMetadata()
 
+    @property
+    def identity(self) -> NodeIdentity:
+        return self.__class__.class_identity
+
+    @property
+    def library(self) -> LibraryMetadata:
+        return self.__class__.class_library
 
     @abstractmethod
     def worker(self, context: dict) -> dict | None:
