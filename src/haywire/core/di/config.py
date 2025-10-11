@@ -12,11 +12,11 @@ from typing import Optional, List
 from injector import Injector, Module, provider, singleton
 
 from ..inventory.discovery import LibraryDiscovery
-from ..inventory.registry.library import LibraryRegistry
-from ..inventory.registry.node import NodeRegistry
-from ..inventory.registry.renderer import RendererRegistry
-from ..inventory.registry.adapter import AdapterRegistry
-from ..inventory.registry.widget import WidgetRegistry
+from ..inventory.registry.library_reg import LibraryRegistry
+from ..inventory.registry.node_reg import NodeRegistry
+from ..inventory.registry.renderer_reg import RendererRegistry
+from ..inventory.registry.adapter_reg import AdapterRegistry
+from ..inventory.registry.widget_reg import WidgetRegistry
 from ..node.node_factory import NodeFactory
 from ...ui.node_render_factory import NodeRenderFactory
 from ...undo.interfaces import IHistoryManager

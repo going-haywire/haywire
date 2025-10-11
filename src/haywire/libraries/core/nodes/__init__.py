@@ -7,7 +7,7 @@ from haywire.core.node.node import is_node
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
 from .error_node import ErrorNode
 
-from haywire.core.inventory.registry.node import NodeRegistry
+from haywire.core.inventory.registry.node_reg import NodeRegistry
 
 
 def register_nodes(library):

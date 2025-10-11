@@ -15,7 +15,7 @@ from collections import defaultdict
 
 from .node import BaseNode
 from ..graph.graph import HaywireGraph
-from ..inventory.registry.node import NodeRegistry
+from ..inventory.registry.node_reg import NodeRegistry
 from ..errors import log_detailed_error, DetailedError
 
 

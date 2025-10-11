@@ -5,11 +5,12 @@ Contains fundamental nodes, widgets, adapters, and data definitions
 that form the foundation of the Haywire system.
 """
 
-from haywire.core.inventory.registry.renderer import RendererRegistry
-from haywire.core.inventory.registry.adapter import AdapterRegistry
-from haywire.core.inventory.registry.widget import WidgetRegistry
-from haywire.core.inventory.base import BaseLibrary, LibraryMetadata
-from haywire.core.inventory.registry.node import NodeRegistry
+from haywire.core.inventory.library import BaseLibrary
+from haywire.core.inventory.registry.renderer_reg import RendererRegistry
+from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
+from haywire.core.inventory.registry.widget_reg import WidgetRegistry
+from haywire.core.inventory.base import LibraryMetadata
+from haywire.core.inventory.registry.node_reg import NodeRegistry
 
 # Import core components
 from .widgets import register_widgets

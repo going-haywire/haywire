@@ -2,7 +2,7 @@
 Core widget registration and exports
 """
 
-from haywire.core.inventory.registry.widget import WidgetRegistry
+from haywire.core.inventory.registry.widget_reg import WidgetRegistry
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
 from haywire.core.data.enums import DataType
 from haywire.core.inventory.utils import camel_to_dot_case

@@ -5,7 +5,7 @@ This module now includes both adapters and core data type definitions (merged fr
 """
 
 from haywire.core.adapter.base import is_adapter
-from haywire.core.inventory.registry.adapter import AdapterRegistry
+from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
 from haywire.core.data.enums import DataType, DataContainerType
 from haywire.core.data.specs import DataFieldSpec, specs_factory
