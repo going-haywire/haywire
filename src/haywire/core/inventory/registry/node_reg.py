@@ -89,7 +89,7 @@ class NodeRegistry(BaseClassRegistry):
             ValueError: If a node with the same key is already registered
         """
         # Create registry key
-        registry_key = reg_key(library_metadata.name, node_cls.__name__)
+        registry_key = reg_key(library_metadata.name, node_cls.class_identity.registry_id)
 
         # Check for duplicates
         if self.has(registry_key):
