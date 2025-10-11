@@ -43,24 +43,6 @@ class FileChangeEvent:
     timestamp: float
 
 
-@dataclass
-class LibraryMetadata:
-    """Metadata for a Haywire library"""
-    name: str
-    version: str
-    description: str
-    url: str
-    help_url: str
-    author: str
-    author_url: str
-    dependencies: list[str] = None
-    file_watcher: bool = False  # Whether to watch for file changes
-    
-    def __post_init__(self):
-        if self.dependencies is None:
-            self.dependencies = []
-
-
 class BaseRegistry(ABC):
     """Abstract base class for all registries"""
     
@@ -100,6 +82,25 @@ class BaseRegistry(ABC):
     def get_metadata(self, name: str) -> Optional[Dict[str, Any]]:
         """Get metadata for an item"""
         return self._metadata.get(name)
+
+
+@dataclass
+class LibraryMetadata:
+    """Metadata for a Haywire library"""
+    label: str
+    version: str
+    description: str
+    url: str
+    help_url: str
+    author: str
+    author_url: str
+    id: str = None  # Unique identifier for the library, defaults to label if not set
+    dependencies: list[str] = None
+    file_watcher: bool = False  # Whether to watch for file changes
+
+    def __post_init__(self):
+        if self.dependencies is None:
+            self.dependencies = []
 
 
 class BaseClassRegistry(BaseRegistry):

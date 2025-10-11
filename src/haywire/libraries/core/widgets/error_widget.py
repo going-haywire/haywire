@@ -17,22 +17,22 @@ from haywire.core.inventory.registry.widget_reg import widget
 class ErrorWidget(BaseWidget):
     """Widget displayed when no appropriate widget is found"""
     
-    def __init__(self, element: ConfigurableElement):
-        super().__init__(element)
-        self.requested_widget = element.widget
-    
+    def on_model_change(self, value: float):  
+        """Update the number input's value"""  
+        pass
+
     def create_element(self) -> Any:
         """Create an error display widget"""
-        error_msg = f"Widget not found: '{self.requested_widget}'" if self.requested_widget else "No widget available"
+        error_msg = f"'{self.element.widget}'" if self.element.widget else "No default widget defined"
         
-        with ui.column().classes('w-full p-2 border border-red-500 bg-red-50'):
-            ui.icon('error', color='red').classes('text-lg')
-            ui.label(error_msg).classes('text-red-700 text-sm font-bold')
-            ui.label(f"Data type: {self.data_field.type}").classes('text-red-600 text-xs')
-            ui.label(f"Element ID: {self.element_id}").classes('text-red-600 text-xs')
-            
+        with ui.column().classes('w-full h-full p-2 border border-red-500 bg-red-50') as label:
+            with ui.row().classes('items-center gap-2 mb-1'):
+                ui.icon('error', color='red').classes('text-lg')
+                ui.label(f"Widget not found").classes('text-red-700 text-sm font-bold')
             # Show current value as read-only
-            current_value = self.get_value()
-            ui.label(f"Value: {current_value}").classes('text-red-600 text-xs')
-        
-        return ui.column().classes('w-full')
+            ui.label(f"'{error_msg}'").classes('text-red-600 text-xs font-bold')
+            ui.label(f"Element ID: {self.element_id}").classes('text-red-600 text-xs')
+            ui.label(f"Value: {self.get_value()}").classes('text-red-600 text-xs')
+            ui.label(f"Data type: {self.data_field.type}").classes('text-red-600 text-xs')
+                    
+        return label

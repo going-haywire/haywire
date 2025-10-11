@@ -119,7 +119,7 @@ class NodeMenuBuilder:
     
     def _create_search_result_item(self, node_info: Dict[str, str]):
         """Create a search result item."""
-        library_name = node_info.get('library', 'Unknown')
+        library_id = node_info.get('library', 'Unknown')
         
         btn = ui.button(
             f"+ {node_info['label']}", 
@@ -130,11 +130,11 @@ class NodeMenuBuilder:
         
         # Add library badge
         with btn:
-            ui.badge(library_name).classes('ml-auto text-xs bg-gray-200 text-gray-600')
+            ui.badge(library_id).classes('ml-auto text-xs bg-gray-200 text-gray-600')
         
         # Enhanced tooltip
         description = node_info.get('description', 'No description available')
-        tooltip_text = f"{description}\nLibrary: {library_name}"
+        tooltip_text = f"{description}\nLibrary: {library_id}"
         btn.tooltip(tooltip_text)
     
     def _add_recent_nodes_section(self, recent_nodes: List[str], on_node_selected: Callable[[str], None]):

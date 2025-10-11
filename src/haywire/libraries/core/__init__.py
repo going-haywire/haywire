@@ -6,10 +6,10 @@ that form the foundation of the Haywire system.
 """
 
 from haywire.core.inventory.library import BaseLibrary
+from haywire.core.inventory.registry.library_reg import library
 from haywire.core.inventory.registry.renderer_reg import RendererRegistry
 from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
 from haywire.core.inventory.registry.widget_reg import WidgetRegistry
-from haywire.core.inventory.base import LibraryMetadata
 from haywire.core.inventory.registry.node_reg import NodeRegistry
 
 # Import core components
@@ -18,19 +18,18 @@ from .adapters import register_adapters
 from .nodes import register_nodes
 from .renderers import register_renderers
 
-# Library metadata
-LIBRARY_METADATA = {
-    'name': 'haywire.core',
-    'version': '1.0.0',
-    'description': 'Core Haywire library with fundamental components',
-    'url': 'https://github.com/maybites/haywire',
-    'help_url': 'https://github.com/maybites/haywire',
-    'author': 'maybites',
-    'author_url': 'https://maybites.ch',
-    'dependencies': [],
-    'file_watcher': False  # Enable file watching for this library
-}
-
+@library(
+    label='Haywire Core',
+    id='haywire.core',
+    version='1.0.0',
+    description='Core Haywire library with fundamental components',
+    url='https://github.com/maybites/haywire',
+    help_url='https://github.com/maybites/haywire',
+    author='maybites',
+    author_url='https://maybites.ch',
+    dependencies=[],
+    file_watcher=False
+)
 class Library(BaseLibrary):
     """Core Haywire library implementation"""
 

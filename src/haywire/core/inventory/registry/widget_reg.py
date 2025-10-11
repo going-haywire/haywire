@@ -3,16 +3,17 @@ from typing import Type, TypeVar, Optional, Callable, Union
 
 from haywire.core.data.enums import DataContainerType, DataType
 from haywire.core.data.fields import DataField
+from ..base import LibraryMetadata
 from haywire.core.ui.base import BaseWidget, is_widget
 
-from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
 
 T = TypeVar('T')
 
 def widget(cls: Type[T] = None, /, *, 
+           description: str,
            registry_id: Optional[str] = None, 
-           description: Optional[str] = None,
            default_for: Optional[list[str]] = None,
            is_error_widget: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
@@ -42,9 +43,9 @@ def widget(cls: Type[T] = None, /, *,
             raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
         
         # Store widget metadata
-        inner_cls.widget_metadata = {
-            'registry_id': registry_id or inner_cls.__name__.lower(),
+        inner_cls.class_identity = {
             'description': description or '',
+            'registry_id': registry_id or inner_cls.__name__,
             'default_for': default_for or [],
             'is_error_widget': is_error_widget
         }
@@ -69,7 +70,7 @@ class WidgetRegistry(BaseClassRegistry):
     def register_widget(self, widget: type[BaseWidget], metadata: LibraryMetadata):
         """Register a UI widget with its metadata"""
 
-        registry_key = reg_key(metadata.name, widget.__name__)
+        registry_key = reg_key(metadata.id, widget.class_identity['registry_id'])
 
         self._register(registry_key, widget, metadata=metadata)
 
@@ -147,10 +148,9 @@ class WidgetRegistry(BaseClassRegistry):
             return self.get(widget_name)
 
         # 2. Fallback to default for scalar types
-        if data_field.container == DataContainerType.SINGLE:
-            default_widget_name = self._default_widgets.get(data_field.type)
-            if default_widget_name and self.has(default_widget_name):
-                return self.get(default_widget_name)
+        default_widget_name = self._default_widgets.get(data_field.type)
+        if default_widget_name and self.has(default_widget_name):
+            return self.get(default_widget_name)
 
         # 3. Return error widget
         if self._error_widget:

@@ -124,7 +124,7 @@ def _catch_import_modules(module_name: str, metadata: Optional[object]) -> Modul
             exception=e,
             operation="import",
             module_name=module_name,
-            library_name=getattr(metadata, 'name', 'unknown') if metadata else 'unknown',
+            library_id=getattr(metadata, 'name', 'unknown') if metadata else 'unknown',
             message=f"Failed to import module '{module_name}'"
         )
         raise detailed_error

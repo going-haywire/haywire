@@ -1,16 +1,17 @@
 from typing import Optional, Type, TypeVar, Callable, Union
 
 from haywire.core.adapter.base import BaseAdapter, is_adapter
-from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from ..base import LibraryMetadata
+from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 
 T = TypeVar('T')
 
 
 def adapter(cls: Type[T] = None, /, *,
+            description: str,
+            converts_from: str = None,
+            converts_to: str = None,
             registry_id: Optional[str] = None,
-            description: Optional[str] = None,
-            converts_from: Optional[str] = None,
-            converts_to: Optional[str] = None,
             priority: int = 0) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a type adapter.
@@ -37,12 +38,12 @@ def adapter(cls: Type[T] = None, /, *,
             raise TypeError(f"@adapter can only be applied to BaseAdapter subclasses, got {inner_cls}")
         
         # Store adapter metadata
-        inner_cls.adapter_metadata = {
-            'registry_id': registry_id or inner_cls.__name__.lower(),
+        inner_cls.class_identity = {
             'description': description or '',
             'converts_from': converts_from,
             'converts_to': converts_to,
-            'priority': priority
+            'priority': priority,
+            'registry_id': registry_id or inner_cls.__name__
         }
         
         return inner_cls
@@ -69,12 +70,8 @@ class AdapterRegistry(BaseClassRegistry):
             adapter_class: The adapter class to register.
             metadata: Optional metadata for the adapter.
         """
-        source_type = adapter_class.source_type
-        target_type = adapter_class.target_type
-
-        # Convert types to strings for consistent key format
-        source_key = source_type if isinstance(source_type, str) else source_type.__name__ if hasattr(source_type, '__name__') else str(source_type)
-        target_key = target_type if isinstance(target_type, str) else target_type.__name__ if hasattr(target_type, '__name__') else str(target_type)
+        source_key = adapter_class.class_identity.get('converts_from')
+        target_key = adapter_class.class_identity.get('converts_to')
 
         key = (source_key, target_key)
         self._adapters[key] = adapter_class

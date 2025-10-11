@@ -1,8 +1,9 @@
 # No typing imports needed for current functionality
 
 from typing import Callable, Type, TypeVar, Optional, Union
+from ..base import LibraryMetadata
 from haywire.core.node.node import BaseNode, NodeDiscoveryError, NodeErrorInfo, NodeIdentity, is_node
-from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
 
 T = TypeVar('T')
@@ -45,7 +46,7 @@ def node(cls: Type[T] = None, /, *,
 
         # Use class name as fallback for label and registry_id
         final_label = label or inner_cls.__name__
-        final_registry_id = registry_id or inner_cls.__name__.lower()
+        final_registry_id = registry_id or inner_cls.__name__
 
         inner_cls.class_identity = NodeIdentity(
             registry_id=final_registry_id,
@@ -89,7 +90,7 @@ class NodeRegistry(BaseClassRegistry):
             ValueError: If a node with the same key is already registered
         """
         # Create registry key
-        registry_key = reg_key(library_metadata.name, node_cls.class_identity.registry_id)
+        registry_key = reg_key(library_metadata.id, node_cls.class_identity.registry_id)
 
         # Check for duplicates
         if self.has(registry_key):
@@ -125,7 +126,7 @@ class NodeRegistry(BaseClassRegistry):
         Get node class by registry key for graph operations.
 
         Args:
-            key: Registry key in format "library_name:node_name"
+            key: Registry key in format "library_id:node_name"
 
         Returns:
             Tuple of (success: bool, node_class: type)

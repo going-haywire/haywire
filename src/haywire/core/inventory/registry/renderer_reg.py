@@ -1,20 +1,21 @@
 import logging
 from typing import Any, Dict, Optional, Type, TypeVar, Callable, Union
 
+from ..base import LibraryMetadata
 from haywire.core.ui.renderer import BaseNodeRenderer, is_renderer
 
-from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, LibraryMetadata, RegistryFolder
+from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
 
 T = TypeVar('T')
 
 
 def renderer(cls: Type[T] = None, /, *,
-             registry_id: Optional[str] = None,
              description: Optional[str] = None,
              renders: Optional[str] = None,
              is_default: bool = False,
-             is_error: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+             is_error: bool = False,
+             registry_id: Optional[str] = None) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a node renderer.
     
@@ -43,14 +44,13 @@ def renderer(cls: Type[T] = None, /, *,
             raise TypeError(f"@renderer can only be applied to BaseNodeRenderer subclasses, got {inner_cls}")
         
         # Store renderer metadata
-        inner_cls.renderer_metadata = {
-            'registry_id': registry_id or inner_cls.__name__.lower(),
+        inner_cls.class_identity = {
+            'registry_id': registry_id or inner_cls.__name__,
             'description': description or '',
             'renders': renders,  # What types of nodes this renderer can handle
             'is_default': is_default,
             'is_error': is_error
         }
-        
         return inner_cls
     
     if cls is None:
@@ -77,7 +77,7 @@ class RendererRegistry(BaseClassRegistry):
             metadata: Optional metadata for the renderer
         """
 
-        registry_key = reg_key(metadata.name, renderer_cls.__name__)
+        registry_key = reg_key(metadata.id, renderer_cls.class_identity['registry_id'])
 
         self._register(registry_key, renderer_cls, metadata)
 

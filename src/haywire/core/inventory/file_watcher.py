@@ -43,7 +43,7 @@ class FileWatcher:
     def __init__(self, debounce_delay: float = 0.5):
         self.debounce_delay = debounce_delay
         self.libraries: Dict[str, BaseLibrary] = {}
-        self.watched_paths: Dict[str, Set[str]] = defaultdict(set)  # path -> library_names
+        self.watched_paths: Dict[str, Set[str]] = defaultdict(set)  # path -> library_ids
         self.observers: Dict[str, Observer] = {}  # path -> observer
         self.pending_events: Dict[str, FileChangeEvent] = {}  # file_path -> latest_event
         self.debounce_timers: Dict[str, threading.Timer] = {}  # file_path -> timer
@@ -52,7 +52,7 @@ class FileWatcher:
     
     def add_library(self, library: BaseLibrary):
         """Add a library to be watched"""
-        library_name = library.metadata.name
+        library_id = library.metadata.label
         library_path = Path(library.file_path)
         
         # Handle both files and directories
@@ -62,20 +62,20 @@ class FileWatcher:
             watch_path = str(library_path)
         
         with self._lock:
-            self.libraries[library_name] = library
-            self.watched_paths[watch_path].add(library_name)
+            self.libraries[library_id] = library
+            self.watched_paths[watch_path].add(library_id)
             
             # Start watching this path if not already watched
             if watch_path not in self.observers:
                 self._start_watching_path(watch_path)
     
-    def remove_library(self, library_name: str):
+    def remove_library(self, library_id: str):
         """Remove a library from being watched"""
-        if library_name not in self.libraries:
+        if library_id not in self.libraries:
             return
         
         with self._lock:
-            library = self.libraries[library_name]
+            library = self.libraries[library_id]
             library_path = Path(library.file_path)
             
             if library_path.is_file():
@@ -85,7 +85,7 @@ class FileWatcher:
             
             # Remove library from watched paths
             if watch_path in self.watched_paths:
-                self.watched_paths[watch_path].discard(library_name)
+                self.watched_paths[watch_path].discard(library_id)
                 
                 # Stop watching if no more libraries need this path
                 if not self.watched_paths[watch_path]:
@@ -93,7 +93,7 @@ class FileWatcher:
                     del self.watched_paths[watch_path]
             
             # Remove library
-            del self.libraries[library_name]
+            del self.libraries[library_id]
     
     def _start_watching_path(self, path: str):
         """Start watching a specific path"""
@@ -189,18 +189,18 @@ class FileWatcher:
         # Find all libraries that should be notified
         affected_libraries = set()
         
-        for watch_path, library_names in self.watched_paths.items():
+        for watch_path, library_ids in self.watched_paths.items():
             watch_path_obj = Path(watch_path)
             
             # Check if the changed file is within this watched path
             try:
                 if file_path.is_relative_to(watch_path_obj):
-                    affected_libraries.update(library_names)
+                    affected_libraries.update(library_ids)
             except ValueError:
                 # is_relative_to can raise ValueError in some edge cases
                 # Fall back to string comparison
                 if str(file_path).startswith(str(watch_path_obj)):
-                    affected_libraries.update(library_names)
+                    affected_libraries.update(library_ids)
 
         # For deleted files, skip validation
         if event.event_type != FileEventType.DELETED:
@@ -210,23 +210,23 @@ class FileWatcher:
                 return
         
         # Notify each affected library
-        for library_name in affected_libraries:
-            if library_name in self.libraries:
-                library = self.libraries[library_name]
+        for library_id in affected_libraries:
+            if library_id in self.libraries:
+                library = self.libraries[library_id]
                 try:
-                    logging.info(f"Notifying library '{library_name}' about {event.event_type.value}: {event.file_path}")
+                    logging.info(f"Notifying library '{library_id}' about {event.event_type.value}: {event.file_path}")
                     library.handle_file_change(event)
                 except Exception as e:
                     try:
                         log_detailed_error(
                             exception=e,
                             operation="library notification",
-                            message=f"Failed notifying library '{library_name}' about file change",
-                            library_name=library_name
+                            message=f"Failed notifying library '{library_id}' about file change",
+                            library_id=library_id
                         )
                     except Exception as logging_error:
                         # Fallback to simple logging if detailed error fails
-                        logging.error(f"Failed notifying '{library_name}': {e}")
+                        logging.error(f"Failed notifying '{library_id}': {e}")
                         logging.error(f"Error logging failed: {logging_error}")
 
     def _validate_python_file(self, file_path: str) -> bool:

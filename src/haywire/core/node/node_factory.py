@@ -81,7 +81,7 @@ class NodeFactory:
                 module_name=getattr(node_class, '__module__', None),
                 registry_key=registry_key,
                 class_name=node_class.__name__,
-                library_name=node_class.class_library.name,
+                library_id=node_class.class_library.name,
                 message=f"Failed to instantiate node '{registry_key}'"
             )
             raise detailed_error
@@ -221,13 +221,13 @@ class NodeFactory:
 
             if any(query_lower in text for text in searchable):
                 metadata = self.node_registry.get_metadata(key)
-                library_name = metadata.name if metadata else 'Unknown'
+                library_id = metadata.label if metadata else 'Unknown'
                 
                 results.append({
                     'label': label,
                     'key': key,
                     'description': description,
-                    'library': library_name
+                    'library': library_id
                 })
 
         return results
@@ -276,7 +276,7 @@ class NodeFactory:
             'description': description,
             'search_tags': tags,
             'menu': menu,
-            'library_name': metadata.name if metadata else None,
+            'library_label': metadata.label if metadata else None,
             'library_version': metadata.version if metadata else None,
             'class_name': node_class.__name__,
             'module': node_class.__module__

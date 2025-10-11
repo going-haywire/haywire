@@ -1,10 +1,8 @@
-from haywire.core.inventory.base import FileChangeEvent, LibraryMetadata
-from haywire.core.inventory.utils import resolve_module_name
-
-
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from haywire.core.inventory.base import FileChangeEvent, LibraryMetadata
+from haywire.core.inventory.utils import resolve_module_name
 
 class BaseLibrary(ABC):
     """Abstract base class for all libraries"""

@@ -18,7 +18,7 @@ from .registry.widget_reg import WidgetRegistry
 from .registry.node_reg import NodeRegistry
 from .registry.library_reg import LibraryRegistry
 
-from .base import LibraryMetadata, REQUIRED_LIB_DIRS, HAYWIRE_CORE_LIB_NAME
+from .base import REQUIRED_LIB_DIRS, HAYWIRE_CORE_LIB_NAME, LibraryMetadata
 from .file_watcher import FileWatcher
 
 logger = logging.getLogger(__name__)
@@ -84,16 +84,16 @@ class LibraryDiscovery:
         Instantiated_libraries = {}
 
         # instantiate each libraries with its metadata
-        for library_name in valid_libraries:
+        for library_id in valid_libraries:
             try:
-                library_info = valid_libraries[library_name]
-                library_instance = self._load_library_instance(library_name, library_info['path'])
+                library_info = valid_libraries[library_id]
+                library_instance = self._load_library_instance(library_id, library_info['path'])
 
                 # store them in the metadata name (and not the folder)
-                Instantiated_libraries[library_instance.metadata.name] = library_instance
+                Instantiated_libraries[library_instance.metadata.label] = library_instance
 
             except Exception as e:
-                logger.error(f"While attempting to load library '{library_name}': \n\n {format_external_exception()}\n")
+                logger.error(f"While attempting to load library '{library_id}': \n\n {format_external_exception()}\n")
 
         # Sort by dependencies using the metadata dependencies
         sorted_libraries = self._sort_libraries_by_dependencies(Instantiated_libraries)
@@ -120,15 +120,15 @@ class LibraryDiscovery:
                     library_instance.register_components()
                     
                     # Add to the loaded libraries list
-                    loaded_libraries.append(library_instance.metadata.name)
-                    logger.info(f"Successfully loaded library: '{library_instance.metadata.name}' - deps: {library_instance.metadata.dependencies}")
+                    loaded_libraries.append(library_instance.metadata.label)
+                    logger.info(f"Successfully loaded library: '{library_instance.metadata.label}' - deps: {library_instance.metadata.dependencies}")
 
                     # If file watching is enabled, register the library with the watcher
                     if self.file_watcher and (self.enforce_file_watching or library_instance.metadata.file_watcher):
                         self.file_watcher.add_library(library_instance)
 
             except Exception as e:
-                logger.error(f"Failed to load library '{library_instance.metadata.name}': {e} \n\n {format_external_exception()}\n")
+                logger.error(f"Failed to load library '{library_instance.metadata.label}': {e} \n\n {format_external_exception()}\n")
         
         return loaded_libraries
 
@@ -189,7 +189,7 @@ class LibraryDiscovery:
     def discover_libraries(self) -> Dict[str, Dict[str, Any]]:
         """
         Discover all libraries in registered paths.
-        Returns dict with library_name -> {path, metadata, valid}
+        Returns dict with library_id -> {path, metadata, valid}
         """
         self.discovered_libraries.clear()
         
@@ -209,7 +209,7 @@ class LibraryDiscovery:
         except OSError as e:
             logger.error(f"Scanning library directory '{directory}': {e}")
 
-    def _check_library_structure(self, library_name: str, library_path: str):
+    def _check_library_structure(self, library_id: str, library_path: str):
         """Check if a directory follows the required library structure"""
         try:
             # Check for required subdirectories
@@ -227,7 +227,7 @@ class LibraryDiscovery:
             is_valid = len(missing_dirs) == 0 and has_init
             
             # Store discovery results (metadata will be loaded later during actual library loading)
-            self.discovered_libraries[library_name] = {
+            self.discovered_libraries[library_id] = {
                 'path': library_path,
                 'valid': is_valid,
                 'missing_dirs': missing_dirs,
@@ -236,30 +236,30 @@ class LibraryDiscovery:
             }
             
             if is_valid:
-                logger.info(f"Valid library found: '{library_name}' at {library_path}")
+                logger.info(f"Valid library found: '{library_id}' at {library_path}")
             else:
-                logger.warning(f"Invalid library structure: library '{library_name}' is missing: '{missing_dirs}' - folder")
+                logger.warning(f"Invalid library structure: library '{library_id}' is missing: '{missing_dirs}' - folder")
                 
         except Exception as e:
-            logger.error(f"Checking library structure for '{library_name}': {e}")
+            logger.error(f"Checking library structure for '{library_id}': {e}")
         
-    def _load_library_instance(self, library_name: str, library_path: str) -> Optional[BaseLibrary]:
+    def _load_library_instance(self, library_id: str, library_path: str) -> Optional[BaseLibrary]:
         """Load a library instance from its path"""
         # Use the existing metadata loading method to get both module and metadata
-        module, metadata = self._load_module_and_metadata(library_name, library_path)
+        module, metadata = self._load_module_and_metadata(library_id, library_path)
             
         if module and hasattr(module, 'Library'):
             try:
                 library_class = module.Library
                 return library_class(metadata, library_path)
             except Exception as e:
-                logger.error(f"Failed instantiating library {library_name}: {e} \n {traceback.format_exc()}")
-                raise LibraryLoadError(f"Failed instantiating library {library_name}: {e}")
+                logger.error(f"Failed instantiating library {library_id}: {e} \n {traceback.format_exc()}")
+                raise LibraryLoadError(f"Failed instantiating library {library_id}: {e}")
         else:
-            logger.error(f"Library '{library_name}' does not have a valid 'Library' class in '__init__.py' at '{library_path}'")
-            raise LibraryStructureError(f"Library '{library_name}' does not have a valid 'Library' class in '{library_path}'")
+            logger.error(f"Library '{library_id}' does not have a valid 'Library' class in '__init__.py' at '{library_path}'")
+            raise LibraryStructureError(f"Library '{library_id}' does not have a valid 'Library' class in '{library_path}'")
 
-    def _load_module_and_metadata(self, library_name: str, library_path: str) -> tuple[Optional[Any], LibraryMetadata]:
+    def _load_module_and_metadata(self, library_id: str, library_path: str) -> tuple[Optional[Any], LibraryMetadata]:
         """Load module and metadata from a library's __init__.py. Always returns LibraryMetadata (with defaults if needed)."""
         module = None
         parent_dir_added = False
@@ -268,14 +268,14 @@ class LibraryDiscovery:
         # Check if this is a core library (in src/haywire/libraries/)
         if 'src/haywire/libraries' in library_path:
             # For core libraries, use the haywire.libraries.X import path
-            module_path = f"haywire.libraries.{library_name}"
+            module_path = f"haywire.libraries.{library_id}"
         else:
             # For external libraries, add parent to sys.path and import directly
             parent_dir = os.path.dirname(library_path)
             if parent_dir not in sys.path:
                 sys.path.insert(0, parent_dir)
                 parent_dir_added = True
-            module_path = library_name
+            module_path = library_id
         
         # Import the module using the proper path
         module = importlib.import_module(module_path)
@@ -287,29 +287,23 @@ class LibraryDiscovery:
                 sys.path.remove(parent_dir)
         
         # Always create metadata (from module or defaults)
-        metadata = self._create_metadata(module, library_name)
+        metadata = self._create_metadata(module, library_id)
         return module, metadata
 
-    def _create_metadata(self, module: Optional[Any], library_name: str) -> LibraryMetadata:
-        """Create LibraryMetadata from module or use defaults"""
+    def _create_metadata(self, module: Optional[Any], library_id: str) -> LibraryMetadata:
+        """Create LibraryMetadata from module decorator or use defaults"""
+        # Check if the Library class has decorator metadata first
+        if module and hasattr(module, 'Library') and hasattr(module.Library, 'library_metadata'):
+            return module.Library.library_metadata
+        
+        # Fallback to defaults for libraries without decorator
         metadata_kwargs = {
-            'name': library_name,
+            'name': library_id,
             'version': '0.0.0',
-            'description': f'Library: {library_name}',
+            'description': f'Library: {library_id}',
             'author': 'Unknown',
             'dependencies': []
         }
-        if module and hasattr(module, 'LIBRARY_METADATA'):
-            metadata_dict = module.LIBRARY_METADATA
-            
-            # Create LibraryMetadata with all possible fields
-            from dataclasses import fields
-            metadata_fields = {field.name for field in fields(LibraryMetadata)}
-            
-            # Fill metadata_kwargs with fields that exist in LibraryMetadata
-            for field_name in metadata_fields:
-                if field_name in metadata_dict:
-                    metadata_kwargs[field_name] = metadata_dict[field_name]
 
         return LibraryMetadata(**metadata_kwargs)
     

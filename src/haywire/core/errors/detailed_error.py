@@ -23,7 +23,7 @@ class ErrorContext:
     highlight_position: Optional[int] = None
     module_name: Optional[str] = None
     operation: Optional[str] = None  # 'import', 'instantiation', 'syntax_check'
-    library_name: Optional[str] = None
+    library_id: Optional[str] = None
     registry_key: Optional[str] = None
     class_name: Optional[str] = None
     
@@ -35,8 +35,8 @@ class ErrorContext:
             f"Operation: {self.operation or 'Unknown'}",
         ]
         
-        if self.library_name:
-            lines.append(f"Library : {self.library_name}")
+        if self.library_id:
+            lines.append(f"Library : {self.library_id}")
             
         if self.registry_key:
             lines.append(f"Registry: {self.registry_key}")
@@ -97,7 +97,7 @@ class ErrorContext:
 def analyze_exception(exception: Exception, 
                      operation: str = None,
                      module_name: str = None,
-                     library_name: str = None,
+                     library_id: str = None,
                      registry_key: str = None,
                      class_name: str = None,
                      message: str = None) -> ErrorContext:
@@ -108,7 +108,7 @@ def analyze_exception(exception: Exception,
         exception: The caught exception
         operation: Description of what operation failed ('import', 'instantiation', etc.)
         module_name: The module being processed when error occurred
-        library_name: Name of the library (if available)
+        library_id: Name of the library (if available)
         registry_key: Registry ID of the node/class (if available)
         class_name: Name of the class (if available)
         message: High-level error message for the user
@@ -195,7 +195,7 @@ def analyze_exception(exception: Exception,
         highlight_position=highlight_position,
         module_name=module_name,
         operation=operation,
-        library_name=library_name,
+        library_id=library_id,
         registry_key=registry_key,
         class_name=class_name
     )
@@ -214,7 +214,7 @@ def log_detailed_error(exception: Exception,
                       module_name: str = None,
                       message: str = None,
                       logger: logging.Logger = None,
-                      library_name: str = None,
+                      library_id: str = None,
                       registry_key: str = None,
                       class_name: str = None) -> DetailedError:
     """
@@ -226,7 +226,7 @@ def log_detailed_error(exception: Exception,
         module_name: Module being processed
         message: Custom error message
         logger: Logger to use (defaults to root logger)
-        library_name: Name of the library (if available)
+        library_id: Name of the library (if available)
         registry_id: Registry ID of the node/class (if available)
         class_name: Name of the class (if available)
         
@@ -234,7 +234,7 @@ def log_detailed_error(exception: Exception,
         DetailedError with structured context
     """
 
-    context = analyze_exception(exception, operation, module_name, library_name, registry_key, class_name, message)
+    context = analyze_exception(exception, operation, module_name, library_id, registry_key, class_name, message)
 
     detailed_error = DetailedError(
         context=context,
