@@ -5,8 +5,9 @@ This module now includes both adapters and core data type definitions (merged fr
 """
 
 from haywire.core.adapter.base_adapter import is_adapter
+from haywire.core.inventory.library import BaseLibrary
 from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
-from haywire.core.inventory.folder_scan import folder_scan_for_classes
+from haywire.core.inventory.folder_scan_for_classes import folder_scan_for_classes
 from haywire.core.data.enums import DataType, DataContainerType
 from haywire.core.data.specs import DataFieldSpec, specs_factory
 
@@ -39,13 +40,13 @@ STRING = specs_factory(
         widget='haywire.core:text.input.widget',
     )
 
-def register_adapters(library):
+def register_adapters(library: BaseLibrary):
     """Register all core adapters with the adapter registry"""
     
     # Discover all adapter classes in this library
     adapters = folder_scan_for_classes(
         library_path=__path__[0],
-        metadata=library.metadata,
+        library=library,
         class_filter=is_adapter
     )
 
@@ -53,7 +54,7 @@ def register_adapters(library):
     if reg:
         # Register all discovered adapters
         for adapter_class in adapters:
-            reg.register_adapter(adapter_class, library.metadata)
+            reg.register_adapter(adapter_class, library.identity)
 
 __all__ = [
     # Data types (merged from data/ folder)

@@ -19,7 +19,7 @@ class NodeRegistry(BaseClassRegistry):
         super().__init__()
         self._error_node: type | None = None
 
-    def register_node(self, node_cls: type[BaseNode], library_metadata: LibraryIdentity):
+    def register_node(self, node_cls: type[BaseNode], library_identity: LibraryIdentity):
         """
         Register a node class with library metadata.
 
@@ -28,13 +28,13 @@ class NodeRegistry(BaseClassRegistry):
 
         Args:
             node_class: The node class to register
-            library_metadata: Library metadata to use for setting node attributes
+            library_identity: Library metadata to use for setting node attributes
 
         Raises:
             ValueError: If a node with the same key is already registered
         """
         # Create registry key
-        registry_key = reg_key(library_metadata.id, node_cls.class_identity.registry_id)
+        registry_key = reg_key(library_identity.id, node_cls.class_identity.registry_id)
 
         # Check for duplicates
         if self.has(registry_key):
@@ -42,13 +42,13 @@ class NodeRegistry(BaseClassRegistry):
 
         # Store the library metadata and registry key as class attributes 
         # This will be used as the default for new instances
-        node_cls.class_library = library_metadata
+        node_cls.class_library = library_identity
 
         # Set the registry_key in the class_identity if it exists
         if hasattr(node_cls, 'class_identity'):
             node_cls.class_identity.registry_key = registry_key
 
-        self._register(registry_key, node_cls, library_metadata)
+        self._register(registry_key, node_cls, library_identity)
 
     def unregister_node(self, name) -> type[BaseNode] | None:
         """Unregister a node by its haywire name

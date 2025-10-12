@@ -77,7 +77,7 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         kwargs.setdefault('version', '1.0.0')
         kwargs.setdefault('id', kwargs['label'])
         
-        inner_cls.library_metadata = LibraryIdentity(**kwargs)
+        inner_cls.class_identity = LibraryIdentity(**kwargs)
         return inner_cls
 
     return decorator if cls is None else decorator(cls)
@@ -93,6 +93,10 @@ class BaseLibrary(ABC):
         self.metadata = metadata
         self.file_path = file_path
         self.registries = {}
+
+    @property
+    def identity(self) -> LibraryIdentity:
+        return self.__class__.class_identity
 
     def add_registry(self, cls, instance):
         """Add a registry instance for a given registry class"""

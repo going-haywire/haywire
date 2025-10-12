@@ -32,8 +32,8 @@ class LibraryRegistry(BaseRegistry):
         """Get the order in which libraries were loaded"""
         return self._load_order.copy()
     
-    def get_library_metadata(self, library_registry_id: str) -> LibraryIdentity | None:
+    def get_library_identity(self, library_registry_id: str) -> LibraryIdentity | None:
         """Get metadata for a library"""
         library = self.get(library_registry_id)
-        return library.metadata if library else None
+        return library.class_identity if library else None
 

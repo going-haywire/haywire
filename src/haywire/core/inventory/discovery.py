@@ -295,8 +295,8 @@ class LibraryDiscovery:
     def _create_metadata(self, module: Optional[Any], library_id: str) -> LibraryIdentity:
         """Create LibraryIdentity from module decorator or use defaults"""
         # Check if the Library class has decorator metadata first
-        if module and hasattr(module, 'Library') and hasattr(module.Library, 'library_metadata'):
-            return module.Library.library_metadata
+        if module and hasattr(module, 'Library') and hasattr(module.Library, 'class_identity'):
+            return module.Library.class_identity
         
         # Fallback to defaults for libraries without decorator
         metadata_kwargs = {

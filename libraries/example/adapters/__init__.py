@@ -5,7 +5,7 @@ This module now includes both adapters and data type definitions (merged from da
 """
 
 from haywire.core.adapter.base_adapter import is_adapter
-from haywire.core.inventory.folder_scan import folder_scan_for_classes
+from haywire.core.inventory.folder_scan_for_classes import folder_scan_for_classes
 from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
 
 def register_adapters(library):
@@ -14,7 +14,7 @@ def register_adapters(library):
     # List of adapter classes to register (self-registering pattern)
     adapters = folder_scan_for_classes(
         library_path=__path__[0],
-        metadata=library.metadata,
+        library=library,
         class_filter=is_adapter
     )
 
