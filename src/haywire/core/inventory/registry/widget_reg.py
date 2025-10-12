@@ -23,7 +23,7 @@ class WidgetRegistry(BaseClassRegistry):
     def register_widget(self, widget: type[BaseWidget], metadata: LibraryMetadata):
         """Register a UI widget with its metadata"""
 
-        registry_key = reg_key(metadata.id, widget.class_identity['registry_id'])
+        registry_key = reg_key(metadata.id, widget.class_identity.registry_id)
 
         self._register(registry_key, widget, metadata=metadata)
 

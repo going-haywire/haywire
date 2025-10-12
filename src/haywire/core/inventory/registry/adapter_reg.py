@@ -22,8 +22,8 @@ class AdapterRegistry(BaseClassRegistry):
             adapter_class: The adapter class to register.
             metadata: Optional metadata for the adapter.
         """
-        source_key = adapter_class.class_identity.get('converts_from')
-        target_key = adapter_class.class_identity.get('converts_to')
+        source_key = adapter_class.class_identity.converts_from
+        target_key = adapter_class.class_identity.converts_to
 
         key = (source_key, target_key)
         self._adapters[key] = adapter_class

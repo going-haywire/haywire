@@ -27,7 +27,7 @@ class RendererRegistry(BaseClassRegistry):
             metadata: Optional metadata for the renderer
         """
 
-        registry_key = reg_key(metadata.id, renderer_cls.class_identity['registry_id'])
+        registry_key = reg_key(metadata.id, renderer_cls.class_identity.registry_id)
 
         self._register(registry_key, renderer_cls, metadata)
 

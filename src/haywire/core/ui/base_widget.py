@@ -2,9 +2,18 @@
 import inspect
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Type, Optional, TypeVar, Union
+from dataclasses import dataclass, field
 
 from ..data.fields import DataField
 from ..node.elements import ConfigurableElement
+
+@dataclass
+class WidgetIdentity:
+    """Core identifying attributes of a widget"""
+    registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
+    description: str = ''
+    default_for: list[str] = field(default_factory=list)  # List of data types this widget should be the default for
+    is_error_widget: bool = False
 
 # For widgets
 def is_widget(cls):
@@ -21,50 +30,62 @@ def is_widget(cls):
 
 T = TypeVar('T')
 
-def widget(cls: Type[T] = None, /, *,
-           description: str,
-           registry_id: Optional[str] = None,
-           default_for: Optional[list[str]] = None,
-           is_error_widget: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a UI widget.
-
+    
+    Accepts any WidgetIdentity field as a keyword argument. Common arguments include:
+    
     Args:
-        registry_id: Unique identifier for the widget
-        description: Human-readable description
-        default_for: List of data types this widget should be the default for
-        is_error_widget: Whether this widget should handle error cases
+        registry_id (str, optional): Unique identifier for the widget within its library.
+            Defaults to class name if not provided.
+        description (str, optional): Human-readable description of the widget.
+            Defaults to empty string.
+        default_for (list[str], optional): List of data types this widget should be the default for.
+            Defaults to empty list.
+        is_error_widget (bool, optional): Whether this widget should handle error cases.
+            Defaults to False.
+    
+    Any other keyword arguments will be passed through to the WidgetIdentity constructor.
+    See the WidgetIdentity dataclass for the complete list of available fields.
 
     Usage:
+        # Minimal usage - uses class name for registry_id
         @widget
         class MyWidget(BaseWidget): ...
 
-        @widget(registry_id="custom_id", description="Custom widget")
+        # Common customization
+        @widget(description="Custom widget for text input")
         class MyWidget(BaseWidget): ...
 
-        @widget(default_for=["STRING", "BYTES"], description="Text widget")
+        # Full customization
+        @widget(
+            registry_id="text_input_widget",
+            description="Advanced text input widget with validation",
+            default_for=["STRING", "BYTES"],
+            is_error_widget=False
+        )
         class TextWidget(BaseWidget): ...
 
-        @widget(is_error_widget=True)
+        # Default widget for specific data types
+        @widget(default_for=["INT", "FLOAT"], description="Number input widget")
+        class NumberWidget(BaseWidget): ...
+
+        # Error widget
+        @widget(is_error_widget=True, description="Error display widget")
         class ErrorWidget(BaseWidget): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseWidget):
             raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
 
-        # Store widget metadata
-        inner_cls.class_identity = {
-            'description': description or '',
-            'registry_id': registry_id or inner_cls.__name__,
-            'default_for': default_for or [],
-            'is_error_widget': is_error_widget
-        }
-
+        # Set defaults from class name if not provided
+        kwargs.setdefault('registry_id', inner_cls.__name__)
+        
+        inner_cls.class_identity = WidgetIdentity(**kwargs)
         return inner_cls
 
-    if cls is None:
-        return decorator
-    return decorator(cls)
+    return decorator if cls is None else decorator(cls)
 
 # ============================================================================
 #    BASE WIDGET CLASS
