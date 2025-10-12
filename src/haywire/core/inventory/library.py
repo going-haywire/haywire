@@ -12,58 +12,75 @@ from haywire.core.inventory.utils import resolve_module_name
 
 T = TypeVar('T')
 
-def library(cls: Type[T] = None, /, *,
-           label: str,
-           version: str = '1.0.0',
-           description: str = '',
-           url: str = '',
-           help_url: str = '',
-           author: str = '',
-           author_url: str = '',
-           id: Optional[str] = None,
-           dependencies: Optional[list[str]] = None,
-           file_watcher: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a Haywire library.
-
+    
+    Accepts any LibraryMetadata field as a keyword argument. Common arguments include:
+    
     Args:
-        name: Unique library name (e.g., 'haywire.core')
-        version: Semantic version string
-        description: Human-readable description
-        url: Library's main URL
-        help_url: URL to documentation
-        author: Author name
-        author_url: Author's URL
-        dependencies: List of required libraries
-        file_watcher: Whether to enable file watching for this library
+        label (str, required): Human-readable library name.
+        version (str, optional): Semantic version string. Defaults to '1.0.0'.
+        description (str, optional): Human-readable description of the library.
+            Defaults to empty string.
+        url (str, optional): Library's main URL. Defaults to empty string.
+        help_url (str, optional): URL to documentation. Defaults to empty string.
+        author (str, optional): Author name. Defaults to empty string.
+        author_url (str, optional): Author's URL. Defaults to empty string.
+        id (str, optional): Unique identifier for the library.
+            Defaults to label if not provided.
+        dependencies (list[str], optional): List of required libraries.
+            Defaults to empty list.
+        file_watcher (bool, optional): Whether to enable file watching for this library.
+            Defaults to False.
+    
+    Any other keyword arguments will be passed through to the LibraryMetadata constructor.
+    See the LibraryMetadata dataclass for the complete list of available fields.
 
     Usage:
-        @library(name="my.library", version="1.0.0", description="My library")
-        class Library(BaseLibrary): ...
+        # Minimal usage - only label is required
+        @library(label="my.library")
+        class MyLibrary(BaseLibrary): ...
+
+        # Common customization
+        @library(label="my.library", version="1.2.0", description="My custom library")
+        class MyLibrary(BaseLibrary): ...
+
+        # Full customization
+        @library(
+            label="advanced.library",
+            version="2.0.0",
+            description="Advanced library with many features",
+            url="https://github.com/user/advanced-library",
+            help_url="https://advanced-library.readthedocs.io",
+            author="John Doe",
+            author_url="https://johndoe.com",
+            id="advanced_lib",
+            dependencies=["haywire.core", "numpy"],
+            file_watcher=True
+        )
+        class AdvancedLibrary(BaseLibrary): ...
+
+        # With file watching
+        @library(label="dev.library", file_watcher=True, version="0.1.0")
+        class DevLibrary(BaseLibrary): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseLibrary):
             raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
 
-        # Create and attach metadata
-        inner_cls.library_metadata = LibraryMetadata(
-            label=label,
-            version=version,
-            description=description,
-            url=url,
-            help_url=help_url,
-            author=author,
-            author_url=author_url,
-            dependencies=dependencies or [],
-            file_watcher=file_watcher,
-            id=id or label,
-        )
+        # Require label field
+        if 'label' not in kwargs:
+            raise ValueError("@library decorator requires 'label' argument")
 
+        # Set defaults if not provided
+        kwargs.setdefault('version', '1.0.0')
+        kwargs.setdefault('id', kwargs['label'])
+        
+        inner_cls.library_metadata = LibraryMetadata(**kwargs)
         return inner_cls
 
-    if cls is None:
-        return decorator
-    return decorator(cls)
+    return decorator if cls is None else decorator(cls)
 
 # ============================================================================
 #    BASE CLASS
