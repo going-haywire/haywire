@@ -20,7 +20,8 @@ def is_node(cls):
     try:
         return (inspect.isclass(cls) and
                 issubclass(cls, BaseNode) and
-                cls != BaseNode)
+                cls != BaseNode and
+                hasattr(cls, 'class_identity'))
     except TypeError:
         return False
 

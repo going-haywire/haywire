@@ -20,7 +20,8 @@ def is_widget(cls):
     try:
         return (inspect.isclass(cls) and
                 issubclass(cls, BaseWidget) and
-                cls != BaseWidget)
+                cls != BaseWidget and
+                hasattr(cls, 'class_identity'))
     except TypeError:
         return False
 

@@ -24,7 +24,8 @@ def is_adapter(cls):
     try:
         return (inspect.isclass(cls) and
                 issubclass(cls, BaseAdapter) and
-                cls != BaseAdapter)
+                cls != BaseAdapter and
+                hasattr(cls, 'class_identity'))
     except TypeError:
         return False
 

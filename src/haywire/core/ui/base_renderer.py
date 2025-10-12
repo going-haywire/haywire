@@ -21,7 +21,8 @@ def is_renderer(cls):
     try:
         return (inspect.isclass(cls) and
                 issubclass(cls, BaseNodeRenderer) and
-                cls != BaseNodeRenderer)
+                cls != BaseNodeRenderer and
+                hasattr(cls, 'class_identity'))
     except TypeError:
         return False
 
