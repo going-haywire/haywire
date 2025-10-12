@@ -1,61 +1,11 @@
 import logging
-from typing import Any, Dict, Optional, Type, TypeVar, Callable, Union
+from typing import Any, Dict, Optional, TypeVar, Union
 
-from ..base import LibraryMetadata
-from haywire.core.ui.renderer import BaseNodeRenderer, is_renderer
+from ..metadata import LibraryMetadata
+from haywire.core.ui.base_renderer import BaseNodeRenderer, is_renderer
 
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
-
-T = TypeVar('T')
-
-
-def renderer(cls: Type[T] = None, /, *,
-             description: Optional[str] = None,
-             renders: Optional[str] = None,
-             is_default: bool = False,
-             is_error: bool = False,
-             registry_id: Optional[str] = None) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
-    """
-    Decorator to register a class as a node renderer.
-    
-    Args:
-        registry_id: Unique identifier for the renderer
-        description: Human-readable description
-        renders: What types of nodes this renderer can handle
-        is_default: Whether this renderer should be the default fallback
-        is_error: Whether this renderer should handle error cases
-    
-    Usage:
-        @renderer
-        class MyRenderer(BaseNodeRenderer): ...
-        
-        @renderer(registry_id="custom_renderer", description="Custom node renderer")
-        class MyRenderer(BaseNodeRenderer): ...
-        
-        @renderer(is_default=True, description="Default node renderer")
-        class DefaultRenderer(BaseNodeRenderer): ...
-        
-        @renderer(is_error=True, description="Error node renderer")
-        class ErrorRenderer(BaseNodeRenderer): ...
-    """
-    def decorator(inner_cls: Type[T]) -> Type[T]:
-        if not issubclass(inner_cls, BaseNodeRenderer):
-            raise TypeError(f"@renderer can only be applied to BaseNodeRenderer subclasses, got {inner_cls}")
-        
-        # Store renderer metadata
-        inner_cls.class_identity = {
-            'registry_id': registry_id or inner_cls.__name__,
-            'description': description or '',
-            'renders': renders,  # What types of nodes this renderer can handle
-            'is_default': is_default,
-            'is_error': is_error
-        }
-        return inner_cls
-    
-    if cls is None:
-        return decorator
-    return decorator(cls)
 
 class RendererRegistry(BaseClassRegistry):
     """Registry for NodeRenderer classes with fallback support"""

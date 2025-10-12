@@ -5,8 +5,8 @@ Basic widget implementations for common data types
 from typing import Any, Dict
 from nicegui import ui
 
-from haywire.core.ui.base import BaseWidget
-from haywire.core.inventory.registry.widget_reg import widget
+from haywire.core.ui.base_widget import BaseWidget
+from haywire.core.ui.base_widget import widget
 
 @widget(
     description="Text input widget for string data", 

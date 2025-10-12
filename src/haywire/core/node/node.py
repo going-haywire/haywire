@@ -1,47 +1,18 @@
 from __future__ import annotations
 import inspect
 from copy import deepcopy
-from typing import Any, Dict, List, TypeVar, Optional, Union
+from typing import Any, Callable, Dict, List, Type, TypeVar, Optional, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
 
 from haywire.core.data.enums import FlowType
+from haywire.core.node.dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
 
 T = TypeVar('T')
 
 from .elements import Inlet, Outlet, PinSpec
-from ..inventory.base import LibraryMetadata
+from ..inventory.metadata import LibraryMetadata
 from ..data.specs import DataFieldSpec
-
-
-# ============================================================================
-# Custom Exceptions
-# ============================================================================
-
-class NodeDiscoveryError(Exception):
-    """Base exception for node discovery issues"""
-    pass
-
-
-class NodeNotFoundError(NodeDiscoveryError):
-    """Node with specified criteria not found"""
-    pass
-
-
-class NodeAmbiguousError(NodeDiscoveryError):
-    """Multiple nodes found, cannot determine which to use"""
-    pass
-
-
-class NodeVersionError(NodeDiscoveryError):
-    """Node version compatibility issue"""
-    pass
-
-
-class NodeValidationError(NodeDiscoveryError):
-    """Node class is missing required attributes"""
-    pass
 
 
 def is_node(cls):
@@ -52,18 +23,6 @@ def is_node(cls):
                 cls != BaseNode)
     except TypeError:
         return False
-
-@dataclass
-class NodeErrorInfo:
-    """Error information for a Haywire node operation"""
-    error: str
-    error_message: str
-    note: list = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
-
-    def add_note(self, note: str):
-        """Add a note to the error info"""
-        self.note.append(note)
 
 @dataclass
 class NodeIdentity:
@@ -78,47 +37,68 @@ class NodeIdentity:
     help_url: str = 'https://haywire.io/docs/node-help',
     is_error: bool = False
 
-@dataclass
-class NodeBehavior:
-    """Behavioral configuration of a node"""
-    is_control_node: bool = False
-    is_data_node: bool = True
-    is_loopback_node: bool = False
-    is_mutable: bool = False
-    allows_variables: bool = False
-    mute_connection: list[str] = field(default_factory=lambda: ['control_in_ID', 'control_out_ID'])
+# ============================================================================
+#    Decorator
+# ============================================================================
 
-@dataclass
-class NodeUIConfig:
-    """UI configuration and capabilities"""
-    is_collapsable: bool = True
-    is_condensable: bool = True
-    default_color: str = '#FFFFFF'
-    icon: str | None = None
-    node_renderer: str | None = None
-    props_renderer: str | None = None
-    custom_gui: str | None = None
+T = TypeVar('T')
 
-@dataclass
-class NodeUIState:
-    """Runtime UI state"""
-    is_muted: bool = False
-    is_collapsed: bool = False
-    is_condensed: bool = False
-    is_pinned: bool = False
-    custom_color: str = '#000000'
-    posX: float = 0
-    posY: float = 0
-    width: float = 100
-    height: float = 100
-    width_min: float = -1
-    height_min: float = -1
+def node(cls: Type[T] = None, /, *,
+         registry_id: Optional[str] = None,
+         label: Optional[str] = None,
+         description: Optional[str] = None,
+         search_tags: Optional[list[str]] = None,
+         menu: str = 'misc/custom',
+         help_md: Optional[str] = None,
+         help_url: str = 'https://haywire.io/docs/node-help',
+         is_error: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+    """
+    Decorator to register a class as a Haywire node.
 
-@dataclass
-class NodeUserMetadata:
-    """User-defined metadata"""
-    notes: list[str] = field(default_factory=list)
-    custom: dict[str, Any] = field(default_factory=dict)
+    Args:
+        registry_id: Unique identifier for the node
+        label: Human-readable label
+        description: Detailed description
+        search_tags: Tags for searching/filtering
+        menu: Menu category path
+        help_md: Markdown help content
+        help_url: URL to help documentation
+        is_error: Whether this node should handle error cases
+
+    Usage:
+        @node
+        class MyNode(BaseNode): ...
+
+        @node(label="Custom Node", description="Does custom things")
+        class MyNode(BaseNode): ...
+
+        @node(is_error=True, label="Error Node")
+        class ErrorNode(BaseNode): ...
+    """
+    def decorator(inner_cls: Type[T]) -> Type[T]:
+        if not issubclass(inner_cls, BaseNode):
+            raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
+
+        # Use class name as fallback for label and registry_id
+        final_label = label or inner_cls.__name__
+        final_registry_id = registry_id or inner_cls.__name__
+
+        inner_cls.class_identity = NodeIdentity(
+            registry_id=final_registry_id,
+            label=final_label,
+            description=description or '',
+            search_tags=search_tags or [],
+            menu=menu,
+            help_md=help_md,
+            help_url=help_url,
+            is_error=is_error
+        )
+
+        return inner_cls
+
+    if cls is None:
+        return decorator
+    return decorator(cls)
 
 
 # ============================================================================
@@ -369,5 +349,4 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             'inlets': {k: v.to_dict() for k, v in self.inlets.items()},
             'outlets': {k: v.to_dict() for k, v in self.outlets.items()}
         }
-
 

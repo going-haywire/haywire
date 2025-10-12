@@ -4,7 +4,7 @@ Core renderers (node renderers) registration and exports
 
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
 from haywire.core.inventory.registry.renderer_reg import RendererRegistry
-from haywire.core.ui.renderer import is_renderer
+from haywire.core.ui.base_renderer import is_renderer
 
 # Import all renderer classes
 

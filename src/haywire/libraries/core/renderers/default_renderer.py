@@ -7,14 +7,15 @@ This renderer provides the standard node appearance and functionality
 from typing import Dict, Any
 from nicegui import ui
 from nicegui.element import Element
-from haywire.core.node.node import BaseNode, NodeErrorInfo
+from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.node.node import BaseNode
 from haywire.core.data.enums import DataType, FlowType
-from haywire.core.ui.renderer import BaseNodeRenderer
+from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
 from haywire.core.ui.base import UINodeCard
 from haywire.ui.utils import generate_pin_uuid
 from haywire.ui.utils import render_error_info
-from haywire.core.inventory.registry.renderer_reg import renderer
+from haywire.core.ui.base_renderer import renderer
 
 @renderer(
     description="Default renderer that provides the standard node appearance", 

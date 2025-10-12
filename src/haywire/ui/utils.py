@@ -2,7 +2,8 @@
 from typing import NamedTuple, Tuple
 from nicegui import ui, element
 
-from haywire.core.node.node import BaseNode, NodeErrorInfo
+from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.node.node import BaseNode
 
 def render_error_info(error_info: NodeErrorInfo) -> element:
     """

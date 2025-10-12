@@ -6,7 +6,7 @@ Contains one node, one widget, one adapter, and one data struct.
 """
 
 from haywire.core.inventory.library import BaseLibrary
-from haywire.core.inventory.registry.library_reg import library
+from haywire.core.inventory.library import library
 from haywire.core.inventory.registry.renderer_reg import RendererRegistry
 from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
 from haywire.core.inventory.registry.widget_reg import WidgetRegistry

@@ -1,7 +1,7 @@
 from typing import override
 
-from haywire.core.adapter.base import BaseAdapter
-from haywire.core.inventory.registry.adapter_reg import adapter
+from haywire.core.adapter.base_adapter import BaseAdapter
+from haywire.core.adapter.base_adapter import adapter
 from haywire.libraries.core.adapters import FLOAT
 from .example_specs import TEMPERATURE
 

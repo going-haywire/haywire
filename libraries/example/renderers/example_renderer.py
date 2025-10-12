@@ -1,9 +1,9 @@
 
 from nicegui import ui
-from haywire.core.ui.renderer import BaseNodeRenderer
+from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.node.node import BaseNode
 from haywire.core.ui.base import UINodeCard 
-from haywire.core.inventory.registry.renderer_reg import renderer
+from haywire.core.ui.base_renderer import renderer
 
 @renderer(description="Custom renderer for nodes with special styling")
 class ExampleNodeRenderer(BaseNodeRenderer):

@@ -12,6 +12,7 @@ import time
 import logging
 from dataclasses import dataclass
 
+from haywire.core.inventory.metadata import LibraryMetadata
 from haywire.core.inventory.folder_scan import _catch_import_modules, module_scan_for_classes
 
 class RegistryFolder(Enum):
@@ -82,25 +83,6 @@ class BaseRegistry(ABC):
     def get_metadata(self, name: str) -> Optional[Dict[str, Any]]:
         """Get metadata for an item"""
         return self._metadata.get(name)
-
-
-@dataclass
-class LibraryMetadata:
-    """Metadata for a Haywire library"""
-    label: str
-    version: str
-    description: str
-    url: str
-    help_url: str
-    author: str
-    author_url: str
-    id: str = None  # Unique identifier for the library, defaults to label if not set
-    dependencies: list[str] = None
-    file_watcher: bool = False  # Whether to watch for file changes
-
-    def __post_init__(self):
-        if self.dependencies is None:
-            self.dependencies = []
 
 
 class BaseClassRegistry(BaseRegistry):

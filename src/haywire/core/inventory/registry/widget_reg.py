@@ -1,61 +1,14 @@
 import logging
-from typing import Type, TypeVar, Optional, Callable, Union
+from typing import TypeVar, Optional, Union
 
 from haywire.core.data.enums import DataContainerType, DataType
 from haywire.core.data.fields import DataField
-from ..base import LibraryMetadata
-from haywire.core.ui.base import BaseWidget, is_widget
+from haywire.core.ui.base_widget import BaseWidget
+from ..metadata import LibraryMetadata
+from haywire.core.ui.base_widget import is_widget
 
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
-
-T = TypeVar('T')
-
-def widget(cls: Type[T] = None, /, *, 
-           description: str,
-           registry_id: Optional[str] = None, 
-           default_for: Optional[list[str]] = None,
-           is_error_widget: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
-    """
-    Decorator to register a class as a UI widget.
-    
-    Args:
-        registry_id: Unique identifier for the widget
-        description: Human-readable description
-        default_for: List of data types this widget should be the default for
-        is_error_widget: Whether this widget should handle error cases
-    
-    Usage:
-        @widget
-        class MyWidget(BaseWidget): ...
-        
-        @widget(registry_id="custom_id", description="Custom widget")
-        class MyWidget(BaseWidget): ...
-        
-        @widget(default_for=["STRING", "BYTES"], description="Text widget")
-        class TextWidget(BaseWidget): ...
-        
-        @widget(is_error_widget=True)
-        class ErrorWidget(BaseWidget): ...
-    """
-    def decorator(inner_cls: Type[T]) -> Type[T]:
-        if not issubclass(inner_cls, BaseWidget):
-            raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
-        
-        # Store widget metadata
-        inner_cls.class_identity = {
-            'description': description or '',
-            'registry_id': registry_id or inner_cls.__name__,
-            'default_for': default_for or [],
-            'is_error_widget': is_error_widget
-        }
-        
-        return inner_cls
-    
-    if cls is None:
-        return decorator
-    return decorator(cls)
-
 
 class WidgetRegistry(BaseClassRegistry):
     """Registry for UI widgets that can render data fields"""

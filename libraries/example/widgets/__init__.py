@@ -6,7 +6,7 @@ from typing import Dict
 
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
 from haywire.core.inventory.registry.widget_reg import WidgetRegistry
-from haywire.core.ui.base import is_widget
+from haywire.core.ui.base_widget import is_widget
 
 def register_widgets(library):
     """Register widgets with the widget registry"""

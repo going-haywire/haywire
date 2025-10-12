@@ -1,6 +1,6 @@
 
 from typing import Dict, Any, Optional
-from haywire.core.inventory.registry.node_reg import node
+from haywire.core.node.node import node
 from haywire.core.node.node import BaseNode
 
 # ============================================================================

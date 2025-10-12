@@ -1,56 +1,8 @@
-from typing import Optional, Type, TypeVar, Callable, Union
+from typing import Optional, TypeVar, Union
 
-from haywire.core.adapter.base import BaseAdapter, is_adapter
-from ..base import LibraryMetadata
+from haywire.core.adapter.base_adapter import BaseAdapter, is_adapter
+from ..metadata import LibraryMetadata
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
-
-T = TypeVar('T')
-
-
-def adapter(cls: Type[T] = None, /, *,
-            description: str,
-            converts_from: str = None,
-            converts_to: str = None,
-            registry_id: Optional[str] = None,
-            priority: int = 0) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
-    """
-    Decorator to register a class as a type adapter.
-    
-    Args:
-        registry_id: Unique identifier for the adapter
-        description: Human-readable description
-        converts_from: Source data type identifier
-        converts_to: Target data type identifier
-        priority: Priority for this adapter (higher = preferred)
-    
-    Usage:
-        @adapter
-        class MyAdapter(BaseAdapter): ...
-        
-        @adapter(registry_id="custom_adapter", converts_from="int", converts_to="str")
-        class MyAdapter(BaseAdapter): ...
-        
-        @adapter(priority=10, converts_from="FLOAT", converts_to="INT")
-        class HighPriorityAdapter(BaseAdapter): ...
-    """
-    def decorator(inner_cls: Type[T]) -> Type[T]:
-        if not issubclass(inner_cls, BaseAdapter):
-            raise TypeError(f"@adapter can only be applied to BaseAdapter subclasses, got {inner_cls}")
-        
-        # Store adapter metadata
-        inner_cls.class_identity = {
-            'description': description or '',
-            'converts_from': converts_from,
-            'converts_to': converts_to,
-            'priority': priority,
-            'registry_id': registry_id or inner_cls.__name__
-        }
-        
-        return inner_cls
-    
-    if cls is None:
-        return decorator
-    return decorator(cls)
 
 
 class AdapterRegistry(BaseClassRegistry):

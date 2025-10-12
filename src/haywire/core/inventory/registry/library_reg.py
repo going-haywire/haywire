@@ -1,63 +1,8 @@
-from typing import Any, Optional, Type, TypeVar, Union, Callable
+from typing import Any
 
-from ..base import BaseRegistry, LibraryMetadata
+from ..metadata import LibraryMetadata
 
-T = TypeVar('T')
-
-def library(cls: Type[T] = None, /, *,
-           label: str,
-           version: str = '1.0.0',
-           description: str = '',
-           url: str = '',
-           help_url: str = '',
-           author: str = '',
-           author_url: str = '',
-           id: Optional[str] = None,
-           dependencies: Optional[list[str]] = None,
-           file_watcher: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
-    """
-    Decorator to register a class as a Haywire library.
-    
-    Args:
-        name: Unique library name (e.g., 'haywire.core')
-        version: Semantic version string
-        description: Human-readable description
-        url: Library's main URL
-        help_url: URL to documentation
-        author: Author name
-        author_url: Author's URL
-        dependencies: List of required libraries
-        file_watcher: Whether to enable file watching for this library
-    
-    Usage:
-        @library(name="my.library", version="1.0.0", description="My library")
-        class Library(BaseLibrary): ...
-    """
-    def decorator(inner_cls: Type[T]) -> Type[T]:
-        from ..library import BaseLibrary
-        
-        if not issubclass(inner_cls, BaseLibrary):
-            raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
-        
-        # Create and attach metadata
-        inner_cls.library_metadata = LibraryMetadata(
-            label=label,
-            version=version,
-            description=description,
-            url=url,
-            help_url=help_url,
-            author=author,
-            author_url=author_url,
-            dependencies=dependencies or [],
-            file_watcher=file_watcher,
-            id=id or label,
-        )
-        
-        return inner_cls
-    
-    if cls is None:
-        return decorator
-    return decorator(cls)
+from ..base import BaseRegistry
 
 # Import core data types for widget fallback
 

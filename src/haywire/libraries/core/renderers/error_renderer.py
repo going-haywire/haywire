@@ -6,10 +6,11 @@ This renderer provides error styling for nodes.
 
 from typing import Dict, Any
 from nicegui import ui
-from haywire.core.node.node import BaseNode, NodeErrorInfo
+from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.node.node import BaseNode
 from haywire.core.ui.base import UINodeCard
 from haywire.ui.utils import render_error_info
-from haywire.core.inventory.registry.renderer_reg import renderer
+from haywire.core.ui.base_renderer import renderer
 
 from .default_renderer import DefaultNodeRenderer
 
