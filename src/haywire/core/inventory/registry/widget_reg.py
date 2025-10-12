@@ -4,7 +4,7 @@ from typing import TypeVar, Optional, Union
 from haywire.core.data.enums import DataContainerType, DataType
 from haywire.core.data.fields import DataField
 from haywire.core.ui.base_widget import BaseWidget
-from ..metadata import LibraryMetadata
+from ..library_identity import LibraryIdentity
 from haywire.core.ui.base_widget import is_widget
 
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
@@ -20,7 +20,7 @@ class WidgetRegistry(BaseClassRegistry):
         self._default_widgets: dict[DataType, type] = {}
         self._error_widget: type | None = None
 
-    def register_widget(self, widget: type[BaseWidget], metadata: LibraryMetadata):
+    def register_widget(self, widget: type[BaseWidget], metadata: LibraryIdentity):
         """Register a UI widget with its metadata"""
 
         registry_key = reg_key(metadata.id, widget.class_identity.registry_id)
@@ -62,7 +62,7 @@ class WidgetRegistry(BaseClassRegistry):
         """Register the error widget class"""
         self._error_widget = widget_class
 
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
+    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
         """
         Handle file change events for node modules.
 

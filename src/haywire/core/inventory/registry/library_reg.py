@@ -1,6 +1,6 @@
 from typing import Any
 
-from ..metadata import LibraryMetadata
+from ..library_identity import LibraryIdentity
 
 from ..base import BaseRegistry
 
@@ -32,7 +32,7 @@ class LibraryRegistry(BaseRegistry):
         """Get the order in which libraries were loaded"""
         return self._load_order.copy()
     
-    def get_library_metadata(self, library_registry_id: str) -> LibraryMetadata | None:
+    def get_library_metadata(self, library_registry_id: str) -> LibraryIdentity | None:
         """Get metadata for a library"""
         library = self.get(library_registry_id)
         return library.metadata if library else None

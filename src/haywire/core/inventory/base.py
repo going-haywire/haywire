@@ -12,7 +12,7 @@ import time
 import logging
 from dataclasses import dataclass
 
-from haywire.core.inventory.metadata import LibraryMetadata
+from haywire.core.inventory.library_identity import LibraryIdentity
 from haywire.core.inventory.folder_scan import _catch_import_modules, module_scan_for_classes
 
 class RegistryFolder(Enum):
@@ -137,7 +137,7 @@ class BaseClassRegistry(BaseRegistry):
         return super()._unregister(name)
 
     @abstractmethod
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
+    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
         """
         Handle changes to a module by reloading and re-registering classes.
         This method should be implemented by subclasses to define specific behavior.

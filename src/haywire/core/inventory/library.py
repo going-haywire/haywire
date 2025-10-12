@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Type, TypeVar, Optional, Union
 
-from haywire.core.inventory.metadata import LibraryMetadata
+from haywire.core.inventory.library_identity import LibraryIdentity
 from haywire.core.inventory.base import FileChangeEvent
 from haywire.core.inventory.utils import resolve_module_name
 
@@ -16,7 +16,7 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     """
     Decorator to register a class as a Haywire library.
     
-    Accepts any LibraryMetadata field as a keyword argument. Common arguments include:
+    Accepts any LibraryIdentity field as a keyword argument. Common arguments include:
     
     Args:
         label (str, required): Human-readable library name.
@@ -34,8 +34,8 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         file_watcher (bool, optional): Whether to enable file watching for this library.
             Defaults to False.
     
-    Any other keyword arguments will be passed through to the LibraryMetadata constructor.
-    See the LibraryMetadata dataclass for the complete list of available fields.
+    Any other keyword arguments will be passed through to the LibraryIdentity constructor.
+    See the LibraryIdentity dataclass for the complete list of available fields.
 
     Usage:
         # Minimal usage - only label is required
@@ -77,7 +77,7 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         kwargs.setdefault('version', '1.0.0')
         kwargs.setdefault('id', kwargs['label'])
         
-        inner_cls.library_metadata = LibraryMetadata(**kwargs)
+        inner_cls.library_metadata = LibraryIdentity(**kwargs)
         return inner_cls
 
     return decorator if cls is None else decorator(cls)
@@ -89,7 +89,7 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
 class BaseLibrary(ABC):
     """Abstract base class for all libraries"""
 
-    def __init__(self, metadata: LibraryMetadata, file_path: str):
+    def __init__(self, metadata: LibraryIdentity, file_path: str):
         self.metadata = metadata
         self.file_path = file_path
         self.registries = {}

@@ -10,7 +10,7 @@ from typing import List, Dict, Optional, Any
 import logging
 import traceback
 
-from .metadata import LibraryMetadata
+from .library_identity import LibraryIdentity
 
 from .library import BaseLibrary
 
@@ -261,8 +261,8 @@ class LibraryDiscovery:
             logger.error(f"Library '{library_id}' does not have a valid 'Library' class in '__init__.py' at '{library_path}'")
             raise LibraryStructureError(f"Library '{library_id}' does not have a valid 'Library' class in '{library_path}'")
 
-    def _load_module_and_metadata(self, library_id: str, library_path: str) -> tuple[Optional[Any], LibraryMetadata]:
-        """Load module and metadata from a library's __init__.py. Always returns LibraryMetadata (with defaults if needed)."""
+    def _load_module_and_metadata(self, library_id: str, library_path: str) -> tuple[Optional[Any], LibraryIdentity]:
+        """Load module and metadata from a library's __init__.py. Always returns LibraryIdentity (with defaults if needed)."""
         module = None
         parent_dir_added = False
         
@@ -292,8 +292,8 @@ class LibraryDiscovery:
         metadata = self._create_metadata(module, library_id)
         return module, metadata
 
-    def _create_metadata(self, module: Optional[Any], library_id: str) -> LibraryMetadata:
-        """Create LibraryMetadata from module decorator or use defaults"""
+    def _create_metadata(self, module: Optional[Any], library_id: str) -> LibraryIdentity:
+        """Create LibraryIdentity from module decorator or use defaults"""
         # Check if the Library class has decorator metadata first
         if module and hasattr(module, 'Library') and hasattr(module.Library, 'library_metadata'):
             return module.Library.library_metadata
@@ -307,7 +307,7 @@ class LibraryDiscovery:
             'dependencies': []
         }
 
-        return LibraryMetadata(**metadata_kwargs)
+        return LibraryIdentity(**metadata_kwargs)
     
 
 

@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, Optional, TypeVar, Union
 
-from ..metadata import LibraryMetadata
+from ..library_identity import LibraryIdentity
 from haywire.core.ui.base_renderer import BaseNodeRenderer, is_renderer
 
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
@@ -71,7 +71,7 @@ class RendererRegistry(BaseClassRegistry):
         """Register the error renderer class"""
         self._error_renderer = renderer_class
 
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
+    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
         """
         Handle file change events for node modules.
 

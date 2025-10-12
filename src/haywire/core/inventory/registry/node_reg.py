@@ -4,7 +4,7 @@ from typing import TypeVar, Optional, Union
 
 from haywire.core.node.exceptions import NodeDiscoveryError
 from haywire.core.node.dataclasses import NodeErrorInfo
-from ..metadata import LibraryMetadata
+from ..library_identity import LibraryIdentity
 from haywire.core.node.base_node import BaseNode, is_node
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
@@ -19,7 +19,7 @@ class NodeRegistry(BaseClassRegistry):
         super().__init__()
         self._error_node: type | None = None
 
-    def register_node(self, node_cls: type[BaseNode], library_metadata: LibraryMetadata):
+    def register_node(self, node_cls: type[BaseNode], library_metadata: LibraryIdentity):
         """
         Register a node class with library metadata.
 
@@ -95,7 +95,7 @@ class NodeRegistry(BaseClassRegistry):
             raise NodeDiscoveryError(f"Node not found: {key}. No error node registered.")
         return None, node_class
 
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
+    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
         """
         Handle file change events for node modules.
 

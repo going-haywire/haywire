@@ -1,7 +1,7 @@
 from typing import Optional, TypeVar, Union
 
 from haywire.core.adapter.base_adapter import BaseAdapter, is_adapter
-from ..metadata import LibraryMetadata
+from ..library_identity import LibraryIdentity
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 
 
@@ -15,7 +15,7 @@ class AdapterRegistry(BaseClassRegistry):
         # Key: (source_type, target_type), Value: adapter_class
         self._adapters: dict[tuple[str, str], type[BaseAdapter]] = {}
 
-    def register_adapter(self, adapter_class: type[BaseAdapter], metadata: Optional[LibraryMetadata] = None):
+    def register_adapter(self, adapter_class: type[BaseAdapter], metadata: Optional[LibraryIdentity] = None):
         """
         Register adapter class.
         Args:
@@ -44,7 +44,7 @@ class AdapterRegistry(BaseClassRegistry):
 
         return super()._unregister(adapter_name)
 
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryMetadata):
+    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
         """
         Handle file change events for node modules.
 
