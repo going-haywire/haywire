@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from ..base_action import ActionBase, CompositeAction
 from ...core.graph.graph import HaywireGraph, Edge
-from ...core.node.node import BaseNode
+from ...core.node.base_node import BaseNode
 from ...ui.utils import generate_connection_uuid
 
 

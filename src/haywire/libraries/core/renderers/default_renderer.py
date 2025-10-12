@@ -8,7 +8,7 @@ from typing import Dict, Any
 from nicegui import ui
 from nicegui.element import Element
 from haywire.core.node.dataclasses import NodeErrorInfo
-from haywire.core.node.node import BaseNode
+from haywire.core.node.base_node import BaseNode
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement

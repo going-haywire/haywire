@@ -6,7 +6,7 @@ that looks up renderers from the renderers registry.
 """
 
 from typing import Dict, Type
-from haywire.core.node.node import BaseNode
+from haywire.core.node.base_node import BaseNode
 from haywire.core.inventory.registry.widget_reg import WidgetRegistry
 from haywire.core.inventory.registry.renderer_reg import RendererRegistry
 from haywire.core.ui.base_renderer import BaseNodeRenderer

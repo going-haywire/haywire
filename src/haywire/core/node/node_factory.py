@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Any, Callable, Tuple
 from dataclasses import dataclass
 from collections import defaultdict
 
-from .node import BaseNode
+from .base_node import BaseNode
 from ..graph.graph import HaywireGraph
 from ..inventory.registry.node_reg import NodeRegistry
 from ..errors import log_detailed_error, DetailedError

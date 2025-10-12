@@ -1,6 +1,6 @@
 import inspect
 from typing import Callable, Type, TypeVar, Optional, Union
-from haywire.core.node.node import BaseNode
+from haywire.core.node.base_node import BaseNode
 from haywire.core.inventory.registry.widget_reg import WidgetRegistry
 from haywire.core.ui.base import UINodeCard
 

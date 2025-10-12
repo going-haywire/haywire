@@ -7,7 +7,7 @@ using a container-slot approach for reliable re-rendering and cleanup.
 
 from typing import Optional
 from nicegui import ui
-from haywire.core.node.node import BaseNode
+from haywire.core.node.base_node import BaseNode
 from haywire.core.ui.base import UINodeCard
 from haywire.ui.node_render_factory import NodeRenderFactory
 

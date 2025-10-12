@@ -3,7 +3,7 @@ Core node implementations and registration
 """
 
 # Import core node examples
-from haywire.core.node.node import is_node
+from haywire.core.node.base_node import is_node
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
 from .error_node import ErrorNode
 

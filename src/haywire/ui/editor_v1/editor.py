@@ -13,7 +13,7 @@ Design Philosophy:
 
 from typing import Dict, List, Optional, Tuple, Set, Any, Callable
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
-from haywire.core.node.node import BaseNode
+from haywire.core.node.base_node import BaseNode
 from haywire.core.node.node_factory import NodeFactory
 from haywire.undo.interfaces import IHistoryManager
 from haywire.undo.actions.graph_actions import *

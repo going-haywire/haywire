@@ -3,7 +3,7 @@ Test nodes for the test library
 """
 
 # Import the node system base class
-from haywire.core.node.node import is_node
+from haywire.core.node.base_node import is_node
 from haywire.core.inventory.folder_scan import folder_scan_for_classes
 from haywire.core.inventory.registry.node_reg import NodeRegistry
 from haywire.core.inventory.utils import camel_to_dot_case

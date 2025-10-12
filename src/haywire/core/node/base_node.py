@@ -43,62 +43,71 @@ class NodeIdentity:
 
 T = TypeVar('T')
 
-def node(cls: Type[T] = None, /, *,
-         registry_id: Optional[str] = None,
-         label: Optional[str] = None,
-         description: Optional[str] = None,
-         search_tags: Optional[list[str]] = None,
-         menu: str = 'misc/custom',
-         help_md: Optional[str] = None,
-         help_url: str = 'https://haywire.io/docs/node-help',
-         is_error: bool = False) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a Haywire node.
-
+    
+    Accepts any NodeIdentity field as a keyword argument. Common arguments include:
+    
     Args:
-        registry_id: Unique identifier for the node
-        label: Human-readable label
-        description: Detailed description
-        search_tags: Tags for searching/filtering
-        menu: Menu category path
-        help_md: Markdown help content
-        help_url: URL to help documentation
-        is_error: Whether this node should handle error cases
+        registry_id (str, optional): Unique identifier for the node within its library.
+            Defaults to class name if not provided.
+        registry_key (str, optional): Full registry key (library + node ID). Usually set by registry.
+        label (str, optional): Human-readable display name for the node.
+            Defaults to class name if not provided.
+        description (str, optional): Detailed description of what the node does.
+            Defaults to empty string.
+        search_tags (list[str], optional): Tags for searching/filtering nodes in UI.
+            Defaults to empty list.
+        menu (str, optional): Menu category path (e.g., 'math/arithmetic', 'io/files').
+            Defaults to 'misc/custom'.
+        help_md (str, optional): Markdown help content displayed in node help panel.
+            Defaults to None.
+        help_url (str, optional): URL to external help documentation.
+            Defaults to 'https://haywire.io/docs/node-help'.
+        is_error (bool, optional): Whether this node handles error cases.
+            Defaults to False.
+    
+    Any other keyword arguments will be passed through to the NodeIdentity constructor.
+    See the NodeIdentity dataclass for the complete list of available fields.
 
     Usage:
+        # Minimal usage - uses class name for registry_id and label
         @node
         class MyNode(BaseNode): ...
 
+        # Common customization
         @node(label="Custom Node", description="Does custom things")
         class MyNode(BaseNode): ...
 
-        @node(is_error=True, label="Error Node")
+        # Full customization
+        @node(
+            registry_id="my_custom_node",
+            label="My Custom Node", 
+            description="Performs custom calculations",
+            search_tags=["custom", "math", "utility"],
+            menu="custom/math",
+            help_md="## Custom Node\n\nThis node does...",
+            is_error=False
+        )
+        class CustomNode(BaseNode): ...
+
+        # Error handling node
+        @node(is_error=True, label="Error Handler", menu="system/errors")
         class ErrorNode(BaseNode): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseNode):
             raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
 
-        # Use class name as fallback for label and registry_id
-        final_label = label or inner_cls.__name__
-        final_registry_id = registry_id or inner_cls.__name__
-
-        inner_cls.class_identity = NodeIdentity(
-            registry_id=final_registry_id,
-            label=final_label,
-            description=description or '',
-            search_tags=search_tags or [],
-            menu=menu,
-            help_md=help_md,
-            help_url=help_url,
-            is_error=is_error
-        )
-
+        # Set defaults from class name if not provided
+        kwargs.setdefault('registry_id', inner_cls.__name__)
+        kwargs.setdefault('label', inner_cls.__name__)
+        
+        inner_cls.class_identity = NodeIdentity(**kwargs)
         return inner_cls
 
-    if cls is None:
-        return decorator
-    return decorator(cls)
+    return decorator if cls is None else decorator(cls)
 
 
 # ============================================================================

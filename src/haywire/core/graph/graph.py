@@ -3,7 +3,7 @@ from typing import Any
 from dataclasses import dataclass
 from enum import Enum
 
-from ..node.node import BaseNode
+from ..node.base_node import BaseNode
 from ...ui.utils import generate_connection_uuid, parse_connection_uuid
 
 

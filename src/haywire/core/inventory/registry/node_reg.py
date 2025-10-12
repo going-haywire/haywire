@@ -5,7 +5,7 @@ from typing import TypeVar, Optional, Union
 from haywire.core.node.exceptions import NodeDiscoveryError
 from haywire.core.node.dataclasses import NodeErrorInfo
 from ..metadata import LibraryMetadata
-from haywire.core.node.node import BaseNode, is_node
+from haywire.core.node.base_node import BaseNode, is_node
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
 

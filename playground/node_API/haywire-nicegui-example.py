@@ -25,7 +25,7 @@ if src_path not in sys.path:
 # The following imports are from the newly refactored core library
 # This demonstrates how a UI layer would consume the UI-agnostic data model
 from haywire.core.data.enums import DataType
-from haywire.core.node.node import NodeData
+from haywire.core.node.base_node import NodeData
 
 from .math_processor_node import MathProcessorNode
 # --------------------------------
