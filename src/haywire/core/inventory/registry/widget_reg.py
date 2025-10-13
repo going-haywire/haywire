@@ -20,12 +20,13 @@ class WidgetRegistry(BaseClassRegistry):
         self._default_widgets: dict[DataType, type] = {}
         self._error_widget: type | None = None
 
-    def register_widget(self, widget: type[BaseWidget], metadata: LibraryIdentity):
+    def register_widget(self, widget: type[BaseWidget], library_identity: LibraryIdentity):
         """Register a UI widget with its metadata"""
 
-        registry_key = reg_key(metadata.id, widget.class_identity.registry_id)
+        widget.class_library = library_identity
+        registry_key = reg_key(library_identity.id, widget.class_identity.registry_id)
 
-        self._register(registry_key, widget, metadata=metadata)
+        self._register(registry_key, widget)
 
     def unregister_widget(self, widget_name: str) -> type[BaseWidget] | None:
         """Unregister a UI widget by its haywire name

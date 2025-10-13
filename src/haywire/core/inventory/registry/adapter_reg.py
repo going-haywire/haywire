@@ -15,34 +15,44 @@ class AdapterRegistry(BaseClassRegistry):
         # Key: (source_type, target_type), Value: adapter_class
         self._adapters: dict[tuple[str, str], type[BaseAdapter]] = {}
 
-    def register_adapter(self, adapter_class: type[BaseAdapter], metadata: Optional[LibraryIdentity] = None):
+    def register_adapter(self, adapter_cls: type[BaseAdapter], library_itentity: Optional[LibraryIdentity] = None):
         """
         Register adapter class.
         Args:
             adapter_class: The adapter class to register.
             metadata: Optional metadata for the adapter.
         """
-        source_key = adapter_class.class_identity.converts_from
-        target_key = adapter_class.class_identity.converts_to
+        # Store the library metadata and registry key as class attributes 
+        # This will be used as the default for new instances
+        adapter_cls.class_library = library_itentity
+
+        source_key = adapter_cls.class_identity.converts_from
+        target_key = adapter_cls.class_identity.converts_to
 
         key = (source_key, target_key)
-        self._adapters[key] = adapter_class
+
+        self._adapters[key] = adapter_cls
 
         # Register with base registry for metadata tracking
-        adapter_name = f"{source_key}_to_{target_key}"
-        super()._register(adapter_name, adapter_class, metadata)
+        registry_key = f"{source_key}_to_{target_key}"
 
-    def unregister_adapter(self, adapter_name: str) -> type[BaseAdapter] | None:
+        # Set the registry_key in the class_identity if it exists
+        if hasattr(adapter_cls, 'class_identity'):
+            adapter_cls.class_identity.registry_key = registry_key
+
+        super()._register(registry_key, adapter_cls)
+
+    def unregister_adapter(self, registry_key: str) -> type[BaseAdapter] | None:
         """ Unregister an adapter by its haywire name.
 
         Args:
             adapter_name: The haywire name of the adapter to unregister
         """
-        adapter_class = self.get(adapter_name)
+        adapter_class = self.get(registry_key)
         key = next((k for k, cls in self._adapters.items() if cls.__name__ == adapter_class.__name__), None)
         del self._adapters[key]
 
-        return super()._unregister(adapter_name)
+        return super()._unregister(registry_key)
 
     def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
         """

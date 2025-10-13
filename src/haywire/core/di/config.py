@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Optional, List
 from injector import Injector, Module, provider, singleton
 
-from ..inventory.discovery import LibraryDiscovery
 from ..inventory.registry.library_reg import LibraryRegistry
 from ..inventory.registry.node_reg import NodeRegistry
 from ..inventory.registry.renderer_reg import RendererRegistry
@@ -62,7 +61,16 @@ class HaywireModule(Module):
     @singleton
     def provide_library_registry(self) -> LibraryRegistry:
         """Provide singleton LibraryRegistry."""
-        return LibraryRegistry()
+        library_registry = LibraryRegistry()
+        # Add all configured library paths
+        for path in self.library_paths:
+            library_registry.add_library_path(path)
+
+        # Enable file watching if requested
+        if self.enable_file_watching:
+            library_registry.enable_file_watching(debounce_delay=0.5, force=True)
+
+        return library_registry
     
     @provider
     @singleton
@@ -87,23 +95,7 @@ class HaywireModule(Module):
     def provide_node_registry(self) -> NodeRegistry:
         """Provide singleton NodeRegistry."""
         return NodeRegistry()
-    
-    @provider
-    @singleton
-    def provide_library_discovery(self) -> LibraryDiscovery:
-        """Provide configured LibraryDiscovery."""
-        discovery = LibraryDiscovery()
-        
-        # Add all configured library paths
-        for path in self.library_paths:
-            discovery.add_library_path(path)
-        
-        # Enable file watching if requested
-        if self.enable_file_watching:
-            discovery.enable_file_watching(debounce_delay=0.5, force=True)
-        
-        return discovery
-    
+                
     @provider
     @singleton
     def provide_history_manager(self) -> IHistoryManager:
@@ -172,24 +164,22 @@ class LibrarySystemService:
         logging.basicConfig(level=logging.INFO)
         
         # Get all required services from DI
-        discovery = self.injector.get(LibraryDiscovery)
         library_registry = self.injector.get(LibraryRegistry)
         widget_registry = self.injector.get(WidgetRegistry)
         adapter_registry = self.injector.get(AdapterRegistry)
         renderer_registry = self.injector.get(RendererRegistry)
         node_registry = self.injector.get(NodeRegistry)
         
-        # Load libraries
-        loaded = discovery.load_libraries(
-            library_registry, 
-            widget_registry, 
-            adapter_registry, 
-            renderer_registry, 
-            node_registry
-        )
+        # Link registries to library registry for management
+        library_registry.add_class_registry(WidgetRegistry, widget_registry)
+        library_registry.add_class_registry(AdapterRegistry, adapter_registry)
+        library_registry.add_class_registry(RendererRegistry, renderer_registry)
+        library_registry.add_class_registry(NodeRegistry, node_registry)
         
+        library_registry.load_libraries()
+
         self._initialized = True
-        print(f"Library system initialized successfully. Loaded {len(loaded)} libraries.")
+        print(f"Library system initialized successfully.")
         
         return self
     

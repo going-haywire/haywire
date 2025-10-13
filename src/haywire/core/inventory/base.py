@@ -3,12 +3,8 @@ Base classes for the Haywire library system
 """
 
 from abc import ABC, abstractmethod
-import sys
-import importlib
-import traceback
 from enum import Enum
 from typing import Callable, Dict, Any, Optional, Type
-import time
 import logging
 from dataclasses import dataclass
 
@@ -49,13 +45,10 @@ class BaseRegistry(ABC):
     
     def __init__(self):
         self._items: Dict[str, Any] = {}
-        self._metadata: Dict[str, Dict[str, Any]] = {}
     
-    def _register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
+    def _register(self, name: str, item: Any):
         """Register an item with optional metadata"""
         self._items[name] = item
-        if metadata:
-            self._metadata[name] = metadata
 
     def _unregister(self, name: str) -> type[Any]:
         """Remove an item from the registry"""
@@ -63,8 +56,6 @@ class BaseRegistry(ABC):
 
         if name in self._items:
             del self._items[name]
-        if name in self._metadata:
-            del self._metadata[name]
         
         return delete_item
 
@@ -79,10 +70,6 @@ class BaseRegistry(ABC):
     def list_names(self) -> list[str]:
         """List all registered item names"""
         return list(self._items.keys())
-    
-    def get_metadata(self, name: str) -> Optional[Dict[str, Any]]:
-        """Get metadata for an item"""
-        return self._metadata.get(name)
 
 
 class BaseClassRegistry(BaseRegistry):
@@ -95,14 +82,14 @@ class BaseClassRegistry(BaseRegistry):
         self._module_class_name: Dict[str, str] = {}  # Name of the class being registered
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
      
-    def _register(self, name: str, item: Any, metadata: Optional[Dict[str, Any]] = None):
+    def _register(self, name: str, item: Any):
         """Register a class with its name and optional metadata
         Args:
             name (str): The haywire name of the class to register
             item (Any): The class to register
             metadata (Optional[Dict[str, Any]]): Optional metadata for the class
         """
-        super()._register(name, item, metadata)
+        super()._register(name, item)
         self._module_class_name[name] = item.__name__
 
         # Track module to class mapping

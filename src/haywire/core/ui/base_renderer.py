@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 class RendererIdentity:
     """Core identifying attributes of a renderer"""
     registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
+    registry_key: str = ''  # Full unique key including library ID - set by registry
     description: str = ''
     renders: str | None = None  # What types of nodes this renderer can handle
     is_default: bool = False

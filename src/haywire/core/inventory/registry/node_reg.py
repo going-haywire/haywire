@@ -33,6 +33,10 @@ class NodeRegistry(BaseClassRegistry):
         Raises:
             ValueError: If a node with the same key is already registered
         """
+        # Store the library metadata and registry key as class attributes 
+        # This will be used as the default for new instances
+        node_cls.class_library = library_identity
+
         # Create registry key
         registry_key = reg_key(library_identity.id, node_cls.class_identity.registry_id)
 
@@ -40,15 +44,11 @@ class NodeRegistry(BaseClassRegistry):
         if self.has(registry_key):
             raise ValueError(f"Node already registered: {registry_key}")
 
-        # Store the library metadata and registry key as class attributes 
-        # This will be used as the default for new instances
-        node_cls.class_library = library_identity
-
         # Set the registry_key in the class_identity if it exists
         if hasattr(node_cls, 'class_identity'):
             node_cls.class_identity.registry_key = registry_key
 
-        self._register(registry_key, node_cls, library_identity)
+        self._register(registry_key, node_cls)
 
     def unregister_node(self, name) -> type[BaseNode] | None:
         """Unregister a node by its haywire name

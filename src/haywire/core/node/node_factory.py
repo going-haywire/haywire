@@ -207,10 +207,6 @@ class NodeFactory:
                 label = identity.label
                 description = identity.description
                 tags = identity.search_tags
-            else:
-                label = node_class.class_library.label
-                description = node_class.class_library.description
-                tags = getattr(node_class, 'node_search_tags', [])
 
             # Search in label, description, and tags
             searchable = [
@@ -220,14 +216,14 @@ class NodeFactory:
             ]
 
             if any(query_lower in text for text in searchable):
-                metadata = self.node_registry.get_metadata(key)
-                library_id = metadata.label if metadata else 'Unknown'
-                
+                library = node_class.class_library
+                library_label = library.label if library else 'Unknown'
+
                 results.append({
                     'label': label,
                     'key': key,
                     'description': description,
-                    'library': library_id
+                    'library': library_label
                 })
 
         return results
@@ -255,7 +251,7 @@ class NodeFactory:
             return None
         
         node_class = self.node_registry.get(registry_key)
-        metadata = self.node_registry.get_metadata(registry_key)
+        library_identity = node_class.class_library
         
         # Use class_identity if available, fallback to old attributes
         if hasattr(node_class, 'class_identity'):
@@ -276,8 +272,8 @@ class NodeFactory:
             'description': description,
             'search_tags': tags,
             'menu': menu,
-            'library_label': metadata.label if metadata else None,
-            'library_version': metadata.version if metadata else None,
+            'library_label': library_identity.label if library_identity else None,
+            'library_version': library_identity.version if library_identity else None,
             'class_name': node_class.__name__,
             'module': node_class.__module__
         }

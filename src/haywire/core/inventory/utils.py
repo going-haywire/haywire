@@ -1,5 +1,7 @@
 
 from pathlib import Path
+import sys
+import traceback
 from typing import Dict, Any, Optional 
 import re
 
@@ -51,3 +53,22 @@ def resolve_module_name(file_path: str) -> Optional[str]:
     
     return ".".join(module_parts)
 
+def format_external_exception(exclude_modules=None):
+    """Format the current exception, by default excluding frames from this module"""
+    if exclude_modules is None:
+        exclude_modules = [__name__.split('.')[-1]]  # Exclude this module
+    
+    exc_type, exc_value, exc_tb = sys.exc_info()
+    tb_list = traceback.extract_tb(exc_tb)
+    
+    filtered_frames = []
+    for frame in tb_list:
+        # Check if frame is from excluded modules
+        frame_module = frame.filename
+        if not any(module in frame_module for module in exclude_modules):
+            filtered_frames.append(frame)
+    
+    if filtered_frames:
+        return ''.join(traceback.format_list(filtered_frames)) + f"\n{exc_type.__name__}: {exc_value}"
+    else:
+        return f"{exc_type.__name__}: {exc_value}"

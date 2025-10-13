@@ -40,11 +40,11 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     Usage:
         # Minimal usage - only label is required
         @library(label="my.library")
-        class MyLibrary(BaseLibrary): ...
+        class Library(BaseLibrary): ...
 
         # Common customization
         @library(label="my.library", version="1.2.0", description="My custom library")
-        class MyLibrary(BaseLibrary): ...
+        class Library(BaseLibrary): ...
 
         # Full customization
         @library(
@@ -59,11 +59,11 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
             dependencies=["haywire.core", "numpy"],
             file_watcher=True
         )
-        class AdvancedLibrary(BaseLibrary): ...
+        class Library(BaseLibrary): ...
 
         # With file watching
         @library(label="dev.library", file_watcher=True, version="0.1.0")
-        class DevLibrary(BaseLibrary): ...
+        class Library(BaseLibrary): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseLibrary):
@@ -89,8 +89,7 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
 class BaseLibrary(ABC):
     """Abstract base class for all libraries"""
 
-    def __init__(self, metadata: LibraryIdentity, file_path: str):
-        self.metadata = metadata
+    def __init__(self, file_path: str):
         self.file_path = file_path
         self.registries = {}
 
@@ -131,6 +130,6 @@ class BaseLibrary(ABC):
             # Map directory to registry and handle the change
             for registry in self.registries.values():
                 if hasattr(registry, 'directory_name') and registry.directory_name == path_parts[1]:
-                    registry.handle_module_change(module, event, self.metadata)
+                    registry.handle_module_change(module, event, self.identity)
                     break
 

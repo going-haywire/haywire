@@ -13,6 +13,7 @@ from haywire.core.data.enums import DataType
 class AdapterIdentity:
     """Core identifying attributes of an adapter"""
     registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
+    registry_key: str = ''  # Full unique key including library ID - set by registry
     description: str = ''
     converts_from: str | None = None  # Source data type identifier
     converts_to: str | None = None    # Target data type identifier

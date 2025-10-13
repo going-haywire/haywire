@@ -11,6 +11,7 @@ from ..node.elements import ConfigurableElement
 class WidgetIdentity:
     """Core identifying attributes of a widget"""
     registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
+    registry_key: str = ''  # Full unique key including library ID - set by registry
     description: str = ''
     default_for: list[str] = field(default_factory=list)  # List of data types this widget should be the default for
     is_error_widget: bool = False

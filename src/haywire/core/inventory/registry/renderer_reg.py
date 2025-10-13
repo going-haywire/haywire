@@ -17,7 +17,7 @@ class RendererRegistry(BaseClassRegistry):
         self._default_renderer_name: str | None = None
         self._error_renderer: type | None = None
 
-    def register_renderer(self, renderer_cls: type[BaseNodeRenderer], metadata: Optional[Dict[str, Any]] = None):
+    def register_renderer(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None):
         """
         Register a renderer class.
 
@@ -26,10 +26,17 @@ class RendererRegistry(BaseClassRegistry):
             renderer_class: The NodeRenderer class
             metadata: Optional metadata for the renderer
         """
+        # Store the library identity and registry key as class attributes 
+        # This will be used as the default for new instances
+        renderer_cls.class_library = library_identity
 
-        registry_key = reg_key(metadata.id, renderer_cls.class_identity.registry_id)
+        registry_key = reg_key(library_identity.id, renderer_cls.class_identity.registry_id)
+        
+        # Set the registry_key in the class_identity if it exists
+        if hasattr(renderer_cls, 'class_identity'):
+            renderer_cls.class_identity.registry_key = registry_key
 
-        self._register(registry_key, renderer_cls, metadata)
+        self._register(registry_key, renderer_cls)
 
         # Automatically set as default if no default is set yet
         if self._default_renderer_name is None:
