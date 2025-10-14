@@ -1,23 +1,31 @@
 # No typing imports needed for current functionality
 
+import inspect
 from typing import TypeVar, Optional, Union
 
-from haywire.core.node.exceptions import NodeDiscoveryError
-from haywire.core.node.dataclasses import NodeErrorInfo
+from ...node.exceptions import NodeDiscoveryError
+from ...node.dataclasses import NodeErrorInfo
 from ..library_identity import LibraryIdentity
-from haywire.core.node.base_node import BaseNode, is_node
-from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
-from ..utils import camel_to_dot_case, reg_key
-
+from ...node.base_node import BaseNode
+from ..base import BaseClassRegistry
+from ..utils import reg_key
 
 class NodeRegistry(BaseClassRegistry):
     """Simplified registry for managing nodes using library.name:node.name keys"""
-    directory_name: str = RegistryFolder.NODES.value
-    class_filter = lambda self, cls: is_node(cls)  # Use the node filter
 
     def __init__(self):
         super().__init__()
         self._error_node: type | None = None
+
+    def _class_filter(self, cls):
+        """Check if a class is a valid Haywire node class."""
+        try:
+            return (inspect.isclass(cls) and
+                    issubclass(cls, BaseNode) and
+                    cls != BaseNode and
+                    hasattr(cls, 'class_identity'))
+        except TypeError:
+            return False
 
     def _register(self, node_cls: type[BaseNode], library_identity: LibraryIdentity):
         """

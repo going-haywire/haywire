@@ -1,3 +1,4 @@
+import inspect
 import logging
 from typing import TypeVar, Optional, Union
 import logging
@@ -6,21 +7,28 @@ from haywire.core.data.enums import DataContainerType, DataType
 from haywire.core.data.fields import DataField
 from haywire.core.ui.base_widget import BaseWidget
 from ..library_identity import LibraryIdentity
-from haywire.core.ui.base_widget import is_widget
 
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 from ..utils import camel_to_dot_case, reg_key
 
+
 class WidgetRegistry(BaseClassRegistry):
     """Registry for UI widgets that can render data fields"""
-    directory_name: str = RegistryFolder.WIDGETS.value
-    class_filter = lambda self, cls: is_widget(cls)  # Use the widget filter
 
     def __init__(self):
         super().__init__()
         self._default_widgets: dict[DataType, type] = {}
         self._error_widget: type | None = None
 
+    def _class_filter(self, cls):
+        try:
+            return (inspect.isclass(cls) and
+                    issubclass(cls, BaseWidget) and
+                    cls != BaseWidget and
+                    hasattr(cls, 'class_identity'))
+        except TypeError:
+            return False
+        
     def _register(self, widget: type[BaseWidget], library_identity: LibraryIdentity):
         """Register a UI widget with its metadata"""
 
@@ -63,7 +71,7 @@ class WidgetRegistry(BaseClassRegistry):
             logging.warning(f"Error widget '{widget_name}' unregistered, no error widget left in registry")
 
         return removed_class
-
+    
     def get_widget_class(self, widget_name: str | None, data_field: DataField) -> type[BaseWidget]:
         """
         Get widget class with fallback strategy:

@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass
 
 from haywire.core.inventory.library_identity import LibraryIdentity
-from haywire.core.inventory.folder_scan import _catch_import_modules, module_scan_for_classes
+from haywire.core.inventory.folder_scan import _catch_import_modules, module_scan_for_classes, folder_scan_for_classes
 
 class RegistryFolder(Enum):
     """Defines the folder names for the registries."""
@@ -92,8 +92,6 @@ class HotReloadRegistry(ABC):
 
 class BaseClassRegistry(BaseRegistry):
     """Abstract base class for all class registries"""
-    directory_name: str = None  # To be overridden by subclasses
-    class_filter: Callable[[Type], bool] = None
   
     def __init__(self):
         super().__init__()
@@ -141,6 +139,29 @@ class BaseClassRegistry(BaseRegistry):
 
         return super()._unregister(name)
 
+    @abstractmethod
+    def _class_filter(self, cls: Type) -> bool:
+        """Function that returns True if a class should be included in this registry"""
+        pass
+
+    def add_folder(self, folder_path: str, library_identity: LibraryIdentity, exclude_patterns: Optional[list[str]] = None):
+        """Scan a folder for classes matching the registry's class filter
+        and add them to this registry.
+
+        Args:
+            folder_path (str): Path to the folder to scan
+            exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
+        """
+        discovered_classes = folder_scan_for_classes(
+            library_path=folder_path,
+            library_identity=library_identity,
+            class_filter=self._class_filter,
+            exclude_patterns=exclude_patterns
+        )
+
+        for cls in discovered_classes:
+            self._register(cls, library_identity)
+
     def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
         """
         Handle file change events for modules.
@@ -180,7 +201,7 @@ class BaseClassRegistry(BaseRegistry):
         Returns:
             list: List of relevant classes that are in this module
         """
-        return module_scan_for_classes(module, self.class_filter, True)
+        return module_scan_for_classes(module, self._class_filter, True)
 
     def _on_change(self, module_name: str) -> tuple[list, list]:
         """re-registering existing classes within the module
@@ -195,7 +216,7 @@ class BaseClassRegistry(BaseRegistry):
         """
         logging.info(f"Reloading module '{module_name}' due to change...")
         # Get all classes in this module
-        classes_to_add = module_scan_for_classes(module_name, self.class_filter, True)
+        classes_to_add = module_scan_for_classes(module_name, self._class_filter, True)
         hw_class_names_to_remove = []
 
         # Get registered classes from this module that need to be updated

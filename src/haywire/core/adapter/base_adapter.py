@@ -3,7 +3,6 @@ Base adapter classes for type conversion
 """
 
 from abc import ABC, abstractmethod
-import inspect
 from typing import Any, Callable, Type, override, TypeVar, Optional, Union
 from dataclasses import dataclass
 
@@ -19,16 +18,6 @@ class AdapterIdentity:
     converts_to: str | None = None    # Target data type identifier
     priority: int = 0                 # Priority for this adapter (higher = preferred)
 
-# For adapters
-def is_adapter(cls):
-    """Check if a class is a valid Haywire adapter class."""
-    try:
-        return (inspect.isclass(cls) and
-                issubclass(cls, BaseAdapter) and
-                cls != BaseAdapter and
-                hasattr(cls, 'class_identity'))
-    except TypeError:
-        return False
 
 # ============================================================================
 #    Decorator

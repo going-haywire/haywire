@@ -1,21 +1,29 @@
+import inspect
 import logging
 from typing import Any, Dict, Optional, TypeVar, Union
 
 from ..library_identity import LibraryIdentity
-from haywire.core.ui.base_renderer import BaseNodeRenderer, is_renderer
+from haywire.core.ui.base_renderer import BaseNodeRenderer
 
-from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
-from ..utils import camel_to_dot_case, reg_key
+from ..base import BaseClassRegistry
+from ..utils import reg_key
 
 class RendererRegistry(BaseClassRegistry):
     """Registry for NodeRenderer classes with fallback support"""
-    directory_name: str = RegistryFolder.RENDERERS.value
-    class_filter = lambda self, cls: is_renderer(cls)  # Use the renderer filter
 
     def __init__(self):
         super().__init__()
         self._default_renderer_name: str | None = None
         self._error_renderer: type | None = None
+
+    def _class_filter(self, cls):
+        try:
+            return (inspect.isclass(cls) and
+                    issubclass(cls, BaseNodeRenderer) and
+                    cls != BaseNodeRenderer and
+                    hasattr(cls, 'class_identity'))
+        except TypeError:
+            return False
 
     def _register(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None):
         """

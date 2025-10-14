@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Type, TypeVar, Optional, Union
+from typing import Callable, List, Type, TypeVar, Optional, Union
 
 from haywire.core.inventory.library_identity import LibraryIdentity
-from haywire.core.inventory.base import FileChangeEvent
+from haywire.core.inventory.base import BaseClassRegistry, FileChangeEvent
 from haywire.core.inventory.utils import resolve_module_name
 
 # ============================================================================
@@ -133,3 +133,19 @@ class BaseLibrary(ABC):
                     registry.handle_module_change(module, event, self.identity)
                     break
 
+    def add_folder_to_registry(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
+        """
+        Scan a folder for classes matching the registry's class filter
+        and add them to the specified registry.
+
+        Args:
+            folder: Relative folder path within the library
+            registry_cls: The registry class to add discovered classes to
+        """
+        registry: Type[BaseClassRegistry] = self.get_registry(registry_cls)
+        if not registry:
+            raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
+
+        registry.add_folder(folder_path, self.identity, exclude_patterns)
+
+        

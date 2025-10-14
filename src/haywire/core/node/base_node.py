@@ -1,5 +1,4 @@
 from __future__ import annotations
-import inspect
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Type, TypeVar, Optional, Union
 from abc import abstractmethod
@@ -13,17 +12,6 @@ T = TypeVar('T')
 from .elements import Inlet, Outlet, PinSpec
 from ..inventory.library_identity import LibraryIdentity
 from ..data.specs import DataFieldSpec
-
-
-def is_node(cls):
-    """Check if a class is a valid Haywire node class."""
-    try:
-        return (inspect.isclass(cls) and
-                issubclass(cls, BaseNode) and
-                cls != BaseNode and
-                hasattr(cls, 'class_identity'))
-    except TypeError:
-        return False
 
 @dataclass
 class NodeIdentity:

@@ -1,4 +1,3 @@
-import inspect
 from typing import Callable, Type, TypeVar, Optional, Union
 from dataclasses import dataclass
 from haywire.core.node.base_node import BaseNode
@@ -17,16 +16,7 @@ class RendererIdentity:
     is_default: bool = False
     is_error: bool = False
 
-# For renderers  
-def is_renderer(cls):
-    try:
-        return (inspect.isclass(cls) and
-                issubclass(cls, BaseNodeRenderer) and
-                cls != BaseNodeRenderer and
-                hasattr(cls, 'class_identity'))
-    except TypeError:
-        return False
-
+ 
 # ============================================================================
 #    Decorator
 # ============================================================================

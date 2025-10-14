@@ -4,12 +4,10 @@ Core adapter registration and exports
 This module now includes both adapters and core data type definitions (merged from data/ folder).
 """
 
-from haywire.core.adapter.base_adapter import is_adapter
 from haywire.core.inventory.library import BaseLibrary
 from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
-from haywire.core.inventory.folder_scan_for_classes import folder_scan_for_classes
 from haywire.core.data.enums import DataType, DataContainerType
-from haywire.core.data.specs import DataFieldSpec, specs_factory
+from haywire.core.data.specs import specs_factory
 
 
 # --- Factory functions for creating DataFieldSpec instances ---
@@ -42,19 +40,8 @@ STRING = specs_factory(
 
 def register_adapters(library: BaseLibrary):
     """Register all core adapters with the adapter registry"""
-    
-    # Discover all adapter classes in this library
-    adapters = folder_scan_for_classes(
-        library_path=__path__[0],
-        library=library,
-        class_filter=is_adapter
-    )
 
-    reg: AdapterRegistry = library.get_registry(AdapterRegistry)
-    if reg:
-        # Register all discovered adapters
-        for adapter_class in adapters:
-            reg._register(adapter_class, library.identity)
+    library.add_folder_to_registry(__path__[0], AdapterRegistry)
 
 __all__ = [
     # Data types (merged from data/ folder)

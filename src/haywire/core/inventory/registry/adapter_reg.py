@@ -1,20 +1,29 @@
+import inspect
 from typing import Optional, TypeVar, Union
 
-from haywire.core.adapter.base_adapter import BaseAdapter, is_adapter
+from haywire.core.adapter.base_adapter import BaseAdapter
 from ..library_identity import LibraryIdentity
 from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
 
 
 class AdapterRegistry(BaseClassRegistry):
     """Registry for type conversion adapters"""
-    directory_name: str = RegistryFolder.ADAPTERS.value
-    class_filter = lambda self, cls: is_adapter(cls)  # Use the adapter filter
 
     def __init__(self):
         super().__init__()
         # Key: (source_type, target_type), Value: adapter_class
         self._adapters: dict[tuple[str, str], type[BaseAdapter]] = {}
 
+    def _class_filter(self, cls):
+        """Check if a class is a valid Haywire adapter class."""
+        try:
+            return (inspect.isclass(cls) and
+                    issubclass(cls, BaseAdapter) and
+                    cls != BaseAdapter and
+                    hasattr(cls, 'class_identity'))
+        except TypeError:
+            return False
+ 
     def _register(self, adapter_cls: type[BaseAdapter], library_itentity: Optional[LibraryIdentity] = None):
         """
         Register adapter class.
@@ -53,7 +62,7 @@ class AdapterRegistry(BaseClassRegistry):
         del self._adapters[key]
 
         return super()._unregister(registry_key)
-
+   
     def has_adapter(self, source_type: str, target_type: str) -> bool:
         """Check if an adapter exists for the given type conversion"""
         return (source_type, target_type) in self._adapters

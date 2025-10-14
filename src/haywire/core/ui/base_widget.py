@@ -1,5 +1,4 @@
 
-import inspect
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Type, Optional, TypeVar, Union
 from dataclasses import dataclass, field
@@ -15,16 +14,6 @@ class WidgetIdentity:
     description: str = ''
     default_for: list[str] = field(default_factory=list)  # List of data types this widget should be the default for
     is_error_widget: bool = False
-
-# For widgets
-def is_widget(cls):
-    try:
-        return (inspect.isclass(cls) and
-                issubclass(cls, BaseWidget) and
-                cls != BaseWidget and
-                hasattr(cls, 'class_identity'))
-    except TypeError:
-        return False
 
 # ============================================================================
 #    Decorator
