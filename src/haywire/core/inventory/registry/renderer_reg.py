@@ -38,9 +38,16 @@ class RendererRegistry(BaseClassRegistry):
 
         super()._register(registry_key, renderer_cls)
 
-        # Automatically set as default if no default is set yet
-        if self._default_renderer_name is None:
+        # Check if this is a default renderer and register it automatically
+        if hasattr(renderer_cls, 'class_identity') and renderer_cls.class_identity.is_default:
             self._default_renderer_name = registry_key
+        elif self._default_renderer_name is None:
+            # Automatically set as default if no default is set yet
+            self._default_renderer_name = registry_key
+
+        # Check if this is an error renderer and register it automatically
+        if hasattr(renderer_cls, 'class_identity') and renderer_cls.class_identity.is_error:
+            self._error_renderer = renderer_cls
 
     def _unregister(self, name: str) -> type[BaseNodeRenderer] | None:
         """Unregister a renderer by its haywire name
@@ -61,22 +68,6 @@ class RendererRegistry(BaseClassRegistry):
             logging.warning(f"Error renderer '{name}' unregistered, no error renderer left in registry")    
         
         return removed_class
-
-    def register_default_renderer(self, renderer_cls: type[BaseNodeRenderer]):
-        """Register the default renderer by class"""
-
-        # get the widget name from the class
-        # This assures to work even it the widget class was removed from the registry
-        renderer_name = next((name for name, cls in self._items.items() if cls == renderer_cls), None)
-
-        if renderer_name:
-            self._default_renderer_name = renderer_name
-        else:
-            logging.warning(f"Renderer class '{renderer_cls.__name__}' not found in registry, cannot set as default")
-
-    def register_error_renderer(self, renderer_class: type[BaseNodeRenderer]):
-        """Register the error renderer class"""
-        self._error_renderer = renderer_class
 
     def get_renderer_class(self, renderer_name: str | None) -> type[BaseNodeRenderer]:
         """

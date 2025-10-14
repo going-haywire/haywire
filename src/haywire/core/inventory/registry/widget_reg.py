@@ -1,5 +1,6 @@
 import logging
 from typing import TypeVar, Optional, Union
+import logging
 
 from haywire.core.data.enums import DataContainerType, DataType
 from haywire.core.data.fields import DataField
@@ -26,16 +27,32 @@ class WidgetRegistry(BaseClassRegistry):
         widget.class_library = library_identity
         registry_key = reg_key(library_identity.id, widget.class_identity.registry_id)
 
-        super()._register(registry_key, widget)
+        # Check if this widget has default_for data types and register them automatically
+        if hasattr(widget, 'class_identity') and widget.class_identity.default_for:
+            for data_type_str in widget.class_identity.default_for:
+                try:
+                    data_type = DataType(data_type_str)
+                    self._default_widgets[data_type] = widget
+                except ValueError:
+                    logging.warning(f"Invalid data type '{data_type_str}' in widget '{widget.__name__}' default_for list")
+
+        # Check if this is an error widget and register it automatically
+        if hasattr(widget, 'class_identity') and widget.class_identity.is_error_widget:
+            self._error_widget = widget
+        else:
+            # we only register non-error widgets in the main registry
+            super()._register(registry_key, widget)
+
 
     def _unregister(self, widget_name: str) -> type[BaseWidget] | None:
         """Unregister a UI widget by its haywire name
         Args:
             widget_name: The haywire name of the widget to unregister
         """
-        # Remove from default widgets if it was set
-        for data_type, default_widget in list(self._default_widgets.items()):
-            if default_widget == widget_name:
+        # Remove from default widgets if it was set  
+        removed_class = self.get(widget_name)
+        for data_type, default_widget_class in list(self._default_widgets.items()):
+            if default_widget_class == removed_class:
                 del self._default_widgets[data_type]
                 logging.warning(f"Widget '{widget_name}' removed from default widgets for '{data_type}'")
         
@@ -46,22 +63,6 @@ class WidgetRegistry(BaseClassRegistry):
             logging.warning(f"Error widget '{widget_name}' unregistered, no error widget left in registry")
 
         return removed_class
-
-    def register_default_widget(self, data_type: DataType, widget_class: type[BaseWidget]):
-        """Register a default widget for a data type"""
-
-        # get the widget name from the class
-        # This assures to work even it the widget class was removed from the registry
-        widget_name = next((name for name, cls in self._items.items() if cls == widget_class), None)
-
-        if widget_name:
-            self._default_widgets[data_type] = widget_name
-        else:
-            logging.warning(f"Widget class '{widget_class.__name__}' not found in registry, cannot register default widget for '{data_type}'")
-
-    def register_error_widget(self, widget_class: type[BaseWidget]):
-        """Register the error widget class"""
-        self._error_widget = widget_class
 
     def get_widget_class(self, widget_name: str | None, data_field: DataField) -> type[BaseWidget]:
         """
@@ -75,9 +76,9 @@ class WidgetRegistry(BaseClassRegistry):
             return self.get(widget_name)
 
         # 2. Fallback to default for scalar types
-        default_widget_name = self._default_widgets.get(data_field.type)
-        if default_widget_name and self.has(default_widget_name):
-            return self.get(default_widget_name)
+        default_widget_class = self._default_widgets.get(data_field.type)
+        if default_widget_class:
+            return default_widget_class
 
         # 3. Return error widget
         if self._error_widget:

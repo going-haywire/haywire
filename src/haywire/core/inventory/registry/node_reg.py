@@ -48,7 +48,13 @@ class NodeRegistry(BaseClassRegistry):
         if hasattr(node_cls, 'class_identity'):
             node_cls.class_identity.registry_key = registry_key
 
-        super()._register(registry_key, node_cls)
+        # Check if this is an error node and register it automatically
+        if hasattr(node_cls, 'class_identity') and node_cls.class_identity.is_error:
+            self._error_node = node_cls
+        else:
+            # we only register non-error nodes in the main registry
+            super()._register(registry_key, node_cls)
+
 
     def _unregister(self, name) -> type[BaseNode] | None:
         """Unregister a node by its haywire name
@@ -56,10 +62,6 @@ class NodeRegistry(BaseClassRegistry):
             name: The name of the node to unregister
         """
         return super()._unregister(name)
-
-    def register_error_node(self, node_class: type[BaseNode]):
-        """Register the error node class"""
-        self._error_node = node_class
 
     def get_error_node(self) -> type[BaseNode] | None:
         """Get the error node class"""

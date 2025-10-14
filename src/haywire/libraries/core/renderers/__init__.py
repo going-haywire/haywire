@@ -22,13 +22,9 @@ def register_renderers(library: BaseLibrary):
 
     reg: RendererRegistry = library.get_registry(RendererRegistry)
     if reg:
-        # Register all discovered renderers
+        # Register all discovered renderers (default and error flags will be handled automatically)
         for renderer_class in renderers:
             reg._register(renderer_class, library.identity)
-
-        # Set fallback renderers using class references
-        reg.register_default_renderer(DefaultNodeRenderer)
-        reg.register_error_renderer(ErrorNodeRenderer)
 
 __all__ = [
     'DefaultNodeRenderer',

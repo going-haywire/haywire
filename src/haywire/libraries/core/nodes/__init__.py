@@ -21,16 +21,11 @@ def register_nodes(library: BaseLibrary):
         class_filter=is_node
     )
 
-    nodes.remove(ErrorNode)  # Remove ErrorNode from basic nodes list
-
     reg: NodeRegistry = library.get_registry(NodeRegistry)
     if reg:
-        # Register all discovered nodes
+        # Register all discovered nodes (including ErrorNode)
         for node_class in nodes:
             reg._register(node_class, library.identity)
-
-        # Register error node
-        reg.register_error_node(ErrorNode)
 
 __all__ = [
     'ErrorNode',
