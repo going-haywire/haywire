@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, List, Type, TypeVar, Optional, Union
 
+from haywire.core.inventory.file_watcher import FileWatcher
 from haywire.core.inventory.library_identity import LibraryIdentity
 from haywire.core.inventory.base import BaseClassRegistry, FileChangeEvent
-from haywire.core.inventory.utils import resolve_module_name
 
 # ============================================================================
 #    Decorator
@@ -89,9 +89,12 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
 class BaseLibrary(ABC):
     """Abstract base class for all libraries"""
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, enforce_file_watching: bool = False, debounce_delay: float = 0.5):
         self.file_path = file_path
         self.registries = {}
+        self.file_watcher: FileWatcher = FileWatcher()
+        self.enforce_file_watching = enforce_file_watching
+        self.debounce_delay = debounce_delay
 
     @property
     def identity(self) -> LibraryIdentity:
@@ -115,24 +118,6 @@ class BaseLibrary(ABC):
         """Validate that this library is properly structured"""
         pass
 
-    def handle_file_change(self, event: FileChangeEvent):
-        """
-        Handle a file change event by determining which registry is responsible
-        and triggering appropriate actions
-        """
-        file_path = Path(event.file_path)
-
-        module = resolve_module_name(file_path)
-
-        # Determine which component type this file belongs to based on directory structure
-        path_parts = module.split(".")
-        if len(path_parts) > 1:
-            # Map directory to registry and handle the change
-            for registry in self.registries.values():
-                if hasattr(registry, 'directory_name') and registry.directory_name == path_parts[1]:
-                    registry.handle_module_change(module, event, self.identity)
-                    break
-
     def add_folder_to_registry(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
         """
         Scan a folder for classes matching the registry's class filter
@@ -147,5 +132,9 @@ class BaseLibrary(ABC):
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
         registry.add_folder(folder_path, self.identity, exclude_patterns)
+
+        if self.enforce_file_watching or self.identity.file_watcher:
+            self.file_watcher.add_watch(folder_path, self.identity, registry, self.debounce_delay)
+        
 
         

@@ -27,9 +27,8 @@ class AddNodeAction(ActionBase):
             node: The node to add
             description: Optional description override
         """
-        # Use library label if available, otherwise fallback to identity name or node_id or class name
-        node_name = node.identity.label or node.identity.name or node.node_id or node.__class__.__name__
-        super().__init__(description or f"Add node '{node_name}'")
+        node_label = node.identity.label
+        super().__init__(description or f"Add node '{node_label}'")
         self.graph = graph
         self.node = node
         self.node_id = node.node_id

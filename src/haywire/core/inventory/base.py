@@ -4,12 +4,13 @@ Base classes for the Haywire library system
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
 from typing import Callable, Dict, Any, Optional, Type
 import logging
 from dataclasses import dataclass
 
 from haywire.core.inventory.library_identity import LibraryIdentity
-from haywire.core.inventory.folder_scan import _catch_import_modules, module_scan_for_classes, folder_scan_for_classes
+from haywire.core.inventory.folder_scan import _catch_import_modules, module_scan_for_classes, folder_scan_for_classes, resolve_module_name
 
 class RegistryFolder(Enum):
     """Defines the folder names for the registries."""
@@ -90,7 +91,7 @@ class HotReloadRegistry(ABC):
         """Handle deletion of a module"""
         pass
 
-class BaseClassRegistry(BaseRegistry):
+class BaseClassRegistry(BaseRegistry, HotReloadRegistry):
     """Abstract base class for all class registries"""
   
     def __init__(self):
@@ -162,37 +163,17 @@ class BaseClassRegistry(BaseRegistry):
         for cls in discovered_classes:
             self._register(cls, library_identity)
 
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
+    def _resolve_module(self, event: FileChangeEvent) -> str:
         """
-        Handle file change events for modules.
-        This implementation works for all child registries since it calls
-        the child's overridden _register method via polymorphism.
-
+        resolve the module name from a file path
         Args:
-            module: Module name that changed
-            event: FileChangeEvent containing file path and event type
-            metadata: Library identity metadata
+            event (FileChangeEvent): The file change event containing the file path
         """
-        if event.event_type == FileEventType.CREATED:
-            added_classes = self._on_creation(module)
-            if added_classes:
-                for cls in added_classes:
-                    self._register(cls, metadata)
-        elif event.event_type == FileEventType.MODIFIED:
-            added_classes, removed_classes = self._on_change(module)
-            if removed_classes:
-                for cls_name in removed_classes:
-                    self._unregister(cls_name)
-            if added_classes:
-                for cls in added_classes:
-                    self._register(cls, metadata)
-        elif event.event_type == FileEventType.DELETED:
-            removed_classes = self._on_delete(module)
-            if removed_classes:
-                for cls_name in removed_classes:
-                    self._unregister(cls_name)
+        file_path = Path(event.file_path)
+        module = resolve_module_name(file_path)
+        return module
 
-    def _on_creation(self, module: str) -> list[type]:
+    def _on_creation(self, event: FileChangeEvent):
         """returns all relevant classes of the module
 
         Args:
@@ -201,9 +182,13 @@ class BaseClassRegistry(BaseRegistry):
         Returns:
             list: List of relevant classes that are in this module
         """
-        return module_scan_for_classes(module, self._class_filter, True)
+        module = self._resolve_module(event)
+        added_classes =  module_scan_for_classes(module, self._class_filter, True)
+        if added_classes:
+            for cls in added_classes:
+                self._register(cls, event.library_identity)
 
-    def _on_change(self, module_name: str) -> tuple[list, list]:
+    def _on_change(self, event: FileChangeEvent):
         """re-registering existing classes within the module
         and returning the classes that need to be
         additionally registered / unregistered
@@ -214,9 +199,11 @@ class BaseClassRegistry(BaseRegistry):
         Returns:
             [list,list]: [(List of classes to be registered), (List of haywire class names to be unregistered)]
         """
+        module_name = self._resolve_module(event)
+
         logging.info(f"Reloading module '{module_name}' due to change...")
         # Get all classes in this module
-        classes_to_add = module_scan_for_classes(module_name, self._class_filter, True)
+        classes_to_add = module_scan_for_classes(module_name, library_identity=event.library_identity, class_filter=self._class_filter, force_reload=True)
         hw_class_names_to_remove = []
 
         # Get registered classes from this module that need to be updated
@@ -236,12 +223,14 @@ class BaseClassRegistry(BaseRegistry):
             # this gets the module that has already been forcefully reloaded
             # by the module_scan_for_classes function
 
-            module = _catch_import_modules(module_name)
+            module = _catch_import_modules(module_name, event.library_identity)
             
             # Re-register classes from reloaded module  
             for mod_class_name in mod_to_hw_class_name_mapping:
                 if hasattr(module, mod_class_name):
-                    self._items[mod_to_hw_class_name_mapping[mod_class_name]] = getattr(module, mod_class_name)
+                    # to update a class, we need to unregister the old one and register the new one
+                    classes_to_add.append(getattr(module, mod_class_name))
+                    hw_class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
                     logging.info(f"... Re-loaded and re-registered: '{mod_to_hw_class_name_mapping[mod_class_name]}' with '{mod_class_name}' from {module_name}")
                 else:
                     hw_class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
@@ -249,9 +238,16 @@ class BaseClassRegistry(BaseRegistry):
         else:
             logging.info(f"Module '{module_name}' has no matching classes that need an update.")
 
-        return classes_to_add, hw_class_names_to_remove.copy()
+        removed_classes = hw_class_names_to_remove.copy()
 
-    def _on_delete(self, module: str) -> list[str]:
+        if removed_classes:
+            for cls_name in removed_classes:
+                self._unregister(cls_name)
+        if classes_to_add:
+            for cls in classes_to_add:
+                self._register(cls, event.library_identity)
+
+    def _on_delete(self, event: FileChangeEvent):
         """Marks the classes need to be unregistered.
 
         Args:
@@ -260,10 +256,16 @@ class BaseClassRegistry(BaseRegistry):
         Returns:
             list: List of haywire class names that need to be unregistered
         """
+        module = self._resolve_module(event)
+
         logging.info(f"Module '{module}' has been deleted. Unregistering classes.")
         classes_to_delete = self._module_to_classes.get(module, [])
 
-        return classes_to_delete.copy()
+        removed_classes = classes_to_delete.copy()
+    
+        if removed_classes:
+            for cls_name in removed_classes:
+                self._unregister(cls_name)
 
 
 

@@ -11,7 +11,6 @@ from typing import List, Type, Optional, Callable
 
 from haywire.core.errors import log_detailed_error
 from haywire.core.inventory.library_identity import LibraryIdentity
-from haywire.core.inventory.utils import resolve_module_name
 
 def folder_scan_for_classes(library_path: str,
                             library_identity: LibraryIdentity,
@@ -69,7 +68,7 @@ def folder_scan_for_classes(library_path: str,
     return discovered_classes
 
 def module_scan_for_classes(module_name: str, 
-                            metadata: Optional[object],
+                            library_identity: LibraryIdentity,
                          class_filter: Callable[[Type], bool],
                          force_reload: bool = False) -> List[Type]:
     """
@@ -92,7 +91,7 @@ def module_scan_for_classes(module_name: str,
         # to ensure it is the latest version that is reloaded
         del sys.modules[module_name]
     
-    module = _catch_import_modules(module_name, metadata)
+    module = _catch_import_modules(module_name, library_identity)
 
     # Inspect all classes in the module
     for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -109,7 +108,31 @@ def module_scan_for_classes(module_name: str,
 
     return discovered_classes
 
-def _catch_import_modules(module_name: str, metadata: Optional[object]) -> ModuleType | None:
+def resolve_module_name(file_path: str) -> Optional[str]:
+    """
+    Resolve module name from file path by walking up directories until no __init__.py found
+    """
+    file_path = Path(file_path)
+    
+    # Start from the file's directory
+    current_dir = file_path.parent
+    module_parts = [file_path.stem]  # Start with filename (without .py)
+    
+    # Walk up directories while __init__.py exists
+    while True:
+        init_file = current_dir / "__init__.py"
+        if not init_file.exists():
+            break
+        
+        module_parts.insert(0, current_dir.name)
+        current_dir = current_dir.parent
+    
+    if not module_parts:
+        return None
+    
+    return ".".join(module_parts)
+
+def _catch_import_modules(module_name: str, library_identity: LibraryIdentity) -> ModuleType | None:
     """
     Attempt to import a module by name, catching and logging any ImportError.
     
@@ -126,7 +149,7 @@ def _catch_import_modules(module_name: str, metadata: Optional[object]) -> Modul
             exception=e,
             operation="import",
             module_name=module_name,
-            library_id=getattr(metadata, 'name', 'unknown') if metadata else 'unknown',
+            library_id=getattr(library_identity, 'id', 'unknown') if library_identity else 'unknown',
             message=f"Failed to import module '{module_name}'"
         )
         raise detailed_error

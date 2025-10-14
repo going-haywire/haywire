@@ -81,7 +81,7 @@ class NodeFactory:
                 module_name=getattr(node_class, '__module__', None),
                 registry_key=registry_key,
                 class_name=node_class.__name__,
-                library_id=node_class.class_library.name,
+                library_id=node_class.class_library.label,
                 message=f"Failed to instantiate node '{registry_key}'"
             )
             raise detailed_error

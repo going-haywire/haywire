@@ -38,6 +38,8 @@ class LibraryRegistry(BaseRegistry):
         self._library_paths: list[str] = []
         self._load_order: list[str] = []
         self.registries = {}
+        self.enforce_file_watching = False
+        self.debounce_delay = 0.5
 
     def add_class_registry(self, cls, instance: BaseClassRegistry):
         """Add a registry instance for a given registry class"""
@@ -50,8 +52,7 @@ class LibraryRegistry(BaseRegistry):
 
     def enable_file_watching(self, debounce_delay: float = 0.5, force: bool = False):
         """Enable file watching for library directories"""
-        #if not self.file_watcher:
-            # self.file_watcher = FileWatcher(debounce_delay)
+        self.debounce_delay = debounce_delay
         self.enforce_file_watching = force
 
     def load_libraries(self):
@@ -68,7 +69,7 @@ class LibraryRegistry(BaseRegistry):
         for library_folder_name, library_path in discovered_lib_folders.items():
             try:
                 library_cls = self._load_library_class(library_folder_name, library_path)
-                library_instance = library_cls(library_path)
+                library_instance = library_cls(library_path, self.enforce_file_watching, self.debounce_delay)
 
                 # store them in the metadata name (and not the folder)
                 instantiated_libraries[library_instance.identity.id] = library_instance
@@ -92,10 +93,6 @@ class LibraryRegistry(BaseRegistry):
                     
                     # Add to the loaded libraries list
                     logger.info(f"Successfully loaded library: '{library_instance.identity.label}' - deps: {library_instance.identity.dependencies}")
-
-                    # If file watching is enabled, register the library with the watcher
-                    #if self.file_watcher and (self.enforce_file_watching or library_instance.metadata.file_watcher):
-                    #    self.file_watcher.add_library(library_instance)
 
             except Exception as e:
                 logger.error(f"Failed to load library '{library_instance.identity.label}': {e} \n\n {format_external_exception()}\n")
