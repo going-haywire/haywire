@@ -24,7 +24,7 @@ def register_renderers(library: BaseLibrary):
     if reg:
         # Register all discovered renderers
         for renderer_class in renderers:
-            reg.register_renderer(renderer_class, library.identity)
+            reg._register(renderer_class, library.identity)
 
         # Set fallback renderers using class references
         reg.register_default_renderer(DefaultNodeRenderer)

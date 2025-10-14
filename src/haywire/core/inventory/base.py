@@ -141,13 +141,35 @@ class BaseClassRegistry(BaseRegistry):
 
         return super()._unregister(name)
 
-    @abstractmethod
     def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
         """
-        Handle changes to a module by reloading and re-registering classes.
-        This method should be implemented by subclasses to define specific behavior.
+        Handle file change events for modules.
+        This implementation works for all child registries since it calls
+        the child's overridden _register method via polymorphism.
+
+        Args:
+            module: Module name that changed
+            event: FileChangeEvent containing file path and event type
+            metadata: Library identity metadata
         """
-        pass
+        if event.event_type == FileEventType.CREATED:
+            added_classes = self._on_creation(module)
+            if added_classes:
+                for cls in added_classes:
+                    self._register(cls, metadata)
+        elif event.event_type == FileEventType.MODIFIED:
+            added_classes, removed_classes = self._on_change(module)
+            if removed_classes:
+                for cls_name in removed_classes:
+                    self._unregister(cls_name)
+            if added_classes:
+                for cls in added_classes:
+                    self._register(cls, metadata)
+        elif event.event_type == FileEventType.DELETED:
+            removed_classes = self._on_delete(module)
+            if removed_classes:
+                for cls_name in removed_classes:
+                    self._unregister(cls_name)
 
     def _on_creation(self, module: str) -> list[type]:
         """returns all relevant classes of the module

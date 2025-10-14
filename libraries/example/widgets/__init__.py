@@ -22,7 +22,7 @@ def register_widgets(library: BaseLibrary):
     if reg:
         # Register all discovered widgets
         for widget_class in widgets:
-            reg.register_widget(widget_class, library.identity)
+            reg._register(widget_class, library.identity)
 
 __all__ = [
     'register_widgets'

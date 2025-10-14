@@ -22,7 +22,7 @@ def register_adapters(library):
     if reg:
         # Register each adapter using self-registration
         for adapter_class in adapters:
-            reg.register_adapter(adapter_class)    
+            reg._register(adapter_class)    
     
 __all__ = [
     # Adapters

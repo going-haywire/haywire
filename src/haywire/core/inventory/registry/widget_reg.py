@@ -20,15 +20,15 @@ class WidgetRegistry(BaseClassRegistry):
         self._default_widgets: dict[DataType, type] = {}
         self._error_widget: type | None = None
 
-    def register_widget(self, widget: type[BaseWidget], library_identity: LibraryIdentity):
+    def _register(self, widget: type[BaseWidget], library_identity: LibraryIdentity):
         """Register a UI widget with its metadata"""
 
         widget.class_library = library_identity
         registry_key = reg_key(library_identity.id, widget.class_identity.registry_id)
 
-        self._register(registry_key, widget)
+        super()._register(registry_key, widget)
 
-    def unregister_widget(self, widget_name: str) -> type[BaseWidget] | None:
+    def _unregister(self, widget_name: str) -> type[BaseWidget] | None:
         """Unregister a UI widget by its haywire name
         Args:
             widget_name: The haywire name of the widget to unregister
@@ -62,33 +62,6 @@ class WidgetRegistry(BaseClassRegistry):
     def register_error_widget(self, widget_class: type[BaseWidget]):
         """Register the error widget class"""
         self._error_widget = widget_class
-
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
-        """
-        Handle file change events for node modules.
-
-        Args:
-            event: FileChangeEvent containing file path and event type
-        """
-        if event.event_type == FileEventType.CREATED:
-            added_classes = self._on_creation(module)
-            if added_classes:
-                for cls_name in added_classes:
-                    self.register_widget(cls_name, metadata)
-        elif event.event_type == FileEventType.MODIFIED:
-            added_classes, removed_classes = self._on_change(module)
-            if removed_classes:
-                for cls_name in removed_classes:
-                    self.unregister_widget(cls_name)
-            if added_classes:
-                for cls_name in added_classes:
-                    self.register_widget(cls_name, metadata)
-        elif event.event_type == FileEventType.DELETED:
-            removed_classes = self._on_delete(module)
-            if removed_classes:
-                for cls_name in removed_classes:
-                    self.unregister_widget(cls_name)
-
 
     def get_widget_class(self, widget_name: str | None, data_field: DataField) -> type[BaseWidget]:
         """

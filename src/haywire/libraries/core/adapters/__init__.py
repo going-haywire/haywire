@@ -54,7 +54,7 @@ def register_adapters(library: BaseLibrary):
     if reg:
         # Register all discovered adapters
         for adapter_class in adapters:
-            reg.register_adapter(adapter_class, library.identity)
+            reg._register(adapter_class, library.identity)
 
 __all__ = [
     # Data types (merged from data/ folder)

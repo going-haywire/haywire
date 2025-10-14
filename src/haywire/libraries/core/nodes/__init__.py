@@ -27,7 +27,7 @@ def register_nodes(library: BaseLibrary):
     if reg:
         # Register all discovered nodes
         for node_class in nodes:
-            reg.register_node(node_class, library.identity)
+            reg._register(node_class, library.identity)
 
         # Register error node
         reg.register_error_node(ErrorNode)

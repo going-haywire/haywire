@@ -15,7 +15,7 @@ class AdapterRegistry(BaseClassRegistry):
         # Key: (source_type, target_type), Value: adapter_class
         self._adapters: dict[tuple[str, str], type[BaseAdapter]] = {}
 
-    def register_adapter(self, adapter_cls: type[BaseAdapter], library_itentity: Optional[LibraryIdentity] = None):
+    def _register(self, adapter_cls: type[BaseAdapter], library_itentity: Optional[LibraryIdentity] = None):
         """
         Register adapter class.
         Args:
@@ -42,7 +42,7 @@ class AdapterRegistry(BaseClassRegistry):
 
         super()._register(registry_key, adapter_cls)
 
-    def unregister_adapter(self, registry_key: str) -> type[BaseAdapter] | None:
+    def _unregister(self, registry_key: str) -> type[BaseAdapter] | None:
         """ Unregister an adapter by its haywire name.
 
         Args:
@@ -53,33 +53,6 @@ class AdapterRegistry(BaseClassRegistry):
         del self._adapters[key]
 
         return super()._unregister(registry_key)
-
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
-        """
-        Handle file change events for node modules.
-
-        Args:
-            event: FileChangeEvent containing file path and event type
-        """
-        if event.event_type == FileEventType.CREATED:
-            added_classes = self._on_creation(module)
-            if added_classes:
-                for cls in added_classes:
-                    self.register_adapter(cls, metadata)
-        elif event.event_type == FileEventType.MODIFIED:
-            added_classes, removed_classes = self._on_change(module)
-            if removed_classes:
-                for cls_name in removed_classes:
-                    _ = self.unregister_adapter(cls_name)
-            if added_classes:
-                for cls in added_classes:
-                    self.register_adapter(cls, metadata)
-        elif event.event_type == FileEventType.DELETED:
-            removed_classes = self._on_delete(module)
-            if removed_classes:
-                for cls_name in removed_classes:
-                    _ = self.unregister_adapter(cls_name)
-
 
     def has_adapter(self, source_type: str, target_type: str) -> bool:
         """Check if an adapter exists for the given type conversion"""

@@ -17,7 +17,7 @@ class RendererRegistry(BaseClassRegistry):
         self._default_renderer_name: str | None = None
         self._error_renderer: type | None = None
 
-    def register_renderer(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None):
+    def _register(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None):
         """
         Register a renderer class.
 
@@ -36,13 +36,13 @@ class RendererRegistry(BaseClassRegistry):
         if hasattr(renderer_cls, 'class_identity'):
             renderer_cls.class_identity.registry_key = registry_key
 
-        self._register(registry_key, renderer_cls)
+        super()._register(registry_key, renderer_cls)
 
         # Automatically set as default if no default is set yet
         if self._default_renderer_name is None:
             self._default_renderer_name = registry_key
 
-    def unregister_renderer(self, name: str) -> type[BaseNodeRenderer] | None:
+    def _unregister(self, name: str) -> type[BaseNodeRenderer] | None:
         """Unregister a renderer by its haywire name
         Args:
             name: The haywire name of the renderer to unregister
@@ -77,33 +77,6 @@ class RendererRegistry(BaseClassRegistry):
     def register_error_renderer(self, renderer_class: type[BaseNodeRenderer]):
         """Register the error renderer class"""
         self._error_renderer = renderer_class
-
-    def handle_module_change(self, module: str, event: FileChangeEvent, metadata: LibraryIdentity):
-        """
-        Handle file change events for node modules.
-
-        Args:
-            event: FileChangeEvent containing file path and event type
-        """
-        if event.event_type == FileEventType.CREATED:
-            added_classes = self._on_creation(module)
-            if added_classes:
-                for cls_name in added_classes:
-                    self.register_renderer(cls_name, metadata)
-        elif event.event_type == FileEventType.MODIFIED:
-            added_classes, removed_classes = self._on_change(module)
-            if removed_classes:
-                for cls_name in removed_classes:
-                    self.unregister_renderer(cls_name)
-            if added_classes:
-                for cls_name in added_classes:
-                    self.register_renderer(cls_name, metadata)
-        elif event.event_type == FileEventType.DELETED:
-            removed_classes = self._on_delete(module)
-            if removed_classes:
-                for cls_name in removed_classes:
-                    self.unregister_renderer(cls_name)
-
 
     def get_renderer_class(self, renderer_name: str | None) -> type[BaseNodeRenderer]:
         """
