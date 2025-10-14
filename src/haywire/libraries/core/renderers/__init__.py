@@ -20,7 +20,7 @@ def register_renderers(library: BaseLibrary):
         class_filter=is_renderer
     )
 
-    reg = library.get_registry(RendererRegistry)
+    reg: RendererRegistry = library.get_registry(RendererRegistry)
     if reg:
         # Register all discovered renderers
         for renderer_class in renderers:

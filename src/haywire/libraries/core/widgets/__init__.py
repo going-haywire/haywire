@@ -31,7 +31,7 @@ def register_widgets(library: BaseLibrary):
         class_filter=is_widget
     )
 
-    reg = library.get_registry(WidgetRegistry)
+    reg: WidgetRegistry = library.get_registry(WidgetRegistry)
     if reg:
         # Register all discovered widgets
         for widget_class in widgets:

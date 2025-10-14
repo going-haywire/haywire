@@ -50,7 +50,7 @@ def register_adapters(library: BaseLibrary):
         class_filter=is_adapter
     )
 
-    reg = library.get_registry(AdapterRegistry)
+    reg: AdapterRegistry = library.get_registry(AdapterRegistry)
     if reg:
         # Register all discovered adapters
         for adapter_class in adapters:

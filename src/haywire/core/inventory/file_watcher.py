@@ -10,107 +10,33 @@ from collections import defaultdict
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from haywire.core.inventory.library import BaseLibrary
-from haywire.core.inventory.base import FileChangeEvent, FileEventType
+from haywire.core.inventory.base import FileChangeEvent, FileEventType, HotReloadRegistry
+from haywire.core.inventory.library_identity import LibraryIdentity
 from haywire.core.errors import log_detailed_error, DetailedError
 
 
 class LibraryFileHandler(FileSystemEventHandler):
-    """Handles file system events for library files"""
+    """Handles file system events for a specific library path with debouncing"""
     
-    def __init__(self, file_watcher):
-        self.file_watcher = file_watcher
-        
-    def on_modified(self, event):
-        if not event.is_directory and event.src_path.endswith('.py'):
-            self.file_watcher._handle_file_change(event.src_path, FileEventType.MODIFIED)
-    
-    def on_created(self, event):
-        if not event.is_directory and event.src_path.endswith('.py'):
-            self.file_watcher._handle_file_change(event.src_path, FileEventType.CREATED)
-    
-    def on_deleted(self, event):
-        if not event.is_directory and event.src_path.endswith('.py'):
-            self.file_watcher._handle_file_change(event.src_path, FileEventType.DELETED)
-
-
-class FileWatcher:
-    """
-    A file watcher that monitors Python files and notifies registered libraries
-    about changes with debouncing to prevent rapid-fire events.
-    """
-    
-    def __init__(self, debounce_delay: float = 0.5):
+    def __init__(self, library_identity: LibraryIdentity, registry: HotReloadRegistry, debounce_delay: float = 0.5):
+        self.library_identity = library_identity
+        self.registry = registry
         self.debounce_delay = debounce_delay
-        self.libraries: Dict[str, BaseLibrary] = {}
-        self.watched_paths: Dict[str, Set[str]] = defaultdict(set)  # path -> library_ids
-        self.observers: Dict[str, Observer] = {}  # path -> observer
         self.pending_events: Dict[str, FileChangeEvent] = {}  # file_path -> latest_event
         self.debounce_timers: Dict[str, threading.Timer] = {}  # file_path -> timer
         self._lock = threading.Lock()
-        self.handler = LibraryFileHandler(self)
-    
-    def add_library(self, library: BaseLibrary):
-        """Add a library to be watched"""
-        library_id = library.metadata.label
-        library_path = Path(library.file_path)
         
-        # Handle both files and directories
-        if library_path.is_file():
-            watch_path = str(library_path.parent)
-        else:
-            watch_path = str(library_path)
-        
-        with self._lock:
-            self.libraries[library_id] = library
-            self.watched_paths[watch_path].add(library_id)
-            
-            # Start watching this path if not already watched
-            if watch_path not in self.observers:
-                self._start_watching_path(watch_path)
+    def on_modified(self, event):
+        if not event.is_directory and event.src_path.endswith('.py'):
+            self._handle_file_change(event.src_path, FileEventType.MODIFIED)
     
-    def remove_library(self, library_id: str):
-        """Remove a library from being watched"""
-        if library_id not in self.libraries:
-            return
-        
-        with self._lock:
-            library = self.libraries[library_id]
-            library_path = Path(library.file_path)
-            
-            if library_path.is_file():
-                watch_path = str(library_path.parent)
-            else:
-                watch_path = str(library_path)
-            
-            # Remove library from watched paths
-            if watch_path in self.watched_paths:
-                self.watched_paths[watch_path].discard(library_id)
-                
-                # Stop watching if no more libraries need this path
-                if not self.watched_paths[watch_path]:
-                    self._stop_watching_path(watch_path)
-                    del self.watched_paths[watch_path]
-            
-            # Remove library
-            del self.libraries[library_id]
+    def on_created(self, event):
+        if not event.is_directory and event.src_path.endswith('.py'):
+            self._handle_file_change(event.src_path, FileEventType.CREATED)
     
-    def _start_watching_path(self, path: str):
-        """Start watching a specific path"""
-        observer = Observer()
-        observer.schedule(self.handler, path, recursive=True)
-        observer.start()
-        self.observers[path] = observer
-        print(f"Started watching: {path}")
-    
-    def _stop_watching_path(self, path: str):
-        """Stop watching a specific path"""
-        if path in self.observers:
-            observer = self.observers[path]
-            observer.stop()
-            observer.join()
-            del self.observers[path]
-            print(f"Stopped watching: {path}")
+    def on_deleted(self, event):
+        if not event.is_directory and event.src_path.endswith('.py'):
+            self._handle_file_change(event.src_path, FileEventType.DELETED)
     
     def _handle_file_change(self, file_path: str, event_type: FileEventType):
         """Handle file change with debouncing"""
@@ -119,10 +45,11 @@ class FileWatcher:
             if file_path in self.debounce_timers:
                 self.debounce_timers[file_path].cancel()
             
-            # Create new event
+            # Create new event with library_identity
             event = FileChangeEvent(
                 file_path=file_path,
                 event_type=event_type,
+                library_identity=self.library_identity,
                 timestamp=time.time()
             )
             
@@ -150,29 +77,127 @@ class FileWatcher:
             if file_path in self.debounce_timers:
                 del self.debounce_timers[file_path]
         
-        # Notify libraries outside the lock
-        self._notify_libraries(event)
+        # Validate and notify outside the lock
+        if event.event_type != FileEventType.DELETED:
+            if not self._validate_python_file(event.file_path):
+                logging.error(f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
+                return
         
+        # Call appropriate registry method based on event type
+        try:
+            if event.event_type == FileEventType.CREATED:
+                self.registry._on_creation(event)
+            elif event.event_type == FileEventType.MODIFIED:
+                self.registry._on_change(event)
+            elif event.event_type == FileEventType.DELETED:
+                self.registry._on_delete(event)
+                
+        except Exception as e:
+            try:
+                log_detailed_error(
+                    exception=e,
+                    operation="registry callback",
+                    message=f"Failed notifying registry about file change in library '{self.library_identity.label}'",
+                    library_id=self.library_identity.label
+                )
+            except Exception as logging_error:
+                logging.error(f"Failed notifying registry for '{self.library_identity.label}': {e}")
+                logging.error(f"Error logging failed: {logging_error}")
+    
+    def _validate_python_file(self, file_path: str) -> bool:
+        """Check if Python file compiles without syntax errors"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                source_code = f.read()
+            
+            ast.parse(source_code, filename=file_path)
+            return True
+        except Exception as e:
+            try:
+                log_detailed_error(
+                    exception=e,
+                    operation="syntax validation",
+                    message=f"Syntax error in {file_path}"
+                )
+            except Exception as logging_error:
+                logging.error(f"Syntax error in {file_path}: {e}")
+                logging.error(f"Error logging failed: {logging_error}")
+            return False
+    
+    def cleanup(self):
+        """Clean up pending timers"""
+        with self._lock:
+            for timer in self.debounce_timers.values():
+                timer.cancel()
+            self.debounce_timers.clear()
+            self.pending_events.clear()
+
+
+class FileWatcher:
+    """
+    Manages the lifecycle of file observers and their handlers.
+    Each path gets its own observer and handler.
+    """
+    
+    def __init__(self):
+        self.observers: Dict[str, Observer] = {}  # path -> observer
+        self.handlers: Dict[str, LibraryFileHandler] = {}  # path -> handler
+        self._lock = threading.Lock()
+    
+    def add_watch(self, path: str, library_identity: LibraryIdentity, registry: HotReloadRegistry, debounce_delay: float = 0.5):
+        """Add a path to be watched for a specific library and registry"""
+        with self._lock:
+            if path in self.observers:
+                raise ValueError(f"Path {path} is already being watched")
+            
+            # Create handler for this library/path combination
+            handler = LibraryFileHandler(library_identity, registry, debounce_delay)
+            
+            # Create and start observer
+            observer = Observer()
+            observer.schedule(handler, path, recursive=True)
+            observer.start()
+            
+            # Store references
+            self.observers[path] = observer
+            self.handlers[path] = handler
+            
+            logging.info(f"Started watching {path} for library '{library_identity.label}'")
+    
+    def remove_watch(self, path: str):
+        """Remove a path from being watched"""
+        with self._lock:
+            if path not in self.observers:
+                return
+            
+            # Stop observer
+            observer = self.observers[path]
+            observer.stop()
+            observer.join()
+            
+            # Cleanup handler
+            handler = self.handlers[path]
+            handler.cleanup()
+            
+            # Remove references
+            del self.observers[path]
+            del self.handlers[path]
+            
+            logging.info(f"Stopped watching {path}")
+    
     def start(self):
         """Start all observers (if not already started)"""
         with self._lock:
             for path, observer in self.observers.items():
                 if not observer.is_alive():
                     observer.start()
-                    print(f"Started observer for: {path}")
+                    logging.info(f"Started observer for: {path}")
     
     def stop(self):
         """Stop all observers and clean up"""
         with self._lock:
-            # Cancel all pending timers
-            for timer in self.debounce_timers.values():
-                timer.cancel()
-            self.debounce_timers.clear()
-            self.pending_events.clear()
-            
-            # Stop all observers
             for path in list(self.observers.keys()):
-                self._stop_watching_path(path)
+                self.remove_watch(path)
     
     def is_watching(self, path: str) -> bool:
         """Check if a path is currently being watched"""
@@ -181,75 +206,3 @@ class FileWatcher:
     def get_watched_paths(self) -> Set[str]:
         """Get all currently watched paths"""
         return set(self.observers.keys())
-
-    def _notify_libraries(self, event: FileChangeEvent):
-        """Notify affected libraries about the file change"""
-        file_path = Path(event.file_path)
-        
-        # Find all libraries that should be notified
-        affected_libraries = set()
-        
-        for watch_path, library_ids in self.watched_paths.items():
-            watch_path_obj = Path(watch_path)
-            
-            # Check if the changed file is within this watched path
-            try:
-                if file_path.is_relative_to(watch_path_obj):
-                    affected_libraries.update(library_ids)
-            except ValueError:
-                # is_relative_to can raise ValueError in some edge cases
-                # Fall back to string comparison
-                if str(file_path).startswith(str(watch_path_obj)):
-                    affected_libraries.update(library_ids)
-
-        # For deleted files, skip validation
-        if event.event_type != FileEventType.DELETED:
-            # Validate Python file before notifying libraries
-            if not self._validate_python_file(event.file_path):
-                logging.error(f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
-                return
-        
-        # Notify each affected library
-        for library_id in affected_libraries:
-            if library_id in self.libraries:
-                library = self.libraries[library_id]
-                try:
-                    logging.info(f"Notifying library '{library_id}' about {event.event_type.value}: {event.file_path}")
-                    library.handle_file_change(event)
-                except Exception as e:
-                    try:
-                        log_detailed_error(
-                            exception=e,
-                            operation="library notification",
-                            message=f"Failed notifying library '{library_id}' about file change",
-                            library_id=library_id
-                        )
-                    except Exception as logging_error:
-                        # Fallback to simple logging if detailed error fails
-                        logging.error(f"Failed notifying '{library_id}': {e}")
-                        logging.error(f"Error logging failed: {logging_error}")
-
-    def _validate_python_file(self, file_path: str) -> bool:
-        """
-        Check if Python file compiles without syntax errors
-        """
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                source_code = f.read()
-            
-            # Try to parse the AST
-            ast.parse(source_code, filename=file_path)
-            return True
-        except Exception as e:
-            # Use detailed error logging for syntax validation
-            try:
-                detailed_error = log_detailed_error(
-                    exception=e,
-                    operation="syntax validation",
-                    message=f"Syntax error in {file_path}"
-                )
-            except Exception as logging_error:
-                # Fallback to simple logging if detailed error fails
-                logging.error(f"Syntax error in {file_path}: {e}")
-                logging.error(f"Error logging failed: {logging_error}")
-            return False

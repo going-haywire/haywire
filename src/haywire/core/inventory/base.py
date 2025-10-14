@@ -37,6 +37,7 @@ class FileChangeEvent:
     """Represents a file change event"""
     file_path: str
     event_type: FileEventType  # 'created', 'modified', 'deleted'
+    library_identity: LibraryIdentity
     timestamp: float
 
 
@@ -71,6 +72,23 @@ class BaseRegistry(ABC):
         """List all registered item names"""
         return list(self._items.keys())
 
+class HotReloadRegistry(ABC):
+    """Abstract base class for registries that support hot-reloading"""
+    
+    @abstractmethod
+    def _on_creation(self, event: FileChangeEvent):
+        """Handle creation of a module"""
+        pass
+
+    @abstractmethod
+    def _on_change(self, event: FileChangeEvent):
+        """Handle modification of a module"""
+        pass
+
+    @abstractmethod
+    def _on_delete(self, event: FileChangeEvent):
+        """Handle deletion of a module"""
+        pass
 
 class BaseClassRegistry(BaseRegistry):
     """Abstract base class for all class registries"""

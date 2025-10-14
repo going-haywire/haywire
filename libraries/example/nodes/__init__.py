@@ -19,7 +19,7 @@ def register_nodes(library: BaseLibrary):
         class_filter=is_node
     )
 
-    reg = library.get_registry(NodeRegistry)
+    reg: NodeRegistry = library.get_registry(NodeRegistry)
     if reg:
         # Register all discovered nodes
         for node_class in nodes:
