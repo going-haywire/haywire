@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass
 
 from haywire.core.inventory.library_identity import LibraryIdentity
-from haywire.core.inventory.folder_scan import _catch_import_modules, module_scan_for_classes, folder_scan_for_classes, resolve_module_name
+from haywire.core.inventory.folder_scan import FolderScanMixin, _catch_import_modules, module_scan_for_classes, folder_scan_for_classes, resolve_module_name
 
 class RegistryFolder(Enum):
     """Defines the folder names for the registries."""
@@ -91,7 +91,7 @@ class HotReloadRegistry(ABC):
         """Handle deletion of a module"""
         pass
 
-class BaseClassRegistry(BaseRegistry, HotReloadRegistry):
+class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
     """Abstract base class for all class registries"""
   
     def __init__(self):
@@ -153,7 +153,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry):
             folder_path (str): Path to the folder to scan
             exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
         """
-        discovered_classes = folder_scan_for_classes(
+        discovered_classes = self.folder_scan_for_classes(
             library_path=folder_path,
             library_identity=library_identity,
             class_filter=self._class_filter,
@@ -170,7 +170,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry):
             event (FileChangeEvent): The file change event containing the file path
         """
         file_path = Path(event.file_path)
-        module = resolve_module_name(file_path)
+        module = self.resolve_module_name(file_path)
         return module
 
     def _on_creation(self, event: FileChangeEvent):
@@ -183,7 +183,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry):
             list: List of relevant classes that are in this module
         """
         module = self._resolve_module(event)
-        added_classes =  module_scan_for_classes(module, self._class_filter, True)
+        added_classes = self.module_scan_for_classes(module, event.library_identity, self._class_filter, True)
         if added_classes:
             for cls in added_classes:
                 self._register(cls, event.library_identity)
@@ -203,7 +203,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry):
 
         logging.info(f"Reloading module '{module_name}' due to change...")
         # Get all classes in this module
-        classes_to_add = module_scan_for_classes(module_name, library_identity=event.library_identity, class_filter=self._class_filter, force_reload=True)
+        classes_to_add = self.module_scan_for_classes(module_name, library_identity=event.library_identity, class_filter=self._class_filter, force_reload=True)
         hw_class_names_to_remove = []
 
         # Get registered classes from this module that need to be updated
@@ -223,7 +223,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry):
             # this gets the module that has already been forcefully reloaded
             # by the module_scan_for_classes function
 
-            module = _catch_import_modules(module_name, event.library_identity)
+            module = self._catch_import_modules(module_name, event.library_identity)
             
             # Re-register classes from reloaded module  
             for mod_class_name in mod_to_hw_class_name_mapping:
