@@ -1,5 +1,3 @@
-from diut import logging
-
 from haywire.core.node.base_node import node
 from haywire.core.node.base_node import BaseNode
 from haywire.core.node.elements import Inlet, Outlet

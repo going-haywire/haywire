@@ -144,12 +144,13 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                 
         except Exception as e:
             try:
+                rel_path = folder_path[len(library_identity.folder_path):]
                 log_detailed_error(
                     exception=e,
                     operation="Registry folder import",
                     module_name=locals().get('module_name', 'unknown'),
-                    message=f"Failed while importing folder {folder_path} in library '{library_identity.label}'",
-                    library_id=library_identity.label
+                    message=f"Failed while importing folder '..{rel_path}' in library '{library_identity.label}'",
+                    library_identity=library_identity
                 )
             except Exception as logging_error:
                 logging.error(f"Failed notifying registry for '{library_identity.label}': {e}")
@@ -188,7 +189,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     operation="Registry hotreload callback",
                     module_name=locals().get('module_name', 'unknown'),
                     message=f"Failed notifying registry about file change in library '{event.library_identity.label}'",
-                    library_id=event.library_identity.label
+                    library_identity=event.library_identity
                 )
             except Exception as logging_error:
                 logging.error(f"Failed notifying registry on file:{event.file_path} for library:'{event.library_identity.label}': {e}")

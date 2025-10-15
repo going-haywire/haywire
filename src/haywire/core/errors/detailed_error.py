@@ -3,12 +3,15 @@ Detailed error handling utilities with structured error context.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Any
+from typing import Optional, List, Any, TYPE_CHECKING
+
 import sys
 import traceback
 import re
 import logging
 
+
+from ..inventory.library_identity import LibraryIdentity
 
 @dataclass
 class ErrorContext:
@@ -23,7 +26,7 @@ class ErrorContext:
     highlight_position: Optional[int] = None
     module_name: Optional[str] = None
     operation: Optional[str] = None  # 'import', 'instantiation', 'syntax_check'
-    library_id: Optional[str] = None
+    library_identity: Optional[LibraryIdentity] = None
     registry_key: Optional[str] = None
     class_name: Optional[str] = None
     context_info: Optional[List[tuple]] = None  # List of (line_number, line_content) tuples
@@ -32,13 +35,16 @@ class ErrorContext:
         """Format the error as a detailed message"""
         lines = [
             "\n",
-            "====================================",
-            "======    Error Details    =========",
+            "┢━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+            "┡━━━━━━━    Error Details    ━━━━━━━━┛\n"
             f"Operation : {self.operation or 'Unknown'}",
+            f"Message   : {self.message}",
+            f"-----------------------------------",
         ]
         
-        if self.library_id:
-            lines.append(f"Library   : {self.library_id}")
+        if self.library_identity:
+            lines.append(f"Library   : {self.library_identity.label}")
+            lines.append(f"Lib_Path  : {self.library_identity.folder_path}")
             
         if self.registry_key:
             lines.append(f"Registry  : {self.registry_key}")
@@ -48,9 +54,15 @@ class ErrorContext:
         
         if self.module_name:
             lines.append(f"Module    : {self.module_name}")
-            
+        
+        if self.library_identity:
+            rel_path = self.filename[len(self.library_identity.folder_path):]
+            lines.append(f"File      : ..{rel_path}")
+        else:
+            lines.append(f"File      : {self.module_name}")
+
+
         lines.extend([
-            f"File      : {self.filename}",
             "",
             "           ┆"
         ])
@@ -91,10 +103,10 @@ class ErrorContext:
             "           ┆",
             "",
             f"Error     : {self.error_type}: {self.error_message}",
-            f"-----------------------------------",
-            f"Message   : {self.message}",
-            "======    Error Details    =========",
-            "===================================="
+            "",
+            "┢━━━━━━━    Error Details    ━━━━━━━━┓",
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
+            "\n"
         ])
         
         return "\n".join(lines)
@@ -103,7 +115,7 @@ class ErrorContext:
 def analyze_exception(exception: Exception, 
                      operation: str = None,
                      module_name: str = None,
-                     library_id: str = None,
+                     library_identity: LibraryIdentity = None,
                      registry_key: str = None,
                      class_name: str = None,
                      message: str = None) -> ErrorContext:
@@ -114,7 +126,7 @@ def analyze_exception(exception: Exception,
         exception: The caught exception
         operation: Description of what operation failed ('import', 'instantiation', etc.)
         module_name: The module being processed when error occurred
-        library_id: Name of the library (if available)
+        library_identity: LibraryIdentity instance of the library (if available)
         registry_key: Registry ID of the node/class (if available)
         class_name: Name of the class (if available)
         message: High-level error message for the user
@@ -208,7 +220,7 @@ def analyze_exception(exception: Exception,
         highlight_position=highlight_position,
         module_name=module_name,
         operation=operation,
-        library_id=library_id,
+        library_identity=library_identity,
         registry_key=registry_key,
         class_name=class_name,
         context_info=context_info
@@ -228,7 +240,7 @@ def log_detailed_error(exception: Exception,
                       module_name: str = None,
                       message: str = None,
                       logger: logging.Logger = None,
-                      library_id: str = None,
+                      library_identity: LibraryIdentity = None,
                       registry_key: str = None,
                       class_name: str = None) -> DetailedError:
     """
@@ -240,15 +252,15 @@ def log_detailed_error(exception: Exception,
         module_name: Module being processed
         message: Custom error message
         logger: Logger to use (defaults to root logger)
-        library_id: Name of the library (if available)
-        registry_id: Registry ID of the node/class (if available)
+        library_identity: LibraryIdentity instance of the library (if available)
+        registry_key: Registry ID of the node/class (if available)
         class_name: Name of the class (if available)
         
     Returns:
         DetailedError with structured context
     """
 
-    context = analyze_exception(exception, operation, module_name, library_id, registry_key, class_name, message)
+    context = analyze_exception(exception, operation, module_name, library_identity, registry_key, class_name, message)
 
     detailed_error = DetailedError(
         context=context,

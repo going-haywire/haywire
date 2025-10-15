@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, List, Type, TypeVar, Optional, Union
+import inspect
 
 from haywire.core.inventory.file_watcher import FileWatcher
 from haywire.core.inventory.library_identity import LibraryIdentity
@@ -76,6 +77,10 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         # Set defaults if not provided
         kwargs.setdefault('version', '1.0.0')
         kwargs.setdefault('id', kwargs['label'])
+        
+        # Auto-detect folder_path - use the directory where inner_cls is defined
+        class_file = inspect.getfile(inner_cls)
+        kwargs['folder_path'] = str(Path(class_file).parent)
         
         inner_cls.class_identity = LibraryIdentity(**kwargs)
         return inner_cls
