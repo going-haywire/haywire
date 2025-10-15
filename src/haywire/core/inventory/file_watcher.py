@@ -74,7 +74,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             if file_path in self.debounce_timers:
                 del self.debounce_timers[file_path]
         
-        self.registry._event_dispatcher(event)
+        self.registry.event_dispatcher(event)
     
     def cleanup(self):
         """Clean up pending timers"""

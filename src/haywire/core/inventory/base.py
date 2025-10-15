@@ -5,6 +5,7 @@ Base classes for the Haywire library system
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
+import traceback
 from typing import Callable, Dict, Any, Optional, Type
 import logging
 import ast
@@ -66,7 +67,7 @@ class HotReloadRegistry(ABC):
     """Abstract base class for registries that support hot-reloading"""
     
     @abstractmethod
-    def _event_dispatcher(self, event: FileChangeEvent):
+    def event_dispatcher(self, event: FileChangeEvent):
         """Handle creation of a module"""
         pass
 
@@ -125,25 +126,43 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         pass
 
     def add_folder(self, folder_path: str, library_identity: LibraryIdentity, exclude_patterns: Optional[list[str]] = None):
-        """Scan a folder for classes matching the registry's class filter
+        """Initial scan of the folder for classes matching the registry's class filter
         and add them to this registry.
+
+        This should be called once when the library is first loaded.
 
         Args:
             folder_path (str): Path to the folder to scan
             exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
         """
-        discovered_classes = self.folder_scan_for_classes(
-            library_path=folder_path,
-            library_identity=library_identity,
-            class_filter=self._class_filter,
-            exclude_patterns=exclude_patterns
-        )
+        try:
+            module_names = self.folder_scan_for_modules(folder_path, exclude_patterns)
 
-        for cls in discovered_classes:
-            self._register(cls, library_identity)
+            for module_name in module_names:
+                self._on_creation(module_name, library_identity)
+                
+        except Exception as e:
+            try:
+                log_detailed_error(
+                    exception=e,
+                    operation="Registry folder import",
+                    module_name=locals().get('module_name', 'unknown'),
+                    message=f"Failed while importing folder {folder_path} in library '{library_identity.label}'",
+                    library_id=library_identity.label
+                )
+            except Exception as logging_error:
+                logging.error(f"Failed notifying registry for '{library_identity.label}': {e}")
+                logging.error(f"Error logging failed: {logging_error}")
     
-    def _event_dispatcher(self, event: FileChangeEvent):
-        # Call appropriate registry method based on event type
+    def event_dispatcher(self, event: FileChangeEvent):
+        """
+        Dispatch file change events to the appropriate handlers based on event type.
+
+        This is called by the file watcher when a file change is detected.
+
+        Args:
+            event (FileChangeEvent): The file change event to handle
+        """
         try:
             # Skip validation for deleted files
             if event.event_type != FileEventType.DELETED:
@@ -166,12 +185,12 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                 log_detailed_error(
                     exception=e,
                     operation="Registry hotreload callback",
-                    module_name=module_name,
+                    module_name=locals().get('module_name', 'unknown'),
                     message=f"Failed notifying registry about file change in library '{event.library_identity.label}'",
                     library_id=event.library_identity.label
                 )
             except Exception as logging_error:
-                logging.error(f"Failed notifying registry for '{event.library_identity.label}': {e}")
+                logging.error(f"Failed notifying registry on file:{event.file_path} for library:'{event.library_identity.label}': {e}")
                 logging.error(f"Error logging failed: {logging_error}")
          
 
