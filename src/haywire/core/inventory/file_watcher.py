@@ -1,6 +1,5 @@
 from enum import Enum
 import logging
-import ast
 import time
 import threading
 from pathlib import Path
@@ -77,52 +76,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             if file_path in self.debounce_timers:
                 del self.debounce_timers[file_path]
         
-        # Validate and notify outside the lock
-        if event.event_type != FileEventType.DELETED:
-            if not self._validate_python_file(event.file_path):
-                logging.error(f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
-                return
-        
-        # Call appropriate registry method based on event type
-        try:
-            if event.event_type == FileEventType.CREATED:
-                self.registry._on_creation(event)
-            elif event.event_type == FileEventType.MODIFIED:
-                self.registry._on_change(event)
-            elif event.event_type == FileEventType.DELETED:
-                self.registry._on_delete(event)
-                
-        except Exception as e:
-            try:
-                log_detailed_error(
-                    exception=e,
-                    operation="registry callback",
-                    message=f"Failed notifying registry about file change in library '{self.library_identity.label}'",
-                    library_id=self.library_identity.label
-                )
-            except Exception as logging_error:
-                logging.error(f"Failed notifying registry for '{self.library_identity.label}': {e}")
-                logging.error(f"Error logging failed: {logging_error}")
-    
-    def _validate_python_file(self, file_path: str) -> bool:
-        """Check if Python file compiles without syntax errors"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                source_code = f.read()
-            
-            ast.parse(source_code, filename=file_path)
-            return True
-        except Exception as e:
-            try:
-                log_detailed_error(
-                    exception=e,
-                    operation="syntax validation",
-                    message=f"Syntax error in {file_path}"
-                )
-            except Exception as logging_error:
-                logging.error(f"Syntax error in {file_path}: {e}")
-                logging.error(f"Error logging failed: {logging_error}")
-            return False
+        self.registry._event_dispatcher(event)
     
     def cleanup(self):
         """Clean up pending timers"""

@@ -1,3 +1,4 @@
+import ast
 import logging
 import os
 import importlib
@@ -156,4 +157,16 @@ class FolderScanMixin:
             )
             raise detailed_error
 
+    def _validate_python_file(self, file_path: str) -> bool:
+        """Check if Python file compiles without syntax errors"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                source_code = f.read()
 
+        except OSError as e:
+            logging.error(f"Error reading {file_path}: {e}")
+            return False
+
+        ast.parse(source_code, filename=file_path)
+            
+        return True
