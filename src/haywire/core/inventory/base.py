@@ -4,6 +4,7 @@ Base classes for the Haywire library system
 
 from abc import ABC, abstractmethod
 from enum import Enum
+import importlib
 from pathlib import Path
 import traceback
 from typing import Callable, Dict, Any, Optional, Type
@@ -247,7 +248,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             # this gets the module that has already been forcefully reloaded
             # by the module_scan_for_classes function
 
-            module = self._catch_import_modules(module_name, library_identity)
+            module = importlib.import_module(module_name)
             
             # Re-register classes from reloaded module  
             for mod_class_name in mod_to_hw_class_name_mapping:

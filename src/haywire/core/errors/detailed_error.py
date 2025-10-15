@@ -26,36 +26,41 @@ class ErrorContext:
     library_id: Optional[str] = None
     registry_key: Optional[str] = None
     class_name: Optional[str] = None
+    context_info: Optional[List[tuple]] = None  # List of (line_number, line_content) tuples
     
     def format_detailed_message(self) -> str:
         """Format the error as a detailed message"""
         lines = [
             "\n",
-            "========= Error Details ============",
-            f"Operation: {self.operation or 'Unknown'}",
+            "====================================",
+            "======    Error Details    =========",
+            f"Operation : {self.operation or 'Unknown'}",
         ]
         
         if self.library_id:
-            lines.append(f"Library : {self.library_id}")
+            lines.append(f"Library   : {self.library_id}")
             
         if self.registry_key:
-            lines.append(f"Registry: {self.registry_key}")
+            lines.append(f"Registry  : {self.registry_key}")
             
         if self.class_name:
-            lines.append(f"Class   : {self.class_name}")
+            lines.append(f"Class     : {self.class_name}")
         
         if self.module_name:
-            lines.append(f"Module  : {self.module_name}")
+            lines.append(f"Module    : {self.module_name}")
             
         lines.extend([
-            f"File    : {self.filename}",
+            f"File      : {self.filename}",
             "",
-            "       ┆"
+            "           ┆"
         ])
         
         # Add context lines with fancy box drawing
-        for i, line in enumerate(self.context_lines):
-            if i == len(self.context_lines) // 2:  # Middle line is the error line
+        # Use context_info if available (which has proper line numbers), otherwise fall back to old method
+        context_to_use = self.context_info if self.context_info else [(self.line_number + i - len(self.context_lines) // 2, line) for i, line in enumerate(self.context_lines)]
+        
+        for i, (actual_line_num, line) in enumerate(context_to_use):
+            if actual_line_num == self.line_number:  # This is the error line
                 # Calculate content width: line prefix + line content + 6 padding
                 line_prefix = f" »line {self.line_number:2d}: "
                 content_line = f"{line_prefix}{line}"
@@ -75,20 +80,21 @@ class ErrorContext:
                 content_width = len(top_border)
                 
                 # Add the box
-                lines.append(f"Source:┢{top_border}┓")
-                lines.append(f"Source:┃{padded_content:<{content_width}}┃")
-                lines.append(f"Source:┡{bottom_border}┛")
+                lines.append(f"Source    :┢{top_border}┓")
+                lines.append(f"Source    :┃{padded_content:<{content_width}}┃")
+                lines.append(f"Source    :┡{bottom_border}┛")
             else:
-                # Calculate actual line number for context
-                offset = i - len(self.context_lines) // 2
-                actual_line_num = self.line_number + offset
-                lines.append(f"Source:│  line {actual_line_num:2d}: {line}")
+                # Use the actual line number from context_info
+                lines.append(f"Source    :│  line {actual_line_num:2d}: {line}")
         
         lines.extend([
-            "       ┆",
+            "           ┆",
             "",
-            f"Error : {self.error_type}: {self.error_message}",
-            "========= Error Details ============"
+            f"Error     : {self.error_type}: {self.error_message}",
+            f"-----------------------------------",
+            f"Message   : {self.message}",
+            "======    Error Details    =========",
+            "===================================="
         ])
         
         return "\n".join(lines)
@@ -135,6 +141,7 @@ def analyze_exception(exception: Exception,
     context_lines = []
     source_line = ""
     highlight_position = None
+    context_info = None
     
     try:
         with open(filename, 'r', encoding='utf-8') as f:
@@ -146,8 +153,13 @@ def analyze_exception(exception: Exception,
             start_line = max(0, line_number - context_range - 1)
             end_line = min(len(lines), line_number + context_range)
             
+            # Store both the line content and the actual line number for proper formatting
+            context_info = []
             for i in range(start_line, end_line):
-                context_lines.append(lines[i].rstrip())
+                context_info.append((i + 1, lines[i].rstrip()))  # Store 1-based line number and content
+            
+            # Extract just the lines for backward compatibility
+            context_lines = [content for _, content in context_info]
             
             source_line = lines[line_number - 1].rstrip()
             
@@ -174,6 +186,7 @@ def analyze_exception(exception: Exception,
         # Fallback if we can't read the file
         context_lines = [f"<Could not read source from {filename}>"]
         source_line = "<unavailable>"
+        context_info = None
     
     # Generate default message if not provided
     if message is None:
@@ -197,7 +210,8 @@ def analyze_exception(exception: Exception,
         operation=operation,
         library_id=library_id,
         registry_key=registry_key,
-        class_name=class_name
+        class_name=class_name,
+        context_info=context_info
     )
 
 class DetailedError(Exception):

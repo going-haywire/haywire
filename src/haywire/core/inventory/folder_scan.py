@@ -81,7 +81,7 @@ class FolderScanMixin:
             # to ensure it is the latest version that is reloaded
             del sys.modules[module_name]
         
-        module = self._catch_import_modules(module_name, library_identity)
+        module = importlib.import_module(module_name)
 
         # Inspect all classes in the module
         for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -121,29 +121,6 @@ class FolderScanMixin:
             return None
         
         return ".".join(module_parts)
-
-    def _catch_import_modules(self, module_name: str, library_identity: LibraryIdentity) -> ModuleType | None:
-        """
-        Attempt to import a module by name, catching and logging any ImportError.
-        
-        Args:
-            module_name: Name of the module to import
-            library_identity: Identity of the library being scanned
-        Returns:
-            The imported module, or None if import failed
-        """
-        try:
-            return importlib.import_module(module_name)
-        except Exception as e:
-            # Create detailed error with context about the module import
-            detailed_error = log_detailed_error(
-                exception=e,
-                operation="import",
-                module_name=module_name,
-                library_id=getattr(library_identity, 'id', 'unknown') if library_identity else 'unknown',
-                message=f"Failed to import module '{module_name}'"
-            )
-            raise detailed_error
 
     def _validate_python_file(self, file_path: str) -> bool:
         """Check if Python file compiles without syntax errors"""
