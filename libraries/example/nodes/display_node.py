@@ -21,7 +21,7 @@ class DisplayNode(BaseNode):
         self.behavior.is_control_node = False
         
         # Configure UI
-        self.ui_config.node_renderer = 'example:example.node.rendere'
+        self.ui_config.node_renderer = 'example:example.node.renderer'
 
         # Math node
         _ = self.add_inlet(

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 import importlib
 from pathlib import Path
-from typing import Callable, Dict, Any, Optional, Type
+from typing import Callable, Dict, Any, Optional, Type, List, Tuple
 import logging
 
 from .base_registry import BaseRegistry
@@ -77,6 +77,8 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             registry_key (str): The haywire registry_key of the class to unregister
         """
 
+        logging.info(f"Unregistering class '{registry_key}' named  '{self._module_class_name[registry_key]}' from '{self._items[registry_key].__module__}' ...")
+
         if registry_key in self._module_class_name:
             del self._module_class_name[registry_key]
         
@@ -88,7 +90,6 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     del self._module_to_classes[module_name]
                 break
 
-        logging.info(f"Unregistered class '{registry_key}' named  '{self._module_class_name[registry_key]}' from '{self._items[registry_key].__module__}' ...")
         return super()._unregister(registry_key)
 
     @abstractmethod
@@ -201,6 +202,10 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         # Get all classes in this module
         classes_to_add = self.module_scan_for_classes(module_name, library_identity=library_identity, class_filter=self._class_filter, force_reload=True)
         hw_class_names_to_remove = []
+        # Simple container for old/new class pairs
+
+        class_reloads: List[Tuple[Type[Any], Type[Any]]] = []
+
 
         # Get registered classes from this module that need to be updated
         hw_class_names_to_update = self._module_to_classes.get(module_name, [])
@@ -225,9 +230,9 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             for mod_class_name in mod_to_hw_class_name_mapping:
                 if hasattr(module, mod_class_name):
                     # to update a class, we need to unregister the old one and register the new one
-                    classes_to_add.append(getattr(module, mod_class_name))
-                    hw_class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
-                    logging.info(f"... Re-loaded and re-registered: '{mod_to_hw_class_name_mapping[mod_class_name]}' with '{mod_class_name}' from {module_name}")
+                    new_class: Type[Any] = getattr(module, mod_class_name)
+                    old_class = mod_to_hw_class_name_mapping[mod_class_name]
+                    class_reloads.append((old_class, new_class))
                 else:
                     hw_class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
         
@@ -236,6 +241,11 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
 
         removed_classes = hw_class_names_to_remove.copy()
 
+        if class_reloads:
+            for old_cls, new_cls in class_reloads:
+                self._unregister(old_cls)
+                self._register(new_cls, library_identity)
+                logging.info(f"...Re-loaded and re-registered from {module_name}")
         if removed_classes:
             for cls_name in removed_classes:
                 self._unregister(cls_name)
