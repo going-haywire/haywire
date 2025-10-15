@@ -3,13 +3,13 @@ import logging
 from typing import TypeVar, Optional, Union
 import logging
 
-from haywire.core.data.enums import DataContainerType, DataType
-from haywire.core.data.fields import DataField
-from haywire.core.ui.base_widget import BaseWidget
+from ...data.enums import DataType
+from ...data.fields import DataField
+from ...ui.base_widget import BaseWidget
 from ..library_identity import LibraryIdentity
 
-from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
-from ..utils import camel_to_dot_case, reg_key
+from ..base import BaseClassRegistry
+from ..utils import reg_key
 
 
 class WidgetRegistry(BaseClassRegistry):

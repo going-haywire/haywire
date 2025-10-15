@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict, Optional, TypeVar, Union
 
 from ..library_identity import LibraryIdentity
-from haywire.core.ui.base_renderer import BaseNodeRenderer
+from ...ui.base_renderer import BaseNodeRenderer
 
 from ..base import BaseClassRegistry
 from ..utils import reg_key

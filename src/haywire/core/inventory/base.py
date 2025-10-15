@@ -10,22 +10,9 @@ import logging
 import ast
 from dataclasses import dataclass
 
-from haywire.core.inventory.library_identity import LibraryIdentity
-from haywire.core.inventory.folder_scan import FolderScanMixin
-from haywire.core.errors import log_detailed_error
-
-class RegistryFolder(Enum):
-    """Defines the folder names for the registries."""
-    WIDGETS = 'widgets'
-    RENDERERS = 'renderers'
-    NODES = 'nodes'
-    ADAPTERS = 'adapters'
-
-# Required directories for a valid library structure
-REQUIRED_LIB_DIRS = [RegistryFolder.WIDGETS.value,
-                     RegistryFolder.RENDERERS.value,
-                     RegistryFolder.NODES.value,
-                     RegistryFolder.ADAPTERS.value]
+from ..inventory.library_identity import LibraryIdentity
+from ..inventory.folder_scan import FolderScanMixin
+from ..errors import log_detailed_error
 
 HAYWIRE_CORE_LIB_NAME = 'haywire.core'
 

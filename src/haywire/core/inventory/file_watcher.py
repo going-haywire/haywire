@@ -9,10 +9,8 @@ from collections import defaultdict
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from haywire.core.inventory.base import FileChangeEvent, FileEventType, HotReloadRegistry
-from haywire.core.inventory.library_identity import LibraryIdentity
-from haywire.core.errors import log_detailed_error, DetailedError
-
+from ..inventory.base import FileChangeEvent, FileEventType, HotReloadRegistry
+from ..inventory.library_identity import LibraryIdentity
 
 class LibraryFileHandler(FileSystemEventHandler):
     """Handles file system events for a specific library path with debouncing"""

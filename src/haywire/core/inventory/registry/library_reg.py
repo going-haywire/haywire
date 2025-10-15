@@ -6,8 +6,8 @@ from types import ModuleType
 from typing import Any, Dict, Optional
 import logging
 
-from haywire.core.inventory.library import BaseLibrary
-from haywire.core.inventory.utils import format_external_exception
+from ...inventory.library import BaseLibrary
+from ...inventory.utils import format_external_exception
 
 from ..library_identity import LibraryIdentity
 from ..base import BaseRegistry, BaseClassRegistry

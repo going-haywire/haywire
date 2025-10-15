@@ -3,7 +3,7 @@ from typing import Optional, TypeVar, Union
 
 from haywire.core.adapter.base_adapter import BaseAdapter
 from ..library_identity import LibraryIdentity
-from ..base import BaseClassRegistry, FileChangeEvent, FileEventType, RegistryFolder
+from ..base import BaseClassRegistry
 
 
 class AdapterRegistry(BaseClassRegistry):
