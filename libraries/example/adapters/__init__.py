@@ -4,8 +4,8 @@ Test adapters for the test library
 This module now includes both adapters and data type definitions (merged from data/ folder).
 """
 
-from haywire.core.inventory.library import BaseLibrary
-from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
+from haywire.core.library.library import BaseLibrary
+from haywire.core.library.registries.reg_adapter import AdapterRegistry
 
 def register_adapters(library: BaseLibrary):
     """Register adapters with the adapter registry using self-registering pattern"""

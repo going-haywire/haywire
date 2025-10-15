@@ -3,7 +3,7 @@ from typing import Optional, TypeVar, Union
 
 from haywire.core.adapter.base_adapter import BaseAdapter
 from ..library_identity import LibraryIdentity
-from ..base import BaseClassRegistry
+from ..class_registry import BaseClassRegistry
 
 
 class AdapterRegistry(BaseClassRegistry):
@@ -23,17 +23,19 @@ class AdapterRegistry(BaseClassRegistry):
                     hasattr(cls, 'class_identity'))
         except TypeError:
             return False
- 
-    def _register(self, adapter_cls: type[BaseAdapter], library_itentity: Optional[LibraryIdentity] = None):
+
+    def _register(self, adapter_cls: type[BaseAdapter], library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """
         Register adapter class.
         Args:
             adapter_class: The adapter class to register.
             metadata: Optional metadata for the adapter.
+        Returns:
+            str: The haywire registry_key of the registered adapter.
         """
         # Store the library metadata and registry key as class attributes 
         # This will be used as the default for new instances
-        adapter_cls.class_library = library_itentity
+        adapter_cls.class_library = library_identity
 
         source_key = adapter_cls.class_identity.converts_from
         target_key = adapter_cls.class_identity.converts_to
@@ -49,7 +51,7 @@ class AdapterRegistry(BaseClassRegistry):
         if hasattr(adapter_cls, 'class_identity'):
             adapter_cls.class_identity.registry_key = registry_key
 
-        super()._register(registry_key, adapter_cls)
+        return super()._register(registry_key, adapter_cls)
 
     def _unregister(self, registry_key: str) -> type[BaseAdapter] | None:
         """ Unregister an adapter by its haywire name.

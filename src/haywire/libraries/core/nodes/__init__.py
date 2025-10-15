@@ -3,8 +3,8 @@ Core node implementations and registration
 """
 
 # Import core node examples
-from haywire.core.inventory.library import BaseLibrary
-from haywire.core.inventory.registry.node_reg import NodeRegistry
+from haywire.core.library.library import BaseLibrary
+from haywire.core.library.registries.reg_node import NodeRegistry
 
 def register_nodes(library: BaseLibrary):
     """Register all core nodes with the node registry"""

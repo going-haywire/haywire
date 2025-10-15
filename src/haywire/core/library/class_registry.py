@@ -3,20 +3,20 @@ Base classes for the Haywire library system
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 import importlib
 from pathlib import Path
-import traceback
 from typing import Callable, Dict, Any, Optional, Type
 import logging
-import ast
-from dataclasses import dataclass
 
-from ..inventory.library_identity import LibraryIdentity
-from ..inventory.folder_scan import FolderScanMixin
+from .base_registry import BaseRegistry
+from .library_identity import LibraryIdentity
+from .folder_scan import FolderScanMixin
 from ..errors import log_detailed_error
 
 HAYWIRE_CORE_LIB_NAME = 'haywire.core'
+
 
 class FileEventType(Enum):
     """Enum for file change event types"""
@@ -31,38 +31,6 @@ class FileChangeEvent:
     event_type: FileEventType  # 'created', 'modified', 'deleted'
     library_identity: LibraryIdentity
     timestamp: float
-
-
-class BaseRegistry(ABC):
-    """Abstract base class for all registries"""
-    
-    def __init__(self):
-        self._items: Dict[str, Any] = {}
-    
-    def _register(self, name: str, item: Any):
-        """Register an item with optional metadata"""
-        self._items[name] = item
-
-    def _unregister(self, name: str) -> type[Any]:
-        """Remove an item from the registry"""
-        delete_item = self._items.get(name)
-
-        if name in self._items:
-            del self._items[name]
-        
-        return delete_item
-
-    def get(self, name: str) -> Optional[Any]:
-        """Get an item by name"""
-        return self._items.get(name)
-    
-    def has(self, name: str) -> bool:
-        """Check if an item is registered"""
-        return name in self._items
-    
-    def list_names(self) -> list[str]:
-        """List all registered item names"""
-        return list(self._items.keys())
 
 class HotReloadRegistry(ABC):
     """Abstract base class for registries that support hot-reloading"""
@@ -79,47 +47,49 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         super().__init__()
         self._module_class_name: Dict[str, str] = {}  # Name of the class being registered
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
-     
-    def _register(self, name: str, item: Any):
+
+    def _register(self, registry_key: str, item: Any) -> str | None:
         """Register a class with its name and optional metadata
         Args:
-            name (str): The haywire name of the class to register
+            registry_key (str): The haywire registry_key of the class to register
             item (Any): The class to register
             metadata (Optional[Dict[str, Any]]): Optional metadata for the class
+        Returns:
+            str: The haywire registry_key of the registered class
         """
-        super()._register(name, item)
-        self._module_class_name[name] = item.__name__
+        super()._register(registry_key, item)
+        self._module_class_name[registry_key] = item.__name__
 
         # Track module to class mapping
         module_name = item.__module__
         if module_name not in self._module_to_classes:
             self._module_to_classes[module_name] = []
-        if name not in self._module_to_classes[module_name]:
-            self._module_to_classes[module_name].append(name)
+        if registry_key not in self._module_to_classes[module_name]:
+            self._module_to_classes[module_name].append(registry_key)
 
-        logging.info(f"Registered class '{name}' named '{item.__name__}' from '{module_name}' has been registered.")
+        logging.info(f"Registered class '{registry_key}' named '{item.__name__}' from '{module_name}' has been registered.")
+        return registry_key
 
 
-    def _unregister(self, name: str):
+    def _unregister(self, registry_key: str) -> type[Any] | None:
         """Remove a class from the registry
         Args:
-            name (str): The haywire name of the class to unregister
+            registry_key (str): The haywire registry_key of the class to unregister
         """
 
-        logging.info(f"Unregistering class '{name}' named  '{self._module_class_name[name]}' from '{self._items[name].__module__}' ...")
-
-        if name in self._module_class_name:
-            del self._module_class_name[name]
+        if registry_key in self._module_class_name:
+            del self._module_class_name[registry_key]
         
         # Clean up module to class mapping
         for module_name, class_list in self._module_to_classes.items():
-            if name in class_list:
-                class_list.remove(name)
+            if registry_key in class_list:
+                class_list.remove(registry_key)
                 if not class_list:  # Remove empty module entries
                     del self._module_to_classes[module_name]
                 break
 
-        return super()._unregister(name)
+        logging.info(f"Unregistered class '{registry_key}' named  '{self._module_class_name[registry_key]}' from '{self._items[registry_key].__module__}' ...")
+        return super()._unregister(registry_key)
 
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:

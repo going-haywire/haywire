@@ -8,7 +8,7 @@ from ...data.fields import DataField
 from ...ui.base_widget import BaseWidget
 from ..library_identity import LibraryIdentity
 
-from ..base import BaseClassRegistry
+from ..class_registry import BaseClassRegistry
 from ..utils import reg_key
 
 
@@ -28,8 +28,8 @@ class WidgetRegistry(BaseClassRegistry):
                     hasattr(cls, 'class_identity'))
         except TypeError:
             return False
-        
-    def _register(self, widget: type[BaseWidget], library_identity: LibraryIdentity):
+
+    def _register(self, widget: type[BaseWidget], library_identity: LibraryIdentity) -> str | None:
         """Register a UI widget with its metadata"""
 
         widget.class_library = library_identity
@@ -47,9 +47,10 @@ class WidgetRegistry(BaseClassRegistry):
         # Check if this is an error widget and register it automatically
         if hasattr(widget, 'class_identity') and widget.class_identity.is_error_widget:
             self._error_widget = widget
+            return None
         else:
             # we only register non-error widgets in the main registry
-            super()._register(registry_key, widget)
+            return super()._register(registry_key, widget)
 
 
     def _unregister(self, widget_name: str) -> type[BaseWidget] | None:

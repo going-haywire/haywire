@@ -6,11 +6,13 @@ from types import ModuleType
 from typing import Any, Dict, Optional
 import logging
 
-from ...inventory.library import BaseLibrary
-from ...inventory.utils import format_external_exception
+from ..base_registry import BaseRegistry
+
+from ..library import BaseLibrary
+from ..utils import format_external_exception
 
 from ..library_identity import LibraryIdentity
-from ..base import BaseRegistry, BaseClassRegistry
+from ..class_registry import BaseClassRegistry
 
 logger = logging.getLogger(__name__)
 

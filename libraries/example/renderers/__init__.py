@@ -2,8 +2,8 @@
 Core renderers (node renderers) registration and exports
 """
 
-from haywire.core.inventory.library import BaseLibrary
-from haywire.core.inventory.registry.renderer_reg import RendererRegistry
+from haywire.core.library.library import BaseLibrary
+from haywire.core.library.registries.reg_renderer import RendererRegistry
 
 # Import all renderer classes
 

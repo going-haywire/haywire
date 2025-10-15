@@ -11,7 +11,7 @@ import re
 import logging
 
 
-from ..inventory.library_identity import LibraryIdentity
+from ..library.library_identity import LibraryIdentity
 
 @dataclass
 class ErrorContext:
@@ -37,6 +37,7 @@ class ErrorContext:
             "\n",
             "┢━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
             "┡━━━━━━━    Error Details    ━━━━━━━━┛\n"
+            "",
             f"Operation : {self.operation or 'Unknown'}",
             f"Message   : {self.message}",
             f"-----------------------------------",

@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Optional, List
 from injector import Injector, Module, provider, singleton
 
-from ..inventory.registry.library_reg import LibraryRegistry
-from ..inventory.registry.node_reg import NodeRegistry
-from ..inventory.registry.renderer_reg import RendererRegistry
-from ..inventory.registry.adapter_reg import AdapterRegistry
-from ..inventory.registry.widget_reg import WidgetRegistry
+from ..library.registries.reg_library import LibraryRegistry
+from ..library.registries.reg_node import NodeRegistry
+from ..library.registries.reg_renderer import RendererRegistry
+from ..library.registries.reg_adapter import AdapterRegistry
+from ..library.registries.reg_widget import WidgetRegistry
 from ..node.node_factory import NodeFactory
 from ...ui.node_render_factory import NodeRenderFactory
 from ...undo.interfaces import IHistoryManager

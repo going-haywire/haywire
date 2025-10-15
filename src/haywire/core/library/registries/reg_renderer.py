@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, TypeVar, Union
 from ..library_identity import LibraryIdentity
 from ...ui.base_renderer import BaseNodeRenderer
 
-from ..base import BaseClassRegistry
+from ..class_registry import BaseClassRegistry
 from ..utils import reg_key
 
 class RendererRegistry(BaseClassRegistry):
@@ -25,7 +25,7 @@ class RendererRegistry(BaseClassRegistry):
         except TypeError:
             return False
 
-    def _register(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None):
+    def _register(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """
         Register a renderer class.
 
@@ -44,8 +44,6 @@ class RendererRegistry(BaseClassRegistry):
         if hasattr(renderer_cls, 'class_identity'):
             renderer_cls.class_identity.registry_key = registry_key
 
-        super()._register(registry_key, renderer_cls)
-
         # Check if this is a default renderer and register it automatically
         if hasattr(renderer_cls, 'class_identity') and renderer_cls.class_identity.is_default:
             self._default_renderer_name = registry_key
@@ -56,6 +54,8 @@ class RendererRegistry(BaseClassRegistry):
         # Check if this is an error renderer and register it automatically
         if hasattr(renderer_cls, 'class_identity') and renderer_cls.class_identity.is_error:
             self._error_renderer = renderer_cls
+
+        return super()._register(registry_key, renderer_cls)
 
     def _unregister(self, name: str) -> type[BaseNodeRenderer] | None:
         """Unregister a renderer by its haywire name

@@ -1,16 +1,13 @@
-from enum import Enum
 import logging
 import time
 import threading
-from pathlib import Path
-from typing import Dict, Set, Optional
-from collections import defaultdict
+from typing import Dict, Set
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from ..inventory.base import FileChangeEvent, FileEventType, HotReloadRegistry
-from ..inventory.library_identity import LibraryIdentity
+from .class_registry import HotReloadRegistry, FileChangeEvent, FileEventType
+from ..library.library_identity import LibraryIdentity
 
 class LibraryFileHandler(FileSystemEventHandler):
     """Handles file system events for a specific library path with debouncing"""

@@ -1,7 +1,7 @@
 from typing import Callable, Type, TypeVar, Optional, Union
 from dataclasses import dataclass
 from haywire.core.node.base_node import BaseNode
-from haywire.core.inventory.registry.widget_reg import WidgetRegistry
+from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.ui.base import UINodeCard
 
 from abc import ABC, abstractmethod

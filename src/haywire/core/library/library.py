@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import Callable, List, Type, TypeVar, Optional, Union
 import inspect
 
-from haywire.core.inventory.file_watcher import FileWatcher
-from haywire.core.inventory.library_identity import LibraryIdentity
-from haywire.core.inventory.base import BaseClassRegistry, FileChangeEvent
+from haywire.core.library.file_watcher import FileWatcher
+from haywire.core.library.library_identity import LibraryIdentity
+from haywire.core.library.class_registry import BaseClassRegistry, FileChangeEvent
 
 # ============================================================================
 #    Decorator

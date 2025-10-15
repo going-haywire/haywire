@@ -4,8 +4,8 @@ Core adapter registration and exports
 This module now includes both adapters and core data type definitions (merged from data/ folder).
 """
 
-from haywire.core.inventory.library import BaseLibrary
-from haywire.core.inventory.registry.adapter_reg import AdapterRegistry
+from haywire.core.library.library import BaseLibrary
+from haywire.core.library.registries.reg_adapter import AdapterRegistry
 from haywire.core.data.enums import DataType, DataContainerType
 from haywire.core.data.specs import specs_factory
 

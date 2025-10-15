@@ -11,7 +11,7 @@ from types import ModuleType
 from typing import List, Type, Optional, Callable
 
 from haywire.core.errors import log_detailed_error
-from haywire.core.inventory.library_identity import LibraryIdentity
+from haywire.core.library.library_identity import LibraryIdentity
 
 
 class FolderScanMixin:

@@ -7,7 +7,7 @@ from ...node.exceptions import NodeDiscoveryError
 from ...node.dataclasses import NodeErrorInfo
 from ..library_identity import LibraryIdentity
 from ...node.base_node import BaseNode
-from ..base import BaseClassRegistry
+from ..class_registry import BaseClassRegistry
 from ..utils import reg_key
 
 class NodeRegistry(BaseClassRegistry):
@@ -27,7 +27,7 @@ class NodeRegistry(BaseClassRegistry):
         except TypeError:
             return False
 
-    def _register(self, node_cls: type[BaseNode], library_identity: LibraryIdentity):
+    def _register(self, node_cls: type[BaseNode], library_identity: LibraryIdentity) -> str | None:
         """
         Register a node class with library metadata.
 
@@ -37,6 +37,8 @@ class NodeRegistry(BaseClassRegistry):
         Args:
             node_class: The node class to register
             library_identity: Library metadata to use for setting node attributes
+        Returns:
+            str: The haywire registry_key of the registered node.
 
         Raises:
             ValueError: If a node with the same key is already registered
@@ -59,9 +61,10 @@ class NodeRegistry(BaseClassRegistry):
         # Check if this is an error node and register it automatically
         if hasattr(node_cls, 'class_identity') and node_cls.class_identity.is_error:
             self._error_node = node_cls
+            return None
         else:
             # we only register non-error nodes in the main registry
-            super()._register(registry_key, node_cls)
+            return super()._register(registry_key, node_cls)
 
 
     def _unregister(self, name) -> type[BaseNode] | None:

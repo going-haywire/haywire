@@ -2,8 +2,8 @@
 Test widgets for the test library
 """
 
-from haywire.core.inventory.library import BaseLibrary
-from haywire.core.inventory.registry.widget_reg import WidgetRegistry
+from haywire.core.library.library import BaseLibrary
+from haywire.core.library.registries.reg_widget import WidgetRegistry
 
 def register_widgets(library: BaseLibrary):
     """Register widgets within this folder with the widget registry"""

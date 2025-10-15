@@ -11,7 +11,7 @@ from haywire.core.node.dataclasses import NodeBehavior, NodeErrorInfo, NodeUICon
 T = TypeVar('T')
 
 from .elements import Inlet, Outlet, PinSpec
-from ..inventory.library_identity import LibraryIdentity
+from ..library.library_identity import LibraryIdentity
 from ..data.specs import DataFieldSpec
 
 
