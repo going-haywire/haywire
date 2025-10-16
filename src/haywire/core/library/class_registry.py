@@ -203,8 +203,8 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         """
         if module_name is None:
             return  # Skip processing if validation failed
-            
-        added_classes = self.module_scan_for_classes(module_name, library_identity, self._class_filter, True)
+
+        added_classes, _ = self.module_scan_for_classes(module_name, library_identity, self._class_filter, True)
         if added_classes:
             for cls in added_classes:
                 self._register(cls, library_identity)
@@ -230,7 +230,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         try:
             logging.info(f"Library '{library_identity.label}': Reloading module '{module_name}' due to change...")
             # Get all classes in this module
-            classes_to_add = self.module_scan_for_classes(module_name, library_identity=library_identity, class_filter=self._class_filter, force_reload=True)
+            classes_to_add, module = self.module_scan_for_classes(module_name, library_identity=library_identity, class_filter=self._class_filter, force_reload=True)
             hw_class_names_to_remove = []
             # Simple container for old/new class pairs
 
@@ -250,11 +250,6 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                         # Remove the class from the list to avoid re-registering it
                         classes_to_add.remove(class_to_remove)
                     
-                # this gets the module that has already been forcefully reloaded
-                # by the module_scan_for_classes function
-
-                module = importlib.import_module(module_name)
-                
                 # Re-register classes from reloaded module  
                 for mod_class_name in mod_to_hw_class_name_mapping:
                     if hasattr(module, mod_class_name):

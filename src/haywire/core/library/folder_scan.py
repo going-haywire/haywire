@@ -61,7 +61,7 @@ class FolderScanMixin:
     def module_scan_for_classes(self, module_name: str, 
                                 library_identity: LibraryIdentity,
                                 class_filter: Callable[[Type], bool],
-                                force_reload: bool = False) -> List[Type]:
+                                force_reload: bool = False) -> tuple[List[Type], ModuleType]:
         """
         Automatically discover classes in a module based on a filter function.
         
@@ -96,7 +96,7 @@ class FolderScanMixin:
                     logging.error(f"Filter error for class {name}: \n\n {e} \n")
                     continue
 
-        return discovered_classes
+        return discovered_classes, module
 
     def resolve_module_name(self, file_path: str) -> Optional[str]:
         """
