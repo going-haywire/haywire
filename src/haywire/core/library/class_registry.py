@@ -166,11 +166,15 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             
             file_path = Path(event.file_path)
             module_name = self.resolve_module_name(file_path)
-
+            
             if event.event_type == FileEventType.CREATED:
                 self._on_creation(module_name, event.library_identity)
             elif event.event_type == FileEventType.MODIFIED:
-                self._on_change(module_name, event.library_identity)
+                if module_name in sys.modules:
+                    self._on_change(module_name, event.library_identity)
+                else:
+                    logging.info(f"Library '{event.library_identity.label}': Module '{module_name}' not found in sys.modules. Creating new module.")
+                    self._on_creation(module_name, event.library_identity)
             elif event.event_type == FileEventType.DELETED:
                 self._on_delete(module_name, event.library_identity)
 
@@ -231,18 +235,18 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             logging.info(f"Library '{library_identity.label}': Reloading module '{module_name}' due to change...")
             # Get all classes in this module
             classes_to_add, module = self.module_scan_for_classes(module_name, library_identity=library_identity, class_filter=self._class_filter, force_reload=True)
-            hw_class_names_to_remove = []
+            class_names_to_remove = []
             # Simple container for old/new class pairs
 
-            class_reloads: List[Tuple[Type[Any], Type[Any]]] = []
+            classes_to_reload: List[Tuple[Type[Any], Type[Any]]] = []
 
             # Get registered classes from this module that need to be updated
-            hw_class_names_to_update = self._module_to_classes.get(module_name, [])
-            if hw_class_names_to_update:
+            class_names_to_update = self._module_to_classes.get(module_name, [])
+            if class_names_to_update:
 
                 # Store old class info for re-registration
                 mod_to_hw_class_name_mapping: Dict[str, str] = {} # key: module class name, value: haywire class name
-                for mod_class_name in hw_class_names_to_update:
+                for mod_class_name in class_names_to_update:
                     mod_to_hw_class_name_mapping[self._module_class_name[mod_class_name]] = mod_class_name
                     # check if the registered old class name matches a class name in the new module
                     class_to_remove = next((cls for cls in classes_to_add if cls.__name__ == self._module_class_name[mod_class_name]), None)
@@ -255,25 +259,25 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     if hasattr(module, mod_class_name):
                         # to update a class, we need to unregister the old one and register the new one
                         new_class: Type[Any] = getattr(module, mod_class_name)
-                        old_class = mod_to_hw_class_name_mapping[mod_class_name]
-                        class_reloads.append((old_class, new_class))
+                        old_class_name = mod_to_hw_class_name_mapping[mod_class_name]
+                        classes_to_reload.append((old_class_name, new_class))
                     else:
-                        hw_class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
+                        class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
             
-            removed_classes = hw_class_names_to_remove.copy()
+            cls_names_to_remove = class_names_to_remove.copy()
             
             # If we have an exception during re-registration, but we got so far
             # we need to rollback AND re-register all classes from the snapshot
             if snapshot:
                 snapshot['needs_reregistring'] = True
 
-            if class_reloads:
-                for old_cls, new_cls in class_reloads:
-                    self._unregister(old_cls)
+            if classes_to_reload:
+                for old_cls_name, new_cls in classes_to_reload:
+                    self._unregister(old_cls_name)
                     self._register(new_cls, library_identity)
                     logging.info(f"Library '{library_identity.label}': ...Re-loaded and re-registered from {module_name}")
-            if removed_classes:
-                for cls_name in removed_classes:
+            if cls_names_to_remove:
+                for cls_name in cls_names_to_remove:
                     self._unregister(cls_name)
             if classes_to_add:
                 for cls in classes_to_add:
