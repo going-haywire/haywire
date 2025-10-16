@@ -13,6 +13,7 @@ import logging
 
 from .base_registry import BaseRegistry
 from .library_identity import LibraryIdentity
+from .dependency_graph import DependencyGraph, ReloadPlan
 from .folder_scan import FolderScanMixin
 from ..errors import log_detailed_error
 
@@ -48,6 +49,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         super().__init__()
         self._module_class_name: Dict[str, str] = {}  # Name of the class being registered
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
+        self._dependency_graph = DependencyGraph()
 
     def _register(self, registry_key: str, cls: Any, library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """Register a class with its name and optional metadata
@@ -81,7 +83,9 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         if registry_key not in self._module_to_classes[module_name]:
             self._module_to_classes[module_name].append(registry_key)
 
-        logging.info(f"Library '{library_identity.label}': Registered class '{registry_key}' named '{cls.__name__}' from '{module_name}' has been registered.")
+        logging.info(
+            f"Library '{library_identity.label}': Registered class '{registry_key}' "
+            f"named '{cls.__name__}' from '{module_name}' has been registered.")
         return registry_key
 
 
@@ -91,7 +95,10 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             registry_key (str): The haywire registry_key of the class to unregister
         """
 
-        logging.info(f"Unregistering class '{registry_key}' named  '{self._module_class_name[registry_key]}' from '{self._items[registry_key].__module__}' ...")
+        logging.info(
+            f"Library '{self.get(registry_key).class_library.label}': "
+            f"Unregistering class '{registry_key}' named  '{self._module_class_name[registry_key]}' "
+            f"from '{self._items[registry_key].__module__}' ...")
 
         if registry_key in self._module_class_name:
             del self._module_class_name[registry_key]
@@ -122,14 +129,18 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
         """
         try:
-            logging.info(f"Library '{library_identity.label}': START Scanning folder '{folder_path[len(library_identity.folder_path):]}' for modules in to register classes...")
+            logging.info(
+                f"Library '{library_identity.label}': START Scanning folder "
+                f"'{folder_path[len(library_identity.folder_path):]}' for modules in to register classes...")
             module_names = self.folder_scan_for_modules(folder_path, exclude_patterns)
 
             for module_name in module_names:
                 self._on_creation(module_name, library_identity)
 
-            logging.info(f"Library '{library_identity.label}': ... Scanning folder -> DONE. {len(module_names)} modules processed.")
-                
+            logging.info(
+                f"Library '{library_identity.label}': ... Scanning folder -> DONE. "
+                f"{len(module_names)} modules processed.")
+
         except Exception as e:
             try:
                 rel_path = folder_path[len(library_identity.folder_path):]
@@ -141,10 +152,16 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     library_identity=library_identity
                 )
             except Exception as logging_error:
-                logging.error(f"Library '{library_identity.label}': Failed notifying registry for '{library_identity.label}': {e}")
-                logging.error(f"Library '{library_identity.label}': Error logging failed: {logging_error}")
+                logging.error(
+                    f"Library '{library_identity.label}': "
+                    f"Failed notifying registry : {e}")
+                logging.error(
+                    f"Library '{library_identity.label}': "
+                    f"Error logging failed: {logging_error}")
 
-            logging.error(f"Library '{library_identity.label}': ... Scanning folder '{folder_path}' -> FAILED")
+            logging.error(
+                f"Library '{library_identity.label}': "
+                f"... Scanning folder '{folder_path}' -> FAILED")
 
 
     def event_dispatcher(self, event: FileChangeEvent):
@@ -161,7 +178,9 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             logging.info(f"Library '{event.library_identity.label}': DETECTED Hot Reloading event '{event.event_type.value}' on file: {event.file_path[len(event.library_identity.folder_path):]}. INITIATING ...")
             if event.event_type != FileEventType.DELETED:
                 if not self._validate_python_file(event.file_path):
-                    logging.error(f"Library '{event.library_identity.label}': Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
+                    logging.error(
+                        f"Library '{event.library_identity.label}': "
+                        f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
                     return None
             
             file_path = Path(event.file_path)
@@ -178,7 +197,9 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             elif event.event_type == FileEventType.DELETED:
                 self._on_delete(module_name, event.library_identity)
 
-            logging.info(f"Library '{event.library_identity.label}': ...Hot Reloading -> DONE.")
+            logging.info(
+                f"Library '{event.library_identity.label}': "
+                f"...Hot Reloading -> DONE.")
 
         except Exception as e:
             try:
@@ -190,10 +211,16 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     library_identity=event.library_identity
                 )
             except Exception as logging_error:
-                logging.error(f"Library '{event.library_identity.label}': Failed notifying registry on file:{event.file_path} for library:'{event.library_identity.label}': {e}")
-                logging.error(f"Library '{event.library_identity.label}': Error logging failed: {logging_error}")
+                logging.error(
+                    f"Library '{event.library_identity.label}': "
+                    f"Failed notifying registry on file:{event.file_path}' : {e}")
+                logging.error(
+                    f"Library '{event.library_identity.label}': "
+                    f"Error logging failed: {logging_error}")
             
-            logging.error(f"Library '{event.library_identity.label}': ...Hot Reloading on file on file: {event.file_path} -> FAILED.")
+            logging.error(
+                f"Library '{event.library_identity.label}': "
+                f"...Hot Reloading on file on file: {event.file_path} -> FAILED.")
          
 
     def _on_creation(self, module_name: str, library_identity: LibraryIdentity):
@@ -210,9 +237,15 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
 
         added_classes, _ = self.module_scan_for_classes(module_name, library_identity, self._class_filter, True)
         if added_classes:
+            # This module contains managed classes - track it with scope prefix
+            # Scope prefix limits which dependencies are tracked (prevents tracking parent classes)
+            self._dependency_graph.add_managed_module(module_name, library_identity.module_name)
+            
             for cls in added_classes:
                 self._register(cls, library_identity)
+                #TODO: emit event for added class
 
+    
     def _on_change(self, module_name: str, library_identity: LibraryIdentity):
         """re-registering existing classes within the module
         and returning the classes that need to be
@@ -227,12 +260,47 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         if module_name is None:
             return  # Skip processing if validation failed
 
+        logging.info(
+            f"Library '{library_identity.label}': Analyzing dependencies for "
+            f"changed module '{module_name}'..."
+        )
+        
+        # Get reload plan from dependency graph
+        reload_plan = self._dependency_graph.get_reload_plan(module_name)
+        
+        logging.info(
+            f"Library '{library_identity.label}': Reload plan: "
+            f"{len(reload_plan.non_managed_modules)} helpers, "
+            f"{len(reload_plan.managed_modules)} managed classes"
+        )
+        
+        # Step 1: Reload non-managed helper modules first
+        for helper_module in reload_plan.non_managed_modules:
+            if helper_module in sys.modules:
+                logging.info(
+                    f"Library '{library_identity.label}': Reloading helper "
+                    f"module '{helper_module}'..."
+                )
+                importlib.reload(sys.modules[helper_module])
+        
+        # Step 2: Reload managed modules using registry's special handling
+        for managed_module in reload_plan.managed_modules:
+            logging.info(
+                f"Library '{library_identity.label}': Reloading managed "
+                f"module '{managed_module}'..."
+            )
+            self._reload_managed_module(managed_module, library_identity)
+
+    def _reload_managed_module(self, module_name: str, library_identity: LibraryIdentity):
+        """
+        Reload a single managed module with registry-specific handling.
+        """
+
         # Create snapshot before reload
         snapshot = self._create_rollback_snapshot(module_name)
 
         # if anything goes wrong, we can rollback to this snapshot
         try:
-            logging.info(f"Library '{library_identity.label}': Reloading module '{module_name}' due to change...")
             # Get all classes in this module
             classes_to_add, module = self.module_scan_for_classes(module_name, library_identity=library_identity, class_filter=self._class_filter, force_reload=True)
             class_names_to_remove = []
@@ -275,16 +343,23 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                 for old_cls_name, new_cls in classes_to_reload:
                     self._unregister(old_cls_name)
                     self._register(new_cls, library_identity)
-                    logging.info(f"Library '{library_identity.label}': ...Re-loaded and re-registered from {module_name}")
+                    logging.info(
+                        f"Library '{library_identity.label}': "
+                        f"...Re-loaded and re-registered from {module_name}")
+                    # TODO: emit event for reloaded class
             if cls_names_to_remove:
                 for cls_name in cls_names_to_remove:
                     self._unregister(cls_name)
+                    # TODO: emit event for removed class
             if classes_to_add:
                 for cls in classes_to_add:
                     self._register(cls, library_identity)
+                    # TODO: emit event for added class
 
         except Exception as e:
-            logging.error(f"Library '{library_identity.label}': Reload failed for '{module_name}': {e}")
+            logging.error(
+                f"Library '{library_identity.label}': "
+                f"Reload failed for '{module_name}': {e}")
             self._rollback_snapshot(module_name, snapshot, library_identity)            
             raise       
 
@@ -293,21 +368,25 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
 
         Args:
             module (str): The module name that has been deleted.
-        
-        Returns:
-            list: List of haywire class names that need to be unregistered
         """
         if module_name is None:
             return  # Skip processing if validation failed (shouldn't happen for DELETE events)
 
-        logging.info(f"Library '{library_identity.label}': Module '{module_name}' has been deleted. Unregistering classes.")
+        logging.info(
+            f"Library '{library_identity.label}': Module '{module_name}' has been deleted. "
+            f"Unregistering classes.")
+        
         classes_to_delete = self._module_to_classes.get(module_name, [])
-
         removed_classes = classes_to_delete.copy()
     
         if removed_classes:
             for cls_name in removed_classes:
                 self._unregister(cls_name)
+                #TODO: emit event for removed class
+        
+        # Remove from dependency graph if no more managed classes
+        if not self._module_to_classes.get(module_name):
+            self._dependency_graph.remove_managed_module(module_name)
 
 
     def _create_rollback_snapshot(self, module_name: str) -> Optional[Dict[str, Any]]:
@@ -342,4 +421,6 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                 for hw_name, class_info in snapshot['registered_classes'].items():
                     self._register(class_info['class'], library_identity)
             
-            logging.info(f"Library '{library_identity.label}': Rollback complete for '{module_name}'")
+            logging.info(
+                f"Library '{library_identity.label}': "
+                f"Rollback complete for '{module_name}'")

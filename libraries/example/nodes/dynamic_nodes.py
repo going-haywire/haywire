@@ -2,6 +2,8 @@
 Basic core node implementations
 """
 
+from example.nodes.util import simple_function
+
 # Import the node system base class
 from haywire.core.node.base_node import node
 from haywire.core.node.base_node import BaseNode
@@ -95,6 +97,8 @@ class ConfigurableMathNode(BaseNode):
 
     def worker(self, context: dict) -> dict | None:
         """Execute the node"""
+        #test_value = simple_function(self.node_id)
+
         # Access config values (read-only in worker)
         operation = self.operation_config.data.get_value()
         precision = self.precision_config.data.get_value()

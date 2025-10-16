@@ -14,6 +14,7 @@ class LibraryIdentity:
     dependencies: list[str] = None
     file_watcher: bool = False  # Whether to watch for file changes
     folder_path: str = None  # Path to the library folder, auto set during registration
+    module_name: str = None  # Python module name, auto set during registration
 
     def __post_init__(self):
         if self.dependencies is None:

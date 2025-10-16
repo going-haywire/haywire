@@ -81,6 +81,7 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         # Auto-detect folder_path - use the directory where inner_cls is defined
         class_file = inspect.getfile(inner_cls)
         kwargs['folder_path'] = str(Path(class_file).parent)
+        kwargs['module_name'] = inner_cls.__module__
         
         inner_cls.class_identity = LibraryIdentity(**kwargs)
         return inner_cls

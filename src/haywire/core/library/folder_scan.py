@@ -121,7 +121,7 @@ class FolderScanMixin:
             return None
         
         return ".".join(module_parts)
-
+   
     def _validate_python_file(self, file_path: str) -> bool:
         """Check if Python file compiles without syntax errors"""
         try:
