@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 import importlib
 from pathlib import Path
+import sys
 from typing import Callable, Dict, Any, Optional, Type, List, Tuple
 import logging
 
@@ -48,26 +49,39 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         self._module_class_name: Dict[str, str] = {}  # Name of the class being registered
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
 
-    def _register(self, registry_key: str, item: Any) -> str | None:
+    def _register(self, registry_key: str, cls: Any, library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """Register a class with its name and optional metadata
         Args:
             registry_key (str): The haywire registry_key of the class to register
-            item (Any): The class to register
-            metadata (Optional[Dict[str, Any]]): Optional metadata for the class
+            cls (Any): The class to register
+            library_identity (Optional[LibraryIdentity]): The library identity to associate with the class
         Returns:
             str: The haywire registry_key of the registered class
         """
-        super()._register(registry_key, item)
-        self._module_class_name[registry_key] = item.__name__
+        # Set the registry_key in the class_identity if it exists
+        if hasattr(cls, 'class_identity'):
+            cls.class_identity.registry_key = registry_key
+        else:
+            ValueError(f"Library '{library_identity.label}': Class {cls} does not have a class_identity attribute. Cannot register. This is likely due to a missing condition in the implementation of the childs registry's class filter method.")
+        # Store the library identity as class attributes 
+
+        cls.class_library = library_identity
+
+        # Check for duplicates
+        if self.has(registry_key):
+            logging.warning(f"Library '{library_identity.label}': Node '{cls.class_identity.label}' overwriting already registered node '{registry_key}'. This can happen during hot-reloading rollback. In any other circumstance, this indicates the double use of a node registry_id.")
+
+        super()._register(registry_key, cls)
+        self._module_class_name[registry_key] = cls.__name__
 
         # Track module to class mapping
-        module_name = item.__module__
+        module_name = cls.__module__
         if module_name not in self._module_to_classes:
             self._module_to_classes[module_name] = []
         if registry_key not in self._module_to_classes[module_name]:
             self._module_to_classes[module_name].append(registry_key)
 
-        logging.info(f"Registered class '{registry_key}' named '{item.__name__}' from '{module_name}' has been registered.")
+        logging.info(f"Library '{library_identity.label}': Registered class '{registry_key}' named '{cls.__name__}' from '{module_name}' has been registered.")
         return registry_key
 
 
@@ -108,6 +122,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
         """
         try:
+            logging.info(f"Library '{library_identity.label}': Scanning folder '{folder_path}' for modules in to register classes...")
             module_names = self.folder_scan_for_modules(folder_path, exclude_patterns)
 
             for module_name in module_names:
@@ -124,8 +139,8 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     library_identity=library_identity
                 )
             except Exception as logging_error:
-                logging.error(f"Failed notifying registry for '{library_identity.label}': {e}")
-                logging.error(f"Error logging failed: {logging_error}")
+                logging.error(f"Library '{library_identity.label}': Failed notifying registry for '{library_identity.label}': {e}")
+                logging.error(f"Library '{library_identity.label}': Error logging failed: {logging_error}")
     
     def event_dispatcher(self, event: FileChangeEvent):
         """
@@ -140,7 +155,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             # Skip validation for deleted files
             if event.event_type != FileEventType.DELETED:
                 if not self._validate_python_file(event.file_path):
-                    logging.error(f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
+                    logging.error(f"Library '{event.library_identity.label}': Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
                     return None
             
             file_path = Path(event.file_path)
@@ -163,8 +178,8 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     library_identity=event.library_identity
                 )
             except Exception as logging_error:
-                logging.error(f"Failed notifying registry on file:{event.file_path} for library:'{event.library_identity.label}': {e}")
-                logging.error(f"Error logging failed: {logging_error}")
+                logging.error(f"Library '{event.library_identity.label}': Failed notifying registry on file:{event.file_path} for library:'{event.library_identity.label}': {e}")
+                logging.error(f"Library '{event.library_identity.label}': Error logging failed: {logging_error}")
          
 
     def _on_creation(self, module_name: str, library_identity: LibraryIdentity):
@@ -198,60 +213,84 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         if module_name is None:
             return  # Skip processing if validation failed
 
-        logging.info(f"Reloading module '{module_name}' due to change...")
-        # Get all classes in this module
-        classes_to_add = self.module_scan_for_classes(module_name, library_identity=library_identity, class_filter=self._class_filter, force_reload=True)
-        hw_class_names_to_remove = []
-        # Simple container for old/new class pairs
+        # Create snapshot before reload
+        snapshot = self._create_module_snapshot(module_name)
 
-        class_reloads: List[Tuple[Type[Any], Type[Any]]] = []
+        snapshot_needs_reregistring = False
+
+        # if anything goes wrong, we can rollback to this snapshot
+        try:
+            logging.info(f"Library '{library_identity.label}': Reloading module '{module_name}' due to change...")
+            # Get all classes in this module
+            classes_to_add = self.module_scan_for_classes(module_name, library_identity=library_identity, class_filter=self._class_filter, force_reload=True)
+            hw_class_names_to_remove = []
+            # Simple container for old/new class pairs
+
+            class_reloads: List[Tuple[Type[Any], Type[Any]]] = []
 
 
-        # Get registered classes from this module that need to be updated
-        hw_class_names_to_update = self._module_to_classes.get(module_name, [])
-        if hw_class_names_to_update:
+            # Get registered classes from this module that need to be updated
+            hw_class_names_to_update = self._module_to_classes.get(module_name, [])
+            if hw_class_names_to_update:
 
-            # Store old class info for re-registration
-            mod_to_hw_class_name_mapping: Dict[str, str] = {} # key: module class name, value: haywire class name
-            for mod_class_name in hw_class_names_to_update:
-                mod_to_hw_class_name_mapping[self._module_class_name[mod_class_name]] = mod_class_name
-                # check if the registered old class name matches a class name in the new module
-                class_to_remove = next((cls for cls in classes_to_add if cls.__name__ == self._module_class_name[mod_class_name]), None)
-                if class_to_remove:
-                    # Remove the class from the list to avoid re-registering it
-                    classes_to_add.remove(class_to_remove)
+                # Store old class info for re-registration
+                mod_to_hw_class_name_mapping: Dict[str, str] = {} # key: module class name, value: haywire class name
+                for mod_class_name in hw_class_names_to_update:
+                    mod_to_hw_class_name_mapping[self._module_class_name[mod_class_name]] = mod_class_name
+                    # check if the registered old class name matches a class name in the new module
+                    class_to_remove = next((cls for cls in classes_to_add if cls.__name__ == self._module_class_name[mod_class_name]), None)
+                    if class_to_remove:
+                        # Remove the class from the list to avoid re-registering it
+                        classes_to_add.remove(class_to_remove)
+                    
+                # this gets the module that has already been forcefully reloaded
+                # by the module_scan_for_classes function
+
+                module = importlib.import_module(module_name)
                 
-            # this gets the module that has already been forcefully reloaded
-            # by the module_scan_for_classes function
-
-            module = importlib.import_module(module_name)
+                # Re-register classes from reloaded module  
+                for mod_class_name in mod_to_hw_class_name_mapping:
+                    if hasattr(module, mod_class_name):
+                        # to update a class, we need to unregister the old one and register the new one
+                        new_class: Type[Any] = getattr(module, mod_class_name)
+                        old_class = mod_to_hw_class_name_mapping[mod_class_name]
+                        class_reloads.append((old_class, new_class))
+                    else:
+                        hw_class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
             
-            # Re-register classes from reloaded module  
-            for mod_class_name in mod_to_hw_class_name_mapping:
-                if hasattr(module, mod_class_name):
-                    # to update a class, we need to unregister the old one and register the new one
-                    new_class: Type[Any] = getattr(module, mod_class_name)
-                    old_class = mod_to_hw_class_name_mapping[mod_class_name]
-                    class_reloads.append((old_class, new_class))
-                else:
-                    hw_class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
-        
-        else:
-            logging.info(f"Module '{module_name}' has no matching classes that need an update.")
+            removed_classes = hw_class_names_to_remove.copy()
+            
+            # If we have an exception during re-registration, but we got so far
+            # we need to rollback AND re-register all classes from the snapshot
+            snapshot_needs_reregistring = True
 
-        removed_classes = hw_class_names_to_remove.copy()
+            if class_reloads:
+                for old_cls, new_cls in class_reloads:
+                    self._unregister(old_cls)
+                    self._register(new_cls, library_identity)
+                    logging.info(f"Library '{library_identity.label}': ...Re-loaded and re-registered from {module_name}")
+            if removed_classes:
+                for cls_name in removed_classes:
+                    self._unregister(cls_name)
+            if classes_to_add:
+                for cls in classes_to_add:
+                    self._register(cls, library_identity)
 
-        if class_reloads:
-            for old_cls, new_cls in class_reloads:
-                self._unregister(old_cls)
-                self._register(new_cls, library_identity)
-                logging.info(f"...Re-loaded and re-registered from {module_name}")
-        if removed_classes:
-            for cls_name in removed_classes:
-                self._unregister(cls_name)
-        if classes_to_add:
-            for cls in classes_to_add:
-                self._register(cls, library_identity)
+        except Exception as e:
+            logging.error(f"Library '{library_identity.label}': Reload failed for '{module_name}': {e}")
+            
+            if snapshot:
+                # Restore module in sys.modules
+                sys.modules[module_name] = snapshot['module']
+                
+                if snapshot_needs_reregistring:
+                    # Re-register classes from snapshot
+                    for hw_name, class_info in snapshot['registered_classes'].items():
+                        self._register(class_info['class'], library_identity)
+                
+                logging.info(f"Library '{library_identity.label}': Rollback complete for '{module_name}'")
+            
+            raise       
 
     def _on_delete(self, module_name: str, library_identity: LibraryIdentity):
         """Marks the classes need to be unregistered.
@@ -265,7 +304,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         if module_name is None:
             return  # Skip processing if validation failed (shouldn't happen for DELETE events)
 
-        logging.info(f"Module '{module_name}' has been deleted. Unregistering classes.")
+        logging.info(f"Library '{library_identity.label}': Module '{module_name}' has been deleted. Unregistering classes.")
         classes_to_delete = self._module_to_classes.get(module_name, [])
 
         removed_classes = classes_to_delete.copy()
@@ -275,6 +314,23 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                 self._unregister(cls_name)
 
 
-
-
-
+    def _create_module_snapshot(self, module_name: str) -> Optional[Dict[str, Any]]:
+        """Create snapshot of module state for rollback"""
+        if module_name not in sys.modules:
+            return None
+        
+        module = sys.modules[module_name]
+        snapshot = {
+            'module': module,
+            'registered_classes': {}
+        }
+        
+        # Snapshot registered classes from this module
+        for hw_name in self._module_to_classes.get(module_name, []):
+            snapshot['registered_classes'][hw_name] = {
+                'class': self._items.get(hw_name),
+                'class_name': self._module_class_name.get(hw_name)
+            }
+        
+        return snapshot
+ 

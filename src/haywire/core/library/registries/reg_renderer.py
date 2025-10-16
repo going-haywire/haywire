@@ -34,16 +34,8 @@ class RendererRegistry(BaseClassRegistry):
             renderer_class: The NodeRenderer class
             metadata: Optional metadata for the renderer
         """
-        # Store the library identity and registry key as class attributes 
-        # This will be used as the default for new instances
-        renderer_cls.class_library = library_identity
-
         registry_key = reg_key(library_identity.id, renderer_cls.class_identity.registry_id)
         
-        # Set the registry_key in the class_identity if it exists
-        if hasattr(renderer_cls, 'class_identity'):
-            renderer_cls.class_identity.registry_key = registry_key
-
         # Check if this is a default renderer and register it automatically
         if hasattr(renderer_cls, 'class_identity') and renderer_cls.class_identity.is_default:
             self._default_renderer_name = registry_key
@@ -55,7 +47,7 @@ class RendererRegistry(BaseClassRegistry):
         if hasattr(renderer_cls, 'class_identity') and renderer_cls.class_identity.is_error:
             self._error_renderer = renderer_cls
 
-        return super()._register(registry_key, renderer_cls)
+        return super()._register(registry_key, renderer_cls, library_identity)
 
     def _unregister(self, name: str) -> type[BaseNodeRenderer] | None:
         """Unregister a renderer by its haywire name

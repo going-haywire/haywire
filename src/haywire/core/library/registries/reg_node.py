@@ -43,28 +43,16 @@ class NodeRegistry(BaseClassRegistry):
         Raises:
             ValueError: If a node with the same key is already registered
         """
-        # Store the library metadata and registry key as class attributes 
-        # This will be used as the default for new instances
-        node_cls.class_library = library_identity
-
         # Create registry key
         registry_key = reg_key(library_identity.id, node_cls.class_identity.registry_id)
 
-        # Check for duplicates
-        if self.has(registry_key):
-            raise ValueError(f"Node already registered: {registry_key}")
-
-        # Set the registry_key in the class_identity if it exists
-        if hasattr(node_cls, 'class_identity'):
-            node_cls.class_identity.registry_key = registry_key
-
         # Check if this is an error node and register it automatically
-        if hasattr(node_cls, 'class_identity') and node_cls.class_identity.is_error:
+        if node_cls.class_identity.is_error:
             self._error_node = node_cls
             return None
         else:
             # we only register non-error nodes in the main registry
-            return super()._register(registry_key, node_cls)
+            return super()._register(registry_key, node_cls, library_identity)
 
 
     def _unregister(self, name) -> type[BaseNode] | None:

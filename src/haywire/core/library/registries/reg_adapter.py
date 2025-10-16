@@ -33,10 +33,6 @@ class AdapterRegistry(BaseClassRegistry):
         Returns:
             str: The haywire registry_key of the registered adapter.
         """
-        # Store the library metadata and registry key as class attributes 
-        # This will be used as the default for new instances
-        adapter_cls.class_library = library_identity
-
         source_key = adapter_cls.class_identity.converts_from
         target_key = adapter_cls.class_identity.converts_to
 
@@ -47,11 +43,7 @@ class AdapterRegistry(BaseClassRegistry):
         # Register with base registry for metadata tracking
         registry_key = f"{source_key}_to_{target_key}"
 
-        # Set the registry_key in the class_identity if it exists
-        if hasattr(adapter_cls, 'class_identity'):
-            adapter_cls.class_identity.registry_key = registry_key
-
-        return super()._register(registry_key, adapter_cls)
+        return super()._register(registry_key, adapter_cls, library_identity)
 
     def _unregister(self, registry_key: str) -> type[BaseAdapter] | None:
         """ Unregister an adapter by its haywire name.

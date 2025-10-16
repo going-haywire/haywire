@@ -31,8 +31,6 @@ class WidgetRegistry(BaseClassRegistry):
 
     def _register(self, widget: type[BaseWidget], library_identity: LibraryIdentity) -> str | None:
         """Register a UI widget with its metadata"""
-
-        widget.class_library = library_identity
         registry_key = reg_key(library_identity.id, widget.class_identity.registry_id)
 
         # Check if this widget has default_for data types and register them automatically
@@ -42,7 +40,7 @@ class WidgetRegistry(BaseClassRegistry):
                     data_type = DataType(data_type_str)
                     self._default_widgets[data_type] = widget
                 except ValueError:
-                    logging.warning(f"Invalid data type '{data_type_str}' in widget '{widget.__name__}' default_for list")
+                    logging.warning(f"Library '{library_identity.label}': Invalid data type '{data_type_str}' in widget '{widget.__name__}' default_for list")
 
         # Check if this is an error widget and register it automatically
         if hasattr(widget, 'class_identity') and widget.class_identity.is_error_widget:
@@ -50,7 +48,7 @@ class WidgetRegistry(BaseClassRegistry):
             return None
         else:
             # we only register non-error widgets in the main registry
-            return super()._register(registry_key, widget)
+            return super()._register(registry_key, widget, library_identity)
 
 
     def _unregister(self, widget_name: str) -> type[BaseWidget] | None:
