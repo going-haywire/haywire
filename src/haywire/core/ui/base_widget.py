@@ -5,13 +5,11 @@ from dataclasses import dataclass, field
 
 from ..data.fields import DataField
 from ..node.elements import ConfigurableElement
+from ..library.base_identity import BaseIdentity
 
 @dataclass
-class WidgetIdentity:
+class WidgetIdentity(BaseIdentity):
     """Core identifying attributes of a widget"""
-    registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
-    registry_key: str = ''  # Full unique key including library ID - set by registry
-    description: str = ''
     default_for: list[str] = field(default_factory=list)  # List of data types this widget should be the default for
     is_error_widget: bool = False
 
@@ -29,6 +27,8 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
     
     Args:
         registry_id (str, optional): Unique identifier for the widget within its library.
+            Defaults to class name if not provided.
+        label (str, optional): Human-readable display name for the node.
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the widget.
             Defaults to empty string.
@@ -72,6 +72,7 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
 
         # Set defaults from class name if not provided
         kwargs.setdefault('registry_id', inner_cls.__name__)
+        kwargs.setdefault('label', inner_cls.__name__)
         
         inner_cls.class_identity = WidgetIdentity(**kwargs)
         return inner_cls

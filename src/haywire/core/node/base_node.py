@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 from haywire.core.data.enums import FlowType
 from haywire.core.node.dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
+from haywire.core.library.base_identity import BaseIdentity
 
 T = TypeVar('T')
 
@@ -14,12 +15,8 @@ from ..library.library_identity import LibraryIdentity
 from ..data.specs import DataFieldSpec
 
 @dataclass
-class NodeIdentity:
+class NodeIdentity(BaseIdentity):
     """Core identifying attributes of a node"""
-    registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
-    registry_key: str = ''  # Set by registry during registration. combination of library-registry-id and node-registry-id.
-    label: str = 'Node Name'
-    description: str = 'Node Description'
     search_tags: list[str] = field(default_factory=lambda: ['add', 'sub', 'math', 'vector'])
     menu: str = 'misc/custom'
     help_md: str | None = None

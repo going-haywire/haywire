@@ -634,6 +634,7 @@ class UndoRedoTestAppWithCanvasManager:
                 ui.notify(f"Library '{library_id}' enabled", type='positive')
                 # Update all displays to reflect the change
                 self.sync_all_sessions()
+                self.library_service.print_registry_status()
             else:
                 ui.notify(f"Failed to enable library '{library_id}'", type='negative')
     
@@ -645,6 +646,7 @@ class UndoRedoTestAppWithCanvasManager:
                 ui.notify(f"Library '{library_id}' disabled", type='warning')
                 # Update all displays to reflect the change
                 self.sync_all_sessions()
+                self.library_service.print_registry_status()
             else:
                 ui.notify(f"Failed to disable library '{library_id}'", type='negative')
     
@@ -657,6 +659,7 @@ class UndoRedoTestAppWithCanvasManager:
                 ui.notify("All libraries enabled", type='positive')
                 # Update all displays to reflect the change
                 self.sync_all_sessions()
+                self.library_service.print_registry_status()
     
     def disable_all_libraries(self):
         """Disable all libraries."""
@@ -669,6 +672,7 @@ class UndoRedoTestAppWithCanvasManager:
                 ui.notify("All libraries disabled", type='warning')
                 # Update all displays to reflect the change
                 self.sync_all_sessions()
+                self.library_service.print_registry_status()
     
     def run(self):
         """Run the application."""

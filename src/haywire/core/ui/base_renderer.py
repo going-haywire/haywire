@@ -3,15 +3,13 @@ from dataclasses import dataclass
 from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.ui.base import UINodeCard
+from haywire.core.library.base_identity import BaseIdentity
 
 from abc import ABC, abstractmethod
 
 @dataclass
-class RendererIdentity:
+class RendererIdentity(BaseIdentity):
     """Core identifying attributes of a renderer"""
-    registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
-    registry_key: str = ''  # Full unique key including library ID - set by registry
-    description: str = ''
     renders: str | None = None  # What types of nodes this renderer can handle
     is_default: bool = False
     is_error: bool = False
@@ -31,6 +29,8 @@ def renderer(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[
     
     Args:
         registry_id (str, optional): Unique identifier for the renderer within its library.
+            Defaults to class name if not provided.
+        label (str, optional): Human-readable display name for the node.
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the renderer.
             Defaults to empty string.
@@ -76,6 +76,7 @@ def renderer(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[
 
         # Set defaults from class name if not provided
         kwargs.setdefault('registry_id', inner_cls.__name__)
+        kwargs.setdefault('label', inner_cls.__name__)
         
         inner_cls.class_identity = RendererIdentity(**kwargs)
         return inner_cls

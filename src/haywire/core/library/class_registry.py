@@ -200,9 +200,19 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 self._on_delete(module_name, library_identity)
 
             except Exception as e:
-                logging.error(
-                   f"Library '{library_identity.label}': "
-                   f"Failed to remove module '{module_name}': {e}")
+                try:
+                    rel_path = folder_path[len(library_identity.folder_path):]
+                    log_detailed_error(
+                        exception=e,
+                        operation="Registry folder import",
+                        module_name=locals().get('module_name', 'unknown'),
+                        message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'",
+                        library_identity=library_identity
+                    )
+                except Exception as logging_error:
+                    logging.error(
+                        f"Library '{library_identity.label}': "
+                        f"Failed notifying registry : {e}")
 
 
     def event_dispatcher(self, event: FileChangeEvent):

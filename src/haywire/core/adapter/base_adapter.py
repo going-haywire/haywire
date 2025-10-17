@@ -7,13 +7,11 @@ from typing import Any, Callable, Type, override, TypeVar, Optional, Union
 from dataclasses import dataclass
 
 from haywire.core.data.enums import DataType
+from haywire.core.library.base_identity import BaseIdentity
 
 @dataclass
-class AdapterIdentity:
+class AdapterIdentity(BaseIdentity):
     """Core identifying attributes of an adapter"""
-    registry_id: str = ''  # Set by user for unique ID within library - fallback to class name
-    registry_key: str = ''  # Full unique key including library ID - set by registry
-    description: str = ''
     converts_from: str | None = None  # Source data type identifier
     converts_to: str | None = None    # Target data type identifier
     priority: int = 0                 # Priority for this adapter (higher = preferred)
@@ -33,6 +31,8 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     
     Args:
         registry_id (str, optional): Unique identifier for the adapter within its library.
+            Defaults to class name if not provided.
+        label (str, optional): Human-readable display name for the node.
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the adapter.
             Defaults to empty string.
@@ -80,6 +80,7 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
 
         # Set defaults from class name if not provided
         kwargs.setdefault('registry_id', inner_cls.__name__)
+        kwargs.setdefault('label', inner_cls.__name__)
         
         inner_cls.class_identity = AdapterIdentity(**kwargs)
         return inner_cls

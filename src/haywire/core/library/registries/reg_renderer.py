@@ -37,14 +37,14 @@ class RendererRegistry(BaseClassRegistry):
         registry_key = reg_key(library_identity.id, renderer_cls.class_identity.registry_id)
         
         # Check if this is a default renderer and register it automatically
-        if hasattr(renderer_cls, 'class_identity') and renderer_cls.class_identity.is_default:
+        if renderer_cls.class_identity.is_default:
             self._default_renderer_name = registry_key
         elif self._default_renderer_name is None:
             # Automatically set as default if no default is set yet
             self._default_renderer_name = registry_key
 
         # Check if this is an error renderer and register it automatically
-        if hasattr(renderer_cls, 'class_identity') and renderer_cls.class_identity.is_error:
+        if renderer_cls.class_identity.is_error:
             self._error_renderer = renderer_cls
 
         return super()._register(registry_key, renderer_cls, library_identity)
@@ -55,8 +55,8 @@ class RendererRegistry(BaseClassRegistry):
             name: The haywire name of the renderer to unregister
         """
         if self._default_renderer_name == name:
-            if self.list_names.length > 0:
-                self._default_renderer_name = self.list_names[0]
+            if len(self.list_names()) > 0:
+                self._default_renderer_name = self.list_names()[0]
             else:
                 self._default_renderer_name = None
                 logging.warning(f"Default renderer '{name}' unregistered, no renderers left in registry")
