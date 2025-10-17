@@ -9,9 +9,6 @@ from pathlib import Path
 from typing import Set, List, Dict, Optional
 from dataclasses import dataclass
 
-from .library_identity import LibraryIdentity
-
-
 @dataclass
 class ReloadPlan:
     """Plan for reloading modules in correct order"""
@@ -21,14 +18,133 @@ class ReloadPlan:
 
 class DependencyGraph:
     """
-    Manages dependencies for managed modules to determine reload order.
+    Manages dependencies for managed modules in a hot-reload system.
     
-    Builds complete dependency trees when modules are registered, then uses
-    these pre-built trees to quickly determine reload order when changes occur.
+    CORE CONCEPT
+    ============
+    When a Python module changes, all modules that depend on it must be reloaded in the correct
+    order to maintain consistency. This class tracks dependencies between managed modules (modules
+    containing registered classes) and their helper modules, then generates ordered reload plans
+    when changes are detected.
     
-    Each managed module has a scope prefix that limits which dependencies are tracked.
+    The key insight: Build dependency trees upfront when registering modules, then use these
+    pre-built trees for fast lookup when changes occur.
+    
+    SCOPE-BASED FILTERING
+    ======================
+    Each managed module has a "scope prefix" that limits which dependencies are tracked. This
+    prevents tracking dependencies outside the relevant folder (e.g., excluding base classes
+    from parent libraries).
+    
+    Example:
+        Module: 'haywire.libraries.mylib.nodes.workflow'
+        Scope:  'haywire.libraries.mylib.nodes'
+        
+        Tracks:   ✅ haywire.libraries.mylib.nodes.utils (in scope)
+                  ✅ haywire.libraries.mylib.nodes.helpers (in scope)
+        Ignores:  ❌ haywire.core.base.Node (outside scope)
+                  ❌ haywire.libraries.mylib.registry.* (outside scope)
+    
+    WORKFLOW
+    ========
+    1. Registration Phase (called once per managed module):
+       - Call add_managed_module(module_name, scope_prefix)
+       - Builds complete transitive dependency tree by parsing AST
+       - Stores tree for fast lookup: {module -> set of all dependencies}
+    
+    2. Change Detection Phase (called when file watcher detects change):
+       - Call get_reload_plan(changed_module)
+       - Checks which managed modules have changed_module in their dependency trees
+       - Merges reload lists from all affected managed modules
+       - Separates helpers (reload first) from managed modules (reload after)
+       - Returns ReloadPlan with both lists in topologically sorted order
+    
+    3. Reload Execution Phase (handled by caller):
+       - Reload helper modules using importlib.reload()
+       - Reload managed modules using registry's special handling (snapshot, rollback, re-register)
+    
+    ALGORITHM STEPS
+    ===============
+    When get_reload_plan(changed_module) is called:
+    
+    Step 1: Determine reload order for each affected managed class
+            For each managed module:
+                If changed_module in dependency_tree[managed_module]:
+                    reload_list = [all dependencies] + [managed_module itself]
+                    
+    Step 2: Merge lists from different managed classes
+            Combine all reload_lists, removing duplicates
+            Apply topological sort to preserve dependency order
+            
+    Step 3: Separate helpers from managed modules
+            helpers = [modules not in _managed_modules]
+            managed = [modules in _managed_modules]
+            
+    Step 4: Return ReloadPlan(helpers, managed)
+    
+    USAGE EXAMPLE
+    =============
+    # Setup
+    dep_graph = DependencyGraph()
+    
+    # Register managed modules (during initial folder scan)
+    dep_graph.add_managed_module(
+        'mylib.nodes.workflow',
+        'mylib.nodes'  # scope prefix
+    )
+    dep_graph.add_managed_module(
+        'mylib.nodes.processor',
+        'mylib.nodes'
+    )
+    
+    # When a file changes (file watcher callback)
+    reload_plan = dep_graph.get_reload_plan('mylib.nodes.utils')
+    
+    # Execute reload plan
+    for helper in reload_plan.non_managed_modules:
+        importlib.reload(sys.modules[helper])
+    
+    for managed in reload_plan.managed_modules:
+        registry.reload_managed_class(managed)  # With snapshots, rollback, etc.
+    
+    DEPENDENCY TREE STRUCTURE
+    =========================
+    Given this file structure:
+    
+        nodes/
+        ├── workflow.py       (managed, imports processor, validator)
+        ├── processor.py      (managed, imports utils, transformers)
+        ├── validator.py      (managed, imports utils)
+        ├── transformers.py   (helper, imports utils, helpers)
+        ├── utils.py          (helper, imports helpers)
+        └── helpers.py        (helper, no dependencies)
+    
+    Dependency trees built:
+    
+        workflow: {processor, validator, utils, transformers, helpers}
+        processor: {utils, transformers, helpers}
+        validator: {utils, helpers}
+    
+    When helpers.py changes:
+    
+        Affected: workflow, processor, validator (all have helpers in their trees)
+        Reload order: [helpers, utils, transformers, validator, processor, workflow]
+        Helpers: [helpers, utils, transformers]
+        Managed: [validator, processor, workflow]
+    
+    PERFORMANCE
+    ===========
+    - add_managed_module(): O(D) where D = total transitive dependencies
+      Upfront cost paid once per module during registration
+      
+    - get_reload_plan(): O(M + N log N) where M = managed modules, N = affected modules
+      Fast lookup using pre-built trees, with topological sort for ordering
+    
+    THREAD SAFETY
+    =============
+    This class is not thread-safe. It assumes single-threaded access or external synchronization.
     """
-    
+   
     def __init__(self):
         # Track which modules contain managed classes
         self._managed_modules: Set[str] = set()
@@ -48,17 +164,17 @@ class DependencyGraph:
         tracking dependencies from parent libraries (e.g., haywire.core base classes).
         
         Args:
-            module_name: The module to track (e.g., 'haywire.libraries.mylib.nodes.workflow')
-            scope_prefix: Prefix to filter dependencies (e.g., 'haywire.libraries.mylib.nodes')
+            module_name: The module to track (e.g., 'example.nodes.workflow')
+            scope_prefix: Prefix to filter dependencies (e.g., 'example.nodes')
                          Only modules starting with this prefix will be tracked
         
         Example:
             add_managed_module(
-                'haywire.libraries.mylib.nodes.workflow',
-                'haywire.libraries.mylib.nodes'
+                'example.nodes.workflow',
+                'example.nodes'
             )
-            # Will track: mylib.nodes.utils, mylib.nodes.helpers
-            # Will NOT track: haywire.core.base.Node
+            # Will track: example.nodes.utils, example.nodes.helpers
+            # Will NOT track: example.widgets.widget, haywire.core.node.base
         """
         self._managed_modules.add(module_name)
         self._module_scope_prefix[module_name] = scope_prefix

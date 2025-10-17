@@ -64,14 +64,14 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         if hasattr(cls, 'class_identity'):
             cls.class_identity.registry_key = registry_key
         else:
-            ValueError(f"Library '{library_identity.label}': Class {cls} does not have a class_identity attribute. Cannot register. This is likely due to a missing condition in the implementation of the childs registry's class filter method.")
-
-        # Store the library identity as class attributes 
-        cls.class_library = library_identity
+            raise ValueError(f"Library '{library_identity.label}': Class {cls} does not have a class_identity attribute. Cannot register. This is likely due to a missing condition in the implementation of the registry's class filter method.")
 
         # Check for duplicates
         if self.has(registry_key):
-            logging.warning(f"Library '{library_identity.label}': Node '{cls.class_identity.label}' overwriting already registered node '{registry_key}'. This can happen during hot-reloading rollback. In any other circumstance, this indicates the double use of a node registry_id.")
+            raise ValueError(f"Library '{library_identity.label}': Attempt to register Node '{cls.class_identity.label}' under an existing registry_key '{registry_key}'. This is not allowed. Indication of double use of a node registry_id.")
+
+        # Store the library identity as class attributes 
+        cls.class_library = library_identity
 
         super()._register(registry_key, cls)
         self._module_class_name[registry_key] = cls.__name__
@@ -210,13 +210,11 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     message=f"Failed notifying registry about file change in library '{event.library_identity.label}'",
                     library_identity=event.library_identity
                 )
+                # TODO: emit event for failed import
             except Exception as logging_error:
                 logging.error(
                     f"Library '{event.library_identity.label}': "
                     f"Failed notifying registry on file:{event.file_path}' : {e}")
-                logging.error(
-                    f"Library '{event.library_identity.label}': "
-                    f"Error logging failed: {logging_error}")
             
             logging.error(
                 f"Library '{event.library_identity.label}': "
@@ -419,6 +417,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             if snapshot['needs_reregistring']:
                 # Re-register classes from snapshot
                 for hw_name, class_info in snapshot['registered_classes'].items():
+                    self._unregister(hw_name.class_identity.registry_key)
                     self._register(class_info['class'], library_identity)
             
             logging.info(
