@@ -1,29 +1,55 @@
 import ast
 import logging
-import os
 import importlib
 import inspect
 from pathlib import Path
 import sys
-import re
-import traceback
 from types import ModuleType
 from typing import List, Type, Optional, Callable
 
-from haywire.core.errors import log_detailed_error
 from haywire.core.library.library_identity import LibraryIdentity
 
 
 class FolderScanMixin:
     """Mixin class providing folder and module scanning capabilities for class registries"""
-    
+
+    def folder_scan_for_pyfiles(self, library_path: str,
+                                   exclude_patterns: Optional[List[str]] = None) -> List[str]:
+        """
+        Scan a library directory for Python files, returning filepaths.
+
+        Args:
+            library_path: Path to the library directory to scan
+            exclude_patterns: List of filename patterns to exclude
+
+        Returns:
+            List of filepaths of discovered Python files
+        """
+        if exclude_patterns is None:
+            exclude_patterns = ['test_', '__', '_test']
+
+        file_paths = []
+        library_dir = Path(library_path)
+
+        for py_file in library_dir.glob('*.py'):
+            # Skip __init__.py and excluded patterns
+            if py_file.name == '__init__.py':
+                continue
+
+            if any(pattern in py_file.name for pattern in exclude_patterns):
+                continue
+                
+            file_paths.append(py_file)
+
+        return file_paths
+
     def folder_scan_for_modules(self, library_path: str,
                                    exclude_patterns: Optional[List[str]] = None) -> List[str]:
         """
         Scan a library directory for Python files, returning module names.
 
         Args:
-            library_path: Path to the library directory to scan. Conveniently, use __path__[0]
+            library_path: Path to the library directory to scan
             exclude_patterns: List of filename patterns to exclude
 
         Returns:

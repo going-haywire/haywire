@@ -22,15 +22,16 @@ HAYWIRE_CORE_LIB_NAME = 'haywire.core'
 
 class FileEventType(Enum):
     """Enum for file change event types"""
-    CREATED = 'created'
-    MODIFIED = 'modified'
-    DELETED = 'deleted'
+    CREATED = 'creation'
+    MODIFIED = 'modification'
+    DELETED = 'deletion'
+    DETECTED = 'detection'
 
 @dataclass
 class FileChangeEvent:
     """Represents a file change event"""
     file_path: str
-    event_type: FileEventType  # 'created', 'modified', 'deleted'
+    event_type: FileEventType  # 'created', 'modified', 'deleted', 'detected'
     library_identity: LibraryIdentity
     timestamp: float
 
@@ -83,23 +84,13 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         if registry_key not in self._module_to_classes[module_name]:
             self._module_to_classes[module_name].append(registry_key)
 
-        logging.info(
-            f"Library '{library_identity.label}': Registered class '{registry_key}' "
-            f"named '{cls.__name__}' from '{module_name}' has been registered.")
         return registry_key
-
 
     def _unregister(self, registry_key: str) -> type[Any] | None:
         """Remove a class from the registry
         Args:
             registry_key (str): The haywire registry_key of the class to unregister
         """
-
-        logging.info(
-            f"Library '{self.get(registry_key).class_library.label}': "
-            f"Unregistering class '{registry_key}' named  '{self._module_class_name[registry_key]}' "
-            f"from '{self._items[registry_key].__module__}' ...")
-
         if registry_key in self._module_class_name:
             del self._module_class_name[registry_key]
         
@@ -128,40 +119,38 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             folder_path (str): Path to the folder to scan
             exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
         """
-        try:
-            logging.info(
-                f"Library '{library_identity.label}': START Scanning folder "
-                f"'{folder_path[len(library_identity.folder_path):]}' for modules in to register classes...")
-            module_names = self.folder_scan_for_modules(folder_path, exclude_patterns)
 
-            for module_name in module_names:
-                self._on_creation(module_name, library_identity)
+        logging.info(
+            f"Library '{library_identity.label}': START Scanning folder "
+            f"'{folder_path[len(library_identity.folder_path):]}' for files to register classes...")
 
-            logging.info(
-                f"Library '{library_identity.label}': ... Scanning folder -> DONE. "
-                f"{len(module_names)} modules processed.")
+        file_paths = self.folder_scan_for_pyfiles(folder_path, exclude_patterns)
 
-        except Exception as e:
+        for file_path in file_paths:
             try:
-                rel_path = folder_path[len(library_identity.folder_path):]
-                log_detailed_error(
-                    exception=e,
-                    operation="Registry folder import",
-                    module_name=locals().get('module_name', 'unknown'),
-                    message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'",
-                    library_identity=library_identity
-                )
-            except Exception as logging_error:
-                logging.error(
-                    f"Library '{library_identity.label}': "
-                    f"Failed notifying registry : {e}")
-                logging.error(
-                    f"Library '{library_identity.label}': "
-                    f"Error logging failed: {logging_error}")
+                if self._validate_python_file(file_path):
+                    module_name = self.resolve_module_name(file_path)
+                    self._on_creation(module_name, library_identity)
 
-            logging.error(
-                f"Library '{library_identity.label}': "
-                f"... Scanning folder '{folder_path}' -> FAILED")
+            except Exception as e:
+                try:
+                    rel_path = folder_path[len(library_identity.folder_path):]
+                    log_detailed_error(
+                        exception=e,
+                        operation="Registry folder import",
+                        module_name=locals().get('module_name', 'unknown'),
+                        message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'",
+                        library_identity=library_identity
+                    )
+                except Exception as logging_error:
+                    logging.error(
+                        f"Library '{library_identity.label}': "
+                        f"Failed notifying registry : {e}")
+
+        logging.info(
+            f"Library '{library_identity.label}': ... Scanning folder -> DONE. "
+            f"{len(file_paths)} files processed.")
+
 
 
     def event_dispatcher(self, event: FileChangeEvent):
@@ -175,7 +164,12 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         """
         try:
             # Skip validation for deleted files
-            logging.info(f"Library '{event.library_identity.label}': DETECTED Hot Reloading event '{event.event_type.value}' on file: {event.file_path[len(event.library_identity.folder_path):]}. INITIATING ...")
+            logging.info(
+                f"Library '{event.library_identity.label}': "
+                f"DETECTED Hot Reloading event: file-'{event.event_type.value}' "
+                f"on file: {event.file_path[len(event.library_identity.folder_path):]}. "
+                f"INITIATING ...")
+            
             if event.event_type != FileEventType.DELETED:
                 if not self._validate_python_file(event.file_path):
                     logging.error(
@@ -205,9 +199,9 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             try:
                 log_detailed_error(
                     exception=e,
-                    operation="Registry hotreload callback",
+                    operation="Registry Hotreload Callback",
                     module_name=locals().get('module_name', 'unknown'),
-                    message=f"Failed notifying registry about file change in library '{event.library_identity.label}'",
+                    message=f"Failed notifying registry about file {event.event_type.value} in library '{event.library_identity.label}'",
                     library_identity=event.library_identity
                 )
                 # TODO: emit event for failed import

@@ -110,9 +110,7 @@ class FileWatcher:
             # Store references
             self.observers[path] = observer
             self.handlers[path] = handler
-            
-            logging.info(f"Started watching {path} for library '{library_identity.label}'")
-    
+                
     def remove_watch(self, path: str):
         """Remove a path from being watched"""
         with self._lock:

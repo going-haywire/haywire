@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import logging
 from pathlib import Path
 from typing import Callable, List, Type, TypeVar, Optional, Union
 import inspect
@@ -141,6 +142,7 @@ class BaseLibrary(ABC):
 
         if self.enforce_file_watching or self.identity.file_watcher:
             self.file_watcher.add_watch(folder_path, self.identity, registry, self.debounce_delay)
-        
+            logging.info(f"Library '{self.identity.label}': Started watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
+
 
         
