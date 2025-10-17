@@ -98,6 +98,29 @@ class LibraryRegistry:
         """Enable file watching for all loaded libraries"""
         for library in self._libraries.values():
             library.enable()
+    
+    def enable_library(self, library_registry_id: str) -> bool:
+        """Enable a specific library"""
+        library = self._libraries.get(library_registry_id)
+        if library:
+            library.enable()
+            logger.info(f"Library '{library.identity.label}': Enabled")
+            return True
+        return False
+    
+    def disable_library(self, library_registry_id: str) -> bool:
+        """Disable a specific library"""
+        library = self._libraries.get(library_registry_id)
+        if library:
+            library.disable()
+            logger.info(f"Library '{library.identity.label}': Disabled")
+            return True
+        return False
+    
+    def is_library_enabled(self, library_registry_id: str) -> bool:
+        """Check if a library is enabled"""
+        library = self._libraries.get(library_registry_id)
+        return library.enabled if library else False
 
     def scan_for_libraries(self):
         """

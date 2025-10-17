@@ -161,7 +161,6 @@ class UndoRedoTestAppWithCanvasManager:
             with ui.row().classes('w-full flex-grow gap-4 p-4').style('height: calc(100vh - 80px);'):
                 self.create_left_panel()
                 self.create_main_editor()
-                self.create_right_panel()
     
     def create_header(self):
         """Create the application header with main controls."""
@@ -175,9 +174,9 @@ class UndoRedoTestAppWithCanvasManager:
                     ui.button('Redo', icon='redo', on_click=self.redo_action).props('outline').classes('text-white')
     
     def create_left_panel(self):
-        """Create the left control panel."""
+        """Create the left control panel with all information sections."""
         with ui.card().classes('w-80 overflow-auto').style('height: calc(100vh - 120px);'):
-            ui.label('Controls & Tools').classes('text-lg font-bold mb-4')
+            ui.label('Controls & Information').classes('text-lg font-bold mb-4')
             
             # Canvas Manager Status
             with ui.expansion('Canvas Manager Status', icon='dashboard').classes('w-full'):
@@ -191,6 +190,30 @@ class UndoRedoTestAppWithCanvasManager:
                 with ui.column() as stats_container:
                     self.current_session['ui_containers']['stats_container'] = stats_container
                     self.update_stats_display()
+            
+            # Graph Information
+            with ui.expansion('Graph Info', icon='info').classes('w-full'):
+                with ui.column() as info_container:
+                    self.current_session['ui_containers']['info_container'] = info_container
+                    self.update_info_display()
+            
+            # History Information
+            with ui.expansion('Undo/Redo History', icon='history').classes('w-full'):
+                with ui.column() as history_container:
+                    self.current_session['ui_containers']['history_container'] = history_container
+                    self.update_history_display()
+            
+            # Selected Nodes
+            with ui.expansion('Selection', icon='check_circle').classes('w-full'):
+                with ui.column() as selection_container:
+                    self.current_session['ui_containers']['selection_container'] = selection_container
+                    ui.label('No nodes selected').classes('text-gray-500')
+            
+            # Installed Libraries
+            with ui.expansion('Installed Libraries', icon='extension').classes('w-full'):
+                with ui.column() as libraries_container:
+                    self.current_session['ui_containers']['libraries_container'] = libraries_container
+                    self.update_libraries_display()
             
             # Configuration
             with ui.expansion('Undo/Redo Config', icon='settings').classes('w-full'):
@@ -240,29 +263,6 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Update canvas status
             self.update_canvas_status()
-    
-    def create_right_panel(self):
-        """Create the right information panel."""
-        with ui.card().classes('w-80 overflow-auto').style('height: calc(100vh - 120px);'):
-            ui.label('Information & History').classes('text-lg font-bold mb-4')
-            
-            # Graph Information
-            with ui.expansion('Graph Info', icon='info').classes('w-full'):
-                with ui.column() as info_container:
-                    self.current_session['ui_containers']['info_container'] = info_container
-                    self.update_info_display()
-            
-            # History Information
-            with ui.expansion('Undo/Redo History', icon='history').classes('w-full'):
-                with ui.column() as history_container:
-                    self.current_session['ui_containers']['history_container'] = history_container
-                    self.update_history_display()
-            
-            # Selected Nodes
-            with ui.expansion('Selection', icon='check_circle').classes('w-full'):
-                with ui.column() as selection_container:
-                    self.current_session['ui_containers']['selection_container'] = selection_container
-                    ui.label('No nodes selected').classes('text-gray-500')
         
     def on_graph_changed_from_session(self, originating_session_data):
         """Handle any graph change from any session - unified callback approach."""
@@ -363,6 +363,9 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Update selection display for this specific session
             self.update_selection_display_for_session(session_data)
+            
+            # Update libraries display for this specific session
+            self.update_libraries_display_for_session(session_data)
                         
         except Exception as e:
             print(f"Error updating displays for session: {e}")
@@ -538,6 +541,81 @@ class UndoRedoTestAppWithCanvasManager:
         if hasattr(self, 'current_session'):
             self.update_selection_display_for_session(self.current_session)
     
+    def update_libraries_display(self):
+        """Update libraries display for current session."""
+        if hasattr(self, 'current_session'):
+            self.update_libraries_display_for_session(self.current_session)
+    
+    def update_libraries_display_for_session(self, session_data):
+        """Update libraries display for a specific session."""
+        containers = session_data.get('ui_containers', {})
+        if 'libraries_container' in containers:
+            container = containers['libraries_container']
+            container.clear()
+            with container:
+                if hasattr(self, 'library_service') and self.library_service:
+                    library_registry = self.library_service.get_library_registry()
+                    if library_registry:
+                        library_names = library_registry.list_names()
+                        if library_names:
+                            ui.label(f'Total Libraries: {len(library_names)}').classes('text-sm font-bold')
+                            
+                            # Add bulk enable/disable buttons
+                            with ui.row().classes('w-full justify-between gap-2 mt-2 mb-3'):
+                                ui.button('Enable All', 
+                                    icon='play_arrow',
+                                    on_click=lambda: self.enable_all_libraries()
+                                ).props('size=sm color=green').classes('flex-1')
+                                ui.button('Disable All', 
+                                    icon='pause',
+                                    on_click=lambda: self.disable_all_libraries()
+                                ).props('size=sm color=orange').classes('flex-1')
+                            
+                            ui.separator()
+                            
+                            for lib_name in sorted(library_names):
+                                lib_identity = library_registry.get_library_identity(lib_name)
+                                is_enabled = library_registry.is_library_enabled(lib_name)
+                                
+                                if lib_identity:
+                                    with ui.card().classes('w-full mb-2 p-2'):
+                                        with ui.row().classes('w-full items-center justify-between'):
+                                            # Library info section
+                                            with ui.column().classes('flex-grow'):
+                                                with ui.row().classes('items-center gap-2'):
+                                                    status_icon = 'check_circle' if is_enabled else 'cancel'
+                                                    status_color = 'text-green-500' if is_enabled else 'text-red-500'
+                                                    ui.icon(status_icon).classes(f'{status_color} text-sm')
+                                                    ui.label(f'{lib_identity.label}').classes('text-sm font-medium')
+                                                
+                                                if lib_identity.version:
+                                                    ui.label(f'v{lib_identity.version}').classes('text-xs text-gray-500')
+                                                if lib_identity.description:
+                                                    ui.label(lib_identity.description).classes('text-xs text-gray-600')
+                                            
+                                            # Control buttons section
+                                            with ui.column().classes('gap-1'):
+                                                if is_enabled:
+                                                    ui.button('Disable', 
+                                                        icon='pause',
+                                                        on_click=lambda ln=lib_name: self.disable_library(ln)
+                                                    ).props('size=sm color=orange')
+                                                else:
+                                                    ui.button('Enable', 
+                                                        icon='play_arrow',
+                                                        on_click=lambda ln=lib_name: self.enable_library(ln)
+                                                    ).props('size=sm color=green')
+                                else:
+                                    with ui.row().classes('items-center gap-2'):
+                                        ui.icon('error').classes('text-red-500 text-sm')
+                                        ui.label(lib_name).classes('text-sm')
+                        else:
+                            ui.label('No libraries loaded').classes('text-gray-500')
+                    else:
+                        ui.label('Library registry not available').classes('text-gray-500')
+                else:
+                    ui.label('Library service not available').classes('text-gray-500')
+    
     def update_displays(self):
         """Update all displays."""
         self.update_stats_display()
@@ -545,6 +623,52 @@ class UndoRedoTestAppWithCanvasManager:
         self.update_history_display()
         self.update_canvas_status()
         self.update_selection_display()
+        self.update_libraries_display()
+    
+    # Library Management Methods
+    def enable_library(self, library_id: str):
+        """Enable a specific library."""
+        if hasattr(self, 'library_service') and self.library_service:
+            library_registry = self.library_service.get_library_registry()
+            if library_registry and library_registry.enable_library(library_id):
+                ui.notify(f"Library '{library_id}' enabled", type='positive')
+                # Update all displays to reflect the change
+                self.sync_all_sessions()
+            else:
+                ui.notify(f"Failed to enable library '{library_id}'", type='negative')
+    
+    def disable_library(self, library_id: str):
+        """Disable a specific library."""
+        if hasattr(self, 'library_service') and self.library_service:
+            library_registry = self.library_service.get_library_registry()
+            if library_registry and library_registry.disable_library(library_id):
+                ui.notify(f"Library '{library_id}' disabled", type='warning')
+                # Update all displays to reflect the change
+                self.sync_all_sessions()
+            else:
+                ui.notify(f"Failed to disable library '{library_id}'", type='negative')
+    
+    def enable_all_libraries(self):
+        """Enable all libraries."""
+        if hasattr(self, 'library_service') and self.library_service:
+            library_registry = self.library_service.get_library_registry()
+            if library_registry:
+                library_registry.enable_all_libraries()
+                ui.notify("All libraries enabled", type='positive')
+                # Update all displays to reflect the change
+                self.sync_all_sessions()
+    
+    def disable_all_libraries(self):
+        """Disable all libraries."""
+        if hasattr(self, 'library_service') and self.library_service:
+            library_registry = self.library_service.get_library_registry()
+            if library_registry:
+                library_names = library_registry.list_names()
+                for lib_name in library_names:
+                    library_registry.disable_library(lib_name)
+                ui.notify("All libraries disabled", type='warning')
+                # Update all displays to reflect the change
+                self.sync_all_sessions()
     
     def run(self):
         """Run the application."""

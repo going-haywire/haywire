@@ -238,6 +238,11 @@ class LibrarySystemService:
         """Get the adapter registry."""
         return self.injector.get(AdapterRegistry)
     
+    def get_library_registry(self) -> 'LibraryRegistry':
+        """Get the library registry."""
+        from haywire.core.library.registries.reg_library import LibraryRegistry
+        return self.injector.get(LibraryRegistry)
+    
     def get_node_factory(self) -> NodeFactory:
         """Get the node factory."""
         return self.injector.get(NodeFactory)
