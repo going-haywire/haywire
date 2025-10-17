@@ -55,6 +55,29 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         self._dependency_graph = DependencyGraph() # For hot-reload dependency tracking
         self._registered_folders: Dict[str, LibraryIdentity] = {} # folder_path -> library_identity
 
+    @abstractmethod
+    def _class_filter(self, cls: Type) -> bool:
+        """Function that returns True if a class should be included in this registry"""
+        pass
+
+    @abstractmethod
+    def _register_class(self, cls: Type, library_identity: LibraryIdentity) -> str | None:
+        """Register a class with its library metadata"""
+        pass
+
+    @abstractmethod
+    def _unregister_class(self, registry_key: str) -> type[Any] | None: 
+        """Unregister a class by its registry_key"""
+        pass
+
+    # ============================================================================
+    # Core Registry (Pure State Management)
+    # ============================================================================
+
+    def get(self, registry_key: str) -> Any | None:
+        """Retrieve a registered class by its haywire registry_key"""
+        return self._classes.get(registry_key)  
+
     def has(self, registry_key: str) -> bool:
         """Check if a class is registered"""
         return registry_key in self._classes
@@ -125,10 +148,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             del self._classes[registry_key]
         return delete_cls
 
-    @abstractmethod
-    def _class_filter(self, cls: Type) -> bool:
-        """Function that returns True if a class should be included in this registry"""
-        pass
+    # ============================================================================
+    # Folder-Aware Registry (File System Integration)
+    # ============================================================================
 
     def add_folder(self, folder_path: str, library_identity: LibraryIdentity, exclude_patterns: Optional[list[str]] = None):
         """
@@ -214,6 +236,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         f"Library '{library_identity.label}': "
                         f"Failed notifying registry : {e}")
 
+    # ============================================================================
+    # Hot-Reload Registry (Reload Orchestration)
+    # ============================================================================
 
     def event_dispatcher(self, event: FileChangeEvent):
         """
@@ -280,11 +305,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
          
 
     def _on_creation(self, module_name: str, library_identity: LibraryIdentity):
-        """returns all relevant classes of the module
-
+        """called when a new module is created / loaded
         Args:
             module (str): The module name that has been created.
-
         Returns:
             list: List of relevant classes that are in this module
         """
@@ -298,7 +321,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             self._dependency_graph.add_managed_module(module_name, library_identity.module_name)
             
             for cls in added_classes:
-                self._register(cls, library_identity)
+                self._register_class(cls, library_identity)
                 #TODO: emit event for added class
 
     
@@ -307,10 +330,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         re-registering existing classes within the module
         and returning the classes that need to be
         additionally registered / unregistered
-
         Args:
             module_name (str): The module name that has changed.
-        
         Returns:
             [list,list]: [(List of classes to be registered), (List of haywire class names to be unregistered)]
         """
@@ -371,9 +392,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             if class_names_to_update:
 
                 # Store old class info for re-registration
-                mod_to_hw_class_name_mapping: Dict[str, str] = {} # key: module class name, value: haywire class name
+                mod_to_class_name_mapping: Dict[str, str] = {} # module class name -> haywire class name
                 for mod_class_name in class_names_to_update:
-                    mod_to_hw_class_name_mapping[self._module_class_name[mod_class_name]] = mod_class_name
+                    mod_to_class_name_mapping[self._module_class_name[mod_class_name]] = mod_class_name
                     # check if the registered old class name matches a class name in the new module
                     class_to_remove = next((cls for cls in classes_to_add if cls.__name__ == self._module_class_name[mod_class_name]), None)
                     if class_to_remove:
@@ -381,14 +402,14 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         classes_to_add.remove(class_to_remove)
                     
                 # Re-register classes from reloaded module  
-                for mod_class_name in mod_to_hw_class_name_mapping:
+                for mod_class_name in mod_to_class_name_mapping:
                     if hasattr(module, mod_class_name):
                         # to update a class, we need to unregister the old one and register the new one
                         new_class: Type[Any] = getattr(module, mod_class_name)
-                        old_class_name = mod_to_hw_class_name_mapping[mod_class_name]
+                        old_class_name = mod_to_class_name_mapping[mod_class_name]
                         classes_to_reload.append((old_class_name, new_class))
                     else:
-                        class_names_to_remove.append(mod_to_hw_class_name_mapping[mod_class_name])
+                        class_names_to_remove.append(mod_to_class_name_mapping[mod_class_name])
             
             cls_names_to_remove = class_names_to_remove.copy()
             
@@ -399,19 +420,19 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
 
             if classes_to_reload:
                 for old_cls_name, new_cls in classes_to_reload:
-                    self._unregister(old_cls_name)
-                    self._register(new_cls, library_identity)
+                    self._unregister_class(old_cls_name)
+                    self._register_class(new_cls, library_identity)
                     logging.info(
                         f"Library '{library_identity.label}': "
                         f"...Re-loaded and re-registered from {module_name}")
                     # TODO: emit event for reloaded class
             if cls_names_to_remove:
                 for cls_name in cls_names_to_remove:
-                    self._unregister(cls_name)
+                    self._unregister_class(cls_name)
                     # TODO: emit event for removed class
             if classes_to_add:
                 for cls in classes_to_add:
-                    self._register(cls, library_identity)
+                    self._register_class(cls, library_identity)
                     # TODO: emit event for added class
 
         except Exception as e:
@@ -422,8 +443,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             raise       
 
     def _on_delete(self, module_name: str, library_identity: LibraryIdentity):
-        """Marks the classes need to be unregistered.
-
+        """Called when a module is deleted or unloaded.
         Args:
             module (str): The module name that has been deleted.
         """
@@ -435,13 +455,16 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
     
         if removed_classes:
             for cls_name in removed_classes:
-                self._unregister(cls_name)
+                self._unregister_class(cls_name)
                 #TODO: emit event for removed class
         
         # Remove from dependency graph if no more managed classes
         if not self._module_to_classes.get(module_name):
             self._dependency_graph.remove_managed_module(module_name)
 
+    # ============================================================================
+    # Snapshot Registry (Rollback Support)
+    # ============================================================================
 
     def _create_rollback_snapshot(self, module_name: str) -> Optional[Dict[str, Any]]:
         """Create snapshot of module state for rollback"""
@@ -473,8 +496,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             if snapshot['needs_reregistring']:
                 # Re-register classes from snapshot
                 for hw_name, class_info in snapshot['registered_classes'].items():
-                    self._unregister(hw_name.class_identity.registry_key)
-                    self._register(class_info['class'], library_identity)
+                    self._unregister_class(hw_name.class_identity.registry_key)
+                    self._register_class(class_info['class'], library_identity)
             
             logging.info(
                 f"Library '{library_identity.label}': "

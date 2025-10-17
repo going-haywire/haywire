@@ -29,8 +29,14 @@ class WidgetRegistry(BaseClassRegistry):
         except TypeError:
             return False
 
-    def _register(self, widget: type[BaseWidget], library_identity: LibraryIdentity) -> str | None:
-        """Register a UI widget with its metadata"""
+    def _register_class(self, widget: type[BaseWidget], library_identity: LibraryIdentity) -> str | None:
+        """Register a UI widget with its metadata
+        Args:
+            widget: The widget class to register
+            library_identity: Library metadata to use for setting widget attributes
+        Returns:
+            str: The haywire registry_key of the registered widget.
+        """
         registry_key = reg_key(library_identity.id, widget.class_identity.registry_id)
 
         # Check if this widget has default_for data types and register them automatically
@@ -51,23 +57,25 @@ class WidgetRegistry(BaseClassRegistry):
             return super()._register(registry_key, widget, library_identity)
 
 
-    def _unregister(self, widget_name: str) -> type[BaseWidget] | None:
-        """Unregister a UI widget by its haywire name
+    def _unregister_class(self, registry_key: str) -> type[BaseWidget] | None:
+        """Unregister a UI widget by its registry key
         Args:
-            widget_name: The haywire name of the widget to unregister
+            registry_key: The haywire registry_key of the widget to unregister
+        Returns:
+            type[BaseWidget] | None: The unregistered widget class or None if not found
         """
         # Remove from default widgets if it was set
-        removed_class = self._classes[widget_name]
+        removed_class = self._classes[registry_key]
         for data_type, default_widget_class in list(self._default_widgets.items()):
             if default_widget_class == removed_class:
                 del self._default_widgets[data_type]
-                logging.warning(f"Widget '{widget_name}' removed from default widgets for '{data_type}'")
+                logging.warning(f"Widget '{registry_key}' removed from default widgets for '{data_type}'")
         
-        removed_class = super()._unregister(widget_name)
+        removed_class = super()._unregister(registry_key)
 
         if removed_class == self._error_widget:
             self._error_widget = None
-            logging.warning(f"Error widget '{widget_name}' unregistered, no error widget left in registry")
+            logging.warning(f"Error widget '{registry_key}' unregistered, no error widget left in registry")
 
         return removed_class
     

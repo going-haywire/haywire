@@ -24,7 +24,7 @@ class AdapterRegistry(BaseClassRegistry):
         except TypeError:
             return False
 
-    def _register(self, adapter_cls: type[BaseAdapter], library_identity: Optional[LibraryIdentity] = None) -> str | None:
+    def _register_class(self, adapter_cls: type[BaseAdapter], library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """
         Register adapter class.
         Args:
@@ -45,11 +45,12 @@ class AdapterRegistry(BaseClassRegistry):
 
         return super()._register(registry_key, adapter_cls, library_identity)
 
-    def _unregister(self, registry_key: str) -> type[BaseAdapter] | None:
-        """ Unregister an adapter by its haywire name.
-
+    def _unregister_class(self, registry_key: str) -> type[BaseAdapter] | None:
+        """ Unregister an adapter by its registry_key.
         Args:
-            adapter_name: The haywire name of the adapter to unregister
+            registry_key (str): The haywire registry_key of the adapter to unregister
+        Returns:
+            type[BaseAdapter] | None: The unregistered adapter class or None if not found
         """
         adapter_class = self._classes[registry_key]
         key = next((k for k, cls in self._adapters.items() if cls.__name__ == adapter_class.__name__), None)

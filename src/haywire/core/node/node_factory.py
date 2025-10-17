@@ -68,7 +68,9 @@ class NodeFactory:
         # Get node class from registry
         error_info, node_class = self.node_registry.get_node_class(registry_key)
         if error_info is not None:
-            raise ValueError(f"Failed to get node class '{registry_key}': {error_info}")
+            logging.error(f"NodeFactory: Failed to get node class for key '{registry_key}': {error_info}")
+            if node_class is None:  
+                raise ValueError(f"Failed to get class '{registry_key}': {error_info}")
         
         # Create the node instance with detailed error handling
         try:
@@ -158,7 +160,7 @@ class NodeFactory:
         menu = {}
 
         for key in self.node_registry.list_names():
-            success, node_class = self.node_registry.get_node_class(key)
+            node_class = self.node_registry.get(key)
             
             # Use class_identity if available, fallback to old attributes
             if hasattr(node_class, 'class_identity'):
@@ -247,11 +249,9 @@ class NodeFactory:
         Returns:
             Dictionary with node information or None if not found
         """
-        if not self.node_registry.has(registry_key):
-            return None
 
-        success, node_class = self.node_registry.get_node_class(registry_key)
-        if success:
+        node_class = self.node_registry.get(registry_key)
+        if node_class is not None:
             library_identity = node_class.class_library
             
             # Use class_identity if available, fallback to old attributes

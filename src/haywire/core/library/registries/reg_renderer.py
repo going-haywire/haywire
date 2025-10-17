@@ -25,14 +25,14 @@ class RendererRegistry(BaseClassRegistry):
         except TypeError:
             return False
 
-    def _register(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None) -> str | None:
+    def _register_class(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """
         Register a renderer class.
-
         Args:
-            name: Unique name for the renderer
             renderer_class: The NodeRenderer class
-            metadata: Optional metadata for the renderer
+            library_identity: Optional library metadata for the renderer.
+        Returns:
+            str: The haywire registry_key of the registered renderer.
         """
         registry_key = reg_key(library_identity.id, renderer_cls.class_identity.registry_id)
         
@@ -49,23 +49,25 @@ class RendererRegistry(BaseClassRegistry):
 
         return super()._register(registry_key, renderer_cls, library_identity)
 
-    def _unregister(self, name: str) -> type[BaseNodeRenderer] | None:
-        """Unregister a renderer by its haywire name
+    def _unregister_class(self, registry_key: str) -> type[BaseNodeRenderer] | None:
+        """Unregister a renderer by its registry_key
         Args:
-            name: The haywire name of the renderer to unregister
+            registry_key: The haywire registry_key of the renderer to unregister
+        Returns:
+            type[BaseNodeRenderer] | None: The unregistered renderer class or None if not found
         """
-        if self._default_renderer_name == name:
+        if self._default_renderer_name == registry_key:
             if len(self.list_names()) > 0:
                 self._default_renderer_name = self.list_names()[0]
             else:
                 self._default_renderer_name = None
-                logging.warning(f"Default renderer '{name}' unregistered, no renderers left in registry")
+                logging.warning(f"Default renderer '{registry_key}' unregistered, no renderers left in registry")
 
-        removed_class = super()._unregister(name)
+        removed_class = super()._unregister(registry_key)
         
         if removed_class == self._error_renderer:
             self._error_renderer = None
-            logging.warning(f"Error renderer '{name}' unregistered, no error renderer left in registry")    
+            logging.warning(f"Error renderer '{registry_key}' unregistered, no error renderer left in registry")    
         
         return removed_class
 

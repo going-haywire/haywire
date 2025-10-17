@@ -27,7 +27,7 @@ class NodeRegistry(BaseClassRegistry):
         except TypeError:
             return False
 
-    def _register(self, node_cls: type[BaseNode], library_identity: LibraryIdentity) -> str | None:
+    def _register_class(self, node_cls: type[BaseNode], library_identity: LibraryIdentity) -> str | None:
         """
         Register a node class with library metadata.
 
@@ -55,12 +55,15 @@ class NodeRegistry(BaseClassRegistry):
             return super()._register(registry_key, node_cls, library_identity)
 
 
-    def _unregister(self, name) -> type[BaseNode] | None:
-        """Unregister a node by its haywire name
+    def _unregister_class(self, registry_key) -> type[BaseNode] | None:
+        """Unregister a node by its registry_key
         Args:
-            name: The name of the node to unregister
+            registry_key: The registry_key of the node to unregister
+
+        Returns:
+            type[BaseNode] | None: The unregistered node class or None if not found
         """
-        return super()._unregister(name)
+        return super()._unregister(registry_key)
 
     def get_error_node(self) -> type[BaseNode] | None:
         """Get the error node class"""
@@ -77,9 +80,6 @@ class NodeRegistry(BaseClassRegistry):
             Tuple of (success: bool, node_class: type)
             - success: True if the requested node was found, False if error node was returned
             - node_class: Either the requested node class or the error node class
-
-        Raises:
-            NodeDiscoveryError: If node is not found and no error node is registered
         """
         node_class = self._classes.get(key)
         if node_class is None:
@@ -87,11 +87,16 @@ class NodeRegistry(BaseClassRegistry):
             if self._error_node:
                 creationerror = NodeErrorInfo(
                     error='Node Not Found',
+                    error_message='The requested node could not be found in the registry. Serving Error Node.'
+                )
+                creationerror.add_note(f"Library: {key.split(':')[0]}")
+                creationerror.add_note(f"Node: {key.split(':')[-1]}")
+                node_class = self._error_node
+            else:
+                creationerror = NodeErrorInfo(
+                    error='Node Not Found',
                     error_message='The requested node could not be found in the registry.'
                 )
                 creationerror.add_note(f"Library: {key.split(':')[0]}")
                 creationerror.add_note(f"Node: {key.split(':')[-1]}")
-                return creationerror, self._error_node
-            # Otherwise raise error
-            raise NodeDiscoveryError(f"Node not found: {key}. No error node registered.")
-        return None, node_class
+        return creationerror, node_class
