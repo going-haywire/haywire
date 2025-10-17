@@ -64,7 +64,7 @@ class HaywireModule(Module):
         library_registry = LibraryRegistry()
         # Add all configured library paths
         for path in self.library_paths:
-            library_registry.add_library_path(path)
+            library_registry.add_library_root_path(path)
 
         # Enable file watching if requested
         if self.enable_file_watching:
@@ -176,7 +176,9 @@ class LibrarySystemService:
         library_registry.add_class_registry(RendererRegistry, renderer_registry)
         library_registry.add_class_registry(NodeRegistry, node_registry)
         
-        library_registry.load_libraries()
+        library_registry.scan_for_libraries()
+        
+        library_registry.enable_all_libraries()
 
         self._initialized = True
         print(f"Library system initialized successfully.")

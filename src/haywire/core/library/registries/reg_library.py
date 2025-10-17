@@ -27,12 +27,12 @@ class LibraryRegistry:
     
     def __init__(self):
         # Registry functionality moved from BaseRegistry
-        self._libraries: Dict[str, BaseLibrary] = {}
-        self._class_registries: Dict[Type[BaseClassRegistry], BaseClassRegistry] = {}
+        self._libraries: Dict[str, BaseLibrary] = {} # registry_id -> library_instance
+        self._class_registries: Dict[Type[BaseClassRegistry], BaseClassRegistry] = {} # registry_cls -> registry instance
         
         # LibraryRegistry specific attributes
         self.discovered_libraries: Dict[str, Dict[str, Any]] = {}
-        self._library_paths: list[str] = []
+        self._library_root_paths: list[str] = [] # Paths to search for libraries
         self._load_order: list[str] = []
         self.enforce_file_watching = False
         self.debounce_delay = 0.5
@@ -60,32 +60,65 @@ class LibraryRegistry:
         return list(self._libraries.keys())
 
     def add_class_registry(self, cls: Type[BaseClassRegistry], instance: BaseClassRegistry):
-        """Add a registry instance for a given registry class"""
+        """
+        Add a registry instance for a given registry class
+        This allows to dynamically add registries that libraries can use
+
+        Args:
+            cls: The class of the registry
+            instance: The instance of the registry
+        """
         self._class_registries[cls] = instance
     
-    def add_library_path(self, path: str):
-        """Add a path to search for libraries"""
-        if path not in self._library_paths:
-            self._library_paths.append(path)
+    def add_library_root_path(self, path: str):
+        """
+        Add a path to search for libraries
+        Each library root path is scanned for subdirectories containing a library structure.
+
+        Args:
+            path: The root path to add
+        """
+        if path not in self._library_root_paths:
+            self._library_root_paths.append(path)
 
     def enable_file_watching(self, debounce_delay: float = 0.5, force: bool = False):
-        """Enable file watching for library directories"""
+        """
+        Enable file watching for library directories
+        This overrides library settings to enforce file watching.
+
+        Args:
+            debounce_delay: Delay in seconds to debounce file change events
+            force: Force enable even if library settings disable it
+        """
         self.debounce_delay = debounce_delay
         self.enforce_file_watching = force
 
-    def load_libraries(self):
-        """Discover and load all libraries from the specified paths"""
+
+    def enable_all_libraries(self):
+        """Enable file watching for all loaded libraries"""
+        for library in self._libraries.values():
+            library.enable()
+
+    def scan_for_libraries(self):
+        """
+        Discover and load all libraries from the specified paths
+        Each library root path is scanned for subdirectories containing a library structure.
+        This method instantiates each library and lets it register its components.
+
+        This method can be called multiple times to discover 
+        new libraries added or removed at runtime.
+        """
 
         # First discover all library lib folders
         discovered_lib_folders = {}
-        for search_path in self._library_paths:
+        for search_path in self._library_root_paths:
             logger.info(
                 f"Scanning for libraries in: {search_path}")
             discovered_lib_folders.update(self._scan_directory(search_path))
 
         instantiated_libraries: Dict[str, BaseLibrary] = {}
 
-        # instantiate each libraries with its metadata
+        # instantiate new libraries with its metadata
         for library_folder_name, library_path in discovered_lib_folders.items():
             if not self._has_library_with_path(library_path):
                 try:
@@ -111,9 +144,6 @@ class LibraryRegistry:
                     # Register the library
                     self._register(library_instance)
                     
-                    # Let the library register its components
-                    library_instance.register_components()
-                    
                     # Add to the loaded libraries list
                     logger.info(
                         f"Successfully loaded library: '{library_instance.identity.label}' "
@@ -123,6 +153,19 @@ class LibraryRegistry:
                 logger.error(
                     f"Failed to load library '{library_instance.identity.label}': "
                     f"{e} \n\n {format_external_exception()}\n")
+
+        # check for removed libraries
+        current_library_paths = {lib.file_path for lib in self._libraries.values()}
+        for library_id, library_instance in list(self._libraries.items()):
+            if library_instance.file_path not in discovered_lib_folders.values():
+                logger.info(
+                    f"Library '{library_instance.identity.label}': "
+                    f"is being removed and unregistered.")
+                
+                # Unregister the library
+                library_instance.disable()
+                self._unregister(library_id)
+
 
     def _scan_directory(self, directory: str) -> Dict[str, str]:
         """Scan a directory for library subdirectories"""

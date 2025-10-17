@@ -102,10 +102,9 @@ class BaseLibrary(ABC):
         self.file_watcher: FileWatcher = FileWatcher()
         self.enforce_file_watching = enforce_file_watching
         self.debounce_delay = debounce_delay
-        self._registry_folders: Dict[Type[BaseClassRegistry], Tuple[str, Optional[List[str]]]] = {}
+        self._registry_folders: Dict[Type[BaseClassRegistry], Tuple[str, Optional[List[str]]]] = {} # registry_cls -> (folder_path, exclude_patterns)
 
-        self._enabled = True  # Library starts enabled by default
-        self._registered_folders = []  # Track folders for enable/disable operations
+        self._enabled = False  # Library starts disabled by default
 
     @property
     def enabled(self) -> bool:
@@ -117,26 +116,18 @@ class BaseLibrary(ABC):
         if not self._enabled:
             self._enabled = True
             self.register_components()
+            self._attach_to_registries()
+            self.file_watcher.start()
             logging.info(f"Library '{self.identity.label}': Enabled and components registered")
 
     def disable(self):
         """Disable the library and remove its components from registries"""
         if self._enabled:
             self._enabled = False
-            self._unregister_components()
+            self._detach_from_registries()
+            self.file_watcher.stop()
             logging.info(f"Library '{self.identity.label}': Disabled and components unregistered")
-
-    def _unregister_components(self):
-        """Remove all registered components from their registries"""
-        for registry_cls, folder_path, exclude_patterns in self._registered_folders:
-            registry = self.get_registry(registry_cls)
-            if registry and hasattr(registry, 'remove_folder'):
-                registry.remove_folder(folder_path, self.identity)
             
-            # Stop file watching for this folder
-            if self.enforce_file_watching or self.identity.file_watcher:
-                self.file_watcher.remove_watch(folder_path, self.identity)
-
     @property
     def identity(self) -> LibraryIdentity:
         return self.__class__.class_identity
@@ -151,7 +142,10 @@ class BaseLibrary(ABC):
 
     @abstractmethod
     def register_components(self):
-        """Register this library's components with the global registries"""
+        """
+        Register this library's components with the global registries
+        This method is called by the library registry when loading the library
+        """
         pass
 
     @abstractmethod
@@ -163,6 +157,8 @@ class BaseLibrary(ABC):
         """
         Scan a folder for classes matching the registry's class filter
         and add them to the specified registry.
+        
+        This method should only be called by the _init__ method within each library subfolder
 
         Args:
             folder: Relative folder path within the library
@@ -174,9 +170,20 @@ class BaseLibrary(ABC):
 
         self._registry_folders[registry_cls] = (folder_path, exclude_patterns)
 
-        self._register_folder(folder_path, registry_cls, exclude_patterns)
+    def _attach_to_registries(self):
+        """Add ALL library classes to their registries"""
+        for registry_cls, (folder_path, exclude_patterns) in self._registry_folders.items():
+            self._register_folder(folder_path, registry_cls, exclude_patterns)
+
+    def _detach_from_registries(self):
+        """Remove ALL library classes from their registries"""
+        for registry_cls, (folder_path, exclude_patterns) in self._registry_folders.items():
+            self._unregister_folder(folder_path, registry_cls, exclude_patterns)
+
+        self.file_watcher.stop()
 
     def _register_folder(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
+        """Inform the registry to add classes from a folder and start watching it if needed"""
         registry: Type[BaseClassRegistry] = self.get_registry(registry_cls)
         if not registry:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
@@ -188,6 +195,7 @@ class BaseLibrary(ABC):
             logging.info(f"Library '{self.identity.label}': Started watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
 
     def _unregister_folder(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
+        """Inform the registry to remove classes from a folder and stop watching it if needed"""
         registry: Type[BaseClassRegistry] = self.get_registry(registry_cls)
         if not registry:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")

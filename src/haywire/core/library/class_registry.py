@@ -64,7 +64,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         return list(self._classes.keys())
 
     def _register(self, registry_key: str, cls: Any, library_identity: Optional[LibraryIdentity] = None) -> str | None:
-        """Register a class with its name and optional metadata
+        """
+        Register a class with its name and optional metadata
         Args:
             registry_key (str): The haywire registry_key of the class to register
             cls (Any): The class to register
@@ -100,9 +101,12 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         return registry_key
 
     def _unregister(self, registry_key: str) -> type[Any] | None:
-        """Remove a class from the registry
+        """
+        Remove a class from the registry
         Args:
             registry_key (str): The haywire registry_key of the class to unregister
+        Returns:
+            type[Any] | None: The unregistered class, or None if not found
         """
         if registry_key in self._module_class_name:
             del self._module_class_name[registry_key]
@@ -127,10 +131,11 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         pass
 
     def add_folder(self, folder_path: str, library_identity: LibraryIdentity, exclude_patterns: Optional[list[str]] = None):
-        """Initial scan of the folder for classes matching the registry's class filter
+        """
+        Initial scan of the folder for classes matching the registry's class filter
         and add them to this registry.
-
-        This should be called once when the library is first loaded.
+        
+        This method is called by the library when it is enabled.
 
         Args:
             folder_path (str): Path to the folder to scan
@@ -177,7 +182,14 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             f"{len(file_paths)} files processed.")
 
     def remove_folder(self, folder_path: str, library_identity: LibraryIdentity, exclude_patterns: Optional[list[str]] = None):
-        """ Remove all classes associated with a library_identity from this registry."""
+        """ 
+        Remove all classes associated with a library_identity from this registry.
+        This method is called by the library when it is disabled.
+
+        Args:
+            folder_path (str): Path to the folder to remove
+            exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
+        """
         del self._registered_folders[folder_path]
 
         file_paths = self.folder_scan_for_pyfiles(folder_path, exclude_patterns)
@@ -197,7 +209,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         """
         Dispatch file change events to the appropriate handlers based on event type.
 
-        This is called by the file watcher when a file change is detected.
+        This method is called by the file watcher when a file change is detected.
 
         Args:
             event (FileChangeEvent): The file change event to handle
@@ -210,6 +222,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 f"on file: {event.file_path[len(event.library_identity.folder_path):]}. "
                 f"INITIATING ...")
             
+            # no need to validate deleted files
             if event.event_type != FileEventType.DELETED:
                 if not self._validate_python_file(event.file_path):
                     logging.error(
@@ -226,6 +239,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 if module_name in sys.modules:
                     self._on_change(module_name, event.library_identity)
                 else:
+                    # covering an edge case where a module is modified but not yet loaded
                     logging.info(f"Library '{event.library_identity.label}': Module '{module_name}' not found in sys.modules. Creating new module.")
                     self._on_creation(module_name, event.library_identity)
             elif event.event_type == FileEventType.DELETED:
@@ -279,7 +293,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
 
     
     def _on_change(self, module_name: str, library_identity: LibraryIdentity):
-        """re-registering existing classes within the module
+        """
+        re-registering existing classes within the module
         and returning the classes that need to be
         additionally registered / unregistered
 
@@ -326,6 +341,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
     def _reload_managed_module(self, module_name: str, library_identity: LibraryIdentity):
         """
         Reload a single managed module with registry-specific handling.
+        Called by the _on_change method.
         """
 
         # Create snapshot before reload

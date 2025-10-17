@@ -97,8 +97,9 @@ class FileWatcher:
         """Add a path to be watched for a specific library and registry"""
         with self._lock:
             if path in self.observers:
-                raise ValueError(f"Path {path} is already being watched")
-            
+                logging.warning(f"Path {path} is already being watched")
+                return
+
             # Create handler for this library/path combination
             handler = LibraryFileHandler(library_identity, registry, debounce_delay)
             
