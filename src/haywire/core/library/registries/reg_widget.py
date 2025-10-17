@@ -56,8 +56,8 @@ class WidgetRegistry(BaseClassRegistry):
         Args:
             widget_name: The haywire name of the widget to unregister
         """
-        # Remove from default widgets if it was set  
-        removed_class = self.get(widget_name)
+        # Remove from default widgets if it was set
+        removed_class = self._classes[widget_name]
         for data_type, default_widget_class in list(self._default_widgets.items()):
             if default_widget_class == removed_class:
                 del self._default_widgets[data_type]
@@ -80,7 +80,7 @@ class WidgetRegistry(BaseClassRegistry):
         """
         # 1. Try exact widget name lookup
         if widget_name and self.has(widget_name):
-            return self.get(widget_name)
+            return self._classes[widget_name]
 
         # 2. Fallback to default for scalar types
         default_widget_class = self._default_widgets.get(data_field.type)

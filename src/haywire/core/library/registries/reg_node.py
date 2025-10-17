@@ -1,7 +1,7 @@
 # No typing imports needed for current functionality
 
 import inspect
-from typing import TypeVar, Optional, Union
+from typing import Type, TypeVar, Optional, Union
 
 from ...node.exceptions import NodeDiscoveryError
 from ...node.dataclasses import NodeErrorInfo
@@ -66,7 +66,7 @@ class NodeRegistry(BaseClassRegistry):
         """Get the error node class"""
         return self._error_node
 
-    def get_node_class(self, key: str) -> tuple[NodeErrorInfo | None, BaseNode.__class__]:
+    def get_node_class(self, key: str) -> tuple[NodeErrorInfo | None, Type[BaseNode]]:
         """
         Get node class by registry key for graph operations.
 
@@ -81,7 +81,7 @@ class NodeRegistry(BaseClassRegistry):
         Raises:
             NodeDiscoveryError: If node is not found and no error node is registered
         """
-        node_class = self.get(key)
+        node_class = self._classes.get(key)
         if node_class is None:
             # Return error node if registered
             if self._error_node:

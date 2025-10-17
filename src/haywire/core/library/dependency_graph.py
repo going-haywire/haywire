@@ -195,12 +195,13 @@ class DependencyGraph:
         Args:
             module_name: The module to remove
         """
-        self._managed_modules.discard(module_name)
-        if module_name in self._dependency_trees:
-            del self._dependency_trees[module_name]
-        if module_name in self._module_scope_prefix:
-            del self._module_scope_prefix[module_name]
-        logging.debug(f"Module '{module_name}' removed from managed modules")
+        if module_name in self._managed_modules:
+            self._managed_modules.discard(module_name)
+            if module_name in self._dependency_trees:
+                del self._dependency_trees[module_name]
+            if module_name in self._module_scope_prefix:
+                del self._module_scope_prefix[module_name]
+            logging.debug(f"Module '{module_name}' removed from managed modules")
     
     def get_reload_plan(self, changed_module: str) -> ReloadPlan:
         """

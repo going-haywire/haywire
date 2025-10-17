@@ -51,7 +51,7 @@ class AdapterRegistry(BaseClassRegistry):
         Args:
             adapter_name: The haywire name of the adapter to unregister
         """
-        adapter_class = self.get(registry_key)
+        adapter_class = self._classes[registry_key]
         key = next((k for k, cls in self._adapters.items() if cls.__name__ == adapter_class.__name__), None)
         del self._adapters[key]
 

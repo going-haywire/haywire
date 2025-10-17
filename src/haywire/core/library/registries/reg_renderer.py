@@ -79,12 +79,12 @@ class RendererRegistry(BaseClassRegistry):
         """
         # 1. Try exact renderer name lookup
         if renderer_name and self.has(renderer_name):
-            return self.get(renderer_name)
+            return self._classes[renderer_name]
 
         # 2. Use default if no renderer name is specified
         if renderer_name is None and self._default_renderer_name:
             if self.has(self._default_renderer_name):
-                return self.get(self._default_renderer_name)
+                return self._classes[self._default_renderer_name]
 
         # 3. Return error renderer if exact renderer doesn't exist
         if self._error_renderer:
@@ -97,7 +97,7 @@ class RendererRegistry(BaseClassRegistry):
         """Get the default renderer class"""
         if self._default_renderer_name:
             if self.has(self._default_renderer_name):
-                return self.get(self._default_renderer_name)
+                return self._classes[self._default_renderer_name]
         return None
 
     def get_error_renderer(self) -> type[BaseNodeRenderer] | None:

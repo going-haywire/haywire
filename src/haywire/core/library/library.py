@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
 from pathlib import Path
-from typing import Callable, List, Type, TypeVar, Optional, Union
+from typing import Callable, Dict, List, Tuple, Type, TypeVar, Optional, Union
 import inspect
 
 from haywire.core.library.file_watcher import FileWatcher
@@ -102,6 +102,40 @@ class BaseLibrary(ABC):
         self.file_watcher: FileWatcher = FileWatcher()
         self.enforce_file_watching = enforce_file_watching
         self.debounce_delay = debounce_delay
+        self._registry_folders: Dict[Type[BaseClassRegistry], Tuple[str, Optional[List[str]]]] = {}
+
+        self._enabled = True  # Library starts enabled by default
+        self._registered_folders = []  # Track folders for enable/disable operations
+
+    @property
+    def enabled(self) -> bool:
+        """Check if the library is currently enabled"""
+        return self._enabled
+
+    def enable(self):
+        """Enable the library and register its components"""
+        if not self._enabled:
+            self._enabled = True
+            self.register_components()
+            logging.info(f"Library '{self.identity.label}': Enabled and components registered")
+
+    def disable(self):
+        """Disable the library and remove its components from registries"""
+        if self._enabled:
+            self._enabled = False
+            self._unregister_components()
+            logging.info(f"Library '{self.identity.label}': Disabled and components unregistered")
+
+    def _unregister_components(self):
+        """Remove all registered components from their registries"""
+        for registry_cls, folder_path, exclude_patterns in self._registered_folders:
+            registry = self.get_registry(registry_cls)
+            if registry and hasattr(registry, 'remove_folder'):
+                registry.remove_folder(folder_path, self.identity)
+            
+            # Stop file watching for this folder
+            if self.enforce_file_watching or self.identity.file_watcher:
+                self.file_watcher.remove_watch(folder_path, self.identity)
 
     @property
     def identity(self) -> LibraryIdentity:
@@ -138,11 +172,30 @@ class BaseLibrary(ABC):
         if not registry:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
+        self._registry_folders[registry_cls] = (folder_path, exclude_patterns)
+
+        self._register_folder(folder_path, registry_cls, exclude_patterns)
+
+    def _register_folder(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
+        registry: Type[BaseClassRegistry] = self.get_registry(registry_cls)
+        if not registry:
+            raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
+
         registry.add_folder(folder_path, self.identity, exclude_patterns)
 
         if self.enforce_file_watching or self.identity.file_watcher:
             self.file_watcher.add_watch(folder_path, self.identity, registry, self.debounce_delay)
             logging.info(f"Library '{self.identity.label}': Started watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
 
+    def _unregister_folder(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
+        registry: Type[BaseClassRegistry] = self.get_registry(registry_cls)
+        if not registry:
+            raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
+
+        registry.remove_folder(folder_path, self.identity, exclude_patterns)
+
+        if self.enforce_file_watching or self.identity.file_watcher:
+            self.file_watcher.remove_watch(folder_path)
+            logging.info(f"Library '{self.identity.label}': Stopped watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
 
         

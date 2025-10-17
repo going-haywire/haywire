@@ -39,7 +39,6 @@ can you create me a plan on how to approach such a change?
 Implementation Plan
 Phase 1: Core Infrastructure (Foundation)
 Create Registry System Base Classes
-BaseRegistry - Abstract registry with discovery/registration patterns
 WidgetRegistry - Maps widget names to NiceGUI component classes
 AdapterRegistry - Maps DataField type pairs to conversion functions
 LibraryRegistry - Manages library discovery and loading

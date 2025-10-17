@@ -11,7 +11,6 @@ import sys
 from typing import Callable, Dict, Any, Optional, Type, List, Tuple
 import logging
 
-from .base_registry import BaseRegistry
 from .library_identity import LibraryIdentity
 from .dependency_graph import DependencyGraph, ReloadPlan
 from .folder_scan import FolderScanMixin
@@ -43,14 +42,26 @@ class HotReloadRegistry(ABC):
         """Handle creation of a module"""
         pass
 
-class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
+class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
     """Abstract base class for all class registries"""
   
     def __init__(self):
-        super().__init__()
+        # Registry functionality moved from BaseRegistry
+        self._classes: Dict[str, Any] = {} # registry_key -> class
+        
+        # BaseClassRegistry specific attributes
         self._module_class_name: Dict[str, str] = {}  # Name of the class being registered
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
-        self._dependency_graph = DependencyGraph()
+        self._dependency_graph = DependencyGraph() # For hot-reload dependency tracking
+        self._registered_folders: Dict[str, LibraryIdentity] = {} # folder_path -> library_identity
+
+    def has(self, registry_key: str) -> bool:
+        """Check if a class is registered"""
+        return registry_key in self._classes
+
+    def list_names(self) -> list[str]:
+        """List all registered class names"""
+        return list(self._classes.keys())
 
     def _register(self, registry_key: str, cls: Any, library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """Register a class with its name and optional metadata
@@ -74,7 +85,9 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         # Store the library identity as class attributes 
         cls.class_library = library_identity
 
-        super()._register(registry_key, cls)
+        # Register the class
+        self._classes[registry_key] = cls
+
         self._module_class_name[registry_key] = cls.__name__
 
         # Track module to class mapping
@@ -102,7 +115,11 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
                     del self._module_to_classes[module_name]
                 break
 
-        return super()._unregister(registry_key)
+        # Remove from registry 
+        delete_cls = self._classes.get(registry_key)
+        if registry_key in self._classes:
+            del self._classes[registry_key]
+        return delete_cls
 
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:
@@ -119,6 +136,14 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             folder_path (str): Path to the folder to scan
             exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
         """
+        if folder_path in self._registered_folders:
+            logging.warning(
+                f"Library '{library_identity.label}': Folder "
+                f"'{folder_path[len(library_identity.folder_path):]}' is already registered "
+                f"in registry '{self.__class__.__name__}'. Skipping.")
+            return
+        
+        self._registered_folders[folder_path] = library_identity
 
         logging.info(
             f"Library '{library_identity.label}': START Scanning folder "
@@ -151,6 +176,21 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
             f"Library '{library_identity.label}': ... Scanning folder -> DONE. "
             f"{len(file_paths)} files processed.")
 
+    def remove_folder(self, folder_path: str, library_identity: LibraryIdentity, exclude_patterns: Optional[list[str]] = None):
+        """ Remove all classes associated with a library_identity from this registry."""
+        del self._registered_folders[folder_path]
+
+        file_paths = self.folder_scan_for_pyfiles(folder_path, exclude_patterns)
+
+        for file_path in file_paths:
+            try:
+                module_name = self.resolve_module_name(file_path)
+                self._on_delete(module_name, library_identity)
+
+            except Exception as e:
+                logging.error(
+                   f"Library '{library_identity.label}': "
+                   f"Failed to remove module '{module_name}': {e}")
 
 
     def event_dispatcher(self, event: FileChangeEvent):
@@ -363,10 +403,6 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         """
         if module_name is None:
             return  # Skip processing if validation failed (shouldn't happen for DELETE events)
-
-        logging.info(
-            f"Library '{library_identity.label}': Module '{module_name}' has been deleted. "
-            f"Unregistering classes.")
         
         classes_to_delete = self._module_to_classes.get(module_name, [])
         removed_classes = classes_to_delete.copy()
@@ -396,7 +432,7 @@ class BaseClassRegistry(BaseRegistry, HotReloadRegistry, FolderScanMixin):
         # Snapshot registered classes from this module
         for hw_name in self._module_to_classes.get(module_name, []):
             snapshot['registered_classes'][hw_name] = {
-                'class': self._items.get(hw_name),
+                'class': self._classes.get(hw_name),
                 'class_name': self._module_class_name.get(hw_name)
             }
         

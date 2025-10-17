@@ -158,7 +158,7 @@ class NodeFactory:
         menu = {}
 
         for key in self.node_registry.list_names():
-            node_class = self.node_registry.get(key)
+            success, node_class = self.node_registry.get_node_class(key)
             
             # Use class_identity if available, fallback to old attributes
             if hasattr(node_class, 'class_identity'):
@@ -249,31 +249,34 @@ class NodeFactory:
         """
         if not self.node_registry.has(registry_key):
             return None
+
+        success, node_class = self.node_registry.get_node_class(registry_key)
+        if success:
+            library_identity = node_class.class_library
+            
+            # Use class_identity if available, fallback to old attributes
+            if hasattr(node_class, 'class_identity'):
+                identity = node_class.class_identity
+                label = identity.label
+                description = identity.description
+                tags = identity.search_tags
+                menu = identity.menu
+            else:
+                label = node_class.class_library.label
+                description = node_class.class_library.description
+                tags = getattr(node_class, 'node_search_tags', [])
+                menu = getattr(node_class, 'node_menu', 'misc')
+            
+            return {
+                'registry_key': registry_key,
+                'label': label,
+                'description': description,
+                'search_tags': tags,
+                'menu': menu,
+                'library_label': library_identity.label if library_identity else None,
+                'library_version': library_identity.version if library_identity else None,
+                'class_name': node_class.__name__,
+                'module': node_class.__module__
+            }
         
-        node_class = self.node_registry.get(registry_key)
-        library_identity = node_class.class_library
-        
-        # Use class_identity if available, fallback to old attributes
-        if hasattr(node_class, 'class_identity'):
-            identity = node_class.class_identity
-            label = identity.label
-            description = identity.description
-            tags = identity.search_tags
-            menu = identity.menu
-        else:
-            label = node_class.class_library.label
-            description = node_class.class_library.description
-            tags = getattr(node_class, 'node_search_tags', [])
-            menu = getattr(node_class, 'node_menu', 'misc')
-        
-        return {
-            'registry_key': registry_key,
-            'label': label,
-            'description': description,
-            'search_tags': tags,
-            'menu': menu,
-            'library_label': library_identity.label if library_identity else None,
-            'library_version': library_identity.version if library_identity else None,
-            'class_name': node_class.__name__,
-            'module': node_class.__module__
-        }
+        return None
