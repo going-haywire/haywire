@@ -24,12 +24,14 @@ class ErrorContext:
     context_lines: List[str]
     message: str  # High-level error message for the user
     highlight_position: Optional[int] = None
+    highlight_length: Optional[int] = None
     module_name: Optional[str] = None
     operation: Optional[str] = None  # 'import', 'instantiation', 'syntax_check'
     library_identity: Optional[LibraryIdentity] = None
     registry_key: Optional[str] = None
     class_name: Optional[str] = None
     context_info: Optional[List[tuple]] = None  # List of (line_number, line_content) tuples
+    traceback_info: Optional[List[tuple]] = None  # List of (filename, line_number, function_name, source_line) tuples
     
     def format_detailed_message(self) -> str:
         """Format the error as a detailed message"""
@@ -64,8 +66,10 @@ class ErrorContext:
 
 
         lines.extend([
-            "",
-            "           ┆"
+            f"",
+            f"Error     : {self.error_type}: {self.error_message}",
+            f"",
+            f"           ┆"
         ])
         
         # Add context lines with fancy box drawing
@@ -101,9 +105,25 @@ class ErrorContext:
                 lines.append(f"Source    :│  line {actual_line_num:2d}: {line}")
         
         lines.extend([
-            "           ┆",
-            "",
-            f"Error     : {self.error_type}: {self.error_message}",
+            "           ┆"
+        ])
+        
+        # Add traceback information if available
+        if self.traceback_info:
+            import os
+            for i, (filename, line_number, function_name, source_line) in enumerate(self.traceback_info):
+                # Extract just the filename from the full path
+                base_filename = os.path.basename(filename)
+
+                # Subsequent entries - note the pattern: base + (i-1)*tab + spaces
+                space_indent = "  " * i  # Add spaces for each level
+                lines.append(f"           {space_indent}╘═╤═ {base_filename} in {function_name} | File \"{filename}\"")
+                lines.append(f"           {space_indent}  │    │   ┌─────┄┄┄")
+                lines.append(f"           {space_indent}  │    └───┤ line {line_number}: {source_line.strip()} ")
+                lines.append(f"           {space_indent}  │        └─────┄┄┄")
+                lines.append(f"           {space_indent}  │")
+        
+        lines.extend([
             "",
             "┢━━━━━━━    Error Details    ━━━━━━━━┓",
             "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
@@ -136,6 +156,36 @@ def analyze_exception(exception: Exception,
         ErrorContext with detailed error information
     """
     exc_type, exc_value, exc_tb = sys.exc_info()
+    
+    # Extract traceback information
+    traceback_info = []
+    if exc_tb:
+        # Build traceback from bottom to top (reverse order for display)
+        tb_list = []
+        current_tb = exc_tb
+        while current_tb:
+            tb_list.append(current_tb)
+            current_tb = current_tb.tb_next
+        
+        # Process traceback frames (reverse to show call stack top-down)
+        for tb_frame in reversed(tb_list[:-1]):  # Skip the last frame as it's the error location
+            frame = tb_frame.tb_frame
+            tb_filename = frame.f_code.co_filename
+            tb_line_number = tb_frame.tb_lineno
+            tb_function_name = frame.f_code.co_name
+            
+            # Try to get the source line
+            try:
+                with open(tb_filename, 'r', encoding='utf-8') as f:
+                    tb_lines = f.readlines()
+                    if tb_line_number <= len(tb_lines):
+                        tb_source_line = tb_lines[tb_line_number - 1].rstrip()
+                    else:
+                        tb_source_line = "<line not available>"
+            except (IOError, OSError):
+                tb_source_line = "<source not available>"
+            
+            traceback_info.append((tb_filename, tb_line_number, tb_function_name, tb_source_line))
     
     # For SyntaxError, use the error's own location info instead of traceback
     if isinstance(exception, SyntaxError) and hasattr(exception, 'filename') and hasattr(exception, 'lineno'):
@@ -176,24 +226,13 @@ def analyze_exception(exception: Exception,
             
             source_line = lines[line_number - 1].rstrip()
             
-            # Try to find highlight position for specific error types
-            if isinstance(exception, SyntaxError) and hasattr(exception, 'offset') and exception.offset:
-                highlight_position = exception.offset - 1
-            elif isinstance(exception, NameError):
-                # Extract undefined name from error message
-                match = re.search(r"name '([^']+)' is not defined", str(exception))
-                if match:
-                    undefined_name = match.group(1)
-                    pos = source_line.find(undefined_name)
-                    if pos != -1:
-                        highlight_position = pos
-            else:
-                # Look for strings enclosed in single quotes in the error message
-                quoted_matches = re.findall(r"'([^']+)'", str(exception))
-                for quoted_string in quoted_matches:
-                    if quoted_string in source_line:
-                        highlight_position = source_line.find(quoted_string)
-                        break
+            # Look for strings enclosed in single quotes in the error message
+            quoted_matches = re.findall(r"'([^']+)'", str(exception))
+            for quoted_string in quoted_matches:
+                if quoted_string in source_line:
+                    highlight_position = source_line.find(quoted_string)
+                    highlight_length = len(quoted_string)
+                    break
                         
     except (IOError, OSError, IndexError):
         # Fallback if we can't read the file
@@ -219,12 +258,14 @@ def analyze_exception(exception: Exception,
         context_lines=context_lines,
         message=message,
         highlight_position=highlight_position,
+        highlight_length=highlight_length,
         module_name=module_name,
         operation=operation,
         library_identity=library_identity,
         registry_key=registry_key,
         class_name=class_name,
-        context_info=context_info
+        context_info=context_info,
+        traceback_info=traceback_info
     )
 
 class DetailedError(Exception):
