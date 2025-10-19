@@ -14,6 +14,7 @@ Design Philosophy:
 from typing import Dict, List, Optional, Tuple, Set, Any, Callable
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.base_node import BaseNode
+from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.node_factory import NodeFactory
 from haywire.undo.interfaces import IHistoryManager
 from haywire.undo.actions.graph_actions import *
@@ -106,41 +107,39 @@ class Editor:
     # NODE OPERATIONS
     # =============================================================================
     
-    def create_node(self, node_type: str, position: Tuple[float, float] = (100, 100)) -> Optional[BaseNode]:
+    def create_node(self, registry_key: str, position: Tuple[float, float] = (100, 100)) -> Optional[NodeWrapper]:
         """
-        Create a new node of the specified type at the given position.
+        Create a new node wrapper of the specified type at the given position.
         
         Args:
-            node_type: Type of node to create
+            registry_key: Registry key for the node type to create
             position: (x, y) position for the node
+            node_id: Optional specific node ID (auto-generated if None)
             
         Returns:
-            The created node or None if creation failed
+            The created node wrapper or None if creation failed
         """
         try:
-            # Create node using the factory
-            node = self.node_factory.create_instance(node_type, self.graph, position=position)
+            # Create wrapper using the graph's factory method
+            wrapper = self.graph.create_node_wrapper(registry_key)
             
-            if node:
-                # Set position attributes
-                node.ui_state.posX = position[0]
-                node.ui_state.posY = position[1]
-                
+            if wrapper:
                 # Create and execute undo action
-                action = AddNodeAction(self.graph, node)
+                wrapper.initialize(position=position)
+                action = AddNodeAction(self.graph, wrapper)
                 self.history_manager.add_action(action)
                 
                 # Notify callbacks
                 self._notify_change("create_node")
                 
-                print(f"✅ Editor: Created node {node.node_id} of type {node_type} at {position}")
-                return node
+                print(f"✅ Editor: Created node {wrapper.node_id} of type {registry_key} at {position}")
+                return wrapper
             else:
-                print(f"❌ Editor: Failed to create node of type {node_type}")
+                print(f"❌ Editor: Failed to create node of type {registry_key}")
                 return None
                 
         except Exception as e:
-            print(f"❌ Editor: Error creating node of type {node_type}: {e}")
+            print(f"❌ Editor: Error creating node of type {registry_key}: {e}")
             return None
 
     
@@ -192,7 +191,7 @@ class Editor:
             return False
         
         # Validate nodes exist
-        missing_nodes = [node_id for node_id in nodes if node_id not in self.graph.nodes]
+        missing_nodes = [node_id for node_id in nodes if node_id not in self.graph.node_wrappers]
         if missing_nodes:
             print(f"⚠️ Editor: Nodes not found for removal: {missing_nodes}")
             return False
@@ -220,12 +219,20 @@ class Editor:
             return False
     
     def get_node(self, node_id: str) -> Optional[BaseNode]:
-        """Get a node by ID."""
-        return self.graph.nodes.get(node_id)
+        """Get a node instance by ID (for backward compatibility)."""
+        return self.graph.get_node(node_id)
+    
+    def get_node_wrapper(self, node_id: str) -> Optional[NodeWrapper]:
+        """Get a node wrapper by ID."""
+        return self.graph.get_node_wrapper(node_id)
     
     def list_nodes(self) -> List[BaseNode]:
-        """Get a list of all nodes in the graph."""
-        return list(self.graph.nodes.values())
+        """Get a list of all node instances in the graph (for backward compatibility)."""
+        return [wrapper.node for wrapper in self.graph.node_wrappers.values()]
+    
+    def list_node_wrappers(self) -> List[NodeWrapper]:
+        """Get a list of all node wrappers in the graph."""
+        return list(self.graph.node_wrappers.values())
     
     def get_available_node_regkeys(self) -> List[str]:
         """Get a list of all available node types from the factory."""
@@ -383,7 +390,7 @@ class Editor:
         """Get information about the current graph state."""
         return {
             'graph_id': self.graph.graph_id,
-            'node_count': len(self.graph.nodes),
+            'node_count': len(self.graph.node_wrappers),
             'connection_count': len(self.graph.edges),
             'can_undo': self.can_undo(),
             'can_redo': self.can_redo(),

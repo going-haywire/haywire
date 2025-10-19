@@ -12,7 +12,6 @@ from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
 
-
 class NodeRenderFactory:
     """
     Factory class for creating UINodeCard instances using NodeRenderer classes.

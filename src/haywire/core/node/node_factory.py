@@ -9,12 +9,15 @@ lifecycle or undo operations - those are handled by Graph and Actions respective
 import time
 import uuid
 import logging
-from typing import Dict, List, Optional, Any, Callable, Tuple
+from typing import Dict, List, Optional, Any, Callable, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 from collections import defaultdict
 
+if TYPE_CHECKING:
+    from ..graph.graph import HaywireGraph
+
 from .base_node import BaseNode
-from ..graph.graph import HaywireGraph
+from .node_wrapper import NodeWrapper
 from ..library.registries.reg_node import NodeRegistry
 from ..errors import log_detailed_error, DetailedError
 
@@ -41,7 +44,7 @@ class NodeFactory:
         self._hot_reload_listeners: List[Callable[[str, List[str]], None]] = []
         
    
-    def create_instance(self, registry_key: str, graph: HaywireGraph, 
+    def create_instance(self, registry_key: str, graph: 'HaywireGraph', 
                        node_id: Optional[str] = None, position: Optional[Tuple[float, float]] = None) -> BaseNode:
         """
         Pure utility method to create a node instance.
@@ -96,29 +99,51 @@ class NodeFactory:
             node.ui_state.posX, node.ui_state.posY = position
                        
         return node
+    
+    def create_wrapper(self, registry_key: str, node_id: Optional[str] = None, 
+                      position: Optional[Tuple[float, float]] = None) -> NodeWrapper:
+        """
+        Create a NodeWrapper instance with deferred node initialization.
         
-    def handle_hot_reload(self, registry_key: str) -> List[str]:
+        This is the primary method for creating nodes in the NodeWrapper-based system.
+        
+        Args:
+            registry_key: Key in the node registry
+            node_id: Optional custom node ID (generated if not provided)
+            position: Optional (x, y) position for the node
+            
+        Returns:
+            The created NodeWrapper instance (uninitialized)
+        """
+        # Generate node ID if not provided
+        if node_id is None:
+            node_id = self._generate_node_id()
+            
+        # Create wrapper (uninitialized)
+        wrapper = NodeWrapper(
+            node_id=node_id,
+            registry_key=registry_key,
+            node_factory=self,
+            initial_position=position
+        )
+        
+        return wrapper
+        
+    def handle_hot_reload(self, registry_key: str) -> None:
         """
         Handle hot reload of a node class.
         
         This method is called when the node registry detects that a node class
-        has been reloaded. It notifies listeners but does not modify existing
-        node instances (as per the requirement to keep hot reload separate
-        from undo history).
+        has been reloaded. It notifies all listeners, and the NodeWrappers will
+        determine if they need to migrate based on their registry_key.
         
         Args:
             registry_key: The registry key that was reloaded
-            
-        Returns:
-            List of node IDs that are affected by this reload
-        """
-        affected_node_ids = list(self._nodes_by_registry_key.get(registry_key, set()))
-        
-        # Notify listeners about the hot reload
+        """        
+        # Notify all listeners about the hot reload
+        # NodeWrappers will check if they use this registry_key
         for listener in self._hot_reload_listeners:
-            listener(registry_key, affected_node_ids)
-        
-        return affected_node_ids
+            listener(registry_key, [])
     
     def add_hot_reload_listener(self, callback: Callable[[str, List[str]], None]) -> None:
         """

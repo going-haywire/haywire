@@ -69,7 +69,7 @@ class NodeRegistry(BaseClassRegistry):
         """Get the error node class"""
         return self._error_node
 
-    def get_node_class(self, key: str) -> tuple[NodeErrorInfo | None, Type[BaseNode]]:
+    def get_node_class(self, key: str) -> tuple[NodeErrorInfo | None, Type[BaseNode] | None]:
         """
         Get node class by registry key for graph operations.
 
@@ -82,21 +82,15 @@ class NodeRegistry(BaseClassRegistry):
             - node_class: Either the requested node class or the error node class
         """
         node_class = self._classes.get(key)
+        creationerror = None
         if node_class is None:
             # Return error node if registered
+            creationerror = NodeErrorInfo(
+                error='Node Not Found',
+                error_message='The requested node could not be found in the registry. Serving Error Node.'
+            )
+            creationerror.add_note(f"Library: {key.split(':')[0]}")
+            creationerror.add_note(f"Node: {key.split(':')[-1]}")
             if self._error_node:
-                creationerror = NodeErrorInfo(
-                    error='Node Not Found',
-                    error_message='The requested node could not be found in the registry. Serving Error Node.'
-                )
-                creationerror.add_note(f"Library: {key.split(':')[0]}")
-                creationerror.add_note(f"Node: {key.split(':')[-1]}")
                 node_class = self._error_node
-            else:
-                creationerror = NodeErrorInfo(
-                    error='Node Not Found',
-                    error_message='The requested node could not be found in the registry.'
-                )
-                creationerror.add_note(f"Library: {key.split(':')[0]}")
-                creationerror.add_note(f"Node: {key.split(':')[-1]}")
         return creationerror, node_class

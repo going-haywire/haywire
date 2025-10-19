@@ -9,16 +9,18 @@ import time
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 
+from haywire.core.node.node_wrapper import NodeWrapper
+
 from ..base_action import ActionBase, CompositeAction
 from ...core.graph.graph import HaywireGraph, Edge
-from ...core.node.base_node import BaseNode
+from ...core.node.node import BaseNode
 from ...ui.utils import generate_connection_uuid
 
 
 class AddNodeAction(ActionBase):
     """Action for adding a node to the graph."""
-    
-    def __init__(self, graph: HaywireGraph, node: BaseNode, description: Optional[str] = None):
+
+    def __init__(self, graph: HaywireGraph, wrapper: NodeWrapper, description: Optional[str] = None):
         """
         Initialize the add node action.
         
@@ -27,19 +29,19 @@ class AddNodeAction(ActionBase):
             node: The node to add
             description: Optional description override
         """
-        node_label = node.identity.label
-        super().__init__(description or f"Add node '{node_label}'")
+        # Use library label if available, otherwise fallback to identity name or node_id or class name
+        node_name = wrapper.node.identity.label or wrapper.node.identity.name or wrapper.node.node_id or wrapper.node.__class__.__name__
+        super().__init__(description or f"Add node '{node_name}'")
         self.graph = graph
-        self.node = node
-        self.node_id = node.node_id
-    
+        self.wrapper = wrapper
+
     def _execute_impl(self) -> None:
         """Add the node to the graph."""
-        self.graph.add_node(self.node)
+        self.graph.add_node_wrapper(self.wrapper)
     
     def _undo_impl(self) -> None:
         """Remove the node from the graph."""
-        self.graph.remove_node(self.node_id)
+        self.graph.remove_node_wrapper(self.wrapper)
 
 class AddEdgeAction(ActionBase):
     """Action for adding an edge to the graph."""

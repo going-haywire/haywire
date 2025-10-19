@@ -60,7 +60,7 @@ class ErrorContext:
             rel_path = self.filename[len(self.library_identity.folder_path):]
             lines.append(f"File      : ..{rel_path}")
         else:
-            lines.append(f"File      : {self.module_name}")
+            lines.append(f"File      : {self.filename}")
 
 
         lines.extend([

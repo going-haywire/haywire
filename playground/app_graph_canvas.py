@@ -88,7 +88,7 @@ class UndoRedoTestAppWithCanvasManager:
         self.history_manager = self.library_service.get_history_manager()
         
         # Create ONE shared graph for all sessions
-        self.graph = HaywireGraph("shared_graph", "Shared Graph Across Sessions")
+        self.graph = HaywireGraph("shared_graph", self.node_factory, "Shared Graph Across Sessions")
         
         # Create shared Editor instance
         self.editor = Editor(self.graph, self.history_manager, self.node_factory)
@@ -113,7 +113,7 @@ class UndoRedoTestAppWithCanvasManager:
         print("🌍 Global graph change detected")
         
         # Update global stats
-        self.global_stats['nodes_created'] = len(self.graph.nodes)
+        self.global_stats['nodes_created'] = len(self.graph.node_wrappers)
         self.global_stats['edges_created'] = len(self.graph.edges)
         
         # Update displays for all sessions
@@ -259,7 +259,7 @@ class UndoRedoTestAppWithCanvasManager:
                         
             # IMPORTANT: Sync with existing graph data when canvas manager is first created
             canvas_manager.sync_with_graph()
-            print(f"Canvas manager synced with {len(self.graph.nodes)} existing nodes")
+            print(f"Canvas manager synced with {len(self.graph.node_wrappers)} existing nodes")
             
             # Update canvas status
             self.update_canvas_status()
@@ -270,7 +270,7 @@ class UndoRedoTestAppWithCanvasManager:
         print(f"🔄 Graph changed from session {session_id[:8]}")
         
         # Update global stats - the actual graph changes are already handled by GraphCanvasManager
-        self.global_stats['nodes_created'] = len(self.graph.nodes)
+        self.global_stats['nodes_created'] = len(self.graph.node_wrappers)
         self.global_stats['edges_created'] = len(self.graph.edges)
         
         # Sync ALL sessions (including the originating one for consistency)
@@ -341,7 +341,7 @@ class UndoRedoTestAppWithCanvasManager:
                 container.clear()
                 with container:
                     ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
-                    ui.label(f'Nodes: {len(self.graph.nodes)}')
+                    ui.label(f'Nodes: {len(self.graph.node_wrappers)}')
                     ui.label(f'Connections: {len(self.graph.edges)}')
                     
                     if self.history_manager:
@@ -479,7 +479,7 @@ class UndoRedoTestAppWithCanvasManager:
                 self.info_container.clear()
                 with self.info_container:
                     ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
-                    ui.label(f'Nodes: {len(self.graph.nodes)}')
+                    ui.label(f'Nodes: {len(self.graph.node_wrappers)}')
                     ui.label(f'Connections: {len(self.graph.edges)}')
     
     def update_history_display(self):

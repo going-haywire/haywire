@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.base_node import BaseNode
+from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
@@ -50,6 +51,9 @@ class GraphCanvasManager:
         
         # Register for simple graph change notifications
         self.editor.add_change_callback(self._on_graph_changed)
+        
+        # Register for NodeWrapper change notifications
+        self._setup_wrapper_callbacks()
                 
         # Visual state
         self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
@@ -82,6 +86,43 @@ class GraphCanvasManager:
         """Simple callback when anything changes in the graph."""
         print(f"🔄 GraphCanvasManager[{self.session_id[:8]}]: Graph changed, syncing visuals")
         self.sync_with_graph()
+        
+        # Update wrapper callbacks for any new wrappers
+        self._setup_wrapper_callbacks()
+    
+    def _setup_wrapper_callbacks(self):
+        """Setup change callbacks for all NodeWrapper instances."""
+        for wrapper in self.graph.node_wrappers.values():
+            # Check if we already have a callback for this wrapper
+            if not hasattr(wrapper, '_ui_callback_registered'):
+                wrapper.add_change_callback(self._on_wrapper_changed)
+                wrapper._ui_callback_registered = True
+                print(f"📡 Registered UI callback for wrapper {wrapper.node_id}")
+    
+    def _on_wrapper_changed(self, wrapper: 'NodeWrapper', change_type: str):
+        """Handle NodeWrapper change notifications."""
+        print(f"🔄 Wrapper {wrapper.node_id} changed: {change_type}")
+        
+        if change_type in ["migration_completed", "initialized", "deserialized"]:
+            # Node instance may have changed, re-sync the UI for this node
+            if wrapper.node_id in self.node_panels:
+                # Update the node visual with the new instance
+                node = wrapper.node
+                position = (node.ui_state.posX, node.ui_state.posY)
+                
+                # Remove and re-add the visual to ensure it uses the new node instance
+                self.remove_node_visual(wrapper.node_id)
+                self.add_node_visual(node, position)
+                
+                print(f"🔄 Re-synced visual for migrated node {wrapper.node_id}")
+        
+        elif change_type in ["initialized_with_error", "migration_failed_error_node_created"]:
+            # Show error state in UI
+            ui.notify(f"Node {wrapper.node_id} has errors: {wrapper.state.error_state}", type='warning')
+        
+        elif change_type in ["hot_reload_detected"]:
+            # Optional: Show user that hot reload is happening
+            ui.notify(f"Hot reload detected for node {wrapper.node_id}", type='info')
     
     def _auto_register_event_handlers(self):
         """Automatically register event handlers using decorators"""
@@ -312,7 +353,9 @@ class GraphCanvasManager:
             return
             
         print(f"📄 Pasting {len(self.clipboard.nodes)} nodes and {len(self.clipboard.edges)} connections at ({event.canvasX}, {event.canvasY})")
-        
+
+        """
+
         try:
             # Filter connections - only between selected nodes
             valid_edges = []
@@ -329,14 +372,14 @@ class GraphCanvasManager:
                 original_node = self.graph.get_node(original_node_id)
                 if not original_node:
                     continue
-                
+               
                 # Generate new ID and create new instance
                 new_node_id = f"copy_{uuid.uuid4().hex[:8]}_{original_node_id}"
-                new_node = self.editor.node_factory.create_instance(
-                    registry_key=original_node.identity.registry_key,
-                    graph=None,  # Clipboard nodes don't belong to any graph
-                    node_id=new_node_id
-                )
+
+                new_node_wrapper = self.graph.create_node_wrapper(registry_key=original_node.identity.registry_key)
+                new_node_wrapper.initialize()
+
+
                 
                 # Clone inlet/outlet data and configuration
                 self._clone_node_data(original_node, new_node)
@@ -396,12 +439,14 @@ class GraphCanvasManager:
             
             print("✅ Paste operation completed successfully")
             ui.notify(f"Pasted {len(self.clipboard.nodes)} nodes", type='positive')
-                
+                        
         except Exception as e:
             print(f"❌ Error during paste operation: {e}")
             ui.notify(f"Paste failed: {e}", type='negative')
             traceback.print_exc()
 
+        """
+            
     # =============================================================================
     # SYNC UI with GRAPH STATE (unchanged from original)
     # =============================================================================
@@ -409,13 +454,14 @@ class GraphCanvasManager:
     def sync_with_graph(self):
         """Synchronize visual representation with the graph state."""
         try:
-            # Sync nodes
-            graph_node_ids = set(self.graph.nodes.keys())
+            # Sync nodes (using node_wrappers)
+            graph_node_ids = set(self.graph.node_wrappers.keys())
             visual_node_ids = set(self.node_panels.keys())
             
             # Add missing nodes
             for node_id in graph_node_ids - visual_node_ids:
-                node = self.graph.nodes[node_id]
+                wrapper = self.graph.node_wrappers[node_id]
+                node = wrapper.node  # Get node instance from wrapper
                 position = (
                     node.ui_state.posX,
                     node.ui_state.posY
@@ -428,7 +474,8 @@ class GraphCanvasManager:
                 
             # Update positions of existing nodes
             for node_id in graph_node_ids.intersection(visual_node_ids):
-                node = self.graph.nodes[node_id]
+                wrapper = self.graph.node_wrappers[node_id]
+                node = wrapper.node  # Get node instance from wrapper
                 new_position = (
                     node.ui_state.posX,
                     node.ui_state.posY

@@ -1,10 +1,15 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from dataclasses import dataclass
 from enum import Enum
+import uuid
 
 from ..node.base_node import BaseNode
+from ..node.node_wrapper import NodeWrapper
 from ...ui.utils import generate_connection_uuid, parse_connection_uuid
+
+if TYPE_CHECKING:
+    from ..node.node_factory import NodeFactory
 
 
 # ============================================================================
@@ -108,18 +113,20 @@ class HaywireGraph:
     - A Graph can be treated as a node (Graph-node) within another graph
     """
     
-    def __init__(self, graph_id: str, name: str = ""):
+    def __init__(self, graph_id: str, node_factory: 'NodeFactory', name: str = ""):
         """Initialize a new Haywire graph
         
         Args:
             graph_id: Unique identifier for this graph
+            node_factory: Factory for creating node wrappers
             name: Human-readable name for the graph
         """
         self.graph_id: str = graph_id
         self.name: str = name or f"Graph_{graph_id}"
+        self.node_factory = node_factory
         
-        # Core containers
-        self.nodes: dict[str, BaseNode] = {}
+        # Core containers - NOW USING WRAPPERS
+        self.node_wrappers: dict[str, NodeWrapper] = {}
         self.edges: dict[str, Edge] = {}
         self.variables: dict[str, Variable] = {}
         
@@ -135,39 +142,72 @@ class HaywireGraph:
         self.modified_at: str | None = None
     
     # ========================================================================
-    # Node Management
+    # Node Management (NodeWrapper-based)
     # ========================================================================
     
-    def add_node(self, node: BaseNode) -> BaseNode:
-        """Add a node to the graph
+    def _generate_unique_node_id(self) -> str:
+        """Generate a unique node ID that doesn't conflict with existing nodes.
+        
+        Returns:
+            A unique node ID string
+        """
+        while True:
+            node_id = f"node_{uuid.uuid4().hex[:8]}"
+            if node_id not in self.node_wrappers:
+                return node_id
+    
+    def create_node_wrapper(self, registry_key: str) -> NodeWrapper:
+        """Create a new node wrapper and add it to the graph
+        
+        Returns:
+            The created and initialized node wrapper
+        """
+        node_id = self._generate_unique_node_id()
+        
+        # Create wrapper (uninitialized)
+        wrapper = NodeWrapper(
+            node_id=node_id,
+            registry_key=registry_key,
+            node_factory=self.node_factory
+        )
+                
+        return wrapper
+    
+    def add_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper:
+        """Add an already created node wrapper to the graph
         
         Args:
-            node: HaywireNode instance to add
+            wrapper: NodeWrapper instance to add
             
         Returns:
-            The added node
+            The added wrapper
             
         Raises:
             ValueError: If node_id already exists in graph
         """
-        if node.node_id in self.nodes:
-            raise ValueError(f"Node with ID '{node.node_id}' already exists in graph")
+        if wrapper.node_id in self.node_wrappers:
+            raise ValueError(f"Node wrapper with ID '{wrapper.node_id}' already exists in graph")
         
-        self.nodes[node.node_id] = node
-        return node
+        self.node_wrappers[wrapper.node_id] = wrapper
+        
+        # Set graph reference on the actual node instance
+        if wrapper._node_instance:
+            wrapper.node.graph = self
+        
+        return wrapper
     
-    def remove_node(self, node_id: str) -> BaseNode | None:
-        """Remove a node from the graph
+    def remove_node_wrapper(self, node_id: str) -> NodeWrapper | None:
+        """Remove a node wrapper from the graph
         
-        Also removes all edges connected to this node.
+        Also removes all edges connected to this node and cleans up the wrapper.
         
         Args:
             node_id: ID of the node to remove
             
         Returns:
-            The removed node, or None if not found
+            The removed wrapper, or None if not found
         """
-        if node_id not in self.nodes:
+        if node_id not in self.node_wrappers:
             return None
         
         # Remove all edges connected to this node
@@ -178,18 +218,33 @@ class HaywireGraph:
         for connection_uuid in edges_to_remove:
             self.edges.pop(connection_uuid)
         
-        return self.nodes.pop(node_id)
+        # Remove and cleanup wrapper
+        wrapper = self.node_wrappers.pop(node_id)
+        wrapper.cleanup()
+        return wrapper
     
     def get_node(self, node_id: str) -> BaseNode | None:
-        """Get a node by its ID
+        """Get a node instance by its ID (for backward compatibility)
         
         Args:
             node_id: ID of the node to retrieve
             
         Returns:
-            The node if found, None otherwise
+            The node instance if found, None otherwise
         """
-        return self.nodes.get(node_id)
+        wrapper = self.node_wrappers.get(node_id)
+        return wrapper.node if wrapper else None
+    
+    def get_node_wrapper(self, node_id: str) -> NodeWrapper | None:
+        """Get a node wrapper by its ID
+        
+        Args:
+            node_id: ID of the node wrapper to retrieve
+            
+        Returns:
+            The wrapper if found, None otherwise
+        """
+        return self.node_wrappers.get(node_id)
     
     def move_node(self, node_id: str, new_x: float, new_y: float) -> bool:
         """Move a node to a new position
@@ -202,39 +257,49 @@ class HaywireGraph:
         Returns:
             True if node was moved, False if not found
         """
-        node = self.nodes.get(node_id)
-        if node is None:
+        wrapper = self.node_wrappers.get(node_id)
+        if wrapper is None:
             return False
         
-        node.ui_state.posX = new_x
-        node.ui_state.posY = new_y
+        wrapper.node.ui_state.posX = new_x
+        wrapper.node.ui_state.posY = new_y
         return True
     
     def get_nodes_by_type(self, registry_key: str) -> list[BaseNode]:
-        """Get all nodes of a specific type
+        """Get all node instances of a specific type (for backward compatibility)
         
         Args:
-            node_type: The node type to filter by
+            registry_key: The node type to filter by
             
         Returns:
-            List of nodes matching the type
+            List of node instances matching the type
         """
         return [
-            node for node in self.nodes.values() 
-            if node.identity.registry_key == registry_key
+            wrapper.node for wrapper in self.node_wrappers.values() 
+            if wrapper.registry_key == registry_key
         ]
-
-    def replace_nodes_of_type(self, registry_key: str, new_node: BaseNode):
-        """Replace all nodes of a specific type with a new node
+    
+    def get_wrappers_by_type(self, registry_key: str) -> list[NodeWrapper]:
+        """Get all node wrappers of a specific type
         
         Args:
-            registry_key: The node type to replace
-            new_node: The new node instance to use
+            registry_key: The node type to filter by
             
-        """   
+        Returns:
+            List of wrappers matching the type
+        """
+        return [
+            wrapper for wrapper in self.node_wrappers.values() 
+            if wrapper.registry_key == registry_key
+        ]
+    
+    def list_all_wrappers(self) -> list[NodeWrapper]:
+        """Get all node wrappers in the graph
         
-                 
-        pass
+        Returns:
+            List of all node wrappers
+        """
+        return list(self.node_wrappers.values())
 
 
     # ========================================================================
@@ -265,10 +330,10 @@ class HaywireGraph:
         if connection_uuid in self.edges:
             raise ValueError(f"Connection already exists: {connection_uuid}")
         
-        # Validate that referenced nodes exist
-        if output_node_id not in self.nodes:
+        # Validate that referenced node wrappers exist
+        if output_node_id not in self.node_wrappers:
             raise ValueError(f"Output node '{output_node_id}' not found in graph")
-        if input_node_id not in self.nodes:
+        if input_node_id not in self.node_wrappers:
             raise ValueError(f"Input node '{input_node_id}' not found in graph")
         
         # Evaluate edge type from the node and outlet that is referenced
@@ -370,9 +435,11 @@ class HaywireGraph:
         Returns:
             EdgeType based on the outlet's flow type
         """
-        output_node = self.nodes.get(output_node_id)
-        if not output_node:
+        wrapper = self.node_wrappers.get(output_node_id)
+        if not wrapper:
             raise ValueError(f"Determining edge type: node '{output_node_id}' not found in graph")
+        
+        output_node = wrapper.node
         
         # Check if the outlet exists on the node
         if hasattr(output_node, 'outlets') and outlet_pin_id in output_node.outlets:
@@ -484,10 +551,16 @@ class HaywireGraph:
         
         # Check for orphaned edges (edges referencing non-existent nodes)
         for connection_uuid, edge in self.edges.items():
-            if edge.output_node_id not in self.nodes:
+            if edge.output_node_id not in self.node_wrappers:
                 errors.append(f"Edge {connection_uuid} references non-existent output node: {edge.output_node_id}")
-            if edge.input_node_id not in self.nodes:
+            if edge.input_node_id not in self.node_wrappers:
                 errors.append(f"Edge {connection_uuid} references non-existent input node: {edge.input_node_id}")
+        
+        # Check wrapper validation
+        for wrapper in self.node_wrappers.values():
+            wrapper_errors = wrapper.validate()
+            for error in wrapper_errors:
+                errors.append(f"Node {wrapper.node_id}: {error}")
         
         return errors
     
@@ -513,7 +586,7 @@ class HaywireGraph:
                 elif edge.input_node_id == node_id:
                     dfs(edge.output_node_id, component)
         
-        for node_id in self.nodes.keys():
+        for node_id in self.node_wrappers.keys():
             if node_id not in visited:
                 component = []
                 dfs(node_id, component)
@@ -553,7 +626,7 @@ class HaywireGraph:
             self.selected_nodes.clear()
             self.selected_connections.clear()
         
-        if node_id in self.nodes:
+        if node_id in self.node_wrappers:
             self.selected_nodes.add(node_id)
     
     def deselect_node(self, node_id: str):
@@ -591,7 +664,11 @@ class HaywireGraph:
 
     def clear(self):
         """Clear all nodes, edges, and variables from the graph"""
-        self.nodes.clear()
+        # Cleanup all wrappers before clearing
+        for wrapper in self.node_wrappers.values():
+            wrapper.cleanup()
+        
+        self.node_wrappers.clear()
         self.edges.clear()
         self.variables.clear()
         self.selected_nodes.clear()
@@ -615,15 +692,90 @@ class HaywireGraph:
             "author": self.author,
             "created_at": self.created_at,
             "modified_at": self.modified_at,
-            "nodes": {node_id: node.to_dict() for node_id, node in self.nodes.items()},
+            "nodes": {node_id: wrapper.serialize() for node_id, wrapper in self.node_wrappers.items()},
             "edges": {connection_uuid: edge.to_dict() for connection_uuid, edge in self.edges.items()},
             "variables": {name: var.to_dict() for name, var in self.variables.items()}
         }
     
+    def load_from_dict(self, data: dict[str, Any]) -> bool:
+        """Deserialize graph from dictionary
+        
+        Args:
+            data: Dictionary representation of the graph
+            
+        Returns:
+            True if successful, False if there were errors
+        """
+        try:
+            # Load metadata
+            self.graph_id = data.get("graph_id", self.graph_id)
+            self.name = data.get("name", self.name)
+            self.description = data.get("description", "")
+            self.version = data.get("version", "1.0.0")
+            self.author = data.get("author", "")
+            self.created_at = data.get("created_at")
+            self.modified_at = data.get("modified_at")
+            
+            # Clear existing data
+            self.clear()
+            
+            # Load variables first
+            if "variables" in data:
+                for name, var_data in data["variables"].items():
+                    var = Variable(
+                        name=var_data["name"],
+                        data_type=var_data["data_type"],
+                        default_value=var_data.get("default_value"),
+                        current_value=var_data.get("current_value"),
+                        description=var_data.get("description")
+                    )
+                    self.variables[name] = var
+            
+            # Load node wrappers
+            if "nodes" in data:
+                for node_id, node_data in data["nodes"].items():
+                    # Create wrapper
+                    wrapper = NodeWrapper(
+                        node_id=node_id,
+                        registry_key=node_data["registry_key"],
+                        node_factory=self.node_factory,
+                        initial_position=node_data.get("position")
+                    )
+                    
+                    # Deserialize wrapper data
+                    if wrapper.deserialize(node_data):
+                        self.node_wrappers[node_id] = wrapper
+                        # Set graph reference
+                        if wrapper._node_instance:
+                            wrapper.node.graph = self
+                    else:
+                        print(f"⚠️ Warning: Failed to deserialize node {node_id}")
+            
+            # Load edges
+            if "edges" in data:
+                for connection_uuid, edge_data in data["edges"].items():
+                    edge = Edge(
+                        edge_type=EdgeType(edge_data["edge_type"]),
+                        output_node_id=edge_data["output_node_id"],
+                        outlet_pin_id=edge_data["outlet_pin_id"],
+                        input_node_id=edge_data["input_node_id"],
+                        inlet_pin_id=edge_data["inlet_pin_id"],
+                        outlet_pin_data_type=edge_data.get("outlet_pin_data_type"),
+                        inlet_pin_data_type=edge_data.get("inlet_pin_data_type"),
+                        is_valid=edge_data.get("is_valid", True)
+                    )
+                    self.edges[connection_uuid] = edge
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error loading graph from dictionary: {e}")
+            return False
+    
     def __str__(self) -> str:
         """String representation of the graph"""
         return (f"HaywireGraph(id='{self.graph_id}', name='{self.name}', "
-                f"nodes={len(self.nodes)}, edges={len(self.edges)}, "
+                f"nodes={len(self.node_wrappers)}, edges={len(self.edges)}, "
                 f"variables={len(self.variables)})")
     
     def __repr__(self) -> str:
