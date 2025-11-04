@@ -22,6 +22,7 @@ from ...undo.interfaces import IHistoryManager
 from ...undo.history_manager import HistoryManager
 from ...undo.config import UndoConfig
 from ...undo.no_op_history_manager import NoOpHistoryManager
+from ...ui.themes.palette import ThemePalette
 
 
 class HaywireModule(Module):
@@ -35,7 +36,8 @@ class HaywireModule(Module):
     def __init__(self, project_root: Optional[str] = None, 
                  library_paths: Optional[List[str]] = None,
                  enable_file_watching: bool = True,
-                 undo_config: Optional[UndoConfig] = None):
+                 undo_config: Optional[UndoConfig] = None,
+                 default_theme: str = 'default'):
         """
         Initialize the DI module.
         
@@ -44,11 +46,13 @@ class HaywireModule(Module):
             library_paths: Additional library paths to scan
             enable_file_watching: Whether to enable file watching for hot reload
             undo_config: Optional undo configuration (uses default if None)
+            default_theme: Default theme to set on initialization
         """
         self.project_root = project_root or self._detect_project_root()
         self.library_paths = library_paths or []
         self.enable_file_watching = enable_file_watching
         self.undo_config = undo_config
+        self.default_theme = default_theme
         
         # Add default library paths if not provided
         if not self.library_paths:
@@ -117,6 +121,19 @@ class HaywireModule(Module):
                                    widget_registry: WidgetRegistry) -> NodeRenderFactory:
         """Provide NodeRenderFactory."""
         return NodeRenderFactory(renderer_registry, widget_registry)
+    
+    @provider
+    @singleton
+    def provide_theme_palette(self) -> ThemePalette:
+        """
+        Provide ThemePalette for theme management.
+        
+        Note: ThemePalette is a singleton class with class methods,
+        so we return the class itself. The default theme is set during initialization.
+        """
+        # Set the default theme on first initialization
+        ThemePalette.set_theme(self.default_theme)
+        return ThemePalette
     
     def _detect_project_root(self) -> str:
         """Auto-detect project root by looking for pyproject.toml."""
@@ -255,12 +272,17 @@ class LibrarySystemService:
         """Get the history manager (None if no-op)."""
         manager = self.injector.get(IHistoryManager)
         return None if isinstance(manager, NoOpHistoryManager) else manager
+    
+    def get_theme_palette(self) -> ThemePalette:
+        """Get the theme palette."""
+        return self.injector.get(ThemePalette)
 
 
 def create_haywire_injector(project_root: Optional[str] = None,
                            library_paths: Optional[List[str]] = None,
                            enable_file_watching: bool = True,
-                           undo_config: Optional[UndoConfig] = None) -> Injector:
+                           undo_config: Optional[UndoConfig] = None,
+                           default_theme: str = 'default') -> Injector:
     """
     Create and configure a Haywire DI injector.
     
@@ -269,6 +291,7 @@ def create_haywire_injector(project_root: Optional[str] = None,
         library_paths: Additional library paths to scan
         enable_file_watching: Whether to enable file watching for hot reload
         undo_config: Optional undo configuration for history manager
+        default_theme: Default theme to set on initialization
         
     Returns:
         Configured DI injector
@@ -277,7 +300,8 @@ def create_haywire_injector(project_root: Optional[str] = None,
         project_root=project_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
-        undo_config=undo_config
+        undo_config=undo_config,
+        default_theme=default_theme
     )
     
     return Injector([module])
@@ -286,7 +310,8 @@ def create_haywire_injector(project_root: Optional[str] = None,
 def create_library_system_service(project_root: Optional[str] = None,
                                  library_paths: Optional[List[str]] = None,
                                  enable_file_watching: bool = True,
-                                 undo_config: Optional[UndoConfig] = None) -> LibrarySystemService:
+                                 undo_config: Optional[UndoConfig] = None,
+                                 default_theme: str = 'default') -> LibrarySystemService:
     """
     Create and initialize a complete library system service.
     
@@ -298,6 +323,7 @@ def create_library_system_service(project_root: Optional[str] = None,
         library_paths: Additional library paths to scan  
         enable_file_watching: Whether to enable file watching for hot reload
         undo_config: Optional undo configuration for history manager
+        default_theme: Default theme to set on initialization
         
     Returns:
         Initialized LibrarySystemService
@@ -306,7 +332,8 @@ def create_library_system_service(project_root: Optional[str] = None,
         project_root=project_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
-        undo_config=undo_config
+        undo_config=undo_config,
+        default_theme=default_theme
     )
     
     service = LibrarySystemService(injector)

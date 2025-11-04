@@ -31,6 +31,7 @@ from haywire.ui.editor_v1.graph_canvas_manager import GraphCanvasManager
 from haywire.ui.editor_v1.editor import Editor
 from haywire.core.graph.graph import HaywireGraph
 from haywire.undo.config import DEVELOPMENT_CONFIG
+from haywire.ui.themes import ThemePalette
 
 # DI imports  
 from haywire.core.di.config import create_library_system_service
@@ -87,6 +88,12 @@ class UndoRedoTestAppWithCanvasManager:
         self.node_render_factory = self.library_service.get_node_render_factory()
         self.history_manager = self.library_service.get_history_manager()
         
+        # Get theme palette from DI
+        self.theme_palette = self.library_service.get_theme_palette()
+        
+        # Register as observer for theme changes
+        ThemePalette.register_observer(self._on_theme_changed)
+        
         # Create ONE shared graph for all sessions
         self.graph = HaywireGraph("shared_graph", self.node_factory, "Shared Graph Across Sessions")
         
@@ -107,6 +114,27 @@ class UndoRedoTestAppWithCanvasManager:
         print(f"History manager available: {self.history_manager is not None}")
         print(f"Editor created with change callbacks")
         print("Shared services configured successfully.")
+    
+    def _on_theme_changed(self, theme_name: str, theme):
+        """Handle theme change events."""
+        print(f"🎨 Theme changed to: {theme_name}")
+        
+        # Defer UI updates to avoid deleting elements during callbacks
+        # Use timer to update after the current event completes
+        ui.timer(0.1, lambda: self._deferred_theme_update(), once=True)
+    
+    def _deferred_theme_update(self):
+        """Deferred theme update to avoid UI deletion during callbacks."""
+        # Update UI for all sessions
+        for session_data in self.sessions.values():
+            self.update_displays_for_session(session_data)
+        
+        # Trigger UI refresh via canvas managers
+        for session_data in self.sessions.values():
+            if 'canvas_manager' in session_data and session_data['canvas_manager']:
+                # Canvas manager will need to be updated to handle theme changes
+                # For now, just update displays
+                pass
     
     def _on_global_graph_change(self):
         """Handle global graph changes (affects all sessions)."""
@@ -214,6 +242,12 @@ class UndoRedoTestAppWithCanvasManager:
                 with ui.column() as libraries_container:
                     self.current_session['ui_containers']['libraries_container'] = libraries_container
                     self.update_libraries_display()
+            
+            # Theme Selection
+            with ui.expansion('Theme Selection', icon='palette').classes('w-full'):
+                with ui.column() as theme_container:
+                    self.current_session['ui_containers']['theme_container'] = theme_container
+                    self.update_theme_display()
             
             # Configuration
             with ui.expansion('Undo/Redo Config', icon='settings').classes('w-full'):
@@ -366,6 +400,9 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Update libraries display for this specific session
             self.update_libraries_display_for_session(session_data)
+            
+            # Update theme display for this specific session
+            self.update_theme_display_for_session(session_data)
                         
         except Exception as e:
             print(f"Error updating displays for session: {e}")
@@ -546,6 +583,11 @@ class UndoRedoTestAppWithCanvasManager:
         if hasattr(self, 'current_session'):
             self.update_libraries_display_for_session(self.current_session)
     
+    def update_theme_display(self):
+        """Update theme display for current session."""
+        if hasattr(self, 'current_session'):
+            self.update_theme_display_for_session(self.current_session)
+    
     def update_libraries_display_for_session(self, session_data):
         """Update libraries display for a specific session."""
         containers = session_data.get('ui_containers', {})
@@ -615,6 +657,158 @@ class UndoRedoTestAppWithCanvasManager:
                         ui.label('Library registry not available').classes('text-gray-500')
                 else:
                     ui.label('Library service not available').classes('text-gray-500')
+    
+    def update_libraries_display_for_session(self, session_data):
+        """Update libraries display for a specific session."""
+        containers = session_data.get('ui_containers', {})
+        if 'libraries_container' in containers:
+            container = containers['libraries_container']
+            container.clear()
+            with container:
+                if hasattr(self, 'library_service') and self.library_service:
+                    library_registry = self.library_service.get_library_registry()
+                    if library_registry:
+                        library_names = library_registry.list_names()
+                        if library_names:
+                            ui.label(f'Total Libraries: {len(library_names)}').classes('text-sm font-bold')
+                            
+                            # Add bulk enable/disable buttons
+                            with ui.row().classes('w-full justify-between gap-2 mt-2 mb-3'):
+                                ui.button('Enable All', 
+                                    icon='play_arrow',
+                                    on_click=lambda: self.enable_all_libraries()
+                                ).props('size=sm color=green').classes('flex-1')
+                                ui.button('Disable All', 
+                                    icon='pause',
+                                    on_click=lambda: self.disable_all_libraries()
+                                ).props('size=sm color=orange').classes('flex-1')
+                            
+                            ui.separator()
+                            
+                            for lib_name in sorted(library_names):
+                                lib_identity = library_registry.get_library_identity(lib_name)
+                                is_enabled = library_registry.is_library_enabled(lib_name)
+                                
+                                if lib_identity:
+                                    with ui.card().classes('w-full mb-2 p-2'):
+                                        with ui.row().classes('w-full items-center justify-between'):
+                                            # Library info section
+                                            with ui.column().classes('flex-grow'):
+                                                with ui.row().classes('items-center gap-2'):
+                                                    status_icon = 'check_circle' if is_enabled else 'cancel'
+                                                    status_color = 'text-green-500' if is_enabled else 'text-red-500'
+                                                    ui.icon(status_icon).classes(f'{status_color} text-sm')
+                                                    ui.label(f'{lib_identity.label}').classes('text-sm font-medium')
+                                                
+                                                if lib_identity.version:
+                                                    ui.label(f'v{lib_identity.version}').classes('text-xs text-gray-500')
+                                                if lib_identity.description:
+                                                    ui.label(lib_identity.description).classes('text-xs text-gray-600')
+                                            
+                                            # Control buttons section
+                                            with ui.column().classes('gap-1'):
+                                                if is_enabled:
+                                                    ui.button('Disable', 
+                                                        icon='pause',
+                                                        on_click=lambda ln=lib_name: self.disable_library(ln)
+                                                    ).props('size=sm color=orange')
+                                                else:
+                                                    ui.button('Enable', 
+                                                        icon='play_arrow',
+                                                        on_click=lambda ln=lib_name: self.enable_library(ln)
+                                                    ).props('size=sm color=green')
+                                else:
+                                    with ui.row().classes('items-center gap-2'):
+                                        ui.icon('error').classes('text-red-500 text-sm')
+                                        ui.label(lib_name).classes('text-sm')
+                        else:
+                            ui.label('No libraries loaded').classes('text-gray-500')
+                    else:
+                        ui.label('Library registry not available').classes('text-gray-500')
+                else:
+                    ui.label('Library service not available').classes('text-gray-500')
+    
+    def update_theme_display_for_session(self, session_data):
+        """Update theme display for a specific session."""
+        containers = session_data.get('ui_containers', {})
+        if 'theme_container' in containers:
+            container = containers['theme_container']
+            container.clear()
+            with container:
+                # Get current theme info
+                current_theme = ThemePalette.get_current_theme()
+                current_name = ThemePalette.get_theme_name()
+                current_key = ThemePalette.get_theme_key()  # Get the theme key for comparison
+                
+                ui.label(f'Current Theme: {current_name}').classes('text-sm font-bold mb-2')
+                
+                # Show theme metadata
+                if current_theme.metadata.author:
+                    ui.label(f'Author: {current_theme.metadata.author}').classes('text-xs text-gray-600')
+                if current_theme.metadata.description:
+                    ui.label(f'{current_theme.metadata.description}').classes('text-xs text-gray-500 mb-2')
+                
+                ui.separator().classes('my-2')
+                
+                # List all available themes
+                available_themes = ThemePalette.list_themes()
+                ui.label('Available Themes:').classes('text-sm font-bold mb-2')
+                
+                for theme_name in available_themes:
+                    # Compare theme keys (file names), not display names
+                    is_current = theme_name.lower() == current_key.lower()
+                    
+                    with ui.row().classes('w-full items-center justify-between mb-1'):
+                        with ui.row().classes('items-center gap-2'):
+                            if is_current:
+                                ui.icon('check_circle').classes('text-green-500 text-sm')
+                            else:
+                                ui.icon('radio_button_unchecked').classes('text-gray-400 text-sm')
+                            ui.label(theme_name.title()).classes('text-sm')
+                        
+                        if not is_current:
+                            ui.button('Apply', 
+                                icon='palette',
+                                on_click=lambda tn=theme_name: self.switch_theme(tn)
+                            ).props('size=sm color=primary')
+                
+                ui.separator().classes('my-2')
+                
+                # Reload button for TOML themes
+                ui.button('Reload Current Theme', 
+                    icon='refresh',
+                    on_click=lambda: self.reload_theme()
+                ).props('size=sm color=secondary').classes('w-full')
+    
+    def switch_theme(self, theme_name: str):
+        """Switch to a different theme."""
+        # Show notification before switching to avoid UI deletion issues
+        ui.notify(f"Switching to {theme_name} theme...", type='info')
+        
+        # Use timer to switch theme after notification is shown
+        def do_switch():
+            success = ThemePalette.set_theme(theme_name)
+            if success:
+                print(f"✓ Successfully switched to {theme_name} theme")
+            else:
+                ui.notify(f"Failed to load {theme_name} theme", type='negative')
+        
+        ui.timer(0.05, do_switch, once=True)
+    
+    def reload_theme(self):
+        """Reload the current theme from disk."""
+        current_name = ThemePalette.get_theme_name()
+        ui.notify(f"Reloading {current_name} theme...", type='info')
+        
+        # Use timer to reload theme after notification is shown
+        def do_reload():
+            success = ThemePalette.reload_current_theme()
+            if success:
+                print(f"✓ Successfully reloaded {current_name} theme")
+            else:
+                ui.notify("Failed to reload theme", type='negative')
+        
+        ui.timer(0.05, do_reload, once=True)
     
     def update_displays(self):
         """Update all displays."""

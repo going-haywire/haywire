@@ -13,9 +13,11 @@ from haywire.core.data.enums import DataType, FlowType
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
 from haywire.core.ui.base import UINodeCard
+from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.utils import generate_pin_uuid
 from haywire.ui.utils import render_error_info
 from haywire.core.ui.base_renderer import renderer
+from haywire.ui.themes import ThemePalette
 
 @renderer(
     description="Default renderer that provides the standard node appearance", 
@@ -43,10 +45,11 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         widget_instances: Dict[str, Any] = {}
         
         # Create the main card
+        node_bg = ThemePalette.ui(Theme_UI_Color.NODE_BACKGROUND, 'rgba(255, 255, 255, 0.3)')
         with ui.card().classes(
                 f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
             ).style(
-                'background-color: rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px);'
+                f'background-color: {node_bg}; backdrop-filter: blur(10px);'
             ) as main_card:
             with ui.row().classes('drag-handle'):
                 ui.label(node.identity.label).classes('text-h6')
@@ -161,36 +164,41 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         )
         
         if pin.flow_type == FlowType.CTRL.value:
+            # Get control flow color from theme
+            ctrl_color = ThemePalette.flow_type(FlowType.CTRL)
             # Pin connector
-            ui.icon('label', color='#0000ff', size='xs').classes(
+            ui.icon('label', color=ctrl_color, size='xs').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
                 f'cursor: crosshair;'
             ).props(
                 f'{common_props} '
-                f'data-pin-color="#0000ff"'
+                f'data-pin-color="{ctrl_color}"'
             )
         elif pin.flow_type == FlowType.CALLBACK.value:
+            # Get callback flow color from theme
+            callback_color = ThemePalette.flow_type(FlowType.CALLBACK)
             # Pin connector
-            ui.icon('replay_circle_filled', color='red', size='xs').classes(
+            ui.icon('replay_circle_filled', color=callback_color, size='xs').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
                 f'cursor: crosshair;'
             ).props(
                 f'{common_props} '
-                f'data-pin-color="#ff0000"'
+                f'data-pin-color="{callback_color}"'
             )
         elif pin.flow_type == FlowType.DATA.value:
-            pin_color = self._get_port_color(pin.data.type)
+            pin_color = ThemePalette.data_type(pin.data.type)
+            port_border = ThemePalette.ui(Theme_UI_Color.PORT_BORDER, 'white')
             ui.element('div').classes(
                 'port output-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
                 f'width: 15px; height: 15px; '
                 f'background: {pin_color}; '
-                f'border: 2px solid white; '
+                f'border: 2px solid {port_border}; '
                 f'border-radius: 50%; '
                 f'cursor: crosshair;'
             ).props(
@@ -198,17 +206,4 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'data-pin-data-type="{pin.data.type}" '
                 f'data-pin-color="{pin_color}"'
             )
-
-    
-    def _get_port_color(self, data_type: str | DataType) -> str:
-        """Get the color for a port based on its data type."""
-        colors = {
-            'float': "#50b0ff",
-            'int': "#f7b0ff",
-            'string': '#4caf50', 
-            'boolean': '#ff9800',
-            'array': '#9c27b0',
-            'any': "#BABABA"
-        }
-        return colors.get(str(data_type), '#757575')
 
