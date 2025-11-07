@@ -12,7 +12,67 @@ uv pip install haywire-my-library
 
 That's it! The library is automatically discovered and loaded when you run your Haywire application.
 
-### Creating a New Library
+##  Creating a New Library
+
+### Library Structure Options
+
+#### Option 1: Package Structure (Recommended for Distribution)
+
+Use this when you want to publish your library to PyPI or share it with others.
+
+```
+my_library/                      # Project root
+├── pyproject.toml              # Package configuration
+├── README.md                   # Documentation
+└── my_library/                 # Python package (same name)
+    ├── __init__.py            # Library class with @library decorator
+    ├── nodes/                 # Your nodes
+    │   ├── __init__.py
+    │   └── my_node.py
+    ├── widgets/               # Custom widgets (optional)
+    │   ├── __init__.py
+    │   └── my_widget.py
+    ├── renderers/             # Custom renderers (optional)
+    │   ├── __init__.py
+    │   └── my_renderer.py
+    └── adapters/              # Type adapters (optional)
+        ├── __init__.py
+        └── my_adapter.py
+```
+
+**When to use:**
+- ✅ Publishing to PyPI
+- ✅ Sharing with others
+- ✅ Need version management
+- ✅ Want hot-reload during development
+
+**Install:**
+```bash
+cd my_library
+uv pip install -e .  # Development (hot-reload)
+uv pip install .     # Production
+```
+
+#### Option 2: Flat Structure (Core Libraries Only)
+
+This is simpler but only used for libraries bundled with Haywire core.
+
+```
+src/haywire/libraries/my_lib/
+├── __init__.py                # Library class
+├── nodes/
+├── widgets/
+└── renderers/
+```
+
+**When to use:**
+- ✅ Library is part of Haywire core
+- ✅ Never distributed separately
+- ✅ Maintained in main repo
+
+**Don't use this for your own libraries** - use the package structure instead.
+
+### Step by Step Guilde
 
 **1. Create the library structure:**
 
@@ -106,65 +166,7 @@ class MyNode(BaseNode):
         # Configure your node
 ```
 
-**6. Done!** Your library is now auto-discovered when you run Haywire.
-
-## Library Structure Options
-
-### Option 1: Package Structure (Recommended for Distribution)
-
-Use this when you want to publish your library to PyPI or share it with others.
-
-```
-my_library/                      # Project root
-├── pyproject.toml              # Package configuration
-├── README.md                   # Documentation
-└── my_library/                 # Python package (same name)
-    ├── __init__.py            # Library class with @library decorator
-    ├── nodes/                 # Your nodes
-    │   ├── __init__.py
-    │   └── my_node.py
-    ├── widgets/               # Custom widgets (optional)
-    │   ├── __init__.py
-    │   └── my_widget.py
-    ├── renderers/             # Custom renderers (optional)
-    │   ├── __init__.py
-    │   └── my_renderer.py
-    └── adapters/              # Type adapters (optional)
-        ├── __init__.py
-        └── my_adapter.py
-```
-
-**When to use:**
-- ✅ Publishing to PyPI
-- ✅ Sharing with others
-- ✅ Need version management
-- ✅ Want hot-reload during development
-
-**Install:**
-```bash
-cd my_library
-uv pip install -e .  # Development (hot-reload)
-uv pip install .     # Production
-```
-
-### Option 2: Flat Structure (Core Libraries Only)
-
-This is simpler but only used for libraries bundled with Haywire core.
-
-```
-src/haywire/libraries/my_lib/
-├── __init__.py                # Library class
-├── nodes/
-├── widgets/
-└── renderers/
-```
-
-**When to use:**
-- ✅ Library is part of Haywire core
-- ✅ Never distributed separately
-- ✅ Maintained in main repo
-
-**Don't use this for your own libraries** - use the package structure instead.
+**6. Done!** 
 
 ## Configuration
 
