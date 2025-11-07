@@ -181,7 +181,11 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         for file_path in file_paths:
             try:
                 if self._validate_python_file(file_path):
-                    module_name = self.resolve_module_name(file_path)
+                    module_name = self.resolve_module_name(
+                        file_path, 
+                        library_identity.folder_path,
+                        library_identity.module_name
+                    )
                     self._on_creation(module_name, library_identity)
 
             except Exception as e:
@@ -218,7 +222,11 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
 
         for file_path in file_paths:
             try:
-                module_name = self.resolve_module_name(file_path)
+                module_name = self.resolve_module_name(
+                    file_path,
+                    library_identity.folder_path,
+                    library_identity.module_name
+                )
                 self._on_delete(module_name, library_identity)
 
             except Exception as e:
@@ -266,7 +274,11 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                     return None
             
             file_path = Path(event.file_path)
-            module_name = self.resolve_module_name(file_path)
+            module_name = self.resolve_module_name(
+                file_path,
+                event.library_identity.folder_path,
+                event.library_identity.module_name
+            )
             
             if event.event_type == FileEventType.CREATED:
                 self._on_creation(module_name, event.library_identity)

@@ -66,9 +66,20 @@ class HaywireModule(Module):
     def provide_library_registry(self) -> LibraryRegistry:
         """Provide singleton LibraryRegistry."""
         library_registry = LibraryRegistry()
-        # Add all configured library paths
+        
+        # Set core libraries path (priority 1)
+        core_path = os.path.join(self.project_root, 'src', 'haywire', 'libraries')
+        library_registry.core_libraries_path = core_path
+        library_registry.load_core_libraries = True
+        
+        # Enable pip package discovery (priority 2 & 3)
+        library_registry.load_pip_packages = True
+        
+        # Add all configured library paths (priority 4)
         for path in self.library_paths:
-            library_registry.add_library_root_path(path)
+            # Skip core libraries path to avoid duplicate scanning
+            if not os.path.samefile(path, core_path):
+                library_registry.add_library_root_path(path)
 
         # Enable file watching if requested
         if self.enable_file_watching:

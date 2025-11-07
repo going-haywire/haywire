@@ -124,29 +124,52 @@ class FolderScanMixin:
 
         return discovered_classes, module
 
-    def resolve_module_name(self, file_path: str) -> Optional[str]:
+    def resolve_module_name(self, file_path: str, library_root: Optional[str] = None, module_prefix: Optional[str] = None) -> Optional[str]:
         """
-        Resolve module name from file path by walking up directories until no __init__.py found
+        Resolve module name from file path relative to library root.
+        
+        Args:
+            file_path: Path to the Python file
+            library_root: Library root path (folder_path from LibraryIdentity)
+            module_prefix: Module name prefix to use (module_name from LibraryIdentity)
+        
+        Returns:
+            Fully qualified module name (e.g., 'haywire.libraries.core.nodes.math_nodes' or 'example.nodes.math_nodes')
         """
-        file_path = Path(file_path)
+        file_path = Path(file_path).resolve()
+        library_root_path = Path(library_root).resolve() if library_root else None
         
-        # Start from the file's directory
-        current_dir = file_path.parent
-        module_parts = [file_path.stem]  # Start with filename (without .py)
-        
-        # Walk up directories while __init__.py exists
-        while True:
-            init_file = current_dir / "__init__.py"
-            if not init_file.exists():
-                break
+        if not library_root_path or not module_prefix:
+            # Fallback to old behavior if no context provided
+            current_dir = file_path.parent
+            module_parts = [file_path.stem]
             
-            module_parts.insert(0, current_dir.name)
-            current_dir = current_dir.parent
+            while True:
+                init_file = current_dir / "__init__.py"
+                if not init_file.exists():
+                    break
+                module_parts.insert(0, current_dir.name)
+                current_dir = current_dir.parent
+            
+            return ".".join(module_parts) if module_parts else None
         
-        if not module_parts:
+        # Calculate relative path from library root
+        try:
+            rel_path = file_path.relative_to(library_root_path)
+        except ValueError:
+            # File is not under library root - should not happen
+            logging.error(f"File {file_path} is not under library root {library_root_path}")
             return None
         
-        return ".".join(module_parts)
+        # Build module parts from relative path
+        parts = list(rel_path.parts[:-1])  # All dirs except filename
+        parts.append(rel_path.stem)  # Add filename without .py
+        
+        # Combine prefix with relative parts
+        if parts and parts != [rel_path.stem]:  # If there are subdirectories
+            return f"{module_prefix}.{'.'.join(parts)}"
+        else:  # File is directly in library root
+            return f"{module_prefix}.{rel_path.stem}"
    
     def _validate_python_file(self, file_path: str) -> bool:
         """Check if Python file compiles without syntax errors"""

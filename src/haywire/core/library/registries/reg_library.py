@@ -4,11 +4,12 @@ import importlib
 import traceback
 from types import ModuleType
 from typing import Any, Dict, Optional, Type
+from pathlib import Path
 import logging
 
 from ..library import BaseLibrary
 from ..utils import format_external_exception
-
+from ..discovery import LibraryDiscovery, DiscoveredLibrary, InstallType
 from ..library_identity import LibraryIdentity
 from ..class_registry import BaseClassRegistry
 
@@ -36,6 +37,14 @@ class LibraryRegistry:
         self._load_order: list[str] = []
         self.enforce_file_watching = False
         self.debounce_delay = 0.5
+        
+        # Track library sources to avoid duplicates
+        self._library_sources: Dict[str, str] = {}  # library_id -> source path
+        
+        # Loading configuration
+        self.load_core_libraries = True  # Load core libraries from src/haywire/libraries
+        self.load_pip_packages = True     # Load from pip installed packages
+        self.core_libraries_path: Optional[str] = None  # Set during initialization
 
     def _register(self, library_instance: Any):
         """Register a library instance with its path"""
@@ -124,70 +133,79 @@ class LibraryRegistry:
 
     def scan_for_libraries(self):
         """
-        Discover and load all libraries from the specified paths
-        Each library root path is scanned for subdirectories containing a library structure.
-        This method instantiates each library and lets it register its components.
+        Discover and load all libraries from multiple sources in priority order:
+        1. Core libraries (hardcoded in src/haywire/libraries)
+        2. Regular pip installs
+        3. Editable pip installs (-e flag)
+        4. Manual folder paths (avoiding duplicates)
 
         This method can be called multiple times to discover 
         new libraries added or removed at runtime.
         """
-
-        # First discover all library lib folders
-        discovered_lib_folders = {}
-        for search_path in self._library_root_paths:
-            logger.info(
-                f"Scanning for libraries in: {search_path}")
-            discovered_lib_folders.update(self._scan_directory(search_path))
-
-        instantiated_libraries: Dict[str, BaseLibrary] = {}
-
-        # instantiate new libraries with its metadata
-        for library_folder_name, library_path in discovered_lib_folders.items():
-            if not self._has_library_with_path(library_path):
-                try:
-                    library_cls = self._load_library_class(library_folder_name, library_path)
-                    library_instance = library_cls(library_path, self.enforce_file_watching, self.debounce_delay)
-
-                    # store them in the metadata name (and not the folder)
-                    instantiated_libraries[library_instance.identity.id] = library_instance
-
-                except Exception as e:
-                    logger.error(
-                        f"While attempting to load library '{library_folder_name}': "
-                        f"\n\n {format_external_exception()}\n")
-
-        # Load each library
-        for library_id, library_instance in instantiated_libraries.items():
-            try:                
-                if library_instance:
-                    # Add registries to the library
-                    for reg_cls, ref_i in self._class_registries.items():
-                        library_instance.add_registry(reg_cls, ref_i)
-
-                    # Register the library
-                    self._register(library_instance)
-                    
-                    # Add to the loaded libraries list
+        logger.info("=" * 60)
+        logger.info("Starting library discovery and loading process")
+        logger.info("=" * 60)
+        
+        all_discovered: Dict[str, DiscoveredLibrary] = {}
+        
+        # Priority 1: Core libraries (if enabled)
+        if self.load_core_libraries and self.core_libraries_path:
+            logger.info("\n📦 Priority 1: Loading core libraries...")
+            core_libs = self._discover_core_libraries()
+            for lib in core_libs:
+                all_discovered[lib.identity.id] = lib
+                logger.info(f"  ✓ Found core library: {lib.identity.label} ({lib.identity.id})")
+        
+        # Priority 2 & 3: Pip installed packages (if enabled)
+        if self.load_pip_packages:
+            logger.info("\n📦 Priority 2 & 3: Loading pip installed packages...")
+            pip_libs = LibraryDiscovery.discover_installed_libraries()
+            
+            for lib in pip_libs:
+                # Skip if already loaded (e.g., core library already handled)
+                if lib.identity.id in all_discovered:
                     logger.info(
-                        f"Successfully loaded library: '{library_instance.identity.label}' "
-                        f"- deps: {library_instance.identity.dependencies}")
-
-            except Exception as e:
-                logger.error(
-                    f"Failed to load library '{library_instance.identity.label}': "
-                    f"{e} \n\n {format_external_exception()}\n")
-
-        # check for removed libraries
-        current_library_paths = {lib.file_path for lib in self._libraries.values()}
-        for library_id, library_instance in list(self._libraries.items()):
-            if library_instance.file_path not in discovered_lib_folders.values():
-                logger.info(
-                    f"Library '{library_instance.identity.label}': "
-                    f"is being removed and unregistered.")
+                        f"  ⊘ Skipping {lib.identity.label} - already loaded as "
+                        f"{all_discovered[lib.identity.id].install_type.value}"
+                    )
+                    continue
                 
-                # Unregister the library
-                library_instance.disable()
-                self._unregister(library_id)
+                all_discovered[lib.identity.id] = lib
+                install_type_label = "regular install" if lib.install_type == InstallType.REGULAR else "editable install"
+                logger.info(f"  ✓ Found {install_type_label}: {lib.identity.label} ({lib.identity.id})")
+        
+        # Priority 4: Manual folder paths
+        if self._library_root_paths:
+            logger.info("\n📦 Priority 4: Scanning manual folder paths...")
+            folder_libs = self._discover_folder_libraries()
+            
+            for lib in folder_libs:
+                # Skip if already loaded from pip or core
+                if lib.identity.id in all_discovered:
+                    logger.info(
+                        f"  ⊘ Skipping {lib.identity.label} - already loaded as "
+                        f"{all_discovered[lib.identity.id].install_type.value}"
+                    )
+                    continue
+                
+                all_discovered[lib.identity.id] = lib
+                logger.info(f"  ✓ Found folder library: {lib.identity.label} ({lib.identity.id})")
+        
+        # Instantiate and load all discovered libraries
+        logger.info("\n🔨 Instantiating and loading libraries...")
+        instantiated_libraries = self._instantiate_libraries(all_discovered)
+        
+        # Register all instantiated libraries
+        logger.info("\n📝 Registering libraries...")
+        for library_id, library_instance in instantiated_libraries.items():
+            self._register_library_instance(library_instance)
+        
+        # Check for removed libraries
+        self._cleanup_removed_libraries(all_discovered)
+        
+        logger.info("\n" + "=" * 60)
+        logger.info(f"Library discovery complete: {len(self._libraries)} libraries loaded")
+        logger.info("=" * 60)
 
 
     def _scan_directory(self, directory: str) -> Dict[str, str]:
@@ -207,17 +225,27 @@ class LibraryRegistry:
         return lib_folders
 
     def _check_library_structure(self, library_id: str, library_path: str) -> bool:
-        """Check if a directory follows the required library structure"""
+        """
+        Check if a directory follows a valid library structure.
+        Supports two patterns:
+        1. Flat structure: library_path/__init__.py (e.g., core library)
+        2. Package structure: library_path/library_id/__init__.py (e.g., pip packages)
+        """
         try:
-            # Check for __init__.py
-            init_file = os.path.join(library_path, '__init__.py')
-            is_valid = os.path.exists(init_file)
-            if is_valid:
+            # Pattern 1: Flat structure - __init__.py directly in library_path
+            flat_init = os.path.join(library_path, '__init__.py')
+            if os.path.exists(flat_init):
                 return True
-            else:
-                logger.error(
-                    f"Library '{library_id}': "
-                    f"Invalid library structure: missing __init__.py - file")
+            
+            # Pattern 2: Package structure - __init__.py in nested folder
+            package_init = os.path.join(library_path, library_id, '__init__.py')
+            if os.path.exists(package_init):
+                return True
+            
+            logger.error(
+                f"Library '{library_id}': "
+                f"Invalid library structure: missing __init__.py in either "
+                f"'{library_path}' (flat) or '{library_path}/{library_id}' (package)")
                 
         except Exception as e:
             logger.error(f"Library '{library_id}': "
@@ -250,22 +278,37 @@ class LibraryRegistry:
             raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}")
 
     def _load_module_and_metadata(self, library_id: str, library_path: str) -> Optional[ModuleType]:
-        """Load module and metadata from a library's __init__.py. Always returns LibraryIdentity (with defaults if needed)."""
+        """
+        Load module from a library's __init__.py.
+        Handles both flat and package structures automatically.
+        """
         module = None
         parent_dir_added = False
         
         # Determine the proper module path for import
         # Check if this is a core library (in src/haywire/libraries/)
         if 'src/haywire/libraries' in library_path:
-            # For core libraries, use the haywire.libraries.X import path
+            # For core libraries, use the haywire.libraries.X import path (flat structure)
             module_path = f"haywire.libraries.{library_id}"
         else:
-            # For external libraries, add parent to sys.path and import directly
+            # For external libraries, check structure type
+            flat_init = os.path.join(library_path, '__init__.py')
+            package_init = os.path.join(library_path, library_id, '__init__.py')
+            
             parent_dir = os.path.dirname(library_path)
             if parent_dir not in sys.path:
                 sys.path.insert(0, parent_dir)
                 parent_dir_added = True
-            module_path = library_id
+            
+            # Determine if flat or package structure
+            if os.path.exists(flat_init):
+                # Flat structure: import library_id directly
+                module_path = library_id
+            elif os.path.exists(package_init):
+                # Package structure: import library_id.library_id
+                module_path = f"{library_id}.{library_id}"
+            else:
+                raise ImportError(f"Could not find __init__.py for library '{library_id}'")
         
         # Import the module using the proper path
         module = importlib.import_module(module_path)
@@ -277,6 +320,138 @@ class LibraryRegistry:
                 sys.path.remove(parent_dir)
         
         return module
+    
+    def _discover_core_libraries(self) -> list[DiscoveredLibrary]:
+        """Discover core libraries from src/haywire/libraries"""
+        discovered = []
+        
+        if not self.core_libraries_path or not os.path.exists(self.core_libraries_path):
+            logger.warning(f"Core libraries path not found: {self.core_libraries_path}")
+            return discovered
+        
+        # Scan the core libraries directory
+        lib_folders = self._scan_directory(self.core_libraries_path)
+        
+        for library_folder_name, library_path in lib_folders.items():
+            try:
+                library_cls = self._load_library_class(library_folder_name, library_path)
+                identity = library_cls.class_identity
+                
+                discovered.append(DiscoveredLibrary(
+                    identity=identity,
+                    library_cls=library_cls,
+                    library_path=Path(library_path),
+                    install_type=InstallType.FOLDER,
+                    entry_point_name=None
+                ))
+            except Exception as e:
+                logger.error(f"Failed to load core library '{library_folder_name}': {e}")
+        
+        return discovered
+    
+    def _discover_folder_libraries(self) -> list[DiscoveredLibrary]:
+        """Discover libraries from manual folder paths"""
+        discovered = []
+        
+        for search_path in self._library_root_paths:
+            # Skip core libraries path if it's in the list
+            if self.core_libraries_path and os.path.samefile(search_path, self.core_libraries_path):
+                continue
+            
+            lib_folders = self._scan_directory(search_path)
+            
+            for library_folder_name, library_path in lib_folders.items():
+                try:
+                    library_cls = self._load_library_class(library_folder_name, library_path)
+                    identity = library_cls.class_identity
+                    
+                    discovered.append(DiscoveredLibrary(
+                        identity=identity,
+                        library_cls=library_cls,
+                        library_path=Path(library_path),
+                        install_type=InstallType.FOLDER,
+                        entry_point_name=None
+                    ))
+                except Exception as e:
+                    logger.error(f"Failed to load folder library '{library_folder_name}': {e}")
+        
+        return discovered
+    
+    def _instantiate_libraries(self, discovered: Dict[str, DiscoveredLibrary]) -> Dict[str, BaseLibrary]:
+        """Instantiate all discovered libraries"""
+        instantiated = {}
+        
+        for lib_id, lib_info in discovered.items():
+            # Skip if already instantiated
+            if lib_id in self._libraries:
+                continue
+            
+            try:
+                # Instantiate the library
+                library_instance = lib_info.library_cls(
+                    str(lib_info.library_path),
+                    self.enforce_file_watching,
+                    self.debounce_delay
+                )
+                
+                instantiated[lib_id] = library_instance
+                
+                # Track the source
+                self._library_sources[lib_id] = str(lib_info.library_path)
+                
+            except Exception as e:
+                logger.error(
+                    f"Failed to instantiate library '{lib_info.identity.label}': {e}\n"
+                    f"{format_external_exception()}"
+                )
+        
+        return instantiated
+    
+    def _register_library_instance(self, library_instance: BaseLibrary):
+        """Register a single library instance"""
+        try:
+            # Add registries to the library
+            for reg_cls, ref_i in self._class_registries.items():
+                library_instance.add_registry(reg_cls, ref_i)
+            
+            # Register the library
+            self._register(library_instance)
+            
+            logger.info(
+                f"  ✓ Registered library: '{library_instance.identity.label}' "
+                f"(deps: {library_instance.identity.dependencies})"
+            )
+        
+        except Exception as e:
+            logger.error(
+                f"Failed to register library '{library_instance.identity.label}': {e}\n"
+                f"{format_external_exception()}"
+            )
+    
+    def _cleanup_removed_libraries(self, current_discovered: Dict[str, DiscoveredLibrary]):
+        """Remove libraries that are no longer discovered"""
+        current_lib_ids = set(current_discovered.keys())
+        registered_lib_ids = set(self._libraries.keys())
+        
+        removed_lib_ids = registered_lib_ids - current_lib_ids
+        
+        if removed_lib_ids:
+            logger.info("\n🗑  Removing unregistered libraries...")
+            
+        for library_id in removed_lib_ids:
+            library_instance = self._libraries.get(library_id)
+            if library_instance:
+                logger.info(
+                    f"  ⊘ Removing library '{library_instance.identity.label}'"
+                )
+                
+                # Disable and unregister
+                library_instance.disable()
+                self._unregister(library_id)
+                
+                # Remove from sources tracking
+                if library_id in self._library_sources:
+                    del self._library_sources[library_id]
     
     def _has_library_with_path(self, path: str) -> bool:
         """Check if a library with the given path is already registered"""
@@ -293,4 +468,8 @@ class LibraryRegistry:
         """Get metadata for a library"""
         library = self._libraries.get(library_registry_id)
         return library.class_identity if library else None
+    
+    def get_library_source(self, library_id: str) -> str | None:
+        """Get the source path for a library"""
+        return self._library_sources.get(library_id)
 
