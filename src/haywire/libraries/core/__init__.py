@@ -5,18 +5,14 @@ Contains fundamental nodes, widgets, adapters, and data definitions
 that form the foundation of the Haywire system.
 """
 
+from pathlib import Path
+
 from haywire.core.library.library import BaseLibrary
 from haywire.core.library.library import library
 from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.registries.reg_adapter import AdapterRegistry
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_node import NodeRegistry
-
-# Import core components
-from .widgets import register_widgets
-from .adapters import register_adapters
-from .nodes import register_nodes
-from .renderers import register_renderers
 
 @library(
     label='Haywire Core',
@@ -35,17 +31,34 @@ class Library(BaseLibrary):
 
     def register_components(self):
         """Register all core components with the global registries"""
-        # Register widgets
-        register_widgets(self)
-        
+
+        """Register nodes and custom types"""
+        base_path = Path(__file__).parent
+
         # Register adapters (now includes data types)
-        register_adapters(self)
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'adapters'),
+            registry_cls=AdapterRegistry
+        )
         
+        # Register widgets
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'widgets'),
+            registry_cls=WidgetRegistry
+        )
+                
         # Register renderers (node renderers)
-        register_renderers(self)
-        
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'renderers'),
+            registry_cls=RendererRegistry
+        )
+
         # Register nodes
-        register_nodes(self)
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'nodes'),
+            registry_cls=NodeRegistry
+        )
+        
 
     def validate(self) -> bool:
         """Validate that the core library is properly structured"""

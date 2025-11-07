@@ -3,12 +3,8 @@ Core adapter registration and exports
 
 This module now includes both adapters and core data type definitions (merged from data/ folder).
 """
-
-from haywire.core.library.library import BaseLibrary
-from haywire.core.library.registries.reg_adapter import AdapterRegistry
 from haywire.core.data.enums import DataType, DataContainerType
 from haywire.core.data.specs import specs_factory
-
 
 # --- Factory functions for creating DataFieldSpec instances ---
 INT = specs_factory(
@@ -37,13 +33,3 @@ STRING = specs_factory(
         container=DataContainerType.SINGLE,
         widget='haywire.core:text.input.widget',
     )
-
-def register_adapters(library: BaseLibrary):
-    """Register all core adapters with the adapter registry"""
-
-    library.add_folder_to_registry(__path__[0], AdapterRegistry)
-
-__all__ = [
-    # Data types (merged from data/ folder)
-    'register_adapters'
-]

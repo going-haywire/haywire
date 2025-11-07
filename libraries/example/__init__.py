@@ -5,18 +5,13 @@ Minimal test library to demonstrate multi-library support.
 Contains one node, one widget, one adapter, and one data struct.
 """
 
+from pathlib import Path
 from haywire.core.library.library import BaseLibrary
 from haywire.core.library.library import library
 from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.registries.reg_adapter import AdapterRegistry
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_node import NodeRegistry
-
-# Import test components
-from .widgets import register_widgets
-from .adapters import register_adapters  # Now includes data types
-from .nodes import register_nodes
-from .renderers import register_renderers
 
 @library(
     label='Example',
@@ -35,17 +30,33 @@ class Library(BaseLibrary):
        
     def register_components(self):
         """Register all test components with the global registries"""
-        # Register widgets
-        register_widgets(self)
 
-        # Register renderers
-        register_renderers(self)
+        """Register nodes and custom types"""
+        base_path = Path(__file__).parent
+
+        # Register adapters 
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'adapters'),
+            registry_cls=AdapterRegistry
+        )
         
-        # Register adapters
-        register_adapters(self)
-        
+        # Register widgets
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'widgets'),
+            registry_cls=WidgetRegistry
+        )
+                
+        # Register renderers (node renderers)
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'renderers'),
+            registry_cls=RendererRegistry
+        )
+
         # Register nodes
-        register_nodes(self)
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'nodes'),
+            registry_cls=NodeRegistry
+        )
     
     def validate(self) -> bool:
         """Validate that the test library is properly structured"""
