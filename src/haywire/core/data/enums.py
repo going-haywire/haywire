@@ -11,6 +11,7 @@ class DataType(Enum):
     DICT = 'dict'
     LIST = 'list'
     OBJECT = 'object'
+    CUSTOM = 'custom'  # For library-defined custom types
 
 
 class DataContainerType(Enum):

@@ -12,6 +12,7 @@ from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.registries.reg_adapter import AdapterRegistry
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_node import NodeRegistry
+from haywire.core.library.registries.reg_custom_type import CustomTypeRegistry
 
 @library(
     label='Example',
@@ -33,6 +34,12 @@ class Library(BaseLibrary):
 
         """Register nodes and custom types"""
         base_path = Path(__file__).parent
+
+        # Register custom types
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'types'),
+            registry_cls=CustomTypeRegistry
+        )
 
         # Register adapters 
         self.add_folder_to_registry(
