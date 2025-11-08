@@ -28,13 +28,17 @@ class RendererRegistry(BaseClassRegistry):
     def _register_class(self, renderer_cls: type[BaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """
         Register a renderer class.
+        
+        Uses the registry_key that was set by the @renderer decorator during class definition.
+        
         Args:
             renderer_class: The NodeRenderer class
             library_identity: Optional library metadata for the renderer.
         Returns:
             str: The haywire registry_key of the registered renderer.
         """
-        registry_key = reg_key(library_identity.id, renderer_cls.class_identity.registry_id)
+        # Use registry_key that was set by the decorator
+        registry_key = renderer_cls.class_identity.registry_key
         
         # Check if this is a default renderer and register it automatically
         if renderer_cls.class_identity.is_default:

@@ -2,8 +2,52 @@
 from pathlib import Path
 import sys
 import traceback
-from typing import Dict, Any, Optional 
+from typing import Dict, Any, Optional, Type
 import re
+
+def derive_library_id(cls: Type) -> str | None:
+    """
+    Derive library ID by finding the parent Library class.
+    
+    Walks up the module hierarchy looking for a Library class with
+    class_identity.id attribute. Uses sys.modules to avoid re-importing.
+    
+    This function is used by decorators (@node, @renderer, @widget) to automatically
+    determine the library ID from the module structure, enabling classes to know
+    their full registry_key before registration.
+    
+    Args:
+        cls: The class to find the library for
+        
+    Returns:
+        str | None: Library ID if found, None if unable to determine
+        
+    Example:
+        For a class at haywire.libraries.core.nodes.basic_nodes.TestNode:
+        - Walks up: haywire.libraries.core.nodes -> haywire.libraries.core
+        - Finds Library class in haywire.libraries.core.__init__
+        - Returns 'haywire.core' from Library.class_identity.id
+    """
+    module_path = cls.__module__
+    parts = module_path.split('.')
+    
+    # Walk up the module hierarchy
+    for i in range(len(parts), 0, -1):
+        potential_lib_path = '.'.join(parts[:i])
+        
+        # Only check already-imported modules to avoid side effects
+        if potential_lib_path not in sys.modules:
+            continue
+            
+        module = sys.modules[potential_lib_path]
+        
+        # Look for Library class with class_identity
+        if hasattr(module, 'Library'):
+            lib_class = getattr(module, 'Library')
+            if hasattr(lib_class, 'class_identity'):
+                return lib_class.class_identity.id
+    
+    return None
 
 def find_repo_root():
     """Find repository root by looking for .git directory or other indicators."""

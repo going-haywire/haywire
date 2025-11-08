@@ -31,13 +31,17 @@ class WidgetRegistry(BaseClassRegistry):
 
     def _register_class(self, widget: type[BaseWidget], library_identity: LibraryIdentity) -> str | None:
         """Register a UI widget with its metadata
+        
+        Uses the registry_key that was set by the @widget decorator during class definition.
+        
         Args:
             widget: The widget class to register
             library_identity: Library metadata to use for setting widget attributes
         Returns:
             str: The haywire registry_key of the registered widget.
         """
-        registry_key = reg_key(library_identity.id, widget.class_identity.registry_id)
+        # Use registry_key that was set by the decorator
+        registry_key = widget.class_identity.registry_key
 
         # Check if this widget has default_for data types and register them automatically
         if hasattr(widget, 'class_identity') and widget.class_identity.default_for:

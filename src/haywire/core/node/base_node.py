@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from haywire.core.data.enums import FlowType
 from haywire.core.node.dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
 from haywire.core.library.base_identity import BaseIdentity
+from haywire.core.library.utils import derive_library_id, reg_key
 
 T = TypeVar('T')
 
@@ -38,7 +39,9 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
     Args:
         registry_id (str, optional): Unique identifier for the node within its library.
             Defaults to class name if not provided.
-        registry_key (str, optional): Full registry key (library + node ID). Usually set by registry.
+        registry_key (str, optional): Full registry key (library + node ID). 
+            Auto-derived from library ID and registry_id by the decorator.
+            Can be manually overridden if needed.
         label (str, optional): Human-readable display name for the node.
             Defaults to class name if not provided.
         description (str, optional): Detailed description of what the node does.
@@ -89,6 +92,11 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         # Set defaults from class name if not provided
         kwargs.setdefault('registry_id', inner_cls.__name__)
         kwargs.setdefault('label', inner_cls.__name__)
+        
+        # Auto-derive registry_key if not explicitly set
+        if 'registry_key' not in kwargs:
+            library_id = derive_library_id(inner_cls)
+            kwargs['registry_key'] = reg_key(library_id, kwargs['registry_id'])
         
         inner_cls.class_identity = NodeIdentity(**kwargs)
         return inner_cls

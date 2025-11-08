@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from ..data.fields import DataField
 from ..node.elements import ConfigurableElement
 from ..library.base_identity import BaseIdentity
+from ..library.utils import derive_library_id, reg_key
 
 @dataclass
 class WidgetIdentity(BaseIdentity):
@@ -28,7 +29,10 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
     Args:
         registry_id (str, optional): Unique identifier for the widget within its library.
             Defaults to class name if not provided.
-        label (str, optional): Human-readable display name for the node.
+        registry_key (str, optional): Full registry key (library + widget ID). 
+            Auto-derived from library ID and registry_id by the decorator.
+            Can be manually overridden if needed.
+        label (str, optional): Human-readable display name for the widget.
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the widget.
             Defaults to empty string.
@@ -73,6 +77,11 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
         # Set defaults from class name if not provided
         kwargs.setdefault('registry_id', inner_cls.__name__)
         kwargs.setdefault('label', inner_cls.__name__)
+        
+        # Auto-derive registry_key if not explicitly set
+        if 'registry_key' not in kwargs:
+            library_id = derive_library_id(inner_cls)
+            kwargs['registry_key'] = reg_key(library_id, kwargs['registry_id'])
         
         inner_cls.class_identity = WidgetIdentity(**kwargs)
         return inner_cls

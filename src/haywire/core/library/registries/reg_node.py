@@ -31,8 +31,7 @@ class NodeRegistry(BaseClassRegistry):
         """
         Register a node class with library metadata.
 
-        Sets node class attributes from library metadata and registers under
-        the key format: library.name:node.name
+        Uses the registry_key that was set by the @node decorator during class definition.
 
         Args:
             node_class: The node class to register
@@ -43,8 +42,8 @@ class NodeRegistry(BaseClassRegistry):
         Raises:
             ValueError: If a node with the same key is already registered
         """
-        # Create registry key
-        registry_key = reg_key(library_identity.id, node_cls.class_identity.registry_id)
+        # Use registry_key that was set by the decorator
+        registry_key = node_cls.class_identity.registry_key
 
         # Check if this is an error node and register it automatically
         if node_cls.class_identity.is_error:
