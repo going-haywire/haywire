@@ -16,8 +16,6 @@ from .dependency_graph import DependencyGraph, ReloadPlan
 from .folder_scan import FolderScanMixin
 from ..errors import log_detailed_error
 
-HAYWIRE_CORE_LIB_NAME = 'haywire.core'
-
 # Type alias for customer callbacks
 CustomerCallback = Callable[[str, List[str], LibraryIdentity], None]
 
@@ -338,9 +336,11 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
 
         added_classes, _ = self.module_scan_for_classes(module_name, library_identity, self._class_filter, True)
         if added_classes:
-            # This module contains managed classes - track it with scope prefix
-            # Scope prefix limits which dependencies are tracked (prevents tracking parent classes)
-            self._dependency_graph.add_managed_module(module_name, library_identity.module_name)
+            # Get tracking scopes from library dependencies
+            scope_prefixes = self._get_tracking_scopes(library_identity)
+            
+            # This module contains managed classes - track it with scope prefixes
+            self._dependency_graph.add_managed_module(module_name, scope_prefixes)
             
             for cls in added_classes:
                 self._register_class(cls, library_identity)
@@ -542,6 +542,43 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             logging.info(
                 f"Library '{library_identity.label}': "
                 f"Rollback complete for '{module_name}'")
+
+    # ============================================================================
+    # Dependency Scope Management
+    # ============================================================================
+
+    def _get_tracking_scopes(self, library_identity: LibraryIdentity) -> List[str]:
+        """
+        Get all scope prefixes this module should track dependencies for.
+        
+        Returns scopes based on:
+        1. Own library module name (always tracked)
+        2. Declared dependencies from LibraryIdentity.dependencies
+        3. Core framework (always tracked, unless we ARE core)
+        
+        Args:
+            library_identity: The library identity containing dependency information
+            
+        Returns:
+            List of module prefixes to track (e.g., ['mylib.', 'otherlib.', 'haywire-core.'])
+        """
+        scopes = []
+        
+        # Always track own library
+        scopes.append(library_identity.module_name + '.')
+        
+        # Add declared library dependencies
+        if library_identity.dependencies:
+            for dep_lib_id in library_identity.dependencies:
+                # Dependencies are library IDs (e.g., 'haywire.widgets')
+                # Convert to module prefix by adding dot
+                scopes.append(dep_lib_id + '.')
+                
+        logging.debug(
+            f"Library '{library_identity.label}': Tracking scopes: {scopes}"
+        )
+        
+        return scopes
 
     # ============================================================================
     # Hot Reload Callback Management

@@ -13,7 +13,7 @@ INT = specs_factory(
         description='Integer data type',
         type=DataType.INT,
         container=DataContainerType.SINGLE,
-        widget='haywire.core:number.widget',
+        widget='haywire-core:number.widget',
     )
 
 FLOAT = specs_factory(
@@ -22,7 +22,7 @@ FLOAT = specs_factory(
         description='Float data type',
         type=DataType.FLOAT,
         container=DataContainerType.SINGLE,
-        widget='haywire.core:number.widget',
+        widget='haywire-core:number.widget',
     )
     
 STRING = specs_factory(
@@ -31,5 +31,5 @@ STRING = specs_factory(
         description='String data type',
         type=DataType.STRING,
         container=DataContainerType.SINGLE,
-        widget='haywire.core:text.input.widget',
+        widget='haywire-core:text.input.widget',
     )

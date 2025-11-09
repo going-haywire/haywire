@@ -41,7 +41,7 @@ class DependencyGraph:
     Example:
         Module: 'mylib.nodes.workflow'
         Library dependencies: ['otherlib', 'thirdlib']
-        Scopes tracked: ['mylib.', 'otherlib.', 'thirdlib.', 'haywire.core.']
+        Scopes tracked: ['mylib.', 'otherlib.', 'thirdlib.', 'haywire-core.']
         
         Tracks:   ✅ mylib.nodes.utils (own library)
                   ✅ otherlib.types.CustomType (declared dependency)
@@ -51,7 +51,7 @@ class DependencyGraph:
     WORKFLOW
     ========
     1. Registration Phase (called once per managed module):
-       - Call add_managed_module(module_name, scope_prefix)
+       - Call add_managed_module(module_name, scope_prefixes)
        - Builds complete transitive dependency tree by parsing AST
        - Stores tree for fast lookup: {module -> set of all dependencies}
     
@@ -93,15 +93,17 @@ class DependencyGraph:
     # Register managed modules (during initial folder scan)
     dep_graph.add_managed_module(
         'mylib.nodes.workflow',
-        'mylib.nodes'  # scope prefix
+        ['mylib.', 'otherlib.', 'haywire-core.']  # scope prefixes
     )
     dep_graph.add_managed_module(
         'mylib.nodes.processor',
-        'mylib.nodes'
+        ['mylib.', 'otherlib.', 'haywire-core.']
     )
     
     # When a file changes (file watcher callback)
     reload_plan = dep_graph.get_reload_plan('mylib.nodes.utils')
+    # OR when a cross-library dependency changes
+    reload_plan = dep_graph.get_reload_plan('otherlib.types.CustomType')
     
     # Execute reload plan
     for helper in reload_plan.non_managed_modules:
@@ -155,39 +157,40 @@ class DependencyGraph:
         # Pre-built dependency trees: managed_module -> set of all dependencies (transitive)
         self._dependency_trees: Dict[str, Set[str]] = {}
         
-        # Track scope prefix for each managed module: managed_module -> scope_prefix
-        # Only dependencies matching this prefix are tracked
-        self._module_scope_prefix: Dict[str, str] = {}
+        # Track scope prefixes for each managed module: managed_module -> list[scope_prefix]
+        # Multiple scopes allow tracking across library boundaries
+        self._module_scope_prefixes: Dict[str, List[str]] = {}
     
-    def add_managed_module(self, module_name: str, scope_prefix: str):
+    def add_managed_module(self, module_name: str, scope_prefixes: List[str]):
         """
         Register a module as containing a managed class and build its dependency tree.
         
-        Only dependencies that start with scope_prefix are tracked. This prevents
-        tracking dependencies from parent libraries (e.g., haywire.core base classes).
+        Dependencies matching ANY of the scope_prefixes are tracked. This allows
+        cross-library dependency tracking while filtering out irrelevant modules.
         
         Args:
-            module_name: The module to track (e.g., 'example.nodes.workflow')
-            scope_prefix: Prefix to filter dependencies (e.g., 'example.nodes')
-                         Only modules starting with this prefix will be tracked
+            module_name: The module to track (e.g., 'mylib.nodes.workflow')
+            scope_prefixes: List of prefixes to filter dependencies
+                           (e.g., ['mylib.', 'otherlib.', 'haywire-core.'])
+                           Modules starting with any prefix will be tracked
         
         Example:
             add_managed_module(
-                'example.nodes.workflow',
-                'example.nodes'
+                'mylib.nodes.workflow',
+                ['mylib.', 'otherlib.', 'haywire-core.']
             )
-            # Will track: example.nodes.utils, example.nodes.helpers
-            # Will NOT track: example.widgets.widget, haywire.core.node.base
+            # Will track: mylib.nodes.utils, otherlib.types.CustomType, haywire.core.node.BaseNode
+            # Will NOT track: randomlib.widget, external.package
         """
         self._managed_modules.add(module_name)
-        self._module_scope_prefix[module_name] = scope_prefix
+        self._module_scope_prefixes[module_name] = scope_prefixes
         
-        # Build complete dependency tree for this module within the scope
-        dependency_tree = self._build_dependency_tree(module_name, scope_prefix)
+        # Build complete dependency tree for this module across all scopes
+        dependency_tree = self._build_dependency_tree(module_name, scope_prefixes)
         self._dependency_trees[module_name] = dependency_tree
         
         logging.debug(
-            f"Module '{module_name}' registered as managed with scope '{scope_prefix}' "
+            f"Module '{module_name}' registered as managed with scopes {scope_prefixes} "
             f"and {len(dependency_tree)} dependencies"
         )
     
@@ -202,8 +205,8 @@ class DependencyGraph:
             self._managed_modules.discard(module_name)
             if module_name in self._dependency_trees:
                 del self._dependency_trees[module_name]
-            if module_name in self._module_scope_prefix:
-                del self._module_scope_prefix[module_name]
+            if module_name in self._module_scope_prefixes:
+                del self._module_scope_prefixes[module_name]
             logging.debug(f"Module '{module_name}' removed from managed modules")
     
     def get_reload_plan(self, changed_module: str) -> ReloadPlan:
@@ -221,7 +224,10 @@ class DependencyGraph:
         """
         # regenerate dependency tree if it is a managed module to catch new imports
         if changed_module in self._managed_modules:
-            self.add_managed_module(changed_module, self._module_scope_prefix.get(changed_module, ''))
+            self.add_managed_module(
+                changed_module, 
+                self._module_scope_prefixes.get(changed_module, [])
+            )
 
         # Step 1: Determine reload order for each affected managed class
         reload_lists = []
@@ -258,18 +264,18 @@ class DependencyGraph:
             managed_modules=managed
         )
     
-    def _build_dependency_tree(self, module_name: str, scope_prefix: str) -> Set[str]:
+    def _build_dependency_tree(self, module_name: str, scope_prefixes: List[str]) -> Set[str]:
         """
-        Build complete transitive dependency tree for a module within a scope.
+        Build complete transitive dependency tree for a module across multiple scopes.
         
-        Recursively follows all imports, but only tracks modules that match the scope_prefix.
+        Recursively follows all imports, tracking modules that match ANY of the scope_prefixes.
         
         Args:
             module_name: The module to analyze
-            scope_prefix: Only track dependencies starting with this prefix
+            scope_prefixes: List of scope prefixes to track
             
         Returns:
-            Set of all modules this module depends on (transitively, within scope)
+            Set of all modules this module depends on (transitively, across all scopes)
         """
         all_deps = set()
         visited = set()
@@ -281,8 +287,8 @@ class DependencyGraph:
                 continue
             visited.add(current)
             
-            # Extract direct dependencies within scope
-            direct_deps = self._extract_direct_dependencies(current, scope_prefix)
+            # Extract direct dependencies matching any scope
+            direct_deps = self._extract_direct_dependencies(current, scope_prefixes)
             
             # Add new dependencies to process
             new_deps = direct_deps - visited
@@ -316,18 +322,18 @@ class DependencyGraph:
         # Sort topologically to get correct reload order
         return self._topological_sort(list(all_modules))
     
-    def _extract_direct_dependencies(self, module_name: str, scope_prefix: str) -> Set[str]:
+    def _extract_direct_dependencies(self, module_name: str, scope_prefixes: List[str]) -> Set[str]:
         """
         Extract direct (first-order) module dependencies by parsing source code.
         
-        Only returns dependencies that match the scope_prefix.
+        Only returns dependencies that match ANY of the scope_prefixes.
         
         Args:
             module_name: The module to analyze
-            scope_prefix: Only include dependencies starting with this prefix
+            scope_prefixes: List of scope prefixes to include
             
         Returns:
-            Set of module names that this module directly imports (within scope only)
+            Set of module names that this module directly imports (within scopes only)
         """
         try:
             module = sys.modules.get(module_name)
@@ -348,7 +354,7 @@ class DependencyGraph:
                     # import math, mylib.utils
                     for alias in node.names:
                         dep = alias.name
-                        if self._is_in_scope(dep, scope_prefix):
+                        if self._is_in_scopes(dep, scope_prefixes):
                             dependencies.add(dep)
                 
                 elif isinstance(node, ast.ImportFrom):
@@ -359,16 +365,16 @@ class DependencyGraph:
                             dep = self._resolve_relative_import(
                                 module_name, node.module, node.level
                             )
-                            if dep and self._is_in_scope(dep, scope_prefix):
+                            if dep and self._is_in_scopes(dep, scope_prefixes):
                                 dependencies.add(dep)
                         else:  # Absolute import
-                            if self._is_in_scope(node.module, scope_prefix):
+                            if self._is_in_scopes(node.module, scope_prefixes):
                                 dependencies.add(node.module)
                     elif node.level > 0:  # from . import something
                         dep = self._resolve_relative_import(
                             module_name, '', node.level
                         )
-                        if dep and self._is_in_scope(dep, scope_prefix):
+                        if dep and self._is_in_scopes(dep, scope_prefixes):
                             dependencies.add(dep)
             
             return dependencies
@@ -401,23 +407,22 @@ class DependencyGraph:
         edges = {m: set() for m in modules}
         
         for module in modules:
-            # Get the scope prefix for this module
-            # If it's managed, use its registered scope; otherwise infer from first managed module
-            scope_prefix = self._module_scope_prefix.get(module)
-            if not scope_prefix:
-                # Find scope from any managed module that includes this in its tree
+            # Get the scope prefixes for this module
+            scope_prefixes = self._module_scope_prefixes.get(module)
+            if not scope_prefixes:
+                # Find scopes from any managed module that includes this in its tree
                 for managed_mod, deps in self._dependency_trees.items():
                     if module in deps or module == managed_mod:
-                        scope_prefix = self._module_scope_prefix.get(managed_mod)
+                        scope_prefixes = self._module_scope_prefixes.get(managed_mod)
                         break
             
-            if not scope_prefix:
+            if not scope_prefixes:
                 # Fallback: use the module's own prefix
                 parts = module.split('.')
-                scope_prefix = '.'.join(parts[:-1]) if len(parts) > 1 else module
+                scope_prefixes = ['.'.join(parts[:-1]) + '.'] if len(parts) > 1 else [module]
             
-            # Get direct dependencies within our module set and scope
-            direct_deps = self._extract_direct_dependencies(module, scope_prefix)
+            # Get direct dependencies within our module set and scopes
+            direct_deps = self._extract_direct_dependencies(module, scope_prefixes)
             local_deps = direct_deps & module_set
             
             for dep in local_deps:
@@ -450,6 +455,19 @@ class DependencyGraph:
             result.extend(m for m in modules if m not in result)
         
         return result
+    
+    def _is_in_scopes(self, module_name: str, scope_prefixes: List[str]) -> bool:
+        """
+        Check if a module name is within any of the specified scopes.
+        
+        Args:
+            module_name: The module to check
+            scope_prefixes: List of scope prefixes to check against
+            
+        Returns:
+            True if module_name starts with any of the scope_prefixes
+        """
+        return any(module_name.startswith(prefix) for prefix in scope_prefixes)
     
     def _is_in_scope(self, module_name: str, scope_prefix: str) -> bool:
         """
