@@ -1,0 +1,30 @@
+[project]
+name = "haywire-TEST_A"
+version = "1.0.0"
+description = "Test library for Haywire node system"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Haywire Team"}
+]
+keywords = ["haywire", "node-editor", "visual-programming", "test"]
+
+dependencies = []
+
+# Entry point for Haywire library discovery
+[project.entry-points."haywire.libraries"]
+test_a = "test_a:Library"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["test_a"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "test_a/",
+    "README.md",
+]

@@ -463,7 +463,7 @@ wheels = [
 ]
 
 [[package]]
-name = "haywire"
+name = "haywire-framework"
 version = "0.0.1"
 source = { editable = "." }
 

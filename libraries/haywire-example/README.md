@@ -40,13 +40,26 @@ The library provides:
 ## Structure
 
 ```
-example/
-├── __init__.py          # Library class with @library decorator
-├── nodes/               # Node implementations
-├── types/               # Custom data types (if any)
-├── widgets/             # Custom UI widgets
-├── renderers/           # Custom node renderers
-└── adapters/            # External system adapters
+📁 haywire-EXAMPLE/                    # Git repo name / unique pip package name
+├── pyproject.toml
+│   [project]
+│   name = "haywire-EXAMPLE"          # pip install haywire-cv-tools
+│   
+│   [project.entry-points."haywire.libraries"]
+│   cv_tools = "cv_tools:Library"      # ID matches module
+│
+└── 📁 EXAMPLE/                        # import cv_tools
+    ├── __init__.py
+    │   @library(
+    │       id='EXAMPLE',              # Matches entry point
+    │       label='Computer Vision Tools',
+    │   )
+    │   class Library(BaseLibrary): ...
+    ├── nodes/               # Custom nodes
+    ├── types/               # Custom data types (if any)
+    ├── widgets/             # Custom UI widgets
+    ├── renderers/           # Custom node renderers
+    └── adapters/            # External system adapters
 ```
 
 ## Development

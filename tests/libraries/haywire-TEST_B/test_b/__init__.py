@@ -1,8 +1,8 @@
 """
-Test Library for Haywire
+Test Library B for Haywire
 
-Minimal test library to demonstrate multi-library support.
-Contains one node, one widget, one adapter, and one data struct.
+Minimal test library to demonstrate multi-library support and for testing purposes.
+Contains folders for nodes, widgets, adapters, renderers, and custom types.
 """
 
 from pathlib import Path
@@ -15,19 +15,19 @@ from haywire.core.library.registries.reg_node import NodeRegistry
 from haywire.core.library.registries.reg_custom_type import CustomTypeRegistry
 
 @library(
-    label='Example',
-    id='example',
-    version='0.1.0',
-    description='Example library for demonstrating multi-library support',
-    url='https://github.com/author/haywire_library',
-    help_url='https://docs.github.io/haywire_library',
-    author='Example Author',
-    author_url='https://author_url',
-    dependencies=['haywire.core'],
-    file_watcher=False
+    label='Test B',
+    id='test_b',
+    version='1.0.0',
+    description='Test library B for demonstrating multi-library support',
+    url='https://github.com/maybites/haywire',
+    help_url='https://github.com/maybites/haywire',
+    author='Haywire Team',
+    author_url='https://github.com/maybites/haywire',
+    dependencies=['haywire.libraries.core', 'test_a.types'],
+    file_watcher=True
 )
 class Library(BaseLibrary):
-    """Example library implementation"""
+    """Test B library implementation"""
        
     def register_components(self):
         """Register all test components with the global registries"""
