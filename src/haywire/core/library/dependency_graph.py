@@ -32,18 +32,21 @@ class DependencyGraph:
     
     SCOPE-BASED FILTERING
     ======================
-    Each managed module has a "scope prefix" that limits which dependencies are tracked. This
-    prevents tracking dependencies outside the relevant folder (e.g., excluding base classes
-    from parent libraries).
+    Each managed module can track dependencies across MULTIPLE scope prefixes. This allows
+    modules to track dependencies in:
+    - Their own library (always tracked)
+    - Declared library dependencies (from LibraryIdentity.dependencies)
+    - Core framework (haywire.core, always tracked)
     
     Example:
-        Module: 'haywire.libraries.mylib.nodes.workflow'
-        Scope:  'haywire.libraries.mylib.nodes'
+        Module: 'mylib.nodes.workflow'
+        Library dependencies: ['otherlib', 'thirdlib']
+        Scopes tracked: ['mylib.', 'otherlib.', 'thirdlib.', 'haywire.core.']
         
-        Tracks:   ✅ haywire.libraries.mylib.nodes.utils (in scope)
-                  ✅ haywire.libraries.mylib.nodes.helpers (in scope)
-        Ignores:  ❌ haywire.core.base.Node (outside scope)
-                  ❌ haywire.libraries.mylib.registry.* (outside scope)
+        Tracks:   ✅ mylib.nodes.utils (own library)
+                  ✅ otherlib.types.CustomType (declared dependency)
+                  ✅ haywire.core.node.BaseNode (core framework)
+        Ignores:  ❌ randomlib.something (not in scope)
     
     WORKFLOW
     ========

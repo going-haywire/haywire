@@ -18,6 +18,9 @@ from ..errors import log_detailed_error
 
 HAYWIRE_CORE_LIB_NAME = 'haywire.core'
 
+# Type alias for customer callbacks
+CustomerCallback = Callable[[str, List[str], LibraryIdentity], None]
+
 
 class FileEventType(Enum):
     """Enum for file change event types"""
@@ -54,6 +57,10 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
         self._dependency_graph = DependencyGraph() # For hot-reload dependency tracking
         self._registered_folders: Dict[str, LibraryIdentity] = {} # folder_path -> library_identity
+        
+        # Hot reload callback management
+        self._customer_callbacks: List[CustomerCallback] = []  # Direct consumers (factories, etc.)
+        self._registry_subscribers: List[HotReloadRegistry] = []  # Other registries that depend on this one
 
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:
@@ -295,6 +302,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             logging.info(
                 f"Library '{event.library_identity.label}': "
                 f"...Hot Reloading -> DONE.")
+            
+            # Notify registry subscribers after successful reload
+            self._notify_registry_subscribers(event)
 
         except Exception as e:
             try:
@@ -433,19 +443,37 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             if classes_to_reload:
                 for old_cls_name, new_cls in classes_to_reload:
                     self._unregister_class(old_cls_name)
-                    self._register_class(new_cls, library_identity)
+                    new_key = self._register_class(new_cls, library_identity)
                     logging.info(
                         f"Library '{library_identity.label}': "
                         f"...Re-loaded and re-registered from {module_name}")
-                    # TODO: emit event for reloaded class
+                    # Notify customer callbacks about reloaded class
+                    if new_key:
+                        self._notify_customer_callbacks(
+                            registry_key=new_key,
+                            affected_class_names=[new_cls.__name__],
+                            library_identity=library_identity
+                        )
             if cls_names_to_remove:
                 for cls_name in cls_names_to_remove:
-                    self._unregister_class(cls_name)
-                    # TODO: emit event for removed class
+                    removed_cls = self._unregister_class(cls_name)
+                    # Notify customer callbacks about removed class
+                    if removed_cls:
+                        self._notify_customer_callbacks(
+                            registry_key=cls_name,
+                            affected_class_names=[removed_cls.__name__],
+                            library_identity=library_identity
+                        )
             if classes_to_add:
                 for cls in classes_to_add:
-                    self._register_class(cls, library_identity)
-                    # TODO: emit event for added class
+                    new_key = self._register_class(cls, library_identity)
+                    # Notify customer callbacks about added class
+                    if new_key:
+                        self._notify_customer_callbacks(
+                            registry_key=new_key,
+                            affected_class_names=[cls.__name__],
+                            library_identity=library_identity
+                        )
 
         except Exception as e:
             logging.error(
@@ -514,3 +542,102 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             logging.info(
                 f"Library '{library_identity.label}': "
                 f"Rollback complete for '{module_name}'")
+
+    # ============================================================================
+    # Hot Reload Callback Management
+    # ============================================================================
+    
+    def add_customer_callback(self, callback: CustomerCallback) -> None:
+        """
+        Register a customer callback to be notified of hot reload events.
+        
+        Customer callbacks are invoked immediately after a class is reloaded,
+        added, or removed. They receive the registry key and affected class names.
+        
+        Args:
+            callback: Function to call on hot reload events with signature:
+                     (registry_key: str, affected_class_names: List[str], 
+                      library_identity: LibraryIdentity) -> None
+        """
+        if callback not in self._customer_callbacks:
+            self._customer_callbacks.append(callback)
+            logging.debug(f"Registered customer callback: {callback.__name__}")
+    
+    def remove_customer_callback(self, callback: CustomerCallback) -> None:
+        """
+        Unregister a customer callback.
+        
+        Args:
+            callback: The callback to remove
+        """
+        if callback in self._customer_callbacks:
+            self._customer_callbacks.remove(callback)
+            logging.debug(f"Removed customer callback: {callback.__name__}")
+    
+    def add_registry_subscriber(self, registry: HotReloadRegistry) -> None:
+        """
+        Register another registry to be notified of hot reload events.
+        
+        Registry subscribers are invoked after customer callbacks and receive
+        complete FileChangeEvent information for their own processing.
+        
+        Args:
+            registry: Another registry that needs to react to changes in this registry
+        """
+        if registry not in self._registry_subscribers:
+            self._registry_subscribers.append(registry)
+            logging.debug(f"Registered registry subscriber: {registry.__class__.__name__}")
+    
+    def remove_registry_subscriber(self, registry: HotReloadRegistry) -> None:
+        """
+        Unregister a registry subscriber.
+        
+        Args:
+            registry: The registry to unsubscribe
+        """
+        if registry in self._registry_subscribers:
+            self._registry_subscribers.remove(registry)
+            logging.debug(f"Removed registry subscriber: {registry.__class__.__name__}")
+    
+    def _notify_customer_callbacks(self, registry_key: str, 
+                                   affected_class_names: List[str],
+                                   library_identity: LibraryIdentity) -> None:
+        """
+        Notify all customer callbacks about a hot reload event.
+        
+        This method is called internally during hot reload operations.
+        Errors in individual callbacks are logged but don't stop other callbacks.
+        
+        Args:
+            registry_key: The registry key affected
+            affected_class_names: List of class names modified
+            library_identity: The library where the change occurred
+        """
+        for callback in self._customer_callbacks:
+            try:
+                callback(registry_key, affected_class_names, library_identity)
+            except Exception as e:
+                logging.error(
+                    f"Customer callback '{callback.__name__}' failed for registry_key '{registry_key}': {e}",
+                    exc_info=True
+                )
+    
+    def _notify_registry_subscribers(self, event: FileChangeEvent) -> None:
+        """
+        Notify all registry subscribers about a hot reload event.
+        
+        This method is called after customer callbacks have been notified.
+        Registry subscribers receive the complete event information and can
+        perform their own dependency analysis and reloading.
+        
+        Args:
+            event: The file change event that triggered the reload
+        """
+        for registry in self._registry_subscribers:
+            try:
+                registry.event_dispatcher(event)
+            except Exception as e:
+                logging.error(
+                    f"Registry subscriber '{registry.__class__.__name__}' callback failed for {event.file_path}: {e}",
+                    exc_info=True
+                )

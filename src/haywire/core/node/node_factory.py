@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 from .base_node import BaseNode
 from .node_wrapper import NodeWrapper
 from ..library.registries.reg_node import NodeRegistry
+from ..library.library_identity import LibraryIdentity
 from ..errors import log_detailed_error, DetailedError
 
 
@@ -42,6 +43,9 @@ class NodeFactory:
                 
         # Hot reload notification callbacks
         self._hot_reload_listeners: List[Callable[[str, List[str]], None]] = []
+        
+        # Register this factory as a customer callback for node registry hot reloads
+        self.node_registry.add_customer_callback(self._on_node_reloaded)
         
    
     def create_instance(self, registry_key: str, graph: 'HaywireGraph', 
@@ -128,6 +132,31 @@ class NodeFactory:
         )
         
         return wrapper
+    
+    def _on_node_reloaded(self, registry_key: str, 
+                         affected_class_names: List[str],
+                         library_identity: LibraryIdentity) -> None:
+        """
+        Customer callback for node hot reload events.
+        
+        This is called by the NodeRegistry when a node class is reloaded, added, or removed.
+        It forwards the notification to all registered hot reload listeners (typically NodeWrappers).
+        
+        Args:
+            registry_key: The registry key of the affected node (e.g., "example:MyNode")
+            affected_class_names: List of class names that were modified
+            library_identity: The library where the change occurred
+        """
+        logging.info(
+            f"NodeFactory: Node reloaded - {registry_key} "
+            f"(classes: {', '.join(affected_class_names)}) "
+            f"from library '{library_identity.label}'"
+        )
+        
+        # Notify all hot reload listeners (NodeWrappers, etc.)
+        # Pass empty list for affected_node_ids since listeners will determine themselves
+        for listener in self._hot_reload_listeners:
+            listener(registry_key, [])
         
     def handle_hot_reload(self, registry_key: str) -> None:
         """

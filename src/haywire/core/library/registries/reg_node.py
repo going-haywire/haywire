@@ -1,7 +1,8 @@
 # No typing imports needed for current functionality
 
 import inspect
-from typing import Type, TypeVar, Optional, Union
+import logging
+from typing import Type, Optional
 
 from ...node.exceptions import NodeDiscoveryError
 from ...node.dataclasses import NodeErrorInfo

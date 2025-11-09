@@ -5,10 +5,12 @@ This factory manages cached NodeRenderer instances and provides the generate_nod
 that looks up renderers from the renderers registry.
 """
 
-from typing import Dict, Type
+import logging
+from typing import Dict, Type, List
 from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_renderer import RendererRegistry
+from haywire.core.library.library_identity import LibraryIdentity
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
 
@@ -35,6 +37,10 @@ class NodeRenderFactory:
         
         # Cache for NodeRenderer instances (stateless, so can be reused)
         self._renderer_cache: Dict[str, BaseNodeRenderer] = {}
+        
+        # Register for hot reload notifications
+        self.renderers_registry.add_customer_callback(self._on_renderer_reloaded)
+        self.widget_registry.add_customer_callback(self._on_widget_reloaded)
     
     def generate_node(self, node_design_name: str | None, node: BaseNode) -> UINodeCard:
         """
@@ -82,3 +88,52 @@ class NodeRenderFactory:
         
         if renderer_class_name not in self._renderer_cache:
             self._renderer_cache[renderer_class_name] = renderer_class(self.widget_registry)
+    
+    def _on_renderer_reloaded(self, registry_key: str,
+                             affected_class_names: List[str],
+                             library_identity: LibraryIdentity) -> None:
+        """
+        Customer callback for renderer hot reload events.
+        
+        This is called by the RendererRegistry when a renderer class is reloaded, added, or removed.
+        It clears the cache for affected renderers.
+        
+        Args:
+            registry_key: The registry key of the affected renderer
+            affected_class_names: List of class names that were modified
+            library_identity: The library where the change occurred
+        """
+        logging.info(
+            f"NodeRenderFactory: Renderer reloaded - {registry_key} "
+            f"(classes: {', '.join(affected_class_names)}) "
+            f"from library '{library_identity.label}'"
+        )
+        
+        # Clear cache for affected renderer classes
+        for class_name in affected_class_names:
+            if class_name in self._renderer_cache:
+                logging.debug(f"Clearing renderer cache for: {class_name}")
+                del self._renderer_cache[class_name]
+    
+    def _on_widget_reloaded(self, registry_key: str,
+                           affected_class_names: List[str],
+                           library_identity: LibraryIdentity) -> None:
+        """
+        Customer callback for widget hot reload events.
+        
+        This is called by the WidgetRegistry when a widget class is reloaded, added, or removed.
+        Since widgets can be used by any renderer, we clear the entire cache.
+        
+        Args:
+            registry_key: The registry key of the affected widget
+            affected_class_names: List of class names that were modified
+            library_identity: The library where the change occurred
+        """
+        logging.info(
+            f"NodeRenderFactory: Widget reloaded - {registry_key} "
+            f"(classes: {', '.join(affected_class_names)}) "
+            f"from library '{library_identity.label}' - clearing all renderer cache"
+        )
+        
+        # Clear entire cache since we don't know which renderers use this widget
+        self.clear_cache()

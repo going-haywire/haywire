@@ -31,7 +31,7 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         author_url (str, optional): Author's URL. Defaults to empty string.
         id (str, optional): Unique identifier for the library.
             Defaults to label if not provided.
-        dependencies (list[str], optional): List of required libraries.
+        dependencies (list[str], optional): List of required haywire libraries.
             Defaults to empty list.
         file_watcher (bool, optional): Whether to enable file watching for this library.
             Defaults to False.
