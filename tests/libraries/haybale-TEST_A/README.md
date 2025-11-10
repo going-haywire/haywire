@@ -1,6 +1,6 @@
-# Haywire TEST_B Library
+# Haywire TEST_A Library
 
-This is a test library B for the Haywire library system.
+This is a test library for the Haywire library system.
 
 ## Features
 
@@ -17,14 +17,14 @@ This is a test library B for the Haywire library system.
 For development with hot-reload support:
 
 ```bash
-cd tests/libraries/haywire-TEST_B
+cd tests/libraries/haybale-TEST_A
 uv pip install -e .
 ```
 
 ### Production
 
 ```bash
-uv pip install haywire-TEST_B
+uv pip install haybale-TEST_A
 ```
 
 ## Usage
@@ -34,15 +34,15 @@ Once installed, the library is automatically discovered by Haywire through entry
 ## Structure
 
 ```
-📁 haywire-TEST_B/                    # Git repo name / unique pip package name
+📁 haybale-TEST_A/                    # Git repo name / unique pip package name
 ├── pyproject.toml
 │   [project]
-│   name = "haywire-TEST_B"          # pip install haywire-TEST_B
+│   name = "haybale-TEST_A"          # pip install haybale-TEST_A
 │   
 │   [project.entry-points."haywire.libraries"]
-│   test_b = "test_b:Library"        # ID matches module
+│   test_a = "test_a:Library"        # ID matches module
 │
-└── 📁 test_b/                       # Python module
+└── 📁 haybale_test_a/                       # Python module
     ├── __init__.py                  # Library class with @library decorator
     ├── 📁 adapters/
     ├── 📁 nodes/

@@ -2,7 +2,7 @@
 Basic core node implementations
 """
 
-from example.nodes.util import simple_function
+from haybale_example.nodes.util import simple_function
 
 # Import the node system base class
 from haywire.core.node.base_node import node
@@ -29,7 +29,7 @@ class ConfigurableMathNode(BaseNode):
     operation_config = PinBuilder.config(
         STRING(value='add'),
         label='Operation Mode',
-        widget='haywire.core:select.widget',
+        widget='core:select.widget',
         ui={'properties': {'options': ['add', 'multiply', 'power']}},
         callback=lambda self: self._on_operation_changed()
     )
@@ -37,20 +37,20 @@ class ConfigurableMathNode(BaseNode):
     precision_config = PinBuilder.config(
         INT(value=2),
         label='Decimal Precision',
-        widget='haywire.core:number.widget'
+        widget='core:number.widget'
     )
     
     # Property - no callback, no pin, just user-editable value
     author_property = PinBuilder.property(
         STRING(value=''),
         label='Author',
-        widget='haywire.core:text.input.widget'
+        widget='core:text.input.widget'
     )
     
     description_property = PinBuilder.property(
         STRING(value=''),
         label='Description',
-        widget='haywire.core:text.area.widget'
+        widget='core:text.area.widget'
     )
     
     # Regular data inlets

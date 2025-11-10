@@ -97,7 +97,7 @@ def test_library_discovery():
 
 def check_example_library():
     """Check if example library is installable"""
-    example_path = project_root / 'libraries' / 'haywire-example'
+    example_path = project_root / 'libraries' / 'haybale-example'
     pyproject_path = example_path / 'pyproject.toml'
     
     print("\n" + "=" * 70)
@@ -113,7 +113,7 @@ def check_example_library():
     # Check if it's installed
     try:
         import importlib.metadata
-        version = importlib.metadata.version('haywire-example')
+        version = importlib.metadata.version('haybale-example')
         print(f"✅ Example library is installed (version {version})")
         
         # Check if editable
@@ -124,7 +124,7 @@ def check_example_library():
             text=True
         )
         
-        if 'haywire-example' in result.stdout:
+        if 'haybale-example' in result.stdout:
             print("✅ Installed as editable (hot-reload enabled)")
         else:
             print("ℹ️  Installed as regular package (hot-reload disabled)")

@@ -560,7 +560,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             library_identity: The library identity containing dependency information
             
         Returns:
-            List of module prefixes to track (e.g., ['mylib.', 'otherlib.', 'haywire-core.'])
+            List of module prefixes to track (e.g., ['mylib.', 'otherlib.', 'core.'])
         """
         scopes = []
         

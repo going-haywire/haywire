@@ -41,7 +41,7 @@ class DependencyGraph:
     Example:
         Module: 'mylib.nodes.workflow'
         Library dependencies: ['otherlib', 'thirdlib']
-        Scopes tracked: ['mylib.', 'otherlib.', 'thirdlib.', 'haywire-core.']
+        Scopes tracked: ['mylib.', 'otherlib.', 'thirdlib.', 'core.']
         
         Tracks:   ✅ mylib.nodes.utils (own library)
                   ✅ otherlib.types.CustomType (declared dependency)
@@ -93,11 +93,11 @@ class DependencyGraph:
     # Register managed modules (during initial folder scan)
     dep_graph.add_managed_module(
         'mylib.nodes.workflow',
-        ['mylib.', 'otherlib.', 'haywire-core.']  # scope prefixes
+        ['mylib.', 'otherlib.', 'core.']  # scope prefixes
     )
     dep_graph.add_managed_module(
         'mylib.nodes.processor',
-        ['mylib.', 'otherlib.', 'haywire-core.']
+        ['mylib.', 'otherlib.', 'core.']
     )
     
     # When a file changes (file watcher callback)
@@ -171,13 +171,13 @@ class DependencyGraph:
         Args:
             module_name: The module to track (e.g., 'mylib.nodes.workflow')
             scope_prefixes: List of prefixes to filter dependencies
-                           (e.g., ['mylib.', 'otherlib.', 'haywire-core.'])
+                           (e.g., ['mylib.', 'otherlib.', 'core.'])
                            Modules starting with any prefix will be tracked
         
         Example:
             add_managed_module(
                 'mylib.nodes.workflow',
-                ['mylib.', 'otherlib.', 'haywire-core.']
+                ['mylib.', 'otherlib.', 'core.']
             )
             # Will track: mylib.nodes.utils, otherlib.types.CustomType, haywire.core.node.BaseNode
             # Will NOT track: randomlib.widget, external.package

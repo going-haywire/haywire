@@ -11,7 +11,7 @@ from haywire.core.data.enums import DataType, FlowType
 from haywire.core.data.fields import SingleField
 
 # Import the custom type from test_a library
-from test_a.types.data import TestData
+from haybale_test_a.types.data import TestData
 
 @node(
     label='Test Processor',

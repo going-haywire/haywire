@@ -47,7 +47,7 @@ See: [Developer Guide - Creating a New Library](Library_System_Developer_Guide.m
 
 ```bash
 # Install from PyPI
-uv pip install haywire-my-library
+uv pip install haybale-my-library
 
 # Install for development (hot-reload)
 cd my_library

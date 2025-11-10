@@ -17,7 +17,7 @@ from haywire.core.library.registries.reg_custom_type import CustomTypeRegistry
 
 @library(
     label='Haywire Core',
-    id='haywire-core',
+    id='core',
     version='1.0.0',
     description='Core Haywire library with fundamental components',
     url='https://github.com/maybites/haywire',

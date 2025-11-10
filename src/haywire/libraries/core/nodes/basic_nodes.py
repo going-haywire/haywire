@@ -48,7 +48,7 @@ class TestNodeOne(BaseNode):
                 flow_type=FlowType.DATA,
                 is_pooled=False,
                 data=SingleField(DataType.STRING, "Option 1", False),
-                widget='haywire-core:select.widget',
+                widget='core:select.widget',
                 ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
             )
         )
@@ -57,7 +57,7 @@ class TestNodeOne(BaseNode):
                 label='Float Slider',
                 flow_type=FlowType.DATA,
                 data=SingleField(DataType.FLOAT, 50.0, False),
-                widget='haywire-core:slider.widget',
+                widget='core:slider.widget',
                 ui={'properties': {'min': 0, 'max': 100, 'step': 1}}
             )
         )
@@ -66,7 +66,7 @@ class TestNodeOne(BaseNode):
                 label='Boolean Switch',
                 flow_type=FlowType.DATA,
                 data=SingleField(DataType.BOOL, True, False),
-                widget='haywire-core:switch.widget',
+                widget='core:switch.widget',
                 ui={'properties': {'text': 'Enable Feature'}}
             )
         )
@@ -75,7 +75,7 @@ class TestNodeOne(BaseNode):
                 label='Text Input',
                 flow_type=FlowType.DATA,
                 data=SingleField(DataType.STRING, 'Hello', False),
-                widget='haywire-core:text.input.widget',
+                widget='core:text.input.widget',
                 ui={'properties': {'placeholder': 'Enter text...'}}
             )   
         )
@@ -84,7 +84,7 @@ class TestNodeOne(BaseNode):
                 label='Missing Widget',
                 flow_type=FlowType.DATA,
                 data=SingleField(DataType.INT, 42, False),
-                widget='haywire-core:number.widget',
+                widget='core:number.widget',
                 ui={'properties': {}}
             )
         )

@@ -26,7 +26,7 @@ def derive_library_id(cls: Type) -> str | None:
         For a class at haywire.libraries.core.nodes.basic_nodes.TestNode:
         - Walks up: haywire.libraries.core.nodes -> haywire.libraries.core
         - Finds Library class in haywire.libraries.core.__init__
-        - Returns 'haywire-core' from Library.class_identity.id
+        - Returns 'core' from Library.class_identity.id
     """
     module_path = cls.__module__
     parts = module_path.split('.')

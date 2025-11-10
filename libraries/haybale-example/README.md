@@ -24,7 +24,7 @@ uv pip install -e .
 ### Production
 
 ```bash
-uv pip install haywire-example
+uv pip install haybale-example
 ```
 
 ## Usage
@@ -40,15 +40,15 @@ The library provides:
 ## Structure
 
 ```
-📁 haywire-EXAMPLE/                    # Git repo name / unique pip package name
+📁 haybale-EXAMPLE/                    # Git repo name / unique pip package name
 ├── pyproject.toml
 │   [project]
-│   name = "haywire-EXAMPLE"          # pip install haywire-cv-tools
+│   name = "haybale-EXAMPLE"          # pip install haybale-cv-tools
 │   
 │   [project.entry-points."haywire.libraries"]
 │   cv_tools = "cv_tools:Library"      # ID matches module
 │
-└── 📁 EXAMPLE/                        # import cv_tools
+└── 📁 haybale_EXAMPLE/                        # import cv_tools
     ├── __init__.py
     │   @library(
     │       id='EXAMPLE',              # Matches entry point

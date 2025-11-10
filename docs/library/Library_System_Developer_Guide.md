@@ -7,7 +7,7 @@
 Install any Haywire library from pip:
 
 ```bash
-uv pip install haywire-my-library
+uv pip install haybale-my-library
 ```
 
 That's it! The library is automatically discovered and loaded when you run your Haywire application.
@@ -20,25 +20,49 @@ That's it! The library is automatically discovered and loaded when you run your 
 
 Use this when you want to publish your library to PyPI or share it with others.
 
+
 ```
-my_library/                      # Project root
-├── pyproject.toml              # Package configuration
-├── README.md                   # Documentation
-└── my_library/                 # Python package (same name)
-    ├── __init__.py            # Library class with @library decorator
-    ├── nodes/                 # Your nodes
+📁 haybale-MYLIBRARY/                     # Git repo name / unique pip package name
+├── pyproject.toml
+│   [project]
+│   name = "haybale-MYLIBRARY"            # pip install haybale-TEST_B
+│   
+│   [project.entry-points."haywire.libraries"]
+│   MYLIBRARY = "haybale_MYLIBRARY:Library"  # ID matches module
+│   
+│   [tool.hatch.build.targets.wheel]
+│   packages = ["haybale_MYLIBRARY"]
+│   
+│   [tool.hatch.build.targets.sdist]
+│   include = [
+│       "haybale_MYLIBRARY/",
+│       "README.md",
+│   ]
+│
+├── README.md                               # Documentation
+└── 📁 haybale_MYLIBRARY/                   # Python module
+    ├── __init__.py                         # Library class with @library decorator
+    │   @library(
+    │       label='My Library',
+    │       id='MYLIBRARY',
+    │
+    ├── 📁 adapters/
+    │   ├── __init__.py
+    │   └── my_adapater.py
+    ├── 📁 nodes/
     │   ├── __init__.py
     │   └── my_node.py
-    ├── widgets/               # Custom widgets (optional)
-    │   ├── __init__.py
-    │   └── my_widget.py
-    ├── renderers/             # Custom renderers (optional)
+    ├── 📁 renderers/
     │   ├── __init__.py
     │   └── my_renderer.py
-    └── adapters/              # Type adapters (optional)
+    ├── 📁 types/
+    │   ├── __init__.py
+    │   └── my_type.py
+    └── 📁 widgets/
         ├── __init__.py
-        └── my_adapter.py
+        └── my_widget.py
 ```
+
 
 **When to use:**
 - ✅ Publishing to PyPI
@@ -55,22 +79,40 @@ uv pip install .     # Production
 
 #### Option 2: Flat Structure (Core Libraries Only)
 
-This is simpler but only used for libraries bundled with Haywire core.
+This is simpler but only used for libraries bundled with Haywire core or libraries that need to be loaded by provide the path to the root folder 
 
 ```
-src/haywire/libraries/my_lib/
-├── __init__.py                # Library class
-├── nodes/
-├── widgets/
-└── renderers/
+~/libraries/
+└── 📁 haybale_MYLIBRARY/                   # Python module
+    ├── __init__.py                         # Library class with @library decorator
+    │   @library(
+    │       label='My Library',
+    │       id='MYLIBRARY',
+    │
+    ├── 📁 adapters/
+    │   ├── __init__.py
+    │   └── my_adapater.py
+    ├── 📁 nodes/
+    │   ├── __init__.py
+    │   └── my_node.py
+    ├── 📁 renderers/
+    │   ├── __init__.py
+    │   └── my_renderer.py
+    ├── 📁 types/
+    │   ├── __init__.py
+    │   └── my_type.py
+    └── 📁 widgets/
+        ├── __init__.py
+        └── my_widget.py
 ```
 
 **When to use:**
+- ✅ Adhoc Library
 - ✅ Library is part of Haywire core
 - ✅ Never distributed separately
 - ✅ Maintained in main repo
 
-**Don't use this for your own libraries** - use the package structure instead.
+**If you plan to distribute:**  use the package structure instead.
 
 ### Step by Step Guilde
 
@@ -121,7 +163,7 @@ __all__ = ['Library']
 
 ```toml
 [project]
-name = "haywire-my-library"
+name = "haybale-my-library"
 version = "1.0.0"
 description = "My custom Haywire library"
 requires-python = ">=3.9"
@@ -291,7 +333,7 @@ uv pip install -e .
 **Verify:**
 ```bash
 uv pip list --editable
-# Should show: haywire-my-library  1.0.0  /path/to/my_library
+# Should show: haybale-my-library  1.0.0  /path/to/my_library
 ```
 
 ### Method 2: Regular Install (Production)
@@ -300,7 +342,7 @@ uv pip list --editable
 
 ```bash
 # From PyPI
-uv pip install haywire-my-library
+uv pip install haybale-my-library
 
 # From local directory
 cd my_library
@@ -320,14 +362,14 @@ uv pip install dist/haywire_my_library-1.0.0-py3-none-any.whl
 
 ```bash
 # Install from GitHub
-uv pip install git+https://github.com/username/haywire-my-library.git
+uv pip install git+https://github.com/username/haybale-my-library.git
 
 # Install specific branch/tag
-uv pip install git+https://github.com/username/haywire-my-library.git@main
-uv pip install git+https://github.com/username/haywire-my-library.git@v1.0.0
+uv pip install git+https://github.com/username/haybale-my-library.git@main
+uv pip install git+https://github.com/username/haybale-my-library.git@v1.0.0
 
 # Editable from git
-uv pip install -e git+https://github.com/username/haywire-my-library.git#egg=haywire-my-library
+uv pip install -e git+https://github.com/username/haybale-my-library.git#egg=haybale-my-library
 ```
 
 ## Publishing Your Library
@@ -385,7 +427,7 @@ python -m twine upload --repository testpypi dist/*
 Once published, anyone can install:
 
 ```bash
-uv pip install haywire-my-library
+uv pip install haybale-my-library
 ```
 
 ## Dependencies
@@ -481,7 +523,7 @@ git push origin v1.0.1
 # - Check library documentation
 
 # 2. Install
-uv pip install haywire-my-library
+uv pip install haybale-my-library
 
 # 3. Use in application
 python your_haywire_app.py
@@ -571,7 +613,7 @@ uv pip show my-library
 
 **Update dependencies:**
 ```bash
-uv pip install --upgrade haywire haywire-my-library
+uv pip install --upgrade haywire haybale-my-library
 ```
 
 ### Library Loaded from Wrong Source
@@ -611,7 +653,7 @@ print(f"Loaded from: {source}")
 ### Naming Conventions
 
 **Package name** (PyPI):
-- `haywire-my-library` (lowercase, hyphens)
+- `haybale-my-library` (lowercase, hyphens)
 
 **Library ID**:
 - `my_library` (lowercase, underscores, matches package folder)
@@ -643,7 +685,7 @@ Short description
 ## Installation
 
 \`\`\`bash
-uv pip install haywire-my-library
+uv pip install haybale-my-library
 \`\`\`
 
 ## Nodes Provided
@@ -707,7 +749,7 @@ __all__ = ['Library']
 ```toml
 # pyproject.toml
 [project]
-name = "haywire-my-library"
+name = "haybale-my-library"
 version = "1.0.0"
 dependencies = ["haywire>=0.0.1"]
 
@@ -833,7 +875,7 @@ service.initialize()
 
 ```toml
 [project]
-name = "haywire-{library-name}"
+name = "haybale-{library-name}"
 version = "{version}"
 description = "{description}"
 requires-python = ">=3.9"
@@ -865,12 +907,12 @@ packages = ["{package_name}"]
 
 ```bash
 # Package management
-uv pip install haywire-my-library          # Install
+uv pip install haybale-my-library          # Install
 uv pip install -e .                        # Editable install
-uv pip uninstall haywire-my-library        # Uninstall
+uv pip uninstall haybale-my-library        # Uninstall
 uv pip list                                # List installed
 uv pip list --editable                     # List editable only
-uv pip show haywire-my-library             # Show details
+uv pip show haybale-my-library             # Show details
 
 # Building
 python -m build                            # Build package
