@@ -4,7 +4,7 @@ data field specifications, and factory functions for creating data fields.
 """
 
 from .enums import DataType, DataContainerType, FlowType
-from .specs import DataFieldSpec, specs_factory
+from .specs import DataPortSpec, specs_factory
 from .fields import DataField, SingleField, PooledField
 
 __all__ = [
@@ -13,7 +13,7 @@ __all__ = [
     "DataContainerType",
     "FlowType",
     # Specs
-    "DataFieldSpec",
+    "DataPortSpec",
     "specs_factory",
     # Fields
     "DataField",

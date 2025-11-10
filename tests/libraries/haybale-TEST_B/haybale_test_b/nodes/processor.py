@@ -6,7 +6,7 @@ It uses TestData from test_a library.
 """
 
 from haywire.core.node.base_node import node, BaseNode
-from haywire.core.node.elements import Inlet, Outlet
+from haywire.core.node.ports import PortInlet, PortOutlet
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.data.fields import SingleField
 
@@ -35,7 +35,7 @@ class TestProcessorNode(BaseNode):
         
         # Input: Custom TestData type
         self.add_inlet(
-            Inlet(
+            PortInlet(
                 id='test_data_in',
                 label='Test Data In',
                 flow_type=FlowType.DATA,
@@ -46,7 +46,7 @@ class TestProcessorNode(BaseNode):
         
         # Input: Additional value to add
         self.add_inlet(
-            Inlet(
+            PortInlet(
                 id='modifier',
                 label='Modifier',
                 flow_type=FlowType.DATA,
@@ -57,7 +57,7 @@ class TestProcessorNode(BaseNode):
         
         # Output: Modified TestData
         self.add_outlet(
-            Outlet(
+            PortOutlet(
                 id='test_data_out',
                 flow_type=FlowType.DATA,
                 label='Test Data Out',
@@ -67,7 +67,7 @@ class TestProcessorNode(BaseNode):
         
         # Output: String description
         self.add_outlet(
-            Outlet(
+            PortOutlet(
                 id='description',
                 flow_type=FlowType.DATA,
                 label='Description',

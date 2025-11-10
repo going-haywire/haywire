@@ -7,10 +7,10 @@ from haybale_example.nodes.util import simple_function
 # Import the node system base class
 from haywire.core.node.base_node import node
 from haywire.core.node.base_node import BaseNode
-from haywire.core.node.elements import Inlet, Outlet
+from haywire.core.node.ports import PortInlet, PortOutlet
 from haywire.core.data.enums import DataType, DataContainerType, FlowType
 from haywire.core.data.fields import SingleField
-from haywire.core.node.elements import PinBuilder
+from haywire.core.node.ports import PinBuilder
 from haywire.libraries.core.adapters import FLOAT, INT, STRING
 
 @node(
@@ -89,7 +89,7 @@ class ConfigurableMathNode(BaseNode):
         # Add operation-specific inlets
         if operation == 'power':
             self.add_inlet(
-                Inlet(
+                PortInlet(
                     id='exponent',  # id as first positional parameter
                     data=SingleField('exponent', DataType.FLOAT, 25.0, False),
                 )

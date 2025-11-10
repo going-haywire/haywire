@@ -1,10 +1,10 @@
 
-from .elements import Outlet, Inlet
+from .ports import PortOutlet, PortInlet
 
 # Example showing how pipes would work with multi-value inlets
 class Pipe:
     """Example pipe class for data propagation"""
-    def __init__(self, source_outlet: Outlet, target_inlet: Inlet, pipe_id: str):
+    def __init__(self, source_outlet: PortOutlet, target_inlet: PortInlet, pipe_id: str):
         self.source_outlet = source_outlet
         self.target_inlet = target_inlet
         self.pipe_id = pipe_id

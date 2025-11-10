@@ -11,9 +11,9 @@ from haywire.core.library.utils import derive_library_id, reg_key
 
 T = TypeVar('T')
 
-from .elements import Inlet, Outlet, PinSpec
+from .ports import PortInlet, PortOutlet, PinSpec
 from ..library.library_identity import LibraryIdentity
-from ..data.specs import DataFieldSpec
+from ..data.specs import DataPortSpec
 
 @dataclass
 class NodeIdentity(BaseIdentity):
@@ -132,8 +132,8 @@ class NodeData():
         """Initialize all pins from class definitions"""
         self.configs = {}
         self.properties = {}
-        self.inlets: Dict[str, Inlet] = {}
-        self.outlets: Dict[str, Outlet] = {}
+        self.inlets: Dict[str, PortInlet] = {}
+        self.outlets: Dict[str, PortOutlet] = {}
         
         # Collect pin specs from all classes in MRO
         for klass in reversed(self.__class__.__mro__):
@@ -160,7 +160,7 @@ class NodeData():
         self._cache_dirty = True
     
     # deprecated methods for dynamic pin management
-    def add_inlet(self, inlet: Inlet) -> Inlet:
+    def add_inlet(self, inlet: PortInlet) -> PortInlet:
         """Add an inlet element"""
         if '__' in inlet.id:
             # Handle special case for inlet IDs containing '__' - reserved to split concatenated attributes
@@ -170,7 +170,7 @@ class NodeData():
         return inlet
     
     #deprecated methods for dynamic pin management
-    def add_outlet(self, outlet: Outlet) -> Outlet:
+    def add_outlet(self, outlet: PortOutlet) -> PortOutlet:
         """Add an outlet element"""
         if '__' in outlet.id:
             # Handle special case for outlet IDs containing '__' - reserved to split concatenated attributes
@@ -179,8 +179,8 @@ class NodeData():
         return outlet
     
 
-    def add_inlet_experimental(self, pin_id: str, spec: DataFieldSpec = None, 
-                  label: str = '', **kwargs) -> Inlet:
+    def add_inlet_experimental(self, pin_id: str, spec: DataPortSpec = None, 
+                  label: str = '', **kwargs) -> PortInlet:
         """Add inlet (works for both static and dynamic)"""
         pin_spec = PinSpec(
             flow_type=FlowType.CTRL if spec is None else FlowType.DATA,
@@ -194,8 +194,8 @@ class NodeData():
         self._cache_dirty = True
         return inlet
     
-    def add_outlet_experimental(self, pin_id: str, spec: DataFieldSpec = None,
-                   label: str = '', **kwargs) -> Outlet:
+    def add_outlet_experimental(self, pin_id: str, spec: DataPortSpec = None,
+                   label: str = '', **kwargs) -> PortOutlet:
         """Add outlet (works for both static and dynamic)"""
         pin_spec = PinSpec(
             flow_type=FlowType.CTRL if spec is None else FlowType.DATA,
@@ -266,7 +266,7 @@ class NodeData():
                     self.configs[name].load_from_dict(config_data)
                 else:
                     # Create new (was dynamically added)
-                    config = Inlet.from_dict(config_data)
+                    config = PortInlet.from_dict(config_data)
                     self.configs[name] = config
                     setattr(self, name, config)
         
@@ -276,7 +276,7 @@ class NodeData():
                 if name in self.properties:
                     self.properties[name].load_from_dict(prop_data)
                 else:
-                    prop = Inlet.from_dict(prop_data)
+                    prop = PortInlet.from_dict(prop_data)
                     self.properties[name] = prop
                     setattr(self, name, prop)
         
@@ -286,7 +286,7 @@ class NodeData():
                 if name in self.inlets:
                     self.inlets[name].load_from_dict(inlet_data)
                 else:
-                    inlet = Inlet.from_dict(inlet_data)
+                    inlet = PortInlet.from_dict(inlet_data)
                     self.inlets[name] = inlet
                     setattr(self, name, inlet)
         
@@ -296,7 +296,7 @@ class NodeData():
                 if name in self.outlets:
                     self.outlets[name].load_from_dict(outlet_data)
                 else:
-                    outlet = Outlet.from_dict(outlet_data)
+                    outlet = PortOutlet.from_dict(outlet_data)
                     self.outlets[name] = outlet
                     setattr(self, name, outlet)
         

@@ -2,19 +2,19 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
-from ..data.specs import DataFieldSpec
+from ..data.specs import DataFieldFactory, DataPortSpec
 from ..data.fields import DataField
 from ..data.enums import FlowType
 
 @dataclass
-class ConfigurableElement:
+class DataPort:
     """Base for configs, properties, inlets, outlets
     
     Intentionally broad to unify access patterns.
     Not all fields used by all subclasses.
     """
     id: str
-    init: Optional[DataFieldSpec] = None
+    init: Optional[DataPortSpec] = None
     label: str = ''
     flow_type: FlowType = FlowType.NONE
     widget: Optional[str] = None
@@ -63,7 +63,7 @@ class ConfigurableElement:
         }
 
 @dataclass
-class Inlet(ConfigurableElement):
+class PortInlet(DataPort):
     def is_inlet(self) -> bool:
         return True
     
@@ -76,23 +76,24 @@ class Inlet(ConfigurableElement):
         # Create data field if needed
         if self.data is None and self.flow_type == FlowType.DATA.value:
             if self.init:
-                self.data = self.init.create_field(is_pooled=self.is_pooled)
+                self.data = DataFieldFactory.create(self.init,is_pooled=self.is_pooled)
 
 @dataclass
-class Outlet(ConfigurableElement):
+class PortOutlet(DataPort):
     def __post_init__(self):
         super().__post_init__()
         # Create data field if needed
         if self.data is None and self.flow_type == FlowType.DATA.value:
             if self.init:
-                self.data = self.init.create_field(is_pooled=False)
+                self.data = DataFieldFactory.create(self.init,is_pooled=self.is_pooled)
+
 
 
 @dataclass
 class PinSpec:
     """Specification for creating any configurable element"""
     flow_type: FlowType
-    data_spec: Optional[DataFieldSpec] = None
+    data_spec: Optional[DataPortSpec] = None
     label: str = ''
     widget: Optional[str] = None
     ui: dict = None
@@ -102,9 +103,9 @@ class PinSpec:
     is_property: bool = False
     is_outlet: bool = False
     
-    def create_inlet(self, element_id: str, node_instance=None) -> Inlet:
+    def create_inlet(self, element_id: str, node_instance=None) -> PortInlet:
         """Instantiate an Inlet from this spec"""
-        element = Inlet(
+        element = PortInlet(
             id=element_id,
             init=self.data_spec,
             label=self.label or element_id.replace('_', ' ').title(),
@@ -113,7 +114,7 @@ class PinSpec:
             widget=self.widget,
             ui=self.ui or {},
             callback=None,  # Set up callback below
-            data=self.data_spec.create_field(self.is_pooled) if self.data_spec else None
+            data=DataFieldFactory.create(self.data_spec,is_pooled=self.is_pooled) if self.data_spec else None
         )
         
         # Set up callback for configs
@@ -128,14 +129,14 @@ class PinSpec:
         
         return element
 
-    def create_outlet(self, element_id: str) -> Outlet:
+    def create_outlet(self, element_id: str) -> PortOutlet:
         """Instantiate an Outlet from this spec"""
-        return Outlet(
+        return PortOutlet(
             id=element_id,
             init=self.data_spec,
             label=self.label or element_id.replace('_', ' ').title(),
             flow_type=self.flow_type,
-            data=self.data_spec.create_field(False) if self.data_spec else None
+            data=DataFieldFactory.create(self.data_spec,is_pooled=False) if self.data_spec else None
         )
     
 
@@ -143,7 +144,7 @@ class PinBuilder:
     """Factory for creating PinSpecs"""
 
     @staticmethod
-    def config(spec: DataFieldSpec, label: str = '', callback=None, **kwargs) -> PinSpec:
+    def config(spec: DataPortSpec, label: str = '', callback=None, **kwargs) -> PinSpec:
         """Config - has callback, no pin visible"""
         return PinSpec(
             flow_type=FlowType.NONE,
@@ -155,7 +156,7 @@ class PinBuilder:
         )
     
     @staticmethod
-    def property(spec: DataFieldSpec, label: str = '', **kwargs) -> PinSpec:
+    def property(spec: DataPortSpec, label: str = '', **kwargs) -> PinSpec:
         """Property - no callback, no pin visible"""
         return PinSpec(
             flow_type=FlowType.NONE,
@@ -166,7 +167,7 @@ class PinBuilder:
         )
         
     @staticmethod
-    def inlet(spec: DataFieldSpec, label: str = '', **kwargs) -> PinSpec:
+    def inlet(spec: DataPortSpec, label: str = '', **kwargs) -> PinSpec:
         return PinSpec(
             flow_type=FlowType.DATA,
             data_spec=spec,
@@ -191,7 +192,7 @@ class PinBuilder:
         )
     
     @staticmethod
-    def outlet(spec: DataFieldSpec, label: str = '', **kwargs) -> PinSpec:
+    def outlet(spec: DataPortSpec, label: str = '', **kwargs) -> PinSpec:
         return PinSpec(
             flow_type=FlowType.DATA,
             data_spec=spec,

@@ -5,7 +5,7 @@ This node creates TestData instances for testing.
 """
 
 from haywire.core.node.base_node import node, BaseNode
-from haywire.core.node.elements import Inlet, Outlet
+from haywire.core.node.ports import PortInlet, PortOutlet
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.data.fields import SingleField
 
@@ -35,7 +35,7 @@ class TestDataCreatorNode(BaseNode):
         
         # Input: Value to store
         self.add_inlet(
-            Inlet(
+            PortInlet(
                 id='value',
                 label='Value',
                 flow_type=FlowType.DATA,
@@ -46,7 +46,7 @@ class TestDataCreatorNode(BaseNode):
         
         # Input: Label
         self.add_inlet(
-            Inlet(
+            PortInlet(
                 id='label',
                 label='Label',
                 flow_type=FlowType.DATA,
@@ -57,7 +57,7 @@ class TestDataCreatorNode(BaseNode):
         
         # Output: Created TestData
         self.add_outlet(
-            Outlet(
+            PortOutlet(
                 id='test_data',
                 flow_type=FlowType.DATA,
                 label='Test Data',

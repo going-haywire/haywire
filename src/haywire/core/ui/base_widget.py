@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Type, Optional, TypeVar, Union
 from dataclasses import dataclass, field
 
 from ..data.fields import DataField
-from ..node.elements import ConfigurableElement
+from ..node.ports import DataPort
 from ..library.base_identity import BaseIdentity
 from ..library.utils import derive_library_id, reg_key
 
@@ -95,8 +95,8 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
 class BaseWidget(ABC):
     """Abstract base class for all widgets"""
 
-    def __init__(self, element: ConfigurableElement):
-        self.element: ConfigurableElement = element
+    def __init__(self, element: DataPort):
+        self.element: DataPort = element
         self.element_id: str = element.id
         self.data_field: DataField = element.data
         self.ui_properties: Dict[str, Any] = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}

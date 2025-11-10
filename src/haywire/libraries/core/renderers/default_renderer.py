@@ -11,7 +11,7 @@ from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.node.base_node import BaseNode
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.ui.base_renderer import BaseNodeRenderer
-from haywire.core.node.elements import Inlet, Outlet, ConfigurableElement
+from haywire.core.node.ports import PortInlet, PortOutlet, DataPort
 from haywire.core.ui.base import UINodeCard
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.utils import generate_pin_uuid
@@ -77,7 +77,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         
         return UINodeCard(main_card, ui_elements, widget_instances)
     
-    def _render_inlet(self, inlet: Inlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any], node: BaseNode):
+    def _render_inlet(self, inlet: PortInlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any], node: BaseNode):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-1'):
             # only render pins for inlets that are actually involved in flows
@@ -139,7 +139,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
 
             return render_error_info(creationerror)
     
-    def _render_pin(self, pin: ConfigurableElement, direction: str = 'left', node: BaseNode = None):
+    def _render_pin(self, pin: DataPort, direction: str = 'left', node: BaseNode = None):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
         pin_direction = 'inlet' if pin.is_inlet() else 'outlet'

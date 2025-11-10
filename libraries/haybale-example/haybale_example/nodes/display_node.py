@@ -1,6 +1,6 @@
 from haywire.core.node.base_node import node
 from haywire.core.node.base_node import BaseNode
-from haywire.core.node.elements import Inlet, Outlet
+from haywire.core.node.ports import PortInlet, PortOutlet
 from haywire.core.data.enums import DataType, FlowType
 from haywire.core.data.fields import SingleField
 
@@ -25,7 +25,7 @@ class DisplayNode(BaseNode):
 
         # Math node
         _ = self.add_inlet(
-            Inlet(
+            PortInlet(
                 id='a', 
                 label='Value A', 
                 flow_type=FlowType.DATA,
@@ -33,7 +33,7 @@ class DisplayNode(BaseNode):
                 widget='core.number')
         )
         _ = self.add_inlet(
-            Inlet(
+            PortInlet(
                 id='b', 
                 label='Value B', 
                 flow_type=FlowType.DATA,
@@ -41,14 +41,14 @@ class DisplayNode(BaseNode):
                 widget='core.number')
             )
         _ = self.add_outlet(
-            Outlet(
+            PortOutlet(
                 id='result', 
                 flow_type=FlowType.DATA, 
                 label='Result', 
                 data=SingleField(DataType.FLOAT, 'single', None)),
         )
         _ = self.add_inlet (
-            Inlet(
+            PortInlet(
                 id='operation', 
                 label='Operation', 
                 flow_type=FlowType.DATA,

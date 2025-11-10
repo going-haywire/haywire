@@ -7,7 +7,7 @@ from haywire.core.data.fields import SingleField, PooledField, DataField
 from .enums import DataType, DataContainerType
 
 @dataclass
-class DataFieldSpec:
+class DataPortSpec:
     """Defines the specification for a data field.
 
     Provides metadata about a field's type, container, default value, and UI hints.
@@ -66,27 +66,31 @@ class DataFieldSpec:
                 self.value = {}
 
 
-    def create_field(self, is_pooled: bool = False) -> DataField:
+    def __call__(self, **kwargs: Any) -> DataPortSpec:
+        """Create a new instance with overridden attributes."""
+        return replace(self, **kwargs)
+
+
+class DataFieldFactory:
+    """Separate factory concerns"""
+    @staticmethod
+    def create(spec: DataPortSpec, is_pooled: bool = False) -> DataField:
         """Create appropriate DataField instance based on pooled flag"""
         if is_pooled:
             return PooledField(
-                type=self.type,
+                type=spec.type,
                 value={},
                 is_pooled=True
             )
         else:
             return SingleField(
-                type=self.type,
-                value=self.value,
+                type=spec.type,
+                value=spec.value,
                 is_pooled=False
             )
 
-    def __call__(self, **kwargs: Any) -> DataFieldSpec:
-        """Create a new instance with overridden attributes."""
-        return replace(self, **kwargs)
 
-
-def specs_factory(**kwargs: Any) -> DataFieldSpec:
+def specs_factory(**kwargs: Any) -> DataPortSpec:
     """Factory function to create a DataFieldSpec instance.
 
     This allows creating a template spec and then calling it to produce
@@ -96,4 +100,4 @@ def specs_factory(**kwargs: Any) -> DataFieldSpec:
         INT = specs_factory(type=DataType.INT)
         my_int_field = INT(value=10)
     """
-    return DataFieldSpec(**kwargs)
+    return DataPortSpec(**kwargs)
