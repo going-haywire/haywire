@@ -7,13 +7,13 @@ Note: DataType enum is deprecated for use in DataPortSpec and DataField.
       DataType is retained only for UI/theme color mapping purposes.
 """
 
-from .enums import DataContainerType, FlowType
+from .enums import ContainerType, FlowType
 from .specs import DataPortSpec, specs_factory
 from .fields import DataField, SingleField, PooledField
 
 __all__ = [
     # Enums
-    "DataContainerType",
+    "ContainerType",
     "FlowType",
     # Specs
     "DataPortSpec",

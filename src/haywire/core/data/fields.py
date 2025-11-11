@@ -3,7 +3,7 @@ from typing import Any, Callable, Set, List, Type
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from .enums import DataContainerType
+from .enums import ContainerType
 from .event import Event, T
 
 

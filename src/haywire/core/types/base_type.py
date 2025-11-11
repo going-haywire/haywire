@@ -39,6 +39,7 @@ class CustomTypeIdentity(BaseIdentity):
     color: str = '#f1f1f1'
     icon: str = 'box'
     help_url: str = ''
+    _cls: Type = None  # Reference to the decorated class. Set automatically.
     
     def to_spec(self, **overrides):
         """
@@ -51,25 +52,18 @@ class CustomTypeIdentity(BaseIdentity):
             DataPortSpec configured for this custom type
         """
         from ..data.specs import DataPortSpec
-        from ..data.enums import DataContainerType
+        from ..data.enums import ContainerType
         
-        # Get the actual class from the module
-        # The class_ref should be the actual Python class
-        import importlib
-        module_path, class_name = self.registry_key.rsplit('.', 1) if '.' in self.registry_key else (None, self.registry_key)
-        
-        # For now, we'll pass None as value_type for custom types
-        # The actual class can be resolved at runtime through the registry
         return DataPortSpec(
             id=self.registry_id,
             key=self.registry_key,
-            value_type=None,  # Custom type class - to be resolved via registry
-            data_container=DataContainerType.SINGLE,
+            cls_type=self._cls, 
+            container_type=ContainerType.SINGLE,
             label=self.label,
             description=self.description,
             color=self.color,
             icon=self.icon,
-            value=None,  # Custom types don't have default values
+            default=None,  # Custom types don't have default values
             **overrides
         )
 
@@ -133,6 +127,9 @@ def custom_type(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Ty
         if 'registry_key' not in kwargs:
             library_id = derive_library_id(inner_cls)
             kwargs['registry_key'] = reg_key(library_id, kwargs['registry_id'])
+        
+        # Add the class reference
+        kwargs['_cls'] = inner_cls
         
         # Attach identity to class
         inner_cls.class_identity = CustomTypeIdentity(**kwargs)

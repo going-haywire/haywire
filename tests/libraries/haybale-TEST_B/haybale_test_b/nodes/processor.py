@@ -38,7 +38,7 @@ class TestProcessorNode(BaseNode):
             PortInlet(
                 id='test_data_in',
                 label='Test Data In',
-                value_type=TestData,
+                cls_type=TestData,
                 flow_type=FlowType.DATA,
                 data=SingleField(TestData, None, False),
                 widget='core.text'
@@ -50,7 +50,7 @@ class TestProcessorNode(BaseNode):
             PortInlet(
                 id='modifier',
                 label='Modifier',
-                value_type=float,
+                cls_type=float,
                 flow_type=FlowType.DATA,
                 data=SingleField(float, 1.0, False),
                 widget='core.number'
@@ -61,7 +61,7 @@ class TestProcessorNode(BaseNode):
         self.add_outlet(
             PortOutlet(
                 id='test_data_out',
-                value_type=TestData,
+                cls_type=TestData,
                 flow_type=FlowType.DATA,
                 label='Test Data Out',
                 data=SingleField(TestData, None, False)
@@ -72,7 +72,7 @@ class TestProcessorNode(BaseNode):
         self.add_outlet(
             PortOutlet(
                 id='description',
-                value_type=str,
+                cls_type=str,
                 flow_type=FlowType.DATA,
                 label='Description',
                 data=SingleField(str, None, False)

@@ -1,6 +1,6 @@
 from enum import Enum
 
-class DataContainerType(Enum):
+class ContainerType(Enum):
     """Defines the container or structure of the data."""
     SINGLE = 'single'
     TUPLE = 'tuple'

@@ -4,7 +4,9 @@ from nicegui import ui
 from haywire.core.ui.base_widget import BaseWidget
 from haywire.core.ui.base_widget import widget
 
-@widget(description="Custom widget for temperature values with Celsius/Fahrenheit display")
+@widget(
+    description="Custom widget for temperature values with Celsius/Fahrenheit display",
+    )
 class TemperatureWidget(BaseWidget):
     """Custom widget for temperature values with Celsius/Fahrenheit display"""
 

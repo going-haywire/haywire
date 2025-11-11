@@ -23,16 +23,16 @@ class DisplayNode(BaseNode):
 
         # Using the new .as_inlet() API
         self.add_inlet(
-            FLOAT.as_inlet('a', label='Value A', value=10.0, widget='core.number')
+            FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core.number')
         )
         self.add_inlet(
-            FLOAT.as_inlet('b', label='Value B', value=5.0, widget='core.number')
+            FLOAT.as_inlet('b', label='Value B', default=5.0, widget='core.number')
         )
         self.add_outlet(
             FLOAT.as_outlet('result', label='Result')
         )
         self.add_inlet(
-            STRING.as_inlet('operation', label='Operation', value='add', widget='core.select')
+            STRING.as_inlet('operation', label='Operation', default='add', widget='core.select')
         )   
     
 

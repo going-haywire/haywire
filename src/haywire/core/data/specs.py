@@ -5,7 +5,7 @@ from dataclasses import dataclass, field, replace
 from haywire.core.data.fields import SingleField, PooledField, DataField
 from haywire.core.library.utils import derive_library_id, reg_key
 
-from .enums import DataContainerType
+from .enums import ContainerType
 
 @dataclass
 class DataPortSpec:
@@ -16,26 +16,26 @@ class DataPortSpec:
 
     Attributes:
         key: Registry key identifier (e.g., 'core:float', 'mylib:mesh_data')
-        value_type: The Python class (int, float, str, bool, bytes, dict, list, or custom class)
+        cls_type: The Python class (int, float, str, bool, bytes, dict, list, or custom class)
         label: Human-readable label
         description: Detailed description
         color: Pin color in graph UI (hex format)
         icon: Pin icon/shape name
         widget: Suggested UI widget for editing
-        container: The data structure container (e.g., SINGLE, LIST)
-        value: The default value for the field
+        container_type: The data structure container (e.g., SINGLE, LIST)
+        default: The default value for the field
         ui: Dictionary for extra UI-specific configurations
     """
     id: str
-    value_type: Type | None
+    cls_type: Type | None
     key: str = ''
-    data_container: DataContainerType = DataContainerType.SINGLE
+    container_type: ContainerType = ContainerType.SINGLE
     label: str = ''
     description: str = ''
     color: str = '#757575'  # Default gray
     icon: str = 'circle'
     widget: str | None = None
-    value: Any = None
+    default: Any = None
     ui: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -53,25 +53,25 @@ class DataPortSpec:
             self.description = self.id.replace('_', ' ')
                 
         # Set smart defaults for value based on type and container
-        if self.value is None and self.value_type is not None:
-            if self.data_container == DataContainerType.SINGLE:
-                if self.value_type == float:
-                    self.value = 0.0
-                elif self.value_type == int:
-                    self.value = 0
-                elif self.value_type == bool:
-                    self.value = False
-                elif self.value_type == str:
-                    self.value = ""
-                elif self.value_type == bytes:
-                    self.value = b""
+        if self.default is None and self.cls_type is not None:
+            if self.container_type == ContainerType.SINGLE:
+                if self.cls_type == float:
+                    self.default = 0.0
+                elif self.cls_type == int:
+                    self.default = 0
+                elif self.cls_type == bool:
+                    self.default = False
+                elif self.cls_type == str:
+                    self.default = ""
+                elif self.cls_type == bytes:
+                    self.default = b""
                 else:
                     # For custom types or other types, leave as None
-                    self.value = None
-            elif self.data_container in [DataContainerType.LIST, DataContainerType.SET]:
-                self.value = []
-            elif self.data_container == DataContainerType.DICT:
-                self.value = {}
+                    self.default = None
+            elif self.container_type in [ContainerType.LIST, ContainerType.SET]:
+                self.default = []
+            elif self.container_type == ContainerType.DICT:
+                self.default = {}
 
 
     def __call__(self, **kwargs: Any) -> DataPortSpec:
@@ -171,14 +171,14 @@ class DataFieldFactory:
         """Create appropriate DataField instance based on pooled flag"""
         if is_pooled:
             return PooledField(
-                type=spec.value_type,
+                type=spec.cls_type,
                 value={},
                 is_pooled=True
             )
         else:
             return SingleField(
-                type=spec.value_type,
-                value=spec.value,
+                type=spec.cls_type,
+                value=spec.default,
                 is_pooled=False
             )
 

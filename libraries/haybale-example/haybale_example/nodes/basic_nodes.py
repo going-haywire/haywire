@@ -6,8 +6,10 @@ Basic core node implementations
 from haywire.core.node.base_node import node
 from haywire.core.node.base_node import BaseNode
 from haywire.core.node.ports import PortInlet, PortOutlet
-from haywire.core.data.enums import DataContainerType, FlowType
+from haywire.core.data.enums import ContainerType, FlowType
 from haywire.core.data.fields import SingleField
+
+from ..types.specs import TEMPERATURE
 
 @node(
     label='Test Node One',
@@ -27,27 +29,20 @@ class TestNodeOne(BaseNode):
         # Add configs with different widget types
         _ = self.add_inlet(PortInlet(
                 id='execute',  # id as first positional parameter
-                value_type=None,
+                cls_type=None,
                 label='Execute',
                 flow_type=FlowType.CTRL,
                 is_pooled=False
             )
         )
-        _ = self.add_inlet(PortInlet(
-                id='temperature',  # id as first positional parameter
-                label='Temperature',
-                value_type=float,
-                flow_type=FlowType.NONE,
-                data=SingleField(float, 25.0, False),
-                widget='example:temperature.widget',
-                ui={'properties': {'unit': 'celsius'}}
-            )
-        )    
+
+        _ = self.add_inlet(TEMPERATURE.as_inlet(id='temp_config',default=40.0)) 
+
         # Add inlets with different widget types
         _ = self.add_inlet(PortInlet(
                 id='float_select',  # id as first positional parameter
                 label='Select',
-                value_type=str,
+                cls_type=str,
                 flow_type=FlowType.DATA,
                 is_pooled=False,
                 data=SingleField(str, "Option 1", False),
@@ -58,7 +53,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'float_slider',  # element_id as first positional parameter
                 label='Float Slider',
-                value_type=float,
+                cls_type=float,
                 flow_type=FlowType.DATA,
                 data=SingleField(float, 50.0, False),
                 widget='core:slider.widget',
@@ -68,7 +63,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'bool_switch',  # element_id as first positional parameter
                 label='Boolean Switch',
-                value_type=bool,
+                cls_type=bool,
                 flow_type=FlowType.DATA,
                 data=SingleField(bool, True, False),
                 widget='core:switch.widget',
@@ -78,7 +73,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',
-                value_type=str,
+                cls_type=str,
                 flow_type=FlowType.DATA,
                 data=SingleField(str, 'Hello', False),
                 widget='core:text.input.widget',
@@ -88,7 +83,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'nonexistent',  # element_id as first positional parameter
                 label='Missing Widget',
-                value_type=int,
+                cls_type=int,
                 flow_type=FlowType.DATA,
                 data=SingleField(int, 42, False),
                 widget='core:number.widget',
@@ -98,7 +93,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'callback',  # element_id as first positional parameter
                 label='Callback Widget',
-                value_type=None,
+                cls_type=None,
                 flow_type=FlowType.CALLBACK,
             )
         )
@@ -106,14 +101,14 @@ class TestNodeOne(BaseNode):
         _ = self.add_outlet(PortOutlet(
                 'execute',  # element_id as first positional parameter
                 label='Execute',
-                value_type=None,
+                cls_type=None,
                 flow_type=FlowType.CTRL
             )
         )
         _ = self.add_outlet(PortOutlet(
                 'nonexistent',  # element_id as first positional parameter
                 label='Missing Widget',
-                value_type=int,
+                cls_type=int,
                 flow_type=FlowType.DATA,
                 data=SingleField(int, 42, False),
             )
