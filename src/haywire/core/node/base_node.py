@@ -108,20 +108,9 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
 # Node Metaclass
 # ============================================================================
 
-class NodeMeta(type):
-    """Metaclass that processes pin declarations"""
-    
+class NodeMeta(type):    
     def __new__(cls, name, bases, attrs):
         new_class = super().__new__(cls, name, bases, attrs)
-        
-        # Collect PinSpecs from this class only
-        pin_specs = {}
-        for attr_name, attr_value in attrs.items():
-            if isinstance(attr_value, PinSpec):
-                pin_specs[attr_name] = attr_value
-        
-        # Store on class for later use
-        new_class._pin_specs = pin_specs
         
         return new_class
 
@@ -134,29 +123,6 @@ class NodeData():
         self.properties = {}
         self.inlets: Dict[str, PortInlet] = {}
         self.outlets: Dict[str, PortOutlet] = {}
-        
-        # Collect pin specs from all classes in MRO
-        for klass in reversed(self.__class__.__mro__):
-            if not hasattr(klass, '_pin_specs'):
-                continue
-                
-            for attr_name, pin_spec in klass._pin_specs.items():
-                if pin_spec.is_outlet:
-                    pin = pin_spec.create_outlet(attr_name)
-                    self.outlets[attr_name] = pin
-                elif pin_spec.is_config:
-                    pin = pin_spec.create_inlet(attr_name)
-                    self.configs[attr_name] = pin
-                elif pin_spec.is_property:
-                    pin = pin_spec.create_inlet(attr_name)
-                    self.properties[attr_name] = pin
-                elif pin_spec.flow_type in (FlowType.CTRL, FlowType.DATA, FlowType.CALLBACK):
-                    pin = pin_spec.create_inlet(attr_name)
-                    self.inlets[attr_name] = pin
-                
-                if pin:
-                    setattr(self, attr_name, pin)
-        
         self._cache_dirty = True
     
     # deprecated methods for dynamic pin management
@@ -177,137 +143,7 @@ class NodeData():
             raise ValueError("Outlet ID cannot contain double underscores '__'")
         self.outlets[outlet.id] = outlet
         return outlet
-    
-
-    def add_inlet_experimental(self, pin_id: str, spec: DataPortSpec = None, 
-                  label: str = '', **kwargs) -> PortInlet:
-        """Add inlet (works for both static and dynamic)"""
-        pin_spec = PinSpec(
-            flow_type=FlowType.CTRL if spec is None else FlowType.DATA,
-            data_spec=spec,
-            label=label,
-            **kwargs
-        )
-        inlet = pin_spec.create_inlet(pin_id)
-        self.inlets[pin_id] = inlet
-        setattr(self, pin_id, inlet)
-        self._cache_dirty = True
-        return inlet
-    
-    def add_outlet_experimental(self, pin_id: str, spec: DataPortSpec = None,
-                   label: str = '', **kwargs) -> PortOutlet:
-        """Add outlet (works for both static and dynamic)"""
-        pin_spec = PinSpec(
-            flow_type=FlowType.CTRL if spec is None else FlowType.DATA,
-            data_spec=spec,
-            label=label,
-            **kwargs
-        )
-        outlet = pin_spec.create_outlet(pin_id)
-        self.outlets[pin_id] = outlet
-        setattr(self, pin_id, outlet)
-        return outlet
- 
-
-    def to_dict(self) -> dict:
-        """Serialize node to dictionary - captures CURRENT state of all pins"""
-        from dataclasses import asdict
         
-        return {
-            # Serialize ALL pins as they currently exist
-            'configs': {k: v.to_dict() for k, v in self.configs.items()},
-            'properties': {k: v.to_dict() for k, v in self.properties.items()},
-            'inlets': {k: v.to_dict() for k, v in self.inlets.items()},
-            'outlets': {k: v.to_dict() for k, v in self.outlets.items()}
-        }
-    
-    def load_state(self, state_dict: dict):
-        """Load serialized state - recreate the EXACT pin configuration"""
-        
-        # Step 1: Clear out class-generated defaults that aren't in saved state
-        # Remove configs not in saved state
-        if 'configs' in state_dict:
-            for name in list(self.configs.keys()):
-                if name not in state_dict['configs']:
-                    del self.configs[name]
-                    if hasattr(self, name):
-                        delattr(self, name)
-        
-        # Remove properties not in saved state
-        if 'properties' in state_dict:
-            for name in list(self.properties.keys()):
-                if name not in state_dict['properties']:
-                    del self.properties[name]
-                    if hasattr(self, name):
-                        delattr(self, name)
-        
-        # Remove inlets not in saved state
-        if 'inlets' in state_dict:
-            for name in list(self.inlets.keys()):
-                if name not in state_dict['inlets']:
-                    del self.inlets[name]
-                    if hasattr(self, name):
-                        delattr(self, name)
-        
-        # Remove outlets not in saved state
-        if 'outlets' in state_dict:
-            for name in list(self.outlets.keys()):
-                if name not in state_dict['outlets']:
-                    del self.outlets[name]
-                    if hasattr(self, name):
-                        delattr(self, name)
-        
-        # Step 2: Load or create all pins from saved state
-        # Load configs
-        if 'configs' in state_dict:
-            for name, config_data in state_dict['configs'].items():
-                if name in self.configs:
-                    # Update existing
-                    self.configs[name].load_from_dict(config_data)
-                else:
-                    # Create new (was dynamically added)
-                    config = PortInlet.from_dict(config_data)
-                    self.configs[name] = config
-                    setattr(self, name, config)
-        
-        # Load properties
-        if 'properties' in state_dict:
-            for name, prop_data in state_dict['properties'].items():
-                if name in self.properties:
-                    self.properties[name].load_from_dict(prop_data)
-                else:
-                    prop = PortInlet.from_dict(prop_data)
-                    self.properties[name] = prop
-                    setattr(self, name, prop)
-        
-        # Load inlets
-        if 'inlets' in state_dict:
-            for name, inlet_data in state_dict['inlets'].items():
-                if name in self.inlets:
-                    self.inlets[name].load_from_dict(inlet_data)
-                else:
-                    inlet = PortInlet.from_dict(inlet_data)
-                    self.inlets[name] = inlet
-                    setattr(self, name, inlet)
-        
-        # Load outlets
-        if 'outlets' in state_dict:
-            for name, outlet_data in state_dict['outlets'].items():
-                if name in self.outlets:
-                    self.outlets[name].load_from_dict(outlet_data)
-                else:
-                    outlet = PortOutlet.from_dict(outlet_data)
-                    self.outlets[name] = outlet
-                    setattr(self, name, outlet)
-        
-        # Load other state
-        if 'ui_state' in state_dict:
-            self.ui_state = NodeUIState.from_dict(state_dict['ui_state'])
-        if 'metadata' in state_dict:
-            self.metadata = NodeUserMetadata.from_dict(state_dict['metadata'])
-        
-        self._cache_dirty = True        
-
 @abstractmethod
 class BaseNode(NodeData, metaclass=NodeMeta):
     """Base class combining HaywireNode requirements with NodeData"""

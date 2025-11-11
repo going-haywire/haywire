@@ -9,14 +9,26 @@ from .event import Event, T
 
 @dataclass
 class DataField(ABC):
-    """Abstract base class for data fields with change notification"""
-    type: str  | DataType
+    """
+    Abstract base class for data fields with change notification.
+    
+    The type field accepts DataType enum, string (registry_key for custom types),
+    or None. Enum values are automatically converted to strings in __post_init__.
+    
+    Attributes:
+        type: DataType enum, registry_key string (e.g., 'core:float', 'mylib:mesh'), or None
+        value: The current value
+        is_pooled: Whether this field accepts multiple input sources
+    """
+    type: str | DataType | None
     value: T 
     is_pooled: bool
 
     def __post_init__(self):
+        # Convert DataType enum to string for uniform handling
         if isinstance(self.type, DataType):
             self.type = self.type.value
+        # type can be: string (enum value or registry_key) or None (for custom types)
 
         self._default_value: T = self.value
         self.on_changed: Event[T] = Event[T]()

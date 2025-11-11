@@ -25,7 +25,7 @@ class DefaultTheme(PythonTheme):
         DataType.BOOL.value: "#ff9800",
         DataType.LIST.value: "#9c27b0",
         DataType.DICT.value: "#795548",
-        DataType.OBJECT.value: "#795548",
+        DataType.CUSTOM.value: "#795548",
         'any': "#bababa",  # Special case - not in DataType enum
     }
     

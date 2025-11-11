@@ -183,10 +183,11 @@ class NodeWrapper:
                 if self._node_instance:
                     try:
                         # Serialize current state and apply to new instance
-                        current_state = self._node_instance.to_dict()
-                        current_state['node_id'] = new_node_id  # Update ID
+                        #TODO: find new way to copy state
+                        # current_state = self._node_instance.to_dict()
+                        # current_state['node_id'] = new_node_id  # Update ID
                         
-                        new_wrapper._node_instance.load_state(current_state)
+                        # new_wrapper._node_instance.load_state(current_state)
                         
                         # Copy middleware
                         new_wrapper._middleware = self._middleware.copy()
@@ -217,9 +218,11 @@ class NodeWrapper:
             }
             
             # Serialize node instance if it exists
+            # TODO: find new way to copy state
             if self._node_instance:
                 try:
-                    wrapper_data['node_data'] = self._node_instance.to_dict()
+                    pass
+                    # wrapper_data['node_data'] = self._node_instance.to_dict()
                 except Exception as e:
                     log_detailed_error(f"Failed to serialize node {self.node_id}", e)
                     wrapper_data['serialization_error'] = str(e)
@@ -255,7 +258,9 @@ class NodeWrapper:
                 
                 # Restore node state
                 if 'node_data' in data and data['node_data'] and self._node_instance:
-                    self._node_instance.load_state(data['node_data'])
+                    pass
+                    #TODO: find new way to copy state
+                    # self._node_instance.load_state(data['node_data'])
                 
                 self._notify_change("deserialized")
                 return True
@@ -429,7 +434,8 @@ class NodeWrapper:
             old_position = None
             
             if self._node_instance:
-                old_state = self._node_instance.to_dict()
+                # TODO: find new way to copy state
+                # old_state = self._node_instance.to_dict()
                 old_position = (self._node_instance.ui_state.posX, self._node_instance.ui_state.posY)
             
             # Create new instance
@@ -438,7 +444,9 @@ class NodeWrapper:
             # Restore state if we had it
             if old_state and self._node_instance:
                 try:
-                    self._node_instance.load_state(old_state)
+                    #TODO: find new way to copy state
+                    # self._node_instance.load_state(old_state)
+                    pass
                 except Exception as e:
                     log_detailed_error(f"Failed to restore state during migration of {self.node_id}", e)
             

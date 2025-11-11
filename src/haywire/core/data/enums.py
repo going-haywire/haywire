@@ -10,7 +10,6 @@ class DataType(Enum):
     BYTES = 'bytes'
     DICT = 'dict'
     LIST = 'list'
-    OBJECT = 'object'
     CUSTOM = 'custom'  # For library-defined custom types
 
 

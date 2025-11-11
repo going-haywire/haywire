@@ -14,7 +14,7 @@ class DataPort:
     Not all fields used by all subclasses.
     """
     id: str
-    init: Optional[DataPortSpec] = None
+    spec: Optional[DataPortSpec] = None
     label: str = ''
     flow_type: FlowType = FlowType.NONE
     widget: Optional[str] = None
@@ -39,13 +39,13 @@ class DataPort:
             self.flow_type = self.flow_type.value
         
         # Copy from init if available
-        if self.init:
-            if self.label == '' and self.init.label:
-                self.label = self.init.label
+        if self.spec:
+            if self.label == '' and self.spec.label:
+                self.label = self.spec.label
             if self.widget is None:
-                self.widget = self.init.widget
+                self.widget = self.spec.widget
             if not self.ui:
-                self.ui = self.init.ui
+                self.ui = self.spec.ui
     
     def is_pin(self) -> bool:
         return self.flow_type != FlowType.NONE.value
@@ -68,15 +68,15 @@ class PortInlet(DataPort):
         return True
     
     def __post_init__(self):
-        super().__post_init__()
+        super().__post_init__()        
+        # Create data field if needed
+        if self.data is None and self.flow_type == FlowType.DATA.value:
+            if self.spec:
+                self.data = DataFieldFactory.create(self.spec,is_pooled=self.is_pooled)
+
         # Auto-trigger callback on value change
         if self.callback and self.data:
             self.data.add_observer(lambda v: self.callback() if self.callback else None)
-        
-        # Create data field if needed
-        if self.data is None and self.flow_type == FlowType.DATA.value:
-            if self.init:
-                self.data = DataFieldFactory.create(self.init,is_pooled=self.is_pooled)
 
 @dataclass
 class PortOutlet(DataPort):
@@ -84,8 +84,8 @@ class PortOutlet(DataPort):
         super().__post_init__()
         # Create data field if needed
         if self.data is None and self.flow_type == FlowType.DATA.value:
-            if self.init:
-                self.data = DataFieldFactory.create(self.init,is_pooled=self.is_pooled)
+            if self.spec:
+                self.data = DataFieldFactory.create(self.spec,is_pooled=self.is_pooled)
 
 
 
@@ -107,7 +107,7 @@ class PinSpec:
         """Instantiate an Inlet from this spec"""
         element = PortInlet(
             id=element_id,
-            init=self.data_spec,
+            spec=self.data_spec,
             label=self.label or element_id.replace('_', ' ').title(),
             flow_type=self.flow_type,
             is_pooled=self.is_pooled,
@@ -133,23 +133,33 @@ class PinSpec:
         """Instantiate an Outlet from this spec"""
         return PortOutlet(
             id=element_id,
-            init=self.data_spec,
+            spec=self.data_spec,
             label=self.label or element_id.replace('_', ' ').title(),
             flow_type=self.flow_type,
             data=DataFieldFactory.create(self.data_spec,is_pooled=False) if self.data_spec else None
         )
     
 
-class PinBuilder:
+class PortBuilder:
     """Factory for creating PinSpecs"""
 
     @staticmethod
     def config(spec: DataPortSpec, label: str = '', callback=None, **kwargs) -> PinSpec:
-        """Config - has callback, no pin visible"""
+        """
+        Config - has callback, no pin visible
+        
+        Usage:
+            PinBuilder.config(FLOAT, label='Value', callback=on_change)
+            PinBuilder.config(FLOAT(label='Value'), callback=on_change)
+        """
+        # If label provided as kwarg, override spec
+        if label:
+            spec = spec(label=label)
+        
         return PinSpec(
             flow_type=FlowType.NONE,
             data_spec=spec,
-            label=label,
+            label=spec.label,
             callback=callback,
             is_config=True,
             **kwargs
@@ -157,21 +167,42 @@ class PinBuilder:
     
     @staticmethod
     def property(spec: DataPortSpec, label: str = '', **kwargs) -> PinSpec:
-        """Property - no callback, no pin visible"""
+        """
+        Property - no callback, no pin visible
+        
+        Usage:
+            PinBuilder.property(FLOAT, label='Value')
+            PinBuilder.property(FLOAT(label='Value'))
+        """
+        # If label provided as kwarg, override spec
+        if label:
+            spec = spec(label=label)
+        
         return PinSpec(
             flow_type=FlowType.NONE,
             data_spec=spec,
-            label=label,
+            label=spec.label,
             is_property=True,
             **kwargs
         )
         
     @staticmethod
     def inlet(spec: DataPortSpec, label: str = '', **kwargs) -> PinSpec:
+        """
+        Data inlet pin
+        
+        Usage:
+            PinBuilder.inlet(FLOAT, label='Radius')
+            PinBuilder.inlet(FLOAT(label='Radius', value=10.0))
+        """
+        # If label provided as kwarg, override spec
+        if label:
+            spec = spec(label=label)
+        
         return PinSpec(
             flow_type=FlowType.DATA,
             data_spec=spec,
-            label=label,
+            label=spec.label,
             **kwargs
         )
     
@@ -193,10 +224,21 @@ class PinBuilder:
     
     @staticmethod
     def outlet(spec: DataPortSpec, label: str = '', **kwargs) -> PinSpec:
+        """
+        Data outlet pin
+        
+        Usage:
+            PinBuilder.outlet(FLOAT, label='Result')
+            PinBuilder.outlet(FLOAT(label='Result'))
+        """
+        # If label provided as kwarg, override spec
+        if label:
+            spec = spec(label=label)
+        
         return PinSpec(
             flow_type=FlowType.DATA,
             data_spec=spec,
-            label=label,
+            label=spec.label,
             is_outlet=True,
             **kwargs
         )

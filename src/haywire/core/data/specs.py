@@ -10,59 +10,67 @@ from .enums import DataType, DataContainerType
 class DataPortSpec:
     """Defines the specification for a data field.
 
-    Provides metadata about a field's type, container, default value, and UI hints.
-    This is a flexible class where only 'type' is strictly required.
+    Unified specification for both built-in and custom data types.
+    Provides metadata about type, UI presentation, default values, and structure hints.
 
     Attributes:
-        type: The fundamental data type (e.g., INT, FLOAT).
-        container: The data structure container (e.g., SCALAR, LIST).
-        value: The default value for the field.
-        is_pooled: Whether the field accepts multiple input sources.
-        id: Unique identifier, auto-generated if not provided.
-        label: Human-readable label, auto-generated if not provided.
-        description: Detailed description, auto-generated if not provided.
-        widget: Suggested UI widget, auto-generated if not provided.
-        ui: Dictionary for extra UI-specific configurations.
+        key: Registry key identifier (e.g., 'core:float', 'mylib:mesh_data')
+        data_type: The fundamental data type (backwards compatible, can be DataType enum or string)
+        label: Human-readable label
+        description: Detailed description
+        color: Pin color in graph UI (hex format)
+        icon: Pin icon/shape name
+        widget: Suggested UI widget for editing
+        container: The data structure container (e.g., SINGLE, LIST)
+        value: The default value for the field
+        ui: Dictionary for extra UI-specific configurations
     """
-    type: DataType
-    container: DataContainerType = DataContainerType.SINGLE
-    value: Any = None
-    id: str | None = None
-    label: str | None = None
-    description: str | None = None
+    key: str
+    data_type: DataType
+    data_container: DataContainerType = DataContainerType.SINGLE
+    id: str = ''
+    label: str = ''
+    description: str = ''
+    color: str = '#757575'  # Default gray
+    icon: str = 'circle'
     widget: str | None = None
+    value: Any = None
     ui: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Generate default values for optional fields after initialization."""
-        # Generate a unique ID if not provided, e.g., "INT_SCALAR"
-        if self.id is None:
-            self.id = f"{self.type.value.upper()}_{self.container.value.upper()}"
+        # Auto-generate label from key if not provided
+        if not self.id:
+            self.id = self.key.split(':')[-1]
 
-        # Generate a human-readable label if not provided, e.g., "Int:Scalar"
-        if self.label is None:
-            self.label = f"{self.type.value.capitalize()}:{self.container.value.capitalize()}"
-
+        # Auto-generate label from id if not provided
+        if not self.label:
+            self.label = self.id.replace('_', ' ').title()
+                
         # Ensure description is a string
-        if self.description is None:
+        if not self.description:
             self.description = ""
-
-        # Set a default value if none is provided, based on type and container
+        
+        # Populate ui dict with color/icon for backward compatibility
+        self.ui.setdefault('color', self.color)
+        self.ui.setdefault('icon', self.icon)
+        
+        # Set smart defaults for value based on type and container
         if self.value is None:
-            if self.container == DataContainerType.SINGLE:
-                if self.type == DataType.FLOAT:
+            if self.data_container == DataContainerType.SINGLE:
+                if self.data_type == DataType.FLOAT or (isinstance(self.data_type, str) and self.data_type == 'float'):
                     self.value = 0.0
-                elif self.type == DataType.INT:
+                elif self.data_type == DataType.INT or (isinstance(self.data_type, str) and self.data_type == 'int'):
                     self.value = 0
-                elif self.type == DataType.BOOL:
+                elif self.data_type == DataType.BOOL or (isinstance(self.data_type, str) and self.data_type == 'bool'):
                     self.value = False
-                elif self.type == DataType.STRING:
+                elif self.data_type == DataType.STRING or (isinstance(self.data_type, str) and self.data_type == 'str'):
                     self.value = ""
                 else:
-                    self.value = None  # Default for OBJECT, etc.
-            elif self.container in [DataContainerType.LIST, DataContainerType.SET]:
+                    self.value = None  # Default for CUSTOM, etc.
+            elif self.data_container in [DataContainerType.LIST, DataContainerType.SET]:
                 self.value = []
-            elif self.container == DataContainerType.DICT:
+            elif self.data_container == DataContainerType.DICT:
                 self.value = {}
 
 
@@ -78,13 +86,13 @@ class DataFieldFactory:
         """Create appropriate DataField instance based on pooled flag"""
         if is_pooled:
             return PooledField(
-                type=spec.type,
+                type=spec.data_type,
                 value={},
                 is_pooled=True
             )
         else:
             return SingleField(
-                type=spec.type,
+                type=spec.data_type,
                 value=spec.value,
                 is_pooled=False
             )

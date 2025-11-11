@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Type, TypeVar, Union
 
+from haywire.core.data.enums import DataType
+
 from ..library.base_identity import BaseIdentity
 from ..library.utils import derive_library_id, reg_key
 
@@ -38,7 +40,34 @@ class CustomTypeIdentity(BaseIdentity):
     # CustomType-specific fields:
     color: str = '#f1f1f1'
     icon: str = 'box'
+    data_type: DataType = DataType.CUSTOM
     help_url: str = ''
+    
+    def to_spec(self, **overrides):
+        """
+        Generate DataPortSpec for this custom type.
+        
+        Args:
+            **overrides: Additional keyword arguments to override spec fields
+            
+        Returns:
+            DataPortSpec configured for this custom type
+        """
+        from ..data.specs import DataPortSpec
+        from ..data.enums import DataContainerType
+        
+        return DataPortSpec(
+            id=self.registry_id,
+            key=self.registry_key,
+            data_type=self.data_type,  # Custom types don't use DataType enum
+            data_container=DataContainerType.SINGLE,
+            label=self.label,
+            description=self.description,
+            color=self.color,
+            icon=self.icon,
+            value=None,  # Custom types don't have default values
+            **overrides
+        )
 
 
 def custom_type(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
@@ -103,6 +132,9 @@ def custom_type(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Ty
         
         # Attach identity to class
         inner_cls.class_identity = CustomTypeIdentity(**kwargs)
+        
+        # Auto-generate and attach specs
+        inner_cls.specs = inner_cls.class_identity.to_spec()
         
         return inner_cls
     
