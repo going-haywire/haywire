@@ -214,7 +214,10 @@ class LibrarySystemService:
         library_registry.add_class_registry(CustomTypeRegistry, custom_type_registry)
         
         # Set up registry subscribers for cross-registry updates
-        # this ensures that when new types are added, nodes are updated accordingly
+        # this ensures that when new types are added, 
+        # nodes, widgets and adapters are updated accordingly
+        custom_type_registry.add_registry_subscriber(adapter_registry)
+        custom_type_registry.add_registry_subscriber(widget_registry)
         custom_type_registry.add_registry_subscriber(node_registry)
 
         library_registry.scan_for_libraries()

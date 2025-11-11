@@ -266,6 +266,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             # Skip validation for deleted files
             logging.info(
                 f"Library '{event.library_identity.label}': "
+                f"Registry '{self.__class__.__name__}': "
                 f"DETECTED Hot Reloading event: file-'{event.event_type.value}' "
                 f"on file: {event.file_path[len(event.library_identity.folder_path):]}. "
                 f"INITIATING ...")
@@ -446,7 +447,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                     new_key = self._register_class(new_cls, library_identity)
                     logging.info(
                         f"Library '{library_identity.label}': "
-                        f"...Re-loaded and re-registered from {module_name}")
+                        f"...Re-loaded and re-registered {new_cls.class_identity.registry_key} from {module_name}")
                     # Notify customer callbacks about reloaded class
                     if new_key:
                         self._notify_customer_callbacks(

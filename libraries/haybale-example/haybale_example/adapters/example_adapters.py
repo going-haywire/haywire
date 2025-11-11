@@ -2,25 +2,26 @@ from typing import override
 
 from haywire.core.adapter.base_adapter import BaseAdapter
 from haywire.core.adapter.base_adapter import adapter
-from haywire.libraries.core.types.specs import FLOAT
-from .example_specs import TEMPERATURE
+from ..types.mesh_data import MeshData
 
-@adapter(description="Convert generic float to temperature (assuming Celsius)", converts_from="FLOAT", converts_to="TEMPERATURE")
-class FloatToTemperatureAdapter(BaseAdapter):
-    """Convert generic float to temperature (assuming Celsius)"""
-    source_type: str = FLOAT().key
-    target_type: str = TEMPERATURE().key
-
-    @override
-    def convert(self, value: float) -> float:
-        return value
-
-@adapter(description="Convert temperature to generic float", converts_from="TEMPERATURE", converts_to="FLOAT")
-class TemperatureToFloatAdapter(BaseAdapter):
-    """Convert generic float to temperature (assuming Celsius)"""
-    source_type: str = TEMPERATURE().key
-    target_type: str = FLOAT().key
+@adapter(
+    description="Convert MeshData to Dict", 
+    converts_from=MeshData, converts_to=dict)
+class MeshDataToDictAdapter(BaseAdapter):
+    source_type = MeshData
+    target_type = dict
 
     @override
-    def convert(self, value: float) -> float:
-        return value
+    def convert(self, value: MeshData) -> dict:
+        return value.to_dict()
+
+@adapter(
+    description="Convert Dict to MeshData", 
+    converts_from=dict, converts_to=MeshData)
+class DictToMeshDataAdapter(BaseAdapter):
+    source_type = dict
+    target_type = MeshData
+
+    @override
+    def convert(self, value: dict) -> MeshData:
+        return MeshData.from_dict(value)

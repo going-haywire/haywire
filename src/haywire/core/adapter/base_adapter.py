@@ -7,13 +7,14 @@ from typing import Any, Callable, Type, override, TypeVar, Optional, Union
 from dataclasses import dataclass
 
 from haywire.core.library.base_identity import BaseIdentity
+from haywire.core.library.utils import derive_library_id, reg_key
 
 @dataclass
 class AdapterIdentity(BaseIdentity):
     """Core identifying attributes of an adapter"""
-    converts_from: str | None = None  # Source data type identifier
-    converts_to: str | None = None    # Target data type identifier
-    priority: int = 0                 # Priority for this adapter (higher = preferred)
+    converts_from: Type | None = None  # Source Python class (int, float, str, CustomType, etc.)
+    converts_to: Type | None = None    # Target Python class (int, float, str, CustomType, etc.)
+    priority: int = 0                  # Priority for this adapter (higher = preferred)
 
 
 # ============================================================================
@@ -31,13 +32,16 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     Args:
         registry_id (str, optional): Unique identifier for the adapter within its library.
             Defaults to class name if not provided.
-        label (str, optional): Human-readable display name for the node.
+        registry_key (str, optional): Full registry key (library + adapter ID). 
+            Auto-derived from library ID and registry_id by the decorator.
+            Can be manually overridden if needed.
+        label (str, optional): Human-readable display name for the adapter.
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the adapter.
             Defaults to empty string.
-        converts_from (str, optional): Source data type identifier.
+        converts_from (Type, optional): Source Python class (int, float, str, CustomType, etc.).
             Defaults to None.
-        converts_to (str, optional): Target data type identifier.
+        converts_to (Type, optional): Target Python class (int, float, str, CustomType, etc.).
             Defaults to None.
         priority (int, optional): Priority for this adapter (higher = preferred).
             Defaults to 0.
@@ -54,24 +58,26 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         @adapter(description="String to integer conversion adapter")
         class MyAdapter(BaseAdapter): ...
 
-        # Full customization
+        # Full customization with Python classes
         @adapter(
             registry_id="str_to_int_adapter",
             description="Converts string representations to integers with validation",
-            converts_from="STRING",
-            converts_to="INT",
+            converts_from=str,
+            converts_to=int,
             priority=5
         )
         class StringToIntAdapter(BaseAdapter): ...
 
-        # High priority adapter
+        # Using custom types
+        from mylib.types.mesh_data import MeshData
+        
         @adapter(
-            converts_from="FLOAT", 
-            converts_to="INT", 
+            converts_from=dict,
+            converts_to=MeshData,
             priority=10,
-            description="High priority float to int converter"
+            description="Convert dict to MeshData"
         )
-        class HighPriorityAdapter(BaseAdapter): ...
+        class DictToMeshAdapter(BaseAdapter): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseAdapter):
@@ -80,6 +86,11 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         # Set defaults from class name if not provided
         kwargs.setdefault('registry_id', inner_cls.__name__)
         kwargs.setdefault('label', inner_cls.__name__)
+        
+        # Auto-derive registry_key if not explicitly set
+        if 'registry_key' not in kwargs:
+            library_id = derive_library_id(inner_cls)
+            kwargs['registry_key'] = reg_key(library_id, kwargs['registry_id'])
         
         inner_cls.class_identity = AdapterIdentity(**kwargs)
         return inner_cls
@@ -93,8 +104,8 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
 class BaseAdapter(ABC):
     """Abstract base class for type adapters"""
     
-    source_type: str
-    target_type: str
+    source_type: Type
+    target_type: Type
     
     def __init__(self):
         if not hasattr(self, 'source_type') or not hasattr(self, 'target_type'):
@@ -106,7 +117,7 @@ class BaseAdapter(ABC):
         pass
     
     @classmethod
-    def get_conversion_info(cls) -> tuple[str, str]:
+    def get_conversion_info(cls) -> tuple[Type, Type]:
         """Get the source and target types for this adapter"""
         return cls.source_type, cls.target_type
 
