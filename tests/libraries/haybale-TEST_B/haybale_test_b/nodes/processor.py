@@ -7,7 +7,7 @@ It uses TestData from test_a library.
 
 from haywire.core.node.base_node import node, BaseNode
 from haywire.core.node.ports import PortInlet, PortOutlet
-from haywire.core.data.enums import DataType, FlowType
+from haywire.core.data.enums import FlowType
 from haywire.core.data.fields import SingleField
 
 # Import the custom type from test_a library
@@ -38,8 +38,9 @@ class TestProcessorNode(BaseNode):
             PortInlet(
                 id='test_data_in',
                 label='Test Data In',
+                value_type=TestData,
                 flow_type=FlowType.DATA,
-                data=SingleField(DataType.CUSTOM, 'single', None),
+                data=SingleField(TestData, None, False),
                 widget='core.text'
             )
         )
@@ -49,8 +50,9 @@ class TestProcessorNode(BaseNode):
             PortInlet(
                 id='modifier',
                 label='Modifier',
+                value_type=float,
                 flow_type=FlowType.DATA,
-                data=SingleField(DataType.FLOAT, 'single', 1.0),
+                data=SingleField(float, 1.0, False),
                 widget='core.number'
             )
         )
@@ -59,9 +61,10 @@ class TestProcessorNode(BaseNode):
         self.add_outlet(
             PortOutlet(
                 id='test_data_out',
+                value_type=TestData,
                 flow_type=FlowType.DATA,
                 label='Test Data Out',
-                data=SingleField(DataType.CUSTOM, 'single', None)
+                data=SingleField(TestData, None, False)
             )
         )
         
@@ -69,9 +72,10 @@ class TestProcessorNode(BaseNode):
         self.add_outlet(
             PortOutlet(
                 id='description',
+                value_type=str,
                 flow_type=FlowType.DATA,
                 label='Description',
-                data=SingleField(DataType.STRING, 'single', None)
+                data=SingleField(str, None, False)
             )
         )
     

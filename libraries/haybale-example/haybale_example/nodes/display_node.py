@@ -1,8 +1,6 @@
 from haywire.core.node.base_node import node
 from haywire.core.node.base_node import BaseNode
-from haywire.core.node.ports import PortInlet, PortOutlet
-from haywire.core.data.enums import DataType, FlowType
-from haywire.core.data.fields import SingleField
+from haywire.libraries.core.types.specs import FLOAT, STRING
 
 @node(
     label='Display',
@@ -23,37 +21,18 @@ class DisplayNode(BaseNode):
         # Configure UI
         self.ui_config.node_renderer = 'example:example.node.renderer'
 
-        # Math node
-        _ = self.add_inlet(
-            PortInlet(
-                id='a', 
-                label='Value A', 
-                flow_type=FlowType.DATA,
-                data=SingleField(DataType.FLOAT, 'single', 10.0), 
-                widget='core.number')
+        # Using the new .as_inlet() API
+        self.add_inlet(
+            FLOAT.as_inlet('a', label='Value A', value=10.0, widget='core.number')
         )
-        _ = self.add_inlet(
-            PortInlet(
-                id='b', 
-                label='Value B', 
-                flow_type=FlowType.DATA,
-                data=SingleField(DataType.FLOAT, 'single', 5.0), 
-                widget='core.number')
-            )
-        _ = self.add_outlet(
-            PortOutlet(
-                id='result', 
-                flow_type=FlowType.DATA, 
-                label='Result', 
-                data=SingleField(DataType.FLOAT, 'single', None)),
+        self.add_inlet(
+            FLOAT.as_inlet('b', label='Value B', value=5.0, widget='core.number')
         )
-        _ = self.add_inlet (
-            PortInlet(
-                id='operation', 
-                label='Operation', 
-                flow_type=FlowType.DATA,
-                data=SingleField(DataType.STRING, 'single', 'add'), 
-                widget='core.select')
+        self.add_outlet(
+            FLOAT.as_outlet('result', label='Result')
+        )
+        self.add_inlet(
+            STRING.as_inlet('operation', label='Operation', value='add', widget='core.select')
         )   
     
 

@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Type, override, TypeVar, Optional, Union
 from dataclasses import dataclass
 
-from haywire.core.data.enums import DataType
 from haywire.core.library.base_identity import BaseIdentity
 
 @dataclass

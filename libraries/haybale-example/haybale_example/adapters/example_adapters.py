@@ -8,7 +8,7 @@ from .example_specs import TEMPERATURE
 @adapter(description="Convert generic float to temperature (assuming Celsius)", converts_from="FLOAT", converts_to="TEMPERATURE")
 class FloatToTemperatureAdapter(BaseAdapter):
     """Convert generic float to temperature (assuming Celsius)"""
-    source_type: str = FLOAT().id
+    source_type: str = FLOAT().key
     target_type: str = TEMPERATURE().key
 
     @override
@@ -19,7 +19,7 @@ class FloatToTemperatureAdapter(BaseAdapter):
 class TemperatureToFloatAdapter(BaseAdapter):
     """Convert generic float to temperature (assuming Celsius)"""
     source_type: str = TEMPERATURE().key
-    target_type: str = FLOAT().id
+    target_type: str = FLOAT().key
 
     @override
     def convert(self, value: float) -> float:

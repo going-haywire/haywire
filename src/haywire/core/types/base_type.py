@@ -9,8 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Type, TypeVar, Union
 
-from haywire.core.data.enums import DataType
-
 from ..library.base_identity import BaseIdentity
 from ..library.utils import derive_library_id, reg_key
 
@@ -40,7 +38,6 @@ class CustomTypeIdentity(BaseIdentity):
     # CustomType-specific fields:
     color: str = '#f1f1f1'
     icon: str = 'box'
-    data_type: DataType = DataType.CUSTOM
     help_url: str = ''
     
     def to_spec(self, **overrides):
@@ -56,10 +53,17 @@ class CustomTypeIdentity(BaseIdentity):
         from ..data.specs import DataPortSpec
         from ..data.enums import DataContainerType
         
+        # Get the actual class from the module
+        # The class_ref should be the actual Python class
+        import importlib
+        module_path, class_name = self.registry_key.rsplit('.', 1) if '.' in self.registry_key else (None, self.registry_key)
+        
+        # For now, we'll pass None as value_type for custom types
+        # The actual class can be resolved at runtime through the registry
         return DataPortSpec(
             id=self.registry_id,
             key=self.registry_key,
-            data_type=self.data_type,  # Custom types don't use DataType enum
+            value_type=None,  # Custom type class - to be resolved via registry
             data_container=DataContainerType.SINGLE,
             label=self.label,
             description=self.description,

@@ -5,7 +5,7 @@ Built-in theme implementations.
 from typing import Dict
 from haywire.ui.themes.base import PythonTheme, ThemeMetadata
 from haywire.ui.themes.colors import Theme_UI_Color
-from haywire.core.data.enums import DataType, FlowType
+from haywire.core.data.enums import FlowType
 
 
 class DefaultTheme(PythonTheme):
@@ -17,16 +17,16 @@ class DefaultTheme(PythonTheme):
         description="Default light color scheme"
     )
     
-    # Data type colors - using DataType enum keys
+    # Data type colors - using Python type name strings
     DATA_TYPES = {
-        DataType.FLOAT.value: "#50b0ff",
-        DataType.INT.value: "#f7b0ff",
-        DataType.STRING.value: "#4caf50",
-        DataType.BOOL.value: "#ff9800",
-        DataType.LIST.value: "#9c27b0",
-        DataType.DICT.value: "#795548",
-        DataType.CUSTOM.value: "#795548",
-        'any': "#bababa",  # Special case - not in DataType enum
+        'float': "#50b0ff",
+        'int': "#f7b0ff",
+        'str': "#4caf50",
+        'bool': "#ff9800",
+        'list': "#9c27b0",
+        'dict': "#795548",
+        'bytes': "#9e9e9e",
+        'any': "#bababa",  # Default for unknown/custom types
     }
     
     # Flow type colors - using FlowType enum keys

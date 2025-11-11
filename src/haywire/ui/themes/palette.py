@@ -3,7 +3,7 @@ Theme palette manager - central access point for theming.
 Implements observer pattern for theme change notifications.
 """
 
-from typing import Optional, Callable, List, Dict, Any
+from typing import Optional, Callable, List, Dict, Any, Type
 from haywire.core.data.enums import FlowType
 from haywire.ui.themes.base import BaseTheme
 from haywire.ui.themes.builtin import BUILTIN_THEMES, DefaultTheme
@@ -221,23 +221,37 @@ class ThemePalette:
     # Convenience accessors with type safety
     
     @classmethod
-    def data_type(cls, data_type: str, default: Optional[str] = None) -> str:
+    def data_type(cls, data_type: Type | str | None, default: Optional[str] = None) -> str:
         """
         Get color for data type from current theme.
         
         Args:
-            data_type: Data type name
+            data_type: Python class (int, float, str, etc.), type name string, or None
             default: Fallback color (uses theme's port_default if None)
         
         Returns:
             Color value
         """
+        # Convert class to type name string
+        if isinstance(data_type, type):
+            type_name = data_type.__name__
+        elif data_type is None:
+            type_name = 'any'
+        else:
+            type_name = str(data_type)
+        
         # If default is None, get 'port_default' from UI colors
         if default is None:
             default = cls._current_theme.get_ui_color('port_default', '#757575')
         
-        # Call cls._current_theme.get_data_type_color()
-        return cls._current_theme.get_data_type_color(data_type, default)
+        # Try to get color for specific type
+        color = cls._current_theme.get_data_type_color(type_name, None)
+        
+        # If not found, try 'any' as fallback before using default
+        if color is None:
+            color = cls._current_theme.get_data_type_color('any', default)
+        
+        return color
     
     @classmethod
     def flow_type(cls, flow_type: FlowType | str, default: Optional[str] = None) -> str:

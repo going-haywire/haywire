@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Type
 from dataclasses import dataclass, field, replace
 
 from haywire.core.data.fields import SingleField, PooledField, DataField
+from haywire.core.library.utils import derive_library_id, reg_key
 
-from .enums import DataType, DataContainerType
+from .enums import DataContainerType
 
 @dataclass
 class DataPortSpec:
@@ -15,7 +16,7 @@ class DataPortSpec:
 
     Attributes:
         key: Registry key identifier (e.g., 'core:float', 'mylib:mesh_data')
-        data_type: The fundamental data type (backwards compatible, can be DataType enum or string)
+        value_type: The Python class (int, float, str, bool, bytes, dict, list, or custom class)
         label: Human-readable label
         description: Detailed description
         color: Pin color in graph UI (hex format)
@@ -25,10 +26,10 @@ class DataPortSpec:
         value: The default value for the field
         ui: Dictionary for extra UI-specific configurations
     """
-    key: str
-    data_type: DataType
+    id: str
+    value_type: Type | None
+    key: str = ''
     data_container: DataContainerType = DataContainerType.SINGLE
-    id: str = ''
     label: str = ''
     description: str = ''
     color: str = '#757575'  # Default gray
@@ -39,9 +40,9 @@ class DataPortSpec:
 
     def __post_init__(self):
         """Generate default values for optional fields after initialization."""
-        # Auto-generate label from key if not provided
-        if not self.id:
-            self.id = self.key.split(':')[-1]
+        # Auto-generate key from id if not provided
+        if not self.key:
+            self.key = 'default:' + self.id
 
         # Auto-generate label from id if not provided
         if not self.label:
@@ -49,25 +50,24 @@ class DataPortSpec:
                 
         # Ensure description is a string
         if not self.description:
-            self.description = ""
-        
-        # Populate ui dict with color/icon for backward compatibility
-        self.ui.setdefault('color', self.color)
-        self.ui.setdefault('icon', self.icon)
-        
+            self.description = self.id.replace('_', ' ')
+                
         # Set smart defaults for value based on type and container
-        if self.value is None:
+        if self.value is None and self.value_type is not None:
             if self.data_container == DataContainerType.SINGLE:
-                if self.data_type == DataType.FLOAT or (isinstance(self.data_type, str) and self.data_type == 'float'):
+                if self.value_type == float:
                     self.value = 0.0
-                elif self.data_type == DataType.INT or (isinstance(self.data_type, str) and self.data_type == 'int'):
+                elif self.value_type == int:
                     self.value = 0
-                elif self.data_type == DataType.BOOL or (isinstance(self.data_type, str) and self.data_type == 'bool'):
+                elif self.value_type == bool:
                     self.value = False
-                elif self.data_type == DataType.STRING or (isinstance(self.data_type, str) and self.data_type == 'str'):
+                elif self.value_type == str:
                     self.value = ""
+                elif self.value_type == bytes:
+                    self.value = b""
                 else:
-                    self.value = None  # Default for CUSTOM, etc.
+                    # For custom types or other types, leave as None
+                    self.value = None
             elif self.data_container in [DataContainerType.LIST, DataContainerType.SET]:
                 self.value = []
             elif self.data_container == DataContainerType.DICT:
@@ -77,6 +77,91 @@ class DataPortSpec:
     def __call__(self, **kwargs: Any) -> DataPortSpec:
         """Create a new instance with overridden attributes."""
         return replace(self, **kwargs)
+    
+    def as_inlet(self, id: str, flow_type: 'FlowType' = None, **kwargs) -> 'PortInlet':
+        """Convert this spec to a PortInlet, inheriting all spec attributes.
+        
+        Args:
+            id: Unique identifier for the inlet
+            flow_type: Type of flow (defaults to FlowType.DATA)
+            **kwargs: Overrides for any spec attributes (label, widget, ui, etc.)
+                     Also accepts inlet-specific args (callback, is_pooled, etc.)
+                     Note: kwargs completely override spec values (no merging)
+        
+        Returns:
+            PortInlet instance with all spec attributes merged
+        """
+        from dataclasses import asdict
+        from ..data.enums import FlowType as FlowTypeEnum
+        
+        # Import here to avoid circular dependency
+        from ..node.ports import PortInlet
+        
+        # Default flow_type if not provided
+        if flow_type is None:
+            flow_type = FlowTypeEnum.DATA
+        
+        # Start with all spec attributes
+        spec_dict = asdict(self)
+        
+        # Build inlet kwargs: spec as base, then overrides
+        inlet_kwargs = {
+            **spec_dict,     # All spec attributes become part of the inlet
+            'id': id,        # Override the id
+            'flow_type': flow_type,
+            **kwargs         # Any other overrides (callback, is_pooled, ui, etc.)
+        }
+        
+        return PortInlet(**inlet_kwargs)
+    
+    def as_outlet(self, id: str, flow_type: 'FlowType' = None, **kwargs) -> 'PortOutlet':
+        """Convert this spec to a PortOutlet, inheriting all spec attributes.
+        
+        Args:
+            id: Unique identifier for the outlet
+            flow_type: Type of flow (defaults to FlowType.DATA)
+            **kwargs: Overrides for any spec attributes (label, widget, ui, etc.)
+                     Note: kwargs completely override spec values (no merging)
+        
+        Returns:
+            PortOutlet instance with all spec attributes merged
+        """
+        from dataclasses import asdict
+        from ..data.enums import FlowType as FlowTypeEnum
+        
+        # Import here to avoid circular dependency
+        from ..node.ports import PortOutlet
+        
+        # Default flow_type if not provided
+        if flow_type is None:
+            flow_type = FlowTypeEnum.DATA
+        
+        # Start with all spec attributes
+        spec_dict = asdict(self)
+        
+        # Build outlet kwargs: spec as base, then overrides
+        outlet_kwargs = {
+            **spec_dict,     # All spec attributes become part of the outlet
+            'id': id,        # Override the id
+            'flow_type': flow_type,
+            **kwargs         # Any other overrides (ui, etc.)
+        }
+        
+        return PortOutlet(**outlet_kwargs)
+    
+    def as_config(self, id: str, callback=None, **kwargs) -> 'PortInlet':
+        """Convert to config (no pin visible).
+        
+        Args:
+            id: Unique identifier for the config
+            callback: Optional callback function triggered on value change
+            **kwargs: Overrides for any spec attributes
+        
+        Returns:
+            PortInlet with FlowType.NONE
+        """
+        from ..data.enums import FlowType as FlowTypeEnum
+        return self.as_inlet(id, flow_type=FlowTypeEnum.NONE, callback=callback, **kwargs)
 
 
 class DataFieldFactory:
@@ -86,13 +171,13 @@ class DataFieldFactory:
         """Create appropriate DataField instance based on pooled flag"""
         if is_pooled:
             return PooledField(
-                type=spec.data_type,
+                type=spec.value_type,
                 value={},
                 is_pooled=True
             )
         else:
             return SingleField(
-                type=spec.data_type,
+                type=spec.value_type,
                 value=spec.value,
                 is_pooled=False
             )
@@ -105,7 +190,7 @@ def specs_factory(**kwargs: Any) -> DataPortSpec:
     configured instances.
 
     Example:
-        INT = specs_factory(type=DataType.INT)
+        INT = specs_factory(value_type=int)
         my_int_field = INT(value=10)
     """
     return DataPortSpec(**kwargs)

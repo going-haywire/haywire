@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Any, Callable, Set, List
+from typing import Any, Callable, Set, List, Type
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from .enums import DataType, DataContainerType
+from .enums import DataContainerType
 from .event import Event, T
 
 
@@ -12,24 +12,18 @@ class DataField(ABC):
     """
     Abstract base class for data fields with change notification.
     
-    The type field accepts DataType enum, string (registry_key for custom types),
-    or None. Enum values are automatically converted to strings in __post_init__.
+    The type field stores the actual Python class (int, float, str, custom classes).
     
     Attributes:
-        type: DataType enum, registry_key string (e.g., 'core:float', 'mylib:mesh'), or None
+        type: The Python class (int, float, str, bool, bytes, dict, list, or custom class)
         value: The current value
         is_pooled: Whether this field accepts multiple input sources
     """
-    type: str | DataType | None
+    type: Type | None
     value: T 
     is_pooled: bool
 
     def __post_init__(self):
-        # Convert DataType enum to string for uniform handling
-        if isinstance(self.type, DataType):
-            self.type = self.type.value
-        # type can be: string (enum value or registry_key) or None (for custom types)
-
         self._default_value: T = self.value
         self.on_changed: Event[T] = Event[T]()
         self.is_dirty: bool = True
@@ -87,9 +81,16 @@ class DataField(ABC):
     
     def to_dict(self) -> dict:
         """Convert to dict for serialization"""
+        # Get the type name for serialization
+        type_name = None
+        if self.type is not None:
+            if hasattr(self.type, '__name__'):
+                type_name = self.type.__name__
+            else:
+                type_name = str(self.type)
+        
         return {
-            'type': self.type.value if hasattr(self.type, 'value') else self.type,
-            'container': self.container.value if hasattr(self.container, 'value') else self.container,
+            'type': type_name,
             'value': self._default_value,
             'is_dirty': self.is_dirty,
             'is_pooled': self.is_pooled,

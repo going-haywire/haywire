@@ -11,7 +11,7 @@ from haywire.core.library.utils import derive_library_id, reg_key
 
 T = TypeVar('T')
 
-from .ports import PortInlet, PortOutlet, PinSpec
+from .ports import PortInlet, PortOutlet
 from ..library.library_identity import LibraryIdentity
 from ..data.specs import DataPortSpec
 

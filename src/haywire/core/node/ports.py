@@ -7,18 +7,13 @@ from ..data.fields import DataField
 from ..data.enums import FlowType
 
 @dataclass
-class DataPort:
-    """Base for configs, properties, inlets, outlets
-    
-    Intentionally broad to unify access patterns.
-    Not all fields used by all subclasses.
+class DataPort(DataPortSpec):
+    """Extended DataPortSpec with runtime port information.
     """
-    id: str
-    spec: Optional[DataPortSpec] = None
-    label: str = ''
+    # Override flow_type to make it required for ports
     flow_type: FlowType = FlowType.NONE
-    widget: Optional[str] = None
-    ui: dict = field(default_factory=dict)
+    
+    # Runtime fields (not in spec)
     data: Optional[DataField] = None
     metadata: dict = field(default_factory=dict)
     
@@ -35,17 +30,12 @@ class DataPort:
     pipes: list = field(default_factory=list)
     
     def __post_init__(self):
+        # Call parent __post_init__ to handle spec defaults
+        super().__post_init__()
+        
+        # Convert FlowType enum to value if needed
         if isinstance(self.flow_type, FlowType):
             self.flow_type = self.flow_type.value
-        
-        # Copy from init if available
-        if self.spec:
-            if self.label == '' and self.spec.label:
-                self.label = self.spec.label
-            if self.widget is None:
-                self.widget = self.spec.widget
-            if not self.ui:
-                self.ui = self.spec.ui
     
     def is_pin(self) -> bool:
         return self.flow_type != FlowType.NONE.value
@@ -71,8 +61,7 @@ class PortInlet(DataPort):
         super().__post_init__()        
         # Create data field if needed
         if self.data is None and self.flow_type == FlowType.DATA.value:
-            if self.spec:
-                self.data = DataFieldFactory.create(self.spec,is_pooled=self.is_pooled)
+            self.data = DataFieldFactory.create(self, is_pooled=self.is_pooled)
 
         # Auto-trigger callback on value change
         if self.callback and self.data:
@@ -84,8 +73,7 @@ class PortOutlet(DataPort):
         super().__post_init__()
         # Create data field if needed
         if self.data is None and self.flow_type == FlowType.DATA.value:
-            if self.spec:
-                self.data = DataFieldFactory.create(self.spec,is_pooled=self.is_pooled)
+            self.data = DataFieldFactory.create(self, is_pooled=False)
 
 
 

@@ -3,15 +3,16 @@ Built-in data type specifications for Haywire core library.
 """
 
 from haywire.core.data.specs import DataPortSpec
-from haywire.core.data.enums import DataType, DataContainerType
+from haywire.core.data.enums import DataContainerType
 
 # ============================================================================
 # Numeric Types
 # ============================================================================
 
 INT = DataPortSpec(
+    id='int',
     key='core:int',
-    data_type=DataType.INT,
+    value_type=int,
     data_container=DataContainerType.SINGLE,
     label='Integer',
     description='Whole number',
@@ -22,8 +23,9 @@ INT = DataPortSpec(
 )
 
 FLOAT = DataPortSpec(
+    id='float',
     key='core:float',
-    data_type=DataType.FLOAT,
+    value_type=float,
     data_container=DataContainerType.SINGLE,
     label='Float',
     description='Decimal number',
@@ -38,8 +40,9 @@ FLOAT = DataPortSpec(
 # ============================================================================
 
 STRING = DataPortSpec(
+    id='string',
     key='core:string',
-    data_type=DataType.STRING,
+    value_type=str,
     data_container=DataContainerType.SINGLE,
     label='String',
     description='Text data',
@@ -54,8 +57,9 @@ STRING = DataPortSpec(
 # ============================================================================
 
 BOOL = DataPortSpec(
+    id='bool',
     key='core:bool',
-    data_type=DataType.BOOL,
+    value_type=bool,
     data_container=DataContainerType.SINGLE,
     label='Boolean',
     description='True or False',
@@ -70,8 +74,9 @@ BOOL = DataPortSpec(
 # ============================================================================
 
 BYTES = DataPortSpec(
+    id='bytes',
     key='core:bytes',
-    data_type=DataType.BYTES,
+    value_type=bytes,
     data_container=DataContainerType.SINGLE,
     label='Bytes',
     description='Binary data',
@@ -86,8 +91,9 @@ BYTES = DataPortSpec(
 # ============================================================================
 
 LIST = DataPortSpec(
+    id='list',
     key='core:list',
-    data_type=DataType.LIST,
+    value_type=list,
     data_container=DataContainerType.LIST,
     label='List',
     description='Ordered collection',
@@ -98,8 +104,9 @@ LIST = DataPortSpec(
 )
 
 DICT = DataPortSpec(
+    id='dict',
     key='core:dict',
-    data_type=DataType.DICT,
+    value_type=dict,
     data_container=DataContainerType.DICT,
     label='Dictionary',
     description='Key-value pairs',

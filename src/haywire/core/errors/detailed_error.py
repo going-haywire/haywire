@@ -204,6 +204,7 @@ def analyze_exception(exception: Exception,
     context_lines = []
     source_line = ""
     highlight_position = None
+    highlight_length = None
     context_info = None
     
     try:

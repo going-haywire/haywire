@@ -6,7 +6,7 @@ Basic core node implementations
 from haywire.core.node.base_node import node
 from haywire.core.node.base_node import BaseNode
 from haywire.core.node.ports import PortInlet, PortOutlet
-from haywire.core.data.enums import DataType, DataContainerType, FlowType
+from haywire.core.data.enums import DataContainerType, FlowType
 from haywire.core.data.fields import SingleField
 
 @node(
@@ -27,6 +27,7 @@ class TestNodeOne(BaseNode):
         # Add configs with different widget types
         _ = self.add_inlet(PortInlet(
                 id='execute',  # id as first positional parameter
+                value_type=None,
                 label='Execute',
                 flow_type=FlowType.CTRL,
                 is_pooled=False
@@ -35,8 +36,9 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 id='temperature',  # id as first positional parameter
                 label='Temperature',
+                value_type=float,
                 flow_type=FlowType.NONE,
-                data=SingleField(DataType.FLOAT, 25.0, False),
+                data=SingleField(float, 25.0, False),
                 widget='example:temperature.widget',
                 ui={'properties': {'unit': 'celsius'}}
             )
@@ -45,9 +47,10 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 id='float_select',  # id as first positional parameter
                 label='Select',
+                value_type=str,
                 flow_type=FlowType.DATA,
                 is_pooled=False,
-                data=SingleField(DataType.STRING, "Option 1", False),
+                data=SingleField(str, "Option 1", False),
                 widget='core:select.widget',
                 ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}
             )
@@ -55,8 +58,9 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'float_slider',  # element_id as first positional parameter
                 label='Float Slider',
+                value_type=float,
                 flow_type=FlowType.DATA,
-                data=SingleField(DataType.FLOAT, 50.0, False),
+                data=SingleField(float, 50.0, False),
                 widget='core:slider.widget',
                 ui={'properties': {'min': 0, 'max': 100, 'step': 1}}
             )
@@ -64,8 +68,9 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'bool_switch',  # element_id as first positional parameter
                 label='Boolean Switch',
+                value_type=bool,
                 flow_type=FlowType.DATA,
-                data=SingleField(DataType.BOOL, True, False),
+                data=SingleField(bool, True, False),
                 widget='core:switch.widget',
                 ui={'properties': {'text': 'Enable Feature'}}
             )
@@ -73,8 +78,9 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',
+                value_type=str,
                 flow_type=FlowType.DATA,
-                data=SingleField(DataType.STRING, 'Hello', False),
+                data=SingleField(str, 'Hello', False),
                 widget='core:text.input.widget',
                 ui={'properties': {'placeholder': 'Enter text...'}}
             )   
@@ -82,8 +88,9 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'nonexistent',  # element_id as first positional parameter
                 label='Missing Widget',
+                value_type=int,
                 flow_type=FlowType.DATA,
-                data=SingleField(DataType.INT, 42, False),
+                data=SingleField(int, 42, False),
                 widget='core:number.widget',
                 ui={'properties': {}}
             )
@@ -91,6 +98,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(PortInlet(
                 'callback',  # element_id as first positional parameter
                 label='Callback Widget',
+                value_type=None,
                 flow_type=FlowType.CALLBACK,
             )
         )
@@ -98,14 +106,16 @@ class TestNodeOne(BaseNode):
         _ = self.add_outlet(PortOutlet(
                 'execute',  # element_id as first positional parameter
                 label='Execute',
+                value_type=None,
                 flow_type=FlowType.CTRL
             )
         )
         _ = self.add_outlet(PortOutlet(
                 'nonexistent',  # element_id as first positional parameter
                 label='Missing Widget',
+                value_type=int,
                 flow_type=FlowType.DATA,
-                data=SingleField(DataType.INT, 42, False),
+                data=SingleField(int, 42, False),
             )
         )
 

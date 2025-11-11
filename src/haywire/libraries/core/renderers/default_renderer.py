@@ -9,7 +9,7 @@ from nicegui import ui
 from nicegui.element import Element
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.node.base_node import BaseNode
-from haywire.core.data.enums import DataType, FlowType
+from haywire.core.data.enums import FlowType
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.node.ports import PortInlet, PortOutlet, DataPort
 from haywire.core.ui.base import UINodeCard
@@ -190,7 +190,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'data-pin-color="{callback_color}"'
             )
         elif pin.flow_type == FlowType.DATA.value:
-            pin_color = ThemePalette.data_type(pin.data.type)
+            pin_color = ThemePalette.data_type(pin.value_type, pin.color)
             port_border = ThemePalette.ui(Theme_UI_Color.PORT_BORDER, 'white')
             ui.element('div').classes(
                 'port output-port connection-pin zoom-pan-lod0'

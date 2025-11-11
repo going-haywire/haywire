@@ -10,7 +10,7 @@ from haywire.core.ui.base_widget import widget
 
 @widget(
     description="Text input widget for string data", 
-    default_for=["STRING", "BYTES"])
+    default_for=[str, bytes])
 class TextInputWidget(BaseWidget):
     """Text input widget for string data"""
 
@@ -33,7 +33,7 @@ class TextInputWidget(BaseWidget):
 
 @widget(
     description="Number input widget for numeric data", 
-    default_for=["INT", "FLOAT"])
+    default_for=[int, float])
 class NumberWidget(BaseWidget):
     """Number input widget for numeric data"""
 
@@ -57,7 +57,7 @@ class NumberWidget(BaseWidget):
 
 @widget(
     description="Checkbox widget for boolean data", 
-    default_for=["BOOL"])
+    default_for=[bool])
 class CheckboxWidget(BaseWidget):
     """Checkbox widget for boolean data"""
     

@@ -1,9 +1,8 @@
 import inspect
 import logging
-from typing import TypeVar, Optional, Union
+from typing import TypeVar, Optional, Union, Type
 import logging
 
-from ...data.enums import DataType
 from ...data.fields import DataField
 from ...ui.base_widget import BaseWidget
 from ..library_identity import LibraryIdentity
@@ -17,7 +16,7 @@ class WidgetRegistry(BaseClassRegistry):
 
     def __init__(self):
         super().__init__()
-        self._default_widgets: dict[DataType, type] = {}
+        self._default_widgets: dict[Type, type] = {}
         self._error_widget: type | None = None
 
     def _class_filter(self, cls):
@@ -45,12 +44,12 @@ class WidgetRegistry(BaseClassRegistry):
 
         # Check if this widget has default_for data types and register them automatically
         if hasattr(widget, 'class_identity') and widget.class_identity.default_for:
-            for data_type_str in widget.class_identity.default_for:
-                try:
-                    data_type = DataType(data_type_str)
-                    self._default_widgets[data_type] = widget
-                except ValueError:
-                    logging.warning(f"Library '{library_identity.label}': Invalid data type '{data_type_str}' in widget '{widget.__name__}' default_for list")
+            for data_type_class in widget.class_identity.default_for:
+                # default_for should now contain actual Python classes (int, float, str, etc.)
+                if isinstance(data_type_class, type):
+                    self._default_widgets[data_type_class] = widget
+                else:
+                    logging.warning(f"Library '{library_identity.label}': Invalid data type '{data_type_class}' in widget '{widget.__name__}' default_for list - must be a Python class")
 
         # Check if this is an error widget and register it automatically
         if hasattr(widget, 'class_identity') and widget.class_identity.is_error_widget:
