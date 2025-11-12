@@ -8,7 +8,9 @@ from haywire.core.node.base_node import BaseNode
 from haywire.core.node.ports import PortInlet, PortOutlet
 from haywire.core.data.enums import ContainerType, FlowType
 from haywire.core.data.fields import SingleField
+from haywire.libraries.core.types.specs import STRING
 
+from ..types.mesh_data import MeshData
 from ..types.specs import TEMPERATURE
 
 @node(
@@ -70,16 +72,19 @@ class TestNodeOne(BaseNode):
                 ui={'properties': {'text': 'Enable Feature'}}
             )
         )
-        _ = self.add_inlet(PortInlet(
+        _ = self.add_inlet(STRING.as_inlet(
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',
-                cls_type=str,
                 flow_type=FlowType.DATA,
-                data=SingleField(str, 'Hello', False),
+                default='Hello, Haywire!',
                 widget='core:text.input.widget',
                 ui={'properties': {'placeholder': 'Enter text...'}}
             )   
         )
+
+        _ = self.add_inlet(MeshData.specs().as_inlet(id='mesh_data_inlet', label='Mesh Data Inlet'))
+
+ 
         _ = self.add_inlet(PortInlet(
                 'nonexistent',  # element_id as first positional parameter
                 label='Missing Widget',
