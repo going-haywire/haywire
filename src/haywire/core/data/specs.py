@@ -3,6 +3,7 @@ from typing import Any, Type
 from dataclasses import dataclass, field, replace
 
 from haywire.core.data.fields import SingleField, PooledField, DataField
+from haywire.core.data.identity import DataPortIdentity
 from haywire.core.library.utils import derive_library_id, reg_key
 
 from .enums import ContainerType
@@ -167,17 +168,17 @@ class DataPortSpec:
 class DataFieldFactory:
     """Separate factory concerns"""
     @staticmethod
-    def create(spec: DataPortSpec, is_pooled: bool = False) -> DataField:
+    def create(spec: DataPortIdentity, is_pooled: bool = False) -> DataField:
         """Create appropriate DataField instance based on pooled flag"""
         if is_pooled:
             return PooledField(
-                type=spec.cls_type,
+                type=spec.cls,
                 value={},
                 is_pooled=True
             )
         else:
             return SingleField(
-                type=spec.cls_type,
+                type=spec.cls,
                 value=spec.default,
                 is_pooled=False
             )

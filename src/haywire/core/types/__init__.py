@@ -1,10 +1,13 @@
 """
-Custom type system for Haywire.
+Type system for Haywire.
 
-This module provides infrastructure for defining and managing custom data types
-that can be passed between nodes through inlet/outlet connections.
+This module provides infrastructure for defining and managing data types
+(both type variants and custom compound types) that can be passed between
+nodes through inlet/outlet connections.
 """
 
-from .base_type import CustomTypeIdentity, custom_type
+from .base import TypeBase
+from .decorators import type_
+from ..data.identity import DataPortIdentity
 
-__all__ = ['CustomTypeIdentity', 'custom_type']
+__all__ = ['TypeBase', 'type_', 'DataPortIdentity']

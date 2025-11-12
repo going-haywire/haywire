@@ -16,7 +16,7 @@ from ..library.registries.reg_node import NodeRegistry
 from ..library.registries.reg_renderer import RendererRegistry
 from ..library.registries.reg_adapter import AdapterRegistry
 from ..library.registries.reg_widget import WidgetRegistry
-from ..library.registries.reg_custom_type import CustomTypeRegistry
+from ..library.registries.reg_type import TypeRegistry
 from ..node.node_factory import NodeFactory
 from ...ui.node_render_factory import NodeRenderFactory
 from ...undo.interfaces import IHistoryManager
@@ -114,9 +114,9 @@ class HaywireModule(Module):
     
     @provider
     @singleton
-    def provide_custom_type_registry(self) -> CustomTypeRegistry:
-        """Provide singleton CustomTypeRegistry."""
-        return CustomTypeRegistry()
+    def provide_type_registry(self) -> TypeRegistry:
+        """Provide singleton TypeRegistry."""
+        return TypeRegistry()
                 
     @provider
     @singleton
@@ -204,21 +204,21 @@ class LibrarySystemService:
         adapter_registry = self.injector.get(AdapterRegistry)
         renderer_registry = self.injector.get(RendererRegistry)
         node_registry = self.injector.get(NodeRegistry)
-        custom_type_registry = self.injector.get(CustomTypeRegistry)
+        type_registry = self.injector.get(TypeRegistry)
         
         # Link registries to library registry for management
         library_registry.add_class_registry(WidgetRegistry, widget_registry)
         library_registry.add_class_registry(AdapterRegistry, adapter_registry)
         library_registry.add_class_registry(RendererRegistry, renderer_registry)
         library_registry.add_class_registry(NodeRegistry, node_registry)
-        library_registry.add_class_registry(CustomTypeRegistry, custom_type_registry)
+        library_registry.add_class_registry(TypeRegistry, type_registry)
         
         # Set up registry subscribers for cross-registry updates
         # this ensures that when new types are added, 
         # nodes, widgets and adapters are updated accordingly
-        custom_type_registry.add_registry_subscriber(adapter_registry)
-        custom_type_registry.add_registry_subscriber(widget_registry)
-        custom_type_registry.add_registry_subscriber(node_registry)
+        type_registry.add_registry_subscriber(adapter_registry)
+        type_registry.add_registry_subscriber(widget_registry)
+        type_registry.add_registry_subscriber(node_registry)
 
         library_registry.scan_for_libraries()
         
@@ -235,7 +235,7 @@ class LibrarySystemService:
         widget_registry = self.injector.get(WidgetRegistry)
         renderer_registry = self.injector.get(RendererRegistry)
         node_registry = self.injector.get(NodeRegistry)
-        custom_type_registry = self.injector.get(CustomTypeRegistry)
+        type_registry = self.injector.get(TypeRegistry)
         
         print("\n=== Registry Status ===")
         
@@ -264,14 +264,14 @@ class LibrarySystemService:
             print(f"   • {node_key}")
         
         # Print registered custom types
-        print("\n📦 Registered Custom Types:")
-        all_types = custom_type_registry.list_names()
+        print("\n📦 Registered Types:")
+        all_types = type_registry.list_names()
         for type_key in all_types:
             print(f"   • {type_key}")
         
         print(f"\nTotal: {len(all_nodes)} nodes, {len(all_renderers)} renderers, "
               f"{len(all_widgets)} widgets, {len(all_adapters)} adapters, "
-              f"{len(all_types)} custom types\n")
+              f"{len(all_types)} types\n")
     
     # Convenience methods for getting common services
     def get_node_registry(self) -> NodeRegistry:
@@ -290,9 +290,9 @@ class LibrarySystemService:
         """Get the adapter registry."""
         return self.injector.get(AdapterRegistry)
     
-    def get_custom_type_registry(self) -> CustomTypeRegistry:
-        """Get the custom type registry."""
-        return self.injector.get(CustomTypeRegistry)
+    def get_type_registry(self) -> TypeRegistry:
+        """Get the type registry."""
+        return self.injector.get(TypeRegistry)
     
     def get_library_registry(self) -> 'LibraryRegistry':
         """Get the library registry."""

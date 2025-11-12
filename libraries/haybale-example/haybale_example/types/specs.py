@@ -1,14 +1,31 @@
 # Custom data type for testing
-from haywire.core.data.enums import ContainerType
-from haywire.core.data.specs import specs_factory
-
+from haywire.core.data.enums import FlowType
+from haywire.core.types.decorators import type_
 from haywire.libraries.core.types.specs import FLOAT
 
-TEMPERATURE = FLOAT(
-    id='temperature',
-    key='example:temperature',
+
+@type_(
+    registry_id='temperature',
     label='Temperature',
     description='Temperature data type',
     widget='example:temperature.widget',
     ui={'properties': {'unit': '°D'}}
 )
+class Temperature(FLOAT):
+    """
+    Temperature measurement type.
+    
+    A specialized float type for representing temperature values with
+    a custom widget for temperature input/display.
+    
+    **Inherits:** FLOAT: Base float type (cls=float)
+    
+    **widget** = 'example:temperature.widget' - Temperature-specific input control
+    
+    **ui** = {'properties': {'unit': '°D'}} - Display unit for temperature values
+    
+    Usage:
+        Temperature.as_inlet('temp', default=25.0)
+        Temperature.as_outlet('result')
+    """
+    pass

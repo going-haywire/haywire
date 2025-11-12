@@ -12,7 +12,7 @@ from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.registries.reg_adapter import AdapterRegistry
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_node import NodeRegistry
-from haywire.core.library.registries.reg_custom_type import CustomTypeRegistry
+from haywire.core.library.registries.reg_type import TypeRegistry
 
 @library(
     label='Example',
@@ -32,13 +32,13 @@ class Library(BaseLibrary):
     def register_components(self):
         """Register all test components with the global registries"""
 
-        """Register nodes and custom types"""
+        """Register nodes and types"""
         base_path = Path(__file__).parent
 
-        # Register custom types
+        # Register types (both variants and custom types)
         self.add_folder_to_registry(
             folder_path=str(base_path / 'types'),
-            registry_cls=CustomTypeRegistry
+            registry_cls=TypeRegistry
         )
 
         # Register adapters 

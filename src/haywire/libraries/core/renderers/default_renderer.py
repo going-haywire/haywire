@@ -163,7 +163,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
             f'data-pin-dir-y="{dir_y}"'
         )
         
-        if pin.flow_type == FlowType.CTRL.value:
+        if pin.flow_type == FlowType.CTRL:
             # Get control flow color from theme
             ctrl_color = ThemePalette.flow_type(FlowType.CTRL)
             # Pin connector
@@ -176,7 +176,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'{common_props} '
                 f'data-pin-color="{ctrl_color}"'
             )
-        elif pin.flow_type == FlowType.CALLBACK.value:
+        elif pin.flow_type == FlowType.CALLBACK:
             # Get callback flow color from theme
             callback_color = ThemePalette.flow_type(FlowType.CALLBACK)
             # Pin connector
@@ -189,8 +189,8 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'{common_props} '
                 f'data-pin-color="{callback_color}"'
             )
-        elif pin.flow_type == FlowType.DATA.value:
-            pin_color = ThemePalette.data_type(pin.cls_type, pin.color)
+        elif pin.flow_type == FlowType.DATA:
+            pin_color = ThemePalette.data_type(pin.cls, pin.color)
             port_border = ThemePalette.ui(Theme_UI_Color.PORT_BORDER, 'white')
             ui.element('div').classes(
                 'port output-port connection-pin zoom-pan-lod0'
