@@ -5,28 +5,31 @@ import traceback
 from typing import Dict, Any, Optional, Type
 import re
 
-def derive_library_id(cls: Type) -> str | None:
+from .library_identity import LibraryIdentity
+
+def derive_library_identity(cls: Type) -> LibraryIdentity:
     """
-    Derive library ID by finding the parent Library class.
+    Derive full LibraryIdentity by finding the parent Library class.
     
-    Walks up the module hierarchy looking for a Library class with
-    class_identity.id attribute. Uses sys.modules to avoid re-importing.
+    returns the complete LibraryIdentity object
+    This is used by type decorators to set the
+    class_library attribute at decoration time, 
+    which survives hot-reloads.
     
-    This function is used by decorators (@node, @renderer, @widget) to automatically
-    determine the library ID from the module structure, enabling classes to know
-    their full registry_key before registration.
+    Walks up the module hierarchy looking for a Library class with class_identity
+    attribute. Uses sys.modules to avoid re-importing.
     
     Args:
         cls: The class to find the library for
         
     Returns:
-        str | None: Library ID if found, None if unable to determine
+        LibraryIdentity | None: Library identity if found, None if unable to determine
         
     Example:
-        For a class at haywire.libraries.core.nodes.basic_nodes.TestNode:
-        - Walks up: haywire.libraries.core.nodes -> haywire.libraries.core
+        For a type at haywire.libraries.core.types.specs.FLOAT:
+        - Walks up: haywire.libraries.core.types -> haywire.libraries.core
         - Finds Library class in haywire.libraries.core.__init__
-        - Returns 'core' from Library.class_identity.id
+        - Returns the complete LibraryIdentity object from Library.class_identity
     """
     module_path = cls.__module__
     parts = module_path.split('.')
@@ -45,7 +48,7 @@ def derive_library_id(cls: Type) -> str | None:
         if hasattr(module, 'Library'):
             lib_class = getattr(module, 'Library')
             if hasattr(lib_class, 'class_identity'):
-                return lib_class.class_identity.id
+                return lib_class.class_identity
     
     return None
 

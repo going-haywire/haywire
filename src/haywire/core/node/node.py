@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from ..data.enums import FlowType
 from ..data.specs import DataPortSpec
-from ..types.ports import PortInlet, PortOutlet, PinSpec
+from ..types.ports import PortInlet, PortOutlet
 from ..library.library_identity import LibraryIdentity
 from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
 

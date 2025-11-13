@@ -113,8 +113,8 @@ class TypeBase:
         # Create the outlet
         outlet = PortOutlet(**port_kwargs)
         
-        # Set the library reference
-        outlet.class_library = cls.class_library
+        # Set the library reference (use getattr for safety during hot-reload)
+        outlet.class_library = getattr(cls, 'class_library', None)
         
         # Remove default from kwargs for storage (it was already used in creation)
         kwargs.pop('default', None)

@@ -13,7 +13,7 @@ from dataclasses import asdict
 from .base import TypeBase
 from .identity import DataPortIdentity
 from ..data.enums import ContainerType, FlowType
-from ..library.utils import derive_library_id, reg_key
+from ..library.utils import derive_library_identity, reg_key
 
 T = TypeVar('T')
 
@@ -145,12 +145,16 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                 '_is_variant': True
             }
         
+        # Get library identity (survives hot-reload)
+        library_identity = derive_library_identity(inner_cls)
+        
         # Set registry_key
-        library_id = derive_library_id(inner_cls)
+        library_id = library_identity.id if library_identity else None
         identity_dict['registry_key'] = reg_key(library_id, identity_dict['registry_id'])
         
-        # Create and attach identity
+        # Create and attach identity and library
         inner_cls.class_identity = DataPortIdentity(**identity_dict)
+        inner_cls.class_library = library_identity
         
         return inner_cls
     
@@ -257,12 +261,16 @@ def compound_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             '_is_variant': False,  # Compound types are not variants
         }
         
+        # Get library identity (survives hot-reload)
+        library_identity = derive_library_identity(inner_cls)
+        
         # Set registry_key
-        library_id = derive_library_id(inner_cls)
+        library_id = library_identity.id if library_identity else None
         identity_dict['registry_key'] = reg_key(library_id, identity_dict['registry_id'])
         
-        # Create and attach identity
+        # Create and attach identity and library
         inner_cls.class_identity = DataPortIdentity(**identity_dict)
+        inner_cls.class_library = library_identity
         
         return inner_cls
     

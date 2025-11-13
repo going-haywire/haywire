@@ -6,9 +6,8 @@ It uses TestData from test_a library.
 """
 
 from haywire.core.node.base_node import node, BaseNode
-from haywire.core.types.ports import PortInlet, PortOutlet
 from haywire.core.data.enums import FlowType
-from haywire.core.data.fields import SingleField
+from haywire.libraries.core.types.specs import FLOAT, STRING
 
 # Import the custom type from test_a library
 from haybale_test_a.types.data import TestData
@@ -34,51 +33,44 @@ class TestProcessorNode(BaseNode):
         self.behavior.is_control_node = False
         
         # Input: Custom TestData type
-        self.add_inlet(
-            PortInlet(
+        self.add_inlet(TestData.as_inlet(    
                 id='test_data_in',
-                label='Test Data In',
-                cls_type=TestData,
-                flow_type=FlowType.DATA,
-                data=SingleField(TestData, None, False),
-                widget='core.text'
+                label='Test Data In'
             )
         )
-        
+
+        _ = self.add_inlet(FLOAT.as_inlet(
+                id='float_slider',
+                label='Float Slider',
+                widget='core:slider.widget',
+                ui={'properties': {'min': 0.0, 'max': 100.0, 'step': 1}},
+                default=50.0
+            ))
+
+
         # Input: Additional value to add
-        self.add_inlet(
-            PortInlet(
+        self.add_inlet(FLOAT.as_inlet(
                 id='modifier',
                 label='Modifier',
-                cls_type=float,
-                flow_type=FlowType.DATA,
-                data=SingleField(float, 1.0, False),
-                widget='core.number'
+                default=1.0,
+                widget='core:number.widget'
             )
         )
         
         # Output: Modified TestData
-        self.add_outlet(
-            PortOutlet(
+        self.add_outlet(TestData.as_outlet(
                 id='test_data_out',
-                cls_type=TestData,
-                flow_type=FlowType.DATA,
-                label='Test Data Out',
-                data=SingleField(TestData, None, False)
+                label='Test Data Out'
             )
         )
         
         # Output: String description
-        self.add_outlet(
-            PortOutlet(
+        self.add_outlet(STRING.as_outlet(
                 id='description',
-                cls_type=str,
-                flow_type=FlowType.DATA,
-                label='Description',
-                data=SingleField(str, None, False)
+                label='Description'
             )
         )
-    
+
     def worker(self, context: dict) -> dict | None:
         """
         Process the TestData.

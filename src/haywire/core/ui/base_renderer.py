@@ -4,7 +4,7 @@ from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.ui.base import UINodeCard
 from haywire.core.library.base_identity import BaseIdentity
-from haywire.core.library.utils import derive_library_id, reg_key
+from haywire.core.library.utils import derive_library_identity, reg_key
 
 from abc import ABC, abstractmethod
 
@@ -31,9 +31,6 @@ def renderer(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[
     Args:
         registry_id (str, optional): Unique identifier for the renderer within its library.
             Defaults to class name if not provided.
-        registry_key (str, optional): Full registry key (library + renderer ID). 
-            Auto-derived from library ID and registry_id by the decorator.
-            Can be manually overridden if needed.
         label (str, optional): Human-readable display name for the renderer.
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the renderer.
@@ -82,12 +79,16 @@ def renderer(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[
         kwargs.setdefault('registry_id', inner_cls.__name__)
         kwargs.setdefault('label', inner_cls.__name__)
         
-        # Auto-derive registry_key if not explicitly set
-        if 'registry_key' not in kwargs:
-            library_id = derive_library_id(inner_cls)
-            kwargs['registry_key'] = reg_key(library_id, kwargs['registry_id'])
+        # Get library identity (survives hot-reload)
+        library_identity = derive_library_identity(inner_cls)
         
+        # Auto-derive registry_key
+        library_id = library_identity.id if library_identity else None
+        kwargs['registry_key'] = reg_key(library_id, kwargs['registry_id'])
+        
+        # Create and attach identity and library
         inner_cls.class_identity = RendererIdentity(**kwargs)
+        inner_cls.class_library = library_identity
         return inner_cls
 
     return decorator if cls is None else decorator(cls)

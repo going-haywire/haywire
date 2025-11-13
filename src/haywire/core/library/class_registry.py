@@ -111,9 +111,6 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         if self.has(registry_key):
             raise ValueError(f"Library '{library_identity.label}': Attempt to register Node '{cls.class_identity.label}' under an existing registry_key '{registry_key}'. This is not allowed. Indication of double use of a node registry_id.")
 
-        # Store the library identity as class attributes 
-        cls.class_library = library_identity
-
         # Register the class
         self._classes[registry_key] = cls
 
