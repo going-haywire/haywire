@@ -5,16 +5,11 @@ This module provides the DataPortIdentity class which combines registry identity
 with type specification for all data that can flow through ports.
 """
 
-from __future__ import annotations
 from dataclasses import dataclass, field, asdict
-from typing import Any, Type, TYPE_CHECKING
+from typing import Any, Type
 
 from ..library.base_identity import BaseIdentity
-from .enums import ContainerType, FlowType
-
-if TYPE_CHECKING:
-    from ..node.ports import PortInlet, PortOutlet
-
+from ..data.enums import ContainerType, FlowType
 
 @dataclass
 class DataPortIdentity(BaseIdentity):
@@ -45,7 +40,6 @@ class DataPortIdentity(BaseIdentity):
         ui: Additional UI properties (dict)
         help_url: Documentation link
         _is_variant: True for type variants (primitive wrappers), False for custom types
-        _base_identity: Parent identity for derived types (e.g., Temperature inherits from FLOAT)
     """
     # Inherited from BaseIdentity:
     # registry_id: str = ''
@@ -70,7 +64,6 @@ class DataPortIdentity(BaseIdentity):
     
     # Internal flags (set by decorators):
     _is_variant: bool = False  # True for type variants, False for custom types
-    _base_identity: 'DataPortIdentity' | None = None  # Parent identity for derived types
     
     def __post_init__(self):
         """Auto-generate defaults for convenience."""        

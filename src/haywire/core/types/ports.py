@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
-from ..data.identity import DataPortIdentity
+from .identity import DataPortIdentity
 from ..data.specs import DataFieldFactory
 from ..data.fields import DataField
 from ..data.enums import FlowType

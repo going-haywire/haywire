@@ -4,16 +4,15 @@ from typing import Any, Callable, Dict, List, Type, TypeVar, Optional, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field
 
-from haywire.core.data.enums import FlowType
-from haywire.core.node.dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
-from haywire.core.library.base_identity import BaseIdentity
-from haywire.core.library.utils import derive_library_id, reg_key
+from ..data.enums import FlowType
+from ..data.specs import DataPortSpec
+from ..library.base_identity import BaseIdentity
+from ..library.utils import derive_library_id, reg_key
+from ..library.library_identity import LibraryIdentity
+from ..types.ports import PortInlet, PortOutlet
+from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
 
 T = TypeVar('T')
-
-from .ports import PortInlet, PortOutlet
-from ..library.library_identity import LibraryIdentity
-from ..data.specs import DataPortSpec
 
 @dataclass
 class NodeIdentity(BaseIdentity):

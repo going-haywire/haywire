@@ -9,10 +9,10 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from ..library.library_identity import LibraryIdentity
-    from ..data.identity import DataPortIdentity
-    from ..node.ports import PortInlet, PortOutlet
+from ..data.enums import FlowType
+from ..library.library_identity import LibraryIdentity
+from .identity import DataPortIdentity
+from .ports import PortInlet, PortOutlet
 
 
 class TypeBase:
@@ -34,12 +34,12 @@ class TypeBase:
     """
     
     # Set by @type_ decorator:
-    class_identity: 'DataPortIdentity'
+    class_identity: DataPortIdentity
     # Set by type registration:
-    class_library: 'LibraryIdentity'
+    class_library: LibraryIdentity
     
     @classmethod
-    def as_inlet(cls, id: str, **kwargs) -> 'PortInlet':
+    def as_inlet(cls, id: str, **kwargs) -> PortInlet:
         """
         Create an inlet from this type.
         
@@ -55,8 +55,6 @@ class TypeBase:
             FLOAT.as_inlet('value', default=1.0)
             Temperature.as_inlet('temp', default=25.0, ui={'unit': '°C'})
         """
-        from ..node.ports import PortInlet
-        from ..data.enums import FlowType
         
         # Prepare kwargs with id and defaults
         kwargs['id'] = id
@@ -87,7 +85,7 @@ class TypeBase:
         return inlet
     
     @classmethod
-    def as_outlet(cls, id: str, **kwargs) -> 'PortOutlet':
+    def as_outlet(cls, id: str, **kwargs) -> PortOutlet:
         """
         Create an outlet from this type.
         
@@ -102,7 +100,6 @@ class TypeBase:
             FLOAT.as_outlet('result')
             MeshData.as_outlet('mesh')
         """
-        from ..node.ports import PortOutlet
         
         # Prepare kwargs with id and defaults
         kwargs['id'] = id
@@ -133,7 +130,7 @@ class TypeBase:
         return outlet
     
     @classmethod
-    def as_config(cls, id: str, **kwargs) -> 'PortInlet':
+    def as_config(cls, id: str, **kwargs) -> PortInlet:
         """
         Create a config inlet (no visible pin) from this type.
         
@@ -147,5 +144,4 @@ class TypeBase:
         Example:
             FLOAT.as_config('threshold', default=0.5)
         """
-        from ..data.enums import FlowType
         return cls.as_inlet(id, flow_type=FlowType.NONE, **kwargs)

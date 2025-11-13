@@ -2,7 +2,7 @@
 Built-in data type specifications for Haywire core library.
 """
 
-from haywire.core.types.decorators import type_
+from haywire.core.types.decorators import primitive_type
 from haywire.core.types.base import TypeBase
 from haywire.core.data.enums import ContainerType, FlowType
 
@@ -10,7 +10,7 @@ from haywire.core.data.enums import ContainerType, FlowType
 # Exec Types
 # ============================================================================
 
-@type_(
+@primitive_type(
     registry_id='exec',
     cls=None,
     container_type=ContainerType.SINGLE,
@@ -27,7 +27,7 @@ class EXEC(TypeBase):
     pass
 
 
-@type_(
+@primitive_type(
     registry_id='callback',
     cls=None,
     container_type=ContainerType.SINGLE,
@@ -48,7 +48,7 @@ class CALLBACK(TypeBase):
 # Numeric Types
 # ============================================================================
 
-@type_(
+@primitive_type(
     registry_id='int',
     cls=int,
     container_type=ContainerType.SINGLE,
@@ -64,7 +64,7 @@ class INT(TypeBase):
     pass
 
 
-@type_(
+@primitive_type(
     registry_id='float',
     cls=float,
     container_type=ContainerType.SINGLE,
@@ -85,7 +85,7 @@ class FLOAT(TypeBase):
 # Text Types
 # ============================================================================
 
-@type_(
+@primitive_type(
     registry_id='string',
     cls=str,
     container_type=ContainerType.SINGLE,
@@ -106,7 +106,7 @@ class STRING(TypeBase):
 # Boolean Type
 # ============================================================================
 
-@type_(
+@primitive_type(
     registry_id='bool',
     cls=bool,
     container_type=ContainerType.SINGLE,
@@ -127,7 +127,7 @@ class BOOL(TypeBase):
 # Binary Type
 # ============================================================================
 
-@type_(
+@primitive_type(
     registry_id='bytes',
     cls=bytes,
     container_type=ContainerType.SINGLE,
@@ -148,7 +148,7 @@ class BYTES(TypeBase):
 # Collection Types
 # ============================================================================
 
-@type_(
+@primitive_type(
     registry_id='list',
     cls=list,
     container_type=ContainerType.LIST,
@@ -165,7 +165,7 @@ class LIST(TypeBase):
     pass
 
 
-@type_(
+@primitive_type(
     registry_id='dict',
     cls=dict,
     container_type=ContainerType.DICT,

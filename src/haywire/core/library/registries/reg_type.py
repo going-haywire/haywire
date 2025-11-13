@@ -9,7 +9,7 @@ import inspect
 from typing import Type, Any
 
 from ...types.base import TypeBase
-from ...data.identity import DataPortIdentity
+from ...types.identity import DataPortIdentity
 from ..class_registry import BaseClassRegistry
 from ..library_identity import LibraryIdentity
 

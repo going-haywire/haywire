@@ -6,7 +6,7 @@ It uses TestData from test_a library.
 """
 
 from haywire.core.node.base_node import node, BaseNode
-from haywire.core.node.ports import PortInlet, PortOutlet
+from haywire.core.types.ports import PortInlet, PortOutlet
 from haywire.core.data.enums import FlowType
 from haywire.core.data.fields import SingleField
 

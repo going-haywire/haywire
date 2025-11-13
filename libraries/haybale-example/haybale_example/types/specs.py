@@ -1,10 +1,10 @@
 # Custom data type for testing
 from haywire.core.data.enums import FlowType
-from haywire.core.types.decorators import type_
+from haywire.core.types.decorators import primitive_type
 from haywire.libraries.core.types.specs import FLOAT
 
 
-@type_(
+@primitive_type(
     registry_id='temperature',
     label='Temperature',
     description='Temperature data type',

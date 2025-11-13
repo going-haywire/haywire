@@ -7,11 +7,12 @@ This renderer provides the standard node appearance and functionality
 from typing import Dict, Any
 from nicegui import ui
 from nicegui.element import Element
+
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.node.base_node import BaseNode
 from haywire.core.data.enums import FlowType
 from haywire.core.ui.base_renderer import BaseNodeRenderer
-from haywire.core.node.ports import PortInlet, PortOutlet, DataPort
+from haywire.core.types.ports import PortInlet, PortOutlet, DataPort
 from haywire.core.ui.base import UINodeCard
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.utils import generate_pin_uuid

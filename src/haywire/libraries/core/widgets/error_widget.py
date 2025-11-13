@@ -8,7 +8,7 @@ from nicegui import ui
 
 from haywire.core.data.fields import DataField
 from haywire.core.ui.base_widget import BaseWidget
-from haywire.core.node.ports import DataPort
+from haywire.core.types.ports import DataPort
 from haywire.core.ui.base_widget import widget
 
 @widget(

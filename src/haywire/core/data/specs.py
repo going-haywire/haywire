@@ -2,9 +2,8 @@ from __future__ import annotations
 from typing import Any, Type
 from dataclasses import dataclass, field, replace
 
-from haywire.core.data.fields import SingleField, PooledField, DataField
-from haywire.core.data.identity import DataPortIdentity
-from haywire.core.library.utils import derive_library_id, reg_key
+from .fields import SingleField, PooledField, DataField
+from ..types.identity import DataPortIdentity
 
 from .enums import ContainerType
 
@@ -96,7 +95,7 @@ class DataPortSpec:
         from ..data.enums import FlowType as FlowTypeEnum
         
         # Import here to avoid circular dependency
-        from ..node.ports import PortInlet
+        from ..types.ports import PortInlet
         
         # Default flow_type if not provided
         if flow_type is None:
@@ -131,7 +130,7 @@ class DataPortSpec:
         from ..data.enums import FlowType as FlowTypeEnum
         
         # Import here to avoid circular dependency
-        from ..node.ports import PortOutlet
+        from ..types.ports import PortOutlet
         
         # Default flow_type if not provided
         if flow_type is None:

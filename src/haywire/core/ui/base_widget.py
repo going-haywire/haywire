@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Type, Optional, TypeVar, Union
 from dataclasses import dataclass, field
 
 from ..data.fields import DataField
-from ..node.ports import DataPort
+from ..types.ports import DataPort
 from ..library.base_identity import BaseIdentity
 from ..library.utils import derive_library_id, reg_key
 

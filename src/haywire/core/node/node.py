@@ -5,15 +5,13 @@ from typing import Any, Callable, Dict, List, Type, TypeVar, Optional, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field
 
-from haywire.core.data.enums import FlowType
-from haywire.core.node.dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
+from ..data.enums import FlowType
+from ..data.specs import DataPortSpec
+from ..types.ports import PortInlet, PortOutlet, PinSpec
+from ..library.library_identity import LibraryIdentity
+from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
 
 T = TypeVar('T')
-
-from .ports import PortInlet, PortOutlet, PinSpec
-from ..library.library_identity import LibraryIdentity
-from ..data.specs import DataPortSpec
-
 
 def is_node(cls):
     """Check if a class is a valid Haywire node class."""

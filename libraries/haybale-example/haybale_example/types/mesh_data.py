@@ -8,11 +8,11 @@ between nodes in the Haywire system.
 from dataclasses import dataclass, field, asdict
 from typing import List, Tuple
 
-from haywire.core.types.decorators import type_
+from haywire.core.types.decorators import compound_type
 from haywire.core.types.base import TypeBase
 
 
-@type_(
+@compound_type(
     registry_id='mesh_data',
     label='3D Mesh',
     description='Polygonal mesh with vertices and faces',
