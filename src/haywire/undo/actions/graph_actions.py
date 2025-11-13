@@ -178,7 +178,7 @@ class RemoveElementsAction(ActionBase):
         self.connections = connections
         
         # Store removed elements for restoration
-        self.removed_nodes: Dict[str, BaseNode] = {}
+        self.removed_wrappers: Dict[str, NodeWrapper] = {}
         self.removed_edges: Dict[str, Edge] = {}
         self.node_connected_edges: Dict[str, List[Edge]] = {}  # node_id -> edges that were connected to it
     
@@ -193,9 +193,9 @@ class RemoveElementsAction(ActionBase):
         
         # Then, store and remove nodes (which will also remove any remaining connected edges)
         for node_id in self.nodes:
-            node = self.graph.get_node(node_id)
-            if node:
-                self.removed_nodes[node_id] = node
+            wrapper = self.graph.get_node_wrapper(node_id)
+            if wrapper:
+                self.removed_wrappers[node_id] = wrapper
                 
                 # Store all edges connected to this node for restoration
                 connected_edges = []
@@ -205,14 +205,14 @@ class RemoveElementsAction(ActionBase):
                 
                 self.node_connected_edges[node_id] = connected_edges
                 
-                # Remove the node (this will also remove connected edges)
-                self.graph.remove_node(node_id)
+                # Remove the node wrapper (this will also remove connected edges)
+                self.graph.remove_node_wrapper(node_id)
     
     def _undo_impl(self) -> None:
         """Restore all removed elements."""
-        # First, restore nodes
-        for node_id, node in self.removed_nodes.items():
-            self.graph.add_node(node)
+        # First, restore node wrappers
+        for node_id, wrapper in self.removed_wrappers.items():
+            self.graph.add_node_wrapper(wrapper)
             
             # Restore edges that were connected to this node
             for edge in self.node_connected_edges.get(node_id, []):
