@@ -95,8 +95,8 @@ class DataPort(DataPortIdentity):
             if not type_cls:
                 raise ValueError(f"Type '{registry_key}' not found in registry")
             
-            # Get the method (as_inlet or as_outlet)
-            method = getattr(type_cls.class_identity, method_name)
+            # Get the method (as_inlet or as_outlet) directly from type class
+            method = getattr(type_cls, method_name)
             
             # Extract id (required positional arg)
             port_id = kwargs.pop('id')

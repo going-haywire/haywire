@@ -6,6 +6,7 @@ data types in the Haywire system, both primitive type variants and custom compou
 """
 
 from __future__ import annotations
+from dataclasses import asdict
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -54,8 +55,35 @@ class TypeBase:
             FLOAT.as_inlet('value', default=1.0)
             Temperature.as_inlet('temp', default=25.0, ui={'unit': '°C'})
         """
-        inlet = cls.class_identity.as_inlet(id, **kwargs)
+        from ..node.ports import PortInlet
+        from ..data.enums import FlowType
+        
+        # Prepare kwargs with id and defaults
+        kwargs['id'] = id
+        
+        # Merge identity with overrides
+        port_kwargs = {
+            **asdict(cls.class_identity),
+            **kwargs
+        }
+        
+        # Create the inlet
+        inlet = PortInlet(**port_kwargs)
+        
+        # Set the library reference
         inlet.class_library = cls.class_library
+        
+        # Remove default from kwargs for storage (it was already used in creation)
+        kwargs.pop('default', None)
+        
+        # Store creation recipe for serialization (if from registered type)
+        if cls.class_identity.registry_key and not cls.class_identity.registry_key.startswith('default:'):
+            inlet._creation_recipe = {
+                'registry_key': cls.class_identity.registry_key,
+                'method': 'as_inlet',
+                'kwargs': kwargs
+            }
+        
         return inlet
     
     @classmethod
@@ -74,8 +102,34 @@ class TypeBase:
             FLOAT.as_outlet('result')
             MeshData.as_outlet('mesh')
         """
-        outlet = cls.class_identity.as_outlet(id, **kwargs)
+        from ..node.ports import PortOutlet
+        
+        # Prepare kwargs with id and defaults
+        kwargs['id'] = id
+        
+        # Merge identity with overrides
+        port_kwargs = {
+            **asdict(cls.class_identity),
+            **kwargs
+        }
+        
+        # Create the outlet
+        outlet = PortOutlet(**port_kwargs)
+        
+        # Set the library reference
         outlet.class_library = cls.class_library
+        
+        # Remove default from kwargs for storage (it was already used in creation)
+        kwargs.pop('default', None)
+        
+        # Store creation recipe for serialization (if from registered type)
+        if cls.class_identity.registry_key and not cls.class_identity.registry_key.startswith('default:'):
+            outlet._creation_recipe = {
+                'registry_key': cls.class_identity.registry_key,
+                'method': 'as_outlet',
+                'kwargs': kwargs
+            }
+        
         return outlet
     
     @classmethod
