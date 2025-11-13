@@ -49,6 +49,9 @@ class GraphCanvasManager:
         # Access graph for read operations
         self.graph = editor.graph
         
+        # Queue for hot reload notifications from background threads
+        self._pending_notifications: List[Tuple[str, str, str]] = []  # (node_id, change_type, message)
+        
         # Register for simple graph change notifications
         self.editor.add_change_callback(self._on_graph_changed)
         
@@ -81,6 +84,10 @@ class GraphCanvasManager:
         }
         
         self._setup_canvas()
+        
+        # Start timer to process pending notifications from background threads
+        # This runs in the UI thread and can safely call ui.notify()
+        ui.timer(0.2, self._process_pending_notifications)
     
     def _on_graph_changed(self):
         """Simple callback when anything changes in the graph."""
@@ -100,29 +107,77 @@ class GraphCanvasManager:
                 print(f"📡 Registered UI callback for wrapper {wrapper.node_id}")
     
     def _on_wrapper_changed(self, wrapper: 'NodeWrapper', change_type: str):
-        """Handle NodeWrapper change notifications."""
+        """
+        Handle NodeWrapper change notifications.
+        
+        IMPORTANT: This is called from background threads (file watcher) during hot reload.
+        We cannot call UI functions directly here - queue them for the UI thread instead.
+        """
         print(f"🔄 Wrapper {wrapper.node_id} changed: {change_type}")
         
-        if change_type in ["migration_completed", "initialized", "deserialized"]:
-            # Node instance may have changed, re-sync the UI for this node
-            if wrapper.node_id in self.node_panels:
-                # Update the node visual with the new instance
-                node = wrapper.node
-                position = (node.ui_state.posX, node.ui_state.posY)
-                
-                # Remove and re-add the visual to ensure it uses the new node instance
-                self.remove_node_visual(wrapper.node_id)
-                self.add_node_visual(node, position)
-                
-                print(f"🔄 Re-synced visual for migrated node {wrapper.node_id}")
+        # Queue UI notifications to be processed by UI thread
+        if change_type in ["hot_reload_detected"]:
+            self._pending_notifications.append((
+                wrapper.node_id,
+                change_type,
+                f"Hot reload detected for node {wrapper.node_id}"
+            ))
         
         elif change_type in ["initialized_with_error", "migration_failed_error_node_created"]:
-            # Show error state in UI
-            ui.notify(f"Node {wrapper.node_id} has errors: {wrapper.state.error_state}", type='warning')
+            self._pending_notifications.append((
+                wrapper.node_id,
+                change_type,
+                f"Node {wrapper.node_id} has errors: {wrapper.state.error_state}"
+            ))
         
-        elif change_type in ["hot_reload_detected"]:
-            # Optional: Show user that hot reload is happening
-            ui.notify(f"Hot reload detected for node {wrapper.node_id}", type='info')
+        # Migration/initialization can trigger visual updates
+        # These will be handled when the UI thread processes events
+        if change_type in ["migration_completed", "initialized", "deserialized"]:
+            self._pending_notifications.append((
+                wrapper.node_id,
+                change_type,
+                None  # No notification needed, just visual update
+            ))
+    
+    def _process_pending_notifications(self):
+        """
+        Process pending notifications from background threads in the UI thread.
+        Called by a timer to safely handle hot reload notifications.
+        """
+        if not self._pending_notifications:
+            return
+        
+        # Process all pending notifications
+        while self._pending_notifications:
+            node_id, change_type, message = self._pending_notifications.pop(0)
+            
+            try:
+                if change_type in ["migration_completed", "initialized", "deserialized"]:
+                    # Node instance may have changed, re-sync the UI for this node
+                    if node_id in self.node_panels:
+                        wrapper = self.graph.get_node_wrapper(node_id)
+                        if wrapper:
+                            node = wrapper.node
+                            position = (node.ui_state.posX, node.ui_state.posY)
+                            
+                            # Remove and re-add the visual to ensure it uses the new node instance
+                            self.remove_node_visual(node_id)
+                            self.add_node_visual(node, position)
+                            
+                            print(f"🔄 Re-synced visual for migrated node {node_id}")
+                
+                elif change_type == "hot_reload_detected":
+                    # Show hot reload notification
+                    if message:
+                        ui.notify(message, type='info')
+                
+                elif change_type in ["initialized_with_error", "migration_failed_error_node_created"]:
+                    # Show error notification
+                    if message:
+                        ui.notify(message, type='warning')
+                        
+            except Exception as e:
+                print(f"❌ Error processing notification for {node_id}: {e}")
     
     def _auto_register_event_handlers(self):
         """Automatically register event handlers using decorators"""
