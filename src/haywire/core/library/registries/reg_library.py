@@ -40,6 +40,7 @@ class LibraryRegistry:
         
         # Track library sources to avoid duplicates
         self._library_sources: Dict[str, str] = {}  # library_id -> source path
+        self._library_install_types: Dict[str, InstallType] = {}  # library_id -> install type
         
         # Loading configuration
         self.load_core_libraries = True  # Load core libraries from src/haywire/libraries
@@ -209,49 +210,77 @@ class LibraryRegistry:
 
 
     def _scan_directory(self, directory: str) -> Dict[str, str]:
-        """Scan a directory for library subdirectories"""
+        """Scan a directory for library subdirectories
+        
+        Returns:
+            Dict mapping library_id -> actual module path containing __init__.py
+        """
         lib_folders = {}
         try:
             for item in os.listdir(directory):
                 item_path = os.path.join(directory, item)
                 if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
-                    if self._check_library_structure(item, item_path):
-                        lib_folders[item] = item_path
-                        logger.info(f"Valid library found: '{item}' at {item_path}")
+                    module_paths = self._check_library_structure(item, item_path)
+                    for module_path in module_paths:
+                        # Use the module folder name as the library_id
+                        module_folder_name = os.path.basename(module_path)
+                        lib_folders[module_folder_name] = module_path
+                        logger.info(f"Valid library found: '{module_folder_name}' at {module_path}")
 
         except OSError as e:
             logger.error(f"Scanning library directory '{directory}': {e}")
         
         return lib_folders
 
-    def _check_library_structure(self, library_id: str, library_path: str) -> bool:
+    def _check_library_structure(self, library_id: str, library_path: str) -> list[str]:
         """
-        Check if a directory follows a valid library structure.
-        Supports two patterns:
+        Check if a directory follows a valid library structure and return module paths.
+        
+        Two patterns:
         1. Flat structure: library_path/__init__.py (e.g., core library)
-        2. Package structure: library_path/library_id/__init__.py (e.g., pip packages)
+           → Returns [library_path]
+        
+        2. Package structure with pyproject.toml: library_path/pyproject.toml
+           → Scans one level deep for folders with __init__.py
+           → Returns list of all found module paths (can be multiple libraries in one package)
+        
+        Returns:
+            List of paths to module directories containing __init__.py
         """
+        module_paths = []
+        
         try:
-            # Pattern 1: Flat structure - __init__.py directly in library_path
+            # Check 1: Flat structure - __init__.py directly in library_path
             flat_init = os.path.join(library_path, '__init__.py')
             if os.path.exists(flat_init):
-                return True
+                return [library_path]
             
-            # Pattern 2: Package structure - __init__.py in nested folder
-            package_init = os.path.join(library_path, library_id, '__init__.py')
-            if os.path.exists(package_init):
-                return True
+            # Check 2: Package structure - look for pyproject.toml
+            pyproject_path = os.path.join(library_path, 'pyproject.toml')
+            if os.path.exists(pyproject_path):
+                # Scan one level deep for folders with __init__.py
+                try:
+                    for item in os.listdir(library_path):
+                        item_path = os.path.join(library_path, item)
+                        if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
+                            init_path = os.path.join(item_path, '__init__.py')
+                            if os.path.exists(init_path):
+                                module_paths.append(item_path)
+                
+                except OSError as e:
+                    logger.error(f"Error scanning package directory '{library_path}': {e}")
             
-            logger.error(
-                f"Library '{library_id}': "
-                f"Invalid library structure: missing __init__.py in either "
-                f"'{library_path}' (flat) or '{library_path}/{library_id}' (package)")
+            if not module_paths:
+                logger.error(
+                    f"Library '{library_id}': "
+                    f"Invalid library structure at '{library_path}'. "
+                    f"Expected either '__init__.py' (flat) or 'pyproject.toml' with nested modules (package)."
+                )
                 
         except Exception as e:
-            logger.error(f"Library '{library_id}': "
-                         f"Error while checking library structure: {e}")
+            logger.error(f"Library '{library_id}': Error checking library structure: {e}")
 
-        return False    
+        return module_paths    
 
     def _load_library_class(self, library_folder_name: str, library_path: str) -> type[BaseLibrary]:
         """Load a library class from its path"""       
@@ -396,8 +425,9 @@ class LibraryRegistry:
                 
                 instantiated[lib_id] = library_instance
                 
-                # Track the source
+                # Track the source and install type
                 self._library_sources[lib_id] = str(lib_info.library_path)
+                self._library_install_types[lib_id] = lib_info.install_type
                 
             except Exception as e:
                 logger.error(
@@ -472,4 +502,8 @@ class LibraryRegistry:
     def get_library_source(self, library_id: str) -> str | None:
         """Get the source path for a library"""
         return self._library_sources.get(library_id)
+    
+    def get_library_install_type(self, library_id: str) -> InstallType | None:
+        """Get the install type for a library"""
+        return self._library_install_types.get(library_id)
 

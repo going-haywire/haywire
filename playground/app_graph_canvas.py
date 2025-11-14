@@ -161,10 +161,7 @@ class UndoRedoTestAppWithCanvasManager:
         )
         
         print("Enhanced DI system initialized successfully.")
-        
-        # Print registry status to see what nodes are available
-        self.library_service.print_registry_status()
-    
+            
     def setup_services(self):
         """Get all required services from the library system."""
         # Services will now be accessed per session

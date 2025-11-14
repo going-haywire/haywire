@@ -59,7 +59,8 @@ class HaywireModule(Module):
         if not self.library_paths:
             self.library_paths = [
                 os.path.join(self.project_root, 'src', 'haywire', 'libraries'),
-                os.path.join(self.project_root, 'libraries')
+                os.path.join(self.project_root, 'libraries'),
+                os.path.join(self.project_root, 'tests', 'libraries')
             ]
     
     @provider
@@ -195,7 +196,9 @@ class LibrarySystemService:
         if self._initialized:
             return self
         
-        print("Setting up library system with DI...")
+        print("=" * 70)
+        print("Initializing Haywire Library System")
+        print("=" * 70)
         logging.basicConfig(level=logging.INFO)
         
         # Get all required services from DI
@@ -220,14 +223,99 @@ class LibrarySystemService:
         type_registry.add_registry_subscriber(widget_registry)
         type_registry.add_registry_subscriber(node_registry)
 
+        print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()
         
+        print("\n⚡ Enabling libraries...")
         library_registry.enable_all_libraries()
 
+        # Print detailed library discovery results
+        self._print_library_discovery_results()
+        
+        # Print registry status
+        print("\n📋 Registry Status:")
+        print("-" * 70)
+        self.print_registry_status()
+
         self._initialized = True
-        print(f"Library system initialized successfully.")
+        print("\n" + "=" * 70)
+        print("✅ Library system initialized successfully!")
+        print("=" * 70 + "\n")
         
         return self
+    
+    def _print_library_discovery_results(self) -> None:
+        """Print detailed information about discovered libraries."""
+        library_registry = self.injector.get(LibraryRegistry)
+        
+        print("\n📊 Library Discovery Results:")
+        print("-" * 70)
+        
+        # List all loaded libraries
+        loaded_libraries = library_registry.list_names()
+        
+        if not loaded_libraries:
+            print("⚠️  No libraries loaded!")
+            return
+        
+        print(f"\n✅ Loaded {len(loaded_libraries)} libraries:\n")
+        
+        for lib_id in loaded_libraries:
+            identity = library_registry.get_library_identity(lib_id)
+            source = library_registry.get_library_source(lib_id)
+            install_type = library_registry.get_library_install_type(lib_id)
+            enabled = library_registry.is_library_enabled(lib_id)
+            
+            # Determine how the library was added
+            install_method = "Unknown"
+            if install_type:
+                from haywire.core.library.discovery import InstallType
+                if install_type == InstallType.REGULAR:
+                    install_method = "Pip (regular install)"
+                elif install_type == InstallType.EDITABLE:
+                    install_method = "Pip (editable install)"
+                elif install_type == InstallType.FOLDER:
+                    # Determine if it's core or search path
+                    if source and 'src/haywire/libraries' in source:
+                        install_method = "Core library"
+                    else:
+                        install_method = "Search path"
+            
+            status = "✓" if enabled else "✗"
+            print(f"  {status} {identity.label}")
+            print(f"      ID: {lib_id}")
+            print(f"      Version: {identity.version}")
+            print(f"      Source: {source}")
+            print(f"      Install Method: {install_method}")
+            print(f"      Dependencies: {identity.dependencies}")
+            print(f"      Enabled: {enabled}")
+            print()
+        
+        print("-" * 70)
+        
+        # Test entry point discovery directly
+        print("\n🔍 Entry Point Discovery:")
+        print("-" * 70)
+        
+        from haywire.core.library.discovery import LibraryDiscovery
+        
+        discovered = LibraryDiscovery.discover_installed_libraries()
+        
+        if discovered:
+            print(f"\n✅ Found {len(discovered)} libraries via entry points:\n")
+            
+            for lib_info in discovered:
+                print(f"  • {lib_info.identity.label} ({lib_info.identity.id})")
+                print(f"      Type: {lib_info.install_type.value}")
+                print(f"      Path: {lib_info.library_path}")
+                if lib_info.entry_point_name:
+                    print(f"      Entry Point: {lib_info.entry_point_name}")
+                print()
+        else:
+            print("ℹ️  No libraries found via entry points")
+            print("   (This is normal if libraries aren't pip installed)")
+        
+        print("-" * 70)
     
     def print_registry_status(self) -> None:
         """Print the status of all registries in a beautiful format."""

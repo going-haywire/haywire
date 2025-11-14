@@ -117,7 +117,7 @@ def install_library(lib_info, editable=True):
 
 def uninstall_library(lib_info):
     """Uninstall a library."""
-    cmd = ['uv', 'pip', 'uninstall', '-y', lib_info['name']]
+    cmd = ['uv', 'pip', 'uninstall', lib_info['name']]
     description = f"Uninstalling {lib_info['name']}"
     return run_command(cmd, description)
 
