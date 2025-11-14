@@ -95,7 +95,7 @@ class RendererRegistry(BaseClassRegistry):
         # 3. Return error renderer if exact renderer doesn't exist
         if self._error_renderer:
             return self._error_renderer
-
+        
         # Fallback if no error renderer registered
         raise RuntimeError(f"No renderer found for '{renderer_name}' and no error renderer registered")
 

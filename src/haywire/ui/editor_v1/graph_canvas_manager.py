@@ -49,13 +49,12 @@ class GraphCanvasManager:
         # Access graph for read operations
         self.graph = editor.graph
         
-        # Queue for hot reload notifications from background threads
-        self._pending_notifications: List[Tuple[str, str, str]] = []  # (node_id, change_type, message)
-        
         # Register for simple graph change notifications
         self.editor.add_change_callback(self._on_graph_changed)
         
         # Register for NodeWrapper change notifications
+        # Note: We keep wrapper callback setup to ensure wrappers are properly initialized
+        # UINode now handles its own hot reload, but we still setup the callbacks for new nodes
         self._setup_wrapper_callbacks()
                 
         # Visual state
@@ -84,10 +83,6 @@ class GraphCanvasManager:
         }
         
         self._setup_canvas()
-        
-        # Start timer to process pending notifications from background threads
-        # This runs in the UI thread and can safely call ui.notify()
-        ui.timer(0.2, self._process_pending_notifications)
     
     def _on_graph_changed(self):
         """Simple callback when anything changes in the graph."""
@@ -98,86 +93,17 @@ class GraphCanvasManager:
         self._setup_wrapper_callbacks()
     
     def _setup_wrapper_callbacks(self):
-        """Setup change callbacks for all NodeWrapper instances."""
+        """
+        Setup wrapper callbacks for new wrappers.
+        
+        Note: UINode now handles hot reload directly by subscribing to wrapper callbacks.
+        This method just ensures wrappers have their internal callbacks properly set up.
+        The actual hot reload visual updates are handled by UINode._on_wrapper_changed().
+        """
         for wrapper in self.graph.node_wrappers.values():
-            # Check if we already have a callback for this wrapper
-            if not hasattr(wrapper, '_ui_callback_registered'):
-                wrapper.add_change_callback(self._on_wrapper_changed)
-                wrapper._ui_callback_registered = True
-                print(f"📡 Registered UI callback for wrapper {wrapper.node_id}")
-    
-    def _on_wrapper_changed(self, wrapper: 'NodeWrapper', change_type: str):
-        """
-        Handle NodeWrapper change notifications.
-        
-        IMPORTANT: This is called from background threads (file watcher) during hot reload.
-        We cannot call UI functions directly here - queue them for the UI thread instead.
-        """
-        print(f"🔄 Wrapper {wrapper.node_id} changed: {change_type}")
-        
-        # Queue UI notifications to be processed by UI thread
-        if change_type in ["hot_reload_detected"]:
-            self._pending_notifications.append((
-                wrapper.node_id,
-                change_type,
-                f"Hot reload detected for node {wrapper.node_id}"
-            ))
-        
-        elif change_type in ["initialized_with_error", "migration_failed_error_node_created"]:
-            self._pending_notifications.append((
-                wrapper.node_id,
-                change_type,
-                f"Node {wrapper.node_id} has errors: {wrapper.state.error_state}"
-            ))
-        
-        # Migration/initialization can trigger visual updates
-        # These will be handled when the UI thread processes events
-        if change_type in ["migration_completed", "initialized", "deserialized"]:
-            self._pending_notifications.append((
-                wrapper.node_id,
-                change_type,
-                None  # No notification needed, just visual update
-            ))
-    
-    def _process_pending_notifications(self):
-        """
-        Process pending notifications from background threads in the UI thread.
-        Called by a timer to safely handle hot reload notifications.
-        """
-        if not self._pending_notifications:
-            return
-        
-        # Process all pending notifications
-        while self._pending_notifications:
-            node_id, change_type, message = self._pending_notifications.pop(0)
-            
-            try:
-                if change_type in ["migration_completed", "initialized", "deserialized"]:
-                    # Node instance may have changed, re-sync the UI for this node
-                    if node_id in self.node_panels:
-                        wrapper = self.graph.get_node_wrapper(node_id)
-                        if wrapper:
-                            node = wrapper.node
-                            position = (node.ui_state.posX, node.ui_state.posY)
-                            
-                            # Remove and re-add the visual to ensure it uses the new node instance
-                            self.remove_node_visual(node_id)
-                            self.add_node_visual(node, position)
-                            
-                            print(f"🔄 Re-synced visual for migrated node {node_id}")
-                
-                elif change_type == "hot_reload_detected":
-                    # Show hot reload notification
-                    if message:
-                        ui.notify(message, type='info')
-                
-                elif change_type in ["initialized_with_error", "migration_failed_error_node_created"]:
-                    # Show error notification
-                    if message:
-                        ui.notify(message, type='warning')
-                        
-            except Exception as e:
-                print(f"❌ Error processing notification for {node_id}: {e}")
+            # Wrappers handle their own internal state management
+            # UINode subscribes directly when created in add_node_visual()
+            pass
     
     def _auto_register_event_handlers(self):
         """Automatically register event handlers using decorators"""
@@ -580,9 +506,15 @@ class GraphCanvasManager:
             traceback.print_exc()
     
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
-        """Add a visual representation of a node to the canvas."""
+        """Add a visual representation of a node to the canvas with hot reload support."""
         x, y = position
-        print(f"Adding node visual for {node.node_id} at position ({x}, {y})")
+        node_id = node.node_id
+        print(f"Adding node visual for {node_id} at position ({x}, {y})")
+        
+        # Get the wrapper for this node to enable hot reload support
+        wrapper = self.graph.get_node_wrapper(node_id)
+        if not wrapper:
+            print(f"⚠️ Warning: No wrapper found for node {node_id}, hot reload won't work")
         
         with self.canvas_vue:
             with ui.element('div').classes(
@@ -593,28 +525,29 @@ class GraphCanvasManager:
                     f'z-index: 100; '
                     f'transform-origin: top-left; cursor: move;'
                 ).props(
-                    f'id="{node.node_id}" '
-                    f'data-node-id="{node.node_id}" '
+                    f'id="{node_id}" '
+                    f'data-node-id="{node_id}" '
                 ) as container:    
 
-                print(f"Created container for node {node.node_id}")
+                print(f"Created container for node {node_id}")
                 
-                ui_node = UINode(node, self.node_render_factory, container)
+                # Create UINode with wrapper reference for hot reload support
+                ui_node = UINode(node, self.node_render_factory, container, wrapper)
                 ui_node.render()
-                print(f"Rendered UINode for {node.node_id}")
+                print(f"Rendered UINode for {node_id}")
                 
-                self.node_panels[node.node_id] = {
+                self.node_panels[node_id] = {
                     'ui_node': ui_node,
                     'container': container,
                     'position': position
                 }
                 
-                sync_event = SyncNodeObserverAddEvent(nodeId=node.node_id)
+                sync_event = SyncNodeObserverAddEvent(nodeId=node_id)
                 self.canvas_vue.emit_sync_event(sync_event)
 
-                print(f"Setup Vue observers for {node.node_id}")
+                print(f"Setup Vue observers for {node_id}")
         
-        print(f"Successfully added node visual for {node.node_id}")
+        print(f"Successfully added node visual for {node_id}")
         return True
             
     def remove_node_visual(self, node_id: str) -> bool:
@@ -636,8 +569,8 @@ class GraphCanvasManager:
         
         if 'ui_node' in visual_data:
             ui_node = visual_data['ui_node']
-            if hasattr(ui_node, 'cleanup'):
-                ui_node.cleanup()
+            # Call destroy() to properly cleanup and unsubscribe from callbacks
+            ui_node.destroy()
         
         visual_data['container'].delete()
         del self.node_panels[node_id]

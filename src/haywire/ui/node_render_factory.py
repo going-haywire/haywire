@@ -3,10 +3,12 @@ NodeRenderFactory - Factory for creating UINodeCard instances using NodeRenderer
 
 This factory manages cached NodeRenderer instances and provides the generate_node method
 that looks up renderers from the renderers registry.
+
+Enhanced with customer notification system for UINode hot reload support.
 """
 
 import logging
-from typing import Dict, Type, List
+from typing import Dict, Type, List, Callable
 from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_renderer import RendererRegistry
@@ -22,6 +24,7 @@ class NodeRenderFactory:
     - Has access to both renderers registry and widgets registry
     - Caches stateless NodeRenderer instances for reuse
     - Provides generate_node method for creating UINodeCard instances
+    - Notifies customers (UINodes) when renderers are hot-reloaded
     """
     
     def __init__(self, renderers_registry: RendererRegistry, widget_registry: WidgetRegistry):
@@ -38,35 +41,42 @@ class NodeRenderFactory:
         # Cache for NodeRenderer instances (stateless, so can be reused)
         self._renderer_cache: Dict[str, BaseNodeRenderer] = {}
         
-        # Register for hot reload notifications
+        # Customer callbacks for hot reload notifications
+        # Callback signature: (registry_key: str, affected_class_names: List[str], library_identity: LibraryIdentity) -> None
+        self._customer_callbacks: List[Callable[[str, List[str], LibraryIdentity], None]] = []
+        
+        # Register for hot reload notifications from registries
         self.renderers_registry.add_customer_callback(self._on_renderer_reloaded)
         self.widget_registry.add_customer_callback(self._on_widget_reloaded)
     
-    def generate_node(self, node_design_name: str | None, node: BaseNode) -> UINodeCard:
+    def generate_node(self, renderer_registry_key: str | None, node: BaseNode) -> tuple[UINodeCard, str]:
         """
         Generate a UINodeCard for the given node using the specified renderer.
         
         Args:
-            node_design_name: Name of the renderer to use (None for default)
+            renderer_registry_key: Name of the renderer to use (None for default)
             node: The HaywireNode to render
             
         Returns:
             UINodeCard containing the rendered UI and widget instances
+            str: The registry key of the used renderer
         """
         # Get renderer class from renderers registry (with fallback)
-        renderer_class = self.renderers_registry.get_renderer_class(node_design_name)
+        renderer_class = self.renderers_registry.get_renderer_class(renderer_registry_key)
         
+        registry_key = renderer_class.class_identity.registry_key
+
         # Get or create cached renderer instance
         renderer_class_name = renderer_class.__name__
-        if renderer_class_name not in self._renderer_cache:
+        if registry_key not in self._renderer_cache:
             # Create new renderer instance with widget registry
-            self._renderer_cache[renderer_class_name] = renderer_class(self.widget_registry)
+            self._renderer_cache[registry_key] = renderer_class(self.widget_registry)
         
         # Get cached renderer instance
-        renderer_instance = self._renderer_cache[renderer_class_name]
+        renderer_instance = self._renderer_cache[registry_key]
         
         # Call render method to create UINodeCard
-        return renderer_instance.render(node)
+        return renderer_instance.render(node), registry_key
     
     def clear_cache(self):
         """Clear the renderer instance cache."""
@@ -88,6 +98,46 @@ class NodeRenderFactory:
         
         if renderer_class_name not in self._renderer_cache:
             self._renderer_cache[renderer_class_name] = renderer_class(self.widget_registry)
+    
+    def add_customer_callback(self, callback: Callable[[str, List[str], LibraryIdentity], None]) -> None:
+        """
+        Register a customer callback for renderer hot reload notifications.
+        
+        Callbacks are invoked when a renderer is hot-reloaded, added, or removed.
+        
+        Args:
+            callback: Function with signature (registry_key, affected_class_names, library_identity) -> None
+        """
+        if callback not in self._customer_callbacks:
+            self._customer_callbacks.append(callback)
+            logging.debug(f"Added customer callback to NodeRenderFactory: {callback}")
+    
+    def remove_customer_callback(self, callback: Callable[[str, List[str], LibraryIdentity], None]) -> None:
+        """
+        Unregister a customer callback.
+        
+        Args:
+            callback: The callback function to remove
+        """
+        if callback in self._customer_callbacks:
+            self._customer_callbacks.remove(callback)
+            logging.debug(f"Removed customer callback from NodeRenderFactory: {callback}")
+    
+    def _notify_customers(self, registry_key: str, affected_class_names: List[str], 
+                         library_identity: LibraryIdentity) -> None:
+        """
+        Notify all registered customers about renderer changes.
+        
+        Args:
+            registry_key: The registry key of the affected renderer
+            affected_class_names: List of class names that were modified
+            library_identity: The library where the change occurred
+        """
+        for callback in self._customer_callbacks[:]:  # Copy list to avoid modification during iteration
+            try:
+                callback(registry_key, affected_class_names, library_identity)
+            except Exception as e:
+                logging.error(f"Error in customer callback: {e}")
     
     def _on_renderer_reloaded(self, registry_key: str,
                              affected_class_names: List[str],
@@ -114,6 +164,9 @@ class NodeRenderFactory:
             if class_name in self._renderer_cache:
                 logging.debug(f"Clearing renderer cache for: {class_name}")
                 del self._renderer_cache[class_name]
+        
+        # Notify customers (UINodes) about the renderer reload
+        self._notify_customers(registry_key, affected_class_names, library_identity)
     
     def _on_widget_reloaded(self, registry_key: str,
                            affected_class_names: List[str],

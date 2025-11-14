@@ -35,7 +35,7 @@ class TestProcessorNode(BaseNode):
         # Input: Custom TestData type
         self.add_inlet(TestData.as_inlet(    
                 id='test_data_in',
-                label='Test Data'
+                label='Test Data In'
             )
         )
 
