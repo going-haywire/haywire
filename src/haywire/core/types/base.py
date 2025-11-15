@@ -9,7 +9,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, TypeVar, Generic
+from typing import get_type_hints
 
+from ..errors.PrimitiveTypeDefinitionError import PrimitiveTypeDefinitionError
 from ..data.enums import FlowType
 from ..library.library_identity import LibraryIdentity
 from .identity import DataPortIdentity
@@ -186,3 +188,39 @@ class PrimitiveType(TypeBase, Generic[T]):
         Temperature.as_inlet('temp', default=25.0)
     """
     value: T
+    
+    def __init_subclass__(cls, **kwargs):
+        """
+        Validate primitive type structure when subclass is defined.
+        
+        This runs BEFORE the @primitive_type decorator, providing early error detection
+        at the actual class definition line in the source file.
+        """
+        super().__init_subclass__(**kwargs)
+                
+        # Get annotations defined directly on THIS class only (not inherited)
+        local_annotations = cls.__dict__.get('__annotations__', {})
+        
+        # If subclass defines new annotations, validate structure
+        if local_annotations:
+            # Check for extra fields beyond 'value'
+            extra_fields = set(local_annotations.keys()) - {'value'}
+            if extra_fields:
+                raise PrimitiveTypeDefinitionError(
+                    cls=cls,
+                    extra_fields=list(extra_fields)
+                )
+        
+        # Get all annotations including inherited ones
+        try:
+            all_annotations = get_type_hints(cls)
+        except Exception:
+            # Fall back if get_type_hints fails (e.g., forward references)
+            all_annotations = getattr(cls, '__annotations__', {})
+        
+        # Ensure 'value' exists somewhere in the hierarchy
+        if 'value' not in all_annotations:
+            raise PrimitiveTypeDefinitionError(
+                cls=cls,
+                missing_value=True
+            )

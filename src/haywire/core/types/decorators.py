@@ -18,24 +18,6 @@ from ..library.utils import derive_library_identity, reg_key
 T = TypeVar('T')
 
 
-class PrimitiveTypeDefinitionError(TypeError):
-    """
-    Exception raised when a primitive type is defined incorrectly.
-    
-    This exception includes the class definition location to help developers
-    identify the problematic class rather than pointing to decorator internals.
-    """
-    def __init__(self, message: str, cls_name: str, cls_module: str):
-        self.cls_name = cls_name
-        self.cls_module = cls_module
-        
-        # Include helpful location info in the message
-        location = f"{cls_module}.{cls_name}" if cls_module else cls_name
-        full_message = f"\n\n{'='*70}\nError in class definition: {location}\n{'='*70}\n{message}\n"
-        
-        super().__init__(full_message)
-
-
 def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator for primitive type wrappers and their variants.
@@ -102,62 +84,21 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         
         # Check if this looks like a compound type (mistake!)
         if hasattr(inner_cls, 'to_dict') and hasattr(inner_cls, 'from_dict'):
-            raise PrimitiveTypeDefinitionError(
-                f"❌ Type has to_dict/from_dict methods, suggesting it's a compound type.\n"
-                f"   Use @compound_type instead of @primitive_type.",
-                cls_name=inner_cls.__name__,
-                cls_module=inner_cls.__module__
-            ) from None
+            raise TypeError(
+                f"Type {inner_cls.__name__} has to_dict/from_dict methods, "
+                f"suggesting it's a compound type. Use @compound_type instead of @primitive_type."
+            )
         
-        # VALIDATION: Get and validate annotations
-        local_annotations = inner_cls.__dict__.get('__annotations__', {})
-        
-        # Get all annotations including inherited ones
+        # Get annotations for auto-extraction of cls
         try:
             all_annotations = get_type_hints(inner_cls)
         except Exception:
             # Fall back if get_type_hints fails (e.g., forward references)
             all_annotations = getattr(inner_cls, '__annotations__', {})
         
-        # Single validation block
-        if local_annotations:
-            # Check for extra fields beyond 'value'
-            extra_fields = set(local_annotations.keys()) - {'value'}
-            if extra_fields:
-                raise PrimitiveTypeDefinitionError(
-                    f"\n\n"
-                    f"{'='*70}\n"
-                    f"❌ Primitive Type Definition Error in: {inner_cls.__name__}\n"
-                    f"{'='*70}\n"
-                    f"Primitive types can only define a 'value' field.\n\n"
-                    f"Found extra fields: {', '.join(sorted(extra_fields))}\n\n"
-                    f"Solutions:\n"
-                    f"  1. Remove the extra fields: {', '.join(sorted(extra_fields))}\n"
-                    f"  2. Use @compound_type if you need multiple fields\n"
-                    f"{'='*70}\n",
-                    cls_name=inner_cls.__name__,
-                    cls_module=inner_cls.__module__
-                )
-
-        # Ensure 'value' exists (either locally defined or inherited)
-        if 'value' not in all_annotations:
-            raise PrimitiveTypeDefinitionError(
-                f"\n\n"
-                f"{'='*70}\n"
-                f"❌ Primitive Type Definition Error in: {inner_cls.__name__}\n"
-                f"{'='*70}\n"
-                f"   Primitive types must have a 'value' annotation.\n\n"
-                f"   Example:\n"
-                f"      @dataclass\n"
-                f"      class {inner_cls.__name__}(PrimitiveType[YourType]):\n"
-                f"          value: YourType\n"
-                f"{'='*70}\n",
-                cls_name=inner_cls.__name__,
-                cls_module=inner_cls.__module__
-            )
-               
-        # AUTO-EXTRACT cls from 'value' annotation
-        kwargs['cls'] = all_annotations['value']
+        # AUTO-EXTRACT cls from 'value' annotation (validation already done in __init_subclass__)
+        if 'value' in all_annotations:
+            kwargs['cls'] = all_annotations['value']
         
         # Check if this inherits from another Type (derived variant)
         parent_identity = None

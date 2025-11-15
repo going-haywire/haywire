@@ -61,8 +61,6 @@ class CALLBACK(PrimitiveType[type(None)]):
 class INT(PrimitiveType[int]):
     """Integer data type"""
     value: int
-    test: str
-
 
 @primitive_type(
     registry_id='float',

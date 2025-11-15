@@ -13,6 +13,10 @@ import logging
 
 from ..library.library_identity import LibraryIdentity
 
+# Import after dataclass definitions to avoid circular import
+if TYPE_CHECKING:
+    from .haywire_exception import HaywireException
+
 @dataclass
 class ErrorContext:
     """Structured error information"""
@@ -32,19 +36,48 @@ class ErrorContext:
     class_name: Optional[str] = None
     context_info: Optional[List[tuple]] = None  # List of (line_number, line_content) tuples
     traceback_info: Optional[List[tuple]] = None  # List of (filename, line_number, function_name, source_line) tuples
+    suggestions: Optional[List[str]] = None  # NEW: Actionable suggestions
+    error_category: str = "Error"  # NEW: Error category for better organization
     
     def format_detailed_message(self) -> str:
         """Format the error as a detailed message"""
+        # Calculate box width based on category text
+        category_text = f"    {self.error_category}    "
+        box_width = len(category_text)
+        horizontal_bar = "━" * box_width
+        
         lines = [
             "\n",
-            "┢━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
-            "┡━━━━━━━    Error Details    ━━━━━━━━┛\n"
-            "",
+            f"┏{horizontal_bar}┓",
+            f"┃{category_text}┃",
+            f"┗{horizontal_bar}┛\n",
             f"Operation : {self.operation or 'Unknown'}",
             f"Message   : {self.message}",
             f"-----------------------------------",
         ]
         
+        # Format error message with indentation if it's multiline
+        error_msg = f"{self.error_type}: {self.error_message}"
+        if '\n' in error_msg:
+            # Indent each line of the error message
+            error_lines = error_msg.split('\n')
+            lines.append(f"")
+            lines.append(f"Error     : {error_lines[0]}")
+            for line in error_lines[1:]:
+                lines.append(f"            {line}")
+        else:
+            lines.append(f"")
+            lines.append(f"Error     : {error_msg}")
+        
+        lines.append(f"")
+        
+        # Add suggestions if available
+        if self.suggestions:
+            lines.append("Suggestion: " + self.suggestions[0])
+            for suggestion in self.suggestions[1:]:
+                lines.append(f"            {suggestion}")
+            lines.append("")
+
         if self.library_identity:
             lines.append(f"Library   : {self.library_identity.label}")
             lines.append(f"Lib_Path  : {self.library_identity.folder_path}")
@@ -60,17 +93,11 @@ class ErrorContext:
         
         if self.library_identity:
             rel_path = self.filename[len(self.library_identity.folder_path):]
-            lines.append(f"File      : ..{rel_path}")
+            lines.append(f"File      :╒..{rel_path}")
         else:
-            lines.append(f"File      : {self.filename}")
+            lines.append(f"File      :╒{self.filename}")
 
-
-        lines.extend([
-            f"",
-            f"Error     : {self.error_type}: {self.error_message}",
-            f"",
-            f"           ┆"
-        ])
+        lines.append("           ┆")
         
         # Add context lines with fancy box drawing
         # Use context_info if available (which has proper line numbers), otherwise fall back to old method
@@ -122,11 +149,12 @@ class ErrorContext:
                 lines.append(f"           {space_indent}  │    └───┤ line {line_number}: {source_line.strip()} ")
                 lines.append(f"           {space_indent}  │        └─────┄┄┄")
                 lines.append(f"           {space_indent}  │")
-        
+                
         lines.extend([
             "",
-            "┢━━━━━━━    Error Details    ━━━━━━━━┓",
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
+            f"┏{horizontal_bar}┓",
+            f"┃{category_text}┃",
+            f"┗{horizontal_bar}┛",
             "\n"
         ])
         
@@ -143,6 +171,8 @@ def analyze_exception(exception: Exception,
     """
     Analyze an exception and extract detailed error context.
     
+    Special handling for HaywireException types which carry rendering metadata.
+    
     Args:
         exception: The caught exception
         operation: Description of what operation failed ('import', 'instantiation', etc.)
@@ -155,7 +185,32 @@ def analyze_exception(exception: Exception,
     Returns:
         ErrorContext with detailed error information
     """
+    from .haywire_exception import HaywireException
+    
     exc_type, exc_value, exc_tb = sys.exc_info()
+    
+    # Check if this is a self-describing Haywire exception
+    is_haywire_exception = isinstance(exception, HaywireException)
+    
+    if is_haywire_exception:
+        # Use exception's metadata for primary error location
+        filename = exception.error_filename
+        line_number = exception.error_line_number
+        error_category = exception.error_category
+        suggestions = exception.suggestions
+        skip_functions = set(exception.skip_frame_functions)
+        skip_files = set(exception.skip_frame_files)
+        skip_steps = exception.skip_stacktrace_steps
+        show_full = exception.show_full_traceback
+    else:
+        filename = None
+        line_number = None
+        error_category = "Error"
+        suggestions = None
+        skip_functions = set()
+        skip_files = set()
+        skip_steps = 0
+        show_full = True
     
     # Extract traceback information
     traceback_info = []
@@ -168,11 +223,24 @@ def analyze_exception(exception: Exception,
             current_tb = current_tb.tb_next
         
         # Process traceback frames (reverse to show call stack top-down)
-        for tb_frame in reversed(tb_list[:-1]):  # Skip the last frame as it's the error location
+        for i, tb_frame in enumerate(reversed(tb_list[:-1])):  # Skip the last frame as it's the error location
             frame = tb_frame.tb_frame
             tb_filename = frame.f_code.co_filename
             tb_line_number = tb_frame.tb_lineno
             tb_function_name = frame.f_code.co_name
+            
+            # For HaywireException, skip the specified number of initial stacktrace frames
+            if is_haywire_exception and i < skip_steps:
+                continue  # Skip this frame based on skip_stacktrace_steps
+            
+            # Filter frames if this is a HaywireException
+            if is_haywire_exception and not show_full:
+                # Skip frames based on function name or filename
+                import os
+                base_filename = os.path.basename(tb_filename)
+                
+                if tb_function_name in skip_functions or base_filename in skip_files:
+                    continue  # Skip this frame
             
             # Try to get the source line
             try:
@@ -187,18 +255,25 @@ def analyze_exception(exception: Exception,
             
             traceback_info.append((tb_filename, tb_line_number, tb_function_name, tb_source_line))
     
-    # For SyntaxError, use the error's own location info instead of traceback
-    if isinstance(exception, SyntaxError) and hasattr(exception, 'filename') and hasattr(exception, 'lineno'):
+    # For HaywireException, use its provided location if available
+    if is_haywire_exception and filename and line_number:
+        # Use the exception's declared error location
+        pass
+    # For SyntaxError, use the error's own location info
+    elif isinstance(exception, SyntaxError) and hasattr(exception, 'filename') and hasattr(exception, 'lineno'):
         filename = exception.filename
         line_number = exception.lineno
     else:
-        # Get the last frame where the error occurred
-        while exc_tb and exc_tb.tb_next:
-            exc_tb = exc_tb.tb_next
-        
-        frame = exc_tb.tb_frame
-        filename = frame.f_code.co_filename
-        line_number = exc_tb.tb_lineno
+        # Get the last frame where the error occurred from traceback
+        if not filename or not line_number:
+            tb_for_location = exc_tb
+            while tb_for_location and tb_for_location.tb_next:
+                tb_for_location = tb_for_location.tb_next
+            
+            if tb_for_location:
+                frame = tb_for_location.tb_frame
+                filename = frame.f_code.co_filename
+                line_number = tb_for_location.tb_lineno
     
     # Try to read source context
     context_lines = []
@@ -266,7 +341,9 @@ def analyze_exception(exception: Exception,
         registry_key=registry_key,
         class_name=class_name,
         context_info=context_info,
-        traceback_info=traceback_info
+        traceback_info=traceback_info,
+        suggestions=suggestions,  # NEW
+        error_category=error_category  # NEW
     )
 
 class DetailedError(Exception):
