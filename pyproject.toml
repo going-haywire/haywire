@@ -8,6 +8,16 @@ version = "0.0.1"
 description = "Haywire Node System"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "nicegui",
+    "ffmpegio~=0.11.1",
+    "numpy",
+    "opencv-python",
+    "watchdog>=6.0.0",
+    "injector>=0.22.0",
+    "attrs==25.4.0",
+    "cattrs==25.3.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -25,4 +35,7 @@ dev = [
     "pyinstaller>=6.14.1",
     "watchdog>=6.0.0",
     "injector>=0.22.0",
+    "attrs==25.4.0",
+    "cattrs==25.3.0",
+
 ]

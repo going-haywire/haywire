@@ -63,10 +63,10 @@ def find_repo_root():
     # Fallback to current file's directory
     return current.parent
 
-def reg_key(library_registry_id: str, node_registry_id: str) -> str:
+def reg_key(library_registry_id: str, module: str, node_registry_id: str) -> str:
     """Generate the registry key from the library and class name."""
     camel_class_name = camel_to_dot_case(node_registry_id)
-    return f"{library_registry_id}:{camel_class_name}"
+    return f"{library_registry_id}:{module}:{camel_class_name}"
 
 def camel_to_dot_case(CamelCaseString: str) -> str:
     """Convert CamelCase to dot.case with handling of consecutive uppercase letters"""

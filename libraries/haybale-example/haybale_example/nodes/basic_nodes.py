@@ -38,7 +38,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(STRING.as_inlet(
                 id='string_input',
                 label='Select',
-                widget='core:select.widget',
+                widget='core:widget:select.widget',
                 ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}},
                 default='Option 3'
             ))
@@ -46,7 +46,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(FLOAT.as_inlet(
                 id='float_slider',
                 label='Float Slider',
-                widget='core:slider.widget',
+                widget='core:widget:slider.widget',
                 ui={'properties': {'min': 0.0, 'max': 100.0, 'step': 1}},
                 default=50.0
             ))
@@ -54,7 +54,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(BOOL.as_inlet(
                 id='bool_switch',
                 label='Boolean Switch',
-                widget='core:switch.widget',
+                widget='core:widget:switch.widget',
                 ui={'properties': {'text': 'Enable Feature'}},
                 default=True
             ))
@@ -63,7 +63,7 @@ class TestNodeOne(BaseNode):
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',
                 default='Hello, Haywire!',
-                widget='core:text.input.widget',
+                widget='core:widget:text.input.widget',
                 ui={'properties': {'placeholder': 'Enter text...'}}
             ))
 
@@ -75,7 +75,7 @@ class TestNodeOne(BaseNode):
         _ = self.add_inlet(INT.as_inlet(
                 id='int_input',
                 label='Missing Widget',
-                widget='core:number.widget',
+                widget='core:widget:number.widget',
                 ui={'properties': {}},
                 default=42
             ))

@@ -19,20 +19,20 @@ class DisplayNode(BaseNode):
         self.behavior.is_control_node = False
         
         # Configure UI
-        self.ui_config.node_renderer = 'example:example.node.renderer'
+        self.ui_config.node_renderer = 'example:renderer:example.node.renderer'
 
         # Using the new .as_inlet() API
         self.add_inlet(
-            FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core.number')
+            FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:number.widget')
         )
         self.add_inlet(
-            FLOAT.as_inlet('b', label='Value B', default=5.0, widget='core.number')
+            FLOAT.as_inlet('b', label='Value B', default=5.0, widget='core:widget:number.widget')
         )
         self.add_outlet(
             FLOAT.as_outlet('result', label='Result')
         )
         self.add_inlet(
-            STRING.as_inlet('operation', label='Operation', default='add', widget='core.select')
+            STRING.as_inlet('operation', label='Operation', default='add', widget='core:widget:text.input.widget')
         )   
     
 

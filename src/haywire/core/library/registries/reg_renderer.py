@@ -6,7 +6,6 @@ from ..library_identity import LibraryIdentity
 from ...ui.base_renderer import BaseNodeRenderer
 
 from ..class_registry import BaseClassRegistry
-from ..utils import reg_key
 
 class RendererRegistry(BaseClassRegistry):
     """Registry for NodeRenderer classes with fallback support"""

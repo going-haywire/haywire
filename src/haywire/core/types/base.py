@@ -6,16 +6,18 @@ data types in the Haywire system, both primitive type variants and custom compou
 """
 
 from __future__ import annotations
-from dataclasses import asdict
-from typing import TYPE_CHECKING
+from abc import ABC, abstractmethod
+from dataclasses import asdict, dataclass
+from typing import TYPE_CHECKING, TypeVar, Generic
 
 from ..data.enums import FlowType
 from ..library.library_identity import LibraryIdentity
 from .identity import DataPortIdentity
 from .ports import PortInlet, PortOutlet
 
+T = TypeVar('T')
 
-class TypeBase:
+class TypeBase():
     """
     Base class for all Haywire data types.
     
@@ -141,7 +143,46 @@ class TypeBase:
         Returns:
             PortInlet with flow_type=NONE (no visible pin)
         
+        
         Example:
             FLOAT.as_config('threshold', default=0.5)
         """
         return cls.as_inlet(id, flow_type=FlowType.NONE, **kwargs)
+
+
+class PrimitiveType(TypeBase, Generic[T]):
+    """
+    Base class for primitive type wrappers.
+    
+    Primitive types wrap Python built-in types (int, float, str, bool, bytes)
+    and their variants (e.g., Temperature extends FLOAT which wraps float).
+    
+    **IMPORTANT**: Subclasses MUST define exactly one field named 'value' with type annotation.
+    The Generic[T] parameter should match the value annotation for type checking.
+    
+    Valid examples:
+        @dataclass
+        class FLOAT(PrimitiveType[float]):
+            value: float  # ✅ Single 'value' field, matches Generic[float]
+        
+        class Temperature(FLOAT):
+            pass  # ✅ Inherits value: float from FLOAT
+    
+    Invalid examples:
+        @dataclass  
+        class BadType(PrimitiveType[int]):
+            value: int
+            other: str  # ❌ ERROR: Only 'value' field allowed!
+        
+        class NoValue(PrimitiveType[int]):
+            pass  # ❌ ERROR: Must have 'value' annotation (define or inherit)
+    
+    The PrimitiveType class validates this structure at import time and will
+    raise TypeError if violations are detected.
+    
+    Usage:
+        # In nodes:
+        FLOAT.as_inlet('input', default=1.0)
+        Temperature.as_inlet('temp', default=25.0)
+    """
+    value: T

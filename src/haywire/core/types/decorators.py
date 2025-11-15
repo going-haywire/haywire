@@ -7,15 +7,33 @@ This module provides decorators for creating Haywire data types:
 - @type_: Legacy decorator (deprecated, use @primitive_type or @compound_type instead)
 """
 
-from typing import Type, TypeVar, Callable
+from typing import Type, TypeVar, Callable, get_type_hints
 from dataclasses import asdict
 
-from .base import TypeBase
+from .base import TypeBase, PrimitiveType
 from .identity import DataPortIdentity
 from ..data.enums import ContainerType, FlowType
 from ..library.utils import derive_library_identity, reg_key
 
 T = TypeVar('T')
+
+
+class PrimitiveTypeDefinitionError(TypeError):
+    """
+    Exception raised when a primitive type is defined incorrectly.
+    
+    This exception includes the class definition location to help developers
+    identify the problematic class rather than pointing to decorator internals.
+    """
+    def __init__(self, message: str, cls_name: str, cls_module: str):
+        self.cls_name = cls_name
+        self.cls_module = cls_module
+        
+        # Include helpful location info in the message
+        location = f"{cls_module}.{cls_name}" if cls_module else cls_name
+        full_message = f"\n\n{'='*70}\nError in class definition: {location}\n{'='*70}\n{message}\n"
+        
+        super().__init__(full_message)
 
 
 def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
@@ -26,33 +44,34 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
     - Base primitive types that wrap Python built-ins (FLOAT wraps float, INT wraps int)
     - Derived type variants that inherit from primitives (Temperature extends FLOAT)
     
+    The decorator now AUTO-DETECTS the cls parameter from the 'value' type annotation.
+    Classes must define a single field 'value: T' where T is the wrapped type.
+    
     Examples:
-        # Base primitive type - requires 'cls' parameter:
+        # Base primitive type - cls auto-extracted from value annotation:
         @primitive_type(
             registry_id='float',
-            cls=float,
             color='#50b0ff',
-            widget='core:number.widget',
+            widget='core:widget:number.widget',
             default=0.0
         )
-        class FLOAT(TypeBase):
-            '''Float data type'''
-            pass
+        @dataclass
+        class FLOAT(PrimitiveType[float]):
+            value: float  # cls=float extracted automatically
         
-        # Derived variant - inherits 'cls' from parent:
+        # Derived variant - inherits value: float from FLOAT:
         @primitive_type(
             registry_id='temperature',
-            widget='example:temp.widget',
-            ui={'unit': '°C'}
+            widget='example:widget:temp.widget',
+            ui={'properties': {'unit': '°C'}}
         )
         class Temperature(FLOAT):
-            '''Temperature measurement - inherits float cls from FLOAT'''
-            pass
+            pass  # Inherits value: float and cls=float from FLOAT
     
     Args:
         registry_id (str, optional): Unique identifier within library.
-        cls (type, optional): Python type (int, float, str, etc.).
-            Required for base types, inherited for variants.
+        cls (type, optional): DEPRECATED - Now auto-extracted from 'value' annotation.
+            Only use if you need to override the detected type.
         label (str, optional): Human-readable display name.
         description (str, optional): Type description.
         color (str, optional): UI pin color (hex).
@@ -68,29 +87,82 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         Decorated class with class_identity attribute
     
     Raises:
-        ValueError: If base type doesn't specify 'cls' argument
+        TypeError: If class doesn't have 'value' annotation or has extra fields
         TypeError: If used on a compound type (has to_dict/from_dict)
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
-        # Ensure inherits from TypeBase
+        # Ensure inherits from PrimitiveType (or TypeBase for backward compat)
         if not issubclass(inner_cls, TypeBase):
+            # Auto-add PrimitiveType as base
             inner_cls = type(
                 inner_cls.__name__,
-                (TypeBase, *inner_cls.__bases__),
+                (PrimitiveType, *inner_cls.__bases__),
                 dict(inner_cls.__dict__)
             )
         
         # Check if this looks like a compound type (mistake!)
         if hasattr(inner_cls, 'to_dict') and hasattr(inner_cls, 'from_dict'):
-            raise TypeError(
-                f"Type {inner_cls.__name__} has to_dict/from_dict methods, "
-                f"suggesting it's a compound type. Use @compound_type instead of @primitive_type."
+            raise PrimitiveTypeDefinitionError(
+                f"❌ Type has to_dict/from_dict methods, suggesting it's a compound type.\n"
+                f"   Use @compound_type instead of @primitive_type.",
+                cls_name=inner_cls.__name__,
+                cls_module=inner_cls.__module__
+            ) from None
+        
+        # VALIDATION: Get and validate annotations
+        local_annotations = inner_cls.__dict__.get('__annotations__', {})
+        
+        # Get all annotations including inherited ones
+        try:
+            all_annotations = get_type_hints(inner_cls)
+        except Exception:
+            # Fall back if get_type_hints fails (e.g., forward references)
+            all_annotations = getattr(inner_cls, '__annotations__', {})
+        
+        # Single validation block
+        if local_annotations:
+            # Check for extra fields beyond 'value'
+            extra_fields = set(local_annotations.keys()) - {'value'}
+            if extra_fields:
+                raise PrimitiveTypeDefinitionError(
+                    f"\n\n"
+                    f"{'='*70}\n"
+                    f"❌ Primitive Type Definition Error in: {inner_cls.__name__}\n"
+                    f"{'='*70}\n"
+                    f"Primitive types can only define a 'value' field.\n\n"
+                    f"Found extra fields: {', '.join(sorted(extra_fields))}\n\n"
+                    f"Solutions:\n"
+                    f"  1. Remove the extra fields: {', '.join(sorted(extra_fields))}\n"
+                    f"  2. Use @compound_type if you need multiple fields\n"
+                    f"{'='*70}\n",
+                    cls_name=inner_cls.__name__,
+                    cls_module=inner_cls.__module__
+                )
+
+        # Ensure 'value' exists (either locally defined or inherited)
+        if 'value' not in all_annotations:
+            raise PrimitiveTypeDefinitionError(
+                f"\n\n"
+                f"{'='*70}\n"
+                f"❌ Primitive Type Definition Error in: {inner_cls.__name__}\n"
+                f"{'='*70}\n"
+                f"   Primitive types must have a 'value' annotation.\n\n"
+                f"   Example:\n"
+                f"      @dataclass\n"
+                f"      class {inner_cls.__name__}(PrimitiveType[YourType]):\n"
+                f"          value: YourType\n"
+                f"{'='*70}\n",
+                cls_name=inner_cls.__name__,
+                cls_module=inner_cls.__module__
             )
+               
+        # AUTO-EXTRACT cls from 'value' annotation
+        kwargs['cls'] = all_annotations['value']
         
         # Check if this inherits from another Type (derived variant)
         parent_identity = None
         for base in inner_cls.__bases__:
-            if base != TypeBase and issubclass(base, TypeBase):
+            if base != TypeBase and base != PrimitiveType and issubclass(base, TypeBase):
                 if hasattr(base, 'class_identity'):
                     parent_identity = base.class_identity
                     break
@@ -114,26 +186,20 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             })
             
             # Override specific fields if provided
-            for field in ['color', 'flow_type', 'icon', 'widget', 'help_url', 'default', 'container_type', 'ui']:
+            for field in ['color', 'flow_type', 'icon', 'widget', 'help_url', 'default', 'container_type', 'ui', 'cls']:
                 if field in kwargs:
                     identity_dict[field] = kwargs[field]
             
             identity_dict['_is_variant'] = True
             
         else:
-            # Base primitive type: must specify cls
-            if 'cls' not in kwargs:
-                raise ValueError(
-                    f"Base primitive type {inner_cls.__name__} must specify 'cls' parameter "
-                    f"(e.g., cls=float, cls=int, cls=str)"
-                )
-            
+            # Base primitive type: cls was auto-extracted from value annotation
             identity_dict = {
                 'registry_id': kwargs['registry_id'],
                 'registry_key': '',
                 'label': kwargs['label'],
                 'description': kwargs['description'],
-                'cls': kwargs['cls'],
+                'cls': kwargs['cls'],  # Auto-extracted from value: T annotation
                 'container_type': kwargs.get('container_type', ContainerType.SINGLE),
                 'flow_type': kwargs.get('flow_type', FlowType.DATA),
                 'default': kwargs.get('default', None),
@@ -150,7 +216,7 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         
         # Set registry_key
         library_id = library_identity.id if library_identity else None
-        identity_dict['registry_key'] = reg_key(library_id, identity_dict['registry_id'])
+        identity_dict['registry_key'] = reg_key(library_id, 'type',identity_dict['registry_id'])
         
         # Create and attach identity and library
         inner_cls.class_identity = DataPortIdentity(**identity_dict)
@@ -266,7 +332,7 @@ def compound_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         
         # Set registry_key
         library_id = library_identity.id if library_identity else None
-        identity_dict['registry_key'] = reg_key(library_id, identity_dict['registry_id'])
+        identity_dict['registry_key'] = reg_key(library_id, 'type', identity_dict['registry_id'])
         
         # Create and attach identity and library
         inner_cls.class_identity = DataPortIdentity(**identity_dict)

@@ -8,7 +8,6 @@ from ...ui.base_widget import BaseWidget
 from ..library_identity import LibraryIdentity
 
 from ..class_registry import BaseClassRegistry
-from ..utils import reg_key
 
 
 class WidgetRegistry(BaseClassRegistry):

@@ -2,8 +2,9 @@
 Built-in data type specifications for Haywire core library.
 """
 
+from dataclasses import dataclass
 from haywire.core.types.decorators import primitive_type
-from haywire.core.types.base import TypeBase
+from haywire.core.types.base import PrimitiveType
 from haywire.core.data.enums import ContainerType, FlowType
 
 # ============================================================================
@@ -12,7 +13,6 @@ from haywire.core.data.enums import ContainerType, FlowType
 
 @primitive_type(
     registry_id='exec',
-    cls=None,
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.CTRL,
     label='Execution Signal',
@@ -22,14 +22,13 @@ from haywire.core.data.enums import ContainerType, FlowType
     widget=None,
     default=None,
 )
-class EXEC(TypeBase):
+class EXEC(PrimitiveType[type(None)]):
     """Execution signal type for controlling node execution flow"""
-    pass
+    value: None = None
 
 
 @primitive_type(
     registry_id='callback',
-    cls=None,
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.CALLBACK,
     label='Callback Signal',
@@ -39,9 +38,9 @@ class EXEC(TypeBase):
     widget=None,
     default=None,
 )
-class CALLBACK(TypeBase):
+class CALLBACK(PrimitiveType[type(None)]):
     """Callback signal type for callback execution between nodes"""
-    pass
+    value: None = None
 
 
 # ============================================================================
@@ -50,35 +49,36 @@ class CALLBACK(TypeBase):
 
 @primitive_type(
     registry_id='int',
-    cls=int,
     container_type=ContainerType.SINGLE,
     label='Integer',
     description='Whole number',
     color='#f7b0ff',
     icon='tag',
-    widget='core:number.widget',
+    widget='core:widget:number.widget',
     default=0,
 )
-class INT(TypeBase):
+@dataclass
+class INT(PrimitiveType[int]):
     """Integer data type"""
-    pass
+    value: int
+    test: str
 
 
 @primitive_type(
     registry_id='float',
-    cls=float,
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='Float',
     description='Decimal number',
     color='#50b0ff',
     icon='circle',
-    widget='core:number.widget',
+    widget='core:widget:number.widget',
     default=0.0,
 )
-class FLOAT(TypeBase):
+@dataclass
+class FLOAT(PrimitiveType[float]):
     """Float data type"""
-    pass
+    value: int
 
 
 # ============================================================================
@@ -87,19 +87,19 @@ class FLOAT(TypeBase):
 
 @primitive_type(
     registry_id='string',
-    cls=str,
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='String',
     description='Text data',
     color='#ffc107',
     icon='type',
-    widget='core:text.input.widget',
+    widget='core:widget:text.input.widget',
     default='',
 )
-class STRING(TypeBase):
+@dataclass
+class STRING(PrimitiveType[str]):
     """String data type"""
-    pass
+    value: str
 
 
 # ============================================================================
@@ -108,19 +108,19 @@ class STRING(TypeBase):
 
 @primitive_type(
     registry_id='bool',
-    cls=bool,
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='Boolean',
     description='True or False',
     color='#4caf50',
     icon='checkbox',
-    widget='core:checkbox.widget',
+    widget='core:widget:checkbox.widget',
     default=False,
 )
-class BOOL(TypeBase):
+@dataclass
+class BOOL(PrimitiveType[bool]):
     """Boolean data type"""
-    pass
+    value: bool
 
 
 # ============================================================================
@@ -129,7 +129,6 @@ class BOOL(TypeBase):
 
 @primitive_type(
     registry_id='bytes',
-    cls=bytes,
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='Bytes',
@@ -139,9 +138,10 @@ class BOOL(TypeBase):
     widget=None,
     default=b'',
 )
-class BYTES(TypeBase):
+@dataclass
+class BYTES(PrimitiveType[bytes]):
     """Bytes data type"""
-    pass
+    value: bytes
 
 
 # ============================================================================
@@ -150,7 +150,6 @@ class BYTES(TypeBase):
 
 @primitive_type(
     registry_id='list',
-    cls=list,
     container_type=ContainerType.LIST,
     flow_type=FlowType.DATA,
     label='List',
@@ -160,14 +159,14 @@ class BYTES(TypeBase):
     widget=None,
     default=[],
 )
-class LIST(TypeBase):
+@dataclass
+class LIST(PrimitiveType[list]):
     """List data type"""
-    pass
+    value: list
 
 
 @primitive_type(
     registry_id='dict',
-    cls=dict,
     container_type=ContainerType.DICT,
     flow_type=FlowType.DATA,
     label='Dictionary',
@@ -177,7 +176,7 @@ class LIST(TypeBase):
     widget=None,
     default={},
 )
-class DICT(TypeBase):
+@dataclass
+class DICT(PrimitiveType[dict]):
     """Dictionary data type"""
-    pass
-
+    value: dict

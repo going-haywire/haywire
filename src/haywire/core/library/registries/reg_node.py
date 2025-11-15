@@ -9,7 +9,6 @@ from ...node.dataclasses import NodeErrorInfo
 from ..library_identity import LibraryIdentity
 from ...node.base_node import BaseNode
 from ..class_registry import BaseClassRegistry
-from ..utils import reg_key
 
 class NodeRegistry(BaseClassRegistry):
     """Simplified registry for managing nodes using library.name:node.name keys"""

@@ -267,28 +267,28 @@ class LibrarySystemService:
             enabled = library_registry.is_library_enabled(lib_id)
             
             # Determine how the library was added
-            install_method = "Unknown"
+            install_method = "❓ Unknown"
             if install_type:
                 from haywire.core.library.discovery import InstallType
                 if install_type == InstallType.REGULAR:
-                    install_method = "Pip (regular install)"
+                    install_method = "📦 Pip (regular install)"
                 elif install_type == InstallType.EDITABLE:
-                    install_method = "Pip (editable install)"
+                    install_method = "🔗 Pip (editable install)"
                 elif install_type == InstallType.FOLDER:
                     # Determine if it's core or search path
                     if source and 'src/haywire/libraries' in source:
-                        install_method = "Core library"
+                        install_method = "⭐ Core library"
                     else:
-                        install_method = "Search path"
+                        install_method = "📁 Search path"
             
             status = "✓" if enabled else "✗"
             print(f"  {status} {identity.label}")
-            print(f"      ID: {lib_id}")
-            print(f"      Version: {identity.version}")
-            print(f"      Source: {source}")
+            print(f"      ID:             {lib_id}")
+            print(f"      Version:        {identity.version}")
+            print(f"      Enabled:        {enabled}")
+            print(f"      Dependencies:   {identity.dependencies}")
+            print(f"      Source:         {source}")
             print(f"      Install Method: {install_method}")
-            print(f"      Dependencies: {identity.dependencies}")
-            print(f"      Enabled: {enabled}")
             print()
         
         print("-" * 70)
