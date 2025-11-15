@@ -209,7 +209,7 @@ class DependencyGraph:
                 del self._module_scope_prefixes[module_name]
             logging.debug(f"Module '{module_name}' removed from managed modules")
     
-    def get_reload_plan(self, changed_module: str) -> ReloadPlan:
+    def get_reload_plan(self, changed_module: str, exclude_modules: Optional[Set[str]] = None) -> ReloadPlan:
         """
         Generate a reload plan for when a module changes.
         
@@ -218,10 +218,14 @@ class DependencyGraph:
         
         Args:
             changed_module: The module that changed
+            exclude_modules: Set of modules to exclude from reload (already reloaded)
             
         Returns:
             ReloadPlan with ordered lists of modules to reload
         """
+        if exclude_modules is None:
+            exclude_modules = set()
+        
         # regenerate dependency tree if it is a managed module to catch new imports
         if changed_module in self._managed_modules:
             self.add_managed_module(
@@ -240,7 +244,9 @@ class DependencyGraph:
             if changed_module in dependency_tree or changed_module == managed_module:
                 affected_managed.append(managed_module)
                 # Build reload list: all dependencies + the managed module itself
-                reload_list = list(dependency_tree) + [managed_module]
+                # BUT exclude modules that were already reloaded
+                reload_list = [m for m in list(dependency_tree) + [managed_module] 
+                              if m not in exclude_modules]
                 reload_lists.append(reload_list)
         
         if not affected_managed:
@@ -256,7 +262,8 @@ class DependencyGraph:
         
         logging.debug(
             f"Reload plan for '{changed_module}': "
-            f"{len(helpers)} helpers, {len(managed)} managed"
+            f"{len(helpers)} helpers, {len(managed)} managed "
+            f"(excluded {len(exclude_modules)} already reloaded)"
         )
         
         return ReloadPlan(

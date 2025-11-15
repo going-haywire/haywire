@@ -67,7 +67,7 @@ class INT(PrimitiveType[int]):
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='Float',
-    description='Decimal number',
+    description='Decimal numbers',
     color='#50b0ff',
     icon='circle',
     widget='core:widget:number.widget',

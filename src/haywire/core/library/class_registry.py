@@ -34,6 +34,11 @@ class FileChangeEvent:
     event_type: FileEventType  # 'created', 'modified', 'deleted', 'detected'
     library_identity: LibraryIdentity
     timestamp: float
+    reloaded_modules: set[str] = None  # Track modules already reloaded in this event chain
+    
+    def __post_init__(self):
+        if self.reloaded_modules is None:
+            self.reloaded_modules = set()
 
 class HotReloadRegistry(ABC):
     """Abstract base class for registries that support hot-reloading"""
@@ -287,7 +292,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 self._on_creation(module_name, event.library_identity)
             elif event.event_type == FileEventType.MODIFIED:
                 if module_name in sys.modules:
-                    self._on_change(module_name, event.library_identity)
+                    self._on_change(module_name, event.library_identity, event)
                 else:
                     # covering an edge case where a module is modified but not yet loaded
                     logging.info(f"Library '{event.library_identity.label}': Module '{module_name}' not found in sys.modules. Creating new module.")
@@ -300,6 +305,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 f"...Hot Reloading -> DONE.")
             
             # Notify registry subscribers after successful reload
+            # Event now contains all reloaded_modules
             self._notify_registry_subscribers(event)
 
         except Exception as e:
@@ -345,13 +351,14 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 #TODO: emit event for added class
 
     
-    def _on_change(self, module_name: str, library_identity: LibraryIdentity):
+    def _on_change(self, module_name: str, library_identity: LibraryIdentity, event: Optional[FileChangeEvent] = None):
         """
         re-registering existing classes within the module
         and returning the classes that need to be
         additionally registered / unregistered
         Args:
             module_name (str): The module name that has changed.
+            event (Optional[FileChangeEvent]): The file change event (used to track reloaded modules)
         Returns:
             [list,list]: [(List of classes to be registered), (List of haywire class names to be unregistered)]
         """
@@ -363,8 +370,11 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             f"changed module '{module_name}'..."
         )
         
-        # Get reload plan from dependency graph
-        reload_plan = self._dependency_graph.get_reload_plan(module_name)
+        # Get modules to exclude (already reloaded by upstream registries)
+        exclude_modules = event.reloaded_modules if event else set()
+        
+        # Get reload plan from dependency graph, excluding already-reloaded modules
+        reload_plan = self._dependency_graph.get_reload_plan(module_name, exclude_modules)
         
         logging.info(
             f"Library '{library_identity.label}': Reload plan: "
@@ -380,6 +390,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                     f"module '{helper_module}'..."
                 )
                 importlib.reload(sys.modules[helper_module])
+                # Track that we reloaded this module
+                if event:
+                    event.reloaded_modules.add(helper_module)
         
         # Step 2: Reload managed modules using registry's special handling
         for managed_module in reload_plan.managed_modules:
@@ -388,6 +401,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 f"module '{managed_module}'..."
             )
             self._reload_managed_module(managed_module, library_identity)
+            # Track that we reloaded this module
+            if event:
+                event.reloaded_modules.add(managed_module)
 
     def _reload_managed_module(self, module_name: str, library_identity: LibraryIdentity):
         """
