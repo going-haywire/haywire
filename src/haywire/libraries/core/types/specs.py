@@ -22,7 +22,7 @@ from haywire.core.data.enums import ContainerType, FlowType
     widget=None,
     default=None,
 )
-class EXEC(PrimitiveType[type(None)]):
+class EXEC(PrimitiveType):
     """Execution signal type for controlling node execution flow"""
     value: None = None
 
@@ -38,7 +38,7 @@ class EXEC(PrimitiveType[type(None)]):
     widget=None,
     default=None,
 )
-class CALLBACK(PrimitiveType[type(None)]):
+class CALLBACK(PrimitiveType):
     """Callback signal type for callback execution between nodes"""
     value: None = None
 
@@ -58,9 +58,9 @@ class CALLBACK(PrimitiveType[type(None)]):
     default=0,
 )
 @dataclass
-class INT(PrimitiveType[int]):
+class INT(PrimitiveType):
     """Integer data type"""
-    value: int
+    test: int
 
 @primitive_type(
     registry_id='float',
@@ -74,9 +74,9 @@ class INT(PrimitiveType[int]):
     default=0.0,
 )
 @dataclass
-class FLOAT(PrimitiveType[float]):
+class FLOAT(PrimitiveType):
     """Float data type"""
-    value: int
+    value: float
 
 
 # ============================================================================
@@ -95,7 +95,7 @@ class FLOAT(PrimitiveType[float]):
     default='',
 )
 @dataclass
-class STRING(PrimitiveType[str]):
+class STRING(PrimitiveType):
     """String data type"""
     value: str
 
@@ -116,7 +116,7 @@ class STRING(PrimitiveType[str]):
     default=False,
 )
 @dataclass
-class BOOL(PrimitiveType[bool]):
+class BOOL(PrimitiveType):
     """Boolean data type"""
     value: bool
 
@@ -137,7 +137,7 @@ class BOOL(PrimitiveType[bool]):
     default=b'',
 )
 @dataclass
-class BYTES(PrimitiveType[bytes]):
+class BYTES(PrimitiveType):
     """Bytes data type"""
     value: bytes
 
@@ -158,7 +158,7 @@ class BYTES(PrimitiveType[bytes]):
     default=[],
 )
 @dataclass
-class LIST(PrimitiveType[list]):
+class LIST(PrimitiveType):
     """List data type"""
     value: list
 
@@ -175,6 +175,6 @@ class LIST(PrimitiveType[list]):
     default={},
 )
 @dataclass
-class DICT(PrimitiveType[dict]):
+class DICT(PrimitiveType):
     """Dictionary data type"""
     value: dict

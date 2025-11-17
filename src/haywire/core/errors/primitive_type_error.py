@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from .haywire_exception import HaywireException
+from .custom_exception import CustomException
 
 @dataclass
-class PrimitiveTypeDefinitionError(HaywireException, TypeError):
+class PrimitiveTypeDefinitionError(CustomException, TypeError):
     """
     Raised when a primitive type is defined incorrectly.
 
@@ -88,12 +88,14 @@ class PrimitiveTypeDefinitionError(HaywireException, TypeError):
 
             self.message += (
                 f"{'='*70}\n\n"
-                f"Primitive types must have a 'value' annotation.\n"
+                f"Primitive types must have a 'value' field.\n"
             )
 
             self.suggestions = [
                 "Add: value: YourType",
-                f"Example: value: float for {cls_name}(PrimitiveType[float])"
+                f"Example: \n",
+                f"{cls_name}(PrimitiveType)\n",
+                f"    value: float"
             ]
             self.highlight_text = "value"
 

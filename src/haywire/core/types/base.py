@@ -11,13 +11,11 @@ from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, TypeVar, Generic
 from typing import get_type_hints
 
-from ..errors.PrimitiveTypeDefinitionError import PrimitiveTypeDefinitionError
 from ..data.enums import FlowType
 from ..library.library_identity import LibraryIdentity
 from .identity import DataPortIdentity
 from .ports import PortInlet, PortOutlet
 
-T = TypeVar('T')
 
 class TypeBase():
     """
@@ -152,7 +150,7 @@ class TypeBase():
         return cls.as_inlet(id, flow_type=FlowType.NONE, **kwargs)
 
 
-class PrimitiveType(TypeBase, Generic[T]):
+class PrimitiveType(TypeBase):
     """
     Base class for primitive type wrappers.
     
@@ -160,19 +158,18 @@ class PrimitiveType(TypeBase, Generic[T]):
     and their variants (e.g., Temperature extends FLOAT which wraps float).
     
     **IMPORTANT**: Subclasses MUST define exactly one field named 'value' with type annotation.
-    The Generic[T] parameter should match the value annotation for type checking.
     
     Valid examples:
         @dataclass
-        class FLOAT(PrimitiveType[float]):
-            value: float  # ✅ Single 'value' field, matches Generic[float]
+        class FLOAT(PrimitiveType):
+            value: float  # ✅ Single 'value' field
         
         class Temperature(FLOAT):
             pass  # ✅ Inherits value: float from FLOAT
     
     Invalid examples:
         @dataclass  
-        class BadType(PrimitiveType[int]):
+        class BadType(PrimitiveType):
             value: int
             other: str  # ❌ ERROR: Only 'value' field allowed!
         
@@ -187,5 +184,5 @@ class PrimitiveType(TypeBase, Generic[T]):
         FLOAT.as_inlet('input', default=1.0)
         Temperature.as_inlet('temp', default=25.0)
     """
-    value: T
+
     

@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Any, Callable, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 from collections import defaultdict
 
+from ..errors.haywire_exception import HaywireException
+
 if TYPE_CHECKING:
     from ..graph.graph import HaywireGraph
 
@@ -20,7 +22,8 @@ from .base_node import BaseNode
 from .node_wrapper import NodeWrapper
 from ..library.registries.reg_node import NodeRegistry
 from ..library.library_identity import LibraryIdentity
-from ..errors import log_detailed_error, DetailedError
+from ..library.hot_reload_event import HotReloadEvent, HotReloadCallback
+from ..errors import log_detailed_error
 
 
 class NodeFactory:
@@ -42,7 +45,7 @@ class NodeFactory:
         self.node_registry = node_registry
                 
         # Hot reload notification callbacks
-        self._hot_reload_listeners: List[Callable[[str, List[str]], None]] = []
+        self._hot_reload_listeners: List[HotReloadCallback] = []
         
         # Register this factory as a customer callback for node registry hot reloads
         self.node_registry.add_customer_callback(self._on_node_reloaded)
@@ -133,9 +136,7 @@ class NodeFactory:
         
         return wrapper
     
-    def _on_node_reloaded(self, registry_key: str, 
-                         affected_class_names: List[str],
-                         library_identity: LibraryIdentity) -> None:
+    def _on_node_reloaded(self, event: HotReloadEvent) -> None:
         """
         Customer callback for node hot reload events.
         
@@ -143,20 +144,16 @@ class NodeFactory:
         It forwards the notification to all registered hot reload listeners (typically NodeWrappers).
         
         Args:
-            registry_key: The registry key of the affected node (e.g., "example:MyNode")
-            affected_class_names: List of class names that were modified
-            library_identity: The library where the change occurred
+            event: The hot reload event with complete context
         """
         logging.info(
-            f"NodeFactory: Node reloaded - {registry_key} "
-            f"(classes: {', '.join(affected_class_names)}) "
-            f"from library '{library_identity.label}'"
+            f"NodeFactory: Node {event.event_type.value} - {event.registry_key} "
+            f"from library '{event.library_identity.label}'"
         )
         
-        # Notify all hot reload listeners (NodeWrappers, etc.)
-        # Pass empty list for affected_node_ids since listeners will determine themselves
+        # Forward to all hot reload listeners (NodeWrappers, etc.)
         for listener in self._hot_reload_listeners:
-            listener(registry_key, [])
+            listener(event)
         
     def handle_hot_reload(self, registry_key: str) -> None:
         """
@@ -169,21 +166,23 @@ class NodeFactory:
         Args:
             registry_key: The registry key that was reloaded
         """        
-        # Notify all listeners about the hot reload
-        # NodeWrappers will check if they use this registry_key
-        for listener in self._hot_reload_listeners:
-            listener(registry_key, [])
+        # This method is kept for backward compatibility but may not be used
+        # with the new event system. Events are now passed directly.
+        logging.warning(
+            f"NodeFactory.handle_hot_reload called with registry_key={registry_key}. "
+            f"This method is deprecated in favor of event-based hot reload."
+        )
     
-    def add_hot_reload_listener(self, callback: Callable[[str, List[str]], None]) -> None:
+    def add_hot_reload_listener(self, callback: HotReloadCallback) -> None:
         """
         Add a callback for hot reload notifications.
         
         Args:
-            callback: Function called with (registry_key, affected_node_ids)
+            callback: Function called with HotReloadEvent
         """
         self._hot_reload_listeners.append(callback)
     
-    def remove_hot_reload_listener(self, callback: Callable[[str, List[str]], None]) -> None:
+    def remove_hot_reload_listener(self, callback: HotReloadCallback) -> None:
         """
         Remove a hot reload notification callback.
         

@@ -51,7 +51,7 @@ class PopupContextMenu:
     def _setup_hot_reload_listener(self):
         """Setup listener for node hot reload events."""
         self.editor.node_factory.add_hot_reload_listener(
-            lambda registry_key, affected_nodes: self._menu_builder.invalidate_cache()
+            lambda event: self._menu_builder.invalidate_cache()
         )
     
     # Canvas Actions  

@@ -40,7 +40,7 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             default=0.0
         )
         @dataclass
-        class FLOAT(PrimitiveType[float]):
+        class FLOAT(PrimitiveType):
             value: float  # cls=float extracted automatically
         
         # Derived variant - inherits value: float from FLOAT:
@@ -75,25 +75,24 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         TypeError: If used on a compound type (has to_dict/from_dict)
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
-        # Ensure inherits from PrimitiveType (or TypeBase for backward compat)
-        if not issubclass(inner_cls, TypeBase):
-            # Auto-add PrimitiveType as base
-            inner_cls = type(
-                inner_cls.__name__,
-                (PrimitiveType, *inner_cls.__bases__),
-                dict(inner_cls.__dict__)
+        # Ensure inherits from PrimitiveType 
+        if not issubclass(inner_cls, PrimitiveType):
+            raise TypeError(
+                f"@primitive_type decorator requires {inner_cls.__name__} to inherit from PrimitiveType. "
+                f"Use: class {inner_cls.__name__}(PrimitiveType)."
             )
 
-        # Get library identity and attach (survives hot-reload)
-        library_identity = derive_library_identity(inner_cls)
-        inner_cls.class_library = library_identity
-
+        #TODO: Not sure if we still want to require these methods for compound types
         # Check if this looks like a compound type (mistake!)
         if hasattr(inner_cls, 'to_dict') and hasattr(inner_cls, 'from_dict'):
             raise TypeError(
                 f"Type {inner_cls.__name__} has to_dict/from_dict methods, "
                 f"suggesting it's a compound type. Use @compound_type instead of @primitive_type."
             )
+
+        # Get library identity and attach (survives hot-reload)
+        library_identity = derive_library_identity(inner_cls)
+        inner_cls.class_library = library_identity
         
         # Get annotations for auto-extraction of cls
         try:
@@ -104,7 +103,14 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
 
         # Get annotations defined directly on THIS class only (not inherited)
         local_annotations = inner_cls.__dict__.get('__annotations__', {})
-        
+
+        # Ensure 'value' exists somewhere in the hierarchy
+        if 'value' not in all_annotations:
+            raise PrimitiveTypeDefinitionError(
+                cls=inner_cls,
+                missing_value=True
+            )
+
         # If subclass defines new annotations, validate structure
         if local_annotations:
             # Check for extra fields beyond 'value'
@@ -115,13 +121,6 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                     extra_fields=list(extra_fields)
                 )
                 
-        # Ensure 'value' exists somewhere in the hierarchy
-        if 'value' not in all_annotations:
-            raise PrimitiveTypeDefinitionError(
-                cls=inner_cls,
-                missing_value=True
-            )
-
         # AUTO-EXTRACT cls from 'value' annotation (validation already done in __init_subclass__)
         if 'value' in all_annotations:
             kwargs['cls'] = all_annotations['value']

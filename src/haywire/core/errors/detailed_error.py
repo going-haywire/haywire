@@ -10,12 +10,9 @@ import traceback
 import re
 import logging
 
+from haywire.core.errors.haywire_exception import HaywireException
 
 from ..library.library_identity import LibraryIdentity
-
-# Import after dataclass definitions to avoid circular import
-if TYPE_CHECKING:
-    from .haywire_exception import HaywireException
 
 @dataclass
 class ErrorContext:
@@ -188,14 +185,14 @@ def analyze_exception(exception: Exception,
     Returns:
         ErrorContext with detailed error information
     """
-    from .haywire_exception import HaywireException
+    from .custom_exception import CustomException
     
     exc_type, exc_value, exc_tb = sys.exc_info()
     
-    # Check if this is a self-describing Haywire exception
-    is_haywire_exception = isinstance(exception, HaywireException)
+    # Check if this is a self-describing Haywire custom exception
+    is_custom_exception = isinstance(exception, CustomException)
     
-    if is_haywire_exception:
+    if is_custom_exception:
         # Use exception's metadata for primary error location
         filename = exception.error_filename
         line_number = exception.error_line_number
@@ -236,11 +233,11 @@ def analyze_exception(exception: Exception,
             tb_function_name = frame.f_code.co_name
             
             # For HaywireException, skip the specified number of initial stacktrace frames
-            if is_haywire_exception and i < skip_tb_steps:
+            if is_custom_exception and i < skip_tb_steps:
                 continue  # Skip this frame based on skip_stacktrace_steps
             
             # Filter frames if this is a HaywireException
-            if is_haywire_exception and not show_full:
+            if is_custom_exception and not show_full:
                 # Skip frames based on function name or filename
                 import os
                 base_filename = os.path.basename(tb_filename)
@@ -351,15 +348,6 @@ def analyze_exception(exception: Exception,
         error_category=error_category  # NEW
     )
 
-class DetailedError(Exception):
-    """Custom exception with structured error data"""
-    
-    def __init__(self, context: ErrorContext, original_exception: Exception):
-        super().__init__(context.message)
-        self.context = context
-        self.original_exception = original_exception
-
-
 def log_detailed_error(exception: Exception,
                       operation: str = None,
                       module_name: str = None,
@@ -367,7 +355,7 @@ def log_detailed_error(exception: Exception,
                       logger: logging.Logger = None,
                       library_identity: LibraryIdentity = None,
                       registry_key: str = None,
-                      class_name: str = None) -> DetailedError:
+                      class_name: str = None) -> HaywireException:
     """
     Create and log a detailed error.
     
@@ -387,7 +375,7 @@ def log_detailed_error(exception: Exception,
 
     context = analyze_exception(exception, operation, module_name, library_identity, registry_key, class_name, message)
 
-    detailed_error = DetailedError(
+    detailed_error = HaywireException(
         context=context,
         original_exception=exception
     )

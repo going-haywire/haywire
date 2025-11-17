@@ -7,13 +7,17 @@ including creation, hot reload, serialization, and cleanup.
 import time
 import uuid
 import threading
+import logging
 from typing import Dict, List, Optional, Tuple, Callable, Any, TYPE_CHECKING
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
+from ..errors.haywire_exception import HaywireException
+
 from .base_node import BaseNode
-from ..errors import log_detailed_error, DetailedError
+from ..errors import log_detailed_error
+from ..library.hot_reload_event import HotReloadEvent, HotReloadEventType, HotReloadCallback
 
 if TYPE_CHECKING:
     from ..graph.graph import HaywireGraph
@@ -86,8 +90,8 @@ class NodeWrapper:
         self.state = NodeWrapperState(creation_time=time.time())
         self._node_instance: Optional[BaseNode] = None
         
-        # Change notification callbacks  
-        self._change_callbacks: List[Callable[['NodeWrapper', str], None]] = []
+        # Change notification callbacks - now using HotReloadCallback for consistency
+        self._change_callbacks: List[HotReloadCallback] = []
         
         # Middleware support
         self._middleware: List[NodeMiddleware] = []
@@ -123,7 +127,14 @@ class NodeWrapper:
                 self.node.ui_state.posY = position[1] if position else 0.0
                 self._initialized = True
                 
-                self._notify_change("initialized")
+                # Notify successful initialization with HotReloadEvent
+                event = HotReloadEvent(
+                    registry_key=self.registry_key,
+                    event_type=HotReloadEventType.CLASS_ADDED,  # Initial creation
+                    affected_class=type(self._node_instance),
+                    library_identity=self._node_instance.class_library
+                )
+                self._notify_change(event)
                 return True
                 
             except Exception as e:
@@ -139,7 +150,15 @@ class NodeWrapper:
                 try:
                     self._create_error_node()
                     self._initialized = True  
-                    self._notify_change("initialized_with_error")
+                    # Notify initialization failure with HotReloadEvent
+                    event = HotReloadEvent(
+                        registry_key=self.registry_key,
+                        event_type=HotReloadEventType.CLASS_RELOAD_FAILED,
+                        affected_class=None,
+                        library_identity=None,  # Error node doesn't have library identity
+                        error_info=str(e)
+                    )
+                    self._notify_change(event)
                     return False
                 except Exception as e2:
                     log_detailed_error(f"Failed to create error node for {self.node_id}", e2)
@@ -262,7 +281,7 @@ class NodeWrapper:
                     #TODO: find new way to copy state
                     # self._node_instance.load_state(data['node_data'])
                 
-                self._notify_change("deserialized")
+                # Note: deserialized event removed - initialize() already notified
                 return True
                 
             except Exception as e:
@@ -285,7 +304,7 @@ class NodeWrapper:
             self.state.execution_count += 1
             
             self._execute_with_middleware('prepare_for_execution', context)
-            self._notify_change("execution_started")
+            # Note: execution_started event removed - not part of hot reload chain
     
     def cleanup_after_execution(self) -> None:
         """Cleanup after execution completes"""
@@ -293,7 +312,7 @@ class NodeWrapper:
             self.state.is_executing = False
             
             self._execute_with_middleware('cleanup_after_execution')
-            self._notify_change("execution_ended")
+            # Note: execution_ended event removed - not part of hot reload chain
     
     def validate(self) -> List[str]:
         """
@@ -322,13 +341,13 @@ class NodeWrapper:
             
             return issues
     
-    def add_change_callback(self, callback: Callable[['NodeWrapper', str], None]) -> None:
-        """Add callback for wrapper state changes"""
+    def add_change_callback(self, callback: HotReloadCallback) -> None:
+        """Add callback for wrapper state changes (hot reload events)"""
         with self._lock:
             if callback not in self._change_callbacks:
                 self._change_callbacks.append(callback)
     
-    def remove_change_callback(self, callback: Callable[['NodeWrapper', str], None]) -> None:
+    def remove_change_callback(self, callback: HotReloadCallback) -> None:
         """Remove change callback"""
         with self._lock:
             if callback in self._change_callbacks:
@@ -411,15 +430,41 @@ class NodeWrapper:
         """Setup hot reload monitoring for this wrapper"""
         self.node_factory.add_hot_reload_listener(self._on_hot_reload)
     
-    def _on_hot_reload(self, reloaded_registry_key: str, affected_node_ids: List[str]) -> None:
-        """Handle hot reload notification from factory"""
-        if reloaded_registry_key == self.registry_key:
-            with self._lock:
+    def _on_hot_reload(self, event: HotReloadEvent) -> None:
+        """
+        Handle hot reload notification from factory.
+        
+        Args:
+            event: The hot reload event with complete context
+        """
+        # Filter: Only care about events matching our registry key
+        if not event.matches_registry_key(self.registry_key):
+            return
+            
+        with self._lock:
+            logging.info(
+                f"NodeWrapper {self.node_id}: Detected hot reload event - {event.event_type.value}"
+            )
+            
+            if event.is_successful_reload():
+                # Successful reload - mark for migration
                 self.state.needs_migration = True
                 self.state.last_hot_reload = time.time()
                 self.state.hot_reload_count += 1
+                # Forward the event to UI components
+                self._notify_change(event)
                 
-                self._notify_change("hot_reload_detected")
+            elif event.is_error_event():
+                # Failed reload - mark error state
+                self.state.error_state = event.error_info
+                # Forward the error event
+                self._notify_change(event)
+                
+            elif event.is_removal():
+                # Class was removed
+                self.state.error_state = f"Node class {event.registry_key} was removed"
+                # Forward the removal event
+                self._notify_change(event)
     
     def _perform_migration(self) -> None:
         """Perform hot reload migration"""
@@ -458,7 +503,14 @@ class NodeWrapper:
             self.state.needs_migration = False
             print(f"✅ Successfully migrated node {self.node_id}")
             
-            self._notify_change("migration_completed")
+            # Notify successful migration with HotReloadEvent
+            event = HotReloadEvent(
+                registry_key=self.registry_key,
+                event_type=HotReloadEventType.CLASS_RELOADED,
+                affected_class=type(self._node_instance),
+                library_identity=self._node_instance.class_library
+            )
+            self._notify_change(event)
             
         except Exception as e:
             print(f"❌ Failed to migrate node {self.node_id}: {e}")
@@ -468,16 +520,37 @@ class NodeWrapper:
             # Try to create error node
             try:
                 self._create_error_node()
-                self._notify_change("migration_failed_error_node_created")
+                # Notify migration failure with error node fallback
+                event = HotReloadEvent(
+                    registry_key=self.registry_key,
+                    event_type=HotReloadEventType.CLASS_RELOAD_FAILED,
+                    affected_class=None,
+                    library_identity=None,
+                    error_info=f"Migration failed: {e}, using error node"
+                )
+                self._notify_change(event)
             except Exception as e2:
                 log_detailed_error(f"Failed to create error node during failed migration of {self.node_id}", e2)
-                self._notify_change("migration_failed_no_fallback")
+                # Notify complete failure
+                event = HotReloadEvent(
+                    registry_key=self.registry_key,
+                    event_type=HotReloadEventType.CLASS_RELOAD_FAILED,
+                    affected_class=None,
+                    library_identity=None,
+                    error_info=f"Migration failed: {e}, error node also failed: {e2}"
+                )
+                self._notify_change(event)
     
-    def _notify_change(self, change_type: str) -> None:
-        """Notify callbacks of wrapper state change"""
+    def _notify_change(self, event: HotReloadEvent) -> None:
+        """
+        Notify callbacks of wrapper state change with HotReloadEvent.
+        
+        Args:
+            event: The hot reload event to propagate to observers
+        """
         for callback in self._change_callbacks[:]:  # Copy to avoid modification during iteration
             try:
-                callback(self, change_type)
+                callback(event)
             except Exception as e:
                 log_detailed_error(f"Error in wrapper change callback for {self.node_id}", e)
     

@@ -14,10 +14,8 @@ import logging
 from .library_identity import LibraryIdentity
 from .dependency_graph import DependencyGraph, ReloadPlan
 from .folder_scan import FolderScanMixin
+from .hot_reload_event import HotReloadEvent, HotReloadEventType, HotReloadCallback
 from ..errors import log_detailed_error
-
-# Type alias for customer callbacks
-CustomerCallback = Callable[[str, List[str], LibraryIdentity], None]
 
 
 class FileEventType(Enum):
@@ -62,7 +60,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         self._registered_folders: Dict[str, LibraryIdentity] = {} # folder_path -> library_identity
         
         # Hot reload callback management
-        self._customer_callbacks: List[CustomerCallback] = []  # Direct consumers (factories, etc.)
+        self._customer_callbacks: List[HotReloadCallback] = []  # Direct consumers (factories, etc.)
         self._registry_subscribers: List[HotReloadRegistry] = []  # Other registries that depend on this one
 
     @abstractmethod
@@ -347,8 +345,17 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             self._dependency_graph.add_managed_module(module_name, scope_prefixes)
             
             for cls in added_classes:
-                self._register_class(cls, library_identity)
-                #TODO: emit event for added class
+                new_key = self._register_class(cls, library_identity)
+                # Emit event for added class
+                if new_key:
+                    event = HotReloadEvent(
+                        registry_key=new_key,
+                        event_type=HotReloadEventType.CLASS_ADDED,
+                        affected_class=cls,
+                        library_identity=library_identity,
+                        module_name=module_name
+                    )
+                    self._notify_customer_callbacks(event)
 
     
     def _on_change(self, module_name: str, library_identity: LibraryIdentity, event: Optional[FileChangeEvent] = None):
@@ -463,31 +470,41 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         f"...Re-loaded and re-registered {new_cls.class_identity.registry_key} from {module_name}")
                     # Notify customer callbacks about reloaded class
                     if new_key:
-                        self._notify_customer_callbacks(
+                        event = HotReloadEvent(
                             registry_key=new_key,
-                            affected_class_names=[new_cls.__name__],
-                            library_identity=library_identity
+                            event_type=HotReloadEventType.CLASS_RELOADED,
+                            affected_class=new_cls,
+                            library_identity=library_identity,
+                            module_name=module_name
                         )
+                        self._notify_customer_callbacks(event)
             if cls_names_to_remove:
                 for cls_name in cls_names_to_remove:
                     removed_cls = self._unregister_class(cls_name)
                     # Notify customer callbacks about removed class
                     if removed_cls:
-                        self._notify_customer_callbacks(
+                        event = HotReloadEvent(
                             registry_key=cls_name,
-                            affected_class_names=[removed_cls.__name__],
-                            library_identity=library_identity
+                            event_type=HotReloadEventType.CLASS_REMOVED,
+                            affected_class=None,
+                            library_identity=library_identity,
+                            module_name=module_name,
+                            class_name=removed_cls.__name__
                         )
+                        self._notify_customer_callbacks(event)
             if classes_to_add:
                 for cls in classes_to_add:
                     new_key = self._register_class(cls, library_identity)
                     # Notify customer callbacks about added class
                     if new_key:
-                        self._notify_customer_callbacks(
+                        event = HotReloadEvent(
                             registry_key=new_key,
-                            affected_class_names=[cls.__name__],
-                            library_identity=library_identity
+                            event_type=HotReloadEventType.CLASS_ADDED,
+                            affected_class=cls,
+                            library_identity=library_identity,
+                            module_name=module_name
                         )
+                        self._notify_customer_callbacks(event)
 
         except Exception as e:
             logging.error(
@@ -509,8 +526,18 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
     
         if removed_classes:
             for cls_name in removed_classes:
-                self._unregister_class(cls_name)
-                #TODO: emit event for removed class
+                removed_cls = self._unregister_class(cls_name)
+                # Emit event for removed class
+                if removed_cls:
+                    event = HotReloadEvent(
+                        registry_key=cls_name,
+                        event_type=HotReloadEventType.CLASS_REMOVED,
+                        affected_class=None,
+                        library_identity=library_identity,
+                        module_name=module_name,
+                        class_name=removed_cls.__name__
+                    )
+                    self._notify_customer_callbacks(event)
         
         # Remove from dependency graph if no more managed classes
         if not self._module_to_classes.get(module_name):
@@ -598,23 +625,22 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
     # Hot Reload Callback Management
     # ============================================================================
     
-    def add_customer_callback(self, callback: CustomerCallback) -> None:
+    def add_customer_callback(self, callback: HotReloadCallback) -> None:
         """
         Register a customer callback to be notified of hot reload events.
         
         Customer callbacks are invoked immediately after a class is reloaded,
-        added, or removed. They receive the registry key and affected class names.
+        added, or removed. They receive a HotReloadEvent with complete context.
         
         Args:
             callback: Function to call on hot reload events with signature:
-                     (registry_key: str, affected_class_names: List[str], 
-                      library_identity: LibraryIdentity) -> None
+                     (event: HotReloadEvent) -> None
         """
         if callback not in self._customer_callbacks:
             self._customer_callbacks.append(callback)
             logging.debug(f"Registered customer callback: {callback.__name__}")
     
-    def remove_customer_callback(self, callback: CustomerCallback) -> None:
+    def remove_customer_callback(self, callback: HotReloadCallback) -> None:
         """
         Unregister a customer callback.
         
@@ -650,9 +676,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             self._registry_subscribers.remove(registry)
             logging.debug(f"Removed registry subscriber: {registry.__class__.__name__}")
     
-    def _notify_customer_callbacks(self, registry_key: str, 
-                                   affected_class_names: List[str],
-                                   library_identity: LibraryIdentity) -> None:
+    def _notify_customer_callbacks(self, event: HotReloadEvent) -> None:
         """
         Notify all customer callbacks about a hot reload event.
         
@@ -660,16 +684,14 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         Errors in individual callbacks are logged but don't stop other callbacks.
         
         Args:
-            registry_key: The registry key affected
-            affected_class_names: List of class names modified
-            library_identity: The library where the change occurred
+            event: The hot reload event with complete context
         """
         for callback in self._customer_callbacks:
             try:
-                callback(registry_key, affected_class_names, library_identity)
+                callback(event)
             except Exception as e:
                 logging.error(
-                    f"Customer callback '{callback.__name__}' failed for registry_key '{registry_key}': {e}",
+                    f"Customer callback '{callback.__name__}' failed for {event}: {e}",
                     exc_info=True
                 )
     

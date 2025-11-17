@@ -12,6 +12,7 @@ from typing import Optional, TYPE_CHECKING, List
 from nicegui import ui
 from haywire.core.node.base_node import BaseNode
 from haywire.core.ui.base import UINodeCard
+from haywire.core.library.hot_reload_event import HotReloadEvent, HotReloadEventType
 from haywire.ui.node_render_factory import NodeRenderFactory
 
 if TYPE_CHECKING:
@@ -66,45 +67,47 @@ class UINode:
         # Subscribe to factory renderer changes for hot reload support
         self.factory.add_customer_callback(self._on_renderer_changed)
     
-    def _on_wrapper_changed(self, wrapper: 'NodeWrapper', change_type: str):
+    def _on_wrapper_changed(self, event: HotReloadEvent):
         """
-        Handle NodeWrapper change notifications for hot reload support.
+        Handle NodeWrapper hot reload event notifications.
         
-        This is called by the NodeWrapper when state changes occur, including:
-        - migration_completed: Node class was hot-reloaded with new definition
-        - initialized_with_error: Node failed to initialize properly
-        - migration_failed_error_node_created: Hot reload failed, error node created
+        This is called by the NodeWrapper when hot reload events occur, including:
+        - CLASS_RELOADED: Node class was hot-reloaded with new definition (migration_completed)
+        - CLASS_RELOAD_FAILED: Hot reload failed (initialization or migration errors)
+        - CLASS_ADDED: Initial node creation
         
         IMPORTANT: This may be called from background threads (file watcher).
         We use ui.context.client to ensure UI updates run in the correct context.
         
         Args:
-            wrapper: The NodeWrapper that changed
-            change_type: Type of change that occurred
+            event: The hot reload event with complete context
         """
-        print(f"🔄 UINode {self.haywire_node.node_id}: Wrapper changed ({change_type})")
+        print(f"🔄 UINode {self.haywire_node.node_id}: Wrapper event - {event.event_type.value}")
         
         # Define the UI update function that needs to run in UI context
         def update_ui():
             try:
-                if change_type == "migration_completed":
-                    # Node class has been hot-reloaded, update reference and re-render
-                    self.haywire_node = wrapper.node
+                if event.event_type == HotReloadEventType.CLASS_RELOADED:
+                    # Node class has been hot-reloaded (migration completed)
+                    if self.node_wrapper:
+                        self.haywire_node = self.node_wrapper.node
                     print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id}")
                     self.rerender()
-                    ui.notify(f"Node {wrapper.node_id} hot-reloaded", type='positive')
+                    ui.notify(f"Node {self.haywire_node.node_id} hot-reloaded", type='positive')
                     
-                elif change_type in ["initialized_with_error", "migration_failed_error_node_created"]:
+                elif event.is_error_event():
                     # Error occurred during initialization or migration
-                    self.haywire_node = wrapper.node  # May now be an error node
+                    if self.node_wrapper:
+                        self.haywire_node = self.node_wrapper.node  # May now be an error node
                     print(f"⚠️ Node error: Re-rendering node {self.haywire_node.node_id} with error state")
                     self.rerender()
-                    error_msg = wrapper.state.error_state or "Unknown error"
-                    ui.notify(f"Error in node {wrapper.node_id}: {error_msg}", type='warning')
+                    error_msg = event.error_info or "Unknown error"
+                    ui.notify(f"Error in node {self.haywire_node.node_id}: {error_msg}", type='warning')
                     
-                elif change_type in ["initialized", "deserialized"]:
-                    # Node was successfully initialized or deserialized
-                    self.haywire_node = wrapper.node
+                elif event.event_type == HotReloadEventType.CLASS_ADDED:
+                    # Node was successfully initialized
+                    if self.node_wrapper:
+                        self.haywire_node = self.node_wrapper.node
                     print(f"✅ Node ready: {self.haywire_node.node_id}")
                     # Re-render to ensure UI is in sync
                     self.rerender()
@@ -125,8 +128,7 @@ class UINode:
         except Exception as e:
             print(f"❌ Error in wrapper change handler: {e}")
     
-    def _on_renderer_changed(self, registry_key: str, affected_class_names: List[str], 
-                            library_identity: 'LibraryIdentity') -> None:
+    def _on_renderer_changed(self, event: HotReloadEvent) -> None:
         """
         Handle renderer hot reload notifications from NodeRenderFactory.
         
@@ -136,25 +138,27 @@ class UINode:
         IMPORTANT: Like wrapper callbacks, this may be called from background threads.
         
         Args:
-            registry_key: The registry key of the affected renderer
-            affected_class_names: List of renderer class names that were modified
-            library_identity: The library where the change occurred
+            event: The hot reload event with complete context
         """
-        # Check if we're using one of the affected renderers
+        # Check if we're using the affected renderer
         if not self._current_renderer_name:
             return
         
-        if self._current_renderer_name not in affected_class_names:
+        if not event.matches_class_name(self._current_renderer_name):
             return  # Not our renderer, ignore
        
-        print(f"🎨 UINode {self.haywire_node.node_id}: Renderer '{self._current_renderer_name}' hot-reloaded")
+        print(f"🎨 UINode {self.haywire_node.node_id}: Renderer '{self._current_renderer_name}' - {event.event_type.value}")
         
         # Re-render using the same thread-safe pattern as wrapper changes
         def update_ui():
             try:
-                print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with new renderer")
-                self.rerender()
-                ui.notify(f"Renderer for node {self.haywire_node.node_id} hot-reloaded", type='positive')
+                if event.is_successful_reload():
+                    print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with new renderer")
+                    self.rerender()
+                    ui.notify(f"Renderer for node {self.haywire_node.node_id} hot-reloaded", type='positive')
+                elif event.is_error_event():
+                    print(f"❌ Renderer reload failed: {event.error_info}")
+                    ui.notify(f"Renderer error: {event.error_info}", type='negative')
             except Exception as e:
                 print(f"❌ Error updating UI after renderer reload: {e}")
         

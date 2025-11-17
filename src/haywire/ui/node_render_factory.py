@@ -13,6 +13,7 @@ from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.library_identity import LibraryIdentity
+from haywire.core.library.hot_reload_event import HotReloadEvent, HotReloadCallback
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
 
@@ -42,8 +43,7 @@ class NodeRenderFactory:
         self._renderer_cache: Dict[str, BaseNodeRenderer] = {}
         
         # Customer callbacks for hot reload notifications
-        # Callback signature: (registry_key: str, affected_class_names: List[str], library_identity: LibraryIdentity) -> None
-        self._customer_callbacks: List[Callable[[str, List[str], LibraryIdentity], None]] = []
+        self._customer_callbacks: List[HotReloadCallback] = []
         
         # Register for hot reload notifications from registries
         self.renderers_registry.add_customer_callback(self._on_renderer_reloaded)
@@ -99,20 +99,20 @@ class NodeRenderFactory:
         if renderer_class_name not in self._renderer_cache:
             self._renderer_cache[renderer_class_name] = renderer_class(self.widget_registry)
     
-    def add_customer_callback(self, callback: Callable[[str, List[str], LibraryIdentity], None]) -> None:
+    def add_customer_callback(self, callback: HotReloadCallback) -> None:
         """
         Register a customer callback for renderer hot reload notifications.
         
         Callbacks are invoked when a renderer is hot-reloaded, added, or removed.
         
         Args:
-            callback: Function with signature (registry_key, affected_class_names, library_identity) -> None
+            callback: Function with signature (event: HotReloadEvent) -> None
         """
         if callback not in self._customer_callbacks:
             self._customer_callbacks.append(callback)
             logging.debug(f"Added customer callback to NodeRenderFactory: {callback}")
     
-    def remove_customer_callback(self, callback: Callable[[str, List[str], LibraryIdentity], None]) -> None:
+    def remove_customer_callback(self, callback: HotReloadCallback) -> None:
         """
         Unregister a customer callback.
         
@@ -123,25 +123,20 @@ class NodeRenderFactory:
             self._customer_callbacks.remove(callback)
             logging.debug(f"Removed customer callback from NodeRenderFactory: {callback}")
     
-    def _notify_customers(self, registry_key: str, affected_class_names: List[str], 
-                         library_identity: LibraryIdentity) -> None:
+    def _notify_customers(self, event: HotReloadEvent) -> None:
         """
         Notify all registered customers about renderer changes.
         
         Args:
-            registry_key: The registry key of the affected renderer
-            affected_class_names: List of class names that were modified
-            library_identity: The library where the change occurred
+            event: The hot reload event with complete context
         """
         for callback in self._customer_callbacks[:]:  # Copy list to avoid modification during iteration
             try:
-                callback(registry_key, affected_class_names, library_identity)
+                callback(event)
             except Exception as e:
-                logging.error(f"Error in customer callback: {e}")
+                logging.error(f"Error in customer callback for {event}: {e}")
     
-    def _on_renderer_reloaded(self, registry_key: str,
-                             affected_class_names: List[str],
-                             library_identity: LibraryIdentity) -> None:
+    def _on_renderer_reloaded(self, event: HotReloadEvent) -> None:
         """
         Customer callback for renderer hot reload events.
         
@@ -149,28 +144,22 @@ class NodeRenderFactory:
         It clears the cache for affected renderers.
         
         Args:
-            registry_key: The registry key of the affected renderer
-            affected_class_names: List of class names that were modified
-            library_identity: The library where the change occurred
+            event: The hot reload event with complete context
         """
         logging.info(
-            f"NodeRenderFactory: Renderer reloaded - {registry_key} "
-            f"(classes: {', '.join(affected_class_names)}) "
-            f"from library '{library_identity.label}'"
+            f"NodeRenderFactory: Renderer {event.event_type.value} - {event.registry_key} "
+            f"from library '{event.library_identity.label}'"
         )
         
-        # Clear cache for affected renderer classes
-        for class_name in affected_class_names:
-            if class_name in self._renderer_cache:
-                logging.debug(f"Clearing renderer cache for: {class_name}")
-                del self._renderer_cache[class_name]
+        # Clear cache for affected renderer
+        if event.registry_key in self._renderer_cache:
+            logging.debug(f"Clearing renderer cache for: {event.registry_key}")
+            del self._renderer_cache[event.registry_key]
         
         # Notify customers (UINodes) about the renderer reload
-        self._notify_customers(registry_key, affected_class_names, library_identity)
+        self._notify_customers(event)
     
-    def _on_widget_reloaded(self, registry_key: str,
-                           affected_class_names: List[str],
-                           library_identity: LibraryIdentity) -> None:
+    def _on_widget_reloaded(self, event: HotReloadEvent) -> None:
         """
         Customer callback for widget hot reload events.
         
@@ -178,15 +167,15 @@ class NodeRenderFactory:
         Since widgets can be used by any renderer, we clear the entire cache.
         
         Args:
-            registry_key: The registry key of the affected widget
-            affected_class_names: List of class names that were modified
-            library_identity: The library where the change occurred
+            event: The hot reload event with complete context
         """
         logging.info(
-            f"NodeRenderFactory: Widget reloaded - {registry_key} "
-            f"(classes: {', '.join(affected_class_names)}) "
-            f"from library '{library_identity.label}' - clearing all renderer cache"
+            f"NodeRenderFactory: Widget {event.event_type.value} - {event.registry_key} "
+            f"from library '{event.library_identity.label}'"
         )
         
-        # Clear entire cache since we don't know which renderers use this widget
-        self.clear_cache()
+        # Clear entire renderer cache since widgets can affect any renderer
+        logging.debug("Clearing entire renderer cache due to widget reload")
+        self._renderer_cache.clear()
+        
+        # Note: We don't notify customers for widget reloads as renderers handle this internally

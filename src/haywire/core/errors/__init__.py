@@ -2,23 +2,23 @@
 Error handling utilities package.
 """
 
-from .PrimitiveTypeDefinitionError import PrimitiveTypeDefinitionError
+from .haywire_exception import HaywireException
+from .primitive_type_error import PrimitiveTypeDefinitionError
 from .detailed_error import (
     ErrorContext,
-    DetailedError,
     analyze_exception,
     log_detailed_error
 )
 
-from .haywire_exception import (
-    HaywireException
+from .custom_exception import (
+    CustomException
 )
 
 __all__ = [
     'ErrorContext',
-    'DetailedError',
+    'HaywireException',
     'analyze_exception',
     'log_detailed_error',
-    'HaywireException',
-    'PrimitiveTypeDefinitionError'
+    'CustomException',
+    'primitive_type_error'
 ]
