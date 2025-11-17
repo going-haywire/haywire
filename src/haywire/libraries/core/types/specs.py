@@ -60,7 +60,7 @@ class CALLBACK(PrimitiveType):
 @dataclass
 class INT(PrimitiveType):
     """Integer data type"""
-    test: int
+    value: int
 
 @primitive_type(
     registry_id='float',

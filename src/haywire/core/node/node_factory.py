@@ -22,7 +22,7 @@ from .base_node import BaseNode
 from .node_wrapper import NodeWrapper
 from ..library.registries.reg_node import NodeRegistry
 from ..library.library_identity import LibraryIdentity
-from ..library.hot_reload_event import HotReloadEvent, HotReloadCallback
+from ..library.hot_reload_event import LifeCycleEvent, HotReloadCallback
 from ..errors import log_detailed_error
 
 
@@ -87,7 +87,7 @@ class NodeFactory:
             node = node_class(node_id, graph)
         except Exception as e:
             # Create detailed error with context about the node instantiation
-            detailed_error = log_detailed_error(
+            error = log_detailed_error(
                 exception=e,
                 operation="instantiate node",
                 module_name=getattr(node_class, '__module__', None),
@@ -96,7 +96,7 @@ class NodeFactory:
                 library_identity=node_class.class_library,
                 message=f"Failed to instantiate node '{registry_key}'"
             )
-            raise detailed_error
+            raise HaywireException(error)
                 
         if error_info:
             node.error_info = error_info
@@ -136,7 +136,7 @@ class NodeFactory:
         
         return wrapper
     
-    def _on_node_reloaded(self, event: HotReloadEvent) -> None:
+    def _on_node_reloaded(self, event: LifeCycleEvent) -> None:
         """
         Customer callback for node hot reload events.
         

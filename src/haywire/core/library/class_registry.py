@@ -14,7 +14,7 @@ import logging
 from .library_identity import LibraryIdentity
 from .dependency_graph import DependencyGraph, ReloadPlan
 from .folder_scan import FolderScanMixin
-from .hot_reload_event import HotReloadEvent, HotReloadEventType, HotReloadCallback
+from .hot_reload_event import LifeCycleEvent, LifeCycleEventType, HotReloadCallback
 from ..errors import log_detailed_error
 
 
@@ -348,9 +348,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 new_key = self._register_class(cls, library_identity)
                 # Emit event for added class
                 if new_key:
-                    event = HotReloadEvent(
+                    event = LifeCycleEvent(
                         registry_key=new_key,
-                        event_type=HotReloadEventType.CLASS_ADDED,
+                        event_type=LifeCycleEventType.CLASS_ADDED,
                         affected_class=cls,
                         library_identity=library_identity,
                         module_name=module_name
@@ -470,9 +470,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         f"...Re-loaded and re-registered {new_cls.class_identity.registry_key} from {module_name}")
                     # Notify customer callbacks about reloaded class
                     if new_key:
-                        event = HotReloadEvent(
+                        event = LifeCycleEvent(
                             registry_key=new_key,
-                            event_type=HotReloadEventType.CLASS_RELOADED,
+                            event_type=LifeCycleEventType.CLASS_RELOADED,
                             affected_class=new_cls,
                             library_identity=library_identity,
                             module_name=module_name
@@ -483,9 +483,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                     removed_cls = self._unregister_class(cls_name)
                     # Notify customer callbacks about removed class
                     if removed_cls:
-                        event = HotReloadEvent(
+                        event = LifeCycleEvent(
                             registry_key=cls_name,
-                            event_type=HotReloadEventType.CLASS_REMOVED,
+                            event_type=LifeCycleEventType.CLASS_REMOVED,
                             affected_class=None,
                             library_identity=library_identity,
                             module_name=module_name,
@@ -497,9 +497,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                     new_key = self._register_class(cls, library_identity)
                     # Notify customer callbacks about added class
                     if new_key:
-                        event = HotReloadEvent(
+                        event = LifeCycleEvent(
                             registry_key=new_key,
-                            event_type=HotReloadEventType.CLASS_ADDED,
+                            event_type=LifeCycleEventType.CLASS_ADDED,
                             affected_class=cls,
                             library_identity=library_identity,
                             module_name=module_name
@@ -529,9 +529,9 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 removed_cls = self._unregister_class(cls_name)
                 # Emit event for removed class
                 if removed_cls:
-                    event = HotReloadEvent(
+                    event = LifeCycleEvent(
                         registry_key=cls_name,
-                        event_type=HotReloadEventType.CLASS_REMOVED,
+                        event_type=LifeCycleEventType.CLASS_REMOVED,
                         affected_class=None,
                         library_identity=library_identity,
                         module_name=module_name,
@@ -676,7 +676,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             self._registry_subscribers.remove(registry)
             logging.debug(f"Removed registry subscriber: {registry.__class__.__name__}")
     
-    def _notify_customer_callbacks(self, event: HotReloadEvent) -> None:
+    def _notify_customer_callbacks(self, event: LifeCycleEvent) -> None:
         """
         Notify all customer callbacks about a hot reload event.
         

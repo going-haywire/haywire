@@ -12,19 +12,23 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Type, Any, Set, Callable
 
+from haywire.core.errors.haywire_error import HaywireError
+
 from .library_identity import LibraryIdentity
 
 
-class HotReloadEventType(Enum):
+class LifeCycleEventType(Enum):
     """Types of hot reload events"""
     CLASS_ADDED = 'class_added'
     CLASS_RELOADED = 'class_reloaded'
     CLASS_REMOVED = 'class_removed'
     CLASS_RELOAD_FAILED = 'class_reload_failed'
+    CLASS_INSTANTIATION_FAILED = 'class_instantiation_failed'
+    CLASS_NOT_FOUND = 'class_not_found'
 
 
 @dataclass
-class HotReloadEvent:
+class LifeCycleEvent:
     """
     Unified hot reload event carrying complete reload information.
     
@@ -60,7 +64,7 @@ class HotReloadEvent:
     registry_key: str
     """The haywire registry key (e.g., 'example:MyNode')"""
     
-    event_type: HotReloadEventType
+    event_type: LifeCycleEventType
     """What kind of reload event occurred"""
     
     affected_class: Optional[Type[Any]]
@@ -73,8 +77,8 @@ class HotReloadEvent:
     error_info: Optional[str] = None
     """Error message if reload failed"""
     
-    exception: Optional[Exception] = None
-    """The exception if reload failed"""
+    error: Optional[HaywireError] = None
+    """The error if reload failed"""
     
     # Module tracking
     module_name: Optional[str] = None
@@ -115,17 +119,17 @@ class HotReloadEvent:
     def is_successful_reload(self) -> bool:
         """Check if this was a successful reload (not removal or failure)"""
         return self.event_type in (
-            HotReloadEventType.CLASS_ADDED,
-            HotReloadEventType.CLASS_RELOADED
+            LifeCycleEventType.CLASS_ADDED,
+            LifeCycleEventType.CLASS_RELOADED
         ) and self.affected_class is not None
     
     def is_error_event(self) -> bool:
         """Check if this event represents an error"""
-        return self.event_type == HotReloadEventType.CLASS_RELOAD_FAILED
+        return self.event_type == LifeCycleEventType.CLASS_RELOAD_FAILED
     
     def is_removal(self) -> bool:
         """Check if this event represents a class removal"""
-        return self.event_type == HotReloadEventType.CLASS_REMOVED
+        return self.event_type == LifeCycleEventType.CLASS_REMOVED
     
     def has_class_available(self) -> bool:
         """Check if the affected class is available"""
@@ -156,7 +160,7 @@ class HotReloadEvent:
         """
         return True  # By default, notify all
     
-    def create_derived_event(self, **overrides) -> 'HotReloadEvent':
+    def create_derived_event(self, **overrides) -> 'LifeCycleEvent':
         """
         Create a new event with some fields overridden.
         
@@ -168,13 +172,13 @@ class HotReloadEvent:
             'affected_class': self.affected_class,
             'library_identity': self.library_identity,
             'error_info': self.error_info,
-            'exception': self.exception,
+            'exception': self.error,
             'module_name': self.module_name,
             'class_name': self.class_name,
             'reloaded_modules': self.reloaded_modules.copy()
         }
         data.update(overrides)
-        return HotReloadEvent(**data)
+        return LifeCycleEvent(**data)
     
     def __str__(self) -> str:
         """Human-readable representation"""
@@ -197,4 +201,4 @@ class HotReloadEvent:
 
 
 # Type alias for the new callback signature
-HotReloadCallback = Callable[[HotReloadEvent], None]
+HotReloadCallback = Callable[[LifeCycleEvent], None]

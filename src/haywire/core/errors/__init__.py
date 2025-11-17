@@ -2,11 +2,11 @@
 Error handling utilities package.
 """
 
+from .haywire_error import HaywireError
 from .haywire_exception import HaywireException
 from .primitive_type_error import PrimitiveTypeDefinitionError
-from .detailed_error import (
-    ErrorContext,
-    analyze_exception,
+from .utils import (
+    generate_haywire_error,
     log_detailed_error
 )
 
@@ -15,9 +15,9 @@ from .custom_exception import (
 )
 
 __all__ = [
-    'ErrorContext',
+    'haywire_error',
     'HaywireException',
-    'analyze_exception',
+    'generate_haywire_error',
     'log_detailed_error',
     'CustomException',
     'primitive_type_error'

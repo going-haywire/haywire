@@ -12,7 +12,7 @@ from typing import Optional, TYPE_CHECKING, List
 from nicegui import ui
 from haywire.core.node.base_node import BaseNode
 from haywire.core.ui.base import UINodeCard
-from haywire.core.library.hot_reload_event import HotReloadEvent, HotReloadEventType
+from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.node_render_factory import NodeRenderFactory
 
 if TYPE_CHECKING:
@@ -67,7 +67,7 @@ class UINode:
         # Subscribe to factory renderer changes for hot reload support
         self.factory.add_customer_callback(self._on_renderer_changed)
     
-    def _on_wrapper_changed(self, event: HotReloadEvent):
+    def _on_wrapper_changed(self, event: LifeCycleEvent):
         """
         Handle NodeWrapper hot reload event notifications.
         
@@ -87,7 +87,7 @@ class UINode:
         # Define the UI update function that needs to run in UI context
         def update_ui():
             try:
-                if event.event_type == HotReloadEventType.CLASS_RELOADED:
+                if event.event_type == LifeCycleEventType.CLASS_RELOADED:
                     # Node class has been hot-reloaded (migration completed)
                     if self.node_wrapper:
                         self.haywire_node = self.node_wrapper.node
@@ -104,7 +104,7 @@ class UINode:
                     error_msg = event.error_info or "Unknown error"
                     ui.notify(f"Error in node {self.haywire_node.node_id}: {error_msg}", type='warning')
                     
-                elif event.event_type == HotReloadEventType.CLASS_ADDED:
+                elif event.event_type == LifeCycleEventType.CLASS_ADDED:
                     # Node was successfully initialized
                     if self.node_wrapper:
                         self.haywire_node = self.node_wrapper.node
@@ -128,7 +128,7 @@ class UINode:
         except Exception as e:
             print(f"❌ Error in wrapper change handler: {e}")
     
-    def _on_renderer_changed(self, event: HotReloadEvent) -> None:
+    def _on_renderer_changed(self, event: LifeCycleEvent) -> None:
         """
         Handle renderer hot reload notifications from NodeRenderFactory.
         

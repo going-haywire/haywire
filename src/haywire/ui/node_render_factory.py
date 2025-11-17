@@ -13,7 +13,7 @@ from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.library_identity import LibraryIdentity
-from haywire.core.library.hot_reload_event import HotReloadEvent, HotReloadCallback
+from haywire.core.library.hot_reload_event import LifeCycleEvent, HotReloadCallback
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
 
@@ -123,7 +123,7 @@ class NodeRenderFactory:
             self._customer_callbacks.remove(callback)
             logging.debug(f"Removed customer callback from NodeRenderFactory: {callback}")
     
-    def _notify_customers(self, event: HotReloadEvent) -> None:
+    def _notify_customers(self, event: LifeCycleEvent) -> None:
         """
         Notify all registered customers about renderer changes.
         
@@ -136,7 +136,7 @@ class NodeRenderFactory:
             except Exception as e:
                 logging.error(f"Error in customer callback for {event}: {e}")
     
-    def _on_renderer_reloaded(self, event: HotReloadEvent) -> None:
+    def _on_renderer_reloaded(self, event: LifeCycleEvent) -> None:
         """
         Customer callback for renderer hot reload events.
         
@@ -159,7 +159,7 @@ class NodeRenderFactory:
         # Notify customers (UINodes) about the renderer reload
         self._notify_customers(event)
     
-    def _on_widget_reloaded(self, event: HotReloadEvent) -> None:
+    def _on_widget_reloaded(self, event: LifeCycleEvent) -> None:
         """
         Customer callback for widget hot reload events.
         
