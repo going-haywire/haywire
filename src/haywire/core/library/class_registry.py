@@ -50,9 +50,11 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
     """Abstract base class for all class registries"""
   
     def __init__(self):
-        # Registry functionality moved from BaseRegistry
         self._classes: Dict[str, Any] = {} # registry_key -> class
-        
+
+        # stores the last life-cycle event for each class
+        self._class_lc: Dict[str, LifeCycleEvent] = {}  # registry_key -> event
+
         # BaseClassRegistry specific attributes
         self._module_class_name: Dict[str, str] = {}  # Name of the class being registered
         self._module_to_classes: Dict[str, list[str]] = {}  # Track which classes belong to which module
@@ -62,6 +64,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         # Hot reload callback management
         self._customer_callbacks: List[HotReloadCallback] = []  # Direct consumers (factories, etc.)
         self._registry_subscribers: List[HotReloadRegistry] = []  # Other registries that depend on this one
+
+        self._event_callback_queue: List[LifeCycleEvent] = []  # Queue of events to process after reload
 
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:
@@ -208,6 +212,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         f"Library '{library_identity.label}': "
                         f"Failed notifying registry : {e}")
 
+        self._notify_customer_batch_callback()
+
         logging.info(
             f"Library '{library_identity.label}': ... Scanning folder -> DONE. "
             f"{len(file_paths)} files processed.")
@@ -248,6 +254,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                     logging.error(
                         f"Library '{library_identity.label}': "
                         f"Failed notifying registry : {e}")
+
+        self._notify_customer_batch_callback()
 
     # ============================================================================
     # Hot-Reload Registry (Reload Orchestration)
@@ -306,7 +314,11 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             # Event now contains all reloaded_modules
             self._notify_registry_subscribers(event)
 
+            self._notify_customer_batch_callback()
+
         except Exception as e:
+            self._event_callback_queue.clear()  # Clear any pending events
+
             try:
                 log_detailed_error(
                     exception=e,
@@ -315,6 +327,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                     message=f"Failed notifying registry about file {event.event_type.value} in library '{event.library_identity.label}'",
                     library_identity=event.library_identity
                 )
+
+
                 # TODO: emit event for failed import
             except Exception as logging_error:
                 logging.error(
@@ -355,7 +369,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         library_identity=library_identity,
                         module_name=module_name
                     )
-                    self._notify_customer_callbacks(event)
+                    self._queue_lifecycle_event(event)
 
     
     def _on_change(self, module_name: str, library_identity: LibraryIdentity, event: Optional[FileChangeEvent] = None):
@@ -477,7 +491,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                             library_identity=library_identity,
                             module_name=module_name
                         )
-                        self._notify_customer_callbacks(event)
+                        self._queue_lifecycle_event(event)
             if cls_names_to_remove:
                 for cls_name in cls_names_to_remove:
                     removed_cls = self._unregister_class(cls_name)
@@ -491,7 +505,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                             module_name=module_name,
                             class_name=removed_cls.__name__
                         )
-                        self._notify_customer_callbacks(event)
+                        self._queue_lifecycle_event(event)
             if classes_to_add:
                 for cls in classes_to_add:
                     new_key = self._register_class(cls, library_identity)
@@ -504,7 +518,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                             library_identity=library_identity,
                             module_name=module_name
                         )
-                        self._notify_customer_callbacks(event)
+                        self._queue_lifecycle_event(event)
 
         except Exception as e:
             logging.error(
@@ -537,7 +551,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         module_name=module_name,
                         class_name=removed_cls.__name__
                     )
-                    self._notify_customer_callbacks(event)
+                    self._queue_lifecycle_event(event)
         
         # Remove from dependency graph if no more managed classes
         if not self._module_to_classes.get(module_name):
@@ -676,25 +690,43 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             self._registry_subscribers.remove(registry)
             logging.debug(f"Removed registry subscriber: {registry.__class__.__name__}")
     
-    def _notify_customer_callbacks(self, event: LifeCycleEvent) -> None:
+    def _queue_lifecycle_event(self, event: LifeCycleEvent) -> None:
         """
-        Notify all customer callbacks about a hot reload event.
+        Queues a hot reload event.
         
         This method is called internally during hot reload operations.
-        Errors in individual callbacks are logged but don't stop other callbacks.
+        Errors in individual callbacks are logged but don't stop generation of events.
         
         Args:
             event: The hot reload event with complete context
         """
+        self._class_lc[event.registry_key] = event
+
+        self._event_callback_queue.append(event)
+
+
+    def _notify_customer_batch_callback(self) -> None:
+        """
+        Batch notify all customer callbacks about hot reload events.
+        
+        This method is called internally during hot reload operations.
+        
+        Callbacks receive the complete event information.:
+            
+        """
+ 
         for callback in self._customer_callbacks:
             try:
-                callback(event)
+                callback(self._event_callback_queue)
             except Exception as e:
                 logging.error(
-                    f"Customer callback '{callback.__name__}' failed for {event}: {e}",
+                    f"Customer callback '{callback.__name__}' failed for {len(self._event_callback_queue)} events: {e}",
                     exc_info=True
                 )
-    
+        
+        self._event_callback_queue.clear()
+
+
     def _notify_registry_subscribers(self, event: FileChangeEvent) -> None:
         """
         Notify all registry subscribers about a hot reload event.

@@ -30,7 +30,7 @@ class LifeCycleEventType(Enum):
 @dataclass
 class LifeCycleEvent:
     """
-    Unified hot reload event carrying complete reload information.
+    Unified hot life cycle event carrying complete reload information.
     
     This event is passed through the entire notification chain:
     Registry → Factory → Wrapper → UINode
@@ -39,23 +39,23 @@ class LifeCycleEvent:
     
     Example Usage:
         # In Registry:
-        event = HotReloadEvent(
-            registry_key='example:MyNode',
-            event_type=HotReloadEventType.CLASS_RELOADED,
+        event = LifeCycleEvent(
+            registry_key='example:node:MyNode',
+            event_type=LifeCycleEventType.CLASS_RELOADED,
             affected_class=NewNodeClass,
             library_identity=lib_id
         )
         self._notify_customer_callbacks(event)
         
         # In Factory:
-        def _on_node_reloaded(self, event: HotReloadEvent):
+        def _on_node_reloaded(self, event: LifeCycleEvent):
             if event.is_successful_reload():
                 # Forward to listeners
                 for listener in self._hot_reload_listeners:
                     listener(event)
         
         # In Wrapper:
-        def _on_hot_reload(self, event: HotReloadEvent):
+        def _on_hot_reload(self, event: LifeCycleEvent):
             if event.matches_registry_key(self.registry_key):
                 self._perform_migration()
     """
@@ -125,7 +125,7 @@ class LifeCycleEvent:
     
     def is_error_event(self) -> bool:
         """Check if this event represents an error"""
-        return self.event_type == LifeCycleEventType.CLASS_RELOAD_FAILED
+        return self.event_type == LifeCycleEventType.CLASS_RELOAD_FAILED or self.event_type == LifeCycleEventType.CLASS_INSTANTIATION_FAILED
     
     def is_removal(self) -> bool:
         """Check if this event represents a class removal"""
@@ -172,6 +172,7 @@ class LifeCycleEvent:
             'affected_class': self.affected_class,
             'library_identity': self.library_identity,
             'error_info': self.error_info,
+            'error': self.error,
             'exception': self.error,
             'module_name': self.module_name,
             'class_name': self.class_name,
@@ -201,4 +202,4 @@ class LifeCycleEvent:
 
 
 # Type alias for the new callback signature
-HotReloadCallback = Callable[[LifeCycleEvent], None]
+HotReloadCallback = Callable[[list[LifeCycleEvent]], None]
