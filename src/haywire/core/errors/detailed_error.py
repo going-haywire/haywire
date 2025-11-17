@@ -93,7 +93,10 @@ class ErrorContext:
         
         if self.library_identity:
             rel_path = self.filename[len(self.library_identity.folder_path):]
-            lines.append(f"File      :╒..{rel_path}")
+            if rel_path == "":
+                lines.append(f"File      :╒{self.filename}")
+            else:               
+                lines.append(f"File      :╒..{rel_path}")
         else:
             lines.append(f"File      :╒{self.filename}")
 
@@ -200,8 +203,11 @@ def analyze_exception(exception: Exception,
         suggestions = exception.suggestions
         skip_functions = set(exception.skip_frame_functions)
         skip_files = set(exception.skip_frame_files)
-        skip_steps = exception.skip_stacktrace_steps
+        skip_tb_steps = exception.skip_traceback_steps
         show_full = exception.show_full_traceback
+        # override operation,
+        module_name = exception.module_name if exception.module_name is not None else module_name
+        library_identity = exception.library_identity if exception.library_identity is not None else library_identity
     else:
         filename = None
         line_number = None
@@ -209,7 +215,7 @@ def analyze_exception(exception: Exception,
         suggestions = None
         skip_functions = set()
         skip_files = set()
-        skip_steps = 0
+        skip_tb_steps = 0
         show_full = True
     
     # Extract traceback information
@@ -230,7 +236,7 @@ def analyze_exception(exception: Exception,
             tb_function_name = frame.f_code.co_name
             
             # For HaywireException, skip the specified number of initial stacktrace frames
-            if is_haywire_exception and i < skip_steps:
+            if is_haywire_exception and i < skip_tb_steps:
                 continue  # Skip this frame based on skip_stacktrace_steps
             
             # Filter frames if this is a HaywireException
@@ -255,17 +261,16 @@ def analyze_exception(exception: Exception,
             
             traceback_info.append((tb_filename, tb_line_number, tb_function_name, tb_source_line))
     
-    # For HaywireException, use its provided location if available
-    if is_haywire_exception and filename and line_number:
-        # Use the exception's declared error location
-        pass
-    # For SyntaxError, use the error's own location info
-    elif isinstance(exception, SyntaxError) and hasattr(exception, 'filename') and hasattr(exception, 'lineno'):
-        filename = exception.filename
-        line_number = exception.lineno
-    else:
-        # Get the last frame where the error occurred from traceback
-        if not filename or not line_number:
+
+    if not filename or not line_number:
+        # First try to use the first frame from traceback_info if available
+        if isinstance(exception, SyntaxError) and hasattr(exception, 'filename') and hasattr(exception, 'lineno'):
+            filename = exception.filename
+            line_number = exception.lineno
+        elif traceback_info:
+            filename, line_number, _, _ = traceback_info[0]
+        else:
+            # Fall back to raw traceback
             tb_for_location = exc_tb
             while tb_for_location and tb_for_location.tb_next:
                 tb_for_location = tb_for_location.tb_next

@@ -8,6 +8,8 @@ allowing for better error messages that point to the right location and hide imp
 from dataclasses import dataclass, field
 from typing import Optional, List
 
+from haywire.core.library.library_identity import LibraryIdentity
+
 
 @dataclass
 class HaywireException(Exception):
@@ -27,7 +29,7 @@ class HaywireException(Exception):
         error_source_line: The actual source line with the error
         skip_frame_functions: Function names to skip in traceback (e.g., ['__init_subclass__'])
         skip_frame_files: Filenames to skip in traceback (e.g., ['decorators.py'])
-        skip_stacktrace_steps: Number of traceback frames to skip from the start (0 = show all)
+        skip_backtrace_steps: Number of traceback frames to skip from the start (0 = show all)
         context_range: Number of lines before/after error to show
         show_full_traceback: Whether to show all frames (False hides internal implementation)
         highlight_text: Specific text to highlight in source
@@ -35,12 +37,14 @@ class HaywireException(Exception):
         suggestions: List of actionable suggestions for user
     """
     message: str = ""
+    module_name: Optional[str] = None
+    library_identity: Optional[LibraryIdentity] = None
     error_filename: Optional[str] = None
     error_line_number: Optional[int] = None
     error_source_line: Optional[str] = None
     skip_frame_functions: List[str] = field(default_factory=list)
     skip_frame_files: List[str] = field(default_factory=list)
-    skip_stacktrace_steps: int = 0
+    skip_traceback_steps: int = 0
     context_range: int = 2
     show_full_traceback: bool = False
     highlight_text: Optional[str] = None

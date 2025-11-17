@@ -10,6 +10,8 @@ This module provides decorators for creating Haywire data types:
 from typing import Type, TypeVar, Callable, get_type_hints
 from dataclasses import asdict
 
+from haywire.core.errors import PrimitiveTypeDefinitionError
+
 from .base import TypeBase, PrimitiveType
 from .identity import DataPortIdentity
 from ..data.enums import ContainerType, FlowType
@@ -81,7 +83,11 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                 (PrimitiveType, *inner_cls.__bases__),
                 dict(inner_cls.__dict__)
             )
-        
+
+        # Get library identity and attach (survives hot-reload)
+        library_identity = derive_library_identity(inner_cls)
+        inner_cls.class_library = library_identity
+
         # Check if this looks like a compound type (mistake!)
         if hasattr(inner_cls, 'to_dict') and hasattr(inner_cls, 'from_dict'):
             raise TypeError(
@@ -95,7 +101,27 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         except Exception:
             # Fall back if get_type_hints fails (e.g., forward references)
             all_annotations = getattr(inner_cls, '__annotations__', {})
+
+        # Get annotations defined directly on THIS class only (not inherited)
+        local_annotations = inner_cls.__dict__.get('__annotations__', {})
         
+        # If subclass defines new annotations, validate structure
+        if local_annotations:
+            # Check for extra fields beyond 'value'
+            extra_fields = set(local_annotations.keys()) - {'value'}
+            if extra_fields:
+                raise PrimitiveTypeDefinitionError(
+                    cls=inner_cls,
+                    extra_fields=list(extra_fields)
+                )
+                
+        # Ensure 'value' exists somewhere in the hierarchy
+        if 'value' not in all_annotations:
+            raise PrimitiveTypeDefinitionError(
+                cls=inner_cls,
+                missing_value=True
+            )
+
         # AUTO-EXTRACT cls from 'value' annotation (validation already done in __init_subclass__)
         if 'value' in all_annotations:
             kwargs['cls'] = all_annotations['value']
@@ -151,17 +177,13 @@ def primitive_type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                 'help_url': kwargs.get('help_url', ''),
                 '_is_variant': True
             }
-        
-        # Get library identity (survives hot-reload)
-        library_identity = derive_library_identity(inner_cls)
-        
+                
         # Set registry_key
         library_id = library_identity.id if library_identity else None
         identity_dict['registry_key'] = reg_key(library_id, 'type',identity_dict['registry_id'])
         
         # Create and attach identity and library
         inner_cls.class_identity = DataPortIdentity(**identity_dict)
-        inner_cls.class_library = library_identity
         
         return inner_cls
     

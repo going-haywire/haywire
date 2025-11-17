@@ -1,10 +1,7 @@
-from haywire.core.errors.haywire_exception import HaywireException
-
-
-import inspect
 from dataclasses import dataclass
 from typing import List, Optional
 
+from .haywire_exception import HaywireException
 
 @dataclass
 class PrimitiveTypeDefinitionError(HaywireException, TypeError):
@@ -31,10 +28,12 @@ class PrimitiveTypeDefinitionError(HaywireException, TypeError):
         cls_module = ""
         cls_filename = None
         cls_line_number = None
+        cls_library_identity = None
 
         if self.cls is not None:
             cls_name = self.cls.__name__
             cls_module = self.cls.__module__
+            cls_library_identity = getattr(self.cls, 'class_library', None)
 
             try:
                 cls_filename = inspect.getfile(self.cls)
@@ -103,13 +102,16 @@ class PrimitiveTypeDefinitionError(HaywireException, TypeError):
             self.suggestions = []
 
         # Set rendering hints to hide internal implementation
+        self.module_name = cls_module
+        self.library_identity = cls_library_identity
+
         self.error_filename = cls_filename
         self.error_line_number = cls_line_number
         self.error_category = "Type Definition Error"
         self.show_full_traceback = False  # Hide __init_subclass__ and decorator internals
         self.skip_frame_functions = ['__init_subclass__', 'decorator', '_raise_primitive_type_error']
         self.skip_frame_files = ['base.py', 'decorators.py']
-        self.skip_stacktrace_steps = 1  # Skip the first traceback frame (error location already shown in source box)
+        self.skip_traceback_steps = 1  # Skip the first traceback frame (error location already shown in source box)
 
         # Call parent's __post_init__
         super().__post_init__()
