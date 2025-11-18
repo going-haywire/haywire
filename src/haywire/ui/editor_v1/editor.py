@@ -38,9 +38,9 @@ class Editor:
             history_manager: History manager for undo/redo operations  
             node_factory: Factory for creating new nodes
         """
-        self.graph = graph
-        self.history_manager = history_manager
-        self.node_factory = node_factory
+        self.graph: HaywireGraph = graph
+        self.history_manager: IHistoryManager = history_manager
+        self.node_factory: NodeFactory = node_factory
         
         # Simple callback system for change notifications
         self._change_callbacks: List[Callable[[], None]] = []
@@ -107,7 +107,7 @@ class Editor:
     # NODE OPERATIONS
     # =============================================================================
     
-    def create_node(self, registry_key: str, position: Tuple[float, float] = (100, 100)) -> Optional[NodeWrapper]:
+    def create_wrapper(self, registry_key: str, position: Tuple[float, float] = (100, 100)) -> Optional[NodeWrapper]:
         """
         Create a new node wrapper of the specified type at the given position.
         
@@ -120,24 +120,22 @@ class Editor:
             The created node wrapper or None if creation failed
         """
         try:
-            # Create wrapper using the graph's factory method
-            wrapper = self.graph.create_node_wrapper(registry_key)
+            # Create and execute undo action
+            action = AddNodeAction(
+                graph=self.graph, 
+                registry_key=registry_key, 
+                node_factory=self.node_factory, 
+                position=position
+                )
+            self.history_manager.add_action(action)
+
+            print(f"✅ Editor: Created node of type {registry_key} at {position}")
             
-            if wrapper:
-                # Create and execute undo action
-                wrapper.initialize(position=position)
-                action = AddNodeAction(self.graph, wrapper)
-                self.history_manager.add_action(action)
-                
-                # Notify callbacks
-                self._notify_change("create_node")
-                
-                print(f"✅ Editor: Created node {wrapper.node_id} of type {registry_key} at {position}")
-                return wrapper
-            else:
-                print(f"❌ Editor: Failed to create node of type {registry_key}")
-                return None
-                
+            # Notify callbacks
+            self._notify_change("create_node")
+            
+            return action.wrapper
+            
         except Exception as e:
             print(f"❌ Editor: Error creating node of type {registry_key}: {e}")
             return None

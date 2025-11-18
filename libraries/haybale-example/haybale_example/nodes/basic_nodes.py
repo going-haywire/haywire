@@ -12,15 +12,15 @@ from ..types.mesh_data import MeshData
 from ..types.specs import Temperature
 
 @node(
-    label='Test Node One',
+    label='Test Node Two',
     search_tags=['constant', 'value', 'output', 'basic'],
     menu='core/basic'
 )
 class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
-    def __init__(self, node_id, graph):
-        super().__init__(node_id, graph)
+    def __init__(self, node_id, wrapper):
+        super().__init__(node_id, wrapper)
         
         # Configure behavior
         self.behavior.is_data_node = True

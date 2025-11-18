@@ -13,7 +13,7 @@ from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.library_identity import LibraryIdentity
-from haywire.core.library.hot_reload_event import LifeCycleEvent, HotReloadCallback
+from haywire.core.library.hot_reload_event import LifeCycleEvent, LiveCycleBatchCallback
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
 
@@ -43,11 +43,11 @@ class NodeRenderFactory:
         self._renderer_cache: Dict[str, BaseNodeRenderer] = {}
         
         # Customer callbacks for hot reload notifications
-        self._customer_callbacks: List[HotReloadCallback] = []
+        self._customer_callbacks: List[LiveCycleBatchCallback] = []
         
         # Register for hot reload notifications from registries
-        self.renderers_registry.add_customer_callback(self._on_renderer_reloaded)
-        self.widget_registry.add_customer_callback(self._on_widget_reloaded)
+        self.renderers_registry.add_batch_event_subscriber(self._on_renderer_reloaded)
+        self.widget_registry.add_batch_event_subscriber(self._on_widget_reloaded)
     
     def generate_node(self, renderer_registry_key: str | None, node: BaseNode) -> tuple[UINodeCard, str]:
         """
@@ -99,20 +99,20 @@ class NodeRenderFactory:
         if renderer_class_name not in self._renderer_cache:
             self._renderer_cache[renderer_class_name] = renderer_class(self.widget_registry)
     
-    def add_customer_callback(self, callback: HotReloadCallback) -> None:
+    def add_renderer_livecycle_listener(self, callback: LiveCycleBatchCallback) -> None:
         """
         Register a customer callback for renderer hot reload notifications.
         
         Callbacks are invoked when a renderer is hot-reloaded, added, or removed.
         
         Args:
-            callback: Function with signature (event: HotReloadEvent) -> None
+            callback: Function with signature (event: list[LifeCycleEvent]) -> None
         """
         if callback not in self._customer_callbacks:
             self._customer_callbacks.append(callback)
             logging.debug(f"Added customer callback to NodeRenderFactory: {callback}")
     
-    def remove_customer_callback(self, callback: HotReloadCallback) -> None:
+    def remove_renderer_livecycle_listener(self, callback: LiveCycleBatchCallback) -> None:
         """
         Unregister a customer callback.
         

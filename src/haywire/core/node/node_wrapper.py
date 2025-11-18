@@ -9,15 +9,16 @@ import uuid
 import threading
 import logging
 from typing import Dict, List, Optional, Tuple, Callable, Any, TYPE_CHECKING
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
+from haywire.core.errors.haywire_error import HaywireError
 from haywire.core.errors.utils import generate_haywire_error
 
 from .base_node import BaseNode
 from ..errors import log_detailed_error
-from ..library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, HotReloadCallback
+from ..library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
 
 if TYPE_CHECKING:
     from ..graph.graph import HaywireGraph
@@ -31,7 +32,8 @@ class NodeWrapperState:
     needs_migration: bool = False
     is_executing: bool = False
     last_hot_reload: float = 0.0
-    error_state: Optional[str] = None
+    history: List[LifeCycleEvent] = field(default_factory=list)
+    error: Optional[HaywireError | None] = None
     creation_time: float = 0.0
     execution_count: int = 0
     hot_reload_count: int = 0
@@ -66,33 +68,32 @@ class NodeWrapper:
     """
     
     def __init__(self, 
-                 node_id: str,
                  registry_key: str,
                  node_factory: 'NodeFactory',
-                 initial_position: Optional[Tuple[float, float]] = None):
+                 position: Tuple[float, float] = (100, 100)):
         """
         Initialize a new NodeWrapper.
         
         Args:
-            node_id: Unique identifier for this node instance
             registry_key: Registry key for the node class
             node_factory: Factory for creating node instances  
-            initial_position: Optional initial position (x, y)
+            initial_position: Optional[Tuple[float, float]] = None):
         """
-        self.node_id = node_id
+        self.node_id = "unregistered"
         self.registry_key = registry_key
         self.node_factory = node_factory
+        self.node_factory.add_event_subscriber(self.registry_key, self._listen_on_livecycle_event)
         
         # Thread safety
         self._lock = threading.RLock()
         
         # Lifecycle state
-        self.state = NodeWrapperState(creation_time=time.time())
+        self.state: NodeWrapperState = NodeWrapperState(creation_time=time.time())
         self._node_instance: Optional[BaseNode] = None
         
-        # Change notification callbacks - now using HotReloadCallback for consistency
-        self._change_callbacks: List[HotReloadCallback] = []
-        
+        # Change notification callbacks
+        self._livecycle_subscribers: List[LiveCycleEventCallback] = []
+
         # Middleware support
         self._middleware: List[NodeMiddleware] = []
         
@@ -100,12 +101,14 @@ class NodeWrapper:
         self._allocated_resources: List[Any] = []
         
         # Store initial position for later initialization
-        self._initial_position = initial_position
+        self._initial_position = position
         
         # Flag to track if we've been initialized
         self._initialized = False
 
-    def initialize(self, position: Optional[Tuple[float, float]] = None) -> bool:
+        self.graph: Optional['HaywireGraph' | None] = None
+
+    def register(self, graph: 'HaywireGraph') -> bool:
         """
         Initialize the wrapper by creating the node instance.
         
@@ -113,57 +116,161 @@ class NodeWrapper:
         and better error handling during creation.
         
         Returns:
-            bool: True if initialization succeeded, False if error node was created
+            bool: True if initialization succeeded, False if no node was created
         """
         with self._lock:
             if self._initialized:
                 return self.state.is_valid
-                
-            try:
-                self._create_node_instance()
-                self._setup_hot_reload_monitoring()
+            
+            self.graph = graph
 
-                self.node.ui_state.posX = position[0] if position else 0.0
-                self.node.ui_state.posY = position[1] if position else 0.0
+            self.node_id = graph.generate_unique_node_id()
+
+            _instance, _event = self.get_instance()
+
+            if _instance is not None:
+                self._node_instance = _instance
+                self._node_instance.ui_state.posX = self._initial_position[0]
+                self._node_instance.ui_state.posY = self._initial_position[1]
+                self.state.is_valid = True
+                self.state.needs_migration = False
+                self.state.history.append(_event)
+                self.state.error = _event.error
                 self._initialized = True
-                
-                # Notify successful initialization with HotReloadEvent
-                event = LifeCycleEvent(
-                    registry_key=self.registry_key,
-                    event_type=LifeCycleEventType.CLASS_ADDED,  # Initial creation
-                    affected_class=type(self._node_instance),
-                    library_identity=self._node_instance.class_library
-                )
-                self._notify_change(event)
+                self.graph.add_node_wrapper(self)
+                self._notify_change(_event)
                 return True
-                
-            except Exception as e:
-                log_detailed_error(
-                    operation="NodeWrapper Initialization",
-                    logger=None,
-                    message = f"Failed to initialize node wrapper {self.node_id}", 
-                    exception = e)
-                self.state.is_valid = False
-                self.state.error_state = str(e)
-                
-                # Try to create error node as fallback
+            else:               
+                return False
+
+    def cleanup(self) -> None:
+        """Full cleanup when wrapper is being destroyed"""
+        with self._lock:
+            # Remove event subscription
+            self.node_factory.remove_event_subscriber(self.registry_key, self._listen_on_livecycle_event)
+            
+            # Clean up resources
+            for resource in self._allocated_resources:
                 try:
-                    self._create_error_node()
-                    self._initialized = True  
-                    # Notify initialization failure with HotReloadEvent
-                    event = LifeCycleEvent(
-                        registry_key=self.registry_key,
-                        event_type=LifeCycleEventType.CLASS_RELOAD_FAILED,
-                        affected_class=None,
-                        library_identity=None,  # Error node doesn't have library identity
-                        error_info=str(e)
-                    )
-                    self._notify_change(event)
-                    return False
-                except Exception as e2:
-                    log_detailed_error(f"Failed to create error node for {self.node_id}", e2)
-                    self.state.error_state = f"Initialization failed: {e}, Error node failed: {e2}"
-                    return False
+                    if hasattr(resource, 'cleanup'):
+                        resource.cleanup()
+                    elif hasattr(resource, 'close'):
+                        resource.close()
+                except Exception as e:
+                    log_detailed_error(f"Failed to cleanup resource in {self.node_id}", e)
+            
+            self._allocated_resources.clear()
+            self._livecycle_subscribers.clear()
+            self._middleware.clear()
+            self._node_instance = None
+            self.state.is_valid = False
+            self.graph = None
+            self._node_instance = None
+            self._initialized = False
+            self.node_factory = None
+
+    def _listen_on_livecycle_event(self, lc_event: LifeCycleEvent) -> None:
+        """
+        Handle event notification from factory.
+        
+        Args:
+            event: The live cycle event with complete context
+        """
+        # Only process if initialized
+        if self._initialized:
+            # Filter: Only care about events matching our registry key
+            if not lc_event.matches_registry_key(self.registry_key):
+                logging.warning(
+                    f"NodeWrapper {self.node_id}: Received unrelated live cycle event for {event.registry_key}"
+                )
+                return
+                
+            with self._lock:
+                logging.info(
+                    f"NodeWrapper {self.node_id}: Detected live cycle event - {lc_event.event_type.value}"
+                )
+                
+                event = lc_event
+
+                if lc_event.is_successful_event():
+                    # Successful reload - mark for migration
+                    _instance, event = self._generate_node_instance(lc_event)
+
+                    if _instance is not None:
+                        self._node_instance = _instance
+                        self.state.is_valid = True
+                        self.state.needs_migration = True
+                        self.state.last_hot_reload = time.time()
+                        self.state.hot_reload_count += 1
+                
+                else:
+                    self.state.needs_migration = False
+                    self.state.is_valid = False
+
+                self.state.error = event.error
+                self.state.history.append(event)                      
+                # Forward the event to UI components
+                self._notify_change(event)
+
+
+    def get_instance(self) -> tuple[BaseNode | None, LifeCycleEvent]:
+        """
+        Pure utility method to create a node instance.
+        
+        This method only creates the node instance and tracks it for hot reload.
+        It does not add the node to any graph or interact with undo systems.
+                    
+        Returns:
+            A tuple of (created node instance, lifecycle event)
+        """
+
+        lc_event: LifeCycleEvent = self.node_factory.get_node_event(self.registry_key)
+        
+        return self._generate_node_instance(lc_event)
+
+    def _generate_node_instance(self, lc_event: LifeCycleEvent) -> tuple[BaseNode | None, LifeCycleEvent]:
+        """
+        Generate a node instance based on the lifecycle event.
+
+        Args:
+            event: The lifecycle event with class information
+        Returns:
+            A tuple of (created node instance, lifecycle event)
+        """
+
+        event = lc_event
+
+        node_cls = lc_event.affected_class
+
+        node_instance: BaseNode | None = None
+
+        if not lc_event.has_class_available():
+            node_cls = self.node_factory.get_error_node()
+
+        # Create the node instance 
+        try:
+            node_instance = node_cls(self.node_id, self)
+        
+        except Exception as e:
+            # Create detailed error with context about the node instantiation
+            error = log_detailed_error(
+                exception=e,
+                operation="Instantiate Node",
+                module_name=event.module_name,
+                registry_key=self.registry_key,
+                class_name=node_cls.__name__,
+                library_identity=event.class_library,
+                message=f"Failed to instantiate node '{self.registry_key}'"
+            )
+            event = lc_event.create_derived_event(
+                error=error,
+                error_info=str(e),
+                affected_class=node_cls,
+                event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED
+                )
+
+        return node_instance, event
+ 
     
     @property  
     def node(self) -> BaseNode:
@@ -177,143 +284,7 @@ class NodeWrapper:
         with self._lock:                
             return self._node_instance
     
-    def copy(self) -> 'NodeWrapper':
-        """
-        Create a copy of this wrapper with a new node instance.
-        
-        Returns:
-            NodeWrapper: New wrapper with copied node data
-        """
-        with self._lock:
-            # Generate new node ID
-            new_node_id = f"node_{uuid.uuid4().hex[:8]}"
-            
-            # Create new wrapper (uninitialized)
-            new_wrapper = NodeWrapper(
-                node_id=new_node_id,
-                registry_key=self.registry_key,
-                node_factory=self.node_factory,
-                initial_position=self._initial_position
-            )
-            
-            # Initialize the new wrapper
-            if new_wrapper.initialize():
-                # Copy node state from current instance
-                if self._node_instance:
-                    try:
-                        # Serialize current state and apply to new instance
-                        #TODO: find new way to copy state
-                        # current_state = self._node_instance.to_dict()
-                        # current_state['node_id'] = new_node_id  # Update ID
-                        
-                        # new_wrapper._node_instance.load_state(current_state)
-                        
-                        # Copy middleware
-                        new_wrapper._middleware = self._middleware.copy()
-                        
-                    except Exception as e:
-                        log_detailed_error(f"Failed to copy node state to {new_node_id}", e)
-            
-            return new_wrapper
-    
-    def serialize(self) -> Dict[str, Any]:
-        """
-        Serialize the wrapper and its node to a dictionary.
-        
-        Returns:
-            Dict containing all wrapper and node data
-        """
-        with self._lock:
-            wrapper_data = {
-                'node_id': self.node_id,
-                'registry_key': self.registry_key,
-                'state': {
-                    'creation_time': self.state.creation_time,
-                    'execution_count': self.state.execution_count,
-                    'hot_reload_count': self.state.hot_reload_count,
-                },
-                'position': self._initial_position,
-                'node_data': None
-            }
-            
-            # Serialize node instance if it exists
-            # TODO: find new way to copy state
-            if self._node_instance:
-                try:
-                    pass
-                    # wrapper_data['node_data'] = self._node_instance.to_dict()
-                except Exception as e:
-                    log_detailed_error(f"Failed to serialize node {self.node_id}", e)
-                    wrapper_data['serialization_error'] = str(e)
-            
-            return wrapper_data
-    
-    def deserialize(self, data: Dict[str, Any]) -> bool:
-        """
-        Deserialize wrapper and node data from a dictionary.
-        
-        Args:
-            data: Dictionary containing wrapper and node data
-            
-        Returns:
-            bool: True if deserialization succeeded
-        """
-        with self._lock:
-            try:
-                # Restore wrapper metadata
-                if 'state' in data:
-                    state_data = data['state']
-                    self.state.creation_time = state_data.get('creation_time', time.time())
-                    self.state.execution_count = state_data.get('execution_count', 0)
-                    self.state.hot_reload_count = state_data.get('hot_reload_count', 0)
-                
-                # Store position for initialization
-                self._initial_position = data.get('position')
-                
-                # Initialize if not already done
-                if not self._initialized:
-                    if not self.initialize():
-                        return False
-                
-                # Restore node state
-                if 'node_data' in data and data['node_data'] and self._node_instance:
-                    pass
-                    #TODO: find new way to copy state
-                    # self._node_instance.load_state(data['node_data'])
-                
-                # Note: deserialized event removed - initialize() already notified
-                return True
-                
-            except Exception as e:
-                log_detailed_error(f"Failed to deserialize node wrapper {self.node_id}", e)
-                self.state.error_state = f"Deserialization failed: {e}"
-                return False
-    
-    def prepare_for_execution(self, context: Dict[str, Any]) -> None:
-        """
-        Prepare node for execution in a flow.
-        
-        Args:
-            context: Execution context data
-        """
-        with self._lock:
-            if not self.state.is_valid:
-                raise ValueError(f"Cannot execute invalid node {self.node_id}")
-                
-            self.state.is_executing = True
-            self.state.execution_count += 1
-            
-            self._execute_with_middleware('prepare_for_execution', context)
-            # Note: execution_started event removed - not part of hot reload chain
-    
-    def cleanup_after_execution(self) -> None:
-        """Cleanup after execution completes"""
-        with self._lock:
-            self.state.is_executing = False
-            
-            self._execute_with_middleware('cleanup_after_execution')
-            # Note: execution_ended event removed - not part of hot reload chain
-    
+   
     def validate(self) -> List[str]:
         """
         Validate node and return list of issues.
@@ -330,8 +301,8 @@ class NodeWrapper:
             if self.state.needs_migration:
                 issues.append("Node needs hot reload migration")
                 
-            if self.state.error_state:
-                issues.append(f"Error state: {self.state.error_state}")
+            if self.state.error:
+                issues.append(f"Error state: {self.state.error}")
             
             if not self._initialized:
                 issues.append("Wrapper not initialized")
@@ -341,17 +312,17 @@ class NodeWrapper:
             
             return issues
     
-    def add_change_callback(self, callback: HotReloadCallback) -> None:
+    def add_livecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
         """Add callback for wrapper state changes (hot reload events)"""
         with self._lock:
-            if callback not in self._change_callbacks:
-                self._change_callbacks.append(callback)
+            if callback not in self._livecycle_subscribers:
+                self._livecycle_subscribers.append(callback)
     
-    def remove_change_callback(self, callback: HotReloadCallback) -> None:
+    def remove_livecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
         """Remove change callback"""
         with self._lock:
-            if callback in self._change_callbacks:
-                self._change_callbacks.remove(callback)
+            if callback in self._livecycle_subscribers:
+                self._livecycle_subscribers.remove(callback)
     
     def add_middleware(self, middleware: NodeMiddleware) -> None:
         """Add middleware to the wrapper"""
@@ -368,191 +339,16 @@ class NodeWrapper:
         """Register a resource for cleanup"""
         with self._lock:
             self._allocated_resources.append(resource)
-    
-    def cleanup(self) -> None:
-        """Full cleanup when wrapper is being destroyed"""
-        with self._lock:
-            # Remove hot reload listener
-            if hasattr(self, 'node_factory'):
-                try:
-                    self.node_factory.remove_hot_reload_listener(self._on_hot_reload)
-                except:
-                    pass  # May have already been removed
             
-            # Clean up resources
-            for resource in self._allocated_resources:
-                try:
-                    if hasattr(resource, 'cleanup'):
-                        resource.cleanup()
-                    elif hasattr(resource, 'close'):
-                        resource.close()
-                except Exception as e:
-                    log_detailed_error(f"Failed to cleanup resource in {self.node_id}", e)
-            
-            self._allocated_resources.clear()
-            self._change_callbacks.clear()
-            self._middleware.clear()
-            self._node_instance = None
-            self.state.is_valid = False
-    
-    # Private helper methods
-    
-    def _create_node_instance(self) -> None:
-        """Create a new node instance"""
-        self._node_instance = self.node_factory.create_instance(
-            self.registry_key,
-            graph=None,  # Will be set by graph when wrapper is added
-            node_id=self.node_id,
-            position=self._initial_position
-        )
-        
-        self.state.is_valid = True
-        self.state.needs_migration = False
-        self.state.error_state = None
-    
-    def _create_error_node(self) -> None:
-        """Create an error node as fallback"""
-        error_node_class = self.node_factory.node_registry.get_error_node()
-        if error_node_class:
-            self._node_instance = error_node_class(
-                node_id=self.node_id,
-                graph=None
-            )
-            
-            # Set error information
-            if hasattr(self._node_instance, 'set_error_info'):
-                self._node_instance.set_error_info(
-                    original_registry_key=self.registry_key,
-                    error_message=self.state.error_state or "Unknown error"
-                )
-    
-    def _setup_hot_reload_monitoring(self) -> None:
-        """Setup hot reload monitoring for this wrapper"""
-        self.node_factory.add_hot_reload_listener(self._on_hot_reload)
-    
-    def _on_hot_reload(self, event: LifeCycleEvent) -> None:
-        """
-        Handle hot reload notification from factory.
-        
-        Args:
-            event: The hot reload event with complete context
-        """
-        # Filter: Only care about events matching our registry key
-        if not event.matches_registry_key(self.registry_key):
-            return
-            
-        with self._lock:
-            logging.info(
-                f"NodeWrapper {self.node_id}: Detected hot reload event - {event.event_type.value}"
-            )
-            
-            if event.is_successful_reload():
-                # Successful reload - mark for migration
-                self.state.needs_migration = True
-                self.state.last_hot_reload = time.time()
-                self.state.hot_reload_count += 1
-                # Forward the event to UI components
-                self._notify_change(event)
-                
-            elif event.is_error_event():
-                # Failed reload - mark error state
-                self.state.error_state = event.error_info
-                # Forward the error event
-                self._notify_change(event)
-                
-            elif event.is_removal():
-                # Class was removed
-                self.state.error_state = f"Node class {event.registry_key} was removed"
-                # Forward the removal event
-                self._notify_change(event)
-    
-    def _perform_migration(self) -> None:
-        """Perform hot reload migration"""
-        if not self.state.needs_migration:
-            return
-            
-        print(f"🔄 Migrating node {self.node_id} to new class version")
-        
-        try:
-            # Preserve current state
-            old_state = None
-            old_position = None
-            
-            if self._node_instance:
-                # TODO: find new way to copy state
-                # old_state = self._node_instance.to_dict()
-                old_position = (self._node_instance.ui_state.posX, self._node_instance.ui_state.posY)
-            
-            # Create new instance
-            self._create_node_instance()
-            
-            # Restore state if we had it
-            if old_state and self._node_instance:
-                try:
-                    #TODO: find new way to copy state
-                    # self._node_instance.load_state(old_state)
-                    pass
-                except Exception as e:
-                    log_detailed_error(f"Failed to restore state during migration of {self.node_id}", e)
-            
-            # Restore position
-            if old_position and self._node_instance:
-                self._node_instance.ui_state.posX = old_position[0]
-                self._node_instance.ui_state.posY = old_position[1]
-            
-            self.state.needs_migration = False
-            print(f"✅ Successfully migrated node {self.node_id}")
-            
-            # Notify successful migration with HotReloadEvent
-            event = LifeCycleEvent(
-                registry_key=self.registry_key,
-                event_type=LifeCycleEventType.CLASS_RELOADED,
-                affected_class=type(self._node_instance),
-                library_identity=self._node_instance.class_library
-            )
-            self._notify_change(event)
-            
-        except Exception as e:
-            print(f"❌ Failed to migrate node {self.node_id}: {e}")
-            self.state.error_state = f"Migration failed: {e}"
-            self.state.is_valid = False
-            
-            # Try to create error node
-            try:
-                self._create_error_node()
-                # Notify migration failure with error node fallback
-                event = LifeCycleEvent(
-                    registry_key=self.registry_key,
-                    event_type=LifeCycleEventType.CLASS_RELOAD_FAILED,
-                    affected_class=None,
-                    library_identity=None,
-                    error_info=f"Migration failed: {e}, using error node"
-                )
-                self._notify_change(event)
-            except Exception as e2:
-                log_detailed_error(f"Failed to create error node during failed migration of {self.node_id}", e2)
-                # Notify complete failure
-                event = LifeCycleEvent(
-                    registry_key=self.registry_key,
-                    event_type=LifeCycleEventType.CLASS_RELOAD_FAILED,
-                    affected_class=None,
-                    library_identity=None,
-                    error_info=f"Migration failed: {e}, error node also failed: {e2}"
-                )
-                self._notify_change(event)
-    
     def _notify_change(self, event: LifeCycleEvent) -> None:
         """
-        Notify callbacks of wrapper state change with HotReloadEvent.
+        Notify subscribers of wrapper state change.
         
         Args:
-            event: The hot reload event to propagate to observers
+            event: The live cycle event to propagate to observers
         """
-        for callback in self._change_callbacks[:]:  # Copy to avoid modification during iteration
-            try:
-                callback(event)
-            except Exception as e:
-                log_detailed_error(f"Error in wrapper change callback for {self.node_id}", e)
+        for callback in self._livecycle_subscribers[:]:  # Copy to avoid modification during iteration
+            callback(event)
     
     def _execute_with_middleware(self, method_name: str, *args) -> Any:
         """Execute a method with middleware hooks"""

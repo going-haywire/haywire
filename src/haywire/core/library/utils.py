@@ -50,7 +50,20 @@ def derive_library_identity(cls: Type) -> LibraryIdentity:
             if hasattr(lib_class, 'class_identity'):
                 return lib_class.class_identity
     
-    return None
+    return LibraryIdentity(
+        label="System",
+        description="System Library (auto-generated)",
+        version="0.0.0",
+        id="__system__",
+        author="Haywire Team",
+        author_url="auto-generated",
+        url="auto-generated",
+        help_url="auto-generated",
+        dependencies=[],
+        folder_path="auto-generated",
+        module_name="haywire",
+        file_watcher=False,
+    )
 
 def find_repo_root():
     """Find repository root by looking for .git directory or other indicators."""

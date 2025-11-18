@@ -1,6 +1,6 @@
 from __future__ import annotations
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Type, TypeVar, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, TypeVar, Optional, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field
 
@@ -12,6 +12,9 @@ from ..library.library_identity import LibraryIdentity
 from ..types.ports import PortInlet, PortOutlet
 from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
 
+if TYPE_CHECKING:
+    from haywire.core.node.node_wrapper import NodeWrapper
+
 T = TypeVar('T')
 
 @dataclass
@@ -21,7 +24,9 @@ class NodeIdentity(BaseIdentity):
     menu: str = 'misc/custom'
     help_md: str | None = None
     help_url: str = 'https://haywire.io/docs/node-help',
-    is_error: bool = False
+    _is_error: bool = False,
+    _error_priority: int = 0
+
 
 # ============================================================================
 #    Decorator
@@ -50,8 +55,11 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
             Defaults to None.
         help_url (str, optional): URL to external help documentation.
             Defaults to 'https://haywire.io/docs/node-help'.
-        is_error (bool, optional): Whether this node handles error cases.
-            Defaults to False.
+        _is_error (bool, optional): Whether this node handles error cases.
+            Defaults to False. Only one error node can be registered. 
+        _error_priority (int, optional): Priority of this error node when multiple are registered.
+            If multiple error nodes are registered, 
+            the one with the higher _error_priority will override the previous ones.
     
     Any other keyword arguments will be passed through to the NodeIdentity constructor.
     See the NodeIdentity dataclass for the complete list of available fields.
@@ -148,10 +156,10 @@ class NodeData():
 class BaseNode(NodeData, metaclass=NodeMeta):
     """Base class combining HaywireNode requirements with NodeData"""
     
-    def __init__(self, node_id: str, graph: Any):
+    def __init__(self, node_id: str, wrapper: 'NodeWrapper'):
         super().__init__()
         self.node_id = node_id
-        self.graph = graph
+        self.wrapper = wrapper
         self.error_info: NodeErrorInfo | None = None
                     
         self.behavior = NodeBehavior()

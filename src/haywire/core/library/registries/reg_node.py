@@ -4,6 +4,8 @@ import inspect
 import logging
 from typing import Type, Optional
 
+from haywire.core.library.hot_reload_event import LifeCycleEvent
+
 from ...node.exceptions import NodeDiscoveryError
 from ...node.dataclasses import NodeErrorInfo
 from ..library_identity import LibraryIdentity
@@ -46,12 +48,17 @@ class NodeRegistry(BaseClassRegistry):
         registry_key = node_cls.class_identity.registry_key
 
         # Check if this is an error node and register it automatically
-        if node_cls.class_identity.is_error:
-            self._error_node = node_cls
-            return None
-        else:
-            # we only register non-error nodes in the main registry
-            return super()._register(registry_key, node_cls, library_identity)
+        if node_cls.class_identity._is_error:
+            if self._error_node is not None:
+                if node_cls.class_identity._error_priority > self._error_node.class_identity._error_priority:
+                    logging.warning(
+                        f"Overriding already registered error node: '{self._error_node.class_identity.registry_key}'."
+                        f" with : '{node_cls.class_identity.registry_key}'"
+                        f" due to higher _error_priority ({node_cls.class_identity._error_priority} > {self._error_node.class_identity._error_priority})"
+                    )
+                    self._error_node = node_cls
+
+        return super()._register(registry_key, node_cls, library_identity)
 
 
     def _unregister_class(self, registry_key) -> type[BaseNode] | None:
@@ -62,34 +69,41 @@ class NodeRegistry(BaseClassRegistry):
         Returns:
             type[BaseNode] | None: The unregistered node class or None if not found
         """
+        if self.get(registry_key) == self._error_node:
+            self._error_node = None
+
         return super()._unregister(registry_key)
 
-    def get_error_node(self) -> type[BaseNode] | None:
+    def _get_error_node(self) -> type[BaseNode] | None:
         """Get the error node class"""
         return self._error_node
 
-    def get_node_class(self, key: str) -> tuple[NodeErrorInfo | None, Type[BaseNode] | None]:
+    def get_node_event(self, key: str) -> LifeCycleEvent:
         """
-        Get node class by registry key for graph operations.
+        Get last lifecycle node event by registry key 
 
         Args:
-            key: Registry key in format "library_id:node_name"
+            key: Registry key in format "library_id:node:node_name"
 
         Returns:
-            Tuple of (success: bool, node_class: type)
-            - success: True if the requested node was found, False if error node was returned
-            - node_class: Either the requested node class or the error node class
+            LifeCycleEvent: Last lifecycle event for the node
         """
-        node_class = self._classes.get(key)
-        creationerror = None
-        if node_class is None:
-            # Return error node if registered
-            creationerror = NodeErrorInfo(
-                error='Node Not Found',
-                error_message='The requested node could not be found in the registry. Serving Error Node.'
+        lifecycle_event = None
+
+        if key in self._regkey_to_last_lifecycle_event:
+            lifecycle_event = self._regkey_to_last_lifecycle_event[key]
+        else:
+            lifecycle_event = LifeCycleEvent(
+                registry_key=key,
+                event_type=LifeCycleEvent.LifeCycleEventType.CLASS_NOT_FOUND,
+                affected_class=self._get_error_node(),
+                library_identity=None,
+                error_info=f"Node with registry key '{key}' not found",
+                error=None,
+                exception=None,
+                module_name=None,
+                class_name=None,
+                reloaded_modules=[]
             )
-            creationerror.add_note(f"Library: {key.split(':')[0]}")
-            creationerror.add_note(f"Node: {key.split(':')[-1]}")
-            if self._error_node:
-                node_class = self._error_node
-        return creationerror, node_class
+ 
+        return lifecycle_event

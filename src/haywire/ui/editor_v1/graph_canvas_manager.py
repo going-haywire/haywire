@@ -13,7 +13,6 @@ from dataclasses import dataclass
 
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.base_node import BaseNode
-from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
 from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
@@ -283,19 +282,19 @@ class GraphCanvasManager:
     @handles_event(NodeCreateRequestEvent)
     def process_node_creation_request(self, event: NodeCreateRequestEvent):
         """Handle node creation requests from context menu or other sources."""
-        print(f"📝 Processing node creation request: {event.nodeType} at ({event.position['x']}, {event.position['y']})")
+        print(f"📝 Processing node creation request: {event.registryKey} at ({event.position['x']}, {event.position['y']})")
         
         try:
-            node = self.editor.create_node(
-                event.nodeType,
+            wrapper = self.editor.create_wrapper(
+                event.registryKey,
                 (event.position['x'], event.position['y'])
             )
             
-            if node:
-                print(f"✅ Created node {node.node_id} at ({event.position['x']}, {event.position['y']})")
-                ui.notify(f"Created {event.nodeType} node", type='positive')
+            if wrapper:
+                print(f"✅ Created node {wrapper.node_id} at ({event.position['x']}, {event.position['y']})")
+                ui.notify(f"Created {event.registryKey} node", type='positive')
             else:
-                ui.notify(f"Failed to create node of type: {event.nodeType}", type='negative')
+                ui.notify(f"Failed to create node of type: {event.registryKey}", type='negative')
                 
         except Exception as e:
             print(f"Error creating node: {e}")
@@ -514,7 +513,7 @@ class GraphCanvasManager:
         # Get the wrapper for this node to enable hot reload support
         wrapper = self.graph.get_node_wrapper(node_id)
         if not wrapper:
-            print(f"⚠️ Warning: No wrapper found for node {node_id}, hot reload won't work")
+            print(f"⚠️ ERROR: No wrapper found for node {node_id}, hot reload won't work")
         
         with self.canvas_vue:
             with ui.element('div').classes(

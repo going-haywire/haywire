@@ -145,7 +145,7 @@ class HaywireGraph:
     # Node Management (NodeWrapper-based)
     # ========================================================================
     
-    def _generate_unique_node_id(self) -> str:
+    def generate_unique_node_id(self) -> str:
         """Generate a unique node ID that doesn't conflict with existing nodes.
         
         Returns:
@@ -156,23 +156,7 @@ class HaywireGraph:
             if node_id not in self.node_wrappers:
                 return node_id
     
-    def create_node_wrapper(self, registry_key: str) -> NodeWrapper:
-        """Create a new node wrapper and add it to the graph
-        
-        Returns:
-            The created and initialized node wrapper
-        """
-        node_id = self._generate_unique_node_id()
-        
-        # Create wrapper (uninitialized)
-        wrapper = NodeWrapper(
-            node_id=node_id,
-            registry_key=registry_key,
-            node_factory=self.node_factory
-        )
-                
-        return wrapper
-    
+
     def add_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper:
         """Add an already created node wrapper to the graph
         
@@ -192,11 +176,11 @@ class HaywireGraph:
         
         # Set graph reference on the actual node instance
         if wrapper._node_instance:
-            wrapper.node.graph = self
+            wrapper.node.wrapper = self
         
         return wrapper
     
-    def remove_node_wrapper(self, node_id: str) -> NodeWrapper | None:
+    def remove_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper | None:
         """Remove a node wrapper from the graph
         
         Also removes all edges connected to this node and cleans up the wrapper.
@@ -207,6 +191,8 @@ class HaywireGraph:
         Returns:
             The removed wrapper, or None if not found
         """
+        node_id = wrapper.node_id
+        
         if node_id not in self.node_wrappers:
             return None
         
@@ -739,7 +725,7 @@ class HaywireGraph:
                         node_id=node_id,
                         registry_key=node_data["registry_key"],
                         node_factory=self.node_factory,
-                        initial_position=node_data.get("position")
+                        position=node_data.get("position")
                     )
                     
                     # Deserialize wrapper data
@@ -747,7 +733,7 @@ class HaywireGraph:
                         self.node_wrappers[node_id] = wrapper
                         # Set graph reference
                         if wrapper._node_instance:
-                            wrapper.node.graph = self
+                            wrapper.node.wrapper = self
                     else:
                         print(f"⚠️ Warning: Failed to deserialize node {node_id}")
             

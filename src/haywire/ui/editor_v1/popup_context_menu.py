@@ -50,24 +50,24 @@ class PopupContextMenu:
     
     def _setup_hot_reload_listener(self):
         """Setup listener for node hot reload events."""
-        self.editor.node_factory.add_hot_reload_listener(
+        self.editor.node_factory.add_batch_listener(
             lambda event: self._menu_builder.invalidate_cache()
         )
     
     # Canvas Actions  
-    def _create_node(self, node_type: str):
+    def _create_node(self, registry_key: str):
         """Handle node creation."""
         canvas_x = self._menu_data.get('canvas_x', 0)
         canvas_y = self._menu_data.get('canvas_y', 0)
         
         # Track recently created nodes
-        if node_type not in self._recent_nodes:
-            self._recent_nodes.insert(0, node_type)
+        if registry_key not in self._recent_nodes:
+            self._recent_nodes.insert(0, registry_key)
             # Keep only last 5 recent nodes
             self._recent_nodes = self._recent_nodes[:5]
                 
         event = NodeCreateRequestEvent(
-            nodeType=node_type,
+            registryKey=registry_key,
             position={'x': canvas_x, 'y': canvas_y}
         )
         self._on_emit_event(event)

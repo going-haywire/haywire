@@ -229,13 +229,13 @@ def log_detailed_error(
     """
 
     error = generate_haywire_error(
-        exception, 
-        operation, 
-        module_name, 
-        message,
-        library_identity, 
-        registry_key, 
-        class_name
+        exception=exception, 
+        operation=operation, 
+        module_name=module_name, 
+        message=message,
+        library_identity=library_identity, 
+        registry_key=registry_key, 
+        class_name=class_name
         )
 
     if logger is None:

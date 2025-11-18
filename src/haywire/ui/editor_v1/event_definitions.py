@@ -98,7 +98,7 @@ class UserRemoveEvent(BaseGraphEvent):
 @graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
 @dataclass
 class NodeCreateRequestEvent(BaseGraphEvent):
-    nodeType: str
+    registryKey: str
     position: Dict[str, float]  # {x: float, y: float}
 
 @graph_event("connectionCreated", category="user", description="New connection created")

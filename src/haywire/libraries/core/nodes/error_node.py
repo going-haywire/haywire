@@ -8,17 +8,17 @@ from haywire.core.node.base_node import BaseNode
 # ============================================================================
 
 @node(
-    label='Error Node',
+    label='Core Error Node',
     description='Placeholder for node that could not be loaded',
     search_tags=['error', 'system', 'placeholder'],
     menu='system/error',
-    is_error=True
+    _is_error=True
 )
 class ErrorNode(BaseNode):
     """Special node to represent nodes that couldn't be loaded properly"""
     
-    def __init__(self, node_id, graph):
-        super().__init__(node_id, graph)
+    def __init__(self, node_id, wrapper):
+        super().__init__(node_id, wrapper)
         
         # Configure UI
         self.ui_config.node_renderer = 'core.error'

@@ -35,7 +35,7 @@ class VueEventGenerator:
         
         # Generate pure JavaScript code with global window assignment (NiceGUI compatible)
         js_code = f'''// Auto-generated from Python event definitions
-// DO NOT EDIT MANUALLY - Run `python generate_vue_events.py` to update
+// DO NOT EDIT MANUALLY - Run `python ./scripts/generate_vue_events.py` to update
 
 // Event type constants - Make available globally
 window.GraphEvents = {{

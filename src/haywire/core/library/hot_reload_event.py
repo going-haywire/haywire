@@ -19,12 +19,13 @@ from .library_identity import LibraryIdentity
 
 class LifeCycleEventType(Enum):
     """Types of hot reload events"""
-    CLASS_ADDED = 'class_added'
-    CLASS_RELOADED = 'class_reloaded'
-    CLASS_REMOVED = 'class_removed'
-    CLASS_RELOAD_FAILED = 'class_reload_failed'
-    CLASS_INSTANTIATION_FAILED = 'class_instantiation_failed'
     CLASS_NOT_FOUND = 'class_not_found'
+    CLASS_ADDED = 'class_added'
+    CLASS_REMOVED = 'class_removed'
+    CLASS_RELOADED = 'class_reloaded'
+    CLASS_RELOAD_FAILED = 'class_reload_failed'
+    CLASS_INSTANTIATED = 'class_instantiated'
+    CLASS_INSTANTIATION_FAILED = 'class_instantiation_failed'
 
 
 @dataclass
@@ -116,16 +117,28 @@ class LifeCycleEvent:
         """Check if this event affects a specific module"""
         return self.module_name == module_name
     
-    def is_successful_reload(self) -> bool:
+    def is_successful_event(self) -> bool:
         """Check if this was a successful reload (not removal or failure)"""
         return self.event_type in (
             LifeCycleEventType.CLASS_ADDED,
-            LifeCycleEventType.CLASS_RELOADED
+            LifeCycleEventType.CLASS_RELOADED,
+            LifeCycleEventType.CLASS_INSTANTIATED
         ) and self.affected_class is not None
     
+    def is_warning_event(self) -> bool:
+        """Check if this event represents an warning (potentialy critical)"""
+        return self.event_type in (
+            LifeCycleEventType.CLASS_NOT_FOUND,
+            LifeCycleEventType.CLASS_REMOVED,
+            LifeCycleEventType.CLASS_RELOAD_FAILED,
+            LifeCycleEventType.CLASS_INSTANTIATION_FAILED
+        ) or self.affected_class is None
+    
     def is_error_event(self) -> bool:
-        """Check if this event represents an error"""
-        return self.event_type == LifeCycleEventType.CLASS_RELOAD_FAILED or self.event_type == LifeCycleEventType.CLASS_INSTANTIATION_FAILED
+        """Check if this event represents a critical error"""
+        return self.event_type in (
+            LifeCycleEventType.CLASS_NOT_FOUND
+        ) or self.affected_class is None
     
     def is_removal(self) -> bool:
         """Check if this event represents a class removal"""
@@ -173,7 +186,6 @@ class LifeCycleEvent:
             'library_identity': self.library_identity,
             'error_info': self.error_info,
             'error': self.error,
-            'exception': self.error,
             'module_name': self.module_name,
             'class_name': self.class_name,
             'reloaded_modules': self.reloaded_modules.copy()
@@ -186,12 +198,12 @@ class LifeCycleEvent:
         status = self.event_type.value
         if self.error_info:
             status += f" (error: {self.error_info})"
-        return f"HotReloadEvent({self.registry_key}, {status})"
+        return f"LifeCycleEvent({self.registry_key}, {status})"
     
     def __repr__(self) -> str:
         """Detailed representation for debugging"""
         return (
-            f"HotReloadEvent("
+            f"LifeCycleEvent("
             f"registry_key='{self.registry_key}', "
             f"event_type={self.event_type.value}, "
             f"class_name='{self.class_name}', "
@@ -201,5 +213,7 @@ class LifeCycleEvent:
         )
 
 
-# Type alias for the new callback signature
-HotReloadCallback = Callable[[list[LifeCycleEvent]], None]
+# Type alias for the batch callback signature
+LiveCycleBatchCallback = Callable[[list[LifeCycleEvent]], None]
+
+LiveCycleEventCallback = Callable[[LifeCycleEvent], None]

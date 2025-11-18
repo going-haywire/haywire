@@ -32,8 +32,11 @@ class UINode:
     - Subscribes to NodeWrapper for hot reload support
     """
 
-    def __init__(self, haywire_node: BaseNode, factory: NodeRenderFactory, component, 
-                 node_wrapper: Optional['NodeWrapper'] = None):
+    def __init__(
+            self, haywire_node: BaseNode, 
+            factory: NodeRenderFactory, 
+            component, 
+            node_wrapper: 'NodeWrapper'):
         """
         Initialize UINode with node, factory, and parent component.
         
@@ -61,13 +64,12 @@ class UINode:
         self._current_renderer_name: Optional[str] = None
         
         # Subscribe to wrapper changes for hot reload support
-        if self.node_wrapper:
-            self.node_wrapper.add_change_callback(self._on_wrapper_changed)
+        self.node_wrapper.add_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
         
         # Subscribe to factory renderer changes for hot reload support
-        self.factory.add_customer_callback(self._on_renderer_changed)
+        self.factory.add_renderer_livecycle_listener(self._listen_on_renderer_livecycle_event)
     
-    def _on_wrapper_changed(self, event: LifeCycleEvent):
+    def _listen_on_wrapper_livecycle_event(self, event: LifeCycleEvent):
         """
         Handle NodeWrapper hot reload event notifications.
         
@@ -95,7 +97,7 @@ class UINode:
                     self.rerender()
                     ui.notify(f"Node {self.haywire_node.node_id} hot-reloaded", type='positive')
                     
-                elif event.is_error_event():
+                elif event.is_warning_event():
                     # Error occurred during initialization or migration
                     if self.node_wrapper:
                         self.haywire_node = self.node_wrapper.node  # May now be an error node
@@ -128,7 +130,7 @@ class UINode:
         except Exception as e:
             print(f"❌ Error in wrapper change handler: {e}")
     
-    def _on_renderer_changed(self, event: LifeCycleEvent) -> None:
+    def _listen_on_renderer_livecycle_event(self, event: LifeCycleEvent) -> None:
         """
         Handle renderer hot reload notifications from NodeRenderFactory.
         
@@ -152,11 +154,11 @@ class UINode:
         # Re-render using the same thread-safe pattern as wrapper changes
         def update_ui():
             try:
-                if event.is_successful_reload():
+                if event.is_successful_event():
                     print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with new renderer")
                     self.rerender()
                     ui.notify(f"Renderer for node {self.haywire_node.node_id} hot-reloaded", type='positive')
-                elif event.is_error_event():
+                elif event.is_warning_event():
                     print(f"❌ Renderer reload failed: {event.error_info}")
                     ui.notify(f"Renderer error: {event.error_info}", type='negative')
             except Exception as e:
@@ -260,7 +262,7 @@ class UINode:
         # Unsubscribe from wrapper changes
         if self.node_wrapper:
             try:
-                self.node_wrapper.remove_change_callback(self._on_wrapper_changed)
+                self.node_wrapper.remove_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
                 print(f"🔌 Unsubscribed UINode {self.haywire_node.node_id} from wrapper callbacks")
             except Exception as e:
                 print(f"⚠️ Error unsubscribing from wrapper: {e}")
@@ -268,7 +270,7 @@ class UINode:
         
         # Unsubscribe from factory renderer changes
         try:
-            self.factory.remove_customer_callback(self._on_renderer_changed)
+            self.factory.remove_renderer_livecycle_listener(self._listen_on_renderer_livecycle_event)
             print(f"🔌 Unsubscribed UINode {self.haywire_node.node_id} from factory callbacks")
         except Exception as e:
             print(f"⚠️ Error unsubscribing from factory: {e}")

@@ -16,6 +16,8 @@ window.GraphEvents = {
     CONTEXT_MENU_NODE: 'contextMenuNode', // Node context menu triggered
     CONTEXT_MENU_CONNECTION: 'contextMenuConnection', // Connection context menu triggered
     CONTEXT_MENU_SELECTED: 'contextMenuSelected', // Context menu triggered on selected elements
+    USER_COPY_SELECTED: 'userCopySelected', // Copy selected elements to clipboard
+    USER_PASTE_CLIPBOARD: 'userPasteClipboard', // Paste clipboard contents
   },
   
   SyncCommands: {
@@ -75,12 +77,12 @@ window.EventCreators = {
     };
   },
 
-  createNodeCreateRequest(nodeType, position, sessionId = 'default') {
+  createNodeCreateRequest(registryKey, position, sessionId = 'default') {
     return {
       event_type: 'nodeCreateRequest',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { nodeType, position },
+      data: { registryKey, position },
       requires_broadcast: true
     };
   },
@@ -153,6 +155,26 @@ window.EventCreators = {
       data: { screenX, screenY, canvasX, canvasY, selectedNodes, selectedConnections },
       requires_broadcast: true
     };
+  },
+
+  createUserCopySelected(selectedNodes, selectedConnections, sessionId = 'default') {
+    return {
+      event_type: 'userCopySelected',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { selectedNodes, selectedConnections },
+      requires_broadcast: true
+    };
+  },
+
+  createUserPasteClipboard(canvasX, canvasY, sessionId = 'default') {
+    return {
+      event_type: 'userPasteClipboard',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { canvasX, canvasY },
+      requires_broadcast: true
+    };
   }
 };
 
@@ -179,7 +201,7 @@ window.EventValidators = {
   },
 
   validateNodeCreateRequest(data) {
-    const requiredFields = ["nodeType", "position"];
+    const requiredFields = ["registryKey", "position"];
     return requiredFields.every(field => field in data);
   },
 
@@ -215,6 +237,16 @@ window.EventValidators = {
 
   validateContextMenuSelected(data) {
     const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "selectedNodes", "selectedConnections"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateUserCopySelected(data) {
+    const requiredFields = ["selectedNodes", "selectedConnections"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateUserPasteClipboard(data) {
+    const requiredFields = ["canvasX", "canvasY"];
     return requiredFields.every(field => field in data);
   }
 };

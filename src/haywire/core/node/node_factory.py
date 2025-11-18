@@ -13,17 +13,44 @@ from typing import Dict, List, Optional, Any, Callable, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 from collections import defaultdict
 
-from ..errors.haywire_exception import HaywireException
 
 if TYPE_CHECKING:
     from ..graph.graph import HaywireGraph
 
-from .base_node import BaseNode
+from .base_node import BaseNode, node
 from .node_wrapper import NodeWrapper
 from ..library.registries.reg_node import NodeRegistry
 from ..library.library_identity import LibraryIdentity
-from ..library.hot_reload_event import LifeCycleEvent, HotReloadCallback
+from ..library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
 from ..errors import log_detailed_error
+
+
+# ============================================================================ 
+#    THIS NODE SHOULD NEVER BE USED FOR INHERITANCE
+#    IT IS THE MOST BASIC NODE THAT SHOULD RUN WITH THE LEAST DEPENDENCIES
+#    IT IS USED AS A FALLBACK BY THE NODE FACTORY
+#    WHEN NO OTHER NODE CAN BE LOADED
+# ============================================================================ 
+
+# TODO: Write Test for SkeletonNode. 
+# This node should always work and be instantiable, including to load arbitray node serializations.
+
+@node(
+    label='Skeleton Node',
+    description='A minimal node implementation for fallback purposes',
+    search_tags=[],
+    menu=''
+)
+class __SkeletonNode__(BaseNode):
+    """    
+    THIS NODE SHOULD NEVER BE USED FOR INHEITANCE
+    IT IS THE MOST BASIC NODE THAT SHOULD RUN WITH THE LEAST DEPENDENCIES
+    IT IS USED AS A FALLBACK WHEN NO OTHER NODE CAN BE LOADED
+    """
+
+    def worker(self, context: dict) -> dict | None:
+        """No-op worker"""
+        return None
 
 
 class NodeFactory:
@@ -44,163 +71,118 @@ class NodeFactory:
         """
         self.node_registry = node_registry
                 
-        # Hot reload notification callbacks
-        self._hot_reload_listeners: List[HotReloadCallback] = []
+        # batch notification callbacks
+        self._livecycle_batch_subscribers: List[LiveCycleBatchCallback] = []
+
+        # individual event notification callbacks
+        self._livecycle_event_subscribers: Dict[str, List[LiveCycleEventCallback]] = {} # registry_key -> list of callbacks
         
-        # Register this factory as a customer callback for node registry hot reloads
-        self.node_registry.add_customer_callback(self._on_node_reloaded)
+        # Register this factory for livecycle events from node registry hot reloads
+        self.node_registry.add_batch_event_subscriber(self._listen_on_livecycle_event)
         
-   
-    def create_instance(self, registry_key: str, graph: 'HaywireGraph', 
-                       node_id: Optional[str] = None, position: Optional[Tuple[float, float]] = None) -> BaseNode:
+    def get_node_event(self, registry_key: str) -> LifeCycleEvent:
         """
-        Pure utility method to create a node instance.
-        
-        This method only creates the node instance and tracks it for hot reload.
-        It does not add the node to any graph or interact with undo systems.
+        Get the node class for a given registry key.
         
         Args:
-            registry_key: Key in the node registry
-            graph: Parent graph for the node
-            node_id: Optional custom node ID (generated if not provided)
-            position: Optional (x, y) position for the node
-            
+            registry_key: The registry key of the node to retrieve
         Returns:
-            The created node instance
-            
-        Raises:
-            ValueError: If registry key is not found or node creation fails
+            LifeCycleEvent: The lifecycle event for the requested node
         """
-        # Generate node ID if not provided
-        if node_id is None:
-            node_id = self._generate_node_id()
-        
-        # Get node class from registry
-        error_info, node_class = self.node_registry.get_node_class(registry_key)
-        if error_info is not None:
-            logging.error(f"NodeFactory: Failed to get node class for key '{registry_key}': {error_info}")
-            if node_class is None:  
-                raise ValueError(f"Failed to get class '{registry_key}': {error_info}")
-        
-        # Create the node instance with detailed error handling
-        try:
-            node = node_class(node_id, graph)
-        except Exception as e:
-            # Create detailed error with context about the node instantiation
-            error = log_detailed_error(
-                exception=e,
-                operation="instantiate node",
-                module_name=getattr(node_class, '__module__', None),
-                registry_key=registry_key,
-                class_name=node_class.__name__,
-                library_identity=node_class.class_library,
-                message=f"Failed to instantiate node '{registry_key}'"
-            )
-            raise HaywireException(error)
-                
-        if error_info:
-            node.error_info = error_info
-        
-        # Set position if provided
-        if position:
-            node.ui_state.posX, node.ui_state.posY = position
-                       
-        return node
-    
-    def create_wrapper(self, registry_key: str, node_id: Optional[str] = None, 
-                      position: Optional[Tuple[float, float]] = None) -> NodeWrapper:
+        return self.node_registry.get_node_event(registry_key)
+
+    def get_error_node(self) -> BaseNode:
         """
-        Create a NodeWrapper instance with deferred node initialization.
+        Get the registered error node class, or fallback.
         
-        This is the primary method for creating nodes in the NodeWrapper-based system.
-        
-        Args:
-            registry_key: Key in the node registry
-            node_id: Optional custom node ID (generated if not provided)
-            position: Optional (x, y) position for the node
-            
         Returns:
-            The created NodeWrapper instance (uninitialized)
+            The error node class or __SkeletonNode__ if not registered
         """
-        # Generate node ID if not provided
-        if node_id is None:
-            node_id = self._generate_node_id()
-            
-        # Create wrapper (uninitialized)
-        wrapper = NodeWrapper(
-            node_id=node_id,
-            registry_key=registry_key,
-            node_factory=self,
-            initial_position=position
-        )
-        
-        return wrapper
+        node_cls = self.node_registry._get_error_node()
+        if node_cls is None:
+            node_cls = __SkeletonNode__
+        return node_cls
     
-    def _on_node_reloaded(self, event: LifeCycleEvent) -> None:
+    
+    def _listen_on_livecycle_event(self, batch: list[LifeCycleEvent]) -> None:
         """
-        Customer callback for node hot reload events.
+        listener for node livecycle changes from registry
         
         This is called by the NodeRegistry when a node class is reloaded, added, or removed.
         It forwards the notification to all registered hot reload listeners (typically NodeWrappers).
         
         Args:
-            event: The hot reload event with complete context
-        """
-        logging.info(
-            f"NodeFactory: Node {event.event_type.value} - {event.registry_key} "
-            f"from library '{event.library_identity.label}'"
-        )
-        
-        # Forward to all hot reload listeners (NodeWrappers, etc.)
-        for listener in self._hot_reload_listeners:
-            listener(event)
-        
-    def handle_hot_reload(self, registry_key: str) -> None:
-        """
-        Handle hot reload of a node class.
-        
-        This method is called when the node registry detects that a node class
-        has been reloaded. It notifies all listeners, and the NodeWrappers will
-        determine if they need to migrate based on their registry_key.
-        
-        Args:
-            registry_key: The registry key that was reloaded
+            batch: The batch of events with complete context
         """        
-        # This method is kept for backward compatibility but may not be used
-        # with the new event system. Events are now passed directly.
-        logging.warning(
-            f"NodeFactory.handle_hot_reload called with registry_key={registry_key}. "
-            f"This method is deprecated in favor of event-based hot reload."
-        )
+        # Forward to all livecycle batch listeners (Context Menu, etc.)
+        for listener in self._livecycle_batch_subscribers[:]:
+            listener(batch)
+
+        # Forward to all individual event listeners
+        for event in batch:
+            logging.info(
+                f"NodeFactory: Node {event.event_type.value} - {event.registry_key} "
+                f"from library '{event.library_identity.label}'"
+            )
+            if event.registry_key in self._livecycle_event_subscribers:
+                callbacks = self._livecycle_event_subscribers[event.registry_key]
+                for callback in callbacks:
+                    callback(event)
     
-    def add_hot_reload_listener(self, callback: HotReloadCallback) -> None:
+    ############################################################
+    #
+    #        Public API for livecycle event listeners
+    #
+    ############################################################
+
+    def add_batch_listener(self, callback: LiveCycleBatchCallback) -> None:
         """
-        Add a callback for hot reload notifications.
+        Add a callback for batch notifications.
         
         Args:
-            callback: Function called with HotReloadEvent
+            callback: Function called with Batches of LifeCycleEvents
         """
-        self._hot_reload_listeners.append(callback)
+        self._livecycle_batch_subscribers.append(callback)
     
-    def remove_hot_reload_listener(self, callback: HotReloadCallback) -> None:
+    def remove_batch_listener(self, callback: LiveCycleBatchCallback) -> None:
         """
-        Remove a hot reload notification callback.
+        Remove a batch notification callback.
         
         Args:
             callback: The callback to remove
         """
-        if callback in self._hot_reload_listeners:
-            self._hot_reload_listeners.remove(callback)
+        if callback in self._livecycle_batch_subscribers:
+            self._livecycle_batch_subscribers.remove(callback)
     
-    # Private helper methods
-    
-    def _generate_node_id(self) -> str:
-        """Generate a unique node ID."""
-        return f"node_{uuid.uuid4().hex[:8]}"
+    def add_event_subscriber(self, registry_key: str, callback: LiveCycleEventCallback) -> None:
+        """
+        Add a callback for event of specific registry_key.
+        
+        Args:
+            registry_key: The registry key to listen for
+            callback: Function called with LiveCycleEvent
+        """
+        if registry_key not in self._livecycle_event_subscribers:
+            self._livecycle_event_subscribers[registry_key] = []
+        self._livecycle_event_subscribers[registry_key].append(callback)
+
+    def remove_event_subscriber(self, registry_key: str, callback: LiveCycleEventCallback) -> None:
+        """
+        Remove a callback for event of specific registry_key.
+        
+        Args:
+            registry_key: The registry key to stop listening for
+            callback: The callback to remove
+        """
+        if registry_key in self._livecycle_event_subscribers:
+            if callback in self._livecycle_event_subscribers[registry_key]:
+                self._livecycle_event_subscribers[registry_key].remove(callback)
+                if not self._livecycle_event_subscribers[registry_key]:
+                    del self._livecycle_event_subscribers[registry_key]
                 
     
     # ============================================================================
-    # Node Discovery and UI Services (moved from NodeRegistry)
+    # Node Discovery and UI Services 
     # ============================================================================
     
     def get_menu_structure(self) -> Dict[str, List[Dict[str, str]]]:

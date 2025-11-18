@@ -11,8 +11,8 @@ from haywire.libraries.core.types.specs import FLOAT, STRING
 class DisplayNode(BaseNode):
     """Node that displays input values"""
     
-    def __init__(self, node_id, graph):
-        super().__init__(node_id, graph)
+    def __init__(self, node_id, wrapper):
+        super().__init__(node_id, wrapper)
         
         # Configure behavior
         self.behavior.is_data_node = True

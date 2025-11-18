@@ -9,6 +9,7 @@ import time
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 
+from haywire.core.node.node_factory import NodeFactory
 from haywire.core.node.node_wrapper import NodeWrapper
 
 from ..base_action import ActionBase, CompositeAction
@@ -20,7 +21,13 @@ from ...ui.utils import generate_connection_uuid
 class AddNodeAction(ActionBase):
     """Action for adding a node to the graph."""
 
-    def __init__(self, graph: HaywireGraph, wrapper: NodeWrapper, description: Optional[str] = None):
+    def __init__(
+            self, 
+            graph: HaywireGraph, 
+            registry_key: str, 
+            node_factory: 'NodeFactory', 
+            position: Tuple[float, float] = (100, 100),
+            description: Optional[str] = None):
         """
         Initialize the add node action.
         
@@ -30,14 +37,17 @@ class AddNodeAction(ActionBase):
             description: Optional description override
         """
         # Use library label if available, otherwise fallback to identity name or node_id or class name
-        node_name = wrapper.node.identity.label or wrapper.node.identity.name or wrapper.node.node_id or wrapper.node.__class__.__name__
-        super().__init__(description or f"Add node '{node_name}'")
+        super().__init__(description or f"Add node '{registry_key}'")
         self.graph = graph
-        self.wrapper = wrapper
+        self.registry_key = registry_key
+        self.node_factory = node_factory
+        self.position = position
+        self.wrapper = None
 
     def _execute_impl(self) -> None:
         """Add the node to the graph."""
-        self.graph.add_node_wrapper(self.wrapper)
+        self.wrapper = NodeWrapper(registry_key=self.registry_key, node_factory=self.node_factory, position=self.position)
+        self.wrapper.register(self.graph)
     
     def _undo_impl(self) -> None:
         """Remove the node from the graph."""
@@ -206,7 +216,7 @@ class RemoveElementsAction(ActionBase):
                 self.node_connected_edges[node_id] = connected_edges
                 
                 # Remove the node wrapper (this will also remove connected edges)
-                self.graph.remove_node_wrapper(node_id)
+                self.graph.remove_node_wrapper(wrapper)
     
     def _undo_impl(self) -> None:
         """Restore all removed elements."""
