@@ -77,20 +77,24 @@ class DependencyGraph:
             Otherwise (changed_module is a helper):
                 Proceed to Step 1
     
-    Step 1: Determine reload order for each affected managed class
-            For each managed module:
-                If changed_module in dependency_tree[managed_module]:
-                    reload_list = [all dependencies] + [managed_module itself]
-                    
-    Step 2: Merge lists from different managed classes
-            Combine all reload_lists, removing duplicates
-            Apply topological sort to preserve dependency order
+    Step 1: Find affected managed modules
+            If changed_module IS managed:
+                affected = [changed_module]
+            Otherwise (changed_module is helper):
+                affected = [all managed modules with changed_module in their dependency_tree]
+    
+    Step 2: Build reload plan
+            If changed_module IS managed:
+                helpers = []
+                managed = [changed_module]
+            Otherwise (changed_module is helper):
+                helpers = [changed_module + all helpers that transitively depend on it]
+                managed = [all affected managed modules]
             
-    Step 3: Separate helpers from managed modules
-            helpers = [modules not in _managed_modules]
-            managed = [modules in _managed_modules]
-            
-    Step 4: Return ReloadPlan(helpers, managed)
+    Step 3: Return ReloadPlan(helpers, managed)
+    
+    Note: We only reload what changed + the managed modules that depend on it.
+          Other dependencies remain loaded and will be reused by Python's import system.
     
     USAGE EXAMPLE
     =============
@@ -140,9 +144,12 @@ class DependencyGraph:
     When helpers.py changes:
     
         Affected: workflow, processor, validator (all have helpers in their trees)
-        Reload order: [helpers, utils, transformers, validator, processor, workflow]
-        Helpers: [helpers, utils, transformers]
+        Reload order: [helpers] + [validator, processor, workflow]
+        Helpers: [helpers]
         Managed: [validator, processor, workflow]
+        
+        Note: utils and transformers are NOT reloaded because they didn't change.
+              Python will use the already-loaded versions.
     
     When workflow.py changes (a managed module):
     
@@ -247,15 +254,13 @@ class DependencyGraph:
                 self._module_scope_prefixes.get(changed_module, [])
             )
 
-        # Step 1: Determine reload order for each affected managed class
-        reload_lists = []
+        # Step 1: Determine which managed modules are affected
         affected_managed = []
         
         # Special case: if the changed module IS a managed module,
         # only reload that specific module, not its dependencies
         if changed_module in self._managed_modules:
             affected_managed.append(changed_module)
-            reload_lists.append([changed_module])
         else:
             # Changed module is a helper - find all managed modules that depend on it
             for managed_module in self._managed_modules:
@@ -264,22 +269,50 @@ class DependencyGraph:
                 # Check if this managed module depends on the changed helper
                 if changed_module in dependency_tree:
                     affected_managed.append(managed_module)
-                    # Build reload list: all dependencies + the managed module itself
-                    # BUT exclude modules that were already reloaded
-                    reload_list = [m for m in list(dependency_tree) + [managed_module] 
-                                  if m not in exclude_modules]
-                    reload_lists.append(reload_list)
         
         if not affected_managed:
             # No managed modules affected
             return ReloadPlan(non_managed_modules=[], managed_modules=[])
         
-        # Step 2: Merge the lists from different managed classes
-        merged_list = self._merge_reload_lists(reload_lists)
-        
-        # Step 3: Separate helpers from managed modules
-        helpers = [m for m in merged_list if m not in self._managed_modules]
-        managed = [m for m in merged_list if m in self._managed_modules]
+        # Step 2: Build the reload list
+        # For managed module: just reload the managed module
+        # For helper module: reload the helper + all helpers that transitively depend on it
+        if changed_module in self._managed_modules:
+            # Changed module is managed - only reload it
+            helpers = []
+            managed = [m for m in [changed_module] if m not in exclude_modules]
+        else:
+            # Changed module is helper - find all helpers that transitively depend on it
+            # by examining the dependency trees of affected managed modules
+            all_helpers_to_reload = set([changed_module])
+            
+            # For each affected managed module, find which of its helpers depend on changed_module
+            for managed_module in affected_managed:
+                dependency_tree = self._dependency_trees.get(managed_module, set())
+                scope_prefixes = self._module_scope_prefixes.get(managed_module, [])
+                
+                # Build map of dependencies for all helpers in this tree
+                # We need to find: which helpers depend on changed_module (transitively)
+                depends_on_changed = set([changed_module])
+                
+                # Iteratively find modules that depend on anything in depends_on_changed
+                changed_occurred = True
+                while changed_occurred:
+                    changed_occurred = False
+                    for helper in dependency_tree:
+                        if helper not in depends_on_changed:
+                            helper_deps = self._extract_direct_dependencies(helper, scope_prefixes)
+                            # If this helper depends on anything we're already reloading
+                            if any(dep in depends_on_changed for dep in helper_deps):
+                                depends_on_changed.add(helper)
+                                changed_occurred = True
+                
+                all_helpers_to_reload.update(depends_on_changed)
+            
+            # Filter out excluded modules and sort topologically
+            helpers_list = [m for m in all_helpers_to_reload if m not in exclude_modules]
+            helpers = self._topological_sort(helpers_list) if len(helpers_list) > 1 else helpers_list
+            managed = [m for m in affected_managed if m not in exclude_modules]
         
         logging.debug(
             f"Reload plan for '{changed_module}': "

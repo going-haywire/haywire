@@ -35,7 +35,7 @@ class MeshData(TypeBase):
     """
     vertices: List[Tuple[float, float, float]] = field(default_factory=list)
     faces: List[Tuple[int, int, int]] = field(default_factory=list)
-    name: str = "Unnamed Mesh"
+    name: str = "Unamed Mesh"
     
     def to_dict(self) -> dict:
         """
