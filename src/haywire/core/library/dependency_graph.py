@@ -181,6 +181,10 @@ class DependencyGraph:
         # Track scope prefixes for each managed module: managed_module -> list[scope_prefix]
         # Multiple scopes allow tracking across library boundaries
         self._module_scope_prefixes: Dict[str, List[str]] = {}
+        
+        # Cache of direct dependencies: module -> set of direct dependencies
+        # This avoids re-parsing AST during reload plan generation
+        self._direct_dependencies_cache: Dict[str, Set[str]] = {}
     
     def add_managed_module(self, module_name: str, scope_prefixes: List[str]):
         """
@@ -225,9 +229,16 @@ class DependencyGraph:
         if module_name in self._managed_modules:
             self._managed_modules.discard(module_name)
             if module_name in self._dependency_trees:
+                # Clear cached dependencies for all modules in this tree
+                dependency_tree = self._dependency_trees[module_name]
+                for dep in dependency_tree:
+                    if dep in self._direct_dependencies_cache:
+                        del self._direct_dependencies_cache[dep]
                 del self._dependency_trees[module_name]
             if module_name in self._module_scope_prefixes:
                 del self._module_scope_prefixes[module_name]
+            if module_name in self._direct_dependencies_cache:
+                del self._direct_dependencies_cache[module_name]
             logging.debug(f"Module '{module_name}' removed from managed modules")
     
     def get_reload_plan(self, changed_module: str, exclude_modules: Optional[Set[str]] = None) -> ReloadPlan:
@@ -283,31 +294,41 @@ class DependencyGraph:
             managed = [m for m in [changed_module] if m not in exclude_modules]
         else:
             # Changed module is helper - find all helpers that transitively depend on it
-            # by examining the dependency trees of affected managed modules
+            # Using cached direct dependencies for O(N) complexity instead of O(N*F)
             all_helpers_to_reload = set([changed_module])
             
-            # For each affected managed module, find which of its helpers depend on changed_module
+            # Collect all unique helpers from affected managed modules
+            all_helpers_in_scope = set()
             for managed_module in affected_managed:
                 dependency_tree = self._dependency_trees.get(managed_module, set())
-                scope_prefixes = self._module_scope_prefixes.get(managed_module, [])
+                all_helpers_in_scope.update(dependency_tree)
+            
+            # Build reverse dependency map: module -> set of modules that depend on it
+            # Using cached direct dependencies (no AST parsing!)
+            reverse_deps: Dict[str, Set[str]] = {}
+            for helper in all_helpers_in_scope:
+                direct_deps = self._direct_dependencies_cache.get(helper, set())
+                for dep in direct_deps:
+                    if dep not in reverse_deps:
+                        reverse_deps[dep] = set()
+                    reverse_deps[dep].add(helper)
+            
+            # BFS from changed_module to find all modules that transitively depend on it
+            queue = [changed_module]
+            visited = set()
+            
+            while queue:
+                current = queue.pop(0)
+                if current in visited:
+                    continue
+                visited.add(current)
+                all_helpers_to_reload.add(current)
                 
-                # Build map of dependencies for all helpers in this tree
-                # We need to find: which helpers depend on changed_module (transitively)
-                depends_on_changed = set([changed_module])
-                
-                # Iteratively find modules that depend on anything in depends_on_changed
-                changed_occurred = True
-                while changed_occurred:
-                    changed_occurred = False
-                    for helper in dependency_tree:
-                        if helper not in depends_on_changed:
-                            helper_deps = self._extract_direct_dependencies(helper, scope_prefixes)
-                            # If this helper depends on anything we're already reloading
-                            if any(dep in depends_on_changed for dep in helper_deps):
-                                depends_on_changed.add(helper)
-                                changed_occurred = True
-                
-                all_helpers_to_reload.update(depends_on_changed)
+                # Add all modules that directly depend on current
+                if current in reverse_deps:
+                    for dependent in reverse_deps[current]:
+                        if dependent not in visited:
+                            queue.append(dependent)
             
             # Filter out excluded modules and sort topologically
             helpers_list = [m for m in all_helpers_to_reload if m not in exclude_modules]
@@ -348,8 +369,9 @@ class DependencyGraph:
                 continue
             visited.add(current)
             
-            # Extract direct dependencies matching any scope
+            # Extract direct dependencies matching any scope and cache them
             direct_deps = self._extract_direct_dependencies(current, scope_prefixes)
+            self._direct_dependencies_cache[current] = direct_deps
             
             # Add new dependencies to process
             new_deps = direct_deps - visited
