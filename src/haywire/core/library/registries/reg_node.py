@@ -57,6 +57,8 @@ class NodeRegistry(BaseClassRegistry):
                         f" due to higher _error_priority ({node_cls.class_identity._error_priority} > {self._error_node.class_identity._error_priority})"
                     )
                     self._error_node = node_cls
+            else:
+                self._error_node = node_cls
 
         return super()._register(registry_key, node_cls, library_identity)
 
@@ -71,7 +73,8 @@ class NodeRegistry(BaseClassRegistry):
         """
         if self.get(registry_key) == self._error_node:
             self._error_node = None
-
+            logging.warning(f"Error node '{registry_key}' unregistered, no error node left in registry")
+    
         return super()._unregister(registry_key)
 
     def _get_error_node(self) -> type[BaseNode] | None:

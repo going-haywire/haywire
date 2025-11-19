@@ -81,12 +81,12 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
             search_tags=["custom", "math", "utility"],
             menu="custom/math",
             help_md="## Custom Node\n\nThis node does...",
-            is_error=False
+            _is_error=False
         )
         class CustomNode(BaseNode): ...
 
         # Error handling node
-        @node(is_error=True, label="Error Handler", menu="system/errors")
+        @node(_is_error=True, label="Error Handler", menu="system/errors")
         class ErrorNode(BaseNode): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:

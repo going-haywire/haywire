@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Type, Optional, TypeVar, Union
 from dataclasses import dataclass, field
 
+from haywire.core.errors.haywire_error import HaywireError
+
 from ..data.fields import DataField
 from ..types.ports import DataPort
 from ..library.base_identity import BaseIdentity
@@ -11,8 +13,8 @@ from ..library.utils import derive_library_identity, reg_key
 @dataclass
 class WidgetIdentity(BaseIdentity):
     """Core identifying attributes of a widget"""
-    default_for: list[str] = field(default_factory=list)  # List of data types this widget should be the default for
-    is_error_widget: bool = False
+    _is_error: bool = False
+    _error_priority: int = 0
 
 # ============================================================================
 #    Decorator
@@ -33,10 +35,10 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the widget.
             Defaults to empty string.
-        default_for (list[str], optional): List of data types this widget should be the default for.
-            Defaults to empty list.
-        is_error_widget (bool, optional): Whether this widget should handle error cases.
+        _is_error (bool, optional): Whether this widget should handle error cases.
             Defaults to False.
+        _error_priority (int, optional): Priority for error widgets when multiple are registered.
+            Higher values take precedence. Defaults to 0.
     
     Any other keyword arguments will be passed through to the WidgetIdentity constructor.
     See the WidgetIdentity dataclass for the complete list of available fields.
@@ -54,17 +56,16 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
         @widget(
             registry_id="text_input_widget",
             description="Advanced text input widget with validation",
-            default_for=["STRING", "BYTES"],
-            is_error_widget=False
+            _is_error=False
         )
         class TextWidget(BaseWidget): ...
 
         # Default widget for specific data types
-        @widget(default_for=["INT", "FLOAT"], description="Number input widget")
+        @widget(description="Number input widget")
         class NumberWidget(BaseWidget): ...
 
         # Error widget
-        @widget(is_error_widget=True, description="Error display widget")
+        @widget(description="Error display widget", _is_error=True)
         class ErrorWidget(BaseWidget): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
@@ -94,14 +95,20 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
 # ============================================================================
 
 class BaseWidget(ABC):
-    """Abstract base class for all widgets"""
+    """Abstract base class for all widgets
+    
+    Args:
+        element (DataPort): The data port this widget is associated with.
+        error (Optional[HaywireError]): Optional error information.
+    """
 
-    def __init__(self, element: DataPort):
+    def __init__(self, element: DataPort, error: Optional[HaywireError] = None):
         self.element: DataPort = element
         self.element_id: str = element.id
         self.data_field: DataField = element.data
         self.ui_properties: Dict[str, Any] = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}
         self.ui_element = None
+        self.error: Optional[HaywireError] = error
 
         # Add change handler for the data field
         self.data_field.on_changed += self._call_on_model_changed
@@ -109,10 +116,10 @@ class BaseWidget(ABC):
     def _call_on_model_changed(self, new_value: Any):
         """Handle data field changes by updating the UI"""
         if self.ui_element is not None and new_value is not None:
-            self.on_model_change(new_value)
+            self.on_value_change(new_value)
 
     @abstractmethod
-    def on_model_change(self, value: Any):
+    def on_value_change(self, value: Any):
         """Update the UI element with a new value"""
         pass
 
@@ -141,6 +148,11 @@ class BaseWidget(ABC):
         return self.ui_element
 
     def cleanup(self):
+        self.element = None
+        self.element_id = None
+
         """Clean up event handlers"""
         self.data_field.on_changed -= self._call_on_model_changed
+
+        self.data_field = None
 

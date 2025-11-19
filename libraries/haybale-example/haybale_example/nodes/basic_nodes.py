@@ -102,5 +102,10 @@ class TestNodeOne(BaseNode):
 
     def worker(self, context: dict) -> dict | None:
         """Execute the node - return the constant value"""
+        # wert = self.inlets['float_slider'].data.value.value
+        # wert = self.inlets['float_slider'].value.value
+        # get_inlet_value("float_slider").value
+
         return None
+    
 

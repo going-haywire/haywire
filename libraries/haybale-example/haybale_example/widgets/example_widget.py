@@ -10,8 +10,8 @@ from haywire.core.ui.base_widget import widget
 class TemperatureWidget(BaseWidget):
     """Custom widget for temperature values with Celsius/Fahrenheit display"""
 
-    def __init__(self, element):
-        super().__init__(element)
+    def __init__(self, element, error: Any = None):
+        super().__init__(element, error)
         self.conversion_label = None
         self.unit = self.ui_properties.get('unit', 'celsius')
 
@@ -35,7 +35,7 @@ class TemperatureWidget(BaseWidget):
         else:
             return f"({celsius_value:.1f}°C)"
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the UI elements when the model value changes"""  
         celsius_value = value
         display_value = self._get_display_value(celsius_value)

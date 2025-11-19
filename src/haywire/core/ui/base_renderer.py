@@ -1,12 +1,18 @@
-from typing import Callable, Type, TypeVar, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, Type, TypeVar, Optional, Union
 from dataclasses import dataclass
 from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
+from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.ui.base import UINodeCard
 from haywire.core.library.base_identity import BaseIdentity
 from haywire.core.library.utils import derive_library_identity, reg_key
 
 from abc import ABC, abstractmethod
+
+if TYPE_CHECKING:
+    from haywire.ui.node_render_factory import NodeRenderFactory
+
+from haywire.ui.utils import render_error_info
 
 @dataclass
 class RendererIdentity(BaseIdentity):
@@ -101,17 +107,33 @@ class BaseNodeRenderer(ABC):
     They are cached and reused by the NodeRenderFactory.
     """
 
-    def __init__(self, widget_registry: WidgetRegistry):
+    def __init__(self, render_factory: 'NodeRenderFactory'):
         """
         Initialize the renderer with a widget registry.
 
         Args:
             widget_registry: Registry for resolving widget classes
         """
-        self.widget_registry = widget_registry
+        self._render_factory: 'NodeRenderFactory' = render_factory
+        self._widget_used_registry_keys: list[str] = []
+
+    def render(self, node: BaseNode) -> tuple[UINodeCard, list[str]]:
+        """
+        Render a node into a UINodeCard.
+
+        Args:
+            node: The HaywireNode to render
+
+        Returns:
+            UINodeCard containing the rendered UI and widget registry keys
+        """
+        self._widget_used_registry_keys: list[str] = []
+        card: UINodeCard = self._render(node)
+
+        return card, self._widget_used_registry_keys
 
     @abstractmethod
-    def render(self, node: BaseNode) -> UINodeCard:
+    def _render(self, node: BaseNode) -> UINodeCard:
         """
         Render a node into a UINodeCard.
 
@@ -122,5 +144,3 @@ class BaseNodeRenderer(ABC):
             UINodeCard containing the rendered UI and widget instances
         """
         pass
-
-

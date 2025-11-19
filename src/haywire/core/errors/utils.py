@@ -14,7 +14,7 @@ from .custom_exception import CustomException
 
 from ..library.library_identity import LibraryIdentity
 
-def generate_haywire_error(exception: Exception, 
+def generate_haywire_error(exception: Exception | None = None, 
                      operation: str = None,
                      module_name: str = None,
                      library_identity: LibraryIdentity = None,
@@ -136,39 +136,40 @@ def generate_haywire_error(exception: Exception,
     highlight_length = None
     context_info = None
     
-    try:
-        with open(filename, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-            
-        if line_number <= len(lines):
-            # Get context around the error
-            context_range = 2
-            start_line = max(0, line_number - context_range - 1)
-            end_line = min(len(lines), line_number + context_range)
-            
-            # Store both the line content and the actual line number for proper formatting
-            context_info = []
-            for i in range(start_line, end_line):
-                context_info.append((i + 1, lines[i].rstrip()))  # Store 1-based line number and content
-            
-            # Extract just the lines for backward compatibility
-            context_lines = [content for _, content in context_info]
-            
-            source_line = lines[line_number - 1].rstrip()
-            
-            # Look for strings enclosed in single quotes in the error message
-            quoted_matches = re.findall(r"'([^']+)'", str(exception))
-            for quoted_string in quoted_matches:
-                if quoted_string in source_line:
-                    highlight_position = source_line.find(quoted_string)
-                    highlight_length = len(quoted_string)
-                    break
-                        
-    except (IOError, OSError, IndexError):
-        # Fallback if we can't read the file
-        context_lines = [f"<Could not read source from {filename}>"]
-        source_line = "<unavailable>"
-        context_info = None
+    if filename is not None and line_number is not None:
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                
+            if line_number <= len(lines):
+                # Get context around the error
+                context_range = 2
+                start_line = max(0, line_number - context_range - 1)
+                end_line = min(len(lines), line_number + context_range)
+                
+                # Store both the line content and the actual line number for proper formatting
+                context_info = []
+                for i in range(start_line, end_line):
+                    context_info.append((i + 1, lines[i].rstrip()))  # Store 1-based line number and content
+                
+                # Extract just the lines for backward compatibility
+                context_lines = [content for _, content in context_info]
+                
+                source_line = lines[line_number - 1].rstrip()
+                
+                # Look for strings enclosed in single quotes in the error message
+                quoted_matches = re.findall(r"'([^']+)'", str(exception))
+                for quoted_string in quoted_matches:
+                    if quoted_string in source_line:
+                        highlight_position = source_line.find(quoted_string)
+                        highlight_length = len(quoted_string)
+                        break
+                            
+        except (IOError, OSError, IndexError):
+            # Fallback if we can't read the file
+            context_lines = [f"<Could not read source from {filename}>"]
+            source_line = "<unavailable>"
+            context_info = None
     
     # Generate default message if not provided
     if message is None:
@@ -179,8 +180,10 @@ def generate_haywire_error(exception: Exception,
         else:
             message = f"Operation failed: {exception}"
     
+    error_type = exc_type.__name__ if exc_type is not None else "UnknownError"
+
     return HaywireError(
-        error_type=exc_type.__name__,
+        error_type=error_type,
         error_message=str(exc_value),
         filename=filename,
         line_number=line_number,

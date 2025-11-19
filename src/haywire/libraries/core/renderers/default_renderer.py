@@ -8,6 +8,7 @@ from typing import Dict, Any
 from nicegui import ui
 from nicegui.element import Element
 
+from haywire.core.errors.utils import generate_haywire_error, log_detailed_error
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.node.base_node import BaseNode
 from haywire.core.data.enums import FlowType
@@ -31,7 +32,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
     and serves as the fallback renderer when no specific renderer is requested.
     """
     
-    def render(self, node: BaseNode) -> UINodeCard:
+    def _render(self, node: BaseNode) -> UINodeCard:
         """
         Render a node using the default design.
         
@@ -89,10 +90,11 @@ class DefaultNodeRenderer(BaseNodeRenderer):
 
         # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
         if inlet.is_pooled == False:
-            widget = self._render_element('inlet', inlet, ui_elements, widget_instances)
-            # Add widget-container class for fold/unfold functionality (if element supports classes)
-            if hasattr(widget, 'classes') and callable(widget.classes):
-                widget.classes('widget-container zoom-pan-lod2')
+            widget = self.render_element('inlet', inlet, ui_elements, widget_instances)
+            if widget is not None:
+                # Add widget-container class for fold/unfold functionality (if element supports classes)
+                if hasattr(widget, 'classes') and callable(widget.classes):
+                    widget.classes('widget-container zoom-pan-lod2')
 
     
     def _render_outlet(self, outlet, node: BaseNode):
@@ -103,42 +105,6 @@ class DefaultNodeRenderer(BaseNodeRenderer):
 
             # only render pins for inlets that are actually involved in flows
             self._render_pin(outlet, direction='right', node=node)
-
-    
-    def _render_element(self, element_type: str, element, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]) -> Element:
-        """Render a single element using widget registry"""
-        if not element.data or element.widget == 'None':
-            return
-        
-        # Get widget name and properties
-        widget_name = element.widget
-        
-        try:
-            # Get widget class from registry (with fallback strategy depending on data type)
-            widget_class = self.widget_registry.get_widget_class(widget_name, element.data)
-            
-            # Create widget instance
-            widget_instance = widget_class(element)
-            
-            # Render the widget
-            ui_element = widget_instance.render()
-                        
-            # Store references
-            ui_elements[element.id] = ui_element
-            widget_instances[element.id] = widget_instance
-            
-            return ui_element
-            
-        except Exception as e:
-            # Fallback to error display if widget creation fails
-            creationerror = NodeErrorInfo(
-                error='Widget Creation Error',
-                error_message=str(e)
-            )
-            creationerror.add_note(f"Element: {element.id}")
-            creationerror.add_note(f"Requested widget: {getattr(element, 'widget', 'None')}")
-
-            return render_error_info(creationerror)
     
     def _render_pin(self, pin: DataPort, direction: str = 'left', node: BaseNode = None):
         """Render a pin with connection system compatibility."""
@@ -208,3 +174,44 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'data-pin-color="{pin_color}"'
             )
 
+    def render_element(self, element_type: str, element, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]) -> Element | None:
+        """Render a single element using widget registry"""
+        if not element.data or element.widget is None:
+            return None
+        
+        # Get widget name and properties
+        widget_name = element.widget
+        
+        try:
+            # Get widget instance from registry (with fallback strategy depending on data type)
+            widget_instance, lc_event = self._render_factory.get_widget_instance(widget_name, element)
+            
+            if widget_instance is not None:
+                
+                # Render the widget
+                ui_element = widget_instance.render()
+                            
+                # Store references
+                ui_elements[element.id] = ui_element
+                widget_instances[element.id] = widget_instance
+                
+                return ui_element
+            else:
+                return None
+            
+        except Exception as e:
+            error = log_detailed_error(
+                exception=e,
+                operation="Widget creation",
+                registry_key=widget_name,
+                message=str(e)
+            )
+            # Fallback to error display if widget creation fails
+            creationerror = NodeErrorInfo(
+                error='Widget Creation Error',
+                error_message=str(e)
+            )
+            creationerror.add_note(f"Element: {element.id}")
+            creationerror.add_note(f"Requested widget: {getattr(element, 'widget', 'None')}")
+
+            return render_error_info(creationerror)

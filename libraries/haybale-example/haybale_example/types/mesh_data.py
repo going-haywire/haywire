@@ -18,7 +18,8 @@ from haywire.core.types.base import TypeBase
     description='Polygonal mesh with vertices and faces',
     color='#4CAF50',
     icon='cube',
-    help_url='https://haywire.io/docs/types/mesh-data'
+    help_url='https://haywire.io/docs/types/mesh-data',
+    widget='mesh_viewer_widget'
 )
 @dataclass
 class MeshData(TypeBase):

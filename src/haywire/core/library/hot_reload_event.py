@@ -71,7 +71,7 @@ class LifeCycleEvent:
     affected_class: Optional[Type[Any]]
     """The actual class that was affected (None for REMOVED/FAILED events)"""
     
-    library_identity: LibraryIdentity
+    library_identity: LibraryIdentity = None
     """The library where the change occurred"""
     
     # Error information (for failed reloads)

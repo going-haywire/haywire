@@ -9,12 +9,12 @@ from haywire.core.ui.base_widget import BaseWidget
 from haywire.core.ui.base_widget import widget
 
 @widget(
-    description="Read-only label widget for displaying data", 
-    default_for=["DICT", "OBJECT"])
+    description="Read-only label widget for displaying data"
+    )
 class LabelWidget(BaseWidget):
     """Read-only label widget for displaying data"""
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else ' '   
 
@@ -34,7 +34,7 @@ class LabelWidget(BaseWidget):
 class ProgressWidget(BaseWidget):
     """Progress bar widget for numeric data"""
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
 
@@ -56,11 +56,12 @@ class ProgressWidget(BaseWidget):
         )
 
 @widget(
-    description="Badge widget for displaying status or short text")
+    description="Badge widget for displaying status or short text"
+    )
 class BadgeWidget(BaseWidget):
     """Badge widget for displaying status or short text"""
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else ''    
 

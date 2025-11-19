@@ -25,7 +25,7 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
     to indicate rendering errors or fallback situations.
     """
     
-    def render(self, node: BaseNode) -> UINodeCard:
+    def _render(self, node: BaseNode) -> UINodeCard:
         """
         Render a node with error styling.
         

@@ -9,13 +9,17 @@ Enhanced with customer notification system for UINode hot reload support.
 
 import logging
 from typing import Dict, Type, List, Callable
+from haywire.core.errors.utils import log_detailed_error
 from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.library_identity import LibraryIdentity
-from haywire.core.library.hot_reload_event import LifeCycleEvent, LiveCycleBatchCallback
+from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback
+from haywire.core.types.ports import DataPort
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
+from haywire.core.ui.base_widget import BaseWidget
+from haywire.ui.error_widget import ErrorWidget
 
 class NodeRenderFactory:
     """
@@ -70,13 +74,13 @@ class NodeRenderFactory:
         renderer_class_name = renderer_class.__name__
         if registry_key not in self._renderer_cache:
             # Create new renderer instance with widget registry
-            self._renderer_cache[registry_key] = renderer_class(self.widget_registry)
+            self._renderer_cache[registry_key] = renderer_class(self)
         
         # Get cached renderer instance
         renderer_instance = self._renderer_cache[registry_key]
         
         # Call render method to create UINodeCard
-        return renderer_instance.render(node), registry_key
+        return renderer_instance._render(node), registry_key
     
     def clear_cache(self):
         """Clear the renderer instance cache."""
@@ -160,6 +164,72 @@ class NodeRenderFactory:
             # Notify customers (UINodes) about the renderer reload
             self._notify_subscribers(event)
     
+    def get_widget_instance(self, key: str | None, element: DataPort) -> tuple[BaseWidget | None, LifeCycleEvent]:
+        """
+        Get last lifecycle widget event by registry key 
+
+        Args:
+            key: Registry key in format "library_id:widget:widget_name"
+
+        Returns:
+            tuple[BaseWidget | None, LifeCycleEvent]: The widget instance or None if instantiation failed,
+            and the lifecycle event with context
+        """
+
+        lc_event = self.widget_registry.get_widget_event(key)
+
+        widget_cls = lc_event.affected_class
+
+        widget_instance: BaseWidget | None = None
+
+        event = lc_event
+
+        if widget_cls is not None:
+            try:
+                widget_instance = widget_cls(element, lc_event.error)
+            except Exception as e:
+                # Create detailed error with context about the node instantiation
+                error = log_detailed_error(
+                    exception=e,
+                    operation="Instantiate Node",
+                    module_name=event.module_name,
+                    registry_key=key,
+                    class_name=widget_cls.__name__,
+                    library_identity=event.library_identity,
+                    message=f"Failed to instantiate widget '{key}'"
+                )
+                event = lc_event.create_derived_event(
+                    error=error,
+                    error_info=f"Widget instantiation failed: {str(e)}",
+                    affected_class=widget_cls,
+                    event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED
+                    )
+                
+                widget_cls = ErrorWidget
+
+                try:
+                    widget_instance = widget_cls(element, error)   
+                except Exception as e2:
+                    # Last resort: log and raise
+                    error = log_detailed_error(
+                        exception=e2,
+                        operation="Instantiate Error Widget",
+                        module_name=lc_event.module_name,
+                        registry_key=key,
+                        class_name=widget_cls.__name__,
+                        library_identity=lc_event.library_identity,
+                        message=f"Failed to instantiate error widget '{key}'"
+                    )
+                    event = lc_event.create_derived_event(
+                        error=error,
+                        error_info=f"Error widget instantiation failed: {str(e)}",
+                        affected_class=None,
+                        event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED
+                    )
+                    widget_instance = None        
+
+        return widget_instance, event
+ 
     def _on_widget_reloaded(self, batch: list[LifeCycleEvent]) -> None:
         """
         Customer callback for widget hot reload events.

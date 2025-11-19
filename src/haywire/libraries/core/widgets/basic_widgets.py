@@ -9,12 +9,12 @@ from haywire.core.ui.base_widget import BaseWidget
 from haywire.core.ui.base_widget import widget
 
 @widget(
-    description="Text input widget for string data", 
-    default_for=[str, bytes])
+    description="Text input widget for string data"
+    )
 class TextInputWidget(BaseWidget):
     """Text input widget for string data"""
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 'empty'    
 
@@ -32,12 +32,12 @@ class TextInputWidget(BaseWidget):
         return ui.input(**input_kwargs).classes('w-full')
 
 @widget(
-    description="Number input widget for numeric data", 
-    default_for=[int, float])
+    description="Number input widget for numeric data"
+    )
 class NumberWidget(BaseWidget):
     """Number input widget for numeric data"""
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
      
@@ -56,12 +56,12 @@ class NumberWidget(BaseWidget):
         return ui.number(**number_kwargs).classes('w-full')
 
 @widget(
-    description="Checkbox widget for boolean data", 
-    default_for=[bool])
+    description="Checkbox widget for boolean data"
+    )
 class CheckboxWidget(BaseWidget):
     """Checkbox widget for boolean data"""
     
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else False    
 
@@ -83,7 +83,7 @@ class CheckboxWidget(BaseWidget):
 class SwitchWidget(BaseWidget):
     """Switch widget for boolean data"""
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else False    
 
@@ -105,7 +105,7 @@ class SwitchWidget(BaseWidget):
 class SelectWidget(BaseWidget):
     """Dropdown select widget for choice-based data"""
     
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
 
@@ -131,7 +131,7 @@ class SelectWidget(BaseWidget):
 class SliderWidget(BaseWidget):
     """Slider widget for numeric data with range"""
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
 
@@ -162,7 +162,7 @@ class SliderWidget(BaseWidget):
 class KnobWidget(BaseWidget):
     """Knob widget for numeric data with rotary control"""
 
-    def on_model_change(self, value: float):  
+    def on_value_change(self, value: float):  
         """Update the number input's value"""  
         self.ui_element.value = value if value is not None else 0    
 

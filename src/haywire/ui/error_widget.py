@@ -1,27 +1,20 @@
-"""
-Base widget classes for the Haywire widget system
-"""
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 from nicegui import ui
 
-from haywire.core.data.fields import DataField
+from haywire.core.ui.base_widget import BaseWidget, widget
 from haywire.core.errors.haywire_error import HaywireError
-from haywire.core.ui.base_widget import BaseWidget
-from haywire.core.types.ports import DataPort
-from haywire.core.ui.base_widget import widget
+
 
 @widget(
     _is_error=True, 
-    description="Widget displayed when no appropriate widget is found")
+    description="Widget displayed when all fails")
 class ErrorWidget(BaseWidget):
-    """Widget displayed when no appropriate widget is found"""
+    """Widget displayed when all fails"""
     
     def on_value_change(self, value: float):  
         """Update the number input's value"""  
         pass
-
 
     def create_element(self) -> Any:
         """Create an error display widget"""

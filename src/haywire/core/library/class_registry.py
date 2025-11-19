@@ -11,6 +11,8 @@ import sys
 from typing import Callable, Dict, Any, Optional, Type, List, Tuple
 import logging
 
+from haywire.core.errors.utils import generate_haywire_error
+
 from .library_identity import LibraryIdentity
 from .dependency_graph import DependencyGraph, ReloadPlan
 from .folder_scan import FolderScanMixin
@@ -240,6 +242,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
 
         file_paths = self.folder_scan_for_pyfiles(folder_path, exclude_patterns)
 
+        module_name = "Unknown"
+
         for file_path in file_paths:
             try:
                 module_name = self.resolve_module_name(
@@ -255,7 +259,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                     log_detailed_error(
                         exception=e,
                         operation="Registry folder import",
-                        module_name=locals().get('module_name', 'unknown'),
+                        module_name=module_name,
                         message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'",
                         library_identity=library_identity
                     )
@@ -279,6 +283,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         Args:
             event (FileChangeEvent): The file change event to handle
         """
+        module_name = None
+
         try:
             # Skip validation for deleted files
             logging.info(
@@ -288,21 +294,22 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 f"on file: {event.file_path[len(event.library_identity.folder_path):]}. "
                 f"INITIATING ...")
             
-            # no need to validate deleted files
-            if event.event_type != FileEventType.DELETED:
-                if not self._validate_python_file(event.file_path):
-                    logging.error(
-                        f"Library '{event.library_identity.label}': "
-                        f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
-                    return None
-            
+            # Resolve module name..
             file_path = Path(event.file_path)
             module_name = self.resolve_module_name(
                 file_path,
                 event.library_identity.folder_path,
                 event.library_identity.module_name
             )
-            
+
+            # ... before validating the file
+            if event.event_type != FileEventType.DELETED: # no need to validate deleted files
+                if not self._validate_python_file(event.file_path):
+                    logging.error(
+                        f"Library '{event.library_identity.label}': "
+                        f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
+                    return None
+                        
             if event.event_type == FileEventType.CREATED:
                 self._on_creation(module_name, event.library_identity)
             elif event.event_type == FileEventType.MODIFIED:
@@ -327,18 +334,36 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
 
         except Exception as e:
             self._lifecycle_event_queue.clear()  # Clear any pending events
-
+            if module_name:
+                if event.event_type == FileEventType.MODIFIED:
+                    # Reload failed during modification
+                    for key in self._module_to_registry_keys.get(module_name, []):
+                        error=generate_haywire_error(
+                            exception=e,
+                            registry_key=key,
+                            operation="Registry Hotreload File Module Reload",
+                            module_name=module_name,
+                            message=f"Failed reloading module '{module_name}' in library '{event.library_identity.label}'",
+                            library_identity=event.library_identity
+                        )
+                        lc_event = LifeCycleEvent(
+                            registry_key=key,
+                            event_type=LifeCycleEventType.CLASS_RELOAD_FAILED,
+                            affected_class=self.get(key),
+                            library_identity=event.library_identity,
+                            module_name=module_name,
+                            error=error,
+                        )
+                        self._queue_lifecycle_event(lc_event)
+                    self._notify_batch_event_subscribers()
             try:
                 log_detailed_error(
                     exception=e,
                     operation="Registry Hotreload Callback",
                     module_name=locals().get('module_name', 'unknown'),
-                    message=f"Failed notifying registry about file {event.event_type.value} in library '{event.library_identity.label}'",
+                    message=f"Failed notifying about file {event.event_type.value} in library '{event.library_identity.label}'",
                     library_identity=event.library_identity
                 )
-
-
-                # TODO: emit event for failed import
             except Exception as logging_error:
                 logging.error(
                     f"Library '{event.library_identity.label}': "
