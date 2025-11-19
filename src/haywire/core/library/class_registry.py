@@ -221,7 +221,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         f"Library '{library_identity.label}': "
                         f"Failed notifying registry : {e}")
 
-        self._notify_customer_batch_callback()
+        self._notify_batch_event_subscribers()
 
         logging.info(
             f"Library '{library_identity.label}': ... Scanning folder -> DONE. "
@@ -264,7 +264,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         f"Library '{library_identity.label}': "
                         f"Failed notifying registry : {e}")
 
-        self._notify_customer_batch_callback()
+        self._notify_batch_event_subscribers()
 
     # ============================================================================
     # Hot-Reload Registry (Reload Orchestration)
@@ -323,7 +323,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             # Event now contains all reloaded_modules
             self._notify_registry_subscribers(event)
 
-            self._notify_customer_batch_callback()
+            self._notify_batch_event_subscribers()
 
         except Exception as e:
             self._lifecycle_event_queue.clear()  # Clear any pending events
@@ -715,7 +715,7 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
         self._lifecycle_event_queue.append(event)
 
 
-    def _notify_customer_batch_callback(self) -> None:
+    def _notify_batch_event_subscribers(self) -> None:
         """
         Batch notify all customer callbacks about hot reload events.
         

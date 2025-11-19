@@ -67,7 +67,7 @@ class UINode:
         self.node_wrapper.add_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
         
         # Subscribe to factory renderer changes for hot reload support
-        self.factory.add_renderer_livecycle_listener(self._listen_on_renderer_livecycle_event)
+        self.factory.add_renderer_lifecycle_subscriber(self._listen_on_renderer_livecycle_event)
     
     def _listen_on_wrapper_livecycle_event(self, event: LifeCycleEvent):
         """
@@ -270,7 +270,7 @@ class UINode:
         
         # Unsubscribe from factory renderer changes
         try:
-            self.factory.remove_renderer_livecycle_listener(self._listen_on_renderer_livecycle_event)
+            self.factory.remove_renderer_lifecycle_subscriber(self._listen_on_renderer_livecycle_event)
             print(f"🔌 Unsubscribed UINode {self.haywire_node.node_id} from factory callbacks")
         except Exception as e:
             print(f"⚠️ Error unsubscribing from factory: {e}")

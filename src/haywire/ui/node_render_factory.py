@@ -43,7 +43,7 @@ class NodeRenderFactory:
         self._renderer_cache: Dict[str, BaseNodeRenderer] = {}
         
         # Customer callbacks for hot reload notifications
-        self._customer_callbacks: List[LiveCycleBatchCallback] = []
+        self._renderer_lifecycle_subscribers: List[LiveCycleBatchCallback] = []
         
         # Register for hot reload notifications from registries
         self.renderers_registry.add_batch_event_subscriber(self._on_renderer_reloaded)
@@ -99,7 +99,7 @@ class NodeRenderFactory:
         if renderer_class_name not in self._renderer_cache:
             self._renderer_cache[renderer_class_name] = renderer_class(self.widget_registry)
     
-    def add_renderer_livecycle_listener(self, callback: LiveCycleBatchCallback) -> None:
+    def add_renderer_lifecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
         """
         Register a customer callback for renderer hot reload notifications.
         
@@ -108,35 +108,35 @@ class NodeRenderFactory:
         Args:
             callback: Function with signature (event: list[LifeCycleEvent]) -> None
         """
-        if callback not in self._customer_callbacks:
-            self._customer_callbacks.append(callback)
+        if callback not in self._renderer_lifecycle_subscribers:
+            self._renderer_lifecycle_subscribers.append(callback)
             logging.debug(f"Added customer callback to NodeRenderFactory: {callback}")
     
-    def remove_renderer_livecycle_listener(self, callback: LiveCycleBatchCallback) -> None:
+    def remove_renderer_lifecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
         """
         Unregister a customer callback.
         
         Args:
             callback: The callback function to remove
         """
-        if callback in self._customer_callbacks:
-            self._customer_callbacks.remove(callback)
+        if callback in self._renderer_lifecycle_subscribers:
+            self._renderer_lifecycle_subscribers.remove(callback)
             logging.debug(f"Removed customer callback from NodeRenderFactory: {callback}")
     
-    def _notify_customers(self, event: LifeCycleEvent) -> None:
+    def _notify_subscribers(self, event: LifeCycleEvent) -> None:
         """
         Notify all registered customers about renderer changes.
         
         Args:
             event: The hot reload event with complete context
         """
-        for callback in self._customer_callbacks[:]:  # Copy list to avoid modification during iteration
+        for callback in self._renderer_lifecycle_subscribers[:]:  # Copy list to avoid modification during iteration
             try:
                 callback(event)
             except Exception as e:
                 logging.error(f"Error in customer callback for {event}: {e}")
     
-    def _on_renderer_reloaded(self, event: LifeCycleEvent) -> None:
+    def _on_renderer_reloaded(self, batch: list[LifeCycleEvent]) -> None:
         """
         Customer callback for renderer hot reload events.
         
@@ -146,20 +146,21 @@ class NodeRenderFactory:
         Args:
             event: The hot reload event with complete context
         """
-        logging.info(
-            f"NodeRenderFactory: Renderer {event.event_type.value} - {event.registry_key} "
-            f"from library '{event.library_identity.label}'"
-        )
+        # Forward to all individual event listeners
+        for event in batch:
+            logging.info(
+                f"NodeRenderFactory: Node {event.event_type.value} - {event.registry_key} "
+                f"from library '{event.library_identity.label}'"
+            )
+            # Clear cache for affected renderer
+            if event.registry_key in self._renderer_cache:
+                logging.debug(f"Clearing renderer cache for: {event.registry_key}")
+                del self._renderer_cache[event.registry_key]
         
-        # Clear cache for affected renderer
-        if event.registry_key in self._renderer_cache:
-            logging.debug(f"Clearing renderer cache for: {event.registry_key}")
-            del self._renderer_cache[event.registry_key]
-        
-        # Notify customers (UINodes) about the renderer reload
-        self._notify_customers(event)
+            # Notify customers (UINodes) about the renderer reload
+            self._notify_subscribers(event)
     
-    def _on_widget_reloaded(self, event: LifeCycleEvent) -> None:
+    def _on_widget_reloaded(self, batch: list[LifeCycleEvent]) -> None:
         """
         Customer callback for widget hot reload events.
         
@@ -169,10 +170,12 @@ class NodeRenderFactory:
         Args:
             event: The hot reload event with complete context
         """
-        logging.info(
-            f"NodeRenderFactory: Widget {event.event_type.value} - {event.registry_key} "
-            f"from library '{event.library_identity.label}'"
-        )
+        # Forward to all individual event listeners
+        for event in batch:
+            logging.info(
+                f"NodeRenderFactory: Widget {event.event_type.value} - {event.registry_key} "
+                f"from library '{event.library_identity.label}'"
+            )
         
         # Clear entire renderer cache since widgets can affect any renderer
         logging.debug("Clearing entire renderer cache due to widget reload")

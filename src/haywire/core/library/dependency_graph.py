@@ -70,6 +70,13 @@ class DependencyGraph:
     ===============
     When get_reload_plan(changed_module) is called:
     
+    Step 0: Check if changed_module is a managed module
+            If changed_module IS managed:
+                reload_list = [changed_module only]
+                (helpers unchanged, no need to reload)
+            Otherwise (changed_module is a helper):
+                Proceed to Step 1
+    
     Step 1: Determine reload order for each affected managed class
             For each managed module:
                 If changed_module in dependency_tree[managed_module]:
@@ -136,6 +143,13 @@ class DependencyGraph:
         Reload order: [helpers, utils, transformers, validator, processor, workflow]
         Helpers: [helpers, utils, transformers]
         Managed: [validator, processor, workflow]
+    
+    When workflow.py changes (a managed module):
+    
+        Affected: workflow only (managed modules don't trigger helper reloads)
+        Reload order: [workflow]
+        Helpers: []
+        Managed: [workflow]
     
     PERFORMANCE
     ===========
@@ -237,17 +251,24 @@ class DependencyGraph:
         reload_lists = []
         affected_managed = []
         
-        for managed_module in self._managed_modules:
-            dependency_tree = self._dependency_trees.get(managed_module, set())
-            
-            # Check if this managed module is affected by the change
-            if changed_module in dependency_tree or changed_module == managed_module:
-                affected_managed.append(managed_module)
-                # Build reload list: all dependencies + the managed module itself
-                # BUT exclude modules that were already reloaded
-                reload_list = [m for m in list(dependency_tree) + [managed_module] 
-                              if m not in exclude_modules]
-                reload_lists.append(reload_list)
+        # Special case: if the changed module IS a managed module,
+        # only reload that specific module, not its dependencies
+        if changed_module in self._managed_modules:
+            affected_managed.append(changed_module)
+            reload_lists.append([changed_module])
+        else:
+            # Changed module is a helper - find all managed modules that depend on it
+            for managed_module in self._managed_modules:
+                dependency_tree = self._dependency_trees.get(managed_module, set())
+                
+                # Check if this managed module depends on the changed helper
+                if changed_module in dependency_tree:
+                    affected_managed.append(managed_module)
+                    # Build reload list: all dependencies + the managed module itself
+                    # BUT exclude modules that were already reloaded
+                    reload_list = [m for m in list(dependency_tree) + [managed_module] 
+                                  if m not in exclude_modules]
+                    reload_lists.append(reload_list)
         
         if not affected_managed:
             # No managed modules affected
