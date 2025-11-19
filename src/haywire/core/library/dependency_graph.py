@@ -1,13 +1,11 @@
-"""
-Dependency graph management for hot-reload system
-"""
-
 import ast
 import sys
 import logging
 from pathlib import Path
 from typing import Set, List, Dict, Optional
 from dataclasses import dataclass
+from collections import deque
+
 
 @dataclass
 class ReloadPlan:
@@ -72,28 +70,23 @@ class DependencyGraph:
     
     Step 0: Check if changed_module is a managed module
             If changed_module IS managed:
-                reload_list = [changed_module only]
-                (helpers unchanged, no need to reload)
+                - Only reload the changed module + any managed modules that depend on it
+                - No helper reloads needed (managed modules are self-contained)
             Otherwise (changed_module is a helper):
-                Proceed to Step 1
+                - Proceed to Step 1 to find all affected modules
     
-    Step 1: Find affected managed modules
-            If changed_module IS managed:
-                affected = [changed_module]
-            Otherwise (changed_module is helper):
-                affected = [all managed modules with changed_module in their dependency_tree]
+    Step 1: Find affected managed modules (for helper changes)
+            affected = [all managed modules with changed_module in their dependency_tree]
     
-    Step 2: Build reload plan
-            If changed_module IS managed:
-                helpers = []
-                managed = [changed_module]
-            Otherwise (changed_module is helper):
-                helpers = [changed_module + all helpers that transitively depend on it]
-                managed = [all affected managed modules]
+    Step 2: Build reload plan (for helper changes)
+            helpers = [changed_module + all helpers that transitively depend on it]
+            managed = [all affected managed modules]
             
-    Step 3: Return ReloadPlan(helpers, managed)
+    Step 3: Sort both helpers and managed modules topologically
     
-    Note: We only reload what changed + the managed modules that depend on it.
+    Step 4: Return ReloadPlan(helpers, managed)
+    
+    Note: We only reload what changed + the modules that depend on it.
           Other dependencies remain loaded and will be reused by Python's import system.
     
     USAGE EXAMPLE
@@ -141,7 +134,7 @@ class DependencyGraph:
         processor: {utils, transformers, helpers}
         validator: {utils, helpers}
     
-    When helpers.py changes:
+    When helpers.py changes (a helper module):
     
         Affected: workflow, processor, validator (all have helpers in their trees)
         Reload order: [helpers] + [validator, processor, workflow]
@@ -157,14 +150,30 @@ class DependencyGraph:
         Reload order: [workflow]
         Helpers: []
         Managed: [workflow]
+        
+        If processor imports workflow and processor is also managed:
+        Reload order: [workflow, processor]
+        Helpers: []
+        Managed: [workflow, processor]
     
     PERFORMANCE
-    ===========
-    - add_managed_module(): O(D) where D = total transitive dependencies
+    =======================
+    - add_managed_module(): O(D × L) where D = total transitive dependencies
       Upfront cost paid once per module during registration
       
-    - get_reload_plan(): O(M + N log N) where M = managed modules, N = affected modules
-      Fast lookup using pre-built trees, with topological sort for ordering
+    - get_reload_plan(): O(L + N + E + N log N) where:
+      * L = file size of changed module (must parse AST)
+      * N = affected modules  
+      * E = edges in affected subgraph
+      * N log N for topological sorting
+      
+      Breakdown:
+      - O(L) for incremental dependency refresh (re-parses changed module's AST)
+      - O(N + E) for BFS to find affected modules using pre-built reverse dependency map
+      - O(N log N) for topological sorting of affected modules
+      
+    - _refresh_module_dependencies(): O(L) where L = file size
+      Must read and parse the file, then walk AST
     
     THREAD SAFETY
     =============
@@ -175,8 +184,9 @@ class DependencyGraph:
         # Track which modules contain managed classes
         self._managed_modules: Set[str] = set()
         
-        # Track scope prefixes for each managed module: managed_module -> list[scope_prefix]
+        # Track scope prefixes for ALL modules: module -> list[scope_prefix]
         # Multiple scopes allow tracking across library boundaries
+        # Stored for both managed AND helper modules to enable proper re-scanning
         self._module_scope_prefixes: Dict[str, List[str]] = {}
         
         # Cache of direct dependencies: module -> set of direct dependencies
@@ -251,12 +261,66 @@ class DependencyGraph:
             
             logging.debug(f"Module '{module_name}' removed from managed modules")
     
+    def _refresh_module_dependencies(self, module_name: str, scope_prefixes: List[str]) -> None:
+        """
+        Incrementally refresh only direct dependencies of a module without full tree traversal.
+        
+        This is much more efficient than rebuilding the entire dependency tree when a single
+        module changes. Only re-parses the changed module's AST and updates the affected edges.
+        
+        Complexity: O(L) where L = file size (must read and parse file)
+        
+        Args:
+            module_name: The module whose dependencies need refreshing
+            scope_prefixes: List of scope prefixes to track
+        """
+        old_deps = self._direct_dependencies_cache.get(module_name, set())
+        new_deps = self._extract_direct_dependencies(module_name, scope_prefixes)
+        
+        # Calculate what changed
+        removed = old_deps - new_deps
+        added = new_deps - old_deps
+        
+        # Update reverse dependencies incrementally
+        for dep in removed:
+            if dep in self._reverse_dependencies:
+                self._reverse_dependencies[dep].discard(module_name)
+                # Clean up empty entries
+                if not self._reverse_dependencies[dep]:
+                    del self._reverse_dependencies[dep]
+        
+        for dep in added:
+            if dep not in self._reverse_dependencies:
+                self._reverse_dependencies[dep] = set()
+            self._reverse_dependencies[dep].add(module_name)
+            
+            # Store scope prefixes for newly discovered modules
+            if dep not in self._module_scope_prefixes:
+                self._module_scope_prefixes[dep] = scope_prefixes
+        
+        # Update the cache
+        self._direct_dependencies_cache[module_name] = new_deps
+        
+        logging.debug(
+            f"Refreshed dependencies for '{module_name}': "
+            f"+{len(added)} -{len(removed)} (total: {len(new_deps)})"
+        )
+    
     def get_reload_plan(self, changed_module: str, exclude_modules: Optional[Set[str]] = None) -> ReloadPlan:
         """
         Generate a reload plan for when a module changes.
         
         Uses pre-built dependency trees to quickly determine which managed modules
         are affected and in what order everything should be reloaded.
+        
+        OPTIMIZATION: If the changed module is a managed module, we only reload it and
+        any managed modules that depend on it. We don't reload any helper modules because
+        managed modules are self-contained registration units.
+        
+        Complexity: O(L + N + E + N log N) where:
+            L = file size of changed module
+            N = affected modules
+            E = edges in dependency graph
         
         Args:
             changed_module: The module that changed
@@ -268,20 +332,52 @@ class DependencyGraph:
         if exclude_modules is None:
             exclude_modules = set()
         
-        # regenerate dependency tree if it is a managed module to catch new imports
-        if changed_module in self._managed_modules:
-            self.add_managed_module(
-                changed_module, 
-                self._module_scope_prefixes.get(changed_module, [])
+        # STEP 0: Optimization for managed module changes
+        is_managed = changed_module in self._managed_modules
+        
+        if is_managed:
+            # Managed module changed - only reload it and managed modules that depend on it
+            # No helpers needed because managed modules are self-contained
+            if changed_module in self._module_scope_prefixes:
+                scope_prefixes = self._module_scope_prefixes[changed_module]
+                self._refresh_module_dependencies(changed_module, scope_prefixes)
+            
+            # Find managed modules that depend on this one
+            managed_dependents = self._find_managed_dependents(changed_module)
+            managed_dependents.add(changed_module)  # Include the changed module itself
+            
+            # Filter excluded
+            managed = [m for m in managed_dependents if m not in exclude_modules]
+            
+            # Sort managed modules topologically
+            if len(managed) > 1:
+                managed = self._topological_sort(managed)
+            
+            logging.debug(
+                f"Reload plan (managed changed): 0 helpers, {len(managed)} managed"
             )
+            
+            return ReloadPlan(
+                non_managed_modules=[],
+                managed_modules=managed
+            )
+        
+        # STEP 1: Helper changed - refresh and find ALL affected modules
+        # Incrementally refresh dependencies for the changed module to catch new imports
+        if changed_module in self._module_scope_prefixes:
+            scope_prefixes = self._module_scope_prefixes[changed_module]
+            self._refresh_module_dependencies(changed_module, scope_prefixes)
+        else:
+            # Module not tracked yet - might be a new file
+            logging.debug(f"Module '{changed_module}' not in dependency graph, skipping refresh")
 
-        # Step 1: Find all modules affected by the change using BFS on reverse dependencies
+        # Use BFS with deque for O(1) popleft instead of O(n) list.pop(0)
         to_reload = set()
-        queue = [changed_module]
+        queue = deque([changed_module])
         visited = set()
         
         while queue:
-            current = queue.pop(0)
+            current = queue.popleft()  # O(1) operation with deque
             if current in visited:
                 continue
             visited.add(current)
@@ -293,21 +389,22 @@ class DependencyGraph:
                 if dependent not in visited:
                     queue.append(dependent)
         
-        # Step 2: Separate helpers from managed modules
+        # STEP 2: Separate helpers from managed modules
         helpers_to_reload = [m for m in to_reload if m not in self._managed_modules]
         managed_to_reload = [m for m in to_reload if m in self._managed_modules]
         
-        # Step 3: Filter out excluded modules
+        # STEP 3: Filter out excluded modules
         helpers = [m for m in helpers_to_reload if m not in exclude_modules]
         managed = [m for m in managed_to_reload if m not in exclude_modules]
         
-        # Step 4: Topologically sort helpers (dependencies before dependents)
+        # STEP 4: Topologically sort BOTH helpers and managed modules
         if len(helpers) > 1:
             helpers = self._topological_sort(helpers)
+        if len(managed) > 1:
+            managed = self._topological_sort(managed)
         
         logging.debug(
-            f"Reload plan for '{changed_module}': "
-            f"{len(helpers)} helpers, {len(managed)} managed "
+            f"Reload plan (helper changed): {len(helpers)} helpers, {len(managed)} managed "
             f"(excluded {len(exclude_modules)} already reloaded)"
         )
         
@@ -316,6 +413,40 @@ class DependencyGraph:
             managed_modules=managed
         )
     
+    def _find_managed_dependents(self, module_name: str) -> Set[str]:
+        """
+        Find all managed modules that transitively depend on the given module.
+        
+        Uses BFS to traverse the reverse dependency graph and collect only managed modules.
+        
+        Args:
+            module_name: The module to find dependents for
+            
+        Returns:
+            Set of managed module names that depend on module_name
+        """
+        managed_deps = set()
+        queue = deque([module_name])
+        visited = set()
+        
+        while queue:
+            current = queue.popleft()
+            if current in visited:
+                continue
+            visited.add(current)
+            
+            # Get all modules that directly depend on current
+            dependents = self._reverse_dependencies.get(current, set())
+            for dep in dependents:
+                # Collect if it's a managed module
+                if dep in self._managed_modules:
+                    managed_deps.add(dep)
+                # Continue traversal regardless
+                if dep not in visited:
+                    queue.append(dep)
+        
+        return managed_deps
+    
     def _build_reverse_dependencies(self, module_name: str, scope_prefixes: List[str]) -> int:
         """
         Build reverse dependency map by traversing all imports from a managed module.
@@ -323,6 +454,7 @@ class DependencyGraph:
         This is a single-pass operation that:
         1. Caches direct dependencies for each module visited
         2. Builds reverse map: for each dependency, tracks which modules import it
+        3. Stores scope prefixes for ALL modules (managed and helpers)
         
         Args:
             module_name: The managed module to start from
@@ -340,6 +472,11 @@ class DependencyGraph:
             if current in visited:
                 continue
             visited.add(current)
+            
+            # Store scope prefixes for this module (even if it's a helper)
+            # This enables proper re-scanning when the module changes
+            if current not in self._module_scope_prefixes:
+                self._module_scope_prefixes[current] = scope_prefixes
             
             # Extract and cache direct dependencies
             direct_deps = self._extract_direct_dependencies(current, scope_prefixes)
@@ -361,8 +498,6 @@ class DependencyGraph:
             to_process.extend(new_deps)
         
         return dep_count
-    
-
     
     def _extract_direct_dependencies(self, module_name: str, scope_prefixes: List[str]) -> Set[str]:
         """
@@ -432,6 +567,11 @@ class DependencyGraph:
         Sort modules in dependency order (dependencies before dependents).
         
         Uses Kahn's algorithm for topological sorting.
+        Optimized to use cached dependencies directly without rebuilding.
+        
+        Complexity: O(N log N + E log D) where N = modules, E = edges, D = average out-degree
+            - O(N + E) for building graph and Kahn's algorithm
+            - O(N log N) for sorting queue for deterministic output
         
         Args:
             modules: List of module names to sort
@@ -442,45 +582,45 @@ class DependencyGraph:
         if not modules:
             return []
         
-        # Build dependency graph for these modules
-        # We need to use the scope prefix for each module
+        # Build dependency graph for these modules using cached data
         module_set = set(modules)
         in_degree = {m: 0 for m in modules}
-        edges = {m: set() for m in modules}
+        edges = {m: [] for m in modules}
         
         for module in modules:
-            # Get direct dependencies from cache (already built during add_managed_module)
+            # Direct lookup from cache - already filtered by scope during building
             direct_deps = self._direct_dependencies_cache.get(module, set())
             local_deps = direct_deps & module_set
             
             for dep in local_deps:
-                edges[dep].add(module)  # dep -> module edge
+                edges[dep].append(module)  # dep -> module edge
                 in_degree[module] += 1
         
-        # Kahn's algorithm
-        queue = [m for m in modules if in_degree[m] == 0]
+        # Kahn's algorithm with deque for efficiency
+        # Sort initial queue for deterministic behavior
+        queue = deque(sorted([m for m in modules if in_degree[m] == 0]))
         result = []
         
         while queue:
-            # Sort for deterministic behavior
-            queue.sort()
-            current = queue.pop(0)
+            current = queue.popleft()
             result.append(current)
             
             # Process modules that depend on current
-            for dependent in edges[current]:
+            # Sort for deterministic ordering of dependents
+            for dependent in sorted(edges[current]):
                 in_degree[dependent] -= 1
                 if in_degree[dependent] == 0:
                     queue.append(dependent)
         
         # Check for cycles
         if len(result) != len(modules):
-            logging.warning(
-                f"Circular dependency detected in modules: "
-                f"{set(modules) - set(result)}"
+            remaining = set(modules) - set(result)
+            logging.error(
+                f"CIRCULAR DEPENDENCY DETECTED in modules: {remaining}. "
+                f"This will likely cause reload failures. Please fix your import structure."
             )
-            # Add remaining modules anyway (best effort)
-            result.extend(m for m in modules if m not in result)
+            # Add remaining modules in sorted order for determinism
+            result.extend(sorted(remaining))
         
         return result
     
@@ -496,19 +636,6 @@ class DependencyGraph:
             True if module_name starts with any of the scope_prefixes
         """
         return any(module_name.startswith(prefix) for prefix in scope_prefixes)
-    
-    def _is_in_scope(self, module_name: str, scope_prefix: str) -> bool:
-        """
-        Check if a module name is within the specified scope.
-        
-        Args:
-            module_name: The module to check
-            scope_prefix: The scope prefix (e.g., 'haywire.libraries.mylib.nodes')
-            
-        Returns:
-            True if module_name starts with scope_prefix
-        """
-        return module_name.startswith(scope_prefix)
     
     def _resolve_relative_import(
         self, importing_module: str, relative_module: str, level: int
@@ -547,4 +674,3 @@ class DependencyGraph:
                 f"Failed to resolve relative import in '{importing_module}': {e}"
             )
             return None
-    
