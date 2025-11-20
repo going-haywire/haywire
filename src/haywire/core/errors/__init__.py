@@ -7,13 +7,11 @@ For backward compatibility, HaywireError is kept but should not be used in new c
 Use HaywireException.from_exception() or HaywireException.create() directly.
 """
 
-from .haywire_error import HaywireError  # Deprecated - kept for backward compatibility
 from .haywire_exception import HaywireException, ErrorSeverity
 from .primitive_type_error import PrimitiveTypeDefinitionError
 from .custom_exception import CustomException
 
 __all__ = [
-    'HaywireError',           # Deprecated
     'HaywireException',       # Use this
     'ErrorSeverity',
     'CustomException',

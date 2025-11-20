@@ -150,8 +150,8 @@ class UINode:
                     self.rerender()
                     ui.notify(f"Renderer for node {self.haywire_node.node_id} hot-reloaded", type='positive')
                 elif event.is_warning_event():
-                    print(f"❌ Renderer reload failed: {event.error_info}")
-                    ui.notify(f"Renderer error: {event.error_info}", type='negative')
+                    print(f"❌ Renderer reload failed: {event.error.message if event.error else 'Unknown error'}")
+                    ui.notify(f"Renderer error: {event.error.message if event.error else 'Unknown error'}", type='negative')
             except Exception as e:
                 print(f"❌ Error updating UI after renderer reload: {e}")
         
