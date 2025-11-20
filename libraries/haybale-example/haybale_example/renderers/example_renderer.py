@@ -7,7 +7,8 @@ from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.types.ports import PortInlet
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.node.base_node import BaseNode
-from haywire.core.ui.base import UINodeCard 
+from haywire.core.ui.base import UINodeCard
+from haywire.core.ui.base_widget import BaseWidget
 from haywire.core.ui.base_renderer import renderer
 from haywire.ui.utils import render_error_info
 
@@ -18,6 +19,7 @@ class ExampleNodeRenderer(BaseNodeRenderer):
     def _render(self, node: BaseNode) -> UINodeCard:
         """Render a node with custom styling."""
         ui_elements = {}
+        widget_instances: Dict[str, BaseWidget] = {}
         
         node_id = f"example-node-{id(node)}"
         
@@ -64,7 +66,9 @@ class ExampleNodeRenderer(BaseNodeRenderer):
                                 ui.label(inlet.label).classes('text-xs')
                                 if inlet.is_pooled == False:
                                     if inlet.widget:
-                                        self._render_factory.render_widget(inlet, node.node_id)
+                                        widget = self._render_factory.render_widget(inlet, node.node_id)
+                                        if widget:
+                                            widget_instances[inlet.id] = widget
                 
                 # Outlets
                 with ui.column().classes('flex-1 gap-1'):
@@ -73,5 +77,5 @@ class ExampleNodeRenderer(BaseNodeRenderer):
                         for outlet in node.outlets.values():
                             ui.label(outlet.label).classes('text-xs text-right')
         
-        return UINodeCard(main_card, ui_elements)
+        return UINodeCard(main_card, ui_elements, widget_instances)
     

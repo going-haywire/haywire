@@ -194,6 +194,10 @@ class UINode:
         Args:
             renderer_name: Name of the renderer/renderer to use (None for default)
         """
+        # Clean up old widgets before clearing UI
+        if self.current_ui_card:
+            self.current_ui_card.cleanup()
+        
         # Reliable cleanup via container slot
         if self.container_slot:
             self.container_slot.clear()  # NiceGUI handles the cleanup
@@ -249,6 +253,10 @@ class UINode:
             print(f"🔌 Unsubscribed UINode {self.haywire_node.node_id} from factory callbacks")
         except Exception as e:
             print(f"⚠️ Error unsubscribing from factory: {e}")
+        
+        # Clean up widgets before clearing UI
+        if self.current_ui_card:
+            self.current_ui_card.cleanup()
         
         # Clear the container slot (reliable cleanup)
         if self.container_slot:

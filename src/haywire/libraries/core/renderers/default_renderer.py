@@ -15,6 +15,7 @@ from haywire.core.data.enums import FlowType
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.types.ports import PortInlet, PortOutlet, DataPort
 from haywire.core.ui.base import UINodeCard
+from haywire.core.ui.base_widget import BaseWidget
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.utils import generate_pin_uuid
 from haywire.ui.utils import render_error_info
@@ -44,6 +45,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         """
         # Storage for UI elements and widget instances
         ui_elements: Dict[str, Any] = {}
+        widget_instances: Dict[str, BaseWidget] = {}
         
         # Create the main card
         node_bg = ThemePalette.ui(Theme_UI_Color.NODE_BACKGROUND, 'rgba(255, 255, 255, 0.3)')
@@ -62,7 +64,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                     if node.inlets:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.inlets.values():
-                            self._render_inlet(inlet, ui_elements, node)
+                            self._render_inlet(inlet, ui_elements, widget_instances, node)
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
@@ -76,9 +78,9 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
         
-        return UINodeCard(main_card, ui_elements)
+        return UINodeCard(main_card, ui_elements, widget_instances)
     
-    def _render_inlet(self, inlet: PortInlet, ui_elements: Dict[str, Any], node: BaseNode):
+    def _render_inlet(self, inlet: PortInlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, BaseWidget], node: BaseNode):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-1'):
             # only render pins for inlets that are actually involved in flows
@@ -90,10 +92,10 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
         if inlet.is_pooled == False:
             if inlet.widget:
+                # Widget rendering adds UI element to current context automatically
                 widget = self._render_factory.render_widget(inlet, node.node_id)
-                # Add widget-container class for fold/unfold functionality (if element supports classes)
-                if hasattr(widget, 'classes') and callable(widget.classes):
-                    widget.classes('widget-container zoom-pan-lod2')
+                if widget:
+                    widget_instances[inlet.id] = widget
 
     
     def _render_outlet(self, outlet, node: BaseNode):

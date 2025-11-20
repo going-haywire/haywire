@@ -169,13 +169,28 @@ class NodeRenderFactory:
             # Notify customers (UINodes) about the renderer reload
             self._notify_subscribers(event)
 
-    def render_widget(self, inlet: PortInlet, node_id: str) -> Element:
-        """Render a widget for the given inlet."""        
-        ui_element: Element
+    def render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
+        """Render a widget for the given inlet and return the widget instance.
+        
+        Note: The UI element is automatically added to the current NiceGUI context.
+        
+        Args:
+            inlet: The inlet port to render a widget for
+            node_id: ID of the node containing this inlet
+            
+        Returns:
+            BaseWidget instance or None if widget creation failed
+        """        
+        widget_instance: BaseWidget | None = None
 
         try:
-            widget = self.get_widget(inlet)
-            ui_element = widget.render()            
+            widget_instance = self.get_widget(inlet)
+            ui_element = widget_instance.render()
+            
+            # Apply styling to the UI element if possible
+            if hasattr(ui_element, 'classes') and callable(ui_element.classes):
+                ui_element.classes('widget-container zoom-pan-lod2')
+                
         except Exception as e:
             error = log_detailed_error(
                 exception=e,
@@ -191,9 +206,10 @@ class NodeRenderFactory:
             creationerror.add_note(f"Element: {inlet.id}")
             creationerror.add_note(f"Requested widget: {getattr(inlet, 'widget', 'None')}")
 
-            ui_element = render_error_info(creationerror)
+            render_error_info(creationerror)
+            widget_instance = None
     
-        return ui_element
+        return widget_instance
 
     def get_widget(self, element: DataPort) -> BaseWidget:
         """

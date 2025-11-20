@@ -138,6 +138,7 @@ class BaseNodeRenderer(ABC):
             node: The HaywireNode to render
 
         Returns:
-            UINodeCard containing the rendered UI and widget instances
+            UINodeCard containing the rendered UI card, ui_elements dict, and widget_instances dict.
+            Widget instances must be stored for proper lifecycle management and cleanup.
         """
         pass

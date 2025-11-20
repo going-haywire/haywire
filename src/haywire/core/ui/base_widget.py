@@ -148,6 +148,7 @@ class BaseWidget(ABC):
         return self.ui_element
 
     def cleanup(self):
+        print(f"Cleaning up widget: {self.class_identity.registry_key} for element ID: {self.element_id}")
         self.element = None
         self.element_id = None
 
