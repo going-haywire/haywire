@@ -4,6 +4,7 @@ import inspect
 import logging
 from typing import Type, Optional
 
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.library.hot_reload_event import LifeCycleEvent
 
 from ...node.exceptions import NodeDiscoveryError
@@ -96,17 +97,25 @@ class NodeRegistry(BaseClassRegistry):
         if key in self._regkey_to_last_lifecycle_event:
             lifecycle_event = self._regkey_to_last_lifecycle_event[key]
         else:
+            error = HaywireException(
+                message=f"Node with registry key '{key}' not found in registry.",
+                operation="Node Lookup",
+                registry_key=key,
+                category="NodeNotFoundError",
+                suggestions=[
+                    "Ensure the node's library is correctly installed and loaded.",
+                    "Check for typos in the registry key.",
+                    "Verify that the node class is properly decorated with @node."
+                ]
+            )
             lifecycle_event = LifeCycleEvent(
                 registry_key=key,
                 event_type=LifeCycleEvent.LifeCycleEventType.CLASS_NOT_FOUND,
                 affected_class=self._get_error_node(),
                 library_identity=None,
-                error_info=f"Node with registry key '{key}' not found",
-                error=None,
+                error=error,
                 exception=None,
-                module_name=None,
-                class_name=None,
-                reloaded_modules=[]
+                module_name=None
             )
  
         return lifecycle_event

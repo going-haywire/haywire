@@ -1,24 +1,21 @@
 """
 Error handling utilities package.
+
+The unified HaywireException class replaces the old HaywireError/HaywireException split.
+For backward compatibility, HaywireError is kept but should not be used in new code.
+
+Use HaywireException.from_exception() or HaywireException.create() directly.
 """
 
-from .haywire_error import HaywireError
-from .haywire_exception import HaywireException
+from .haywire_error import HaywireError  # Deprecated - kept for backward compatibility
+from .haywire_exception import HaywireException, ErrorSeverity
 from .primitive_type_error import PrimitiveTypeDefinitionError
-from .utils import (
-    generate_haywire_error,
-    log_detailed_error
-)
-
-from .custom_exception import (
-    CustomException
-)
+from .custom_exception import CustomException
 
 __all__ = [
-    'haywire_error',
-    'HaywireException',
-    'generate_haywire_error',
-    'log_detailed_error',
+    'HaywireError',           # Deprecated
+    'HaywireException',       # Use this
+    'ErrorSeverity',
     'CustomException',
-    'primitive_type_error'
+    'PrimitiveTypeDefinitionError'
 ]

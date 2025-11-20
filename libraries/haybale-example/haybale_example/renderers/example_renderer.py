@@ -2,7 +2,6 @@
 from typing import Any, Dict
 from nicegui import ui
 from nicegui.element import Element
-from haywire.core.errors.utils import log_detailed_error
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.types.ports import PortInlet
 from haywire.core.ui.base_renderer import BaseNodeRenderer

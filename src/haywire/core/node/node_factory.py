@@ -22,7 +22,6 @@ from .node_wrapper import NodeWrapper
 from ..library.registries.reg_node import NodeRegistry
 from ..library.library_identity import LibraryIdentity
 from ..library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
-from ..errors import log_detailed_error
 
 
 # ============================================================================ 

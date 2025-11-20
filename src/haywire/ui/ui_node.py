@@ -100,7 +100,7 @@ class UINode:
                         self.haywire_node = self.node_wrapper.node  # May now be an error node
                     print(f"⚠️ Node error: Re-rendering node {self.haywire_node.node_id} with error state")
                     self.rerender()
-                    error_msg = event.error_info or "Unknown error"
+                    error_msg = event.error.message if event.error else "Unknown error"
                     ui.notify(f"Error in node {self.haywire_node.node_id}: {error_msg}", type='warning')
                     
                 elif event.event_type == LifeCycleEventType.CLASS_ADDED:

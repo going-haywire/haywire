@@ -13,16 +13,14 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
-from haywire.core.errors.haywire_error import HaywireError
-from haywire.core.errors.utils import generate_haywire_error
-
 from .base_node import BaseNode
-from ..errors import log_detailed_error
+from ..errors import HaywireException
 from ..library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
 
 if TYPE_CHECKING:
     from ..graph.graph import HaywireGraph
     from .node_factory import NodeFactory
+    from haywire.core.errors.haywire_exception import HaywireException
 
 
 @dataclass
@@ -33,7 +31,7 @@ class NodeWrapperState:
     is_executing: bool = False
     last_hot_reload: float = 0.0
     history: List[LifeCycleEvent] = field(default_factory=list)
-    error: Optional[HaywireError | None] = None
+    error: Optional['HaywireException'] = None
     creation_time: float = 0.0
     execution_count: int = 0
     hot_reload_count: int = 0
@@ -157,7 +155,10 @@ class NodeWrapper:
                     elif hasattr(resource, 'close'):
                         resource.close()
                 except Exception as e:
-                    log_detailed_error(f"Failed to cleanup resource in {self.node_id}", e)
+                    HaywireException.from_exception(
+                        exception=e,
+                        message=f"Failed to cleanup resource in {self.node_id}"
+                    ).log()
             
             self._allocated_resources.clear()
             self._livecycle_subscribers.clear()
@@ -253,15 +254,16 @@ class NodeWrapper:
         
         except Exception as e:
             # Create detailed error with context about the node instantiation
-            error = log_detailed_error(
+            error = HaywireException.from_exception(
                 exception=e,
                 operation="Instantiate Node",
+                message=f"Failed to instantiate node '{self.registry_key}'"
+            ).enrich(
                 module_name=event.module_name,
                 registry_key=self.registry_key,
                 class_name=node_cls.__name__,
-                library_identity=event.class_library,
-                message=f"Failed to instantiate node '{self.registry_key}'"
-            )
+                library_identity=event.class_library
+            ).log()
             event = lc_event.create_derived_event(
                 error=error,
                 error_info=str(e),
@@ -357,7 +359,10 @@ class NodeWrapper:
             try:
                 middleware.before_method(self, method_name, *args)
             except Exception as e:
-                log_detailed_error(f"Error in before middleware for {self.node_id}.{method_name}", e)
+                HaywireException.from_exception(
+                    exception=e,
+                    message=f"Error in before middleware for {self.node_id}.{method_name}"
+                ).log()
         
         # Execute method (placeholder - actual implementation would call real methods)
         result = None
@@ -367,7 +372,10 @@ class NodeWrapper:
             try:
                 middleware.after_method(self, method_name, result)
             except Exception as e:
-                log_detailed_error(f"Error in after middleware for {self.node_id}.{method_name}", e)
+                HaywireException.from_exception(
+                    exception=e,
+                    message=f"Error in after middleware for {self.node_id}.{method_name}"
+                ).log()
         
         return result
     

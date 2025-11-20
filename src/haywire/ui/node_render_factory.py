@@ -12,7 +12,7 @@ from typing import Any, Dict, Type, List, Callable
 
 from nicegui.element import Element
 
-from haywire.core.errors.utils import log_detailed_error
+from haywire.core.errors import HaywireException
 from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_renderer import RendererRegistry
@@ -192,12 +192,13 @@ class NodeRenderFactory:
                 ui_element.classes('widget-container zoom-pan-lod2')
                 
         except Exception as e:
-            error = log_detailed_error(
+            error = HaywireException.from_exception(
                 exception=e,
                 operation="Widget creation",
-                registry_key=inlet.widget,
                 message=str(e)
-            )
+            ).enrich(
+                registry_key=inlet.widget
+            ).log()
             # Fallback to error display if widget creation fails
             creationerror = NodeErrorInfo(
                 error='Widget Creation Error',
@@ -235,15 +236,16 @@ class NodeRenderFactory:
                 widget_instance = widget_cls(element, lc_event.error)
             except Exception as e:
                 # Create detailed error with context about the node instantiation
-                error = log_detailed_error(
+                error = HaywireException.from_exception(
                     exception=e,
                     operation="Instantiate Node",
+                    message=f"Failed to instantiate widget '{key}'"
+                ).enrich(
                     module_name=event.module_name,
                     registry_key=key,
                     class_name=widget_cls.__name__,
-                    library_identity=event.library_identity,
-                    message=f"Failed to instantiate widget '{key}'"
-                )
+                    library_identity=event.library_identity
+                ).log()
                 event = lc_event.create_derived_event(
                     error=error,
                     error_info=f"Widget instantiation failed: {str(e)}",
@@ -257,15 +259,16 @@ class NodeRenderFactory:
                     widget_instance = widget_cls(element, error)   
                 except Exception as e2:
                     # Last resort: log and raise
-                    error = log_detailed_error(
+                    error = HaywireException.from_exception(
                         exception=e2,
                         operation="Instantiate Error Widget",
+                        message=f"Failed to instantiate error widget '{key}'"
+                    ).enrich(
                         module_name=lc_event.module_name,
                         registry_key=key,
                         class_name=widget_cls.__name__,
-                        library_identity=lc_event.library_identity,
-                        message=f"Failed to instantiate error widget '{key}'"
-                    )
+                        library_identity=lc_event.library_identity
+                    ).log()
                     event = lc_event.create_derived_event(
                         error=error,
                         error_info=f"Error widget instantiation failed: {str(e)}",

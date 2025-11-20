@@ -2,12 +2,13 @@
 Base widget classes for the Haywire widget system
 """
 
+import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 from nicegui import ui
 
 from haywire.core.data.fields import DataField
-from haywire.core.errors.haywire_error import HaywireError
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.ui.base_widget import BaseWidget
 from haywire.core.types.ports import DataPort
 from haywire.core.ui.base_widget import widget
@@ -29,17 +30,11 @@ class ErrorWidget(BaseWidget):
         # Use the error attribute from BaseWidget
         error = self.error
         
-        if not error or not isinstance(error, HaywireError):
+        if not error or not isinstance(error, HaywireException):
             # Create a default error if none provided
-            error = HaywireError(
-                error_type="UnknownError",
-                error_message="Widget not found or error information missing",
-                filename="unknown",
-                line_number=0,
-                source_line="",
-                context_lines=[],
+            error = HaywireException.create(
                 message="An error occurred but no detailed information is available",
-                error_category="Error"
+                category="Unknown Error"
             )
         
         with ui.column().classes('w-full') as container:
@@ -51,7 +46,7 @@ class ErrorWidget(BaseWidget):
                     
                     # Error message and button
                     with ui.column().classes('flex-grow gap-1'):
-                        ui.label(f"{error.error_category}").classes('text-red-700 font-bold text-sm')
+                        ui.label(f"{error.category}").classes('text-red-700 font-bold text-sm')
                         ui.label(error.message).classes('text-gray-800 text-sm')
                         
                         with ui.row().classes('gap-2 mt-2'):
@@ -64,7 +59,7 @@ class ErrorWidget(BaseWidget):
                     with ui.row().classes('items-center justify-between w-full border-b pb-3'):
                         with ui.row().classes('items-center gap-2'):
                             ui.icon('error', color='red').classes('text-3xl')
-                            ui.label(f"{error.error_category}: {error.message}").classes('text-xl font-bold text-gray-800')
+                            ui.label(f"{error.category}: {error.message}").classes('text-xl font-bold text-gray-800')
                         ui.button(icon='close', on_click=dialog.close).props('flat round')
                     
                     # Main error info
@@ -72,11 +67,7 @@ class ErrorWidget(BaseWidget):
                         with ui.column().classes('gap-2'):
                             if error.operation:
                                 self._create_detail_row('Operation', error.operation, 'build')
-                            
-                            # Error message - handle multiline
-                            error_msg = f"{error.error_type}: {error.error_message}"
-                            self._create_detail_row('Error', error_msg, 'warning', multiline=True)
-                            
+                                                        
                             if error.suggestions:
                                 with ui.column().classes('gap-1 pl-8 pt-2'):
                                     ui.label('Suggestions:').classes('font-bold text-sm text-blue-700')
@@ -86,7 +77,7 @@ class ErrorWidget(BaseWidget):
                                             ui.label(suggestion).classes('text-sm')
                     
                     # Library and context info
-                    if error.library_identity or error.class_name or error.module_name:
+                    if error.library_identity or error.module_name:
                         with ui.card().classes('w-full bg-white'):
                             with ui.column().classes('gap-2'):
                                 ui.label('Context Information').classes('font-bold text-gray-700')
@@ -98,10 +89,7 @@ class ErrorWidget(BaseWidget):
                                 
                                 if error.registry_key:
                                     self._create_detail_row('Registry', error.registry_key, 'key')
-                                
-                                if error.class_name:
-                                    self._create_detail_row('Class', error.class_name, 'code')
-                                
+                                                                
                                 if error.module_name:
                                     self._create_detail_row('Module', error.module_name, 'article')
                     
@@ -121,15 +109,12 @@ class ErrorWidget(BaseWidget):
                                 self._create_detail_row('File', file_display, 'description', monospace=True)
                                 
                                 # Source code with context
-                                if error.context_info or error.context_lines:
+                                if error.source_context:
                                     with ui.column().classes('w-full mt-2'):
                                         ui.label('Source Code:').classes('font-bold text-sm text-gray-600')
                                         
                                         # Use context_info if available, otherwise fall back
-                                        context_to_use = error.context_info if error.context_info else [
-                                            (error.line_number + i - len(error.context_lines) // 2, line) 
-                                            for i, line in enumerate(error.context_lines)
-                                        ]
+                                        context_to_use = error.source_context
                                         
                                         with ui.column().classes('w-full bg-gray-900 rounded p-3 font-mono text-sm overflow-x-auto'):
                                             for line_num, line_content in context_to_use:
@@ -151,14 +136,18 @@ class ErrorWidget(BaseWidget):
                                                     )
                     
                     # Traceback section
-                    if error.traceback_info:
+                    if error.traceback_frames:
                         with ui.card().classes('w-full bg-white'):
                             with ui.column().classes('gap-2'):
                                 ui.label('Traceback').classes('font-bold text-gray-700')
                                 
                                 with ui.column().classes('w-full gap-3 pl-4'):
-                                    for i, (filename, line_number, function_name, source_line) in enumerate(error.traceback_info):
-                                        import os
+                                    for frame in error.traceback_frames:
+                                        filename = frame['file']
+                                        line_number = frame['line']
+                                        function_name = frame['function']
+                                        source_line = frame['code']
+                                        
                                         base_filename = os.path.basename(filename)
                                         
                                         with ui.column().classes('gap-1 border-l-2 border-blue-300 pl-3'):

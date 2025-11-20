@@ -3,7 +3,7 @@ import logging
 from typing import TypeVar, Optional, Union, Type
 import logging
 
-from haywire.core.errors.utils import generate_haywire_error
+from haywire.core.errors.haywire_exception import HaywireException, ErrorSeverity
 from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType
 
 from ...data.fields import DataField
@@ -93,10 +93,17 @@ class WidgetRegistry(BaseClassRegistry):
             lifecycle_event = self._regkey_to_last_lifecycle_event[key]
 
         if lifecycle_event is None or lifecycle_event.is_successful_event() is False:
-            error = generate_haywire_error(
-                operation="Widget lookup",
+            error = HaywireException.create(
+                message=f"Widget '{key}' not found, using error widget",
+                severity=ErrorSeverity.WARNING,
+                category="Widget Not Found",
+                operation="widget_lookup",
                 registry_key=key,
-                message=f"Widget with registry key '{key}' not found"
+                suggestions=[
+                    "Using default error widget as fallback",
+                    "Check if the widget library is properly loaded"
+                ],
+                auto_retry=True
             )
             lifecycle_event = LifeCycleEvent(
                 registry_key=key,

@@ -1,9 +1,10 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Type, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Type, Optional, TypeVar, Union, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-from haywire.core.errors.haywire_error import HaywireError
+if TYPE_CHECKING:
+    from haywire.core.errors.haywire_exception import HaywireException
 
 from ..data.fields import DataField
 from ..types.ports import DataPort
@@ -99,16 +100,16 @@ class BaseWidget(ABC):
     
     Args:
         element (DataPort): The data port this widget is associated with.
-        error (Optional[HaywireError]): Optional error information.
+        error (Optional[HaywireException]): Optional error information.
     """
 
-    def __init__(self, element: DataPort, error: Optional[HaywireError] = None):
+    def __init__(self, element: DataPort, error: Optional['HaywireException'] = None):
         self.element: DataPort = element
         self.element_id: str = element.id
         self.data_field: DataField = element.data
         self.ui_properties: Dict[str, Any] = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}
         self.ui_element = None
-        self.error: Optional[HaywireError] = error
+        self.error: Optional['HaywireException'] = error
 
         # Add change handler for the data field
         self.data_field.on_changed += self._call_on_model_changed

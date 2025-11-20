@@ -10,9 +10,10 @@ filter and route at each layer of the system.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Type, Any, Set, Callable
+from typing import Optional, Type, Any, Set, Callable, TYPE_CHECKING
 
-from haywire.core.errors.haywire_error import HaywireError
+if TYPE_CHECKING:
+    from haywire.core.errors.haywire_exception import HaywireException
 
 from .library_identity import LibraryIdentity
 
@@ -75,29 +76,17 @@ class LifeCycleEvent:
     """The library where the change occurred"""
     
     # Error information (for failed reloads)
-    error_info: Optional[str] = None
-    """Error message if reload failed"""
-    
-    error: Optional[HaywireError] = None
+    error: Optional['HaywireException'] = None
     """The error if reload failed"""
     
     # Module tracking
     module_name: Optional[str] = None
     """The Python module name"""
     
-    class_name: Optional[str] = None
-    """The Python class name (preserved even if class is None)"""
-    
-    # Propagation tracking
-    reloaded_modules: Set[str] = field(default_factory=set)
-    """Track modules already reloaded in this event chain"""
-    
     def __post_init__(self):
         """Initialize tracking sets and auto-populate class metadata"""
         # Auto-populate class_name and module_name from class if available
         if self.affected_class is not None:
-            if self.class_name is None:
-                self.class_name = self.affected_class.__name__
             if self.module_name is None:
                 self.module_name = self.affected_class.__module__
     
@@ -108,11 +97,7 @@ class LifeCycleEvent:
     def matches_registry_key(self, registry_key: str) -> bool:
         """Check if this event affects a specific registry key"""
         return self.registry_key == registry_key
-    
-    def matches_class_name(self, class_name: str) -> bool:
-        """Check if this event affects a specific class name"""
-        return self.class_name == class_name
-    
+        
     def matches_module(self, module_name: str) -> bool:
         """Check if this event affects a specific module"""
         return self.module_name == module_name
@@ -184,11 +169,8 @@ class LifeCycleEvent:
             'event_type': self.event_type,
             'affected_class': self.affected_class,
             'library_identity': self.library_identity,
-            'error_info': self.error_info,
             'error': self.error,
-            'module_name': self.module_name,
-            'class_name': self.class_name,
-            'reloaded_modules': self.reloaded_modules.copy()
+            'module_name': self.module_name
         }
         data.update(overrides)
         return LifeCycleEvent(**data)
@@ -196,8 +178,8 @@ class LifeCycleEvent:
     def __str__(self) -> str:
         """Human-readable representation"""
         status = self.event_type.value
-        if self.error_info:
-            status += f" (error: {self.error_info})"
+        if self.error is not None:
+            status += f" (error: {self.error.message})"
         return f"LifeCycleEvent({self.registry_key}, {status})"
     
     def __repr__(self) -> str:
@@ -206,7 +188,6 @@ class LifeCycleEvent:
             f"LifeCycleEvent("
             f"registry_key='{self.registry_key}', "
             f"event_type={self.event_type.value}, "
-            f"class_name='{self.class_name}', "
             f"library='{self.library_identity.label}', "
             f"has_class={self.affected_class is not None}"
             f")"

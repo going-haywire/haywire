@@ -11,13 +11,11 @@ import sys
 from typing import Callable, Dict, Any, Optional, Type, List, Tuple
 import logging
 
-from haywire.core.errors.utils import generate_haywire_error
-
 from .library_identity import LibraryIdentity
 from .dependency_graph import DependencyGraph, ReloadPlan
 from .folder_scan import FolderScanMixin
 from .hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback
-from ..errors import log_detailed_error
+from ..errors import HaywireException
 
 
 class FileEventType(Enum):
@@ -211,13 +209,14 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             except Exception as e:
                 try:
                     rel_path = folder_path[len(library_identity.folder_path):]
-                    log_detailed_error(
+                    HaywireException.from_exception(
                         exception=e,
                         operation="Registry folder import",
+                        message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'"
+                    ).enrich(
                         module_name=locals().get('module_name', 'unknown'),
-                        message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'",
                         library_identity=library_identity
-                    )
+                    ).log()
                 except Exception as logging_error:
                     logging.error(
                         f"Library '{library_identity.label}': "
@@ -256,13 +255,14 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
             except Exception as e:
                 try:
                     rel_path = folder_path[len(library_identity.folder_path):]
-                    log_detailed_error(
+                    HaywireException.from_exception(
                         exception=e,
                         operation="Registry folder import",
+                        message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'"
+                    ).enrich(
                         module_name=module_name,
-                        message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'",
                         library_identity=library_identity
-                    )
+                    ).log()
                 except Exception as logging_error:
                     logging.error(
                         f"Library '{library_identity.label}': "
@@ -338,12 +338,13 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                 if event.event_type == FileEventType.MODIFIED:
                     # Reload failed during modification
                     for key in self._module_to_registry_keys.get(module_name, []):
-                        error=generate_haywire_error(
+                        error=HaywireException.from_exception(
                             exception=e,
-                            registry_key=key,
                             operation="Registry Hotreload File Module Reload",
+                            message=f"Failed reloading module '{module_name}' in library '{event.library_identity.label}'"
+                        ).enrich(
+                            registry_key=key,
                             module_name=module_name,
-                            message=f"Failed reloading module '{module_name}' in library '{event.library_identity.label}'",
                             library_identity=event.library_identity
                         )
                         lc_event = LifeCycleEvent(
@@ -357,13 +358,14 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
                         self._queue_lifecycle_event(lc_event)
                     self._notify_batch_event_subscribers()
             try:
-                log_detailed_error(
+                HaywireException.from_exception(
                     exception=e,
                     operation="Registry Hotreload Callback",
+                    message=f"Failed notifying about file {event.event_type.value} in library '{event.library_identity.label}'"
+                ).enrich(
                     module_name=locals().get('module_name', 'unknown'),
-                    message=f"Failed notifying about file {event.event_type.value} in library '{event.library_identity.label}'",
                     library_identity=event.library_identity
-                )
+                ).log()
             except Exception as logging_error:
                 logging.error(
                     f"Library '{event.library_identity.label}': "
