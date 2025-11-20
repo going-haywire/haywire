@@ -560,15 +560,20 @@ class HaywireException(Exception):
             lines.append(f"Module    : {self.module_name}")
         
         if self.filename:
-            if self.library_identity:
-                rel_path = self.filename[len(self.library_identity.folder_path):]
-                if rel_path == "":
-                    lines.append(f"File      :╒{self.filename}")
-                else:               
-                    lines.append(f"File      :╒..{rel_path}")
+            if self.library_identity and self.library_identity.folder_path and self.filename:
+                try:
+                    rel_path = os.path.relpath(self.filename, self.library_identity.folder_path)
+                    # Only use relative path if it's not escaping the library folder
+                    if not rel_path.startswith(".."):
+                        lines.append(f"File      :╒══ ./{rel_path}")
+                    else:
+                        lines.append(f"File      :╒══ {self.filename}")
+                except ValueError:
+                    # relpath can fail if paths are on different drives (Windows)
+                    lines.append(f"File      :╒══ {self.filename}")
             else:
-                lines.append(f"File      :╒{self.filename}")
-
+                lines.append(f"File      :╒══ {self.filename}")
+                
             lines.append("           ┆")
             
             # Add context lines with fancy box drawing
