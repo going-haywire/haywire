@@ -2,7 +2,9 @@
 from typing import Any, Dict
 from nicegui import ui
 from nicegui.element import Element
+from haywire.core.errors.utils import log_detailed_error
 from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.types.ports import PortInlet
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.node.base_node import BaseNode
 from haywire.core.ui.base import UINodeCard 
@@ -16,7 +18,6 @@ class ExampleNodeRenderer(BaseNodeRenderer):
     def _render(self, node: BaseNode) -> UINodeCard:
         """Render a node with custom styling."""
         ui_elements = {}
-        widget_instances = {}
         
         node_id = f"example-node-{id(node)}"
         
@@ -62,7 +63,8 @@ class ExampleNodeRenderer(BaseNodeRenderer):
                             with ui.row().classes('w-full items-center gap-1'):
                                 ui.label(inlet.label).classes('text-xs')
                                 if inlet.is_pooled == False:
-                                    self.render_element(inlet, ui_elements, widget_instances)
+                                    if inlet.widget:
+                                        self._render_factory.render_widget(inlet, node.node_id)
                 
                 # Outlets
                 with ui.column().classes('flex-1 gap-1'):
@@ -71,42 +73,5 @@ class ExampleNodeRenderer(BaseNodeRenderer):
                         for outlet in node.outlets.values():
                             ui.label(outlet.label).classes('text-xs text-right')
         
-        return UINodeCard(main_card, ui_elements, widget_instances)
+        return UINodeCard(main_card, ui_elements)
     
-
-    def render_element(self, element_type: str, element, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]) -> Element | None:
-        """Render a single element using widget registry"""
-        if not element.data or element.widget is None:
-            return None
-        
-        # Get widget name and properties
-        widget_name = element.widget
-        
-        try:
-            # Get widget instance from registry (with fallback strategy depending on data type)
-            widget_instance, lc_event = self._render_factory.get_widget_instance(widget_name, element)
-            
-            if widget_instance is not None:
-                
-                # Render the widget
-                ui_element = widget_instance.render()
-                            
-                # Store references
-                ui_elements[element.id] = ui_element
-                widget_instances[element.id] = widget_instance
-                
-                return ui_element
-            else:
-                return None
-            
-        except Exception as e:
-            # Fallback to error display if widget creation fails
-            creationerror = NodeErrorInfo(
-                error='Widget Creation Error',
-                error_message=str(e)
-            )
-            creationerror.add_note(f"Element: {element.id}")
-            creationerror.add_note(f"Requested widget: {getattr(element, 'widget', 'None')}")
-
-            return render_error_info(creationerror)
-

@@ -92,7 +92,7 @@ class WidgetRegistry(BaseClassRegistry):
         if key in self._regkey_to_last_lifecycle_event:
             lifecycle_event = self._regkey_to_last_lifecycle_event[key]
 
-        if lifecycle_event is None:
+        if lifecycle_event is None or lifecycle_event.is_successful_event() is False:
             error = generate_haywire_error(
                 operation="Widget lookup",
                 registry_key=key,
@@ -103,17 +103,6 @@ class WidgetRegistry(BaseClassRegistry):
                 event_type=LifeCycleEventType.CLASS_NOT_FOUND,
                 affected_class=self._get_error_widget(),
                 error=error,
-            )
-
-        elif lifecycle_event.is_successful_event() is False:
-            error = generate_haywire_error(
-                operation="Widget lookup",
-                registry_key=key,
-                message=f"Widget with registry key '{key}' not found"
-            )
-            lifecycle_event = lifecycle_event.create_derived_event(
-                affected_class=self._get_error_widget(),
-                error=error
             )
  
         return lifecycle_event

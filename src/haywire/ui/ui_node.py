@@ -60,9 +60,6 @@ class UINode:
         # Generate unique ID for this UINode
         self.ui_node_id = f"ui-node-{id(self)}"
         
-        # Track which renderer we're using for hot reload detection
-        self._current_renderer_name: Optional[str] = None
-        
         # Subscribe to wrapper changes for hot reload support
         self.node_wrapper.add_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
         
@@ -142,14 +139,8 @@ class UINode:
         Args:
             event: The hot reload event with complete context
         """
-        # Check if we're using the affected renderer
-        if not self._current_renderer_name:
-            return
-        
-        if not event.matches_class_name(self._current_renderer_name):
-            return  # Not our renderer, ignore
        
-        print(f"🎨 UINode {self.haywire_node.node_id}: Renderer '{self._current_renderer_name}' - {event.event_type.value}")
+        print(f"🎨 UINode {self.haywire_node.node_id}: {event.event_type.value}")
         
         # Re-render using the same thread-safe pattern as wrapper changes
         def update_ui():
@@ -193,9 +184,8 @@ class UINode:
                 if renderer_name is None:
                     renderer_name = self.haywire_node.ui_config.node_renderer
                 
-                self.current_ui_card, registry_key = self.factory.generate_node(renderer_name, self.haywire_node)
+                self.current_ui_card = self.factory.generate_node(renderer_name, self.haywire_node)
 
-                self._current_renderer_name = registry_key
     
     def rerender(self, renderer_name: str | None = None):
         """
@@ -238,22 +228,7 @@ class UINode:
         if self.current_ui_card:
             return self.current_ui_card.get_ui_element(element_id)
         return None
-    
-    def update_element_value(self, element_id: str, new_value) -> bool:
-        """
-        Update an element's value through its widget.
         
-        Args:
-            element_id: ID of the element to update
-            new_value: New value to set
-            
-        Returns:
-            True if update was successful, False otherwise
-        """
-        if self.current_ui_card:
-            return self.current_ui_card.update_element_value(element_id, new_value)
-        return False
-    
     def destroy(self):
         """
         Clean up resources and remove UI elements.

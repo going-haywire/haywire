@@ -8,18 +8,23 @@ Enhanced with customer notification system for UINode hot reload support.
 """
 
 import logging
-from typing import Dict, Type, List, Callable
+from typing import Any, Dict, Type, List, Callable
+
+from nicegui.element import Element
+
 from haywire.core.errors.utils import log_detailed_error
 from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.library_identity import LibraryIdentity
 from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback
-from haywire.core.types.ports import DataPort
+from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.types.ports import DataPort, PortInlet
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
 from haywire.core.ui.base_widget import BaseWidget
 from haywire.ui.error_widget import ErrorWidget
+from haywire.ui.utils import render_error_info
 
 class NodeRenderFactory:
     """
@@ -80,7 +85,7 @@ class NodeRenderFactory:
         renderer_instance = self._renderer_cache[registry_key]
         
         # Call render method to create UINodeCard
-        return renderer_instance._render(node), registry_key
+        return renderer_instance._render(node)
     
     def clear_cache(self):
         """Clear the renderer instance cache."""
@@ -163,18 +168,43 @@ class NodeRenderFactory:
         
             # Notify customers (UINodes) about the renderer reload
             self._notify_subscribers(event)
+
+    def render_widget(self, inlet: PortInlet, node_id: str) -> Element:
+        """Render a widget for the given inlet."""        
+        ui_element: Element
+
+        try:
+            widget = self.get_widget(inlet)
+            ui_element = widget.render()            
+        except Exception as e:
+            error = log_detailed_error(
+                exception=e,
+                operation="Widget creation",
+                registry_key=inlet.widget,
+                message=str(e)
+            )
+            # Fallback to error display if widget creation fails
+            creationerror = NodeErrorInfo(
+                error='Widget Creation Error',
+                error_message=str(e)
+            )
+            creationerror.add_note(f"Element: {inlet.id}")
+            creationerror.add_note(f"Requested widget: {getattr(inlet, 'widget', 'None')}")
+
+            ui_element = render_error_info(creationerror)
     
-    def get_widget_instance(self, key: str | None, element: DataPort) -> tuple[BaseWidget | None, LifeCycleEvent]:
-        """
-        Get last lifecycle widget event by registry key 
+        return ui_element
 
+    def get_widget(self, element: DataPort) -> BaseWidget:
+        """
+        Get a widget instance for the given element using the widget registry.
         Args:
-            key: Registry key in format "library_id:widget:widget_name"
-
+            element: The DataPort (inlet or outlet) to get the widget for
         Returns:
-            tuple[BaseWidget | None, LifeCycleEvent]: The widget instance or None if instantiation failed,
-            and the lifecycle event with context
+            BaseWidget: The instantiated widget for the element
         """
+ 
+        key = element.widget
 
         lc_event = self.widget_registry.get_widget_event(key)
 
@@ -228,7 +258,7 @@ class NodeRenderFactory:
                     )
                     widget_instance = None        
 
-        return widget_instance, event
+        return widget_instance
  
     def _on_widget_reloaded(self, batch: list[LifeCycleEvent]) -> None:
         """

@@ -44,7 +44,6 @@ class DefaultNodeRenderer(BaseNodeRenderer):
         """
         # Storage for UI elements and widget instances
         ui_elements: Dict[str, Any] = {}
-        widget_instances: Dict[str, Any] = {}
         
         # Create the main card
         node_bg = ThemePalette.ui(Theme_UI_Color.NODE_BACKGROUND, 'rgba(255, 255, 255, 0.3)')
@@ -63,7 +62,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                     if node.inlets:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.inlets.values():
-                            self._render_inlet(inlet, ui_elements, widget_instances, node)
+                            self._render_inlet(inlet, ui_elements, node)
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
@@ -77,9 +76,9 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
         
-        return UINodeCard(main_card, ui_elements, widget_instances)
+        return UINodeCard(main_card, ui_elements)
     
-    def _render_inlet(self, inlet: PortInlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any], node: BaseNode):
+    def _render_inlet(self, inlet: PortInlet, ui_elements: Dict[str, Any], node: BaseNode):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-1'):
             # only render pins for inlets that are actually involved in flows
@@ -90,8 +89,8 @@ class DefaultNodeRenderer(BaseNodeRenderer):
 
         # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
         if inlet.is_pooled == False:
-            widget = self.render_element('inlet', inlet, ui_elements, widget_instances)
-            if widget is not None:
+            if inlet.widget:
+                widget = self._render_factory.render_widget(inlet, node.node_id)
                 # Add widget-container class for fold/unfold functionality (if element supports classes)
                 if hasattr(widget, 'classes') and callable(widget.classes):
                     widget.classes('widget-container zoom-pan-lod2')
@@ -173,45 +172,3 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'data-pin-data-type="{pin.data.type}" '
                 f'data-pin-color="{pin_color}"'
             )
-
-    def render_element(self, element_type: str, element, ui_elements: Dict[str, Any], widget_instances: Dict[str, Any]) -> Element | None:
-        """Render a single element using widget registry"""
-        if not element.data or element.widget is None:
-            return None
-        
-        # Get widget name and properties
-        widget_name = element.widget
-        
-        try:
-            # Get widget instance from registry (with fallback strategy depending on data type)
-            widget_instance, lc_event = self._render_factory.get_widget_instance(widget_name, element)
-            
-            if widget_instance is not None:
-                
-                # Render the widget
-                ui_element = widget_instance.render()
-                            
-                # Store references
-                ui_elements[element.id] = ui_element
-                widget_instances[element.id] = widget_instance
-                
-                return ui_element
-            else:
-                return None
-            
-        except Exception as e:
-            error = log_detailed_error(
-                exception=e,
-                operation="Widget creation",
-                registry_key=widget_name,
-                message=str(e)
-            )
-            # Fallback to error display if widget creation fails
-            creationerror = NodeErrorInfo(
-                error='Widget Creation Error',
-                error_message=str(e)
-            )
-            creationerror.add_note(f"Element: {element.id}")
-            creationerror.add_note(f"Requested widget: {getattr(element, 'widget', 'None')}")
-
-            return render_error_info(creationerror)

@@ -114,10 +114,9 @@ class BaseNodeRenderer(ABC):
         Args:
             widget_registry: Registry for resolving widget classes
         """
-        self._render_factory: 'NodeRenderFactory' = render_factory
-        self._widget_used_registry_keys: list[str] = []
+        self._render_factory = render_factory
 
-    def render(self, node: BaseNode) -> tuple[UINodeCard, list[str]]:
+    def render(self, node: BaseNode) -> UINodeCard:
         """
         Render a node into a UINodeCard.
 
@@ -127,10 +126,8 @@ class BaseNodeRenderer(ABC):
         Returns:
             UINodeCard containing the rendered UI and widget registry keys
         """
-        self._widget_used_registry_keys: list[str] = []
-        card: UINodeCard = self._render(node)
 
-        return card, self._widget_used_registry_keys
+        return self._render(node)
 
     @abstractmethod
     def _render(self, node: BaseNode) -> UINodeCard:
