@@ -196,6 +196,8 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
 
         file_paths = self.folder_scan_for_pyfiles(folder_path, exclude_patterns)
 
+        module_name = "Unknown"
+
         for file_path in file_paths:
             try:
                 if self._validate_python_file(file_path):
@@ -208,19 +210,19 @@ class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
 
             except Exception as e:
                 try:
-                    rel_path = folder_path[len(library_identity.folder_path):]
                     HaywireException.from_exception(
                         exception=e,
                         operation="Registry folder import",
-                        message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'"
+                        message=f"Failed while importing folder '{file_path}' in library '{library_identity.label}'"
                     ).enrich(
-                        module_name=locals().get('module_name', 'unknown'),
+                        module_name=module_name,
                         library_identity=library_identity
                     ).log()
                 except Exception as logging_error:
                     logging.error(
                         f"Library '{library_identity.label}': "
-                        f"Failed notifying registry : {e}")
+                        f"Failed notifying registry : {e}",
+                        exc_info=True)
 
         self._notify_batch_event_subscribers()
 

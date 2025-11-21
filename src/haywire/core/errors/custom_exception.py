@@ -1,7 +1,14 @@
 """
-Base exception classes for Haywire with rendering metadata.
+Base exception classes for Haywire with metadata.
 
-These exceptions carry information about how they should be rendered by detailed_error.py,
+CustomException (Developer-facing)
+
+    Audience: Developers writing Haywire code
+    Purpose: Type errors, API misuse, library definition errors
+    Display: Console/logs with code context and suggestions
+    Example: Wrong decorator usage, invalid primitive type definition
+    
+These exceptions carry additional information about how they should be rendered,
 allowing for better error messages that point to the right location and hide implementation details.
 """
 
@@ -14,9 +21,12 @@ from haywire.core.library.library_identity import LibraryIdentity
 @dataclass
 class CustomException(Exception):
     """
-    Base exception for Haywire with rendering metadata.
+    CustomException: Developers writing Haywire code
+        Purpose: Type errors, API misuse, library definition errors
+        Display: Console/logs with code context and suggestions
+        Example: Wrong decorator usage, invalid primitive type definition
     
-    This exception carries information about how detailed_error.py should render it:
+    This exception carries information:
     - Where the error actually occurred (user code, not framework internals)
     - What traceback frames to skip
     - Actionable suggestions for fixing the error

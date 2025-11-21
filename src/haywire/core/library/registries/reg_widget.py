@@ -86,6 +86,9 @@ class WidgetRegistry(BaseClassRegistry):
 
         Returns:
             LifeCycleEvent: Last lifecycle event for the widget
+            
+        Raises:
+            HaywireException: If widget not found or last event unsuccessful
         """
         lifecycle_event = None
 
@@ -95,7 +98,7 @@ class WidgetRegistry(BaseClassRegistry):
         if lifecycle_event is None or lifecycle_event.is_successful_event() is False:
             error = HaywireException.create(
                 message=f"Widget '{key}' not found, using error widget",
-                severity=ErrorSeverity.WARNING,
+                severity=ErrorSeverity.ERROR,
                 category="Widget Not Found",
                 operation="widget_lookup",
                 registry_key=key,
@@ -105,11 +108,6 @@ class WidgetRegistry(BaseClassRegistry):
                 ],
                 auto_retry=True
             )
-            lifecycle_event = LifeCycleEvent(
-                registry_key=key,
-                event_type=LifeCycleEventType.CLASS_NOT_FOUND,
-                affected_class=self._get_error_widget(),
-                error=error,
-            )
- 
+            raise error
+
         return lifecycle_event

@@ -1,6 +1,13 @@
 """
 Unified HaywireException - UI-first exception for user-facing errors
 
+HaywireException (User-facing)
+
+    Audience: End users of the Haywire visual editor
+    Purpose: Runtime failures during graph execution/hot-reload
+    Display: UI widgets, event panels, notification system
+    Example: Node failed to load, widget crash, renderer error
+
 This exception is designed for runtime failures that end users need to understand.
 It's primarily a UI event that can also be raised/caught like a normal exception.
 
@@ -51,8 +58,9 @@ import sys
 import traceback as tb_module
 import re
 import time
+import os 
 
-from haywire.core.library.library_identity import LibraryIdentity
+from ..library.library_identity import LibraryIdentity
 
 
 class ErrorSeverity(Enum):
@@ -573,7 +581,7 @@ class HaywireException(Exception):
                     lines.append(f"File      :╒══ {self.filename}")
             else:
                 lines.append(f"File      :╒══ {self.filename}")
-                
+
             lines.append("           ┆")
             
             # Add context lines with fancy box drawing
@@ -606,7 +614,6 @@ class HaywireException(Exception):
         
         # Add traceback information if available
         if self.traceback_frames:
-            import os
             for i, frame in enumerate(self.traceback_frames):
                 base_filename = os.path.basename(frame['file'])
                 space_indent = "  " * i

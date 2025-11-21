@@ -8,21 +8,22 @@ between nodes in the Haywire system.
 from dataclasses import dataclass, field, asdict
 from typing import List, Tuple
 
-from haywire.core.types.decorators import compound_type
-from haywire.core.types.base import TypeBase
+from haywire.core.types.decorators import type
+from haywire.core.types.base_type import BaseType
 
 
-@compound_type(
+@type(
     registry_id='mesh_data',
     label='3D Mesh',
     description='Polygonal mesh with vertices and faces',
     color='#4CAF50',
     icon='cube',
     help_url='https://haywire.io/docs/types/mesh-data',
-    widget='mesh_viewer_widget'
+    widget='mesh_viewer_widget',
+    default={'vertices': [], 'faces': [], 'name': "Named Mesh"},
 )
 @dataclass
-class MeshData(TypeBase):
+class MeshData(BaseType):
     """
     A 3D mesh data structure.
     

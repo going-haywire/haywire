@@ -6,8 +6,8 @@ This module provides infrastructure for defining and managing data types
 nodes through inlet/outlet connections.
 """
 
-from .base import TypeBase
-from .decorators import primitive_type, compound_type
+from .base_type import BaseType
+from .decorators import type
 from .identity import DataPortIdentity
 
-__all__ = ['TypeBase', 'primitive_type', 'compound_type', 'DataPortIdentity']
+__all__ = ['BaseType', 'type', 'DataPortIdentity']

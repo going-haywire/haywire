@@ -191,24 +191,38 @@ class NodeRenderFactory:
             if hasattr(ui_element, 'classes') and callable(ui_element.classes):
                 ui_element.classes('widget-container zoom-pan-lod2')
                 
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Widget creation",
-                message=str(e)
-            ).enrich(
-                registry_key=inlet.widget
-            ).log()
-            # Fallback to error display if widget creation fails
-            creationerror = NodeErrorInfo(
-                error='Widget Creation Error',
-                error_message=str(e)
-            )
-            creationerror.add_note(f"Element: {inlet.id}")
-            creationerror.add_note(f"Requested widget: {getattr(inlet, 'widget', 'None')}")
+        except Exception as error:
+            if not isinstance(error, HaywireException):
+                error = HaywireException.from_exception(
+                    exception=error,
+                    category="Widget Render Error",
+                    operation="widget_lookup",
+                    message=f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' in node '{node_id}'"
+                ).enrich(
+                    registry_key=inlet.widget
+                ).log()
+            error_widget_registry_key = 'unkwown'
+            try:
+                widget_cls = self.widget_registry._get_error_widget()
+                if widget_cls:
+                    error_widget_registry_key = widget_cls.class_identity.registry_key
+                widget_instance = widget_cls(inlet, error)
+                ui_element = widget_instance.render()
+            except Exception as e:
+                # Fallback to error display if widget creation fails completely
+                logging.error(f"Failed to create error widget '{error_widget_registry_key}' for inlet '{inlet.id}' in node '{node_id}': {e}", exc_info=True)
 
-            render_error_info(creationerror)
-            widget_instance = None
+                creationerror = NodeErrorInfo(
+                    error='Fatal Error',
+                    error_message=str(e)
+                )
+                creationerror.add_note(f"Check log for details")
+                creationerror.add_note(f"Element: {inlet.id}")
+                creationerror.add_note(f"Requested widget: {getattr(inlet, 'widget', 'None')}")
+
+                render_error_info(creationerror)
+                
+                widget_instance = None
     
         return widget_instance
 
@@ -227,9 +241,7 @@ class NodeRenderFactory:
 
         widget_cls = lc_event.affected_class
 
-        widget_instance: BaseWidget | None = None
-
-        event = lc_event
+        widget_instance = None
 
         if widget_cls is not None:
             try:
@@ -238,44 +250,16 @@ class NodeRenderFactory:
                 # Create detailed error with context about the node instantiation
                 error = HaywireException.from_exception(
                     exception=e,
-                    operation="Instantiate Node",
+                    category="Widget Instantiation Error",
+                    operation="widget_lookup",
                     message=f"Failed to instantiate widget '{key}'"
                 ).enrich(
-                    module_name=event.module_name,
                     registry_key=key,
-                    class_name=widget_cls.__name__,
-                    library_identity=event.library_identity
-                ).log()
-                event = lc_event.create_derived_event(
-                    error=error,
-                    error_info=f"Widget instantiation failed: {str(e)}",
-                    affected_class=widget_cls,
-                    event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED
-                    )
-                
-                widget_cls = ErrorWidget
+                    module_name=lc_event.module_name,
+                    library_identity=lc_event.library_identity
+                )
 
-                try:
-                    widget_instance = widget_cls(element, error)   
-                except Exception as e2:
-                    # Last resort: log and raise
-                    error = HaywireException.from_exception(
-                        exception=e2,
-                        operation="Instantiate Error Widget",
-                        message=f"Failed to instantiate error widget '{key}'"
-                    ).enrich(
-                        module_name=lc_event.module_name,
-                        registry_key=key,
-                        class_name=widget_cls.__name__,
-                        library_identity=lc_event.library_identity
-                    ).log()
-                    event = lc_event.create_derived_event(
-                        error=error,
-                        error_info=f"Error widget instantiation failed: {str(e)}",
-                        affected_class=None,
-                        event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED
-                    )
-                    widget_instance = None        
+                raise error
 
         return widget_instance
  

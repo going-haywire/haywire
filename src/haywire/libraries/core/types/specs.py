@@ -3,15 +3,15 @@ Built-in data type specifications for Haywire core library.
 """
 
 from dataclasses import dataclass
-from haywire.core.types.decorators import primitive_type
-from haywire.core.types.base import PrimitiveType
+from haywire.core.types.decorators import type
+from haywire.core.types.base_type import PrimitiveType
 from haywire.core.data.enums import ContainerType, FlowType
 
 # ============================================================================
 # Exec Types
 # ============================================================================
 
-@primitive_type(
+@type(
     registry_id='exec',
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.CTRL,
@@ -20,14 +20,14 @@ from haywire.core.data.enums import ContainerType, FlowType
     color='#ff9800',
     icon='flash',
     widget=None,
-    default=None,
+    default={'value': None},
 )
-class EXEC(PrimitiveType):
+class EXEC(PrimitiveType[None]):
     """Execution signal type for controlling node execution flow"""
-    value: None = None
 
 
-@primitive_type(
+
+@type(
     registry_id='callback',
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.CALLBACK,
@@ -36,18 +36,17 @@ class EXEC(PrimitiveType):
     color='#ff5722',
     icon='repeat',
     widget=None,
-    default=None,
+    default={'value': None},
 )
-class CALLBACK(PrimitiveType):
+class CALLBACK(PrimitiveType[None]):
     """Callback signal type for callback execution between nodes"""
-    value: None = None
 
 
 # ============================================================================
 # Numeric Types
 # ============================================================================
 
-@primitive_type(
+@type(
     registry_id='int',
     container_type=ContainerType.SINGLE,
     label='Integer',
@@ -55,14 +54,15 @@ class CALLBACK(PrimitiveType):
     color='#f7b0ff',
     icon='tag',
     widget='core:widget:number.widget',
-    default=0,
+    default={'value': 0},
 )
 @dataclass
-class INT(PrimitiveType):
+class INT(PrimitiveType[int]):
     """Integer data type"""
-    value: int
 
-@primitive_type(
+
+
+@type(
     registry_id='float',
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
@@ -71,19 +71,19 @@ class INT(PrimitiveType):
     color='#50b0ff',
     icon='circle',
     widget='core:widget:number.widget',
-    default=0.0,
+    default={'value': 0.0},
 )
 @dataclass
-class FLOAT(PrimitiveType):
+class FLOAT(PrimitiveType[float]):
     """Float data type"""
-    value: float
+    pass
 
 
 # ============================================================================
 # Text Types
 # ============================================================================
 
-@primitive_type(
+@type(
     registry_id='string',
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
@@ -92,19 +92,19 @@ class FLOAT(PrimitiveType):
     color='#ffc107',
     icon='type',
     widget='core:widget:text.input.widget',
-    default='',
+    default={'value': ''},
 )
 @dataclass
-class STRING(PrimitiveType):
+class STRING(PrimitiveType[str]):
     """String data type"""
-    value: str
+    pass
 
 
 # ============================================================================
 # Boolean Type
 # ============================================================================
 
-@primitive_type(
+@type(
     registry_id='bool',
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
@@ -113,19 +113,19 @@ class STRING(PrimitiveType):
     color='#4caf50',
     icon='checkbox',
     widget='core:widget:checkbox.widget',
-    default=False,
+    default={'value': False},
 )
 @dataclass
-class BOOL(PrimitiveType):
+class BOOL(PrimitiveType[bool]):
     """Boolean data type"""
-    value: bool
+    pass
 
 
 # ============================================================================
 # Binary Type
 # ============================================================================
 
-@primitive_type(
+@type(
     registry_id='bytes',
     container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
@@ -134,19 +134,19 @@ class BOOL(PrimitiveType):
     color='#9e9e9e',
     icon='file',
     widget=None,
-    default=b'',
+    default={'value': b''},
 )
 @dataclass
-class BYTES(PrimitiveType):
+class BYTES(PrimitiveType[bytes]):
     """Bytes data type"""
-    value: bytes
+    pass
 
 
 # ============================================================================
 # Collection Types
 # ============================================================================
 
-@primitive_type(
+@type(
     registry_id='list',
     container_type=ContainerType.LIST,
     flow_type=FlowType.DATA,
@@ -155,15 +155,14 @@ class BYTES(PrimitiveType):
     color='#e91e63',
     icon='list',
     widget=None,
-    default=[],
+    default={'value': []},
 )
 @dataclass
-class LIST(PrimitiveType):
+class LIST(PrimitiveType[list]):
     """List data type"""
-    value: list
+    pass
 
-
-@primitive_type(
+@type(
     registry_id='dict',
     container_type=ContainerType.DICT,
     flow_type=FlowType.DATA,
@@ -172,9 +171,9 @@ class LIST(PrimitiveType):
     color='#9c27b0',
     icon='map',
     widget=None,
-    default={},
+    default={'value': {}},
 )
 @dataclass
-class DICT(PrimitiveType):
+class DICT(PrimitiveType[dict]):
     """Dictionary data type"""
-    value: dict
+    pass

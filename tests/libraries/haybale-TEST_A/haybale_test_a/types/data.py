@@ -8,11 +8,11 @@ by nodes in other libraries (like test_b).
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
-from haywire.core.types.decorators import compound_type
-from haywire.core.types.base import TypeBase
+from haywire.core.types.decorators import type
+from haywire.core.types.base_type import BaseType
 
 
-@compound_type(
+@type(
     registry_id='test_data',
     label='Test Data',
     description='Simple test data structure for cross-library testing',
@@ -21,7 +21,7 @@ from haywire.core.types.base import TypeBase
     help_url='https://haywire.io/docs/types/test-data'
 )
 @dataclass
-class TestData(TypeBase):
+class TestData(BaseType):
     """
     A simple test data structure.
     

@@ -8,7 +8,7 @@ validation, and retrieval of all data types (type variants and custom compound t
 import inspect
 from typing import Type, Any
 
-from ...types.base import TypeBase
+from ...types.base_type import IType
 from ...types.identity import DataPortIdentity
 from ..class_registry import BaseClassRegistry
 from ..library_identity import LibraryIdentity
@@ -53,8 +53,8 @@ class TypeRegistry(BaseClassRegistry):
             if not inspect.isclass(cls):
                 return False
             
-            # Must inherit from TypeBase
-            if not issubclass(cls, TypeBase):
+            # Must inherit from IType
+            if not issubclass(cls, IType):
                 return False
             
             # Must have class_identity attribute
@@ -64,12 +64,7 @@ class TypeRegistry(BaseClassRegistry):
             # class_identity must be a DataPortIdentity
             if not isinstance(cls.class_identity, DataPortIdentity):
                 return False
-            
-            # If it's a custom compound type (not variant), must have serialization
-            if not cls.class_identity._is_variant:
-                if not hasattr(cls, 'to_dict') or not hasattr(cls, 'from_dict'):
-                    return False
-            
+                        
             return True
             
         except (TypeError, AttributeError):
@@ -134,21 +129,6 @@ class TypeRegistry(BaseClassRegistry):
             return type_cls.class_identity
         return None
     
-    def is_variant(self, key: str) -> bool:
-        """
-        Check if a registered type is a variant (vs. custom compound type).
-        
-        Args:
-            key: Registry key of the type
-            
-        Returns:
-            True if variant (primitive wrapper), False if custom compound type
-        """
-        identity = self.get_identity(key)
-        if identity:
-            return identity._is_variant
-        return False
-
     def validate_instance(self, key: str, instance: Any) -> bool:
         """
         Check if an instance is of a registered type.
@@ -168,68 +148,7 @@ class TypeRegistry(BaseClassRegistry):
             return False
         
         identity = type_cls.class_identity
-        
-        # For type variants, check against the primitive cls
-        if identity._is_variant and identity.cls:
-            return isinstance(instance, identity.cls)
-        
+               
         # For custom compound types, check direct isinstance
         return isinstance(instance, type_cls)
 
-    def create_instance_from_dict(self, key: str, data: dict) -> Any | None:
-        """
-        Create an instance of a custom type from serialized data.
-        
-        Only works for custom compound types (not type variants).
-        
-        Args:
-            key: Registry key of the custom type
-            data: Dictionary containing serialized data
-            
-        Returns:
-            New instance of the custom type or None if not applicable
-        """
-        type_cls = self.get_type_class(key)
-        if type_cls is None:
-            return None
-        
-        # Only custom compound types have deserialization
-        if self.is_variant(key):
-            return None
-        
-        try:
-            return type_cls.from_dict(data)
-        except Exception as e:
-            # Log error but don't crash
-            print(f"Error creating instance of {key} from dict: {e}")
-            return None
-    
-    def serialize_instance(self, key: str, instance: Any) -> dict | None:
-        """
-        Serialize an instance of a custom type to a dictionary.
-        
-        Only works for custom compound types (not type variants).
-        
-        Args:
-            key: Registry key of the custom type
-            instance: Instance to serialize
-            
-        Returns:
-            Dictionary representation or None if not applicable
-        """
-        type_cls = self.get_type_class(key)
-        if type_cls is None:
-            return None
-        
-        # Only custom compound types have serialization
-        if self.is_variant(key):
-            return None
-        
-        if not isinstance(instance, type_cls):
-            return None
-        
-        try:
-            return instance.to_dict()
-        except Exception as e:
-            print(f"Error serializing instance of {key}: {e}")
-            return None

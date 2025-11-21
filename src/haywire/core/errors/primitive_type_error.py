@@ -3,8 +3,9 @@ from typing import List, Optional
 
 from .custom_exception import CustomException
 
+@DeprecationWarning
 @dataclass
-class PrimitiveTypeDefinitionError(CustomException, TypeError):
+class PrimitiveTypeDefinitionError(CustomException):
     """
     Raised when a primitive type is defined incorrectly.
 
@@ -16,7 +17,7 @@ class PrimitiveTypeDefinitionError(CustomException, TypeError):
         extra_fields: List of extra field names (if validation failed due to extra fields)
         missing_value: True if validation failed due to missing 'value' annotation
     """
-    cls: Optional[type] = None
+    cls: type | None = None
     extra_fields: Optional[List[str]] = None
     missing_value: bool = False
 
