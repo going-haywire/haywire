@@ -914,6 +914,20 @@ class HaywireException(Exception):
         logger = logger or logging.getLogger()
         logger.error(self.format_detailed())
         return self
+
+    def is_interesting_frame(self, frame: Dict[str, Any]) -> bool:
+        """Filter out uninteresting frames"""
+        filepath = frame['file']
+        
+        # Skip Python internals
+        if filepath.startswith('<frozen'):
+            return False
+        if '_bootstrap' in filepath:
+            return False
+        if 'importlib' in filepath and 'site-packages' not in filepath:
+            return False
+        
+        return True
     
     def format_detailed(self) -> str:
         """
@@ -955,20 +969,69 @@ class HaywireException(Exception):
 
         lines.append(f"")
 
+        # Find the user frame index in traceback_frames
+        user_frame_index = None
+        if self.filename and self.line_number and self.traceback_frames:
+            for i, frame in enumerate(self.traceback_frames):
+                if frame['file'] == self.filename and frame['line'] == self.line_number:
+                    user_frame_index = i
+                    break
+        
+        # Split traceback into: before user frame, user frame, after user frame
+        frames_before = []
+        frames_after = []
+        
+        if user_frame_index is not None:
+            frames_before = self.traceback_frames[:user_frame_index]
+            frames_after = self.traceback_frames[user_frame_index:]
+        elif self.traceback_frames:
+            # Fallback: if we can't find user frame, show all as "after"
+            frames_after = self.traceback_frames
+        
+        # Display call chain BEFORE the user code (reversed order, going down)
+        if frames_before:
+            lines.append("Call Chain:")
+            
+            # Filter out uninteresting frames
+            interesting_frames_before = [f for f in frames_before if self.is_interesting_frame(f)]
+            for i, frame in enumerate(interesting_frames_before):
+                base_filename = os.path.basename(frame['file'])
+                indent_spaces = "  " * (len(interesting_frames_before) - i - 1)
+                
+                # Use reversed box drawing (going down instead of up)
+                lines.append(f"             {indent_spaces}╒═╧═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
+                lines.append(f"             {indent_spaces}│    │   ┌─────┄┄┄")
+                lines.append(f"             {indent_spaces}│    └───┤ line {frame['line']}: {frame['code'].strip()}")
+                lines.append(f"             {indent_spaces}│        └─────┄┄┄")
+                lines.append(f"             {indent_spaces}│")     
+
+        # Display the focused user code section
         if self.filename:
             if self.library_identity and self.library_identity.folder_path and self.filename:
                 try:
                     rel_path = os.path.relpath(self.filename, self.library_identity.folder_path)
                     # Only use relative path if it's not escaping the library folder
                     if not rel_path.startswith(".."):
-                        lines.append(f"File      :╒══ ./{rel_path}")
+                        if frames_before:
+                            lines.append(f"File      :╒═╧═ ./{rel_path}")
+                        else:
+                            lines.append(f"File      :╒══ ./{rel_path}")
                     else:
-                        lines.append(f"File      :╒══ {self.filename}")
+                        if frames_before:
+                            lines.append(f"File      :╒═╧═ {self.filename}")
+                        else:
+                            lines.append(f"File      :╒══ {self.filename}")
                 except ValueError:
                     # relpath can fail if paths are on different drives (Windows)
-                    lines.append(f"File      :╒══ {self.filename}")
+                    if frames_before:
+                        lines.append(f"File      :╒═╧═ {self.filename}")
+                    else:
+                        lines.append(f"File      :╒══ {self.filename}")
             else:
-                lines.append(f"File      :╒══ {self.filename}")
+                if frames_before:
+                    lines.append(f"File      :╒═╧═ {self.filename}")
+                else:
+                    lines.append(f"File      :╒══ {self.filename}")
 
             lines.append("           ┆")
 
@@ -1024,18 +1087,24 @@ class HaywireException(Exception):
             
             lines.append("           ┆")
         
-        # Add traceback information if available
-        if self.traceback_frames:
-            for i, frame in enumerate(self.traceback_frames):
+        # Display traceback continuation AFTER user frame (original order, going up)
+        if frames_after:
+            # Filter out uninteresting frames
+            interesting_frames_after = [f for f in frames_after if self.is_interesting_frame(f)]
+            for frame in frames_after:
+                if not frame['file'].startswith('<frozen'):
+                    interesting_frames_after.append(frame)
+            
+            for i, frame in enumerate(interesting_frames_after):
                 base_filename = os.path.basename(frame['file'])
                 space_indent = "  " * i
                 
                 lines.append(f"           {space_indent}╘═╤═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
                 lines.append(f"           {space_indent}  │    │   ┌─────┄┄┄")
-                lines.append(f"           {space_indent}  │    └───┤ line {frame['line']}: {frame['code'].strip()} ")
+                lines.append(f"           {space_indent}  │    └───┤ line {frame['line']}: {frame['code'].strip()}")
                 lines.append(f"           {space_indent}  │        └─────┄┄┄")
-                lines.append(f"           {space_indent}  │")
-                
+                lines.append(f"           {space_indent}  │")        
+
         lines.extend([
             "",
             f"┏{horizontal_bar}┓",
