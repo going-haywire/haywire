@@ -14,6 +14,7 @@ from haywire.core.node.base_node import BaseNode
 from haywire.core.ui.base import UINodeCard
 from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.node_render_factory import NodeRenderFactory
+from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -179,13 +180,28 @@ class UINode:
             else:
                 self.container_slot = ui.column().classes('ui-node-slot').props(f'id="{self.ui_node_id}"')
             
-            # Render into the container slot
-            with self.container_slot:
-                if renderer_name is None:
-                    renderer_name = self.haywire_node.ui_config.node_renderer
-                
-                self.current_ui_card = self.factory.generate_node(renderer_name, self.haywire_node)
+            try:
+                # Render into the container slot
+                with self.container_slot:
+                    if renderer_name is None:
+                        renderer_name = self.haywire_node.ui_config.node_renderer
+                    
+                    self.current_ui_card = self.factory.generate_node(renderer_name, self.node_wrapper)
+            
+            except Exception as e:
+                if self.container_slot:
+                    self.container_slot.clear()  # NiceGUI handles cleanup reliably
+                else:
+                    self.container_slot = ui.column().classes('ui-node-slot').props(f'id="{self.ui_node_id}"')
 
+                error = HaywireException.from_exception(
+                    exception=e,
+                    message=f"Error rendering node: {e}",
+                    category="Rendering Error",
+                    operation="UINode.render",
+                ).enrich(
+                    registry_key=renderer_name
+                ).log()
     
     def rerender(self, renderer_name: str | None = None):
         """

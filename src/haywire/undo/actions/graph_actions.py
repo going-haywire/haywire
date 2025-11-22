@@ -47,7 +47,8 @@ class AddNodeAction(ActionBase):
     def _execute_impl(self) -> None:
         """Add the node to the graph."""
         self.wrapper = NodeWrapper(registry_key=self.registry_key, node_factory=self.node_factory, position=self.position)
-        self.wrapper.register(self.graph)
+        if not self.wrapper.register(self.graph):
+            raise RuntimeError(f"Failed to register node '{self.registry_key}' in graph")
     
     def _undo_impl(self) -> None:
         """Remove the node from the graph."""

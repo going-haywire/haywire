@@ -19,11 +19,11 @@ from haywire.core.library.registries.reg_renderer import RendererRegistry
 from haywire.core.library.library_identity import LibraryIdentity
 from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback
 from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.ports import DataPort, PortInlet
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.ui.base import UINodeCard
 from haywire.core.ui.base_widget import BaseWidget
-from haywire.ui.error_widget import ErrorWidget
 from haywire.ui.utils import render_error_info
 
 class NodeRenderFactory:
@@ -58,13 +58,13 @@ class NodeRenderFactory:
         self.renderers_registry.add_batch_event_subscriber(self._on_renderer_reloaded)
         self.widget_registry.add_batch_event_subscriber(self._on_widget_reloaded)
     
-    def generate_node(self, renderer_registry_key: str | None, node: BaseNode) -> tuple[UINodeCard, str]:
+    def generate_node(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> tuple[UINodeCard, str]:
         """
         Generate a UINodeCard for the given node using the specified renderer.
         
         Args:
             renderer_registry_key: Name of the renderer to use (None for default)
-            node: The HaywireNode to render
+            wrapper: The NodeWrapper containing the HaywireNode to render
             
         Returns:
             UINodeCard containing the rendered UI and widget instances
@@ -85,7 +85,7 @@ class NodeRenderFactory:
         renderer_instance = self._renderer_cache[registry_key]
         
         # Call render method to create UINodeCard
-        return renderer_instance._render(node)
+        return renderer_instance._render(wrapper)
     
     def clear_cache(self):
         """Clear the renderer instance cache."""

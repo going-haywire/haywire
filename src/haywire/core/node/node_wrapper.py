@@ -126,7 +126,7 @@ class NodeWrapper:
 
             _instance, _event = self.get_instance()
 
-            if _instance is not None:
+            if _instance:
                 self._node_instance = _instance
                 self._node_instance.ui_state.posX = self._initial_position[0]
                 self._node_instance.ui_state.posY = self._initial_position[1]
@@ -138,7 +138,7 @@ class NodeWrapper:
                 self.graph.add_node_wrapper(self)
                 self._notify_change(_event)
                 return True
-            else:               
+            else:
                 return False
 
     def cleanup(self) -> None:
@@ -229,7 +229,7 @@ class NodeWrapper:
         
         return self._generate_node_instance(lc_event)
 
-    def _generate_node_instance(self, lc_event: LifeCycleEvent) -> tuple[BaseNode | None, LifeCycleEvent]:
+    def _generate_node_instance(self, lc_event: LifeCycleEvent, _recursive: bool = False) -> tuple[BaseNode | None, LifeCycleEvent]:
         """
         Generate a node instance based on the lifecycle event.
 
@@ -245,11 +245,12 @@ class NodeWrapper:
 
         node_instance: BaseNode | None = None
 
-        if not lc_event.has_class_available():
-            node_cls = self.node_factory.get_error_node()
 
         # Create the node instance 
         try:
+            if not lc_event.has_class_available():
+                node_cls = self.node_factory.get_error_node()
+
             node_instance = node_cls(self.node_id, self)
         
         except Exception as e:
@@ -264,11 +265,20 @@ class NodeWrapper:
                 class_name=node_cls.__name__,
                 library_identity=event.library_identity
             ).log()
+            node_cls = self.node_factory.get_error_node()
             event = lc_event.create_derived_event(
                 error=error,
                 affected_class=node_cls,
                 event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED
                 )
+            
+            if _recursive:
+                # Prevent infinite recursion. If there is something wrong with the error node,
+                # we cannot recover from this.
+                return None, event
+            
+            # Create error node instance
+            return self._generate_node_instance(event, _recursive=True)
 
         return node_instance, event
  

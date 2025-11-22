@@ -10,6 +10,7 @@ from nicegui.element import Element
 
 from haywire.core.node.base_node import BaseNode
 from haywire.core.data.enums import FlowType
+from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.types.ports import PortInlet, PortOutlet, DataPort
 from haywire.core.ui.base import UINodeCard
@@ -31,16 +32,17 @@ class DefaultNodeRenderer(BaseNodeRenderer):
     and serves as the fallback renderer when no specific renderer is requested.
     """
     
-    def _render(self, node: BaseNode) -> UINodeCard:
+    def _render(self, wrapper: NodeWrapper) -> UINodeCard:
         """
         Render a node using the default design.
         
         Args:
-            node: The HaywireNode to render
+            wrapper: The NodeWrapper containing the HaywireNode to render
             
         Returns:
             UINodeCard containing the rendered UI and widget instances
         """
+        node = wrapper.node
         # Storage for UI elements and widget instances
         ui_elements: Dict[str, Any] = {}
         widget_instances: Dict[str, BaseWidget] = {}

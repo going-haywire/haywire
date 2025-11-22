@@ -3,6 +3,7 @@ from typing import Any, Dict
 from nicegui import ui
 from nicegui.element import Element
 from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.ports import PortInlet
 from haywire.core.ui.base_renderer import BaseNodeRenderer
 from haywire.core.node.base_node import BaseNode
@@ -15,11 +16,12 @@ from haywire.ui.utils import render_error_info
 class ExampleNodeRenderer(BaseNodeRenderer):
     """Custom renderer for nodes with special styling."""
 
-    def _render(self, node: BaseNode) -> UINodeCard:
+    def _render(self, wrapper: NodeWrapper) -> UINodeCard:
         """Render a node with custom styling."""
         ui_elements = {}
         widget_instances: Dict[str, BaseWidget] = {}
         
+        node = wrapper.node
         node_id = f"example-node-{id(node)}"
         
         # Custom math-themed CSS

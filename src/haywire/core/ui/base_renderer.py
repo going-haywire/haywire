@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from haywire.core.node.base_node import BaseNode
 from haywire.core.library.registries.reg_widget import WidgetRegistry
 from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.ui.base import UINodeCard
 from haywire.core.library.base_identity import BaseIdentity
 from haywire.core.library.utils import derive_library_identity, reg_key
@@ -116,12 +117,12 @@ class BaseNodeRenderer(ABC):
         """
         self._render_factory = render_factory
 
-    def render(self, node: BaseNode) -> UINodeCard:
+    def render(self, wrapper: NodeWrapper) -> UINodeCard:
         """
         Render a node into a UINodeCard.
 
         Args:
-            node: The HaywireNode to render
+            wrapper: The NodeWrapper containing the HaywireNode to render
 
         Returns:
             UINodeCard containing the rendered UI and widget registry keys
@@ -130,12 +131,12 @@ class BaseNodeRenderer(ABC):
         return self._render(node)
 
     @abstractmethod
-    def _render(self, node: BaseNode) -> UINodeCard:
+    def _render(self, wrapper: NodeWrapper) -> UINodeCard:
         """
         Render a node into a UINodeCard.
 
         Args:
-            node: The HaywireNode to render
+            wrapper: The NodeWrapper containing the HaywireNode to render
 
         Returns:
             UINodeCard containing the rendered UI card, ui_elements dict, and widget_instances dict.

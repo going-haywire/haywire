@@ -91,10 +91,12 @@ def is_framework_code(filepath: str, framework_paths: Optional[List[str]] = None
     if framework_paths is None:
         # Default framework paths to exclude
         framework_paths = [
-            'haywire/core',
-            'haywire/libraries/core',  # Core library is framework
-            'site-packages',           # Python packages
-            '<frozen',                 # Python internals
+            '/src/haywire/',              # All Haywire internal code
+            'site-packages',         # Python packages
+            '<frozen',               # Python internals
+            '/lib/python',           # Python standard library
+            '/Library/Frameworks/Python.framework',  # macOS Python framework
+            '\\lib\\python',         # Windows Python stdlib
         ]
     
     # Normalize path
@@ -929,6 +931,7 @@ class HaywireException(Exception):
         
         return True
     
+
     def format_detailed(self) -> str:
         """
         Format for detailed console output.
@@ -983,7 +986,7 @@ class HaywireException(Exception):
         
         if user_frame_index is not None:
             frames_before = self.traceback_frames[:user_frame_index]
-            frames_after = self.traceback_frames[user_frame_index:]
+            frames_after = self.traceback_frames[user_frame_index + 1:]  # Skip the user frame itself
         elif self.traceback_frames:
             # Fallback: if we can't find user frame, show all as "after"
             frames_after = self.traceback_frames
@@ -1089,11 +1092,18 @@ class HaywireException(Exception):
         
         # Display traceback continuation AFTER user frame (original order, going up)
         if frames_after:
-            # Filter out uninteresting frames
-            interesting_frames_after = [f for f in frames_after if self.is_interesting_frame(f)]
+            # Filter out uninteresting frames and remove duplicates
+            seen_frames = set()
+            interesting_frames_after = []
+            
             for frame in frames_after:
-                if not frame['file'].startswith('<frozen'):
+                # Create a unique key for this frame
+                frame_key = (frame['file'], frame['line'], frame['function'])
+                
+                # Only add if it's interesting and we haven't seen it before
+                if self.is_interesting_frame(frame) and frame_key not in seen_frames:
                     interesting_frames_after.append(frame)
+                    seen_frames.add(frame_key)
             
             for i, frame in enumerate(interesting_frames_after):
                 base_filename = os.path.basename(frame['file'])
@@ -1111,10 +1121,49 @@ class HaywireException(Exception):
             f"┃{category_text}┃",
             f"┗{horizontal_bar}┛",
             "\n"
-        ])
-        
+        ]) 
+
+        # self.debug_traceback(lines, user_frame_index)
+
         return "\n".join(lines)
-    
+
+    def debug_traceback(self, lines: list[str], user_frame_index: int) -> str:
+        # =======================================================================
+        # DEBUG SECTION - Complete traceback analysis
+        # =======================================================================
+        lines.append("")
+        lines.append("=" * 80)
+        lines.append("DEBUG: COMPLETE TRACEBACK ANALYSIS")
+        lines.append("=" * 80)
+        lines.append("")
+        
+        lines.append(f"Selected user frame index: {user_frame_index}")
+        lines.append(f"Selected file: {self.filename}")
+        lines.append(f"Selected line: {self.line_number}")
+        lines.append(f"Context type: {self.context_type}")
+        lines.append(f"Highlighted item: {self.highlighted_item}")
+        lines.append("")
+        
+        lines.append("All traceback frames:")
+        lines.append("-" * 80)
+        for i, frame in enumerate(self.traceback_frames):
+            is_user = not is_framework_code(frame['file'])
+            is_selected = (i == user_frame_index)
+            marker = " >>> SELECTED" if is_selected else ""
+            user_marker = " [USER CODE]" if is_user else " [FRAMEWORK]"
+            
+            lines.append(f"Frame {i}{marker}{user_marker}:")
+            lines.append(f"  File: {frame['file']}")
+            lines.append(f"  Line: {frame['line']}")
+            lines.append(f"  Function: {frame['function']}")
+            lines.append(f"  Code: {frame['code'].strip()}")
+            lines.append("")
+        
+        lines.append("=" * 80)
+        lines.append("")
+
+        return
+
     def to_dict(self) -> dict:
         """
         Serialize for future event log system.
