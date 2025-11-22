@@ -1,40 +1,33 @@
 from __future__ import annotations
-from typing import Any, Callable, Set, List, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Optional, TypeVar
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from .enums import ContainerType
 from .event import Event, T
 
+T = TypeVar('T')
 
 @dataclass
-class DataField(ABC):
+class DataField(ABC, Generic[T]):
     """
     Abstract base class for data fields with change notification.
     
-    The type field stores the actual Python class (int, float, str, custom classes).
-    
-    Attributes:
-        type: The Python class (int, float, str, bool, bytes, dict, list, or custom class)
-        value: The current value
-        is_pooled: Whether this field accepts multiple input sources
+    Generic over the value type T.
     """
-    type: Type | None
-    value: T 
+    type_cls: type[T]  # The type class (e.g., FLOAT, MeshData)
     is_pooled: bool
-
+    
     def __post_init__(self):
-        self._default_value: T = self.value
-        self.on_changed: Event[T] = Event[T]()
+        self.on_changed: Event[Any] = Event[Any]()
         self.is_dirty: bool = True
 
     @abstractmethod
-    def set_value(self, value: Any, source_id: str | None = None):
+    def set_value(self, value: T, source_id: str | None = None):
         """Set value with optional source tracking"""
         pass
     
     @abstractmethod
-    def get_value(self):
+    def get_value(self) -> T | Dict[str, T]:
         """Get the current value"""
         pass
     
@@ -49,159 +42,101 @@ class DataField(ABC):
         pass
     
     @abstractmethod
-    def get_values_list(self) -> list[Any]:
-        """Get values as list"""
-        pass
-    
-    @abstractmethod
-    def get_source_ids(self) -> list[str]:
-        """Get all source IDs (empty for scalar fields)"""
+    def reset(self):
+        """Reset field to default value"""
         pass
     
     def add_observer(self, callback: Callable):
-        """Add a callback for value changes"""
         self.on_changed.append(callback)
     
     def remove_observer(self, callback: Callable):
-        """Remove a callback for value changes"""
         self.on_changed.remove(callback)
     
     def fire(self):
-        """Notify all observers of value change"""
-        self.on_changed(self.value)
+        self.on_changed(self.get_value())
     
     def mark_clean(self):
-        """Mark field as clean after processing"""
         self.is_dirty = False
-
-    def reset(self):
-        """Reset field to default value"""
-        self.value = self._default_value
-        self.is_dirty = True    
-    
-    def to_dict(self) -> dict:
-        """Convert to dict for serialization"""
-        # Get the type name for serialization
-        type_name = None
-        if self.type is not None:
-            if hasattr(self.type, '__name__'):
-                type_name = self.type.__name__
-            else:
-                type_name = str(self.type)
-        
-        return {
-            'type': type_name,
-            'value': self._default_value,
-            'is_dirty': self.is_dirty,
-            'is_pooled': self.is_pooled,
-        }
 
 
 @dataclass
-class SingleField(DataField):
-    """Single-value data field"""
-
-    def __post_init__(self):
-        super().__post_init__()
+class SingleField(DataField[T]):
+    """Single-value data field - stores one instance"""
+    _value: T = field(init=False)
+    _default: T = field(init=False)
+    
+    def __init__(self, type_cls: type[T], default_value: T):
+        self.type_cls = type_cls
         self.is_pooled = False
+        self._value = default_value
+        self._default = default_value
+        super().__post_init__()
 
-    def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """Set single value (source_id is ignored for scalar fields)"""
-        if self.value != value:
-            self.value = value
+    def set_value(self, value: T, source_id: str | None = None) -> None:
+        if self._value != value:
+            self._value = value
             self.is_dirty = True
             if source_id is None:
-                # if the value is set via UI, it is the default value   
-                self._default_value = value
+                self._default = value  # UI update changes default
             self.fire()
     
-    def get_value(self):
-        """Get the current value"""
-        return self.value
+    def get_value(self) -> T:
+        return self._value
     
     def remove_source(self, source_id: str):
-        """Remove source - for scalar fields, set back to default value"""
-        self.value = self._default_value
-        self.is_dirty = True    
+        """Reset to default when source removed"""
+        self._value = self._default
+        self.is_dirty = True
         self.fire()
     
     def has_sources(self) -> bool:
-        """Check if field has a value"""
-        return self.value is not None
+        return self._value is not None
     
-    def get_values_list(self) -> list[Any]:
-        """Get values as list"""
-        return [self.value] if self.value is not None else []
-    
-    def get_source_ids(self) -> list[str]:
-        """Get all source IDs (empty for scalar fields)"""
-        return []
-    
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dict for serialization"""
-        result = super().to_dict()
-        return result
+    def reset(self):
+        self._value = self._default
+        self.is_dirty = True
 
 
 @dataclass
-class PooledField(DataField):
-    """Pooled-value data field for many-to-one connections"""
-    _aggregated_value: Any = field(default=None, init=False, repr=False)
-
-    def __post_init__(self):
-        super().__post_init__()
+class PooledField(DataField[T]):
+    """Pooled-value data field - stores dict of source_id -> instance"""
+    _sources: Dict[str, T] = field(default_factory=dict, init=False)
+    
+    def __init__(self, type_cls: type[T]):
+        self.type_cls = type_cls
         self.is_pooled = True
+        self._sources = {}
+        super().__post_init__()
 
-    def set_value(self, value: Any, source_id: str | None = None):
-        """Set value from a specific source"""
+    def set_value(self, value: T, source_id: str | None = None):
         if source_id is None:
             raise ValueError("source_id required for PooledField")
-        if self.value.get(source_id) != value:
-            self.value[source_id] = value
-            self._aggregated_value = None  # Invalidate cache
+        if self._sources.get(source_id) != value:
+            self._sources[source_id] = value
             self.is_dirty = True
             self.fire()
     
-    def get_value(self):
-        """Get aggregated value as dict"""
-        if self._aggregated_value is None:
-            self._aggregated_value = dict(self.value)
-        return self._aggregated_value
+    def get_value(self) -> Dict[str, T]:
+        """Return dict of all source values"""
+        return dict(self._sources)
     
     def remove_source(self, source_id: str):
-        """Remove a specific source"""
-        if source_id in self.value:
-            del self.value[source_id]
-            self._aggregated_value = None
+        if source_id in self._sources:
+            del self._sources[source_id]
             self.is_dirty = True
             self.fire()
     
     def has_sources(self) -> bool:
-        """Check if field has any sources"""
-        return len(self.value) > 0
+        return len(self._sources) > 0
     
-    def get_values_list(self) -> List[Any]:
-        """Get values as list"""
-        return list(self.value.values())
+    def get_values_list(self) -> list[T]:
+        return list(self._sources.values())
     
-    def has_source(self, source_id: str) -> bool:
-        """Check if a specific source exists"""
-        return source_id in self.value
+    def get_source_ids(self) -> list[str]:
+        return list(self._sources.keys())
     
-    def get_source_ids(self) -> List[str]:
-        """Get all source IDs"""
-        return list(self.value.keys())
-    
-    def clear_sources(self):
-        """Clear all sources"""
-        if self.value:
-            self.value.clear()
-            self._aggregated_value = None
-            self.is_dirty = True
-            self.fire()
-    
-    def to_dict(self) -> dict:
-        """Convert to dict for serialization"""
-        result = super().to_dict()
-        result['is_pooled'] = True
-        return result
+    def reset(self):
+        self._sources.clear()
+        self.is_dirty = True
+
+

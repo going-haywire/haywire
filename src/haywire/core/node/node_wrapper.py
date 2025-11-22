@@ -262,11 +262,10 @@ class NodeWrapper:
                 module_name=event.module_name,
                 registry_key=self.registry_key,
                 class_name=node_cls.__name__,
-                library_identity=event.class_library
+                library_identity=event.library_identity
             ).log()
             event = lc_event.create_derived_event(
                 error=error,
-                error_info=str(e),
                 affected_class=node_cls,
                 event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED
                 )

@@ -11,9 +11,10 @@ from typing import Optional, Type, TypeVar, Callable, get_type_hints
 from dataclasses import asdict
 
 from haywire.core.errors import PrimitiveTypeDefinitionError
+from .type_interface import IType
 from haywire.core.types.utils import is_cattrs_serializable, normalize_and_validate_default
 
-from .base_type import IType, PrimitiveType, BaseType, TypeToDataPort
+from .base_type import PrimitiveType, BaseType, TypeToDataPort
 from .identity import DataPortIdentity
 from ..data.enums import ContainerType, FlowType
 from ..library.utils import derive_library_identity, reg_key
@@ -98,7 +99,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         inner_cls.class_library = library_identity
         
         # Set cls to the decorated class itself
-        kwargs['cls'] = inner_cls
+        kwargs['type_cls'] = inner_cls
         
         # Check if this inherits from another Type (derived variant)
         parent_identity: Optional[DataPortIdentity] = None

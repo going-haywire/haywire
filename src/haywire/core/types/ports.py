@@ -1,11 +1,11 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional
 
-from .identity import DataPortIdentity
-from ..data.specs import DataFieldFactory
-from ..data.fields import DataField
+from ..data.fields import DataField, PooledField, SingleField
 from ..data.enums import FlowType
+from .identity import DataPortIdentity
+from .type_interface import IType
 
 @dataclass
 class DataPort(DataPortIdentity):
@@ -35,6 +35,13 @@ class DataPort(DataPortIdentity):
     # Outlet-specific (unused for Inlet/Config/Property)
     pipes: list = field(default_factory=list)
     
+    @property
+    def value(self) -> Any:
+        """Get current value from data field, if available."""
+        if self.data:
+            return self.data.get_value()
+        return None
+
     def __post_init__(self):
         # Note: We skip super().__post_init__() because DataPortIdentity's __post_init__
         # auto-generates registry_key, label, and defaults from registry_id, which is
@@ -105,6 +112,29 @@ class DataPort(DataPortIdentity):
         else:
             raise ValueError(f"Unknown port serialization format: {data.get('type')}")
 
+
+class DataFieldFactory:
+    """Factory for creating DataField instances"""
+
+    @staticmethod
+    def create(
+        type_cls: IType,
+        is_pooled: bool = False,
+        default_override: Optional[Dict[str, Any]] = None
+    ) -> DataField:
+        """Create appropriate DataField instance"""
+
+        if is_pooled:
+            return PooledField(type_cls=type_cls)
+        else:
+            # Create default instance with optional override
+            instance = (
+                type_cls(**default_override)
+                if default_override
+                else type_cls.create_default()
+            )
+            return SingleField(type_cls=type_cls, default_value=instance)
+
 @dataclass
 class PortInlet(DataPort):
     def is_inlet(self) -> bool:
@@ -113,14 +143,14 @@ class PortInlet(DataPort):
     def __post_init__(self):
         super().__post_init__()        
         # Create data field if needed
-        if self.data is None and self.flow_type == FlowType.DATA:
-            self.data = DataFieldFactory.create(self, is_pooled=self.is_pooled)
+        if self.data is None:
+            self.data = DataFieldFactory.create(type_cls=self.type_cls, is_pooled=self.is_pooled)
 
 @dataclass
 class PortOutlet(DataPort):
     def __post_init__(self):
         super().__post_init__()
         # Create data field if needed
-        if self.data is None and self.flow_type == FlowType.DATA:
-            self.data = DataFieldFactory.create(self, is_pooled=False)
+        if self.data is None:
+            self.data = DataFieldFactory.create(type_cls=self.type_cls, is_pooled=False)
 

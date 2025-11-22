@@ -192,6 +192,7 @@ class NodeRenderFactory:
                 ui_element.classes('widget-container zoom-pan-lod2')
                 
         except Exception as error:
+            logging.error(f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' in node '{node_id}': {error}", exc_info=True)
             if not isinstance(error, HaywireException):
                 error = HaywireException.from_exception(
                     exception=error,

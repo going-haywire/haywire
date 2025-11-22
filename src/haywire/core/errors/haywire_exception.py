@@ -58,7 +58,8 @@ import sys
 import traceback as tb_module
 import re
 import time
-import os 
+import os
+from pathlib import Path
 
 from ..library.library_identity import LibraryIdentity
 
@@ -70,6 +71,346 @@ class ErrorSeverity(Enum):
     ERROR = 'error'         # Error (orange) - "Failed to render"
     CRITICAL = 'critical'   # Critical (red) - "System component failed"
 
+
+# ============================================================================
+# UTILITY FUNCTIONS FOR SMART FRAME DETECTION
+# ============================================================================
+
+def is_framework_code(filepath: str, framework_paths: Optional[List[str]] = None) -> bool:
+    """
+    Check if a file is part of the framework (not user code).
+    
+    Args:
+        filepath: Path to the file
+        framework_paths: List of framework package paths to exclude
+                        (defaults to haywire core packages)
+    
+    Returns:
+        True if this is framework code, False if user code
+    """
+    if framework_paths is None:
+        # Default framework paths to exclude
+        framework_paths = [
+            'haywire/core',
+            'haywire/libraries/core',  # Core library is framework
+            'site-packages',           # Python packages
+            '<frozen',                 # Python internals
+        ]
+    
+    # Normalize path
+    filepath = os.path.normpath(filepath)
+    
+    # Check if it's in any framework path
+    for framework_path in framework_paths:
+        if framework_path in filepath:
+            return True
+    
+    return False
+
+
+def _find_decorator_frame(
+    traceback_frames: List[Dict[str, Any]],
+    framework_paths: Optional[List[str]] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Find a frame that contains a decorator application.
+    
+    Returns the last (deepest) frame with a decorator, prioritizing user code.
+    """
+    decorator_frames = []
+    
+    for frame in traceback_frames:
+        code = frame.get('code', '').strip()
+        filepath = frame.get('file', '')
+        
+        # Look for decorator syntax
+        if code.startswith('@'):
+            # Prefer user code decorators
+            if not is_framework_code(filepath, framework_paths):
+                decorator_frames.append(frame)
+    
+    # Return the last (deepest) decorator frame
+    return decorator_frames[-1] if decorator_frames else None
+
+
+def find_most_relevant_user_frame(
+    traceback_frames: List[Dict[str, Any]],
+    exception: Exception,
+    framework_paths: Optional[List[str]] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Find the most relevant user code frame.
+    
+    This is smarter than just finding the first user code:
+    1. For decorator errors, find the decorator application
+    2. For import errors at module level, find the problematic module
+    3. For runtime errors, find the first user code in the call stack
+    
+    Args:
+        traceback_frames: List of traceback frames
+        exception: The original exception
+        framework_paths: Framework paths to exclude
+        
+    Returns:
+        Most relevant user code frame
+    """
+    if not traceback_frames:
+        return None
+    
+    # Strategy 1: Look for decorator patterns (highest priority)
+    # Decorators typically appear as @something at the start of a line
+    decorator_frame = _find_decorator_frame(traceback_frames, framework_paths)
+    if decorator_frame:
+        return decorator_frame
+    
+    # Strategy 2: For errors at module level (<module> function), 
+    # find the LAST user code frame (deepest in import chain)
+    module_level_frames = [
+        f for f in traceback_frames 
+        if f.get('function') == '<module>' and not is_framework_code(f.get('file', ''), framework_paths)
+    ]
+    
+    if module_level_frames:
+        # Get the last (deepest) module-level frame
+        # This is the actual file with the problem, not the file importing it
+        last_module_frame = module_level_frames[-1]
+        
+        # Check if this looks like a decorator/class definition
+        code = last_module_frame.get('code', '').strip()
+        if code.startswith('@') or code.startswith('class ') or code.startswith('def '):
+            return last_module_frame
+    
+    # Strategy 3: For runtime errors, find first user code walking backwards
+    for i in range(len(traceback_frames) - 1, -1, -1):
+        frame = traceback_frames[i]
+        filepath = frame.get('file', '')
+        
+        if not is_framework_code(filepath, framework_paths):
+            return frame
+    
+    return None
+
+
+def extract_extended_context(
+    filename: str,
+    line_number: int,
+    context_lines: int = 10
+) -> tuple[str, List[tuple[int, str]], Optional[str], Optional[int]]:
+    """
+    Extract extended context around an error line.
+    
+    Tries to identify what the user was doing:
+    - Class definition
+    - Function definition  
+    - Decorator application
+    - Method call
+    
+    Args:
+        filename: File containing the error
+        line_number: Line number of error
+        context_lines: Lines of context to show
+        
+    Returns:
+        Tuple of (context_type, source_context, highlighted_item, code_block_start)
+        - context_type: 'class', 'function', 'method_call', 'decorator', 'statement'
+        - source_context: [(line_num, line_text), ...]
+        - highlighted_item: Name of class/function/etc being defined
+        - code_block_start: Line number where the code block starts
+    """
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        if line_number > len(lines) or line_number < 1:
+            return 'unknown', [], None, None
+        
+        # Calculate context range
+        start = max(0, line_number - context_lines - 1)
+        end = min(len(lines), line_number + context_lines)
+        
+        source_context = []
+        for i in range(start, end):
+            source_context.append((i + 1, lines[i].rstrip()))
+        
+        # Analyze what's happening at the error line and before
+        error_line_text = lines[line_number - 1].strip()
+        
+        # Look backwards to find the context
+        context_type = 'statement'
+        highlighted_item = None
+        code_block_start = None
+        
+        # Look for decorator (starts with @)
+        if error_line_text.startswith('@'):
+            context_type = 'decorator'
+            # Extract decorator name
+            match = re.match(r'@(\w+)', error_line_text)
+            if match:
+                highlighted_item = match.group(1)
+            code_block_start = line_number
+        
+        # Look backwards for class/function definition
+        for i in range(line_number - 1, max(0, line_number - 20), -1):
+            line = lines[i].strip()
+            
+            # Check for class definition
+            if line.startswith('class '):
+                match = re.match(r'class\s+(\w+)', line)
+                if match:
+                    context_type = 'class'
+                    highlighted_item = match.group(1)
+                    code_block_start = i + 1
+                    break
+            
+            # Check for function/method definition
+            elif line.startswith('def '):
+                match = re.match(r'def\s+(\w+)', line)
+                if match:
+                    context_type = 'function'
+                    highlighted_item = match.group(1)
+                    code_block_start = i + 1
+                    break
+            
+            # Check for decorator before class/function
+            elif line.startswith('@'):
+                match = re.match(r'@(\w+)', line)
+                if match:
+                    context_type = 'decorator'
+                    highlighted_item = match.group(1)
+                    code_block_start = i + 1
+                    # Keep looking for the class/function it decorates
+                    continue
+        
+        # If error line contains a method call, try to identify it
+        if context_type == 'statement':
+            # Look for method calls like .as_inlet(...), .add_inlet(...)
+            method_match = re.search(r'\.(\w+)\(', error_line_text)
+            if method_match:
+                context_type = 'method_call'
+                highlighted_item = method_match.group(1)
+        
+        return context_type, source_context, highlighted_item, code_block_start
+    
+    except (IOError, OSError):
+        return 'unknown', [], None, None
+
+
+def analyze_error_context(
+    traceback_frames: List[Dict[str, Any]],
+    selected_frame: Dict[str, Any],
+    exception: Exception
+) -> Dict[str, Any]:
+    """
+    Analyze the error context to provide better insights.
+    
+    Looks at the relationship between frames to understand:
+    - Is this an import-time error?
+    - What was the user trying to do?
+    - Where did the error chain start?
+    
+    Returns:
+        Dictionary with analysis results
+    """
+    function_name = selected_frame.get('function', '')
+    code = selected_frame.get('code', '').strip()
+    filename = selected_frame.get('file', '')
+    
+    # Find the frame that triggered this
+    trigger_frame = None
+    selected_idx = None
+    
+    for i, frame in enumerate(traceback_frames):
+        if frame == selected_frame:
+            selected_idx = i
+            break
+    
+    if selected_idx is not None and selected_idx > 0:
+        trigger_frame = traceback_frames[selected_idx - 1]
+    
+    # Determine the context
+    is_import_error = function_name == '<module>'
+    is_decorator_error = code.startswith('@')
+    is_class_definition = 'class ' in code
+    
+    # Build context info
+    context = {
+        'is_import_error': is_import_error,
+        'is_decorator_error': is_decorator_error,
+        'is_class_definition': is_class_definition,
+        'trigger_frame': trigger_frame,
+        'error_origin': 'import_time' if is_import_error else 'runtime'
+    }
+    
+    # Add helpful explanation
+    if is_import_error and trigger_frame:
+        trigger_code = trigger_frame.get('code', '').strip()
+        if trigger_code.startswith('from ') or trigger_code.startswith('import '):
+            context['explanation'] = (
+                f"Error occurred while importing. "
+                f"The problematic code is in '{os.path.basename(filename)}', "
+                f"which was being imported."
+            )
+    
+    return context
+
+
+def enhance_error_message_for_context(
+    context_type: str,
+    highlighted_item: Optional[str],
+    original_message: str,
+    error_context: Dict[str, Any]
+) -> tuple[str, List[str]]:
+    """
+    Generate contextual error message and suggestions.
+    
+    Args:
+        context_type: Type of code context ('class', 'function', etc.)
+        highlighted_item: Name of the item (class name, function name, etc.)
+        original_message: Original exception message
+        error_context: Additional context from analyze_error_context()
+        
+    Returns:
+        Tuple of (enhanced_message, suggestions)
+    """
+    suggestions = []
+    message_parts = []
+    
+    # Add import context if relevant
+    if error_context.get('explanation'):
+        message_parts.append(error_context['explanation'])
+    
+    # Add context-specific message
+    if context_type == 'class' and highlighted_item:
+        message_parts.append(f"Error in class '{highlighted_item}': {original_message}")
+        suggestions.append(f"Check the '{highlighted_item}' class definition")
+        suggestions.append("Review decorator parameters and class attributes")
+    
+    elif context_type == 'decorator' and highlighted_item:
+        message_parts.append(f"Error in @{highlighted_item} decorator: {original_message}")
+        suggestions.append(f"Check the @{highlighted_item} decorator parameters")
+        suggestions.append("Ensure all required parameters are provided")
+    
+    elif context_type == 'function' and highlighted_item:
+        message_parts.append(f"Error in function '{highlighted_item}': {original_message}")
+        suggestions.append(f"Check the '{highlighted_item}' function definition")
+    
+    elif context_type == 'method_call' and highlighted_item:
+        message_parts.append(f"Error calling .{highlighted_item}(): {original_message}")
+        suggestions.append(f"Check the arguments passed to .{highlighted_item}()")
+        suggestions.append("Verify the parameter types and values")
+    
+    else:
+        message_parts.append(original_message)
+        suggestions.append("Review the highlighted line in your code")
+    
+    message = "\n".join(message_parts)
+    
+    return message, suggestions
+
+
+# ============================================================================
+# MAIN EXCEPTION CLASS
+# ============================================================================
 
 @dataclass
 class HaywireException(Exception):
@@ -140,6 +481,15 @@ class HaywireException(Exception):
     
     original_exception: Optional[Exception] = None
     """Original Python exception (for re-raising or advanced inspection)"""
+    
+    context_type: Optional[str] = None
+    """Type of code context: 'class', 'function', 'decorator', 'method_call', etc."""
+    
+    highlighted_item: Optional[str] = None
+    """Name of class/function/decorator being worked on"""
+    
+    error_context: Dict[str, Any] = field(default_factory=dict)
+    """Additional context metadata from analysis"""
     
     # ========================================================================
     # METADATA (for UI behavior and filtering)
@@ -214,6 +564,8 @@ class HaywireException(Exception):
         This is a low-level method that extracts traceback, source location,
         error type, etc. without creating a HaywireException instance.
         
+        Enhanced with smart frame detection to find the most relevant user code.
+        
         Useful for:
         - Custom exception creation logic
         - Enriching existing exceptions with extracted data
@@ -227,6 +579,8 @@ class HaywireException(Exception):
             - filename, line_number, source_line, source_context
             - highlight_span, traceback_frames, original_exception
             - exc_message, exc_category (for mapping to message/category if not set)
+            - context_type, highlighted_item, error_context
+            - suggestions (auto-generated based on context)
         
         Example:
             try:
@@ -255,54 +609,92 @@ class HaywireException(Exception):
                     'code': frame_summary.line or ''
                 })
         
-        # Extract primary error location (last frame or from SyntaxError)
+        # Find the most relevant user code frame (SMART DETECTION)
+        user_frame = find_most_relevant_user_frame(traceback_frames, exception)
+        
         filename = None
         line_number = None
         source_line = None
         source_context = []
         highlight_span = None
+        context_type = 'unknown'
+        highlighted_item = None
+        error_context = {}
         
-        # Special handling for SyntaxError
-        if isinstance(exception, SyntaxError) and hasattr(exception, 'filename'):
+        if user_frame:
+            # Analyze the context
+            error_context = analyze_error_context(traceback_frames, user_frame, exception)
+            
+            # Extract extended context
+            filename = user_frame['file']
+            line_number = user_frame['line']
+            
+            context_type, source_context, highlighted_item, code_block_start = \
+                extract_extended_context(filename, line_number, context_lines=10)
+            
+            # Find the source line to display
+            for ln, text in source_context:
+                if ln == line_number:
+                    source_line = text
+                    
+                    # Try to highlight the problematic part
+                    if highlighted_item and highlighted_item in text:
+                        pos = text.find(highlighted_item)
+                        highlight_span = (pos, len(highlighted_item))
+                    break
+        
+        # Fallback to standard extraction
+        elif isinstance(exception, SyntaxError) and hasattr(exception, 'filename'):
             filename = exception.filename
             line_number = exception.lineno
+            context_type, source_context, highlighted_item, _ = \
+                extract_extended_context(filename, line_number)
+        
         elif traceback_frames:
-            # Use last frame
+            # Last resort - use last frame
             last_frame = traceback_frames[-1]
             filename = last_frame['file']
             line_number = last_frame['line']
+            source_line = last_frame['code']
+            
+            # Try to get some context
+            if filename and line_number:
+                try:
+                    with open(filename, 'r', encoding='utf-8') as f:
+                        lines = f.readlines()
+                    
+                    if line_number <= len(lines):
+                        # Get context around error
+                        context_range = 2
+                        start = max(0, line_number - context_range - 1)
+                        end = min(len(lines), line_number + context_range)
+                        
+                        for i in range(start, end):
+                            source_context.append((i + 1, lines[i].rstrip()))
+                        
+                        source_line = lines[line_number - 1].rstrip()
+                        
+                        # Try to find highlighted text
+                        quoted_matches = re.findall(r"'([^']+)'", str(exception))
+                        for quoted_string in quoted_matches:
+                            if quoted_string in source_line:
+                                pos = source_line.find(quoted_string)
+                                highlight_span = (pos, len(quoted_string))
+                                break
+                except (IOError, OSError, IndexError):
+                    pass
         
-        # Try to read source context
-        if filename and line_number:
-            try:
-                with open(filename, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-                
-                if line_number <= len(lines):
-                    # Get context around error
-                    context_range = 2
-                    start = max(0, line_number - context_range - 1)
-                    end = min(len(lines), line_number + context_range)
-                    
-                    for i in range(start, end):
-                        source_context.append((i + 1, lines[i].rstrip()))
-                    
-                    source_line = lines[line_number - 1].rstrip()
-                    
-                    # Try to find highlighted text
-                    quoted_matches = re.findall(r"'([^']+)'", str(exception))
-                    for quoted_string in quoted_matches:
-                        if quoted_string in source_line:
-                            pos = source_line.find(quoted_string)
-                            highlight_span = (pos, len(quoted_string))
-                            break
-            except (IOError, OSError, IndexError):
-                pass
-        
-        # Generate message and category from exception if not provided
-        # These will be used as defaults when creating the exception
+        # Generate base messages
         exc_message = str(exc_value) if exc_value else "Unknown error"
         exc_category = exc_type.__name__ if exc_type else "Error"
+        
+        # Enhance message with context
+        enhanced_message, suggestions = enhance_error_message_for_context(
+            context_type,
+            highlighted_item,
+            exc_message,
+            error_context
+        )
         
         return {
             'filename': filename,
@@ -311,9 +703,13 @@ class HaywireException(Exception):
             'source_context': source_context,
             'highlight_span': highlight_span,
             'traceback_frames': traceback_frames,
-            'exc_message': exc_message,  # Will map to message if not set
-            'exc_category': exc_category,  # Will map to category if not set
+            'exc_message': enhanced_message,  # Enhanced with context
+            'exc_category': exc_category,
             'original_exception': exception,
+            'suggestions': suggestions,  # Auto-generated suggestions
+            'context_type': context_type,  # For UI rendering decisions
+            'highlighted_item': highlighted_item,  # Class/function name
+            'error_context': error_context,  # Additional context info
         }
     
     @classmethod
@@ -331,6 +727,7 @@ class HaywireException(Exception):
         
         This replaces the old generate_haywire_error() function.
         Automatically extracts: traceback, source location, error type, etc.
+        Uses smart frame detection to find the most relevant user code.
         
         Args:
             exception: The caught exception
@@ -352,6 +749,13 @@ class HaywireException(Exception):
         # Use extracted category if not explicitly overridden in kwargs
         if 'category' not in kwargs:
             kwargs['category'] = exc_category
+        
+        # Merge extracted suggestions with user-provided ones
+        extracted_suggestions = extracted.pop('suggestions', [])
+        if 'suggestions' in kwargs:
+            kwargs['suggestions'].extend(extracted_suggestions)
+        else:
+            kwargs['suggestions'] = extracted_suggestions
         
         # Merge with user-provided kwargs (user values take precedence)
         extracted.update(kwargs)
@@ -532,30 +936,6 @@ class HaywireException(Exception):
             f"Message   : {self.message}",
             f"-----------------------------------",
         ]
-        
-        # Format technical error details if available
-        if self.original_exception:
-            exc_type_name = type(self.original_exception).__name__
-            exc_message = str(self.original_exception)
-            error_msg = f"{exc_type_name}: {exc_message}"
-            
-            if '\n' in error_msg:
-                error_lines = error_msg.split('\n')
-                lines.append(f"")
-                lines.append(f"Error     : {error_lines[0]}")
-                for line in error_lines[1:]:
-                    lines.append(f"            {line}")
-            else:
-                lines.append(f"")
-                lines.append(f"Error     : {error_msg}")
-            lines.append(f"")
-        
-        # Add suggestions if available
-        if self.suggestions:
-            lines.append("Suggestion: " + self.suggestions[0])
-            for suggestion in self.suggestions[1:]:
-                lines.append(f"            {suggestion}")
-            lines.append("")
 
         if self.library_identity:
             lines.append(f"Library   : {self.library_identity.label}")
@@ -567,6 +947,14 @@ class HaywireException(Exception):
         if self.module_name:
             lines.append(f"Module    : {self.module_name}")
         
+        if self.context_type:
+            lines.append(f"Context   : {self.context_type}")
+        
+        if self.highlighted_item:
+            lines.append(f"Item      : {self.highlighted_item}")
+
+        lines.append(f"")
+
         if self.filename:
             if self.library_identity and self.library_identity.folder_path and self.filename:
                 try:
@@ -582,6 +970,30 @@ class HaywireException(Exception):
             else:
                 lines.append(f"File      :╒══ {self.filename}")
 
+            lines.append("           ┆")
+
+            # Format technical error details if available
+            if self.original_exception:
+                exc_type_name = type(self.original_exception).__name__
+                exc_message = str(self.original_exception)
+                error_msg = f"{exc_type_name}: {exc_message}"
+                
+                if '\n' in error_msg:
+                    error_lines = error_msg.split('\n')
+                    lines.append(f"Error     : {error_lines[0]}")
+                    for line in error_lines[1:]:
+                        lines.append(f"            {line}")
+                else:
+                    lines.append(f"")
+                    lines.append(f"Error     : {error_msg}")
+                lines.append(f"")
+            
+            # Add suggestions if available
+            if self.suggestions:
+                lines.append("Suggestion: " + self.suggestions[0])
+                for suggestion in self.suggestions[1:]:
+                    lines.append(f"            {suggestion}")
+            
             lines.append("           ┆")
             
             # Add context lines with fancy box drawing
@@ -654,6 +1066,8 @@ class HaywireException(Exception):
             'tags': self.tags,
             'is_dismissible': self.is_dismissible,
             'is_actionable': self.is_actionable,
+            'context_type': self.context_type,
+            'highlighted_item': self.highlighted_item,
         }
     
     @classmethod
@@ -663,5 +1077,3 @@ class HaywireException(Exception):
         if 'severity' in data and isinstance(data['severity'], str):
             data['severity'] = ErrorSeverity(data['severity'])
         return cls(**data)
-          
-

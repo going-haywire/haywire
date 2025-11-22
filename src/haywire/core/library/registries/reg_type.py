@@ -8,7 +8,7 @@ validation, and retrieval of all data types (type variants and custom compound t
 import inspect
 from typing import Type, Any
 
-from ...types.base_type import IType
+from ...types.type_interface import IType
 from ...types.identity import DataPortIdentity
 from ..class_registry import BaseClassRegistry
 from ..library_identity import LibraryIdentity

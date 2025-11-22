@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, Any, Callable, Type, TypeVar
-import cattrs
+from typing import TYPE_CHECKING, Any, Dict, Type, TypeVar
+from dataclasses import asdict
 from cattrs.preconf.json import make_converter
 
+from .type_interface import IType
 
 T = TypeVar('T')
 
@@ -30,11 +31,12 @@ def is_cattrs_serializable(value: Any) -> tuple[bool, str | None]:
 # SHARED VALIDATION UTILITIES
 # ============================================================================
 
+
 def normalize_and_validate_default(
     default_value: Any,
-    cls: type,
+    cls: type[IType],
     context: str = "type decorator"
-) -> dict:
+) -> Dict[str, Any]:
     """
     Normalize and validate default value for type registration or port creation.
     
@@ -60,13 +62,24 @@ def normalize_and_validate_default(
         # Returns: {'vertices': []}
     """
     from .base_type import PrimitiveType
-    
+
     # Already a dict - use as-is
     if isinstance(default_value, dict):
         normalized = default_value
+
+    # we dont want the user to use instances.
+    # we want the user to supply constructor kwargs, not instances
+    elif isinstance(default_value, IType):
+        raise TypeError(
+            f"{context} for {cls.__name__}: 'default' must be a dict "
+            f"of constructor kwargs. Got {type(default_value).__name__}(). "
+        )
+
+    # we only allow this simplification for PrimitiveType subclasses
     # Primitive value for PrimitiveType - auto-wrap
     elif issubclass(cls, PrimitiveType):
         normalized = {'value': default_value}
+
     # Complex type with non-dict default - error
     else:
         raise TypeError(
@@ -86,3 +99,57 @@ def normalize_and_validate_default(
         )
     
     return normalized
+
+
+"""
+Utility functions for type system.
+"""
+
+def create_port_base(
+    type_cls: Type[IType],
+    port_class: Type,
+    id: str,
+    **kwargs
+):
+    """
+    Shared logic for creating ports (inlets/outlets).
+    
+    This is internal - not meant to be called directly by users.
+    """
+    # Prepare kwargs with id
+    kwargs['id'] = id
+    
+    # Normalize and validate default if provided
+    if 'default' in kwargs:
+        port_type = "inlet" if port_class.__name__ == "PortInlet" else "outlet"
+        kwargs['default'] = normalize_and_validate_default(
+            kwargs['default'],
+            type_cls,
+            context=f"as_{port_type}('{id}')"
+        )
+    
+    # Merge identity with overrides
+    port_kwargs = {
+        **asdict(type_cls.class_identity),
+        **kwargs
+    }
+    
+    # Create the port
+    port = port_class(**port_kwargs)
+    
+    # Set the library reference
+    port.class_library = getattr(type_cls, 'class_library', None)
+    
+    # Remove default from kwargs for storage
+    kwargs.pop('default', None)
+    
+    # Store creation recipe for serialization
+    if type_cls.class_identity.registry_key and not type_cls.class_identity.registry_key.startswith('default:'):
+        method_name = 'as_inlet' if port_class.__name__ == 'PortInlet' else 'as_outlet'
+        port._creation_recipe = {
+            'registry_key': type_cls.class_identity.registry_key,
+            'method': method_name,
+            'kwargs': kwargs
+        }
+    
+    return port

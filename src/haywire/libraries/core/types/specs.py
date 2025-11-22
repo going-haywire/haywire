@@ -4,7 +4,7 @@ Built-in data type specifications for Haywire core library.
 
 from dataclasses import dataclass
 from haywire.core.types.decorators import type
-from haywire.core.types.base_type import PrimitiveType
+from haywire.core.types.base_type import BaseType, PrimitiveType
 from haywire.core.data.enums import ContainerType, FlowType
 
 # ============================================================================
@@ -20,12 +20,14 @@ from haywire.core.data.enums import ContainerType, FlowType
     color='#ff9800',
     icon='flash',
     widget=None,
-    default={'value': None},
+    default={},
 )
-class EXEC(PrimitiveType[None]):
-    """Execution signal type for controlling node execution flow"""
-
-
+class EXEC(BaseType):
+    """Execution signal type - represents execution flow, not data"""
+    
+    @classmethod
+    def create_default(cls) -> 'EXEC':
+        return cls()
 
 @type(
     registry_id='callback',
@@ -38,9 +40,12 @@ class EXEC(PrimitiveType[None]):
     widget=None,
     default={'value': None},
 )
-class CALLBACK(PrimitiveType[None]):
-    """Callback signal type for callback execution between nodes"""
-
+class CALLBACK(BaseType):
+    """callback signal type - represents callback flow, not data"""
+    
+    @classmethod
+    def create_default(cls) -> 'CALLBACK':
+        return cls()
 
 # ============================================================================
 # Numeric Types
@@ -56,9 +61,9 @@ class CALLBACK(PrimitiveType[None]):
     widget='core:widget:number.widget',
     default={'value': 0},
 )
-@dataclass
 class INT(PrimitiveType[int]):
     """Integer data type"""
+    pass
 
 
 
@@ -73,7 +78,6 @@ class INT(PrimitiveType[int]):
     widget='core:widget:number.widget',
     default={'value': 0.0},
 )
-@dataclass
 class FLOAT(PrimitiveType[float]):
     """Float data type"""
     pass
@@ -94,7 +98,6 @@ class FLOAT(PrimitiveType[float]):
     widget='core:widget:text.input.widget',
     default={'value': ''},
 )
-@dataclass
 class STRING(PrimitiveType[str]):
     """String data type"""
     pass
@@ -115,7 +118,6 @@ class STRING(PrimitiveType[str]):
     widget='core:widget:checkbox.widget',
     default={'value': False},
 )
-@dataclass
 class BOOL(PrimitiveType[bool]):
     """Boolean data type"""
     pass
@@ -136,7 +138,6 @@ class BOOL(PrimitiveType[bool]):
     widget=None,
     default={'value': b''},
 )
-@dataclass
 class BYTES(PrimitiveType[bytes]):
     """Bytes data type"""
     pass
@@ -157,7 +158,6 @@ class BYTES(PrimitiveType[bytes]):
     widget=None,
     default={'value': []},
 )
-@dataclass
 class LIST(PrimitiveType[list]):
     """List data type"""
     pass
@@ -173,7 +173,6 @@ class LIST(PrimitiveType[list]):
     widget=None,
     default={'value': {}},
 )
-@dataclass
 class DICT(PrimitiveType[dict]):
     """Dictionary data type"""
     pass

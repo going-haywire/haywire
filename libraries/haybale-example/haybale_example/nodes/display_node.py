@@ -26,7 +26,7 @@ class DisplayNode(BaseNode):
             FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:number.widget')
         )
         self.add_inlet(
-            FLOAT.as_inlet('b', label='Value B', default=5.0, widget='core:widget:number.widget')
+            FLOAT.as_inlet('b', label='Value B', default=FLOAT(), widget='core:widget:number.widget')
         )
         self.add_outlet(
             FLOAT.as_outlet('result', label='Result')

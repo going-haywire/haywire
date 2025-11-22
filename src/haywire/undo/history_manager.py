@@ -130,7 +130,7 @@ class HistoryManager(IHistoryManager):
             if self.config.enable_debug_logging:
                 self.logger.debug(f"Executed action: {action.description}")
         except Exception as e:
-            self.logger.error(f"Failed to execute action {action.description}: {e}")
+            self.logger.error(f"Failed to execute action {action.description}: {e}", exc_info=True)
             return  # Don't add failed actions to history
         
         # Try to merge with the last action if merging is enabled

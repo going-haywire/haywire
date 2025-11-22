@@ -6,74 +6,30 @@ data types in the Haywire system, both primitive type variants and custom compou
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, TypeVar, Generic
 from typing import get_type_hints
 from typing_extensions import Self
 
 from haywire.core.adapter.base_adapter import BaseAdapter
-from haywire.core.types.utils import normalize_and_validate_default
 
 from ..library.registries.reg_adapter import AdapterRegistry
 from ..data.enums import FlowType
 from ..library.library_identity import LibraryIdentity
 from .identity import DataPortIdentity
-from .ports import PortInlet, PortOutlet
+from .type_interface import IType
+
+if TYPE_CHECKING:
+    from .ports import PortInlet, PortOutlet
 
 T = TypeVar('T')
 
-class IType(ABC):
-    """
-    Interface for all Haywire data types.
-    """
-    @abstractmethod
-    def has_adapter(self, type_cls: type[BaseType], adapter_registry: AdapterRegistry) -> bool:
-        """
-        Check if this type has an adapter to the specified type.
-        
-        Args:
-            type_cls: Target TypeBase subclass to check for adapter 
-        Returns:
-            True if an adapter exists, False otherwise
-        """
-        pass
-
-    @abstractmethod
-    def is_type(self, compare: type) -> bool:
-        """
-        Check if the value is an instance of the given type.
-        
-        Args:
-            compare: Type to check against
-            
-        Returns:
-            True if value is an instance of compare
-        """
-        pass
-
-    @abstractmethod
-    def get_adapter(self, type_cls: type[BaseType], adapter_registry: AdapterRegistry) -> BaseAdapter:
-        """
-        Get an adapter instance to convert this type to the specified type.
-        
-        Args:
-            type_cls: Target TypeBase subclass to adapt to  
-        Returns:
-            Adapter instance for the conversion
-        """
-        pass
-
-    @classmethod
-    @abstractmethod
-    def create_default(cls) -> Self:
-        """Create a default instance of this type."""
-        pass
-
-
-class TypeToDataPort():
+class TypeToDataPort:
     """
     Mixin providing methods to create data ports from this type.
+    
+    These are convenience classmethods that delegate to shared utilities.
     """
 
     @classmethod
@@ -84,7 +40,6 @@ class TypeToDataPort():
         Args:
             id: Port identifier within the node (e.g., 'input_value')
             **kwargs: Override identity attributes or add port-specific fields
-                     (default, flow_type, callback, is_pooled, etc.)
         
         Returns:
             PortInlet configured with this type's identity
@@ -93,39 +48,9 @@ class TypeToDataPort():
             FLOAT.as_inlet('value', default=1.0)
             Temperature.as_inlet('temp', default=25.0, ui={'unit': '°C'})
         """
-        
-        # Prepare kwargs with id and defaults
-        kwargs['id'] = id
-
-        # Normalize and validate default if provided
-        if 'default' in kwargs:
-            kwargs['default'] = normalize_and_validate_default(
-                kwargs['default'],
-                cls,
-                context=f"as_inlet('{id}')"
-            )
-                    
-        # Merge identity with overrides
-        port_kwargs = {
-            **asdict(cls.class_identity),
-            **kwargs
-        }
-        
-        # Create the inlet
-        inlet = PortInlet(**port_kwargs)
-        
-        # Set the library reference
-        inlet.class_library = cls.class_library
-        
-        # Store creation recipe for serialization (if from registered type)
-        if cls.class_identity.registry_key and not cls.class_identity.registry_key.startswith('default:'):
-            inlet._creation_recipe = {
-                'registry_key': cls.class_identity.registry_key,
-                'method': 'as_inlet',
-                'kwargs': kwargs
-            }
-        
-        return inlet
+        from haywire.core.types.utils import create_port_base
+        from haywire.core.types.ports import PortInlet
+        return create_port_base(cls, PortInlet, id, **kwargs)
     
     @classmethod
     def as_outlet(cls, id: str, **kwargs) -> PortOutlet:
@@ -143,42 +68,9 @@ class TypeToDataPort():
             FLOAT.as_outlet('result')
             MeshData.as_outlet('mesh')
         """
-        
-        # Prepare kwargs with id and defaults
-        kwargs['id'] = id
-        
-        # Normalize and validate default if provided
-        if 'default' in kwargs:
-            kwargs['default'] = normalize_and_validate_default(
-                kwargs['default'],
-                cls,
-                context=f"as_outlet('{id}')"
-            )
-                    
-        # Merge identity with overrides
-        port_kwargs = {
-            **asdict(cls.class_identity),
-            **kwargs
-        }
-        
-        # Create the outlet
-        outlet = PortOutlet(**port_kwargs)
-        
-        # Set the library reference (use getattr for safety during hot-reload)
-        outlet.class_library = getattr(cls, 'class_library', None)
-        
-        # Remove default from kwargs for storage (it was already used in creation)
-        kwargs.pop('default', None)
-        
-        # Store creation recipe for serialization (if from registered type)
-        if cls.class_identity.registry_key and not cls.class_identity.registry_key.startswith('default:'):
-            outlet._creation_recipe = {
-                'registry_key': cls.class_identity.registry_key,
-                'method': 'as_outlet',
-                'kwargs': kwargs
-            }
-        
-        return outlet
+        from haywire.core.types.utils import create_port_base
+        from haywire.core.types.ports import PortOutlet
+        return create_port_base(cls, PortOutlet, id, **kwargs)
     
     @classmethod
     def as_config(cls, id: str, **kwargs) -> PortInlet:
@@ -192,13 +84,11 @@ class TypeToDataPort():
         Returns:
             PortInlet with flow_type=NONE (no visible pin)
         
-        
         Example:
             FLOAT.as_config('threshold', default=0.5)
         """
         return cls.as_inlet(id, flow_type=FlowType.NONE, **kwargs)
-
-
+    
 class BaseType(IType, TypeToDataPort, ABC):
     """
     Base class for all Haywire data types.
@@ -232,8 +122,7 @@ class BaseType(IType, TypeToDataPort, ABC):
     def get_adapter(self, type_cls: type[BaseType], adapter_registry: AdapterRegistry) -> BaseAdapter:
         return adapter_registry.get_adapter(type(self), type_cls)
 
-
-    def is_type(self, compare: type) -> bool:
+    def is_value_type(self, compare: type) -> bool:
         return isinstance(self.value, compare)
     
     @classmethod
@@ -303,11 +192,39 @@ class PrimitiveType(BaseType, ABC, Generic[T]):
             @classmethod
             def create_default(cls):
                 return cls(np.zeros((2, 3)))
+    
+    Supports both positional and keyword argument styles:
+    - FLOAT(5.0)           # Direct usage
+    - FLOAT(value=5.0)     # Explicit keyword
+    - FLOAT(**{'value': 5.0})  # From create_default()
     """
 
-    def __init__(self, value: T):
+    def __init__(self, value: T = None, **kwargs):
+        """
+        Initialize primitive with a value.
+        
+        Args:
+            value: The primitive value to wrap
+            **kwargs: For compatibility with create_default dict unpacking
+        """
+        # Handle keyword arg style from create_default
+        if value is None and 'value' in kwargs:
+            value = kwargs['value']
+        
+        # Fall back to class default
+        if value is None:
+            if hasattr(self.__class__, 'class_identity'):
+                default_dict = getattr(self.__class__.class_identity, 'default', None)
+                if isinstance(default_dict, dict):
+                    value = default_dict.get('value')
+                    
+        if value is None:  
+            raise TypeError(
+                f"{self.__class__.__name__}() missing required argument: 'value'"
+            )
+        
         self._value: T = value
-    
+
     @property
     def value(self) -> T:
         """Returns the wrapped primitive value."""

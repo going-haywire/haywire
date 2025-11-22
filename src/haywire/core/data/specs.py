@@ -1,9 +1,6 @@
 from __future__ import annotations
-from typing import Any, Type
+from typing import Any, Optional, Type
 from dataclasses import dataclass, field, replace
-
-from .fields import SingleField, PooledField, DataField
-from ..types.identity import DataPortIdentity
 
 from .enums import ContainerType
 
@@ -51,146 +48,10 @@ class DataPortSpec:
         # Ensure description is a string
         if not self.description:
             self.description = self.id.replace('_', ' ')
-                
-        # Set smart defaults for value based on type and container
-        if self.default is None and self.cls_type is not None:
-            if self.container_type == ContainerType.SINGLE:
-                if self.cls_type == float:
-                    self.default = 0.0
-                elif self.cls_type == int:
-                    self.default = 0
-                elif self.cls_type == bool:
-                    self.default = False
-                elif self.cls_type == str:
-                    self.default = ""
-                elif self.cls_type == bytes:
-                    self.default = b""
-                else:
-                    # For custom types or other types, leave as None
-                    self.default = None
-            elif self.container_type in [ContainerType.LIST, ContainerType.SET]:
-                self.default = []
-            elif self.container_type == ContainerType.DICT:
-                self.default = {}
 
 
     def __call__(self, **kwargs: Any) -> DataPortSpec:
         """Create a new instance with overridden attributes."""
         return replace(self, **kwargs)
     
-    def as_inlet(self, id: str, flow_type: 'FlowType' = None, **kwargs) -> 'PortInlet':
-        """Convert this spec to a PortInlet, inheriting all spec attributes.
-        
-        Args:
-            id: Unique identifier for the inlet
-            flow_type: Type of flow (defaults to FlowType.DATA)
-            **kwargs: Overrides for any spec attributes (label, widget, ui, etc.)
-                     Also accepts inlet-specific args (callback, is_pooled, etc.)
-                     Note: kwargs completely override spec values (no merging)
-        
-        Returns:
-            PortInlet instance with all spec attributes merged
-        """
-        from dataclasses import asdict
-        from ..data.enums import FlowType as FlowTypeEnum
-        
-        # Import here to avoid circular dependency
-        from ..types.ports import PortInlet
-        
-        # Default flow_type if not provided
-        if flow_type is None:
-            flow_type = FlowTypeEnum.DATA
-        
-        # Start with all spec attributes
-        spec_dict = asdict(self)
-        
-        # Build inlet kwargs: spec as base, then overrides
-        inlet_kwargs = {
-            **spec_dict,     # All spec attributes become part of the inlet
-            'id': id,        # Override the id
-            'flow_type': flow_type,
-            **kwargs         # Any other overrides (callback, is_pooled, ui, etc.)
-        }
-        
-        return PortInlet(**inlet_kwargs)
-    
-    def as_outlet(self, id: str, flow_type: 'FlowType' = None, **kwargs) -> 'PortOutlet':
-        """Convert this spec to a PortOutlet, inheriting all spec attributes.
-        
-        Args:
-            id: Unique identifier for the outlet
-            flow_type: Type of flow (defaults to FlowType.DATA)
-            **kwargs: Overrides for any spec attributes (label, widget, ui, etc.)
-                     Note: kwargs completely override spec values (no merging)
-        
-        Returns:
-            PortOutlet instance with all spec attributes merged
-        """
-        from dataclasses import asdict
-        from ..data.enums import FlowType as FlowTypeEnum
-        
-        # Import here to avoid circular dependency
-        from ..types.ports import PortOutlet
-        
-        # Default flow_type if not provided
-        if flow_type is None:
-            flow_type = FlowTypeEnum.DATA
-        
-        # Start with all spec attributes
-        spec_dict = asdict(self)
-        
-        # Build outlet kwargs: spec as base, then overrides
-        outlet_kwargs = {
-            **spec_dict,     # All spec attributes become part of the outlet
-            'id': id,        # Override the id
-            'flow_type': flow_type,
-            **kwargs         # Any other overrides (ui, etc.)
-        }
-        
-        return PortOutlet(**outlet_kwargs)
-    
-    def as_config(self, id: str, callback=None, **kwargs) -> 'PortInlet':
-        """Convert to config (no pin visible).
-        
-        Args:
-            id: Unique identifier for the config
-            callback: Optional callback function triggered on value change
-            **kwargs: Overrides for any spec attributes
-        
-        Returns:
-            PortInlet with FlowType.NONE
-        """
-        from ..data.enums import FlowType as FlowTypeEnum
-        return self.as_inlet(id, flow_type=FlowTypeEnum.NONE, callback=callback, **kwargs)
 
-
-class DataFieldFactory:
-    """Separate factory concerns"""
-    @staticmethod
-    def create(spec: DataPortIdentity, is_pooled: bool = False) -> DataField:
-        """Create appropriate DataField instance based on pooled flag"""
-        if is_pooled:
-            return PooledField(
-                type=spec.cls,
-                value={},
-                is_pooled=True
-            )
-        else:
-            return SingleField(
-                type=spec.cls,
-                value=spec.default,
-                is_pooled=False
-            )
-
-
-def specs_factory(**kwargs: Any) -> DataPortSpec:
-    """Factory function to create a DataFieldSpec instance.
-
-    This allows creating a template spec and then calling it to produce
-    configured instances.
-
-    Example:
-        INT = specs_factory(value_type=int)
-        my_int_field = INT(value=10)
-    """
-    return DataPortSpec(**kwargs)

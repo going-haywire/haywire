@@ -11,7 +11,7 @@ from ..types.identity import DataPortIdentity
 from .fields import DataField, SingleField, PooledField
 
 # Backward compatibility
-from .specs import DataPortSpec, specs_factory
+from .specs import DataPortSpec
 
 __all__ = [
     # Enums
@@ -25,5 +25,4 @@ __all__ = [
     "PooledField",
     # Backward compatibility
     "DataPortSpec",
-    "specs_factory",
 ]

@@ -156,7 +156,7 @@ class DefaultNodeRenderer(BaseNodeRenderer):
                 f'data-pin-color="{callback_color}"'
             )
         elif pin.flow_type == FlowType.DATA:
-            pin_color = ThemePalette.data_type(pin.cls, pin.color)
+            pin_color = ThemePalette.data_type(pin.type_cls, pin.color)
             port_border = ThemePalette.ui(Theme_UI_Color.PORT_BORDER, 'white')
             ui.element('div').classes(
                 'port output-port connection-pin zoom-pan-lod0'

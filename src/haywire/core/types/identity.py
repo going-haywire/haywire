@@ -6,10 +6,12 @@ with type specification for all data that can flow through ports.
 """
 
 from dataclasses import dataclass, field, asdict
-from typing import Any, Type
+from typing import TYPE_CHECKING, Any, Type
 
 from ..library.base_identity import BaseIdentity
 from ..data.enums import ContainerType, FlowType
+
+from .type_interface import IType
 
 @dataclass
 class DataPortIdentity(BaseIdentity):
@@ -51,9 +53,9 @@ class DataPortIdentity(BaseIdentity):
     flow_type: FlowType = FlowType.NONE
 
     # Type specification:
-    cls: Type | None = None  # The Python class (int, float, MeshData, etc.)
+    type_cls: IType = None  # The Python Type class
     container_type: ContainerType = ContainerType.SINGLE
-    default: Any = None
+    default: dict = None
     
     # UI specification:
     color: str = '#757575'
@@ -61,9 +63,6 @@ class DataPortIdentity(BaseIdentity):
     widget: str | None = None
     ui: dict[str, Any] = field(default_factory=dict)
     help_url: str = ''
-    
-    # Internal flags (set by decorators):
-    _is_variant: bool = False  # True for type variants, False for custom types
     
     def __post_init__(self):
         """Auto-generate defaults for convenience."""        
@@ -75,22 +74,4 @@ class DataPortIdentity(BaseIdentity):
         if not self.description and self.label:
             self.description = self.label
         
-        # Set smart defaults based on cls
-        if self.default is None and self.cls is not None:
-            if self.container_type == ContainerType.SINGLE:
-                if self.cls == float:
-                    self.default = 0.0
-                elif self.cls == int:
-                    self.default = 0
-                elif self.cls == bool:
-                    self.default = False
-                elif self.cls == str:
-                    self.default = ""
-                elif self.cls == bytes:
-                    self.default = b""
-                # Custom types get None as default
-            elif self.container_type in [ContainerType.LIST, ContainerType.SET]:
-                self.default = []
-            elif self.container_type == ContainerType.DICT:
-                self.default = {}
 
