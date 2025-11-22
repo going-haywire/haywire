@@ -11,6 +11,7 @@ from typing import Optional, Type, TypeVar, Callable, get_type_hints
 from dataclasses import asdict
 
 from haywire.core.errors import PrimitiveTypeDefinitionError
+from haywire.core.types.utils import is_cattrs_serializable, normalize_and_validate_default
 
 from .base_type import IType, PrimitiveType, BaseType, TypeToDataPort
 from .identity import DataPortIdentity
@@ -133,15 +134,14 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                 f"  - Complex types: default={{'field1': val1, 'field2': val2}}\n"
                 f"  - Types with custom create_default(): default={{'value': None}}"
             )
-        
-        # Validate default is a dict (allow None values in the dict)
-        if not isinstance(identity_dict['default'], dict):
-            raise TypeError(
-                f"@type decorator 'default' must be a dict of constructor kwargs "
-                f"(values can be None for types that override create_default()). "
-                f"Got {type(identity_dict['default']).__name__}"
-            )
 
+        # Normalize and validate default
+        identity_dict['default'] = normalize_and_validate_default(
+            identity_dict['default'],
+            inner_cls,
+            context="@type decorator"
+        )
+        
         # Set registry_key (always regenerate for this class)
         library_id = library_identity.id if library_identity else None
         identity_dict['registry_key'] = reg_key(

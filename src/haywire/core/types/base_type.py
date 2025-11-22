@@ -13,6 +13,7 @@ from typing import get_type_hints
 from typing_extensions import Self
 
 from haywire.core.adapter.base_adapter import BaseAdapter
+from haywire.core.types.utils import normalize_and_validate_default
 
 from ..library.registries.reg_adapter import AdapterRegistry
 from ..data.enums import FlowType
@@ -35,6 +36,19 @@ class IType(ABC):
             type_cls: Target TypeBase subclass to check for adapter 
         Returns:
             True if an adapter exists, False otherwise
+        """
+        pass
+
+    @abstractmethod
+    def is_type(self, compare: type) -> bool:
+        """
+        Check if the value is an instance of the given type.
+        
+        Args:
+            compare: Type to check against
+            
+        Returns:
+            True if value is an instance of compare
         """
         pass
 
@@ -82,7 +96,15 @@ class TypeToDataPort():
         
         # Prepare kwargs with id and defaults
         kwargs['id'] = id
-        
+
+        # Normalize and validate default if provided
+        if 'default' in kwargs:
+            kwargs['default'] = normalize_and_validate_default(
+                kwargs['default'],
+                cls,
+                context=f"as_inlet('{id}')"
+            )
+                    
         # Merge identity with overrides
         port_kwargs = {
             **asdict(cls.class_identity),
@@ -94,9 +116,6 @@ class TypeToDataPort():
         
         # Set the library reference
         inlet.class_library = cls.class_library
-        
-        # Remove default from kwargs for storage (it was already used in creation)
-        kwargs.pop('default', None)
         
         # Store creation recipe for serialization (if from registered type)
         if cls.class_identity.registry_key and not cls.class_identity.registry_key.startswith('default:'):
@@ -128,6 +147,14 @@ class TypeToDataPort():
         # Prepare kwargs with id and defaults
         kwargs['id'] = id
         
+        # Normalize and validate default if provided
+        if 'default' in kwargs:
+            kwargs['default'] = normalize_and_validate_default(
+                kwargs['default'],
+                cls,
+                context=f"as_outlet('{id}')"
+            )
+                    
         # Merge identity with overrides
         port_kwargs = {
             **asdict(cls.class_identity),
@@ -205,6 +232,10 @@ class BaseType(IType, TypeToDataPort, ABC):
     def get_adapter(self, type_cls: type[BaseType], adapter_registry: AdapterRegistry) -> BaseAdapter:
         return adapter_registry.get_adapter(type(self), type_cls)
 
+
+    def is_type(self, compare: type) -> bool:
+        return isinstance(self.value, compare)
+    
     @classmethod
     def create_default(cls) -> Self:
         """
