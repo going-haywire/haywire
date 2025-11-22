@@ -85,7 +85,7 @@ class NodeRenderFactory:
         renderer_instance = self._renderer_cache[registry_key]
         
         # Call render method to create UINodeCard
-        return renderer_instance._render(wrapper)
+        return renderer_instance.render(wrapper)
     
     def clear_cache(self):
         """Clear the renderer instance cache."""

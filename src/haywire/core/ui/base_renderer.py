@@ -128,7 +128,7 @@ class BaseNodeRenderer(ABC):
             UINodeCard containing the rendered UI and widget registry keys
         """
 
-        return self._render(node)
+        return self._render(wrapper)
 
     @abstractmethod
     def _render(self, wrapper: NodeWrapper) -> UINodeCard:
