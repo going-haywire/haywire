@@ -3,8 +3,8 @@ from typing import Any, Dict
 from nicegui import ui
 from nicegui.element import Element
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.node.base_node import BaseNode
-from haywire.ui.niceui_node_renderer import NiceUINodeRenderer
+from haywire.core.node.base import BaseNode
+from haywire.ui.renderer.node_renderer import NodeRenderer
 from haywire.ui.ui_nodecard import NiceUINodeCard
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.renderer.decorator import renderer
@@ -12,7 +12,7 @@ from haywire.core.ui.renderer.decorator import renderer
 @renderer(
     description="Custom renderer for nodes with special styling"
     )
-class ExampleNodeRenderer(NiceUINodeRenderer):
+class ExampleNodeRenderer(NodeRenderer):
     """Custom renderer for nodes with special styling."""
 
     def render(self, wrapper: NodeWrapper) -> NiceUINodeCard:

@@ -1,12 +1,12 @@
 import inspect
 from typing import Optional, TypeVar, Union, Type
 
-from haywire.core.adapter.base_adapter import BaseAdapter
-from ..library_identity import LibraryIdentity
-from ..class_registry import BaseClassRegistry
+from ..library.identity import LibraryIdentity
+from ..registry.base import BaseRegistry
+from .base import BaseAdapter
 
 
-class AdapterRegistry(BaseClassRegistry):
+class AdapterRegistry(BaseRegistry):
     """Registry for type conversion adapters"""
 
     def __init__(self):

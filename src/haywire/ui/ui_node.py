@@ -10,16 +10,14 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 
 from typing import Optional, TYPE_CHECKING, List
 from nicegui import ui
-from haywire.core.node.base_node import BaseNode
+from haywire.core.node.base import BaseNode
 from haywire.ui.ui_nodecard import NiceUINodeCard
-from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType
-from haywire.ui.node_render_factory import NodeRenderFactory
+from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
+from haywire.ui.renderer.factory import RenderFactory
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
-    from haywire.core.library.library_identity import LibraryIdentity
-
 
 class NiceUINode:
     """
@@ -35,7 +33,7 @@ class NiceUINode:
 
     def __init__(
             self, haywire_node: BaseNode, 
-            factory: NodeRenderFactory, 
+            factory: RenderFactory, 
             component, 
             node_wrapper: 'NodeWrapper'):
         """

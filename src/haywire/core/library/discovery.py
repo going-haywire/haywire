@@ -14,8 +14,8 @@ from importlib import import_module
 from dataclasses import dataclass
 from enum import Enum
 
-from .library import BaseLibrary
-from .library_identity import LibraryIdentity
+from .base import BaseLibrary
+from .identity import LibraryIdentity
 
 logger = logging.getLogger(__name__)
 

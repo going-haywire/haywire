@@ -11,14 +11,14 @@ from pathlib import Path
 from typing import Optional, List
 from injector import Injector, Module, provider, singleton
 
-from ..library.registries.reg_library import LibraryRegistry
-from ..library.registries.reg_node import NodeRegistry
-from ..library.registries.reg_renderer import RendererRegistry
-from ..library.registries.reg_adapter import AdapterRegistry
-from ..library.registries.reg_widget import WidgetRegistry
-from ..library.registries.reg_type import TypeRegistry
-from ..node.node_factory import NodeFactory
-from ...ui.node_render_factory import NodeRenderFactory
+from ..library.registry import LibraryRegistry
+from ..node.registry import NodeRegistry
+from ..ui.renderer.registry import RendererRegistry
+from ..adapter.registry import AdapterRegistry
+from ..ui.widget.registry import WidgetRegistry
+from ..types.registry import TypeRegistry
+from ..node.factory import NodeFactory
+from ...ui.renderer.factory import RenderFactory
 from ...undo.interfaces import IHistoryManager
 from ...undo.history_manager import HistoryManager
 from ...undo.config import UndoConfig
@@ -137,9 +137,9 @@ class HaywireModule(Module):
     @provider
     @singleton
     def provide_node_render_factory(self, renderer_registry: RendererRegistry, 
-                                   widget_registry: WidgetRegistry) -> NodeRenderFactory:
+                                   widget_registry: WidgetRegistry) -> RenderFactory:
         """Provide NodeRenderFactory."""
-        return NodeRenderFactory(renderer_registry, widget_registry)
+        return RenderFactory(renderer_registry, widget_registry)
     
     @provider
     @singleton
@@ -384,16 +384,16 @@ class LibrarySystemService:
     
     def get_library_registry(self) -> 'LibraryRegistry':
         """Get the library registry."""
-        from haywire.core.library.registries.reg_library import LibraryRegistry
+        from haywire.core.library.registry import LibraryRegistry
         return self.injector.get(LibraryRegistry)
     
     def get_node_factory(self) -> NodeFactory:
         """Get the node factory."""
         return self.injector.get(NodeFactory)
     
-    def get_node_render_factory(self) -> NodeRenderFactory:
+    def get_node_render_factory(self) -> RenderFactory:
         """Get the node render factory."""
-        return self.injector.get(NodeRenderFactory)
+        return self.injector.get(RenderFactory)
     
     def get_history_manager(self) -> Optional[IHistoryManager]:
         """Get the history manager (None if no-op)."""

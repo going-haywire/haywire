@@ -8,18 +8,19 @@ from typing import Dict, Any
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.node.base_node import BaseNode
+from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.ui.niceui_node_renderer import NiceUINodeRenderer
+from haywire.core.ui.renderer.decorator import renderer
+from haywire.ui.renderer.node_renderer import NodeRenderer
 from haywire.ui.ui_nodecard import NiceUINodeCard
 from haywire.ui.errors.haywire_exception import render_error_details
-from haywire.ui.utils import render_error_info
-from haywire.core.ui.renderer.decorator import renderer
+from haywire.ui.errors.error_info import render_error_info
+
 
 @renderer(
     description="Error renderer that provides error styling for nodes", 
     is_error=True)
-class ErrorNodeRenderer(NiceUINodeRenderer):
+class ErrorNodeRenderer(NodeRenderer):
     """
     Error renderer that provides error styling for nodes.
     

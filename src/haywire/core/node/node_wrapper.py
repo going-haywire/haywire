@@ -5,23 +5,20 @@ This wrapper manages the complete lifecycle of a HaywireNode instance,
 including creation, hot reload, serialization, and cleanup.
 """
 import time
-import uuid
 import threading
 import logging
 from typing import Dict, List, Optional, Tuple, Callable, Any, TYPE_CHECKING
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from copy import deepcopy
 
-from .base_node import BaseNode
+from .base import BaseNode
 from ..errors import HaywireException
-from ..library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
+from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
+from ..errors.haywire_exception import HaywireException
 
 if TYPE_CHECKING:
-    from ..graph.graph import HaywireGraph
-    from .node_factory import NodeFactory
-    from haywire.core.errors.haywire_exception import HaywireException
-
+    from ..graph.base import BaseGraph
+    from .factory import NodeFactory
 
 @dataclass
 class NodeWrapperState:
@@ -104,9 +101,9 @@ class NodeWrapper:
         # Flag to track if we've been initialized
         self._initialized = False
 
-        self.graph: Optional['HaywireGraph' | None] = None
+        self.graph: Optional['BaseGraph' | None] = None
 
-    def register(self, graph: 'HaywireGraph') -> bool:
+    def register(self, graph: 'BaseGraph') -> bool:
         """
         Initialize the wrapper by creating the node instance.
         

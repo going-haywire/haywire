@@ -5,17 +5,15 @@ This module contains actions that operate on the graph structure,
 including node and edge manipulation, positioning, and selection.
 """
 
-import time
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 
-from haywire.core.node.node_factory import NodeFactory
-from haywire.core.node.node_wrapper import NodeWrapper
-
-from ..base_action import ActionBase, CompositeAction
-from ...core.graph.graph import HaywireGraph, Edge
-from ...core.node.node import BaseNode
+from ...core.node.factory import NodeFactory
+from ...core.node.node_wrapper import NodeWrapper
+from ...core.graph.base import BaseGraph, Edge
+from ...core.node.base import BaseNode
 from ...ui.utils import generate_connection_uuid
+from ..base_action import ActionBase, CompositeAction
 
 
 class AddNodeAction(ActionBase):
@@ -23,7 +21,7 @@ class AddNodeAction(ActionBase):
 
     def __init__(
             self, 
-            graph: HaywireGraph, 
+            graph: BaseGraph, 
             registry_key: str, 
             node_factory: 'NodeFactory', 
             position: Tuple[float, float] = (100, 100),
@@ -57,7 +55,7 @@ class AddNodeAction(ActionBase):
 class AddEdgeAction(ActionBase):
     """Action for adding an edge to the graph."""
     
-    def __init__(self, graph: HaywireGraph, edge: Edge, description: Optional[str] = None):
+    def __init__(self, graph: BaseGraph, edge: Edge, description: Optional[str] = None):
         """
         Initialize the add edge action.
         
@@ -91,7 +89,7 @@ class AddEdgeAction(ActionBase):
 class MoveNodesAction(ActionBase):
     """Action for moving one or multiple nodes using delta values."""
     
-    def __init__(self, graph: HaywireGraph, nodes: List[str], deltaX: float, deltaY: float, 
+    def __init__(self, graph: BaseGraph, nodes: List[str], deltaX: float, deltaY: float, 
                  description: Optional[str] = None):
         """
         Initialize the move nodes action.
@@ -159,7 +157,7 @@ class MoveNodesAction(ActionBase):
 class RemoveElementsAction(ActionBase):
     """Action for removing multiple nodes and connections in a single operation."""
     
-    def __init__(self, graph: HaywireGraph, nodes: List[str] = None, connections: List[str] = None,
+    def __init__(self, graph: BaseGraph, nodes: List[str] = None, connections: List[str] = None,
                  description: Optional[str] = None):
         """
         Initialize the remove elements action.
@@ -260,7 +258,7 @@ class SelectionState:
 class ChangeSelectionAction(ActionBase):
     """Action for changing the selection state."""
     
-    def __init__(self, graph: HaywireGraph, new_selection: SelectionState, 
+    def __init__(self, graph: BaseGraph, new_selection: SelectionState, 
                  description: Optional[str] = None):
         """
         Initialize the change selection action.
@@ -298,7 +296,7 @@ class ChangeSelectionAction(ActionBase):
 class DuplicateNodeAction(CompositeAction):
     """Composite action for duplicating a node."""
     
-    def __init__(self, graph: HaywireGraph, source_node_id: str, new_node_id: str,
+    def __init__(self, graph: BaseGraph, source_node_id: str, new_node_id: str,
                  offset_x: float = 50.0, offset_y: float = 50.0):
         """
         Initialize the duplicate node action.
@@ -361,7 +359,7 @@ class ClipboardData:
 class PasteClipboardAction(CompositeAction):
     """Composite action for pasting clipboard contents."""
     
-    def __init__(self, graph: HaywireGraph, clipboard_data: 'ClipboardData', 
+    def __init__(self, graph: BaseGraph, clipboard_data: 'ClipboardData', 
                  paste_x: float, paste_y: float, description: Optional[str] = None):
         """
         Initialize the paste clipboard action.

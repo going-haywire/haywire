@@ -7,7 +7,7 @@ import sys
 from types import ModuleType
 from typing import List, Type, Optional, Callable
 
-from haywire.core.library.library_identity import LibraryIdentity
+from haywire.core.library.identity import LibraryIdentity
 
 
 class FolderScanMixin:

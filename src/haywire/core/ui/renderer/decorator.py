@@ -2,7 +2,7 @@ from typing import Callable, Type, TypeVar, Union
 
 from ....core.library.utils import derive_library_identity, reg_key
 
-from .base import IBaseNodeRenderer, RendererIdentity
+from .base import IBaseRenderer, RendererIdentity
 
 # ============================================================================
 #    Decorator
@@ -57,7 +57,7 @@ def renderer(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[
         class ErrorRenderer(BaseNodeRenderer): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
-        if not issubclass(inner_cls, IBaseNodeRenderer):
+        if not issubclass(inner_cls, IBaseRenderer):
             raise TypeError(f"@renderer can only be applied to BaseNodeRenderer subclasses, got {inner_cls}")
 
         # Set defaults from class name if not provided

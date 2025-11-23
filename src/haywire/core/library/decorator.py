@@ -1,0 +1,87 @@
+import inspect
+from pathlib import Path
+from typing import Callable, Type, TypeVar, Union
+
+from .base import BaseLibrary
+from .identity import LibraryIdentity
+
+# ============================================================================
+#    Decorator
+# ============================================================================
+
+T = TypeVar('T')
+
+def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+    """
+    Decorator to register a class as a Haywire library.
+
+    Accepts any LibraryIdentity field as a keyword argument. Common arguments include:
+
+    Args:
+        label (str, required): Human-readable library name.
+        version (str, optional): Semantic version string. Defaults to '1.0.0'.
+        description (str, optional): Human-readable description of the library.
+            Defaults to empty string.
+        url (str, optional): Library's main URL. Defaults to empty string.
+        help_url (str, optional): URL to documentation. Defaults to empty string.
+        author (str, optional): Author name. Defaults to empty string.
+        author_url (str, optional): Author's URL. Defaults to empty string.
+        id (str, optional): Unique identifier for the library.
+            Defaults to label if not provided.
+        dependencies (list[str], optional): List of required haywire libraries.
+            Defaults to empty list.
+        file_watcher (bool, optional): Whether to enable file watching for this library.
+            Defaults to False.
+
+    Any other keyword arguments will be passed through to the LibraryIdentity constructor.
+    See the LibraryIdentity dataclass for the complete list of available fields.
+
+    Usage:
+        # Minimal usage - only label is required
+        @library(label="my.library")
+        class Library(BaseLibrary): ...
+
+        # Common customization
+        @library(label="my.library", version="1.2.0", description="My custom library")
+        class Library(BaseLibrary): ...
+
+        # Full customization
+        @library(
+            label="advanced.library",
+            version="2.0.0",
+            description="Advanced library with many features",
+            url="https://github.com/user/advanced-library",
+            help_url="https://advanced-library.readthedocs.io",
+            author="John Doe",
+            author_url="https://johndoe.com",
+            id="advanced_lib",
+            dependencies=["haywire.core", "numpy"],
+            file_watcher=True
+        )
+        class Library(BaseLibrary): ...
+
+        # With file watching
+        @library(label="dev.library", file_watcher=True, version="0.1.0")
+        class Library(BaseLibrary): ...
+    """
+    def decorator(inner_cls: Type[T]) -> Type[T]:
+        if not issubclass(inner_cls, BaseLibrary):
+            raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
+
+        # Require label field
+        if 'label' not in kwargs:
+            raise ValueError("@library decorator requires 'label' argument")
+
+        # Set defaults if not provided
+        kwargs.setdefault('version', '1.0.0')
+        kwargs.setdefault('id', kwargs['label'])
+
+        # Auto-detect folder_path - use the directory where inner_cls is defined
+        class_file = inspect.getfile(inner_cls)
+        kwargs['folder_path'] = str(Path(class_file).parent)
+        kwargs['module_name'] = inner_cls.__module__
+
+        inner_cls.class_identity = LibraryIdentity(**kwargs)
+        return inner_cls
+
+    return decorator if cls is None else decorator(cls)

@@ -4,7 +4,7 @@ Built-in data type specifications for Haywire core library.
 
 from dataclasses import dataclass
 from haywire.core.types.decorator import type
-from haywire.core.types.base_type import BaseType, PrimitiveType
+from haywire.core.types.base import BaseType, PrimitiveType
 from haywire.core.data.enums import ContainerType, FlowType
 
 # ============================================================================

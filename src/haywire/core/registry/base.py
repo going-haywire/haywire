@@ -11,11 +11,11 @@ import sys
 from typing import Callable, Dict, Any, Optional, Type, List, Tuple
 import logging
 
-from .library_identity import LibraryIdentity
-from .dependency_graph import DependencyGraph, ReloadPlan
-from .folder_scan import FolderScanMixin
-from .hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback
 from ..errors import HaywireException
+from ..library.identity import LibraryIdentity
+from .dependency_graph import DependencyGraph
+from .folder_scan import FolderScanMixin
+from .lifecycle_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback
 
 
 class FileEventType(Enum):
@@ -46,7 +46,7 @@ class HotReloadRegistry(ABC):
         """Handle creation of a module"""
         pass
 
-class BaseClassRegistry(HotReloadRegistry, FolderScanMixin):
+class BaseRegistry(HotReloadRegistry, FolderScanMixin):
     """
     Abstract base class for all class registries
     

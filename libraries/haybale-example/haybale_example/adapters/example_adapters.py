@@ -1,7 +1,8 @@
 from typing import override
 
-from haywire.core.adapter.base_adapter import BaseAdapter
-from haywire.core.adapter.base_adapter import adapter
+from haywire.core.adapter.base import BaseAdapter
+from haywire.core.adapter.base import adapter
+
 from ..types.mesh_data import MeshData
 
 @adapter(

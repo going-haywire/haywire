@@ -4,17 +4,14 @@ import inspect
 import logging
 from typing import Type, Optional
 
-from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.library.hot_reload_event import LifeCycleEvent
+from ...core.registry.lifecycle_event import LifeCycleEvent
+from ..errors.haywire_exception import HaywireException
+from ..registry.base import BaseRegistry
+from ..library.identity import LibraryIdentity
+from .base import BaseNode
 
-from ...node.exceptions import NodeDiscoveryError
-from ...node.dataclasses import NodeErrorInfo
-from ..library_identity import LibraryIdentity
-from ...node.base_node import BaseNode
-from ..class_registry import BaseClassRegistry
-
-class NodeRegistry(BaseClassRegistry):
-    """Simplified registry for managing nodes using library.name:node.name keys"""
+class NodeRegistry(BaseRegistry):
+    """registry for managing nodes using library.name:node:node.name keys"""
 
     def __init__(self):
         super().__init__()

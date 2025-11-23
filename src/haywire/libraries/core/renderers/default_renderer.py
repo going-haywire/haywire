@@ -11,7 +11,7 @@ from nicegui.element import Element
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.renderer.decorator import renderer
-from haywire.ui.niceui_node_renderer import NiceUINodeRenderer
+from haywire.ui.renderer.node_renderer import NodeRenderer
 from haywire.ui.ui_nodecard import NiceUINodeCard
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes import ThemePalette
@@ -19,7 +19,7 @@ from haywire.ui.themes import ThemePalette
 @renderer(
     description="Default renderer that provides the standard node appearance", 
     is_default=True)
-class DefaultNodeRenderer(NiceUINodeRenderer):
+class DefaultNodeRenderer(NodeRenderer):
     """
     Default renderer that provides the standard node appearance.
     

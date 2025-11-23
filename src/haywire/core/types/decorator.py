@@ -10,12 +10,12 @@ This module provides decorators for creating Haywire data types:
 from typing import Optional, Type, TypeVar, Callable, get_type_hints
 from dataclasses import asdict
 
-from .type_interface import IType
-from haywire.core.types.utils import is_cattrs_serializable, normalize_and_validate_default
 
-from .base_type import PrimitiveType, BaseType
-from .identity import DataPortIdentity
 from ..library.utils import derive_library_identity, reg_key
+from .base import PrimitiveType, BaseType
+from .identity import DataTypeIdentity
+from .interface import IType
+from .utils import is_cattrs_serializable, normalize_and_validate_default
 
 T = TypeVar('T')
 
@@ -100,7 +100,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         kwargs['type_cls'] = inner_cls
         
         # Check if this inherits from another Type (derived variant)
-        parent_identity: Optional[DataPortIdentity] = None
+        parent_identity: Optional[DataTypeIdentity] = None
         for base in inner_cls.__bases__:
             # Skip abstract base classes
             if base in (BaseType, PrimitiveType, IType):
@@ -150,7 +150,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         )
         
         # Create and attach identity
-        inner_cls.class_identity = DataPortIdentity(**identity_dict)
+        inner_cls.class_identity = DataTypeIdentity(**identity_dict)
         
         return inner_cls
     

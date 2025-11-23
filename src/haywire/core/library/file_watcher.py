@@ -6,8 +6,8 @@ from typing import Dict, Set
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from .class_registry import HotReloadRegistry, FileChangeEvent, FileEventType
-from ..library.library_identity import LibraryIdentity
+from ..registry.base import HotReloadRegistry, FileChangeEvent, FileEventType
+from .identity import LibraryIdentity
 
 class LibraryFileHandler(FileSystemEventHandler):
     """Handles file system events for a specific library path with debouncing"""

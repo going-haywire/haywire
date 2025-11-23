@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from ...data.fields import DataField
 from ...types.ports import DataPort
-from ...library.base_identity import BaseIdentity
+from ...registry.identity import BaseIdentity
 from ...errors.haywire_exception import HaywireException
 
 @dataclass

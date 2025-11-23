@@ -5,7 +5,7 @@ import traceback
 from typing import Dict, Any, Optional, Type
 import re
 
-from .library_identity import LibraryIdentity
+from .identity import LibraryIdentity
 
 def derive_library_identity(cls: Type) -> LibraryIdentity:
     """

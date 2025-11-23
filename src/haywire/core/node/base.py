@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 
 from ..data.enums import FlowType
 from ..data.specs import DataPortSpec
-from ..library.base_identity import BaseIdentity
+from ..registry.identity import BaseIdentity
 from ..library.utils import derive_library_identity, reg_key
-from ..library.library_identity import LibraryIdentity
+from ..library.identity import LibraryIdentity
 from ..types.ports import PortInlet, PortOutlet
 from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
 

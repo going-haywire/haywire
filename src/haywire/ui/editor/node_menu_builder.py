@@ -21,7 +21,7 @@ defined in node decorators (e.g., menu='core/basic').
 
 from nicegui import ui
 from typing import Dict, List, Optional, Callable, Any
-from haywire.core.node.node_factory import NodeFactory
+from haywire.core.node.factory import NodeFactory
 
 
 class NodeMenuBuilder:

@@ -4,12 +4,12 @@ from typing import TypeVar, Optional, Union, Type
 import logging
 
 from ...errors.haywire_exception import HaywireException, ErrorSeverity
-from ...ui.widget.base import BaseWidget
-from ..hot_reload_event import LifeCycleEvent
-from ..library_identity import LibraryIdentity
-from ..class_registry import BaseClassRegistry
+from .base import BaseWidget
+from ...registry.lifecycle_event import LifeCycleEvent
+from ...library.identity import LibraryIdentity
+from ...registry.base import BaseRegistry
 
-class WidgetRegistry(BaseClassRegistry):
+class WidgetRegistry(BaseRegistry):
     """Registry for UI widgets that can render data fields"""
 
     def __init__(self):

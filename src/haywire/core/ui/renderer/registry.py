@@ -2,11 +2,11 @@ import inspect
 import logging
 from typing import Any, Dict, Optional, TypeVar, Union
 
-from ...ui.renderer.base import IBaseNodeRenderer
-from ..library_identity import LibraryIdentity
-from ..class_registry import BaseClassRegistry
+from .base import IBaseRenderer
+from ...library.identity import LibraryIdentity
+from ...registry.base import BaseRegistry
 
-class RendererRegistry(BaseClassRegistry):
+class RendererRegistry(BaseRegistry):
     """Registry for NodeRenderer classes with fallback support"""
 
     def __init__(self):
@@ -17,13 +17,13 @@ class RendererRegistry(BaseClassRegistry):
     def _class_filter(self, cls):
         try:
             return (inspect.isclass(cls) and
-                    issubclass(cls, IBaseNodeRenderer) and
-                    cls != IBaseNodeRenderer and
+                    issubclass(cls, IBaseRenderer) and
+                    cls != IBaseRenderer and
                     hasattr(cls, 'class_identity'))
         except TypeError:
             return False
 
-    def _register_class(self, renderer_cls: type[IBaseNodeRenderer], library_identity: Optional[LibraryIdentity] = None) -> str | None:
+    def _register_class(self, renderer_cls: type[IBaseRenderer], library_identity: Optional[LibraryIdentity] = None) -> str | None:
         """
         Register a renderer class.
         
@@ -51,7 +51,7 @@ class RendererRegistry(BaseClassRegistry):
 
         return super()._register(registry_key, renderer_cls, library_identity)
 
-    def _unregister_class(self, registry_key: str) -> type[IBaseNodeRenderer] | None:
+    def _unregister_class(self, registry_key: str) -> type[IBaseRenderer] | None:
         """Unregister a renderer by its registry_key
         Args:
             registry_key: The haywire registry_key of the renderer to unregister
@@ -73,7 +73,7 @@ class RendererRegistry(BaseClassRegistry):
         
         return removed_class
 
-    def get_renderer_class(self, renderer_name: str | None) -> type[IBaseNodeRenderer]:
+    def get_renderer_class(self, renderer_name: str | None) -> type[IBaseRenderer]:
         """
         Get renderer class with fallback strategy:
         1. Try exact renderer name lookup
@@ -97,13 +97,13 @@ class RendererRegistry(BaseClassRegistry):
         # Fallback if no error renderer registered
         raise RuntimeError(f"No renderer found for '{renderer_name}' and no error renderer registered")
 
-    def get_default_renderer(self) -> type[IBaseNodeRenderer] | None:
+    def get_default_renderer(self) -> type[IBaseRenderer] | None:
         """Get the default renderer class"""
         if self._default_renderer_name:
             if self.has(self._default_renderer_name):
                 return self._classes[self._default_renderer_name]
         return None
 
-    def get_error_renderer(self) -> type[IBaseNodeRenderer] | None:
+    def get_error_renderer(self) -> type[IBaseRenderer] | None:
         """Get the error renderer class"""
         return self._error_renderer

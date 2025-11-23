@@ -10,11 +10,11 @@ from abc import ABC
 from typing import TypeVar, Generic
 from typing_extensions import Self
 
-from ..adapter.base_adapter import BaseAdapter
-from ..library.registries.reg_adapter import AdapterRegistry
-from ..library.library_identity import LibraryIdentity
-from .identity import DataPortIdentity
-from .type_interface import IType
+from ..adapter.base import BaseAdapter
+from ..adapter.registry import AdapterRegistry
+from ..library.identity import LibraryIdentity
+from .identity import DataTypeIdentity
+from .interface import IType
 from .type_to_dataport import TypeToDataPort
 
 T = TypeVar('T')
@@ -33,7 +33,7 @@ class BaseType(IType, TypeToDataPort, ABC):
     """
     
     # Set by @type decorator:
-    class_identity: DataPortIdentity
+    class_identity: DataTypeIdentity
     # Set by type registration:
     class_library: LibraryIdentity
 

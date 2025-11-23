@@ -11,8 +11,8 @@ from typing import Dict, List, Optional, Tuple, Callable, Set
 from nicegui import ui, events
 from dataclasses import dataclass
 
-from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
-from haywire.core.node.base_node import BaseNode
+from haywire.core.graph.base import BaseGraph, Edge, EdgeType
+from haywire.core.node.base import BaseNode
 from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
 from haywire.ui.ui_node import NiceUINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer

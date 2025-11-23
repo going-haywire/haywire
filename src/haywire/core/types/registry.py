@@ -8,13 +8,13 @@ validation, and retrieval of all data types (type variants and custom compound t
 import inspect
 from typing import Type, Any
 
-from ...types.type_interface import IType
-from ...types.identity import DataPortIdentity
-from ..class_registry import BaseClassRegistry
-from ..library_identity import LibraryIdentity
+from .interface import IType
+from .identity import DataTypeIdentity
+from ..registry.base import BaseRegistry
+from ..library.identity import LibraryIdentity
 
 
-class TypeRegistry(BaseClassRegistry):
+class TypeRegistry(BaseRegistry):
     """
     Universal registry for all data types.
     
@@ -62,7 +62,7 @@ class TypeRegistry(BaseClassRegistry):
                 return False
             
             # class_identity must be a DataPortIdentity
-            if not isinstance(cls.class_identity, DataPortIdentity):
+            if not isinstance(cls.class_identity, DataTypeIdentity):
                 return False
                         
             return True
@@ -114,7 +114,7 @@ class TypeRegistry(BaseClassRegistry):
         """
         return self._classes.get(key)
     
-    def get_identity(self, key: str) -> DataPortIdentity | None:
+    def get_identity(self, key: str) -> DataTypeIdentity | None:
         """
         Get the DataPortIdentity for a registered type.
         

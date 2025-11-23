@@ -61,7 +61,7 @@ import time
 import os
 from pathlib import Path
 
-from ..library.library_identity import LibraryIdentity
+from ..library.identity import LibraryIdentity
 
 
 class ErrorSeverity(Enum):

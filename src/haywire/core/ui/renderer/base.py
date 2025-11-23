@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from ...node.node_wrapper import NodeWrapper
-from ...library.base_identity import BaseIdentity
+from ...registry.identity import BaseIdentity
 
 class UINodeCard(ABC):
     """
@@ -12,7 +12,7 @@ class UINodeCard(ABC):
     """
     pass
 
-class INodeRenderFactory(ABC):
+class IRenderFactory(ABC):
     """
     Abstract base class for NodeRenderFactory implementations.
     Responsible for creating UINodeCard instances using registered
@@ -28,7 +28,7 @@ class RendererIdentity(BaseIdentity):
     is_error: bool = False
 
  
-class IBaseNodeRenderer(ABC):
+class IBaseRenderer(ABC):
     """
     Abstract base class for all NodeRenderer classes.
 
@@ -37,7 +37,7 @@ class IBaseNodeRenderer(ABC):
     """
 
     @abstractmethod
-    def __init__(self, render_factory: INodeRenderFactory):
+    def __init__(self, render_factory: IRenderFactory):
         """
         Initialize the renderer with a widget registry.
 

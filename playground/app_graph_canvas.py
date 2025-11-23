@@ -29,7 +29,7 @@ if src_path not in sys.path:
 # Haywire imports
 from haywire.ui.editor.graph_canvas_manager import GraphCanvasManager
 from haywire.ui.editor.editor import Editor
-from haywire.core.graph.graph import HaywireGraph
+from haywire.core.graph.base import BaseGraph
 from haywire.undo.config import DEVELOPMENT_CONFIG
 from haywire.ui.themes import ThemePalette
 
@@ -95,7 +95,7 @@ class UndoRedoTestAppWithCanvasManager:
         ThemePalette.register_observer(self._on_theme_changed)
         
         # Create ONE shared graph for all sessions
-        self.graph = HaywireGraph("shared_graph", self.node_factory, "Shared Graph Across Sessions")
+        self.graph = BaseGraph("shared_graph", self.node_factory, "Shared Graph Across Sessions")
         
         # Create shared Editor instance
         self.editor = Editor(self.graph, self.history_manager, self.node_factory)

@@ -4,11 +4,11 @@ from typing import Any, Callable, Dict, Optional
 
 from ..data.fields import DataField, PooledField, SingleField
 from ..data.enums import FlowType
-from .identity import DataPortIdentity
-from .type_interface import IType
+from .identity import DataTypeIdentity
+from .interface import IType
 
 @dataclass
-class DataPort(DataPortIdentity):
+class DataPort(DataTypeIdentity):
     """Extended DataPortIdentity with runtime port information.
     
     Adds runtime-specific fields on top of the identity:

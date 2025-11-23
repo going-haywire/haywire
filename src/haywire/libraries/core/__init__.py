@@ -7,13 +7,13 @@ that form the foundation of the Haywire system.
 
 from pathlib import Path
 
-from haywire.core.library.library import BaseLibrary
-from haywire.core.library.library import library
-from haywire.core.library.registries.reg_renderer import RendererRegistry
-from haywire.core.library.registries.reg_adapter import AdapterRegistry
-from haywire.core.library.registries.reg_widget import WidgetRegistry
-from haywire.core.library.registries.reg_node import NodeRegistry
-from haywire.core.library.registries.reg_type import TypeRegistry
+from haywire.core.library.base import BaseLibrary
+from haywire.core.library.decorator import library
+from haywire.core.ui.renderer.registry import RendererRegistry
+from haywire.core.adapter.registry import AdapterRegistry
+from haywire.core.ui.widget.registry import WidgetRegistry
+from haywire.core.node.registry import NodeRegistry
+from haywire.core.types.registry import TypeRegistry
 
 @library(
     label='Haywire Core',

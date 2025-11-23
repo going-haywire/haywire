@@ -3,8 +3,8 @@ Basic core node implementations
 """
 
 # Import the node system base class
-from haywire.core.node.base_node import node
-from haywire.core.node.base_node import BaseNode
+from haywire.core.node.base import node
+from haywire.core.node.base import BaseNode
 from haywire.core.data.enums import ContainerType, FlowType
 from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, INT, STRING
 

@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Type, override, TypeVar, Optional, Union
 from dataclasses import dataclass
 
-from haywire.core.library.base_identity import BaseIdentity
+from haywire.core.registry.identity import BaseIdentity
 from haywire.core.library.utils import derive_library_identity, reg_key
 
 @dataclass

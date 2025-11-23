@@ -7,7 +7,7 @@ Note: DataType enum is deprecated. Use actual Python classes (int, float, str, e
 """
 
 from .enums import ContainerType, FlowType
-from ..types.identity import DataPortIdentity
+from ..types.identity import DataTypeIdentity
 from .fields import DataField, SingleField, PooledField
 
 # Backward compatibility
@@ -18,7 +18,7 @@ __all__ = [
     "ContainerType",
     "FlowType",
     # Identity (new unified system)
-    "DataPortIdentity",
+    "DataTypeIdentity",
     # Fields
     "DataField",
     "SingleField",

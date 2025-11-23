@@ -8,15 +8,12 @@ The event carries complete context about what changed, making it easy to
 filter and route at each layer of the system.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Type, Any, Set, Callable, TYPE_CHECKING
+from typing import Optional, Type, Any, Set, Callable
 
-if TYPE_CHECKING:
-    from haywire.core.errors.haywire_exception import HaywireException
-
-from .library_identity import LibraryIdentity
-
+from ..errors.haywire_exception import HaywireException
+from ..library.identity import LibraryIdentity
 
 class LifeCycleEventType(Enum):
     """Types of hot reload events"""

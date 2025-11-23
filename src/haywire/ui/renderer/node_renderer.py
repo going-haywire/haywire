@@ -5,21 +5,22 @@ from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.dataclasses import NodeErrorInfo
-from haywire.core.ui.renderer.base import IBaseNodeRenderer
-from haywire.core.node.base_node import BaseNode
-from haywire.core.node.base_node import BaseNode
+from haywire.core.ui.renderer.base import IBaseRenderer
+from haywire.core.node.base import BaseNode
+from haywire.core.node.base import BaseNode
 from haywire.core.data.enums import FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.ports import PortInlet, PortOutlet, DataPort
 from haywire.core.ui.widget.base import BaseWidget
+from ..errors.error_info import render_error_info
 
-from ..ui.themes.colors import Theme_UI_Color
-from ..ui.utils import generate_pin_uuid, render_error_info
-from ..ui.themes import ThemePalette
-from ..ui.node_render_factory import NodeRenderFactory
+from ..themes.colors import Theme_UI_Color
+from ..utils import generate_pin_uuid
+from ..themes import ThemePalette
+from .factory import RenderFactory
 
 
-class NiceUINodeRenderer(IBaseNodeRenderer, ABC):
+class NodeRenderer(IBaseRenderer, ABC):
     """
     Base class for all NiceGui NodeRenderer classes.
 
@@ -27,14 +28,14 @@ class NiceUINodeRenderer(IBaseNodeRenderer, ABC):
     They are cached and reused by the NodeRenderFactory.
     """
 
-    def __init__(self, render_factory: NodeRenderFactory):
+    def __init__(self, render_factory: RenderFactory):
         """
         Initialize the renderer with a render factory.
 
         Args:
             render_factory: Factory for creating UINodeCard instances
         """
-        self._render_factory: NodeRenderFactory = render_factory
+        self._render_factory: RenderFactory = render_factory
 
     def _render_inlet(self, inlet: PortInlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, BaseWidget], node: BaseNode):
         """Render an inlet with its port and optional widget."""

@@ -5,16 +5,16 @@ This module provides the DataPortIdentity class which combines registry identity
 with type specification for all data that can flow through ports.
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import TYPE_CHECKING, Any, Type
+from dataclasses import dataclass, field
+from typing import Any, Type
 
-from ..library.base_identity import BaseIdentity
+from ..registry.identity import BaseIdentity
 from ..data.enums import ContainerType, FlowType
 
-from .type_interface import IType
+from .interface import IType
 
 @dataclass
-class DataPortIdentity(BaseIdentity):
+class DataTypeIdentity(BaseIdentity):
     """
     Unified identity for all data types that can flow through ports.
     

@@ -12,10 +12,10 @@ Design Philosophy:
 """
 
 from typing import Dict, List, Optional, Tuple, Set, Any, Callable
-from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
-from haywire.core.node.base_node import BaseNode
+from haywire.core.graph.base import BaseGraph, Edge, EdgeType
+from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.node.node_factory import NodeFactory
+from haywire.core.node.factory import NodeFactory
 from haywire.undo.interfaces import IHistoryManager
 from haywire.undo.actions.graph_actions import *
 
@@ -29,7 +29,7 @@ class Editor:
     Uses simple callbacks for change notifications rather than complex events.
     """
     
-    def __init__(self, graph: HaywireGraph, history_manager: IHistoryManager, node_factory: NodeFactory):
+    def __init__(self, graph: BaseGraph, history_manager: IHistoryManager, node_factory: NodeFactory):
         """
         Initialize the editor with core components.
         
@@ -38,7 +38,7 @@ class Editor:
             history_manager: History manager for undo/redo operations  
             node_factory: Factory for creating new nodes
         """
-        self.graph: HaywireGraph = graph
+        self.graph: BaseGraph = graph
         self.history_manager: IHistoryManager = history_manager
         self.node_factory: NodeFactory = node_factory
         

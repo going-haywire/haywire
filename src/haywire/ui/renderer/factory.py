@@ -8,25 +8,16 @@ Enhanced with customer notification system for UINode hot reload support.
 """
 
 import logging
-from typing import Any, Dict, Type, List, Callable
+from typing import Any, Dict, Type, List
 
-from nicegui.element import Element
-
-from haywire.core.errors import HaywireException
-from haywire.core.node.base_node import BaseNode
-from haywire.core.library.registries.reg_widget import WidgetRegistry
-from haywire.core.library.registries.reg_renderer import RendererRegistry
-from haywire.core.library.library_identity import LibraryIdentity
-from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback
-from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.ui.widget.registry import WidgetRegistry
+from haywire.core.ui.renderer.registry import RendererRegistry
+from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.types.ports import DataPort, PortInlet
-from haywire.core.ui.renderer.base import IBaseNodeRenderer, INodeRenderFactory
+from haywire.core.ui.renderer.base import IBaseRenderer, IRenderFactory
 from haywire.ui.ui_nodecard import NiceUINodeCard
-from haywire.core.ui.widget.base import BaseWidget
-from haywire.ui.utils import render_error_info
 
-class NodeRenderFactory(INodeRenderFactory):
+class RenderFactory(IRenderFactory):
     """
     Factory class for creating UINodeCard instances using NodeRenderer classes.
     
@@ -49,7 +40,7 @@ class NodeRenderFactory(INodeRenderFactory):
         self.widget_registry = widget_registry
         
         # Cache for NodeRenderer instances (stateless, so can be reused)
-        self._renderer_cache: Dict[str, IBaseNodeRenderer] = {}
+        self._renderer_cache: Dict[str, IBaseRenderer] = {}
         
         # Customer callbacks for hot reload notifications
         self._renderer_lifecycle_subscribers: List[LiveCycleBatchCallback] = []
@@ -91,7 +82,7 @@ class NodeRenderFactory(INodeRenderFactory):
         """Clear the renderer instance cache."""
         self._renderer_cache.clear()
     
-    def get_cached_renderers(self) -> Dict[str, IBaseNodeRenderer]:
+    def get_cached_renderers(self) -> Dict[str, IBaseRenderer]:
         """Get a copy of the current renderer cache for debugging."""
         return self._renderer_cache.copy()
     

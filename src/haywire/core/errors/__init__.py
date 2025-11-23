@@ -8,12 +8,8 @@ Use HaywireException.from_exception() or HaywireException.create() directly.
 """
 
 from .haywire_exception import HaywireException, ErrorSeverity
-from .primitive_type_error import PrimitiveTypeDefinitionError
-from .custom_exception import CustomException
 
 __all__ = [
     'HaywireException',       # Use this
-    'ErrorSeverity',
-    'CustomException',
-    'PrimitiveTypeDefinitionError'
+    'ErrorSeverity'
 ]

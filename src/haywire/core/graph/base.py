@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from enum import Enum
 import uuid
 
-from ..node.base_node import BaseNode
+from ..node.base import BaseNode
 from ..node.node_wrapper import NodeWrapper
 from ...ui.utils import generate_connection_uuid, parse_connection_uuid
 
 if TYPE_CHECKING:
-    from ..node.node_factory import NodeFactory
+    from ..node.factory import NodeFactory
 
 
 # ============================================================================
@@ -98,7 +98,7 @@ class Variable:
 # Graph Class
 # ============================================================================
 
-class HaywireGraph:
+class BaseGraph:
     """Main Graph class for the Haywire system
     
     A Graph is a container that describes the flow of data and control between nodes.

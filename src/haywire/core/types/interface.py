@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 from typing_extensions import Self
 
 if TYPE_CHECKING:
-    from ..adapter.base_adapter import BaseAdapter
-    from ..library.registries.reg_adapter import AdapterRegistry
+    from ..adapter.base import BaseAdapter
+    from ..adapter.registry import AdapterRegistry
 
 class IType(ABC):
     """

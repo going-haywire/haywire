@@ -7,11 +7,11 @@ from typing import Any, Dict, Optional, Type
 from pathlib import Path
 import logging
 
-from ..library import BaseLibrary
-from ..utils import format_external_exception
-from ..discovery import LibraryDiscovery, DiscoveredLibrary, InstallType
-from ..library_identity import LibraryIdentity
-from ..class_registry import BaseClassRegistry
+from .base import BaseLibrary
+from .utils import format_external_exception
+from .discovery import LibraryDiscovery, DiscoveredLibrary, InstallType
+from .identity import LibraryIdentity
+from ..registry.base import BaseRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class LibraryRegistry:
     def __init__(self):
         # Registry functionality moved from BaseRegistry
         self._libraries: Dict[str, BaseLibrary] = {} # registry_id -> library_instance
-        self._class_registries: Dict[Type[BaseClassRegistry], BaseClassRegistry] = {} # registry_cls -> registry instance
+        self._class_registries: Dict[Type[BaseRegistry], BaseRegistry] = {} # registry_cls -> registry instance
         
         # LibraryRegistry specific attributes
         self.discovered_libraries: Dict[str, Dict[str, Any]] = {}
@@ -69,7 +69,7 @@ class LibraryRegistry:
         """List all registered library names"""
         return list(self._libraries.keys())
 
-    def add_class_registry(self, cls: Type[BaseClassRegistry], instance: BaseClassRegistry):
+    def add_class_registry(self, cls: Type[BaseRegistry], instance: BaseRegistry):
         """
         Add a registry instance for a given registry class
         This allows to dynamically add registries that libraries can use
