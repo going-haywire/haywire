@@ -1,6 +1,6 @@
 # Custom data type for testing
 from haywire.core.data.enums import FlowType
-from haywire.core.types.decorators import type
+from haywire.core.types.decorator import type
 from haywire.libraries.core.types.specs import FLOAT
 
 

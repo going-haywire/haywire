@@ -21,12 +21,12 @@ from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEvent
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.ports import DataPort, PortInlet
-from haywire.core.ui.base_renderer import BaseNodeRenderer
-from haywire.core.ui.base import UINodeCard
-from haywire.core.ui.base_widget import BaseWidget
+from haywire.core.ui.renderer.base import IBaseNodeRenderer, INodeRenderFactory
+from haywire.ui.ui_nodecard import NiceUINodeCard
+from haywire.core.ui.widget.base import BaseWidget
 from haywire.ui.utils import render_error_info
 
-class NodeRenderFactory:
+class NodeRenderFactory(INodeRenderFactory):
     """
     Factory class for creating UINodeCard instances using NodeRenderer classes.
     
@@ -49,7 +49,7 @@ class NodeRenderFactory:
         self.widget_registry = widget_registry
         
         # Cache for NodeRenderer instances (stateless, so can be reused)
-        self._renderer_cache: Dict[str, BaseNodeRenderer] = {}
+        self._renderer_cache: Dict[str, IBaseNodeRenderer] = {}
         
         # Customer callbacks for hot reload notifications
         self._renderer_lifecycle_subscribers: List[LiveCycleBatchCallback] = []
@@ -58,7 +58,7 @@ class NodeRenderFactory:
         self.renderers_registry.add_batch_event_subscriber(self._on_renderer_reloaded)
         self.widget_registry.add_batch_event_subscriber(self._on_widget_reloaded)
     
-    def generate_node(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> tuple[UINodeCard, str]:
+    def generate_node(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> tuple[NiceUINodeCard, str]:
         """
         Generate a UINodeCard for the given node using the specified renderer.
         
@@ -91,7 +91,7 @@ class NodeRenderFactory:
         """Clear the renderer instance cache."""
         self._renderer_cache.clear()
     
-    def get_cached_renderers(self) -> Dict[str, BaseNodeRenderer]:
+    def get_cached_renderers(self) -> Dict[str, IBaseNodeRenderer]:
         """Get a copy of the current renderer cache for debugging."""
         return self._renderer_cache.copy()
     

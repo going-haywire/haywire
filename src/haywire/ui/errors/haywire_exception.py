@@ -1,3 +1,34 @@
+"""
+Render detailed error information for HaywireException in a NiceGUI UI.
+
+usage:
+
+    # Create dialog with lazy content rendering
+    dialog = ui.dialog()
+    
+    def show_details():
+        # Clear any existing content
+        dialog.clear()
+        
+        # Create the dialog content NOW (lazy rendering)
+        with dialog, ui.card().classes('w-full max-w-4xl bg-gray-50'):
+            with ui.column().classes('w-full gap-4 p-4'):
+                # Render error details using the reusable function
+                detail_container = ui.column().classes('w-full gap-4')
+                render_error_details(error, detail_container)
+                
+                # Footer with close button
+                with ui.row().classes('justify-end w-full pt-3 border-t'):
+                    ui.button('Close', icon='close', on_click=dialog.close).classes('bg-gray-600 text-white')
+        
+        # Open the dialog
+        dialog.open()
+    
+    # Connect button to lazy rendering function
+    detail_button.on_click(show_details)
+
+"""
+
 import os
 from typing import Any
 from nicegui import ui

@@ -3,15 +3,11 @@ import logging
 from typing import TypeVar, Optional, Union, Type
 import logging
 
-from haywire.core.errors.haywire_exception import HaywireException, ErrorSeverity
-from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType
-
-from ...data.fields import DataField
-from ...ui.base_widget import BaseWidget
+from ...errors.haywire_exception import HaywireException, ErrorSeverity
+from ...ui.widget.base import BaseWidget
+from ..hot_reload_event import LifeCycleEvent
 from ..library_identity import LibraryIdentity
-
 from ..class_registry import BaseClassRegistry
-
 
 class WidgetRegistry(BaseClassRegistry):
     """Registry for UI widgets that can render data fields"""

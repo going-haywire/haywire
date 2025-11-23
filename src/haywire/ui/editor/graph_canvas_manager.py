@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from haywire.core.graph.graph import HaywireGraph, Edge, EdgeType
 from haywire.core.node.base_node import BaseNode
 from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
-from haywire.ui.ui_node import UINode
+from haywire.ui.ui_node import NiceUINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 
 from .graph_canvas_vue import GraphCanvasVue
@@ -531,7 +531,7 @@ class GraphCanvasManager:
                 print(f"Created container for node {node_id}")
                 
                 # Create UINode with wrapper reference for hot reload support
-                ui_node = UINode(node, self.node_render_factory, container, wrapper)
+                ui_node = NiceUINode(node, self.node_render_factory, container, wrapper)
                 ui_node.render()
                 print(f"Rendered UINode for {node_id}")
                 

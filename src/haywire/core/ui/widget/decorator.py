@@ -1,0 +1,78 @@
+from typing import Callable, Type, TypeVar, Union
+
+from ...library.utils import derive_library_identity, reg_key
+from .base import BaseWidget, WidgetIdentity
+
+# ============================================================================
+#    Decorator
+# ============================================================================
+
+T = TypeVar('T')
+
+def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+    """
+    Decorator to register a class as a UI widget.
+
+    Accepts any WidgetIdentity field as a keyword argument. Common arguments include:
+
+    Args:
+        registry_id (str, optional): Unique identifier for the widget within its library.
+            Defaults to class name if not provided.
+        label (str, optional): Human-readable display name for the widget.
+            Defaults to class name if not provided.
+        description (str, optional): Human-readable description of the widget.
+            Defaults to empty string.
+        _is_error (bool, optional): Whether this widget should handle error cases.
+            Defaults to False.
+        _error_priority (int, optional): Priority for error widgets when multiple are registered.
+            Higher values take precedence. Defaults to 0.
+
+    Any other keyword arguments will be passed through to the WidgetIdentity constructor.
+    See the WidgetIdentity dataclass for the complete list of available fields.
+
+    Usage:
+        # Minimal usage - uses class name for registry_id
+        @widget
+        class MyWidget(BaseWidget): ...
+
+        # Common customization
+        @widget(description="Custom widget for text input")
+        class MyWidget(BaseWidget): ...
+
+        # Full customization
+        @widget(
+            registry_id="text_input_widget",
+            description="Advanced text input widget with validation",
+            _is_error=False
+        )
+        class TextWidget(BaseWidget): ...
+
+        # Default widget for specific data types
+        @widget(description="Number input widget")
+        class NumberWidget(BaseWidget): ...
+
+        # Error widget
+        @widget(description="Error display widget", _is_error=True)
+        class ErrorWidget(BaseWidget): ...
+    """
+    def decorator(inner_cls: Type[T]) -> Type[T]:
+        if not issubclass(inner_cls, BaseWidget):
+            raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
+
+        # Set defaults from class name if not provided
+        kwargs.setdefault('registry_id', inner_cls.__name__)
+        kwargs.setdefault('label', inner_cls.__name__)
+
+        # Get library identity (survives hot-reload)
+        library_identity = derive_library_identity(inner_cls)
+
+        # Auto-derive registry_key
+        library_id = library_identity.id if library_identity else None
+        kwargs['registry_key'] = reg_key(library_id, 'widget', kwargs['registry_id'])
+
+        # Create and attach identity and library
+        inner_cls.class_identity = WidgetIdentity(**kwargs)
+        inner_cls.class_library = library_identity
+        return inner_cls
+
+    return decorator if cls is None else decorator(cls)

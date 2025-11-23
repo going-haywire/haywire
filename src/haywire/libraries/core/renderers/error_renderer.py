@@ -6,21 +6,20 @@ This renderer provides error styling for nodes.
 
 from typing import Dict, Any
 from nicegui import ui
+
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.node.base_node import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.ui.base import UINodeCard
-from haywire.ui.render_error_details import render_error_details
+from haywire.ui.niceui_node_renderer import NiceUINodeRenderer
+from haywire.ui.ui_nodecard import NiceUINodeCard
+from haywire.ui.errors.haywire_exception import render_error_details
 from haywire.ui.utils import render_error_info
-from haywire.core.ui.base_renderer import renderer
-
-from .default_renderer import DefaultNodeRenderer
+from haywire.core.ui.renderer.decorator import renderer
 
 @renderer(
     description="Error renderer that provides error styling for nodes", 
     is_error=True)
-class ErrorNodeRenderer(DefaultNodeRenderer):
+class ErrorNodeRenderer(NiceUINodeRenderer):
     """
     Error renderer that provides error styling for nodes.
     
@@ -28,7 +27,7 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
     to indicate rendering errors or fallback situations.
     """
     
-    def _render(self, wrapper: NodeWrapper) -> UINodeCard:
+    def render(self, wrapper: NodeWrapper) -> NiceUINodeCard:
         """
         Render a node with error styling.
         
@@ -38,7 +37,7 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
         Returns:
             UINodeCard containing the rendered UI with error styling
         """
-        node = wrapper.node
+        node: BaseNode = wrapper.node
         # Storage for UI elements and widget instances
         ui_elements: Dict[str, Any] = {}
         widget_instances: Dict[str, Any] = {}
@@ -161,4 +160,4 @@ class ErrorNodeRenderer(DefaultNodeRenderer):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
         
-        return UINodeCard(main_card, ui_elements, widget_instances)
+        return NiceUINodeCard(main_card, ui_elements, widget_instances)

@@ -8,7 +8,7 @@ between nodes in the Haywire system.
 from dataclasses import dataclass, field, asdict
 from typing import List, Tuple
 
-from haywire.core.types.decorators import type
+from haywire.core.types.decorator import type
 from haywire.core.types.base_type import BaseType
 
 

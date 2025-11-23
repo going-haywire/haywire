@@ -8,7 +8,7 @@ by nodes in other libraries (like test_b).
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
-from haywire.core.types.decorators import type
+from haywire.core.types.decorator import type
 from haywire.core.types.base_type import BaseType
 
 

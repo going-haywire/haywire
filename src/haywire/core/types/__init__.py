@@ -7,7 +7,7 @@ nodes through inlet/outlet connections.
 """
 
 from .base_type import BaseType
-from .decorators import type
+from .decorator import type
 from .identity import DataPortIdentity
 
 __all__ = ['BaseType', 'type', 'DataPortIdentity']

@@ -10,13 +10,11 @@ This module provides decorators for creating Haywire data types:
 from typing import Optional, Type, TypeVar, Callable, get_type_hints
 from dataclasses import asdict
 
-from haywire.core.errors import PrimitiveTypeDefinitionError
 from .type_interface import IType
 from haywire.core.types.utils import is_cattrs_serializable, normalize_and_validate_default
 
-from .base_type import PrimitiveType, BaseType, TypeToDataPort
+from .base_type import PrimitiveType, BaseType
 from .identity import DataPortIdentity
-from ..data.enums import ContainerType, FlowType
 from ..library.utils import derive_library_identity, reg_key
 
 T = TypeVar('T')
@@ -105,7 +103,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         parent_identity: Optional[DataPortIdentity] = None
         for base in inner_cls.__bases__:
             # Skip abstract base classes
-            if base in (BaseType, PrimitiveType, IType, TypeToDataPort):
+            if base in (BaseType, PrimitiveType, IType):
                 continue
             # Check if this base is a registered type
             if issubclass(base, IType) and hasattr(base, 'class_identity'):

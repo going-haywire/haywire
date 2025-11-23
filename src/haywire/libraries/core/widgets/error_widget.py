@@ -7,9 +7,9 @@ from typing import Any, Dict, Optional, Callable
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.ui.base_widget import BaseWidget
-from haywire.core.ui.base_widget import widget
-from haywire.ui.render_error_details import render_error_details
+from haywire.core.ui.widget.base import BaseWidget
+from haywire.core.ui.widget.decorator import widget
+from haywire.ui.errors.haywire_exception import render_error_details
 
 @widget(
     _is_error=True, 

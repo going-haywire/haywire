@@ -11,7 +11,7 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 from typing import Optional, TYPE_CHECKING, List
 from nicegui import ui
 from haywire.core.node.base_node import BaseNode
-from haywire.core.ui.base import UINodeCard
+from haywire.ui.ui_nodecard import NiceUINodeCard
 from haywire.core.library.hot_reload_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.node_render_factory import NodeRenderFactory
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from haywire.core.library.library_identity import LibraryIdentity
 
 
-class UINode:
+class NiceUINode:
     """
     Manages the lifecycle and rendering of a HaywireNode's UI representation.
     
@@ -56,7 +56,7 @@ class UINode:
         self.container_slot: Optional[ui.column] = None
         
         # Current UI representation
-        self.current_ui_card: Optional[UINodeCard] = None
+        self.current_ui_card: Optional[NiceUINodeCard] = None
         
         # Generate unique ID for this UINode
         self.ui_node_id = f"ui-node-{id(self)}"

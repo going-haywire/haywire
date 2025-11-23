@@ -8,8 +8,8 @@ src_path = project_root / 'src'
 sys.path.insert(0, str(src_path))
 
 # Now import using the absolute path from src
-from haywire.ui.editor_v1.event_definitions import GRAPH_EVENT_REGISTRY, BaseGraphEvent
-from haywire.ui.editor_v1.event_generators import VueEventGenerator
+from haywire.ui.editor.event_definitions import GRAPH_EVENT_REGISTRY, BaseGraphEvent
+from haywire.ui.editor.event_generators import VueEventGenerator
 
 def main():
     """Generate Vue event constants"""
