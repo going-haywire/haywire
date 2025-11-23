@@ -41,14 +41,17 @@ class DefaultNodeRenderer(NodeRenderer):
         # Storage for UI elements and widget instances
         ui_elements: Dict[str, Any] = {}
         widget_instances: Dict[str, BaseWidget] = {}
-        
-        # Create the main card
+
         node_bg = ThemePalette.ui(Theme_UI_Color.NODE_BACKGROUND, 'rgba(255, 255, 255, 0.3)')
-        with ui.card().classes(
-                f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
-            ).style(
-                f'background-color: {node_bg}; backdrop-filter: blur(10px);'
-            ) as main_card:
+        self.main_card = ui.card().classes(
+            f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
+        ).style(
+            f'background-color: {node_bg}; backdrop-filter: blur(10px);'
+        )        
+
+        # IMPORTANT: self.main_card must be set here as a root. 
+        # this allows for cleanup in _render() if rendering fails
+        with self.main_card:
             with ui.row().classes('drag-handle'):
                 ui.label(node.identity.label).classes('text-h6')
 
@@ -73,5 +76,5 @@ class DefaultNodeRenderer(NodeRenderer):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
         
-        return NiceUINodeCard(main_card, ui_elements, widget_instances)
+        return NiceUINodeCard(self.main_card, ui_elements, widget_instances)
     

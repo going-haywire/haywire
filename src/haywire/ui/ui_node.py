@@ -63,7 +63,7 @@ class NiceUINode:
         self.node_wrapper.add_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
         
         # Subscribe to factory renderer changes for hot reload support
-        self.factory.add_renderer_lifecycle_subscriber(self._listen_on_renderer_livecycle_event)
+        self.factory.add_renderer_lifecycle_subscriber(self._listen_on_render_lifecycle_event)
     
     def _listen_on_wrapper_livecycle_event(self, event: LifeCycleEvent):
         """
@@ -126,7 +126,7 @@ class NiceUINode:
         except Exception as e:
             print(f"❌ Error in wrapper change handler: {e}")
     
-    def _listen_on_renderer_livecycle_event(self, event: LifeCycleEvent) -> None:
+    def _listen_on_render_lifecycle_event(self) -> None:
         """
         Handle renderer hot reload notifications from NodeRenderFactory.
         
@@ -139,18 +139,12 @@ class NiceUINode:
             event: The hot reload event with complete context
         """
        
-        print(f"🎨 UINode {self.haywire_node.node_id}: {event.event_type.value}")
-        
         # Re-render using the same thread-safe pattern as wrapper changes
         def update_ui():
             try:
-                if event.is_successful_event():
-                    print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with new renderer")
-                    self.rerender()
-                    ui.notify(f"Renderer for node {self.haywire_node.node_id} hot-reloaded", type='positive')
-                elif event.is_warning_event():
-                    print(f"❌ Renderer reload failed: {event.error.message if event.error else 'Unknown error'}")
-                    ui.notify(f"Renderer error: {event.error.message if event.error else 'Unknown error'}", type='negative')
+                print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with new renderer")
+                self.rerender()
+                ui.notify(f"Renderer for node {self.haywire_node.node_id} hot-reloaded", type='positive')
             except Exception as e:
                 print(f"❌ Error updating UI after renderer reload: {e}")
         
@@ -185,7 +179,9 @@ class NiceUINode:
                         renderer_name = self.haywire_node.ui_config.node_renderer
                     
                     self.current_ui_card = self.factory.generate_node(renderer_name, self.node_wrapper)
-            
+
+                    return True  # Render successful
+
             except Exception as e:
                 if self.container_slot:
                     self.container_slot.clear()  # NiceGUI handles cleanup reliably
@@ -200,6 +196,8 @@ class NiceUINode:
                 ).enrich(
                     registry_key=renderer_name
                 ).log()
+        
+        return False  # Render failed
     
     def rerender(self, renderer_name: str | None = None):
         """
@@ -260,10 +258,12 @@ class NiceUINode:
             except Exception as e:
                 print(f"⚠️ Error unsubscribing from wrapper: {e}")
             self.node_wrapper = None
-        
+
+        self.factory.unregister_node(self.haywire_node.node_id)
+
         # Unsubscribe from factory renderer changes
         try:
-            self.factory.remove_renderer_lifecycle_subscriber(self._listen_on_renderer_livecycle_event)
+            self.factory.remove_renderer_lifecycle_subscriber(self._listen_on_render_lifecycle_event)
             print(f"🔌 Unsubscribed UINode {self.haywire_node.node_id} from factory callbacks")
         except Exception as e:
             print(f"⚠️ Error unsubscribing from factory: {e}")

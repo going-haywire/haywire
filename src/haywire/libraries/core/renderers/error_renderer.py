@@ -12,9 +12,11 @@ from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.ui.renderer.decorator import renderer
 from haywire.ui.renderer.node_renderer import NodeRenderer
+from haywire.ui.themes.colors import Theme_UI_Color
+from haywire.ui.themes.palette import ThemePalette
 from haywire.ui.ui_nodecard import NiceUINodeCard
 from haywire.ui.errors.haywire_exception import render_error_details
-from haywire.ui.errors.error_info import render_error_info
+from haywire.ui.errors.error_info import error_render_detail, render_error_info
 
 
 @renderer(
@@ -74,9 +76,16 @@ class ErrorNodeRenderer(NodeRenderer):
         }}
         </style>
         ''')
-        
-        # Create the main card with error styling
-        with ui.card().classes(f'w-full min-w-64 max-w-sm error-node-card {node_id}') as main_card:
+
+        node_bg = ThemePalette.ui(Theme_UI_Color.WARNING, 'rgba(255, 255, 255, 0.3)')
+        self.main_card = ui.card().classes(
+            f'w-full min-w-64 max-w-sm error-node-card {node_id} zoom-pan-lod0'
+        ).style(
+            f'background-color: {node_bg}; backdrop-filter: blur(10px);'
+        )        
+
+        # IMPORTANT: self.main_card must be set here as a root for cleanup in _render if rendering fails
+        with self.main_card:
             # Error header
             if node and node.error_info:
                 render_error_info(node.error_info)
@@ -91,53 +100,7 @@ class ErrorNodeRenderer(NodeRenderer):
             if wrapper.state.error:
                 error = wrapper.state.error
                 
-                if not error or not isinstance(error, HaywireException):
-                    # Create a default error if none provided
-                    error = HaywireException.create(
-                        message="An error occurred but no detailed information is available",
-                        category="Unknown Error"
-                    )
-
-                with ui.column().classes('w-full') as container:
-                # Compact error summary card
-                    with ui.card().classes('w-full bg-red-50 border-l-4 border-red-500 shadow-sm'):
-                        with ui.row().classes('items-start gap-3 w-full'):
-                            # Icon
-                            ui.icon(error.get_severity_icon(), color=error.get_severity_color()).classes('text-2xl')
-                            
-                            # Error message and button
-                            with ui.column().classes('flex-grow gap-1'):
-                                ui.label(f"{error.category}").classes('text-red-700 font-bold text-sm')
-                                ui.label(error.message).classes('text-gray-800 text-sm')
-                                
-                                with ui.row().classes('gap-2 mt-2'):
-                                    detail_button = ui.button('Show Details', icon='expand_more').classes('bg-red-600 text-white')
-                    
-                    # Create dialog with lazy content rendering
-                    dialog = ui.dialog()
-                    
-                    def show_details():
-                        """Render error details on-demand when dialog is opened"""
-                        # Clear any existing content
-                        dialog.clear()
-                        
-                        # Create the dialog content NOW (lazy rendering)
-                        with dialog, ui.card().classes('w-full max-w-4xl bg-gray-50'):
-                            with ui.column().classes('w-full gap-4 p-4'):
-                                # Render error details using the reusable function
-                                detail_container = ui.column().classes('w-full gap-4')
-                                render_error_details(error, detail_container)
-                                
-                                # Footer with close button
-                                with ui.row().classes('justify-end w-full pt-3 border-t'):
-                                    ui.button('Close', icon='close', on_click=dialog.close).classes('bg-gray-600 text-white')
-                        
-                        # Open the dialog
-                        dialog.open()
-                    
-                    # Connect button to lazy rendering function
-                    detail_button.on_click(show_details)  
-
+                error_render_detail(error)
 
 
             # Main content: inlets and outlets in two columns
@@ -161,4 +124,4 @@ class ErrorNodeRenderer(NodeRenderer):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
         
-        return NiceUINodeCard(main_card, ui_elements, widget_instances)
+        return NiceUINodeCard(self.main_card, ui_elements, widget_instances)

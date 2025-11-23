@@ -532,7 +532,10 @@ class GraphCanvasManager:
                 
                 # Create UINode with wrapper reference for hot reload support
                 ui_node = NiceUINode(node, self.node_render_factory, container, wrapper)
-                ui_node.render()
+                if not ui_node.render():
+                    print(f"⚠️ ERROR: Failed to render UINode for {node_id}")
+                    return False
+                
                 print(f"Rendered UINode for {node_id}")
                 
                 self.node_panels[node_id] = {

@@ -1,34 +1,3 @@
-"""
-Render detailed error information for HaywireException in a NiceGUI UI.
-
-usage:
-
-    # Create dialog with lazy content rendering
-    dialog = ui.dialog()
-    
-    def show_details():
-        # Clear any existing content
-        dialog.clear()
-        
-        # Create the dialog content NOW (lazy rendering)
-        with dialog, ui.card().classes('w-full max-w-4xl bg-gray-50'):
-            with ui.column().classes('w-full gap-4 p-4'):
-                # Render error details using the reusable function
-                detail_container = ui.column().classes('w-full gap-4')
-                render_error_details(error, detail_container)
-                
-                # Footer with close button
-                with ui.row().classes('justify-end w-full pt-3 border-t'):
-                    ui.button('Close', icon='close', on_click=dialog.close).classes('bg-gray-600 text-white')
-        
-        # Open the dialog
-        dialog.open()
-    
-    # Connect button to lazy rendering function
-    detail_button.on_click(show_details)
-
-"""
-
 import os
 from typing import Any
 from nicegui import ui
@@ -140,26 +109,45 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                     if error.source_context:
                         with ui.column().classes('w-full mt-2'):
                             ui.label('Source Code:').classes('font-bold text-sm text-gray-600 mb-1')
+                            
+                            # Show the actual error message right above the code
+                            if error.original_exception:
+                                exc_type_name = type(error.original_exception).__name__
+                                exc_message = str(error.original_exception)
+                                with ui.card().classes('w-full bg-red-100 border-l-4 border-red-500 mb-2'):
+                                    with ui.row().classes('items-start gap-2 p-2'):
+                                        ui.icon('error', color='red').classes('text-lg')
+                                        with ui.column().classes('gap-1'):
+                                            ui.label(exc_type_name).classes('font-bold text-red-800')
+                                            ui.label(exc_message).classes('text-sm text-red-700')
 
                             with ui.column().classes('w-full bg-gray-900 rounded p-3 font-mono text-sm overflow-x-auto'):
                                 for line_num, line_content in error.source_context:
                                     is_error_line = (line_num == error.line_number)
 
-                                    with ui.row().classes('gap-2 items-start w-full ' +
-                                        ('bg-red-900 -mx-3 px-3 py-1' if is_error_line else '')).style(
-                                            'min-height: 1.5rem'
-                                        ):
-                                        # Line number
+                                    # Make error line MUCH more prominent
+                                    row_classes = 'gap-2 items-start w-full '
+                                    if is_error_line:
+                                        row_classes += 'bg-red-900 border-l-4 border-red-400 -mx-3 px-3 py-2'
+                                    
+                                    with ui.row().classes(row_classes).style('min-height: 1.5rem'):
+                                        # Line number with error indicator
+                                        if is_error_line:
+                                            ui.label('⚠').classes('text-red-400 font-bold text-base')
+                                        
                                         ui.label(f"{line_num:3d}").classes(
                                             'text-gray-500 select-none ' +
-                                            ('text-red-300 font-bold' if is_error_line else '')
+                                            ('text-red-300 font-bold text-base' if is_error_line else '')
                                         )
-                                        # Line content with error marker
+                                        
+                                        # Error marker arrow
                                         if is_error_line:
-                                            ui.label('»').classes('text-red-400 font-bold')
+                                            ui.label('→').classes('text-red-400 font-bold text-base')
+                                        
+                                        # Line content
                                         ui.label(line_content or ' ').classes(
-                                            'text-gray-300 flex-grow whitespace-pre ' +
-                                            ('text-red-200 font-bold' if is_error_line else '')
+                                            'flex-grow whitespace-pre ' +
+                                            ('text-red-100 font-bold' if is_error_line else 'text-gray-300')
                                         )
 
         # Traceback section (filter interesting frames)

@@ -2,6 +2,9 @@ import inspect
 import logging
 from typing import Any, Dict, Optional, TypeVar, Union
 
+from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
+
 from .base import IBaseRenderer
 from ...library.identity import LibraryIdentity
 from ...registry.base import BaseRegistry
@@ -103,7 +106,46 @@ class RendererRegistry(BaseRegistry):
             if self.has(self._default_renderer_name):
                 return self._classes[self._default_renderer_name]
         return None
-
+    
+    def get_default_renderer_registry_key(self) -> str | None:
+        """Get the default renderer registry key"""
+        return self._default_renderer_name
+    
     def get_error_renderer(self) -> type[IBaseRenderer] | None:
         """Get the error renderer class"""
         return self._error_renderer
+    
+    def get_renderer_event(self, key: str | None) -> type[LifeCycleEvent]:
+        """
+        Get last lifecycle renderer event by registry key 
+
+        Args:
+            key: Registry key in format "library_id:renderer:renderer_name"
+
+        Returns:
+            LifeCycleEvent: Last lifecycle event for the renderer
+            
+        Raises:
+            HaywireException: If renderer not found or last event unsuccessful
+        """
+        lifecycle_event = None
+
+        if key in self._regkey_to_last_lifecycle_event:
+            lifecycle_event = self._regkey_to_last_lifecycle_event[key]
+
+        if lifecycle_event is None or lifecycle_event.is_successful_event() is False:
+            error = HaywireException.create(
+                message=f"Renderer '{key}' not found, using error renderer as fallback",
+                severity=ErrorSeverity.ERROR,
+                category="Renderer Not Found",
+                operation="renderer_lookup",
+                registry_key=key,
+                suggestions=[
+                    "Using default error renderer as fallback",
+                    "Check if the renderer library is properly loaded"
+                ],
+                auto_retry=True
+            )
+            raise error
+
+        return lifecycle_event

@@ -46,6 +46,18 @@ class IBaseRenderer(ABC):
         """
         pass
 
+    @abstractmethod
+    def _render(self, wrapper: NodeWrapper) -> UINodeCard:
+        """
+        Render a node into a UINodeCard.
+
+        Args:
+            wrapper: The NodeWrapper containing the HaywireNode to render
+
+        Returns:
+            UINodeCard containing the rendered UI and widget registry keys
+        """
+        pass
 
     @abstractmethod
     def render(self, wrapper: NodeWrapper) -> UINodeCard:

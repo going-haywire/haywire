@@ -8,14 +8,22 @@ Enhanced with customer notification system for UINode hot reload support.
 """
 
 import logging
-from typing import Any, Dict, Type, List
+from typing import Any, Callable, Dict, Type, List
 
+from haywire.core.errors.haywire_exception import HaywireException
+from haywire.core.node.dataclasses import NodeErrorInfo
+from haywire.core.types.ports import PortInlet
 from haywire.core.ui.widget.registry import WidgetRegistry
 from haywire.core.ui.renderer.registry import RendererRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.ui.renderer.base import IBaseRenderer, IRenderFactory
+from haywire.core.ui.renderer.base import IBaseRenderer, IRenderFactory, UINodeCard
+from haywire.ui.errors.error_info import error_render_detail, render_error_info
+from haywire.ui.renderer.widget_factory import WidgetFactory
 from haywire.ui.ui_nodecard import NiceUINodeCard
+
+
+RendererCallback = Callable[[], None]
 
 class RenderFactory(IRenderFactory):
     """
@@ -28,7 +36,7 @@ class RenderFactory(IRenderFactory):
     - Notifies customers (UINodes) when renderers are hot-reloaded
     """
     
-    def __init__(self, renderers_registry: RendererRegistry, widget_registry: WidgetRegistry):
+    def __init__(self, renderer_registry: RendererRegistry, widget_registry: WidgetRegistry):
         """
         Initialize the factory with registries.
         
@@ -36,70 +44,122 @@ class RenderFactory(IRenderFactory):
             renderers_registry: Registry for NodeRenderer classes
             widget_registry: Registry for widget classes (passed to NodeRenderer)
         """
-        self.renderers_registry = renderers_registry
-        self.widget_registry = widget_registry
+        self._renderer_registry: RendererRegistry = renderer_registry
+
+        self.widget_factory = WidgetFactory(widget_registry)
+
+        self.widget_factory.add_widget_lifecycle_subscriber(self._nodeids_updated_by_widget)
         
         # Cache for NodeRenderer instances (stateless, so can be reused)
         self._renderer_cache: Dict[str, IBaseRenderer] = {}
         
         # Customer callbacks for hot reload notifications
-        self._renderer_lifecycle_subscribers: List[LiveCycleBatchCallback] = []
+        # mapping from registry key to callback function
+        self._renderer_lifecycle_subscribers: List[RendererCallback] = []
+
+        self._nodeid_to_renderer_regkey: dict[str, str] = {}
         
         # Register for hot reload notifications from registries
-        self.renderers_registry.add_batch_event_subscriber(self._on_renderer_reloaded)
-        self.widget_registry.add_batch_event_subscriber(self._on_widget_reloaded)
+        self._renderer_registry.add_batch_event_subscriber(self._on_renderer_reloaded)
     
-    def generate_node(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> tuple[NiceUINodeCard, str]:
-        """
-        Generate a UINodeCard for the given node using the specified renderer.
+    def generate_node(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> NiceUINodeCard | None:
+        """Render a widget for the given inlet and return the widget instance.
+        
+        Note: The UI element is automatically added to the current NiceGUI context.
         
         Args:
-            renderer_registry_key: Name of the renderer to use (None for default)
-            wrapper: The NodeWrapper containing the HaywireNode to render
+            inlet: The inlet port to render a widget for
+            node_id: ID of the node containing this inlet
             
         Returns:
-            UINodeCard containing the rendered UI and widget instances
-            str: The registry key of the used renderer
-        """
-        # Get renderer class from renderers registry (with fallback)
-        renderer_class = self.renderers_registry.get_renderer_class(renderer_registry_key)
-        
-        registry_key = renderer_class.class_identity.registry_key
+            BaseWidget instance or None if widget creation failed
+        """        
+        if renderer_registry_key is None:
+            renderer_registry_key = self._renderer_registry.get_default_renderer_registry_key()
 
-        # Get or create cached renderer instance
-        renderer_class_name = renderer_class.__name__
-        if registry_key not in self._renderer_cache:
-            # Create new renderer instance with widget registry
-            self._renderer_cache[registry_key] = renderer_class(self)
-        
-        # Get cached renderer instance
-        renderer_instance = self._renderer_cache[registry_key]
-        
-        # Call render method to create UINodeCard
-        return renderer_instance.render(wrapper)
-    
-    def clear_cache(self):
-        """Clear the renderer instance cache."""
-        self._renderer_cache.clear()
-    
-    def get_cached_renderers(self) -> Dict[str, IBaseRenderer]:
-        """Get a copy of the current renderer cache for debugging."""
-        return self._renderer_cache.copy()
-    
-    def preload_renderer(self, node_design_name: str):
+        ui_nodeCard: UINodeCard | None = None
+
+        try:
+            
+            renderer_instance = self.get_renderer(renderer_registry_key)
+
+            ui_nodeCard = renderer_instance._render(wrapper=wrapper)
+                
+        except Exception as error:
+            logging.error(f"Failed to render node '{wrapper.node.identity.label}  with node id '{wrapper.node_id}': {error}", exc_info=True)
+            if not isinstance(error, HaywireException):
+                error = HaywireException.from_exception(
+                    exception=error,
+                    category="Renderer Render Error",
+                    operation="renderer_lookup",
+                    message=f"Failed to use renderer '{renderer_registry_key}' for node '{wrapper.node.identity.label}' with node id '{wrapper.node_id}'"
+                ).enrich(
+                    library_identity=renderer_instance.__class__.class_library if renderer_instance else None,
+                    registry_key=renderer_registry_key
+                ).log()
+            
+
+            wrapper.state.error = error
+
+            error_renderer_registry_key = 'unknown'
+
+            try:
+                # get the error widget class from the registry
+                renderer_cls = self._renderer_registry.get_error_renderer()
+
+                if renderer_cls:
+                    error_renderer_registry_key = renderer_cls.class_identity.registry_key
+                renderer_instance = renderer_cls(self)
+
+                ui_nodeCard = renderer_instance._render(wrapper=wrapper)
+
+            except Exception as e:
+                # Fallback to error display if widget creation fails completely
+                logging.error(f"Failed to create error renderer '{error_renderer_registry_key}' for node '{wrapper.node_id}': {e}", exc_info=True)
+
+                error_render_detail(error)
+
+        # Map node ID to renderer registry key for hot reload tracking
+        # this might not be the key of the renderer that actually gets used due to fallback
+        self._nodeid_to_renderer_regkey[wrapper.node_id] = renderer_registry_key
+
+        return ui_nodeCard
+
+    def get_renderer(self, registry_key: str) -> IBaseRenderer:
         """
-        Preload a renderer into the cache.
-        
+        Get a renderer instance for the given element using the renderer registry.
         Args:
-            node_design_name: Name of the renderer to preload
+            registry_key: The registry key to get the renderer for
+        Returns:
+            BaseRenderer: The instantiated renderer for the registry key
         """
-        renderer_class = self.renderers_registry.get_renderer_class(node_design_name)
-        renderer_class_name = renderer_class.__name__
+ 
+        lc_event = self._renderer_registry.get_renderer_event(registry_key)
+
+        renderer_cls: type[IBaseRenderer] | None = lc_event.affected_class
+
+        renderer_instance = None
+
+        if renderer_cls is not None:
+            try:
+                renderer_instance = renderer_cls(self)
+            except Exception as e:
+                # Create detailed error with context about the node instantiation
+                error = HaywireException.from_exception(
+                    exception=e,
+                    category="Renderer Instantiation Error",
+                    operation="renderer_lookup",
+                    message=f"Failed to instantiate renderer '{registry_key}'"
+                ).enrich(
+                    registry_key=registry_key,
+                    module_name=lc_event.module_name,
+                    library_identity=lc_event.library_identity
+                )
+
+                raise error
+        return renderer_instance
         
-        if renderer_class_name not in self._renderer_cache:
-            self._renderer_cache[renderer_class_name] = renderer_class(self.widget_registry)
-    
-    def add_renderer_lifecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
+    def add_renderer_lifecycle_subscriber(self, callback: RendererCallback) -> None:
         """
         Register a customer callback for renderer hot reload notifications.
         
@@ -112,7 +172,7 @@ class RenderFactory(IRenderFactory):
             self._renderer_lifecycle_subscribers.append(callback)
             logging.debug(f"Added customer callback to NodeRenderFactory: {callback}")
     
-    def remove_renderer_lifecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
+    def remove_renderer_lifecycle_subscriber(self, callback: RendererCallback) -> None:
         """
         Unregister a customer callback.
         
@@ -159,26 +219,49 @@ class RenderFactory(IRenderFactory):
         
             # Notify customers (UINodes) about the renderer reload
             self._notify_subscribers(event)
- 
-    def _on_widget_reloaded(self, batch: list[LifeCycleEvent]) -> None:
+
+
+    def _nodeids_updated_by_widget(self, node_ids: set[str]):
+        """Handle widget lifecycle events and notify subscribers of affected node IDs."""
+        node_ids_affected: set[str] = set()
+
+        for event in event.events:
+            # find all node IDs associated with this widget registry key
+            if event.registry_key not in self._widget_regkey_to_nodeids:
+                continue
+
+            # add all associated node IDs to the affected set
+
+    def _nodeids_updated_by_widget(self, node_ids: set[str]):
+        """Handle widget lifecycle events and notify subscribers of affected node IDs."""
+        # The node_ids parameter already contains the affected node IDs from WidgetFactory
+        # Now we need to find which renderers are affected and notify subscribers
+        
+        for node_id in node_ids:
+            if node_id in self._nodeid_to_renderer_regkey:
+                renderer_key = self._nodeid_to_renderer_regkey[node_id]
+                # Get the lifecycle event for this renderer
+                try:
+                    event = self._renderer_registry.get_renderer_event(renderer_key)
+                    self._notify_subscribers(event)
+                except Exception as e:
+                    logging.warning(f"Could not get renderer event for node {node_id}: {e}")
+
+    def unregister_node(self, node_id: str):
         """
-        Customer callback for widget hot reload events.
-        
-        This is called by the WidgetRegistry when a widget class is reloaded, added, or removed.
-        Since widgets can be used by any renderer, we clear the entire cache.
-        
+        Remove node ID tracking from both renderer and widget factories 
+        when node is destroyed.
         Args:
-            event: The hot reload event with complete context
+            node_id: The node ID to unregister
         """
-        # Forward to all individual event listeners
-        for event in batch:
-            logging.info(
-                f"NodeRenderFactory: Widget {event.event_type.value} - {event.registry_key} "
-                f"from library '{event.library_identity.label}'"
-            )
-        
-        # Clear entire renderer cache since widgets can affect any renderer
-        logging.debug("Clearing entire renderer cache due to widget reload")
+        if node_id in self._nodeid_to_renderer_regkey:
+            del self._nodeid_to_renderer_regkey[node_id]
+        self.widget_factory.unregister_widget_for_node(node_id)
+
+    def cleanup(self):
+        """Cleanup resources and unregister from registries."""
+        self._renderer_registry.remove_batch_event_subscriber(self._on_renderer_reloaded)
+        self.widget_factory.remove_widget_lifecycle_subscriber(self._nodeids_updated_by_widget)
+        self.widget_factory.cleanup()
+        self._renderer_lifecycle_subscribers.clear()
         self._renderer_cache.clear()
-        
-        # Note: We don't notify customers for widget reloads as renderers handle this internally

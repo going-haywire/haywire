@@ -5,6 +5,8 @@ from nicegui.element import Element
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.base import BaseNode
 from haywire.ui.renderer.node_renderer import NodeRenderer
+from haywire.ui.themes.colors import Theme_UI_Color
+from haywire.ui.themes.palette import ThemePalette
 from haywire.ui.ui_nodecard import NiceUINodeCard
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.renderer.decorator import renderer
@@ -48,8 +50,13 @@ class ExampleNodeRenderer(NodeRenderer):
         }}
         </style>
         ''')
-        
-        with ui.card().classes(f'w-full min-w-64 max-w-sm math-node-card {node_id}') as main_card:
+
+        self.main_card = ui.card().classes(
+            f'w-full min-w-64 max-w-sm math-node-card {node_id}'
+        )       
+
+        # IMPORTANT: self.main_card must be set here as a root for cleanup in _render if rendering fails
+        with self.main_card:
             # Math-themed header
             with ui.row().classes('w-full items-center gap-2'):
                 ui.icon('calculate', color='yellow').classes('text-lg')
@@ -77,5 +84,5 @@ class ExampleNodeRenderer(NodeRenderer):
                         for outlet in node.outlets.values():
                             ui.label(outlet.label).classes('text-xs text-right')
         
-        return NiceUINodeCard(main_card, ui_elements, widget_instances)
+        return NiceUINodeCard(self.main_card, ui_elements, widget_instances)
     
