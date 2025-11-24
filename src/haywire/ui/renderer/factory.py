@@ -25,7 +25,7 @@ from haywire.ui.renderer.widget_factory import WidgetFactory
 from haywire.ui.ui_nodecard import UINodeCard
 
 
-RendererCallback = Callable[[], None]
+FactoryEventCallback = Callable[[str], None] # Function signature for factory event callbacks
 
 class RenderFactory(IRenderFactory):
     """
@@ -48,55 +48,70 @@ class RenderFactory(IRenderFactory):
         """
         self._renderer_registry: RendererRegistry = renderer_registry
 
-        self.widget_factory = WidgetFactory(widget_registry)
+        self._widget_factory = WidgetFactory(widget_registry)
 
-        self.widget_factory.add_widget_lifecycle_subscriber(self._nodeids_updated_by_widget)
+        # Subscribe to widget factory lifecycle events
+        self._widget_factory.add_widget_lifecycle_subscriber(self._listen_on_widget_lifecycle_events)
+
+        # Subscribe to renderer registry lifecycle events
+        self._renderer_registry.add_batch_event_subscriber(self._listen_on_renderer_lifecycle_event)
         
-        # Cache for NodeRenderer instances (stateless, so can be reused)
+        # Cache for BaseRenderer instances by registry key
         self._renderer_cache: Dict[str, BaseRenderer] = {}
         
-        # Customer callbacks for hot reload notifications
-        # mapping from registry key to callback function
-        self._renderer_lifecycle_subscribers: List[RendererCallback] = []
+        # Customer callbacks for factory hot reload notifications
+        # mapping from node_id key to callback function
+        self._nodeid_to_factory_subscriber: dict[str, FactoryEventCallback] = {}
 
+        # Mapping from renderer registry key to the wrapper node id that uses that renderer
+        self._renderer_regkey_to_node_id: dict[str, set[str]] = {}
+
+        # Mapping from node id to the renderer registry key it uses
+        # this is used to help cleaning up the _renderer_regkey_to_node_id mapping
         self._nodeid_to_renderer_regkey: dict[str, str] = {}
-        
-        # Register for hot reload notifications from registries
-        self._renderer_registry.add_batch_event_subscriber(self._on_renderer_reloaded)
     
-    def render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
+    # this method is called only by the BaseRenderer when it needs to render a widget
+    def _render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
+        return self._widget_factory.render_widget(inlet, node_id)
 
-        return self.widget_factory.render_widget(inlet, node_id)
+    # this method is called by UINode to render the node
+    def render(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> UINodeCard | None:
+        """Render a node with the renderer with the renderer_registry_key.
 
-    def generate_node(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> UINodeCard | None:
-        """Render a widget for the given inlet and return the widget instance.
-        
-        Note: The UI element is automatically added to the current NiceGUI context.
-        
+        If no renderer_registry_key is provided, the default renderer set by
+        the renderer registry is used.
+                
         Args:
-            inlet: The inlet port to render a widget for
-            node_id: ID of the node containing this inlet
+            renderer_registry_key: The registry key of the renderer to use
+            wrapper: NodeWrapper instance containing node information
             
         Returns:
-            BaseWidget instance or None if widget creation failed
+            UINodeCard instance or None if rendering failed
         """        
         if renderer_registry_key is None:
             renderer_registry_key = self._renderer_registry.get_default_renderer_registry_key()
 
         ui_nodeCard: UINodeCard | None = None
 
+        renderer_instance: BaseRenderer | None = None
+
         try:
-            
-            renderer_instance = self.get_renderer(renderer_registry_key)
+            if renderer_registry_key in self._renderer_cache:
+                renderer_instance = self._renderer_cache[renderer_registry_key]
+            else:            
+                renderer_instance = self.get_renderer(renderer_registry_key)
 
             ui_nodeCard = renderer_instance._render(wrapper=wrapper)
+
+            # once the renderer instance is successfully used, cache it
+            self._renderer_cache[renderer_registry_key] = renderer_instance
                 
         except Exception as error:
             logging.error(f"Failed to render node '{wrapper.node.identity.label}  with node id '{wrapper.node_id}': {error}", exc_info=True)
             if not isinstance(error, HaywireException):
                 error = HaywireException.from_exception(
                     exception=error,
-                    category="Renderer Render Error",
+                    category="Render Error",
                     operation="renderer_lookup",
                     message=f"Failed to use renderer '{renderer_registry_key}' for node '{wrapper.node.identity.label}' with node id '{wrapper.node_id}'"
                 ).enrich(
@@ -121,12 +136,17 @@ class RenderFactory(IRenderFactory):
 
             except Exception as e:
                 # Fallback to error display if widget creation fails completely
-                logging.error(f"Failed to create error renderer '{error_renderer_registry_key}' for node '{wrapper.node_id}': {e}", exc_info=True)
+                logging.error(f"Failed to render node '{wrapper.node_id}' with error renderer '{error_renderer_registry_key}': {e}", exc_info=True)
 
                 error_render_detail(error)
 
-        # Map node ID to renderer registry key for hot reload tracking
+        # Map renderer registry key to node ID for hot reload tracking
         # this might not be the key of the renderer that actually gets used due to fallback
+        # to an error renderer, but its the one we are interested in for hot reloads
+        
+        # one to many mapping
+        self._renderer_regkey_to_node_id.setdefault(renderer_registry_key, set()).add(wrapper.node_id)
+        # one to one mapping
         self._nodeid_to_renderer_regkey[wrapper.node_id] = renderer_registry_key
 
         return ui_nodeCard
@@ -149,6 +169,9 @@ class RenderFactory(IRenderFactory):
         if renderer_cls is not None:
             try:
                 renderer_instance = renderer_cls(self)
+
+                self._renderer_cache[registry_key] = renderer_instance
+
             except Exception as e:
                 # Create detailed error with context about the node instantiation
                 error = HaywireException.from_exception(
@@ -165,48 +188,49 @@ class RenderFactory(IRenderFactory):
                 raise error
         return renderer_instance
         
-    def add_renderer_lifecycle_subscriber(self, callback: RendererCallback) -> None:
+    def add_factory_lifecycle_subscriber(self, node_id: str, callback: FactoryEventCallback) -> None:
         """
-        Register a customer callback for renderer hot reload notifications.
+        Register a customer callback for factory event notifications.
         
-        Callbacks are invoked when a renderer is hot-reloaded, added, or removed.
+        Callbacks are invoked when either
+        - a renderer is hot-reloaded, added, or removed.
+        - a widget is hot-reloaded, added, or removed.
         
         Args:
-            callback: Function with signature (event: list[LifeCycleEvent]) -> None
+            node_id: The ID of the node to associate with the callback
+            callback: Function with signature FactoryEventCallback
         """
-        if callback not in self._renderer_lifecycle_subscribers:
-            self._renderer_lifecycle_subscribers.append(callback)
-            logging.debug(f"Added customer callback to NodeRenderFactory: {callback}")
+        self._nodeid_to_factory_subscriber[node_id] = callback
+
     
-    def remove_renderer_lifecycle_subscriber(self, callback: RendererCallback) -> None:
+    def remove_factory_lifecycle_subscriber(self, node_id: str) -> None:
         """
         Unregister a customer callback.
         
         Args:
-            callback: The callback function to remove
+            node_id: The ID of the node associated with the callback
         """
-        if callback in self._renderer_lifecycle_subscribers:
-            self._renderer_lifecycle_subscribers.remove(callback)
-            logging.debug(f"Removed customer callback from NodeRenderFactory: {callback}")
-    
-    def _notify_subscribers(self, event: LifeCycleEvent) -> None:
+        if node_id in self._nodeid_to_factory_subscriber:
+            del self._nodeid_to_factory_subscriber[node_id]
+        
+        self._unregister_node(node_id)
+
+    def _notify_factory_subscribers(self, node_id: str) -> None:
         """
-        Notify all registered customers about renderer changes.
+        Notify all subscribers about lifecycle events affected
+        by changes of renderer and widgets the factory has detected.
         
         Args:
-            event: The hot reload event with complete context
+            node_id: The ID of the node affected by the lifecycle event
         """
-        for callback in self._renderer_lifecycle_subscribers[:]:  # Copy list to avoid modification during iteration
-            try:
-                callback(event)
-            except Exception as e:
-                logging.error(f"Error in customer callback for {event}: {e}")
+        if node_id in self._nodeid_to_factory_subscriber:
+            callback = self._nodeid_to_factory_subscriber[node_id]
+            callback(node_id)
     
-    def _on_renderer_reloaded(self, batch: list[LifeCycleEvent]) -> None:
+    def _listen_on_renderer_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
         """
-        Customer callback for renderer hot reload events.
-        
-        This is called by the RendererRegistry when a renderer class is reloaded, added, or removed.
+        Listener for renderer hot reload events is called by the RendererRegistry 
+        when a renderer class is reloaded, added, or removed.
         It clears the cache for affected renderers.
         
         Args:
@@ -214,60 +238,56 @@ class RenderFactory(IRenderFactory):
         """
         # Forward to all individual event listeners
         for event in batch:
-            logging.info(
-                f"NodeRenderFactory: Node {event.event_type.value} - {event.registry_key} "
-                f"from library '{event.library_identity.label}'"
-            )
-            # Clear cache for affected renderer
-            if event.registry_key in self._renderer_cache:
-                logging.debug(f"Clearing renderer cache for: {event.registry_key}")
-                del self._renderer_cache[event.registry_key]
+            if event.registry_key:
+                logging.info(
+                    f"NodeRenderFactory: Node {event.event_type.value} - {event.registry_key} "
+                    f"from library '{event.library_identity.label}'"
+                )
+                # Clear cache for affected renderer
+                if event.registry_key in self._renderer_cache:
+                    del self._renderer_cache[event.registry_key]
+            
+                # Notify customers (UINodes) about the renderer reload
+                reg_key = event.registry_key
+                node_ids = self._renderer_regkey_to_node_id.get(reg_key, set())
+                for node_id in node_ids:
+                    self._notify_factory_subscribers(node_id)
+
+    def _listen_on_widget_lifecycle_events(self, node_ids: set[str]):
+        """
+        Listener for widget lifecycle events emited by the widget factory
+
+        it directly forwards the affected node IDs to the factory subscribers.
         
-            # Notify customers (UINodes) about the renderer reload
-            self._notify_subscribers(event)
-
-
-    def _nodeids_updated_by_widget(self, node_ids: set[str]):
-        """Handle widget lifecycle events and notify subscribers of affected node IDs."""
-        node_ids_affected: set[str] = set()
-
-        for event in event.events:
-            # find all node IDs associated with this widget registry key
-            if event.registry_key not in self._widget_regkey_to_nodeids:
-                continue
-
-            # add all associated node IDs to the affected set
-
-    def _nodeids_updated_by_widget(self, node_ids: set[str]):
-        """Handle widget lifecycle events and notify subscribers of affected node IDs."""
-        # The node_ids parameter already contains the affected node IDs from WidgetFactory
-        # Now we need to find which renderers are affected and notify subscribers
-        
+        Args:
+            node_ids: Set of node IDs affected by the widget lifecycle event
+        """
         for node_id in node_ids:
-            if node_id in self._nodeid_to_renderer_regkey:
-                renderer_key = self._nodeid_to_renderer_regkey[node_id]
-                # Get the lifecycle event for this renderer
-                try:
-                    event = self._renderer_registry.get_renderer_event(renderer_key)
-                    self._notify_subscribers(event)
-                except Exception as e:
-                    logging.warning(f"Could not get renderer event for node {node_id}: {e}")
-
-    def unregister_node(self, node_id: str):
+            self._notify_factory_subscribers(node_id)
+        
+    def _unregister_node(self, node_id: str):
         """
         Remove node ID tracking from both renderer and widget factories 
         when node is destroyed.
         Args:
             node_id: The node ID to unregister
         """
-        if node_id in self._nodeid_to_renderer_regkey:
+        reg_key = self._nodeid_to_renderer_regkey.get(node_id, None)
+        if reg_key:
+            if self._renderer_regkey_to_node_id[reg_key]:
+                if node_id in self._renderer_regkey_to_node_id[reg_key]:
+                    self._renderer_regkey_to_node_id[reg_key].remove(node_id)
             del self._nodeid_to_renderer_regkey[node_id]
-        self.widget_factory.unregister_widget_for_node(node_id)
+        self._widget_factory.unregister_widget_for_node(node_id)
+
+    def reset_cache(self):
+        """Clear all cached renderer instances."""
+        self._renderer_cache.clear()
 
     def cleanup(self):
         """Cleanup resources and unregister from registries."""
-        self._renderer_registry.remove_batch_event_subscriber(self._on_renderer_reloaded)
-        self.widget_factory.remove_widget_lifecycle_subscriber(self._nodeids_updated_by_widget)
-        self.widget_factory.cleanup()
-        self._renderer_lifecycle_subscribers.clear()
+        self._renderer_registry.remove_batch_event_subscriber(self._listen_on_renderer_lifecycle_event)
+        self._widget_factory.remove_widget_lifecycle_subscriber(self._listen_on_widget_lifecycle_events)
+        self._widget_factory.cleanup()
+        self._nodeid_to_factory_subscriber.clear()
         self._renderer_cache.clear()

@@ -91,7 +91,8 @@ def is_framework_code(filepath: str, framework_paths: Optional[List[str]] = None
     if framework_paths is None:
         # Default framework paths to exclude
         framework_paths = [
-            '/src/haywire/',              # All Haywire internal code
+            '/src/haywire/core',     # All Haywire core code
+            '/src/haywire/ui',       # All Haywire UI code
             'site-packages',         # Python packages
             '<frozen',               # Python internals
             '/lib/python',           # Python standard library

@@ -14,15 +14,15 @@ from dataclasses import dataclass
 from haywire.core.graph.base import BaseGraph, Edge, EdgeType
 from haywire.core.node.base import BaseNode
 from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
-from haywire.ui.ui_node import NiceUINode
+from haywire.ui.ui_node import UINode
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
+from haywire.core.undo.actions.graph_actions import ClipboardData, PasteClipboardAction
 
 from .graph_canvas_vue import GraphCanvasVue
 from .popup_context_menu import PopupContextMenu
 from .event_definitions import *
 from .event_handlers import handles_event
 from .editor import Editor
-from ...undo.actions.graph_actions import ClipboardData, PasteClipboardAction
 
 
 class GraphCanvasManager:
@@ -57,7 +57,7 @@ class GraphCanvasManager:
         self._setup_wrapper_callbacks()
                 
         # Visual state
-        self.node_panels: Dict[str, Dict] = {}  # node_id -> {ui_node, container, position}
+        self.node_panels: Dict[str, UINode] = {}  # node_id -> {ui_node, container, position}
         self.connection_paths: Dict[str, Edge] = {}  # connection_uuid -> Edge object
         self.selected_nodes: Set[str] = set()
         self.selected_connections: Set[str] = set()
@@ -460,7 +460,7 @@ class GraphCanvasManager:
                     node.ui_state.posX,
                     node.ui_state.posY
                 )
-                old_position = self.node_panels[node_id]['position']
+                old_position = self.node_panels[node_id].position
                 
                 if new_position != old_position:
                     print(f"Updating node {node_id} position: {old_position} -> {new_position}")
@@ -531,18 +531,15 @@ class GraphCanvasManager:
                 print(f"Created container for node {node_id}")
                 
                 # Create UINode with wrapper reference for hot reload support
-                ui_node = NiceUINode(node, self.node_render_factory, container, wrapper)
+                ui_node = UINode(container, wrapper, self.node_render_factory)
                 if not ui_node.render():
                     print(f"⚠️ ERROR: Failed to render UINode for {node_id}")
                     return False
                 
                 print(f"Rendered UINode for {node_id}")
                 
-                self.node_panels[node_id] = {
-                    'ui_node': ui_node,
-                    'container': container,
-                    'position': position
-                }
+                ui_node.position = position
+                self.node_panels[node_id] = ui_node
                 
                 sync_event = SyncNodeObserverAddEvent(nodeId=node_id)
                 self.canvas_vue.emit_sync_event(sync_event)
@@ -567,15 +564,10 @@ class GraphCanvasManager:
             self.remove_connection_visual(connection_uuid)
         
         # Remove node visual
-        visual_data = self.node_panels[node_id]
-        
-        if 'ui_node' in visual_data:
-            ui_node = visual_data['ui_node']
-            # Call destroy() to properly cleanup and unsubscribe from callbacks
+        if node_id in self.node_panels:
+            ui_node = self.node_panels[node_id]
             ui_node.destroy()
-        
-        visual_data['container'].delete()
-        del self.node_panels[node_id]
+            del self.node_panels[node_id]
         
         # Remove from selection
         self.selected_nodes.discard(node_id)
@@ -591,12 +583,11 @@ class GraphCanvasManager:
             return
             
         x, y = position
-        container = self.node_panels[node_id]['container']
-        
+        container = self.node_panels[node_id].container
         container.style(f'left: {x}px; top: {y}px; z-index: 100;')
         container.update()
         
-        self.node_panels[node_id]['position'] = position
+        self.node_panels[node_id].position = position
         
         sync_event = SyncNodePositionEvent(
             nodeId=node_id,

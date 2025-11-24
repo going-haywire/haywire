@@ -30,7 +30,7 @@ if src_path not in sys.path:
 from haywire.ui.editor.graph_canvas_manager import GraphCanvasManager
 from haywire.ui.editor.editor import Editor
 from haywire.core.graph.base import BaseGraph
-from haywire.undo.config import DEVELOPMENT_CONFIG
+from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.ui.themes import ThemePalette
 
 # DI imports  

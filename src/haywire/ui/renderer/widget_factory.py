@@ -22,14 +22,11 @@ class WidgetFactory:
         self.widget_registry: WidgetRegistry = widget_registry
 
         # Customer callbacks for hot reload notifications
-        self._widget_lifecycle_subscribers: List[LiveCycleBatchCallback] = []
+        self._widget_lifecycle_subscribers: set[LiveCycleBatchCallback] = set()
 
         self.widget_registry.add_batch_event_subscriber(self._on_widget_reloaded)
 
-        # Customer callbacks for hot reload notifications
-        self._widget_lifecycle_subscribers: List[NodeIDsBatchCallback] = []
-
-        self._widget_regkey_to_nodeids: dict[str, List[str]] = {}
+        self._widget_regkey_to_nodeids: dict[str, set[str]] = {}
 
     def add_widget_lifecycle_subscriber(self, callback: NodeIDsBatchCallback) -> None:
         """
@@ -38,7 +35,7 @@ class WidgetFactory:
         Args:
             callback: Function to call with affected node IDs when a widget is reloaded
         """
-        self._widget_lifecycle_subscribers.append(callback)
+        self._widget_lifecycle_subscribers.add(callback)
     
     def remove_widget_lifecycle_subscriber(self, callback: NodeIDsBatchCallback) -> None:
         """
@@ -48,7 +45,7 @@ class WidgetFactory:
             callback: Function to remove from the notification list
         """
         if callback in self._widget_lifecycle_subscribers:
-            self._widget_lifecycle_subscribers.remove(callback)
+            self._widget_lifecycle_subscribers.discard(callback)
 
     def render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
         """Render a widget for the given inlet and return the widget instance.
@@ -112,7 +109,7 @@ class WidgetFactory:
                 
                 widget_instance = None
     
-        self._widget_regkey_to_nodeids.setdefault(inlet.widget, []).append(node_id)
+        self._widget_regkey_to_nodeids.setdefault(inlet.widget, set()).add(node_id)
     
         return widget_instance
 
@@ -166,7 +163,7 @@ class WidgetFactory:
 
         # Forward to all individual event listeners
         for event in batch:
-            for node_id in self._widget_regkey_to_nodeids.get(event.registry_key, []):
+            for node_id in self._widget_regkey_to_nodeids.get(event.registry_key, set()):
                 node_ids_affected.add(node_id)
 
         for callback in self._widget_lifecycle_subscribers:
@@ -182,4 +179,4 @@ class WidgetFactory:
         """Remove node ID from widget tracking when widget is destroyed."""
         for widget_key in self._widget_regkey_to_nodeids.keys():
             if node_id in self._widget_regkey_to_nodeids[widget_key]:
-                self._widget_regkey_to_nodeids[widget_key].remove(node_id)
+                self._widget_regkey_to_nodeids[widget_key].discard(node_id)

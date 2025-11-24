@@ -16,8 +16,8 @@ from haywire.core.graph.base import BaseGraph, Edge, EdgeType
 from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.factory import NodeFactory
-from haywire.undo.interfaces import IHistoryManager
-from haywire.undo.actions.graph_actions import *
+from haywire.core.undo.interfaces import IHistoryManager
+from haywire.core.undo.actions.graph_actions import *
 
 
 class Editor:

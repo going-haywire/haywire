@@ -6,10 +6,9 @@ from haywire.core.data.enums import FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.ports import PortInlet, PortOutlet, DataPort
 
-from ..themes.colors import Theme_UI_Color
-from ..utils import generate_pin_uuid
-from ..themes import ThemePalette
-
+from ....ui.themes.colors import Theme_UI_Color
+from ....ui.utils import generate_pin_uuid
+from ....ui.themes import ThemePalette
 
 class NodeRenderer(BaseRenderer, ABC):
     """

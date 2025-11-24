@@ -19,10 +19,10 @@ from ..ui.widget.registry import WidgetRegistry
 from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
 from ...ui.renderer.factory import RenderFactory
-from ...undo.interfaces import IHistoryManager
-from ...undo.history_manager import HistoryManager
-from ...undo.config import UndoConfig
-from ...undo.no_op_history_manager import NoOpHistoryManager
+from ..undo.interfaces import IHistoryManager
+from ..undo.history_manager import HistoryManager
+from ..undo.config import UndoConfig
+from ..undo.no_op_history_manager import NoOpHistoryManager
 from ...ui.themes.palette import ThemePalette
 
 

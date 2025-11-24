@@ -8,13 +8,12 @@ including node and edge manipulation, positioning, and selection.
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 
-from ...core.node.factory import NodeFactory
-from ...core.node.node_wrapper import NodeWrapper
-from ...core.graph.base import BaseGraph, Edge
-from ...core.node.base import BaseNode
-from ...ui.utils import generate_connection_uuid
+from ....ui.utils import generate_connection_uuid
+from ...node.factory import NodeFactory
+from ...node.node_wrapper import NodeWrapper
+from ...graph.base import BaseGraph, Edge
+from ...node.base import BaseNode
 from ..base_action import ActionBase, CompositeAction
-
 
 class AddNodeAction(ActionBase):
     """Action for adding a node to the graph."""

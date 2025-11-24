@@ -11,13 +11,14 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.ui.renderer.decorator import renderer
-from haywire.ui.renderer.node_renderer import NodeRenderer
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes.palette import ThemePalette
 from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.errors.haywire_exception import render_error_details
 from haywire.ui.errors.error_info import error_render_detail, render_error_info
 
+
+from haywire.libraries.core.nodes.node_renderer import NodeRenderer
 
 @renderer(
     description="Error renderer that provides error styling for nodes", 

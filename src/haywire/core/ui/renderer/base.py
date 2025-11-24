@@ -98,7 +98,7 @@ class BaseRenderer(IBaseRenderer, ABC):
         Returns:
             The rendered widget instance, or None if no widget was rendered
         """
-        widget_instance: BaseWidget | None = self._render_factory.render_widget(inlet, node_id)
+        widget_instance: BaseWidget | None = self._render_factory._render_widget(inlet, node_id)
 
         if widget_instance:
             self._nodeids_widget_instances.setdefault(node_id, {inlet.id, widget_instance})

@@ -12,7 +12,7 @@ class IRenderFactory(ABC):
     """
     
     @abstractmethod
-    def render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
+    def _render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
         """Render a widget for the given inlet and return the widget instance.
         
         Note: The UI element is automatically added to the current NiceGUI context.
