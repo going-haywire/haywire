@@ -121,34 +121,65 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                             ui.label(exc_type_name).classes('font-bold text-red-800')
                                             ui.label(exc_message).classes('text-sm text-red-700')
 
-                            with ui.column().classes('w-full bg-gray-900 rounded p-3 font-mono text-sm overflow-x-auto'):
-                                for line_num, line_content in error.source_context:
-                                    is_error_line = (line_num == error.line_number)
 
-                                    # Make error line MUCH more prominent
-                                    row_classes = 'gap-2 items-start w-full '
-                                    if is_error_line:
-                                        row_classes += 'bg-red-900 border-l-4 border-red-400 -mx-3 px-3 py-2'
+                            # Source code with context using ui.code() in two columns
+                            if error.source_context:
+                                with ui.column().classes('w-full mt-2'):
+                                    ui.label('Source Code:').classes('font-bold text-sm text-gray-600 mb-1')
+
+                                    # Build line numbers and code content
+                                    line_numbers = []
+                                    code_lines = []
                                     
-                                    with ui.row().classes(row_classes).style('min-height: 1.5rem'):
-                                        # Line number with error indicator
-                                        if is_error_line:
-                                            ui.label('⚠').classes('text-red-400 font-bold text-base')
+                                    for line_num, line_content in error.source_context:
+                                        is_error_line = (line_num == error.line_number)
                                         
-                                        ui.label(f"{line_num:3d}").classes(
-                                            'text-gray-500 select-none ' +
-                                            ('text-red-300 font-bold text-base' if is_error_line else '')
+                                        # Add marker for error line
+                                        if is_error_line:
+                                            line_numbers.append(f"→{line_num:3d}")
+                                        else:
+                                            line_numbers.append(f" {line_num:3d}")
+                                        
+                                        # Keep ABSOLUTE indentation - don't strip anything
+                                        code_lines.append(line_content)
+
+                                    # Create line numbers string
+                                    line_numbers_str = '\n'.join(line_numbers)
+                                    
+                                    # Create code string with absolute indentation preserved
+                                    code_str = '\n'.join(code_lines)
+
+                                    # Two-column layout with ui.code() - force them to stay together
+                                    # Add overflow container to prevent escaping the dialog
+                                    with ui.row().classes('w-full gap-0 items-stretch flex-nowrap overflow-x-auto').style(
+                                        'max-width: 100%;'
+                                    ):
+                                        # Line numbers column
+                                        ui.code(line_numbers_str).classes('flex-shrink-0').style(
+                                            'background: #1e293b; '
+                                            'color: #94a3b8; '
+                                            'padding-right: 0.5rem; '
+                                            'padding-left: 0.5rem; '
+                                            'border-radius: 0.375rem 0 0 0.375rem; '
+                                            'margin: 0; '
+                                            'white-space: pre; '
+                                            'overflow: visible;'
                                         )
                                         
-                                        # Error marker arrow
-                                        if is_error_line:
-                                            ui.label('→').classes('text-red-400 font-bold text-base')
-                                        
-                                        # Line content
-                                        ui.label(line_content or ' ').classes(
-                                            'flex-grow whitespace-pre ' +
-                                            ('text-red-100 font-bold' if is_error_line else 'text-gray-300')
+                                        # Code column with syntax highlighting - absolute indentation preserved
+                                        ui.code(code_str).classes('flex-grow').style(
+                                            'border-radius: 0 0.375rem 0.375rem 0; '
+                                            'margin: 0 0 0 -4px; '
+                                            'white-space: pre; '
+                                            'padding-left: 0.5rem; '
+                                            'overflow-x: visible;'
                                         )
+                                    
+                                    # Add a visual indicator below showing which line has the error
+                                    if error.line_number:
+                                        with ui.row().classes('items-center gap-2 mt-2 p-2 bg-red-50 rounded border-l-4 border-red-500'):
+                                            ui.icon('error', color='red').classes('text-sm')
+                                            ui.label(f'Error on line {error.line_number}').classes('text-sm text-red-700 font-semibold')
 
         # Traceback section (filter interesting frames)
         if error.traceback_frames:
