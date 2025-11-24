@@ -7,7 +7,7 @@ from haywire.core.node.base import BaseNode
 from haywire.ui.renderer.node_renderer import NodeRenderer
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes.palette import ThemePalette
-from haywire.ui.ui_nodecard import NiceUINodeCard
+from haywire.ui.ui_nodecard import UINodeCard
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.renderer.decorator import renderer
 
@@ -17,8 +17,8 @@ from haywire.core.ui.renderer.decorator import renderer
 class ExampleNodeRenderer(NodeRenderer):
     """Custom renderer for nodes with special styling."""
 
-    def render(self, wrapper: NodeWrapper) -> NiceUINodeCard:
-        """Render a node with custom styling."""
+    def render(self, main_card: ui.card, wrapper: NodeWrapper):
+
         ui_elements = {}
         widget_instances: Dict[str, BaseWidget] = {}
         
@@ -51,12 +51,11 @@ class ExampleNodeRenderer(NodeRenderer):
         </style>
         ''')
 
-        self.main_card = ui.card().classes(
+        main_card.classes(
             f'w-full min-w-64 max-w-sm math-node-card {node_id}'
         )       
 
-        # IMPORTANT: self.main_card must be set here as a root for cleanup in _render if rendering fails
-        with self.main_card:
+        with main_card:
             # Math-themed header
             with ui.row().classes('w-full items-center gap-2'):
                 ui.icon('calculate', color='yellow').classes('text-lg')
@@ -73,9 +72,7 @@ class ExampleNodeRenderer(NodeRenderer):
                                 ui.label(inlet.label).classes('text-xs')
                                 if inlet.is_pooled == False:
                                     if inlet.widget:
-                                        widget = self._render_factory.render_widget(inlet, node.node_id)
-                                        if widget:
-                                            widget_instances[inlet.id] = widget
+                                        widget = self.render_widget(inlet, wrapper.node_id)
                 
                 # Outlets
                 with ui.column().classes('flex-1 gap-1'):
@@ -84,5 +81,4 @@ class ExampleNodeRenderer(NodeRenderer):
                         for outlet in node.outlets.values():
                             ui.label(outlet.label).classes('text-xs text-right')
         
-        return NiceUINodeCard(self.main_card, ui_elements, widget_instances)
     

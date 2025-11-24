@@ -14,7 +14,7 @@ from haywire.core.ui.renderer.decorator import renderer
 from haywire.ui.renderer.node_renderer import NodeRenderer
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes.palette import ThemePalette
-from haywire.ui.ui_nodecard import NiceUINodeCard
+from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.errors.haywire_exception import render_error_details
 from haywire.ui.errors.error_info import error_render_detail, render_error_info
 
@@ -30,16 +30,8 @@ class ErrorNodeRenderer(NodeRenderer):
     to indicate rendering errors or fallback situations.
     """
     
-    def render(self, wrapper: NodeWrapper) -> NiceUINodeCard:
-        """
-        Render a node with error styling.
-        
-        Args:
-            wrapper: The NodeWrapper containing the HaywireNode to render
-            
-        Returns:
-            UINodeCard containing the rendered UI with error styling
-        """
+    def render(self, main_card: ui.card, wrapper: NodeWrapper):
+
         node: BaseNode = wrapper.node
         # Storage for UI elements and widget instances
         ui_elements: Dict[str, Any] = {}
@@ -78,14 +70,13 @@ class ErrorNodeRenderer(NodeRenderer):
         ''')
 
         node_bg = ThemePalette.ui(Theme_UI_Color.WARNING, 'rgba(255, 255, 255, 0.3)')
-        self.main_card = ui.card().classes(
+        main_card.classes(
             f'w-full min-w-64 max-w-sm error-node-card {node_id} zoom-pan-lod0'
         ).style(
             f'background-color: {node_bg}; backdrop-filter: blur(10px);'
         )        
 
-        # IMPORTANT: self.main_card must be set here as a root for cleanup in _render if rendering fails
-        with self.main_card:
+        with main_card:
             # Error header
             if node and node.error_info:
                 render_error_info(node.error_info)
@@ -102,7 +93,6 @@ class ErrorNodeRenderer(NodeRenderer):
                 
                 error_render_detail(error)
 
-
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
                 # Left column: Inlets
@@ -110,18 +100,17 @@ class ErrorNodeRenderer(NodeRenderer):
                     if node.inlets:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.inlets.values():
-                            self._render_inlet(inlet, ui_elements, widget_instances, node)
+                            self._render_inlet(inlet, wrapper)
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
                     if node.outlets:
                         ui.label('Outputs').classes('font-bold text-sm')
                         for outlet in node.outlets.values():
-                            self._render_outlet(outlet, node)
+                            self._render_outlet(outlet, wrapper)
 
             # Footer with port counts
             with ui.row().classes('w-full justify-between mt-2'):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
         
-        return NiceUINodeCard(self.main_card, ui_elements, widget_instances)

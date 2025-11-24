@@ -1,10 +1,9 @@
 import logging
 from typing import Any, Dict, Optional
 
-from haywire.core.ui.renderer.base import UINodeCard
 from haywire.core.ui.widget.base import BaseWidget
 
-class NiceUINodeCard(UINodeCard):
+class UINodeCard():
     """
     Container for a rendered node's UI elements and widget instances.
 
@@ -12,7 +11,7 @@ class NiceUINodeCard(UINodeCard):
     for easy access and management.
     """
 
-    def __init__(self, ui_card, ui_elements: Dict[str, Any], widget_instances: Dict[str, 'BaseWidget']):
+    def __init__(self, ui_card, widget_instances: Dict[str, BaseWidget]):
         """
         Initialize UINodeCard with UI elements and widget instances.
 
@@ -22,12 +21,7 @@ class NiceUINodeCard(UINodeCard):
             widget_instances: Mapping of element IDs to widget instances
         """
         self.ui_card = ui_card
-        self.ui_elements = ui_elements
         self.widget_instances = widget_instances
-
-    def get_ui_element(self, element_id: str) -> Optional[Any]:
-        """Get a UI element by element ID."""
-        return self.ui_elements.get(element_id)
 
     def get_widget_instance(self, element_id: str) -> Optional['BaseWidget']:
         """Get a widget instance by element ID."""

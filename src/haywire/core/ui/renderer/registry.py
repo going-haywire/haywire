@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, TypeVar, Union
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
-from .base import IBaseRenderer
+from .interface import IBaseRenderer
 from ...library.identity import LibraryIdentity
 from ...registry.base import BaseRegistry
 
@@ -15,7 +15,7 @@ class RendererRegistry(BaseRegistry):
     def __init__(self):
         super().__init__()
         self._default_renderer_name: str | None = None
-        self._error_renderer: type | None = None
+        self._error_renderer: type[IBaseRenderer] | None = None
 
     def _class_filter(self, cls):
         try:

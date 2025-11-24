@@ -12,7 +12,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.renderer.decorator import renderer
 from haywire.ui.renderer.node_renderer import NodeRenderer
-from haywire.ui.ui_nodecard import NiceUINodeCard
+from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes import ThemePalette
 
@@ -27,31 +27,20 @@ class DefaultNodeRenderer(NodeRenderer):
     and serves as the fallback renderer when no specific renderer is requested.
     """
     
-    def render(self, wrapper: NodeWrapper) -> NiceUINodeCard:
-        """
-        Render a node using the default design.
-        
-        Args:
-            wrapper: The NodeWrapper containing the HaywireNode to render
-            
-        Returns:
-            UINodeCard containing the rendered UI and widget instances
-        """
+    def render(self, main_card: ui.card, wrapper: NodeWrapper):
         node = wrapper.node
         # Storage for UI elements and widget instances
         ui_elements: Dict[str, Any] = {}
         widget_instances: Dict[str, BaseWidget] = {}
 
         node_bg = ThemePalette.ui(Theme_UI_Color.NODE_BACKGROUND, 'rgba(255, 255, 255, 0.3)')
-        self.main_card = ui.card().classes(
+        main_card.classes(
             f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
         ).style(
             f'background-color: {node_bg}; backdrop-filter: blur(10px);'
         )        
 
-        # IMPORTANT: self.main_card must be set here as a root. 
-        # this allows for cleanup in _render() if rendering fails
-        with self.main_card:
+        with main_card:
             with ui.row().classes('drag-handle'):
                 ui.label(node.identity.label).classes('text-h6')
 
@@ -62,19 +51,17 @@ class DefaultNodeRenderer(NodeRenderer):
                     if node.inlets:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.inlets.values():
-                            self._render_inlet(inlet, ui_elements, widget_instances, node)
+                            self._render_inlet(inlet, wrapper)
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
                     if node.outlets:
                         ui.label('Outputs').classes('font-bold text-sm')
                         for outlet in node.outlets.values():
-                            self._render_outlet(outlet, node)
+                            self._render_outlet(outlet, wrapper)
 
             # Footer with port counts
             with ui.row().classes('w-full justify-between mt-2 zoom-pan-lod1'):
                 ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
                 ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
-        
-        return NiceUINodeCard(self.main_card, ui_elements, widget_instances)
-    
+           

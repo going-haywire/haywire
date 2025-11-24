@@ -13,14 +13,16 @@ from typing import Any, Callable, Dict, Type, List
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.types.ports import PortInlet
+from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.widget.registry import WidgetRegistry
 from haywire.core.ui.renderer.registry import RendererRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.ui.renderer.base import IBaseRenderer, IRenderFactory, UINodeCard
+from haywire.core.ui.renderer.base import BaseRenderer
 from haywire.ui.errors.error_info import error_render_detail, render_error_info
+from haywire.ui.renderer.factory_interface import IRenderFactory
 from haywire.ui.renderer.widget_factory import WidgetFactory
-from haywire.ui.ui_nodecard import NiceUINodeCard
+from haywire.ui.ui_nodecard import UINodeCard
 
 
 RendererCallback = Callable[[], None]
@@ -51,7 +53,7 @@ class RenderFactory(IRenderFactory):
         self.widget_factory.add_widget_lifecycle_subscriber(self._nodeids_updated_by_widget)
         
         # Cache for NodeRenderer instances (stateless, so can be reused)
-        self._renderer_cache: Dict[str, IBaseRenderer] = {}
+        self._renderer_cache: Dict[str, BaseRenderer] = {}
         
         # Customer callbacks for hot reload notifications
         # mapping from registry key to callback function
@@ -62,7 +64,11 @@ class RenderFactory(IRenderFactory):
         # Register for hot reload notifications from registries
         self._renderer_registry.add_batch_event_subscriber(self._on_renderer_reloaded)
     
-    def generate_node(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> NiceUINodeCard | None:
+    def render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
+
+        return self.widget_factory.render_widget(inlet, node_id)
+
+    def generate_node(self, renderer_registry_key: str | None, wrapper: NodeWrapper) -> UINodeCard | None:
         """Render a widget for the given inlet and return the widget instance.
         
         Note: The UI element is automatically added to the current NiceGUI context.
@@ -125,7 +131,7 @@ class RenderFactory(IRenderFactory):
 
         return ui_nodeCard
 
-    def get_renderer(self, registry_key: str) -> IBaseRenderer:
+    def get_renderer(self, registry_key: str) -> BaseRenderer:
         """
         Get a renderer instance for the given element using the renderer registry.
         Args:
@@ -136,7 +142,7 @@ class RenderFactory(IRenderFactory):
  
         lc_event = self._renderer_registry.get_renderer_event(registry_key)
 
-        renderer_cls: type[IBaseRenderer] | None = lc_event.affected_class
+        renderer_cls: type[BaseRenderer] | None = lc_event.affected_class
 
         renderer_instance = None
 

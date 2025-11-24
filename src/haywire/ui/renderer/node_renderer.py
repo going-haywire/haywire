@@ -1,27 +1,17 @@
-from abc import ABC, abstractmethod
-import logging
-from typing import TYPE_CHECKING, Any, Dict
+from abc import ABC
 from nicegui import ui
 
-from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.node.dataclasses import NodeErrorInfo
-from haywire.core.ui.renderer.base import IBaseRenderer, UINodeCard
-from haywire.core.node.base import BaseNode
-from haywire.core.node.base import BaseNode
+from haywire.core.ui.renderer.base import BaseRenderer
 from haywire.core.data.enums import FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.ports import PortInlet, PortOutlet, DataPort
-from haywire.core.ui.widget.base import BaseWidget
-from haywire.ui.renderer.widget_factory import NodeIDsBatchCallback
-from ..errors.error_info import render_error_info
 
 from ..themes.colors import Theme_UI_Color
 from ..utils import generate_pin_uuid
 from ..themes import ThemePalette
-from .factory import RenderFactory
 
 
-class NodeRenderer(IBaseRenderer, ABC):
+class NodeRenderer(BaseRenderer, ABC):
     """
     Base class for all NiceGui NodeRenderer classes.
 
@@ -29,40 +19,12 @@ class NodeRenderer(IBaseRenderer, ABC):
     They are cached and reused by the NodeRenderFactory.
     """
 
-    def __init__(self, render_factory: RenderFactory):
-        """
-        Initialize the renderer with a render factory.
 
-        Args:
-            render_factory: Factory for creating UINodeCard instances
-        """
-        self._render_factory: RenderFactory = render_factory
-        self.main_card: ui.card | None = None
-
-
-    def _render(self, wrapper: NodeWrapper) -> UINodeCard:
-        self.main_card = None
-        try:
-            return self.render(wrapper)
-        except Exception as error:
-            # Clean up any partially created UI elements
-            if self.main_card is not None:
-                try:
-                    # Remove all children and delete the main card
-                    self.main_card.clear()
-                    self.main_card.delete()
-                except Exception as cleanup_error:
-                    logging.error(f"Error during UI cleanup: {cleanup_error}")
-            
-            # Re-raise the original exception so the factory can handle it
-            raise
-
-
-    def _render_inlet(self, inlet: PortInlet, ui_elements: Dict[str, Any], widget_instances: Dict[str, BaseWidget], node: BaseNode):
+    def _render_inlet(self, inlet: PortInlet, wrapper: NodeWrapper):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-1'):
             # only render pins for inlets that are actually involved in flows
-            self._render_pin(inlet, direction='left', node=node)
+            self._render_pin(inlet, wrapper, direction='left')
 
             # Pin label
             ui.label(inlet.label).classes('text-xs zoom-pan-lod2')
@@ -71,25 +33,23 @@ class NodeRenderer(IBaseRenderer, ABC):
         if inlet.is_pooled == False:
             if inlet.widget:
                 # Widget rendering adds UI element to current context automatically
-                widget = self._render_factory.widget_factory.render_widget(inlet, node.node_id)
-                if widget:
-                    widget_instances[inlet.id] = widget
+                self.render_widget(inlet, wrapper.node_id)
 
     
-    def _render_outlet(self, outlet, node: BaseNode):
+    def _render_outlet(self, outlet, wrapper: NodeWrapper):
         """Render an outlet with its port."""
         with ui.row().classes('w-full items-center justify-end gap-1'):
             # Pin label
             ui.label(outlet.label).classes('text-xs')
 
             # only render pins for inlets that are actually involved in flows
-            self._render_pin(outlet, direction='right', node=node)
+            self._render_pin(outlet, wrapper, direction='right')
     
-    def _render_pin(self, pin: DataPort, direction: str = 'left', node: BaseNode = None):
+    def _render_pin(self, pin: DataPort,  wrapper: NodeWrapper, direction: str = 'left'):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
         pin_direction = 'inlet' if pin.is_inlet() else 'outlet'
-        pin_uuid = generate_pin_uuid(pin_direction, node.node_id, pin.id)
+        pin_uuid = generate_pin_uuid(pin_direction, wrapper.node_id, pin.id)
         
         # Calculate 2D direction vector components based on pin type
         if pin.is_inlet():
@@ -101,7 +61,7 @@ class NodeRenderer(IBaseRenderer, ABC):
         
         common_props = (
             f'id="{pin_uuid}" '
-            f'data-node-id="{node.node_id}" '
+            f'data-node-id="{wrapper.node_id}" '
             f'data-pin-id="{pin.id}" '
             f'data-pin-flow-type="{pin.flow_type}" '
             f'data-pin-dir="{pin_direction}" '
