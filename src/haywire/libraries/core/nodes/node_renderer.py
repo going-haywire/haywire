@@ -95,6 +95,7 @@ class NodeRenderer(BaseRenderer, ABC):
                 f'data-pin-color="{callback_color}"'
             )
         elif pin.flow_type == FlowType.DATA:
+            pin_data_type = pin.data.type_cls.class_identity.registry_key
             pin_color = ThemePalette.data_type(pin.type_cls, pin.color)
             port_border = ThemePalette.ui(Theme_UI_Color.PORT_BORDER, 'white')
             ui.element('div').classes(
@@ -108,7 +109,7 @@ class NodeRenderer(BaseRenderer, ABC):
                 f'cursor: crosshair;'
             ).props(
                 f'{common_props} '
-                f'data-pin-data-type="{pin.data.type}" '
+                f'data-pin-data-type="{pin_data_type}" '
                 f'data-pin-color="{pin_color}"'
             )
 

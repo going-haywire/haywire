@@ -7,20 +7,23 @@ from nicegui import ui
 
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.widget.decorator import widget
+from haywire.libraries.core.types.specs import BOOL, FLOAT, INT, STRING
 
 @widget(
-    description="Read-only label widget for displaying data"
+        description="Read-only label widget for displaying data",
+        compatible_types=[FLOAT, INT, STRING, BOOL]
     )
 class LabelWidget(BaseWidget):
     """Read-only label widget for displaying data"""
 
     def on_value_change(self, value: float):  
         """Update the number input's value"""  
-        self.ui_element.value = value if value is not None else ' '   
+        unwrapped = self._get_typed_value()
+        self.ui_element.value = unwrapped if unwrapped is not None else ' '   
 
     def create_element(self) -> Any:
         """Create a label element"""
-        text = str(self.get_value()) if self.get_value() is not None else ''
+        text = str(self._get_typed_value()) if self._get_typed_value() is not None else ''
         
         # Apply styling from props
         classes = self.ui_properties.get('classes', 'text-sm')
@@ -30,17 +33,20 @@ class LabelWidget(BaseWidget):
         )
 
 @widget(
-    description="Progress bar widget for numeric data")
+        description="Progress bar widget for numeric data",
+        compatible_types=[FLOAT, INT]
+    )
 class ProgressWidget(BaseWidget):
     """Progress bar widget for numeric data"""
 
     def on_value_change(self, value: float):  
         """Update the number input's value"""  
-        self.ui_element.value = value if value is not None else 0    
+        unwrapped = self._get_typed_value()
+        self.ui_element.value = unwrapped if unwrapped is not None else 0    
 
     def create_element(self) -> Any:
         """Create a progress bar element"""
-        value = self.get_value() or 0
+        value = self._get_typed_value() or 0
         
         # Get min/max from props
         min_val = self.ui_properties.get('min', 0)
@@ -56,18 +62,20 @@ class ProgressWidget(BaseWidget):
         )
 
 @widget(
-    description="Badge widget for displaying status or short text"
+    description="Badge widget for displaying status or short text",
+    compatible_types=[STRING]
     )
 class BadgeWidget(BaseWidget):
     """Badge widget for displaying status or short text"""
 
     def on_value_change(self, value: float):  
         """Update the number input's value"""  
-        self.ui_element.value = value if value is not None else ''    
+        unwrapped = self._get_typed_value()
+        self.ui_element.value = unwrapped if unwrapped is not None else ''    
 
     def create_element(self) -> Any:
         """Create a badge element"""
-        text = str(self.get_value()) if self.get_value() is not None else ''
+        text = str(self._get_typed_value()) if self._get_typed_value() is not None else ''
         color = self.ui_properties.get('color', 'primary')
         
         return ui.badge(text, color=color).bind_text_from(

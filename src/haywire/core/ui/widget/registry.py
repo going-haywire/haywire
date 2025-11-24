@@ -3,6 +3,8 @@ import logging
 from typing import TypeVar, Optional, Union, Type
 import logging
 
+from haywire.core.ui.widget.globals import register_widget_globally, unregister_widget_globally
+
 from ...errors.haywire_exception import HaywireException, ErrorSeverity
 from .base import BaseWidget
 from ...registry.lifecycle_event import LifeCycleEvent
@@ -52,8 +54,12 @@ class WidgetRegistry(BaseRegistry):
                     self._error_widget = widget_cls
             else:
                 self._error_widget = widget_cls
+        
+        reg = super()._register(registry_key, widget_cls, library_identity)
 
-        return super()._register(registry_key, widget_cls, library_identity)
+        register_widget_globally(registry_key, widget_cls)
+
+        return reg
 
 
     def _unregister_class(self, registry_key: str) -> type[BaseWidget] | None:
@@ -67,7 +73,11 @@ class WidgetRegistry(BaseRegistry):
             self._error_widget = None
             logging.warning(f"Error widget '{registry_key}' unregistered, no error widget left in registry")
 
-        return super()._unregister(registry_key)
+        unreg = super()._unregister(registry_key)
+        
+        unregister_widget_globally(registry_key)
+
+        return unreg
 
     def _get_error_widget(self) -> type[BaseWidget] | None:
         """Get the error widget class"""

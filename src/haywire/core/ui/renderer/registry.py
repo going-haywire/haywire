@@ -15,6 +15,7 @@ class RendererRegistry(BaseRegistry):
     def __init__(self):
         super().__init__()
         self._default_renderer_name: str | None = None
+        self._error_renderer_name: str | None = None
         self._error_renderer: type[IBaseRenderer] | None = None
 
     def _class_filter(self, cls):
@@ -40,17 +41,17 @@ class RendererRegistry(BaseRegistry):
         """
         # Use registry_key that was set by the decorator
         registry_key = renderer_cls.class_identity.registry_key
-        
+
+        # Check if this is an error renderer and register it automatically
+        if renderer_cls.class_identity.is_error:
+            self._error_renderer_name = registry_key
+            self._error_renderer = renderer_cls
         # Check if this is a default renderer and register it automatically
-        if renderer_cls.class_identity.is_default:
+        elif renderer_cls.class_identity.is_default:
             self._default_renderer_name = registry_key
         elif self._default_renderer_name is None:
             # Automatically set as default if no default is set yet
             self._default_renderer_name = registry_key
-
-        # Check if this is an error renderer and register it automatically
-        if renderer_cls.class_identity.is_error:
-            self._error_renderer = renderer_cls
 
         return super()._register(registry_key, renderer_cls, library_identity)
 
@@ -61,14 +62,16 @@ class RendererRegistry(BaseRegistry):
         Returns:
             type[BaseNodeRenderer] | None: The unregistered renderer class or None if not found
         """
-        if self._default_renderer_name == registry_key:
-            if len(self.list_names()) > 0:
-                self._default_renderer_name = self.list_names()[0]
-            else:
-                self._default_renderer_name = None
-                logging.warning(f"Default renderer '{registry_key}' unregistered, no renderers left in registry")
-
         removed_class = super()._unregister(registry_key)
+
+        if self._default_renderer_name == registry_key:
+            self._default_renderer_name = None
+            for key in self._classes.keys():
+                if key != self._error_renderer_name:
+                    self._default_renderer_name = key
+        
+        if self._default_renderer_name is None:
+            logging.warning(f"Default renderer '{registry_key}' unregistered, no renderers left in registry")
         
         if removed_class == self._error_renderer:
             self._error_renderer = None
@@ -133,7 +136,7 @@ class RendererRegistry(BaseRegistry):
         if key in self._regkey_to_last_lifecycle_event:
             lifecycle_event = self._regkey_to_last_lifecycle_event[key]
 
-        if lifecycle_event is None or lifecycle_event.is_successful_event() is False:
+        if lifecycle_event is None:
             error = HaywireException.create(
                 message=f"Renderer '{key}' not found, using error renderer as fallback",
                 severity=ErrorSeverity.ERROR,
@@ -141,11 +144,28 @@ class RendererRegistry(BaseRegistry):
                 operation="renderer_lookup",
                 registry_key=key,
                 suggestions=[
-                    "Using default error renderer as fallback",
-                    "Check if the renderer library is properly loaded"
+                    "Try using existing renderer instead",
+                    "Library containing the renderer may have failed to load"
                 ],
                 auto_retry=True
             )
             raise error
+        elif lifecycle_event.error:
+            raise lifecycle_event.error
+        elif not lifecycle_event.is_successful_event():
+            error = HaywireException.create(
+                message=f"Renderer '{key}' failed to load, due to '{lifecycle_event.event_type}' ",
+                severity=ErrorSeverity.ERROR,
+                category="Renderer Load Error",
+                operation="renderer_lookup",
+                registry_key=key,
+                suggestions=[
+                    "Renderer may have been removed",
+                    "Library containing the renderer may been disabled"
+                ],
+                auto_retry=True
+            )
+            raise error
+ 
 
         return lifecycle_event

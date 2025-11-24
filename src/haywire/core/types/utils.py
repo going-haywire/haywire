@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING, Any, Dict, Type, TypeVar
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
 
+from haywire.core.ui.widget.globals import validate_widget_type_compatibility
+
 from .interface import IType
 
 T = TypeVar('T')
@@ -134,6 +136,18 @@ def create_port_base(
         **kwargs
     }
     
+    widget = port_kwargs['widget']
+
+    if widget:
+        is_compatible, error_msg = validate_widget_type_compatibility(
+            widget_registry_key=widget,
+            type_cls=type_cls
+        )
+            
+        if not is_compatible:
+            raise TypeError(f"Invalid widget for port '{id}': {error_msg}")
+
+
     # Create the port
     port = port_class(**port_kwargs)
     

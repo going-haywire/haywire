@@ -1,8 +1,11 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, TypeVar, Union, TYPE_CHECKING
+from typing import Any, Dict, Optional, Set, Type, TypeVar, Union, TYPE_CHECKING
 from dataclasses import dataclass, field
 
+from haywire.core.library.identity import LibraryIdentity
+
+from ...types.interface import IType
 from ...data.fields import DataField
 from ...types.ports import DataPort
 from ...registry.identity import BaseIdentity
@@ -11,6 +14,7 @@ from ...errors.haywire_exception import HaywireException
 @dataclass
 class WidgetIdentity(BaseIdentity):
     """Core identifying attributes of a widget"""
+    compatible_types: Set[Type[IType]] = field(default_factory=set)
     _is_error: bool = False
     _error_priority: int = 0
 
@@ -25,6 +29,9 @@ class BaseWidget(ABC):
         element (DataPort): The data port this widget is associated with.
         error (Optional[HaywireException]): Optional error information.
     """
+
+    class_identity: WidgetIdentity
+    class_library: LibraryIdentity
 
     def __init__(self, element: DataPort, error: Optional[HaywireException] = None):
         self.element: DataPort = element
@@ -56,9 +63,37 @@ class BaseWidget(ABC):
         """Update the data field value"""
         self.data_field.set_value(new_value)
 
+    def _update_typed_value(self, new_value: Any):
+        """Update the data field value"""
+        self.data_field.set_inner_value(new_value)
+
     def get_value(self) -> Any:
         """Get the current data field value"""
         return self.data_field.get_value()
+
+    def _get_typed_value(self) -> Any:
+        """
+        Get value from data field, unwrapping if necessary.
+        """
+        raw_value = self.get_value()
+        
+        # Handle pooled fields (returns dict)
+        if isinstance(raw_value, dict):
+            return self._handle_pooled_value(raw_value)
+        
+        # Unwrap PrimitiveType instances
+        if hasattr(raw_value, 'value'):
+            return raw_value.value
+        
+        return raw_value
+    
+    def _handle_pooled_value(self, pooled_dict: dict) -> Any:
+        """Handle pooled field values."""
+        if not pooled_dict:
+            return None
+        values = list(pooled_dict.values())
+        first = values[0]
+        return first.value if hasattr(first, 'value') else first
 
     def on_ui_change(self, e):
         self.update_value(e.sender.value)

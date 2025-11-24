@@ -12,8 +12,10 @@ from haywire.core.ui.widget.decorator import widget
 from haywire.ui.errors.haywire_exception import render_error_details
 
 @widget(
-    _is_error=True, 
-    description="Widget displayed when no appropriate widget is found")
+        _is_error=True, 
+        description="Widget displayed when no appropriate widget is found",
+        compatible_types=[]
+    )
 class ErrorWidget(BaseWidget):
     """Widget displayed when no appropriate widget is found"""
     

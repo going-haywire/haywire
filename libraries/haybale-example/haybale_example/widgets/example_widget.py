@@ -4,8 +4,11 @@ from nicegui import ui
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.widget.decorator import widget
 
+from haybale_example.types.specs import Temperature
+
 @widget(
-    description="Custom widget for temperature values with Celsius/Fahrenheit display",
+        description="Custom widget for temperature values with Celsius/Fahrenheit display",
+        compatible_types=[Temperature]  # Assuming 'temperature' is a defined type in the system
     )
 class TemperatureWidget(BaseWidget):
     """Custom widget for temperature values with Celsius/Fahrenheit display"""
@@ -37,7 +40,7 @@ class TemperatureWidget(BaseWidget):
 
     def on_value_change(self, value: float):  
         """Update the UI elements when the model value changes"""  
-        celsius_value = value
+        celsius_value = self._get_typed_value()
         display_value = self._get_display_value(celsius_value)
         
         # Update the main input
@@ -55,7 +58,7 @@ class TemperatureWidget(BaseWidget):
         celsius_value = display_value if self.unit == 'celsius' else self._fahrenheit_to_celsius(display_value)
         
         # Update the model with Celsius value
-        self.update_value(celsius_value)
+        self._update_typed_value(celsius_value)
         
         # Update the conversion label
         if self.conversion_label is not None:
@@ -63,7 +66,7 @@ class TemperatureWidget(BaseWidget):
 
     def create_element(self) -> Any:
         """Create a temperature widget with unit conversion"""
-        temp_celsius = self.get_value() or 0
+        temp_celsius = self._get_typed_value() or 0
         display_value = self._get_display_value(temp_celsius)
 
         with ui.column().classes('w-full') as wrapper:

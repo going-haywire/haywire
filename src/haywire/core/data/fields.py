@@ -25,6 +25,11 @@ class DataField(ABC, Generic[T]):
     def set_value(self, value: T, source_id: str | None = None):
         """Set value with optional source tracking"""
         pass
+
+    @abstractmethod
+    def set_inner_value(self, value: Any, source_id: str | None = None):
+        """Set inner value with optional source tracking"""
+        pass
     
     @abstractmethod
     def get_value(self) -> T | Dict[str, T]:
@@ -72,14 +77,26 @@ class SingleField(DataField[T]):
         self._default = default_value
         super().__post_init__()
 
+    #TODO: Not sure if self._default = self._value is correct here
+    # we might want to do a deep copy instead
     def set_value(self, value: T, source_id: str | None = None) -> None:
         if self._value != value:
             self._value = value
             self.is_dirty = True
             if source_id is None:
-                self._default = value  # UI update changes default
+                self._default = self._value  # UI update changes default
             self.fire()
-    
+
+    #TODO: Not sure if self._default = self._value is correct here
+    # we might want to do a deep copy instead
+    def set_inner_value(self, value: Any, source_id: str | None = None):
+        if self._value.value != value:
+            self._value.value = value
+            self.is_dirty = True
+            if source_id is None:
+                self._default = self._value  # UI update changes default
+        self.fire()
+
     def get_value(self) -> T:
         return self._value
     
@@ -115,7 +132,16 @@ class PooledField(DataField[T]):
             self._sources[source_id] = value
             self.is_dirty = True
             self.fire()
-    
+
+    #TODO: Not sure if we want to allow this for pooled fields
+    def set_inner_value(self, value: Any, source_id: str | None = None):
+        if source_id is None:
+            raise ValueError("source_id required for PooledField")
+        if self._sources.get(source_id).value != value:
+            self._sources[source_id].value = value
+            self.is_dirty = True
+            self.fire()
+
     def get_value(self) -> Dict[str, T]:
         """Return dict of all source values"""
         return dict(self._sources)
