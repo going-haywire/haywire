@@ -22,20 +22,11 @@ class DisplayNode(BaseNode):
         self.ui_config.node_renderer = 'example:renderer:example.node.renderer'
 
         # Using the new .as_inlet() API
-        self.add_inlet(
-            FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:number.widget')
-        )
-        self.add_inlet(
-            FLOAT.as_inlet('b', label='Value B', default=3.4, widget='core:widget:number.widget')
-        )
-        self.add_outlet(
-            FLOAT.as_outlet('result', label='Result')
-        )
-        self.add_inlet(
-            STRING.as_inlet('operation', label='Operation', default='add', widget='core:widget:text.input.widget')
-        )   
+        self.add(FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:number.widget'))
+        self.add(FLOAT.as_inlet('b', label='Value B', default=3.4, widget='core:widget:number.widget'))
+        self.add(STRING.as_inlet('operation', label='Operation', default='add', widget='core:widget:text.input.widget'))   
+        self.add(FLOAT.as_outlet('result', label='Result'))
     
-
     def worker(self, context: dict) -> dict | None:
         """Execute the node - display the input value"""
         input_value = context.get('input_value')

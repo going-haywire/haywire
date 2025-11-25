@@ -1,6 +1,7 @@
 
 from ..data.enums import FlowType
 from .ports import PortInlet, PortOutlet
+from haywire.core.types.utils import create_port_base
 
 class TypeToDataPort:
     """
@@ -25,8 +26,6 @@ class TypeToDataPort:
             FLOAT.as_inlet('value', default=1.0)
             Temperature.as_inlet('temp', default=25.0, ui={'unit': '°C'})
         """
-        from haywire.core.types.utils import create_port_base
-        from haywire.core.types.ports import PortInlet
         return create_port_base(cls, PortInlet, id, **kwargs)
 
     @classmethod
@@ -45,8 +44,6 @@ class TypeToDataPort:
             FLOAT.as_outlet('result')
             MeshData.as_outlet('mesh')
         """
-        from haywire.core.types.utils import create_port_base
-        from haywire.core.types.ports import PortOutlet
         return create_port_base(cls, PortOutlet, id, **kwargs)
 
     @classmethod

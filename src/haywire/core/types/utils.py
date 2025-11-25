@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any, Dict, Type, TypeVar
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
 
+from haywire.core.types.ports import DataPort, PortInlet
 from haywire.core.ui.widget.globals import validate_widget_type_compatibility
 
 from .interface import IType
@@ -109,7 +110,7 @@ Utility functions for type system.
 
 def create_port_base(
     type_cls: Type[IType],
-    port_class: Type,
+    port_class: DataPort,
     id: str,
     **kwargs
 ):
@@ -123,7 +124,7 @@ def create_port_base(
     
     # Normalize and validate default if provided
     if 'default' in kwargs:
-        port_type = "inlet" if port_class.__name__ == "PortInlet" else "outlet"
+        port_type = "inlet" if issubclass(port_class, PortInlet) else "outlet"
         kwargs['default'] = normalize_and_validate_default(
             kwargs['default'],
             type_cls,

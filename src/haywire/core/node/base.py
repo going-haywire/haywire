@@ -9,7 +9,7 @@ from ..data.specs import DataPortSpec
 from ..registry.identity import BaseIdentity
 from ..library.utils import derive_library_identity, reg_key
 from ..library.identity import LibraryIdentity
-from ..types.ports import PortInlet, PortOutlet
+from ..types.ports import DataPort, PortInlet, PortOutlet
 from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
 
 if TYPE_CHECKING:
@@ -132,25 +132,24 @@ class NodeData():
         self.inlets: Dict[str, PortInlet] = {}
         self.outlets: Dict[str, PortOutlet] = {}
         self._cache_dirty = True
-    
-    # deprecated methods for dynamic pin management
-    def add_inlet(self, inlet: PortInlet) -> PortInlet:
-        """Add an inlet element"""
-        if '__' in inlet.id:
-            # Handle special case for inlet IDs containing '__' - reserved to split concatenated attributes
-            raise ValueError("Inlet ID cannot contain double underscores '__'")
-        self.inlets[inlet.id] = inlet
-        self._cache_dirty = True        
-        return inlet
-    
-    #deprecated methods for dynamic pin management
-    def add_outlet(self, outlet: PortOutlet) -> PortOutlet:
-        """Add an outlet element"""
-        if '__' in outlet.id:
-            # Handle special case for outlet IDs containing '__' - reserved to split concatenated attributes
-            raise ValueError("Outlet ID cannot contain double underscores '__'")
-        self.outlets[outlet.id] = outlet
-        return outlet
+
+    def add(self, port: DataPort) -> DataPort:
+        """Add an Port Element (inlet or outlet) to the node."""
+        if port.is_inlet():
+            inlet = port  # type: PortInlet
+            if inlet.id in self.inlets:
+                raise ValueError(f"Inlet ID already exists: {inlet.id}. Cannot add duplicate.")
+            self.inlets[inlet.id] = inlet
+            self._cache_dirty = True     
+            return inlet   
+        else:
+            outlet = port  # type: PortOutlet
+            if outlet.id in self.outlets:
+                raise ValueError(f"Outlet ID already exists: {outlet.id}. Cannot add duplicate.")
+            self.outlets[outlet.id] = outlet
+            self._cache_dirty = True     
+            return outlet
+   
         
 @abstractmethod
 class BaseNode(NodeData, metaclass=NodeMeta):

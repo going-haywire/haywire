@@ -33,23 +33,24 @@ class TestProcessorNode(BaseNode):
         self.behavior.is_control_node = False
         
         # Input: Custom TestData type
-        self.add_inlet(TestData.as_inlet(    
+        self.add(TestData.as_inlet(    
                 id='test_data_in',
                 label='Test Data In'
             )
         )
 
-        _ = self.add_inlet(FLOAT.as_inlet(
+        self.add(FLOAT.as_inlet(
                 id='float_slider',
                 label='Float Slider',
                 widget='core:slider.widget',
                 ui={'properties': {'min': 0.0, 'max': 100.0, 'step': 1}},
                 default=50.0
-            ))
+            )
+        )
 
 
         # Input: Additional value to add
-        self.add_inlet(FLOAT.as_inlet(
+        self.add(FLOAT.as_inlet(
                 id='modifier',
                 label='Modifier',
                 default=1.0,
@@ -58,14 +59,14 @@ class TestProcessorNode(BaseNode):
         )
         
         # Output: Modified TestData
-        self.add_outlet(TestData.as_outlet(
+        self.add(TestData.as_outlet(
                 id='test_data_out',
                 label='Test Data Out'
             )
         )
         
         # Output: String description
-        self.add_outlet(STRING.as_outlet(
+        self.add(STRING.as_outlet(
                 id='description',
                 label='Description'
             )
