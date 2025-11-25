@@ -1,14 +1,14 @@
 from abc import ABC
 from nicegui import ui
 
-from haywire.core.ui.renderer.base import BaseRenderer
 from haywire.core.data.enums import FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.ports import PortInlet, PortOutlet, DataPort
 
-from ....ui.themes.colors import Theme_UI_Color
-from ....ui.utils import generate_pin_uuid
-from ....ui.themes import ThemePalette
+from haywire.ui.renderer.base import BaseRenderer
+from haywire.ui.themes.colors import Theme_UI_Color
+from haywire.ui.utils import generate_pin_uuid
+from haywire.ui.themes import ThemePalette
 
 class NodeRenderer(BaseRenderer, ABC):
     """

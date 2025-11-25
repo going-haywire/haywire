@@ -41,11 +41,14 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
         # Header
         with ui.row().classes('items-center gap-2 w-full pb-3 border-b'):
             ui.icon(error.get_severity_icon(), color=error.get_severity_color()).classes('text-3xl')
-            ui.label(f"{error.category}: {error.message}").classes('text-xl font-bold text-gray-800')
+            ui.label(f"{error.category}").classes('text-xl font-bold text-gray-800')
 
         # Main error info card
         with ui.card().classes('w-full bg-white'):
             with ui.column().classes('gap-2'):
+                if error.message:
+                    _create_detail_row('Message', error.message, 'build')
+
                 if error.operation:
                     _create_detail_row('Operation', error.operation, 'build')
 

@@ -1,15 +1,12 @@
 import inspect
-import logging
-from typing import TypeVar, Optional, Union, Type
-import logging
 
-from haywire.core.ui.widget.globals import register_widget_globally, unregister_widget_globally
+from haywire.core.errors.haywire_exception import HaywireException, ErrorSeverity
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
+from haywire.core.library.identity import LibraryIdentity
+from haywire.core.registry.base import BaseRegistry
 
-from ...errors.haywire_exception import HaywireException, ErrorSeverity
 from .base import BaseWidget
-from ...registry.lifecycle_event import LifeCycleEvent
-from ...library.identity import LibraryIdentity
-from ...registry.base import BaseRegistry
+from .globals import register_widget_globally, unregister_widget_globally
 
 class WidgetRegistry(BaseRegistry):
     """Registry for UI widgets that can render data fields"""

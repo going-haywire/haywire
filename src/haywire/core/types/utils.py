@@ -3,7 +3,7 @@ from dataclasses import asdict
 from cattrs.preconf.json import make_converter
 
 from haywire.core.types.ports import DataPort, PortInlet
-from haywire.core.ui.widget.globals import validate_widget_type_compatibility
+from haywire.ui.widget.globals import validate_widget_type_compatibility
 
 from .interface import IType
 

@@ -11,11 +11,12 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 from typing import Optional, TYPE_CHECKING, List
 from nicegui import ui
 from haywire.core.node.base import BaseNode
-from haywire.ui.ui_nodecard import UINodeCard
-from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
-from haywire.ui.renderer.factory import RenderFactory
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
+
+from haywire.ui.ui_nodecard import UINodeCard
+from haywire.ui.renderer.factory import RenderFactory
 
 class UINode:
     """

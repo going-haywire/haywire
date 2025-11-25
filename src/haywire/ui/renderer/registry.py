@@ -1,13 +1,13 @@
 import inspect
 import logging
-from typing import Any, Dict, Optional, TypeVar, Union
+from typing import Optional
 
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
+from haywire.core.library.identity import LibraryIdentity
+from haywire.core.registry.base import BaseRegistry
 
 from .interface import IBaseRenderer
-from ...library.identity import LibraryIdentity
-from ...registry.base import BaseRegistry
 
 class RendererRegistry(BaseRegistry):
     """Registry for NodeRenderer classes with fallback support"""

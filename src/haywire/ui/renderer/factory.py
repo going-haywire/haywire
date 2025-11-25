@@ -11,17 +11,15 @@ import logging
 from typing import Any, Callable, Dict, Type, List
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.node.dataclasses import NodeErrorInfo
-from haywire.core.types.ports import PortInlet
-from haywire.core.ui.widget.base import BaseWidget
-from haywire.core.ui.widget.registry import WidgetRegistry
-from haywire.core.ui.renderer.registry import RendererRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.ui.renderer.base import BaseRenderer
 from haywire.ui.errors.error_info import error_render_detail, render_error_info
-from haywire.ui.renderer.widget_factory import WidgetFactory
 from haywire.ui.ui_nodecard import UINodeCard
+
+from ..widget.factory import WidgetFactory
+from ..widget.registry import WidgetRegistry
+from .base import BaseRenderer
+from .registry import RendererRegistry
 
 
 FactoryEventCallback = Callable[[str], None] # Function signature for factory event callbacks

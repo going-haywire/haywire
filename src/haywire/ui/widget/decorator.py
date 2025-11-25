@@ -2,7 +2,8 @@ from typing import Callable, Type, TypeVar, Union
 
 from haywire.core.types.interface import IType
 
-from ...library.utils import derive_library_identity, reg_key
+from haywire.core.library.utils import derive_library_identity, reg_key
+
 from .base import BaseWidget, WidgetIdentity
 
 # ============================================================================

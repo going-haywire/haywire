@@ -9,9 +9,10 @@ DI container access.
 
 from typing import Dict, Type, Optional, Set, TYPE_CHECKING
 
+from haywire.core.types.interface import IType
+
 if TYPE_CHECKING:
     from .base import BaseWidget
-    from ...types.interface import IType
 
 # Global widget class lookup
 WIDGET_REGISTRY: Dict[str, Type['BaseWidget']] = {}

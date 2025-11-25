@@ -5,8 +5,8 @@ Display widgets for read-only data visualization
 from typing import Any, Dict
 from nicegui import ui
 
-from haywire.core.ui.widget.base import BaseWidget
-from haywire.core.ui.widget.decorator import widget
+from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.decorator import widget
 from haywire.libraries.core.types.specs import BOOL, FLOAT, INT, STRING
 
 @widget(

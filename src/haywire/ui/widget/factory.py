@@ -7,10 +7,10 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
 from haywire.core.types.ports import DataPort, PortInlet
-from haywire.core.ui.widget.base import BaseWidget
-from haywire.core.ui.widget.registry import WidgetRegistry
+from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.registry import WidgetRegistry
 from haywire.ui.errors.error_info import error_render_detail, render_error_info
-from haywire.ui.renderer.widget_interface import IWidgetFactory
+from haywire.ui.widget.factory_interface import IWidgetFactory
 
 NodeIDsBatchCallback = Callable[[set[str]], None]
 
@@ -66,8 +66,10 @@ class WidgetFactory(IWidgetFactory):
 
         ui_element: ui.element | None = None
 
+        lc_event: LifeCycleEvent | None = None
+
         try:
-            widget_instance = self.get_widget(registry_key, inlet)
+            widget_instance, lc_event = self.get_widget(registry_key, inlet)
             ui_element = widget_instance.render()
             
             # Apply styling to the UI element if possible
@@ -75,6 +77,8 @@ class WidgetFactory(IWidgetFactory):
                 ui_element.classes('widget-container zoom-pan-lod2')
                 
         except Exception as error:
+            library_identity = lc_event.library_identity if lc_event is not None else None
+            module_name = lc_event.module_name if lc_event is not None else None
             logging.error(f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' in node '{node_id}': {error}", exc_info=True)
             if not isinstance(error, HaywireException):
                 error = HaywireException.from_exception(
@@ -84,6 +88,8 @@ class WidgetFactory(IWidgetFactory):
                     message=f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' in node '{node_id}'"
                 ).enrich(
                     registry_key=inlet.widget,
+                    library_identity=library_identity,
+                    module_name=module_name,
                     suggestions=[
                         "Check if the widget class is implemented correctly",
                         "Ensure the widget library is properly loaded"
@@ -98,7 +104,7 @@ class WidgetFactory(IWidgetFactory):
     
         return widget_instance, ui_element
 
-    def get_widget(self, registry_key: str, element: DataPort) -> BaseWidget | None:
+    def get_widget(self, registry_key: str, element: DataPort) -> tuple[BaseWidget | None, LifeCycleEvent | None]:
         """
         Get a widget instance for the given element using the widget registry.
         Args:
@@ -131,7 +137,7 @@ class WidgetFactory(IWidgetFactory):
                 )
 
                 raise error
-        return widget_instance
+        return widget_instance, lc_event
 
     def _on_widget_reloaded(self, batch: list[LifeCycleEvent]) -> None:
         """

@@ -7,12 +7,12 @@ import nicegui.ui as ui
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.types.ports import DataPort
-from haywire.core.ui.widget.base import BaseWidget
-from haywire.ui.renderer.widget_interface import IWidgetFactory
 from haywire.ui.ui_nodecard import UINodeCard
+from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.registry.identity import BaseIdentity
 
-from ...node.node_wrapper import NodeWrapper
-from ...registry.identity import BaseIdentity
+from ..widget.base import BaseWidget
+from ..widget.factory_interface import IWidgetFactory
 from .interface import IBaseRenderer
 
 @dataclass
@@ -23,7 +23,7 @@ class RendererIdentity(BaseIdentity):
     _is_error: bool = False
     _error_priority: int = 0
 
- 
+
 class BaseRenderer(IBaseRenderer, ABC):
     """
     Abstract base class for all NodeRenderer classes.

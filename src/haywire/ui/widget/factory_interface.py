@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import nicegui.ui as ui
 
 from haywire.core.types.ports import PortInlet
-from haywire.core.ui.widget.base import BaseWidget
+from haywire.ui.widget.base import BaseWidget
 
 
 class IWidgetFactory(ABC):

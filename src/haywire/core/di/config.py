@@ -11,20 +11,20 @@ from pathlib import Path
 from typing import Optional, List
 from injector import Injector, Module, provider, singleton
 
+from ...ui.renderer.registry import RendererRegistry
+from ...ui.widget.registry import WidgetRegistry
+from ...ui.renderer.factory import RenderFactory
+from ...ui.themes.palette import ThemePalette
+
 from ..library.registry import LibraryRegistry
 from ..node.registry import NodeRegistry
-from ..ui.renderer.registry import RendererRegistry
 from ..adapter.registry import AdapterRegistry
-from ..ui.widget.registry import WidgetRegistry
 from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
-from ...ui.renderer.factory import RenderFactory
 from ..undo.interfaces import IHistoryManager
 from ..undo.history_manager import HistoryManager
 from ..undo.config import UndoConfig
 from ..undo.no_op_history_manager import NoOpHistoryManager
-from ...ui.themes.palette import ThemePalette
-
 
 class HaywireModule(Module):
     """

@@ -2,8 +2,9 @@ from typing import Any
 from nicegui import ui
 
 from haywire.core.types.ports import DataPort
-from haywire.core.ui.widget.base import BaseWidget
-from haywire.core.ui.widget.decorator import widget
+
+from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.decorator import widget
 
 from haybale_example.types.specs import Temperature
 

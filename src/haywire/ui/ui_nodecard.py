@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, Optional
 
-from haywire.core.ui.widget.base import BaseWidget
+from haywire.ui.widget.base import BaseWidget
 
 class UINodeCard():
     """

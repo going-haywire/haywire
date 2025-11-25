@@ -8,11 +8,12 @@ Contains folders for nodes, widgets, adapters, renderers, and custom types.
 from pathlib import Path
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
-from haywire.core.ui.renderer.registry import RendererRegistry
 from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.ui.widget.registry import WidgetRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.types.registry import TypeRegistry
+
+from haywire.ui.renderer.registry import RendererRegistry
+from haywire.ui.widget.registry import WidgetRegistry
 
 @library(
     label='Test B',

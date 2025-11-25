@@ -1,14 +1,13 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Set, Type, TypeVar, Union, TYPE_CHECKING
+from typing import Any, Dict, Optional, Set, Type
 from dataclasses import dataclass, field
 
 from haywire.core.library.identity import LibraryIdentity
-
-from ...types.interface import IType
-from ...data.fields import DataField
-from ...types.ports import DataPort
-from ...registry.identity import BaseIdentity
+from haywire.core.types.interface import IType
+from haywire.core.data.fields import DataField
+from haywire.core.types.ports import DataPort
+from haywire.core.registry.identity import BaseIdentity
 
 @dataclass
 class WidgetIdentity(BaseIdentity):
