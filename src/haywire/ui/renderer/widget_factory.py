@@ -1,22 +1,24 @@
-
-
-
-
-
-
 import logging
 from typing import Callable, List
+
+import nicegui.ui as ui
+
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
 from haywire.core.types.ports import DataPort, PortInlet
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.widget.registry import WidgetRegistry
-from haywire.ui.errors.error_info import render_error_info
+from haywire.ui.errors.error_info import error_render_detail, render_error_info
+from haywire.ui.renderer.widget_interface import IWidgetFactory
 
 NodeIDsBatchCallback = Callable[[set[str]], None]
 
-class WidgetFactory:
+class WidgetFactory(IWidgetFactory):
+    """
+    Factory class for creating widget instances using the WidgetRegistry.
+
+    """
     def __init__(self, widget_registry: WidgetRegistry):
         self._creators = {}
         self.widget_registry: WidgetRegistry = widget_registry
@@ -47,12 +49,13 @@ class WidgetFactory:
         if callback in self._widget_lifecycle_subscribers:
             self._widget_lifecycle_subscribers.discard(callback)
 
-    def render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
+    def render_widget(self, registry_key: str, inlet: DataPort, node_id: str) -> tuple[BaseWidget | None, ui.element]:
         """Render a widget for the given inlet and return the widget instance.
         
         Note: The UI element is automatically added to the current NiceGUI context.
         
         Args:
+            registry_key: The registry key of the widget to render
             inlet: The inlet port to render a widget for
             node_id: ID of the node containing this inlet
             
@@ -61,8 +64,10 @@ class WidgetFactory:
         """        
         widget_instance: BaseWidget | None = None
 
+        ui_element: ui.element | None = None
+
         try:
-            widget_instance = self.get_widget(inlet)
+            widget_instance = self.get_widget(registry_key, inlet)
             ui_element = widget_instance.render()
             
             # Apply styling to the UI element if possible
@@ -78,70 +83,49 @@ class WidgetFactory:
                     operation="widget_lookup",
                     message=f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' in node '{node_id}'"
                 ).enrich(
-                    registry_key=inlet.widget
+                    registry_key=inlet.widget,
+                    suggestions=[
+                        "Check if the widget class is implemented correctly",
+                        "Ensure the widget library is properly loaded"
+                    ]
                 ).log()
             
-            error_widget_registry_key = 'unknown'
+            ui_element = error_render_detail(error)
 
-            try:
-                # get the error widget class from the registry
-                widget_cls = self.widget_registry._get_error_widget()
-
-                if widget_cls:
-                    error_widget_registry_key = widget_cls.class_identity.registry_key
-                widget_instance = widget_cls(inlet, error)
-
-                ui_element = widget_instance.render()
-
-            except Exception as e:
-                # Fallback to error display if widget creation fails completely
-                logging.error(f"Failed to create error widget '{error_widget_registry_key}' for inlet '{inlet.id}' in node '{node_id}': {e}", exc_info=True)
-
-                creationerror = NodeErrorInfo(
-                    error='Fatal Error',
-                    error_message=str(e)
-                )
-                creationerror.add_note(f"Check log for details")
-                creationerror.add_note(f"Element: {inlet.id}")
-                creationerror.add_note(f"Requested widget: {getattr(inlet, 'widget', 'None')}")
-
-                render_error_info(creationerror)
-                
-                widget_instance = None
+            return None, ui_element
     
         self._widget_regkey_to_nodeids.setdefault(inlet.widget, set()).add(node_id)
     
-        return widget_instance
+        return widget_instance, ui_element
 
-    def get_widget(self, element: DataPort) -> BaseWidget:
+    def get_widget(self, registry_key: str, element: DataPort) -> BaseWidget | None:
         """
         Get a widget instance for the given element using the widget registry.
         Args:
             element: The DataPort (inlet or outlet) to get the widget for
         Returns:
-            BaseWidget: The instantiated widget for the element
+            BaseWidget: The instantiated widget for the element or None
         """
  
-        key = element.widget
+        lc_event = self.widget_registry.get_widget_event(registry_key)
 
-        lc_event = self.widget_registry.get_widget_event(key)
-
-        widget_cls = lc_event.affected_class
+        widget_cls: type[BaseWidget] | None = lc_event.affected_class
 
         widget_instance = None
 
         if widget_cls is not None:
             try:
-                widget_instance = widget_cls(element, lc_event.error)
+                widget_instance = widget_cls(element)
+
             except Exception as e:
                 # Create detailed error with context about the node instantiation
                 error = HaywireException.from_exception(
                     exception=e,
                     category="Widget Instantiation Error",
                     operation="widget_lookup",
-                    message=f"Failed to instantiate widget '{key}'"
+                    message=f"Failed to instantiate widget '{registry_key}'"
                 ).enrich(
-                    registry_key=key,
+                    registry_key=registry_key,
                     module_name=lc_event.module_name,
                     library_identity=lc_event.library_identity
                 )

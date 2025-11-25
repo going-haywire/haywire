@@ -16,8 +16,6 @@ class WidgetRegistry(BaseRegistry):
 
     def __init__(self):
         super().__init__()
-        self._default_widgets: dict[Type, type] = {}
-        self._error_widget: type | None = None
 
     def _class_filter(self, cls):
         try:
@@ -41,23 +39,11 @@ class WidgetRegistry(BaseRegistry):
         """
         # Use registry_key that was set by the decorator
         registry_key = widget_cls.class_identity.registry_key
-
-        # Check if this is an error node and register it automatically
-        if widget_cls.class_identity._is_error:
-            if self._error_widget is not None:
-                if widget_cls.class_identity._error_priority > self._error_widget.class_identity._error_priority:
-                    logging.warning(
-                        f"Overriding already registered error node: '{self._error_widget.class_identity.registry_key}'."
-                        f" with : '{widget_cls.class_identity.registry_key}'"
-                        f" due to higher _error_priority ({widget_cls.class_identity._error_priority} > {self._error_widget.class_identity._error_priority})"
-                    )
-                    self._error_widget = widget_cls
-            else:
-                self._error_widget = widget_cls
         
         reg = super()._register(registry_key, widget_cls, library_identity)
 
-        register_widget_globally(registry_key, widget_cls)
+        if reg:
+            register_widget_globally(registry_key, widget_cls)
 
         return reg
 
@@ -69,19 +55,11 @@ class WidgetRegistry(BaseRegistry):
         Returns:
             type[BaseWidget] | None: The unregistered widget class or None if not found
         """
-        if self.get(registry_key) == self._error_widget:
-            self._error_widget = None
-            logging.warning(f"Error widget '{registry_key}' unregistered, no error widget left in registry")
-
         unreg = super()._unregister(registry_key)
         
         unregister_widget_globally(registry_key)
 
         return unreg
-
-    def _get_error_widget(self) -> type[BaseWidget] | None:
-        """Get the error widget class"""
-        return self._error_widget
         
     def get_widget_event(self, key: str | None) -> type[LifeCycleEvent]:
         """

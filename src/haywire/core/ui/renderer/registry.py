@@ -15,7 +15,10 @@ class RendererRegistry(BaseRegistry):
     def __init__(self):
         super().__init__()
         self._default_renderer_name: str | None = None
+        self._default_priority: int = -1
         self._error_renderer_name: str | None = None
+        self._error_priority: int = -1
+
         self._error_renderer: type[IBaseRenderer] | None = None
 
     def _class_filter(self, cls):
@@ -42,16 +45,46 @@ class RendererRegistry(BaseRegistry):
         # Use registry_key that was set by the decorator
         registry_key = renderer_cls.class_identity.registry_key
 
-        # Check if this is an error renderer and register it automatically
-        if renderer_cls.class_identity.is_error:
-            self._error_renderer_name = registry_key
-            self._error_renderer = renderer_cls
-        # Check if this is a default renderer and register it automatically
-        elif renderer_cls.class_identity.is_default:
-            self._default_renderer_name = registry_key
-        elif self._default_renderer_name is None:
-            # Automatically set as default if no default is set yet
-            self._default_renderer_name = registry_key
+
+        # Check if this is an error node and register it automatically
+        if renderer_cls.class_identity._is_error:
+            if self._error_renderer is not None:
+                if renderer_cls.class_identity._error_priority > self._error_renderer.class_identity._error_priority:
+                    logging.warning(
+                        f"Overriding already registered error renderer: '{self._error_renderer.class_identity.registry_key}'"
+                        f" with : '{renderer_cls.class_identity.registry_key}'"
+                        f" due to higher _error_priority ({renderer_cls.class_identity._error_priority} > {self._error_renderer.class_identity._error_priority})"
+                    )
+                    self._error_renderer = renderer_cls
+            else:
+                self._error_renderer = renderer_cls
+
+        # Check if this is an error node and register it as such
+        if renderer_cls.class_identity._is_error:
+            new_error_priority = renderer_cls.class_identity._error_priority
+            if new_error_priority > self._error_priority:
+                if self._error_renderer_name:
+                    logging.warning(
+                        f"Overriding already registered error renderer: '{self._error_renderer_name}'"
+                        f" with : '{registry_key}'"
+                        f" due to higher _error_priority ({new_error_priority} > {self._error_priority})"
+                    )
+                self._error_renderer_name = registry_key
+                self._error_priority = new_error_priority
+
+
+        # Check if this is an default node and register it as such
+        if renderer_cls.class_identity._is_default:
+            new_default_priority = renderer_cls.class_identity._default_priority
+            if new_default_priority > self._default_priority:
+                if self._default_renderer_name:
+                    logging.warning(
+                        f"Overriding already registered default renderer: '{self._default_renderer_name}'"
+                        f" with : '{registry_key}'"
+                        f" due to higher _default_priority ({new_default_priority} > {self._default_priority})"
+                    )
+                self._default_renderer_name = registry_key
+                self._default_priority = new_default_priority
 
         return super()._register(registry_key, renderer_cls, library_identity)
 
@@ -63,61 +96,21 @@ class RendererRegistry(BaseRegistry):
             type[BaseNodeRenderer] | None: The unregistered renderer class or None if not found
         """
         removed_class = super()._unregister(registry_key)
-
-        if self._default_renderer_name == registry_key:
-            self._default_renderer_name = None
-            for key in self._classes.keys():
-                if key != self._error_renderer_name:
-                    self._default_renderer_name = key
-        
-        if self._default_renderer_name is None:
-            logging.warning(f"Default renderer '{registry_key}' unregistered, no renderers left in registry")
         
         if removed_class == self._error_renderer:
             self._error_renderer = None
             logging.warning(f"Error renderer '{registry_key}' unregistered, no error renderer left in registry")    
         
         return removed_class
-
-    def get_renderer_class(self, renderer_name: str | None) -> type[IBaseRenderer]:
-        """
-        Get renderer class with fallback strategy:
-        1. Try exact renderer name lookup
-        2. Use default if no renderer name is specified
-        3. Return error renderer if exact renderer doesn't exist
-        4. Escalate with RuntimeError exception if no error renderer registered
-        """
-        # 1. Try exact renderer name lookup
-        if renderer_name and self.has(renderer_name):
-            return self._classes[renderer_name]
-
-        # 2. Use default if no renderer name is specified
-        if renderer_name is None and self._default_renderer_name:
-            if self.has(self._default_renderer_name):
-                return self._classes[self._default_renderer_name]
-
-        # 3. Return error renderer if exact renderer doesn't exist
-        if self._error_renderer:
-            return self._error_renderer
-        
-        # Fallback if no error renderer registered
-        raise RuntimeError(f"No renderer found for '{renderer_name}' and no error renderer registered")
-
-    def get_default_renderer(self) -> type[IBaseRenderer] | None:
-        """Get the default renderer class"""
-        if self._default_renderer_name:
-            if self.has(self._default_renderer_name):
-                return self._classes[self._default_renderer_name]
-        return None
-    
+   
     def get_default_renderer_registry_key(self) -> str | None:
         """Get the default renderer registry key"""
         return self._default_renderer_name
-    
-    def get_error_renderer(self) -> type[IBaseRenderer] | None:
-        """Get the error renderer class"""
-        return self._error_renderer
-    
+
+    def get_error_renderer_registry_key(self) -> str | None:
+        """Get the error renderer registry key"""
+        return self._error_renderer_name
+        
     def get_renderer_event(self, key: str | None) -> type[LifeCycleEvent]:
         """
         Get last lifecycle renderer event by registry key 

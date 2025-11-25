@@ -1,18 +1,19 @@
 
 
 from abc import ABC, abstractmethod
+import nicegui.ui as ui
 
 from haywire.core.types.ports import PortInlet
 from haywire.core.ui.widget.base import BaseWidget
 
 
-class IRenderFactory(ABC):
+class IWidgetFactory(ABC):
     """
-    Interface for Renderer Factory classes.
+    Interface for Widget Factory classes.
     """
     
     @abstractmethod
-    def _render_widget(self, inlet: PortInlet, node_id: str) -> BaseWidget | None:
+    def render_widget(self, inlet: PortInlet, node_id: str) -> tuple[BaseWidget | None, ui.element] :
         """Render a widget for the given inlet and return the widget instance.
         
         Note: The UI element is automatically added to the current NiceGUI context.

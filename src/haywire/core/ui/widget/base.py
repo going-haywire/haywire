@@ -9,14 +9,11 @@ from ...types.interface import IType
 from ...data.fields import DataField
 from ...types.ports import DataPort
 from ...registry.identity import BaseIdentity
-from ...errors.haywire_exception import HaywireException
 
 @dataclass
 class WidgetIdentity(BaseIdentity):
     """Core identifying attributes of a widget"""
     compatible_types: Set[Type[IType]] = field(default_factory=set)
-    _is_error: bool = False
-    _error_priority: int = 0
 
 # ============================================================================
 #    BASE WIDGET CLASS
@@ -27,19 +24,17 @@ class BaseWidget(ABC):
     
     Args:
         element (DataPort): The data port this widget is associated with.
-        error (Optional[HaywireException]): Optional error information.
     """
 
     class_identity: WidgetIdentity
     class_library: LibraryIdentity
 
-    def __init__(self, element: DataPort, error: Optional[HaywireException] = None):
+    def __init__(self, element: DataPort):
         self.element: DataPort = element
         self.element_id: str = element.id
         self.data_field: DataField = element.data
         self.ui_properties: Dict[str, Any] = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}
         self.ui_element = None
-        self.error: Optional[HaywireException] = error
 
         # Add change handler for the data field
         self.data_field.on_changed += self._call_on_model_changed

@@ -22,7 +22,7 @@ from haywire.libraries.core.nodes.node_renderer import NodeRenderer
 
 @renderer(
     description="Error renderer that provides error styling for nodes", 
-    is_error=True)
+    _is_error=True)
 class ErrorNodeRenderer(NodeRenderer):
     """
     Error renderer that provides error styling for nodes.

@@ -24,10 +24,6 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the widget.
             Defaults to empty string.
-        _is_error (bool, optional): Whether this widget should handle error cases.
-            Defaults to False.
-        _error_priority (int, optional): Priority for error widgets when multiple are registered.
-            Higher values take precedence. Defaults to 0.
 
     Any other keyword arguments will be passed through to the WidgetIdentity constructor.
     See the WidgetIdentity dataclass for the complete list of available fields.

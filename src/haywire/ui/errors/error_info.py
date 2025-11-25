@@ -5,7 +5,15 @@ from haywire.core.node.dataclasses import NodeErrorInfo
 
 from haywire.ui.errors.haywire_exception import render_error_details
 
-def error_render_detail(error: HaywireException) -> None:
+def error_render_detail(error: HaywireException) -> ui.element:
+    """
+    renders a compact error summary with a button to show detailed error information in a dialog.
+    Args:
+        error: The HaywireException to render
+
+    Returns:
+        ui.element: The NiceGUI element containing the error summary and dialog
+    """
     if not error or not isinstance(error, HaywireException):
         # Create a default error if none provided
         error = HaywireException.create(
@@ -53,6 +61,7 @@ def error_render_detail(error: HaywireException) -> None:
         # Connect button to lazy rendering function
         detail_button.on_click(show_details)  
 
+    return container
 
 def render_error_info(error_info: NodeErrorInfo) -> element:
     """

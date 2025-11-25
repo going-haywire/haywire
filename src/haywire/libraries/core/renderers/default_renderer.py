@@ -19,7 +19,7 @@ from haywire.libraries.core.nodes.node_renderer import NodeRenderer
 
 @renderer(
     description="Default renderer that provides the standard node appearance", 
-    is_default=True)
+    _is_default=True)
 class DefaultNodeRenderer(NodeRenderer):
     """
     Default renderer that provides the standard node appearance.

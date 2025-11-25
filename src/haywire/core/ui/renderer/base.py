@@ -5,9 +5,10 @@ import logging
 
 import nicegui.ui as ui
 
+from haywire.core.library.identity import LibraryIdentity
 from haywire.core.types.ports import DataPort
 from haywire.core.ui.widget.base import BaseWidget
-from haywire.ui.renderer.factory_interface import IRenderFactory
+from haywire.ui.renderer.widget_interface import IWidgetFactory
 from haywire.ui.ui_nodecard import UINodeCard
 
 from ...node.node_wrapper import NodeWrapper
@@ -17,8 +18,10 @@ from .interface import IBaseRenderer
 @dataclass
 class RendererIdentity(BaseIdentity):
     """Core identifying attributes of a renderer"""
-    is_default: bool = False
-    is_error: bool = False
+    _is_default: bool = False
+    _default_priority: int = 0
+    _is_error: bool = False
+    _error_priority: int = 0
 
  
 class BaseRenderer(IBaseRenderer, ABC):
@@ -29,14 +32,17 @@ class BaseRenderer(IBaseRenderer, ABC):
     They are cached and reused by the NodeRenderFactory.
     """
 
-    def __init__(self, render_factory: IRenderFactory):
+    class_identity: RendererIdentity
+    class_library: LibraryIdentity
+    
+    def __init__(self, widget_factory: IWidgetFactory):
         """
         Initialize the renderer with a render factory.
 
         Args:
             render_factory: Factory for creating UINodeCard instances
         """
-        self._render_factory: IRenderFactory = render_factory
+        self._widget_factory: IWidgetFactory = widget_factory
         self._nodeids_widget_instances: Dict[str, Dict[str, BaseWidget]] = {}
 
 
@@ -88,7 +94,7 @@ class BaseRenderer(IBaseRenderer, ABC):
         """
         pass
 
-    def render_widget(self, inlet: DataPort, node_id: str) -> BaseWidget | None:
+    def render_widget(self, inlet: DataPort, node_id: str) -> ui.element | None:
         """
         Render a widget for the given inlet and node ID.
         
@@ -98,12 +104,12 @@ class BaseRenderer(IBaseRenderer, ABC):
         Returns:
             The rendered widget instance, or None if no widget was rendered
         """
-        widget_instance: BaseWidget | None = self._render_factory._render_widget(inlet, node_id)
+        widget_instance, ui_element = self._widget_factory.render_widget(inlet.widget, inlet, node_id)
 
         if widget_instance:
             self._nodeids_widget_instances.setdefault(node_id, {inlet.id, widget_instance})
 
-        return widget_instance
+        return ui_element
 
 
 

@@ -1,6 +1,7 @@
 from typing import Any
 from nicegui import ui
 
+from haywire.core.types.ports import DataPort
 from haywire.core.ui.widget.base import BaseWidget
 from haywire.core.ui.widget.decorator import widget
 
@@ -13,8 +14,8 @@ from haybale_example.types.specs import Temperature
 class TemperatureWidget(BaseWidget):
     """Custom widget for temperature values with Celsius/Fahrenheit display"""
 
-    def __init__(self, element, error: Any = None):
-        super().__init__(element, error)
+    def __init__(self, element: DataPort):
+        super().__init__(element)
         self.conversion_label = None
         self.unit = self.ui_properties.get('unit', 'celsius')
 
