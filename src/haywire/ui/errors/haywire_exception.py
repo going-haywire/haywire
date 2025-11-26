@@ -1,12 +1,81 @@
 import os
+import subprocess
+import platform
+import shutil
 from typing import Any
 import uuid
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
 
-def _create_detail_row(label: str, value: str, icon: str, multiline: bool = False, monospace: bool = False):
-    """Helper to create a consistent detail row"""
+def _open_file_in_editor(filepath: str, line_number: int = None):
+    """Open a file in the user's preferred editor with fallback options"""
+    if not os.path.exists(filepath):
+        ui.notify(f'File not found: {filepath}', type='negative')
+        return
+    
+    system = platform.system()
+    success = False
+    
+    # List of editors to try in order
+    editors_to_try = []
+    
+    if system == 'Darwin':  # macOS
+        editors_to_try = [
+            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
+            (['open', '-a', 'Visual Studio Code', filepath], 'VS Code'),
+            (['open', '-a', 'PyCharm', filepath], 'PyCharm'),
+            (['open', '-a', 'Sublime Text', filepath], 'Sublime Text'),
+            (['open', '-t', filepath], 'TextEdit'),
+            (['open', filepath], 'Default app'),
+        ]
+    elif system == 'Windows':
+        editors_to_try = [
+            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
+            (['notepad++', f'-n{line_number or 1}', filepath], 'Notepad++'),
+            (['notepad', filepath], 'Notepad'),
+            (['start', '', filepath], 'Default app'),
+        ]
+    else:  # Linux
+        editors_to_try = [
+            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
+            (['gedit', f'+{line_number or 1}', filepath], 'gedit'),
+            (['kate', '-l', str(line_number or 1), filepath], 'Kate'),
+            (['xdg-open', filepath], 'Default app'),
+        ]
+    
+    # Try each editor until one works
+    for cmd, editor_name in editors_to_try:
+        try:
+            # Check if the command exists (except for 'open' and 'start' which are built-in)
+            if cmd[0] not in ['open', 'start', 'xdg-open']:
+                if not shutil.which(cmd[0]):
+                    continue
+            
+            # Try to run the command
+            if system == 'Windows' and cmd[0] == 'start':
+                subprocess.Popen(cmd, shell=True)
+            else:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            ui.notify(f'Opening in {editor_name}...', type='positive')
+            success = True
+            break
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+            continue
+    
+    if not success:
+        # Last resort: show the file path and let user open manually
+        ui.notify(
+            f'Could not open file automatically. Path copied to clipboard: {filepath}',
+            type='warning',
+            position='top'
+        )
+        ui.run_javascript(f'navigator.clipboard.writeText({filepath!r})')
+
+def _create_detail_row(label: str, value: str, icon: str, multiline: bool = False, monospace: bool = False, 
+                       file_path: str = None, line_number: int = None):
+    """Helper to create a consistent detail row with optional file open button"""
     classes = 'text-sm ' + ('font-mono' if monospace else '')
     
     with ui.row().classes('items-start gap-2 w-full'):
@@ -19,7 +88,20 @@ def _create_detail_row(label: str, value: str, icon: str, multiline: bool = Fals
                 for line in lines[1:]:
                     ui.label(line).classes(classes + ' pl-4')
         else:
-            ui.label(value).classes(classes + ' flex-grow')
+            with ui.row().classes('items-center gap-2 flex-grow'):
+                ui.label(value).classes(classes)
+                # Add "Open in Editor" button if file_path is provided
+                if file_path and os.path.exists(file_path):
+                    with ui.button_group():
+                        ui.button(
+                            icon='open_in_new',
+                            on_click=lambda: _open_file_in_editor(file_path, line_number)
+                        ).props('flat dense size=sm').tooltip('Open in editor').classes('ml-2')
+                        # Also add a copy path button
+                        ui.button(
+                            icon='content_copy',
+                            on_click=lambda p=file_path: ui.run_javascript(f'navigator.clipboard.writeText({p!r})')
+                        ).props('flat dense size=sm').tooltip('Copy file path')
 
 def render_error_details(error: HaywireException, parent_container=None) -> Any:
     """
@@ -49,6 +131,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                     f'navigator.clipboard.writeText({text!r})'
                 )
             ).props('flat dense').classes('ml-2').tooltip('Copy detailed error to clipboard')
+        
         if error.message:
             with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
                 with ui.row().classes('items-start gap-2 p-2'):
@@ -61,7 +144,6 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
             with ui.card().classes('w-full bg-red-100 border-l-4 border-red-500 mb-2'):
                 with ui.row().classes('items-start gap-2 p-2'):
                     _create_detail_row(exc_type_name, exc_message, 'error')
-
 
         # Source code section
         if error.has_source_location():
@@ -116,7 +198,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                             # Use ui.code() for syntax highlighting
                             ui.code(code_with_numbers, language=language).classes('w-full')
 
-                            # File path
+                            # File path with "Open in Editor" button
                             file_display = error.filename
                             if error.library_identity and error.library_identity.folder_path:
                                 try:
@@ -126,7 +208,8 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                 except ValueError:
                                     pass
 
-                            _create_detail_row('File', file_display, 'description', monospace=True)
+                            _create_detail_row('File', file_display, 'description', monospace=True, 
+                                             file_path=error.filename, line_number=error.line_number)
 
                             if error.line_number:
                                 _create_detail_row('Line', str(error.line_number), 'tag')
@@ -159,11 +242,17 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                 base_filename = os.path.basename(filename)
 
                                 with ui.column().classes('gap-1 border-l-2 border-blue-300 pl-3 py-1'):
-                                    # Location
+                                    # Location with Open button
                                     with ui.row().classes('items-center gap-2'):
                                         ui.icon('arrow_right', color='blue').classes('text-sm')
                                         ui.label(f"{base_filename}").classes('font-bold text-sm')
                                         ui.label(f"in {function_name}").classes('text-sm text-gray-600')
+                                        # Add open button for each frame
+                                        if os.path.exists(filename):
+                                            ui.button(
+                                                icon='open_in_new',
+                                                on_click=lambda f=filename, ln=line_number: _open_file_in_editor(f, ln)
+                                            ).props('flat dense size=xs').tooltip('Open in editor')
 
                                     # File path (truncated if too long)
                                     display_path = filename
