@@ -49,7 +49,6 @@ def error_render_detail(error: HaywireException) -> ui.element:
         popup = Popup(
             width="fit-content",  # Adapts to content width
             height="auto",
-            closable=True,
             backdrop_click_close=True,
             escape_close=True,
             backdrop_color="rgba(0,0,0,0.5)"

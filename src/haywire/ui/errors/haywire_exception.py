@@ -1,77 +1,10 @@
 import os
-import subprocess
-import platform
-import shutil
 from typing import Any
 import uuid
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
-
-def _open_file_in_editor(filepath: str, line_number: int = None):
-    """Open a file in the user's preferred editor with fallback options"""
-    if not os.path.exists(filepath):
-        ui.notify(f'File not found: {filepath}', type='negative')
-        return
-    
-    system = platform.system()
-    success = False
-    
-    # List of editors to try in order
-    editors_to_try = []
-    
-    if system == 'Darwin':  # macOS
-        editors_to_try = [
-            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
-            (['open', '-a', 'Visual Studio Code', filepath], 'VS Code'),
-            (['open', '-a', 'PyCharm', filepath], 'PyCharm'),
-            (['open', '-a', 'Sublime Text', filepath], 'Sublime Text'),
-            (['open', '-t', filepath], 'TextEdit'),
-            (['open', filepath], 'Default app'),
-        ]
-    elif system == 'Windows':
-        editors_to_try = [
-            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
-            (['notepad++', f'-n{line_number or 1}', filepath], 'Notepad++'),
-            (['notepad', filepath], 'Notepad'),
-            (['start', '', filepath], 'Default app'),
-        ]
-    else:  # Linux
-        editors_to_try = [
-            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
-            (['gedit', f'+{line_number or 1}', filepath], 'gedit'),
-            (['kate', '-l', str(line_number or 1), filepath], 'Kate'),
-            (['xdg-open', filepath], 'Default app'),
-        ]
-    
-    # Try each editor until one works
-    for cmd, editor_name in editors_to_try:
-        try:
-            # Check if the command exists (except for 'open' and 'start' which are built-in)
-            if cmd[0] not in ['open', 'start', 'xdg-open']:
-                if not shutil.which(cmd[0]):
-                    continue
-            
-            # Try to run the command
-            if system == 'Windows' and cmd[0] == 'start':
-                subprocess.Popen(cmd, shell=True)
-            else:
-                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
-            ui.notify(f'Opening in {editor_name}...', type='positive')
-            success = True
-            break
-        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
-            continue
-    
-    if not success:
-        # Last resort: show the file path and let user open manually
-        ui.notify(
-            f'Could not open file automatically. Path copied to clipboard: {filepath}',
-            type='warning',
-            position='top'
-        )
-        ui.run_javascript(f'navigator.clipboard.writeText({filepath!r})')
+from haywire.ui.utils import _open_file_in_editor
 
 def _create_detail_row(label: str, value: str, icon: str, multiline: bool = False, monospace: bool = False, 
                        file_path: str = None, line_number: int = None):
@@ -102,6 +35,7 @@ def _create_detail_row(label: str, value: str, icon: str, multiline: bool = Fals
                             icon='content_copy',
                             on_click=lambda p=file_path: ui.run_javascript(f'navigator.clipboard.writeText({p!r})')
                         ).props('flat dense size=sm').tooltip('Copy file path')
+
 
 def render_error_details(error: HaywireException, parent_container=None) -> Any:
     """
@@ -137,17 +71,17 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                 with ui.row().classes('items-start gap-2 p-2'):
                     _create_detail_row('Message', error.message, 'build')
 
-        # Show the actual error message right above the code
-        if error.original_exception:
-            exc_type_name = type(error.original_exception).__name__
-            exc_message = str(error.original_exception)
-            with ui.card().classes('w-full bg-red-100 border-l-4 border-red-500 mb-2'):
-                with ui.row().classes('items-start gap-2 p-2'):
-                    _create_detail_row(exc_type_name, exc_message, 'error')
+        # Suggestions section
+        if error.has_suggestions():
+            with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
+                ui.label('💡 Suggestions:').classes('font-bold text-sm text-blue-700')
+                for suggestion in error.suggestions:
+                    with ui.row().classes('items-start gap-2'):
+                        _create_detail_row(suggestion, "", 'lightbulb')
 
         # Source code section
         if error.has_source_location():
-            with ui.card().classes('w-full bg-white'):
+            with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
                 with ui.column().classes('gap-2'):
                     # Source code with context                            
                     if error.source_context:
@@ -214,21 +148,12 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                             if error.line_number:
                                 _create_detail_row('Line', str(error.line_number), 'tag')
 
-                            # Suggestions section
-                            if error.has_suggestions():
-                                with ui.column().classes('gap-1 pt-2 mt-2 border-t'):
-                                    ui.label('💡 Suggestions:').classes('font-bold text-sm text-blue-700')
-                                    for suggestion in error.suggestions:
-                                        with ui.row().classes('items-start gap-2'):
-                                            ui.icon('lightbulb', color='orange').classes('text-sm')
-                                            ui.label(suggestion).classes('text-sm')                                    
-
         # Traceback section (filter interesting frames)
         if error.traceback_frames:
             interesting_frames = [f for f in error.traceback_frames if error.is_interesting_frame(f)]
 
             if interesting_frames:
-                with ui.card().classes('w-full bg-white'):
+                with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
                     with ui.column().classes('gap-2'):
                         ui.label('🔍 Traceback').classes('font-bold text-gray-700')
 
@@ -266,8 +191,16 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                             ui.label(f"line {line_number}:").classes('text-xs text-blue-600 font-mono')
                                             ui.label(source_line.strip()).classes('text-xs font-mono')
 
+        # Show the actual error message right above the code
+        if error.original_exception:
+            exc_type_name = type(error.original_exception).__name__
+            exc_message = str(error.original_exception)
+            with ui.card().classes('w-full bg-red-100 border-l-4 border-red-500 mb-2'):
+                with ui.row().classes('items-start gap-2 p-2'):
+                    _create_detail_row(exc_type_name, exc_message, 'error')
+
         # Main error info card
-        with ui.card().classes('w-full bg-white'):
+        with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
             with ui.column().classes('gap-2'):
                 ui.label('📦 Error Information').classes('font-bold text-gray-700')
                 
@@ -288,7 +221,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
 
         # Library and context info
         if error.library_identity or error.module_name or error.registry_key:
-            with ui.card().classes('w-full bg-white'):
+            with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
                 with ui.column().classes('gap-2'):
                     ui.label('📦 Context Information').classes('font-bold text-gray-700')
 

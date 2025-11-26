@@ -60,7 +60,7 @@ class RenderFactory():
         
         # Customer callbacks for factory hot reload notifications
         # mapping from node_id key to callback function
-        self._nodeid_to_factory_subscriber: dict[str, FactoryEventCallback] = {}
+        self._nodeid_to_factory_subscriber: dict[str, set[FactoryEventCallback]] = {}
 
         # Mapping from renderer registry key to the wrapper node id that uses that renderer
         self._renderer_regkey_to_node_id: dict[str, set[str]] = {}
@@ -87,6 +87,7 @@ class RenderFactory():
             # this can happen if :
             # the node has no renderer assigned AND the registry has no default renderer available
             renderer_registry_key = NO_RENDERER_DEFINED  # Fallback if no default renderer is set"
+            logging.debug(f"For node '{wrapper.node.identity.label}' - '{wrapper.node_id}' no render or default defined. Using '{NO_RENDERER_DEFINED}' as renderer key")
 
         ui_nodeCard: UINodeCard | None = None
 
@@ -111,7 +112,9 @@ class RenderFactory():
             else:            
                 renderer_instance = self.get_renderer(renderer_registry_key)
 
+            logging.debug(f"For node '{wrapper.node.identity.label}' - '{wrapper.node_id}' attempting to render Using '{renderer_registry_key}'")
             ui_nodeCard = renderer_instance._render(wrapper=wrapper)
+            logging.debug(f"For node '{wrapper.node.identity.label}' - '{wrapper.node_id}' successfully rendered Using '{renderer_registry_key}'")
 
             # once the renderer instance is successfully used, cache it
             self._renderer_cache[renderer_registry_key] = renderer_instance
@@ -137,10 +140,12 @@ class RenderFactory():
                 # Prevent infinite recursion. If there is something wrong with the error node,
                 # we cannot recover from this.
                 
+                logging.debug(f" -> Emergency Fallback to render error '{error.message}' on '{wrapper.node.identity.label}' - '{wrapper.node_id}' without renderer")
                 error_render_detail(error)
 
                 return None
 
+            logging.debug(f" -> Attempting to render node '{wrapper.node.identity.label}' - '{wrapper.node_id}' with '{error_renderer_registry_key}'")
             # render error 
             ui_nodeCard = self.render(
                     renderer_registry_key=error_renderer_registry_key, 
@@ -148,28 +153,33 @@ class RenderFactory():
                     _is_error_render=True
                 )
             
+            logging.debug(f" -> Successfully rendered node '{wrapper.node.identity.label}' - '{wrapper.node_id}' with '{error_renderer_registry_key}'")
+            
             # if we reach this point, we just returned from an error render that was executed 
             # because of a render error in the intended/default renderer. ui_nodeCard can be None
             # if the error renderer also failed, but in is hasn't - we have widgets to track..
         
         if ui_nodeCard:
+            logging.debug(f"About to return with ui_nodeCard on '{wrapper.node.identity.label}' - '{wrapper.node_id}'")
             # Map renderer registry key to node ID for hot reload tracking
             # this might not be the key of the renderer that actually gets used due to fallback
             # to an error renderer, but its the one we are interested in for hot reloads
 
-            # cleanup previous mappings if any
-            if wrapper.node_id in self._nodeid_to_renderer_regkey:
-                previous_regkey = self._nodeid_to_renderer_regkey[wrapper.node_id]
-                if wrapper.node_id in self._renderer_regkey_to_node_id.get(previous_regkey, set()):
-                    self._renderer_regkey_to_node_id[previous_regkey].remove(wrapper.node_id)
-            
             if _is_error_render == False:
                 # this makes sure we only track the intended renderer, not the error renderer
 
+                # cleanup previous mappings if any
+                if wrapper.node_id in self._nodeid_to_renderer_regkey:
+                    previous_regkey = self._nodeid_to_renderer_regkey[wrapper.node_id]
+                    if wrapper.node_id in self._renderer_regkey_to_node_id.get(previous_regkey, set()):
+                        self._renderer_regkey_to_node_id[previous_regkey].remove(wrapper.node_id)
+                        logging.debug(f"  -> Cleanup render_key to node_id mapping: '{previous_regkey}' -> '{wrapper.node_id}'")
+            
                 # one to many mapping
                 self._renderer_regkey_to_node_id.setdefault(renderer_registry_key, set()).add(wrapper.node_id)
                 # one to one mapping
                 self._nodeid_to_renderer_regkey[wrapper.node_id] = renderer_registry_key
+                logging.debug(f"  -> Setup render_key to node_id mapping: '{renderer_registry_key}' -> '{wrapper.node_id}'")
 
         return ui_nodeCard
 
@@ -222,10 +232,10 @@ class RenderFactory():
             node_id: The ID of the node to associate with the callback
             callback: Function with signature FactoryEventCallback
         """
-        self._nodeid_to_factory_subscriber[node_id] = callback
+        self._nodeid_to_factory_subscriber.setdefault(node_id, set()).add(callback)
 
     
-    def remove_factory_lifecycle_subscriber(self, node_id: str) -> None:
+    def remove_factory_lifecycle_subscriber(self, node_id: str, callback: FactoryEventCallback) -> None:
         """
         Unregister a customer callback.
         
@@ -233,9 +243,11 @@ class RenderFactory():
             node_id: The ID of the node associated with the callback
         """
         if node_id in self._nodeid_to_factory_subscriber:
+            if callback in self._nodeid_to_factory_subscriber[node_id]:
+                self._nodeid_to_factory_subscriber[node_id].remove(callback)
+
+        if len(self._nodeid_to_factory_subscriber[node_id]) == 0:
             del self._nodeid_to_factory_subscriber[node_id]
-        
-        self._unregister_node(node_id)
 
     def _notify_factory_subscribers(self, node_id: str) -> None:
         """
@@ -246,8 +258,8 @@ class RenderFactory():
             node_id: The ID of the node affected by the lifecycle event
         """
         if node_id in self._nodeid_to_factory_subscriber:
-            callback = self._nodeid_to_factory_subscriber[node_id]
-            callback(node_id)
+            for callback in self._nodeid_to_factory_subscriber[node_id]:
+                callback(node_id)
     
     def _listen_on_renderer_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
         """
@@ -303,6 +315,7 @@ class RenderFactory():
             node_id: The node ID to unregister
         """
         reg_key = self._nodeid_to_renderer_regkey.get(node_id, None)
+        logging.debug(f" -> Unregister node for rendering '{node_id}' with renderer '{reg_key}'")
         if reg_key:
             if self._renderer_regkey_to_node_id[reg_key]:
                 if node_id in self._renderer_regkey_to_node_id[reg_key]:

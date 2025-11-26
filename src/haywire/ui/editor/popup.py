@@ -11,9 +11,9 @@ class Popup:
                  title: Optional[str] = None,
                  width: str = "auto",
                  height: str = "auto",
-                 closable: bool = True,
-                 backdrop_click_close: bool = True,
-                 escape_close: bool = True,
+                 closable: bool = False,
+                 backdrop_click_close: bool = False,
+                 escape_close: bool = False,
                  backdrop_color: str = "rgba(0,0,0,0.5)",
                  position_x: Optional[float] = None,
                  position_y: Optional[float] = None):

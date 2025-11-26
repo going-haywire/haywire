@@ -19,7 +19,7 @@ from haywire.core.types.base import BaseType
     color='#4CAF50',
     icon='cube',
     help_url='https://haywire.io/docs/types/mesh-data',
-    widget='mesh_viewer_widget',
+    widget=None,
     default={'vertices': [], 'faces': [], 'name': "Named Mesh"},
 )
 @dataclass

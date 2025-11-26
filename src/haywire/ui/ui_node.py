@@ -8,6 +8,7 @@ Enhanced with hot reload support: UINode subscribes to NodeWrapper change callba
 and automatically re-renders when the underlying node class is hot-reloaded.
 """
 
+import logging
 from typing import Optional, TYPE_CHECKING, List
 from nicegui import ui
 from haywire.core.node.base import BaseNode
@@ -69,6 +70,8 @@ class UINode:
         self._error_renderer_reg_key: str = self.factory._renderer_registry.get_error_renderer_registry_key()
         self._default_renderer_reg_key: str = self.factory._renderer_registry.get_default_renderer_registry_key()
 
+        self.container.client.on_disconnect(lambda: self.cleanup())
+
     @property
     def position(self) -> Optional[tuple[int, int]]:
         return self._position
@@ -86,6 +89,12 @@ class UINode:
         """
         self.position = position
 
+    def refresh(self) -> bool:
+        """
+        Refresh the current rendering of the node.
+        """
+        self.wrapper.recall_change(self._listen_on_wrapper_livecycle_event)
+
     def _listen_on_wrapper_livecycle_event(self, event: LifeCycleEvent):
         """
         Handle NodeWrapper hot reload event notifications.
@@ -101,7 +110,7 @@ class UINode:
         Args:
             event: The hot reload event with complete context
         """
-        print(f"🔄 UINode {self.haywire_node.node_id}: Wrapper event - {event.event_type.value}")
+        logging.debug(f"🔄 UINode {self.haywire_node.node_id}: Wrapper event - {event.event_type.value}")
         
         # Define the UI update function that needs to run in UI context
         if event.event_type == LifeCycleEventType.CLASS_RELOADED:
@@ -111,15 +120,15 @@ class UINode:
             renderer_reg_key = self.haywire_node.ui_config.node_renderer
             if renderer_reg_key is None:
                 renderer_reg_key = self._default_renderer_reg_key
-            print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with renderer '{renderer_reg_key}'")
-            self.render_in_context(renderer_reg_key, _is_error_render=False)
+            logging.debug(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with renderer '{renderer_reg_key}'")
+            self.render(renderer_reg_key, _is_error_render=False)
             
         elif event.is_warning_event():
             # Error occurred during initialization or migration
             if self.wrapper:
                 self.haywire_node = self.wrapper.node  # May now be an error node
-            print(f"⚠️ Node error: Re-rendering node {self.haywire_node.node_id} with error renderer '{self._error_renderer_reg_key}'")
-            self.render_in_context(self._error_renderer_reg_key, _is_error_render=True)
+            logging.debug(f"⚠️ Node error: Re-rendering node {self.haywire_node.node_id} with error renderer '{self._error_renderer_reg_key}'")
+            self.render(self._error_renderer_reg_key, _is_error_render=True)
             
         elif event.event_type == LifeCycleEventType.CLASS_ADDED:
             # Node was successfully initialized
@@ -128,8 +137,8 @@ class UINode:
             renderer_reg_key = self.haywire_node.ui_config.node_renderer
             if renderer_reg_key is None or renderer_reg_key == '':
                 renderer_reg_key = self._default_renderer_reg_key
-            print(f"✅ Node ready: {self.haywire_node.node_id}")
-            self.render_in_context(renderer_reg_key, _is_error_render=False)
+            logging.debug(f"✅ Node ready: {self.haywire_node.node_id}")
+            self.render(renderer_reg_key, _is_error_render=False)
         
     
     def _listen_on_factory_lifecycle_event(self, node_id: str) -> None:
@@ -146,9 +155,9 @@ class UINode:
         """
         # this is a safty check, normally the factory should only notify relevant nodes
         if self.wrapper.node_id == node_id:
-            self.render_in_context()
+            self.render()
 
-    def render_in_context(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:            
+    def render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:            
         # Run UI updates in the proper context (same as wrapper changes)
         if self.container_slot and hasattr(self.container_slot, 'client'):
             with self.container_slot.client:
@@ -158,12 +167,6 @@ class UINode:
                     ui.notify(f"Error rendering node {self.haywire_node.node_id}", type='negative')
         else:
             return self._render(renderer_name, _is_error_render=_is_error_render)
-
-    def render_from_context(self) -> bool:
-        if self.wrapper.state.error:
-            return self._render(self._error_renderer_reg_key, _is_error_render=True)
-        else:
-            return self._render(None, _is_error_render=False)
 
     def _render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:
         """
@@ -241,22 +244,31 @@ class UINode:
             return self.current_ui_card.get_ui_element(element_id)
         return None
         
-    def destroy(self):
+    def delete(self):
+        """
+        Delete the UINode and clean up resources.
+        """
+        # Unregister from factory tracking
+        self.factory._unregister_node(self.wrapper.node_id)
+        # Clean up this session resources
+        self.cleanup()
+
+    def cleanup(self):
         """
         Clean up resources and remove UI elements.
         Enhanced to unsubscribe from wrapper and factory callbacks.
         """
-        self.factory.remove_factory_lifecycle_subscriber(self.wrapper.node_id)
-        print(f"🔌 Unsubscribed UINode {self.haywire_node.node_id} from factory callbacks")
+        logging.info(f"🔌 Cleaning up UINode {self.haywire_node.node_id} ..")
+        self.factory.remove_factory_lifecycle_subscriber(self.wrapper.node_id, self._listen_on_factory_lifecycle_event)
 
         # Unsubscribe from wrapper changes
         if self.wrapper:
             try:
                 self.wrapper.remove_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
-                print(f"🔌 Unsubscribed UINode {self.haywire_node.node_id} from wrapper callbacks")
             except Exception as e:
-                print(f"⚠️ Error unsubscribing from wrapper: {e}")
+                logging.info(f"⚠️ Error unsubscribing from wrapper: {e}")
             self.wrapper = None
+            self.haywire_node = None
         
         # Clean up widgets before clearing UI
         if self.current_ui_card:
@@ -274,6 +286,7 @@ class UINode:
         
         # Clear references
         self.current_ui_card = None
+        logging.info(f".. Done 🔌 Cleaning up UINode.")
     
     def is_rendered(self) -> bool:
         """Check if the node is currently rendered."""

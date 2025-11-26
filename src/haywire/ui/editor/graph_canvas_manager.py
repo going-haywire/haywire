@@ -532,9 +532,7 @@ class GraphCanvasManager:
                 
                 # Create UINode with wrapper reference for hot reload support
                 ui_node = UINode(container, wrapper, self.node_render_factory)
-                if not ui_node.render_from_context():
-                    print(f"⚠️ ERROR: Failed to render UINode for {node_id}")
-                    return False
+                ui_node.refresh()
                 
                 print(f"Rendered UINode for {node_id}")
                 
@@ -566,7 +564,7 @@ class GraphCanvasManager:
         # Remove node visual
         if node_id in self.node_panels:
             ui_node = self.node_panels[node_id]
-            ui_node.destroy()
+            ui_node.delete()
             del self.node_panels[node_id]
         
         # Remove from selection

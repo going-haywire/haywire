@@ -22,9 +22,11 @@ if TYPE_CHECKING:
 
 @dataclass
 class NodeWrapperState:
-    """Tracks the lifecycle state of a wrapped node"""
+    """Lifecycle state of wrapper and its node instance"""
+    is_instantiated: bool = False
+    """The node instance has been created"""
     is_valid: bool = True
-    needs_migration: bool = False
+    """The node instance is safe to use"""
     is_executing: bool = False
     last_hot_reload: float = 0.0
     history: List[LifeCycleEvent] = field(default_factory=list)
@@ -75,9 +77,11 @@ class NodeWrapper:
             initial_position: Optional[Tuple[float, float]] = None):
         """
         self.node_id = "unregistered"
+        """The node ID of the node instance. DO NOT CHANGE AFTER INITIALIZATION"""
         self.registry_key = registry_key
-        self.node_factory = node_factory
-        self.node_factory.add_event_subscriber(self.registry_key, self._listen_on_livecycle_event)
+        """The registry key of the node class. DO NOT CHANGE AFTER INITIALIZATION"""
+        self._node_factory = node_factory
+        self._node_factory.add_event_subscriber(self.registry_key, self._listen_on_livecycle_event)
         
         # Thread safety
         self._lock = threading.RLock()
@@ -91,16 +95,10 @@ class NodeWrapper:
 
         # Middleware support
         self._middleware: List[NodeMiddleware] = []
-        
-        # Resource management
-        self._allocated_resources: List[Any] = []
-        
+               
         # Store initial position for later initialization
         self._initial_position = position
         
-        # Flag to track if we've been initialized
-        self._initialized = False
-
         self.graph: Optional['BaseGraph' | None] = None
 
     def register(self, graph: 'BaseGraph') -> bool:
@@ -114,24 +112,23 @@ class NodeWrapper:
             bool: True if initialization succeeded, False if no node was created
         """
         with self._lock:
-            if self._initialized:
+            if self.state.is_instantiated:
                 return self.state.is_valid
             
             self.graph = graph
 
             self.node_id = graph.generate_unique_node_id()
 
-            _instance, _event = self.get_instance()
+            _instance, _event = self._create_node_instance()
 
             if _instance:
                 self._node_instance = _instance
                 self._node_instance.ui_state.posX = self._initial_position[0]
                 self._node_instance.ui_state.posY = self._initial_position[1]
                 self.state.is_valid = True
-                self.state.needs_migration = False
                 self.state.history.append(_event)
                 self.state.error = _event.error
-                self._initialized = True
+                self.state.is_instantiated = True
                 self.graph.add_node_wrapper(self)
                 self._notify_change(_event)
                 return True
@@ -142,30 +139,15 @@ class NodeWrapper:
         """Full cleanup when wrapper is being destroyed"""
         with self._lock:
             # Remove event subscription
-            self.node_factory.remove_event_subscriber(self.registry_key, self._listen_on_livecycle_event)
-            
-            # Clean up resources
-            for resource in self._allocated_resources:
-                try:
-                    if hasattr(resource, 'cleanup'):
-                        resource.cleanup()
-                    elif hasattr(resource, 'close'):
-                        resource.close()
-                except Exception as e:
-                    HaywireException.from_exception(
-                        exception=e,
-                        message=f"Failed to cleanup resource in {self.node_id}"
-                    ).log()
-            
-            self._allocated_resources.clear()
+            self._node_factory.remove_event_subscriber(self.registry_key, self._listen_on_livecycle_event)
+                        
             self._livecycle_subscribers.clear()
             self._middleware.clear()
-            self._node_instance = None
             self.state.is_valid = False
+            self.state.is_instantiated = False
             self.graph = None
+            self._node_factory = None
             self._node_instance = None
-            self._initialized = False
-            self.node_factory = None
 
     def _listen_on_livecycle_event(self, lc_event: LifeCycleEvent) -> None:
         """
@@ -175,7 +157,7 @@ class NodeWrapper:
             event: The live cycle event with complete context
         """
         # Only process if initialized
-        if self._initialized:
+        if self.state.is_instantiated:
             # Filter: Only care about events matching our registry key
             if not lc_event.matches_registry_key(self.registry_key):
                 logging.warning(
@@ -202,13 +184,12 @@ class NodeWrapper:
                         self._node_instance.ui_state.posX = position[0]
                         self._node_instance.ui_state.posY = position[1]
                         
+                        self.state.is_instantiated = True
                         self.state.is_valid = True
-                        self.state.needs_migration = True
                         self.state.last_hot_reload = time.time()
                         self.state.hot_reload_count += 1
                 
                 else:
-                    self.state.needs_migration = False
                     self.state.is_valid = False
 
                 self.state.error = event.error
@@ -217,18 +198,18 @@ class NodeWrapper:
                 self._notify_change(event)
 
 
-    def get_instance(self) -> tuple[BaseNode | None, LifeCycleEvent]:
+    def _create_node_instance(self) -> tuple[BaseNode | None, LifeCycleEvent]:
         """
-        Pure utility method to create a node instance.
+        Utility internal method to create a node instance.
         
-        This method only creates the node instance and tracks it for hot reload.
-        It does not add the node to any graph or interact with undo systems.
+        This method works a wrapper method for the _generate_node_instance method.
+        It is used during initial registration to create the node instance.
                     
         Returns:
             A tuple of (created node instance, lifecycle event)
         """
 
-        lc_event: LifeCycleEvent = self.node_factory.get_node_event(self.registry_key)
+        lc_event: LifeCycleEvent = self._node_factory.get_node_event(self.registry_key)
         
         return self._generate_node_instance(lc_event)
 
@@ -248,11 +229,10 @@ class NodeWrapper:
 
         node_instance: BaseNode | None = None
 
-
         # Create the node instance 
         try:
             if not lc_event.has_class_available():
-                node_cls = self.node_factory.get_error_node()
+                node_cls = self._node_factory.get_error_node()
 
             node_instance = node_cls(self.node_id, self)
         
@@ -268,7 +248,7 @@ class NodeWrapper:
                 class_name=node_cls.__name__,
                 library_identity=event.library_identity
             ).log()
-            node_cls = self.node_factory.get_error_node()
+            node_cls = self._node_factory.get_error_node()
             event = lc_event.create_derived_event(
                 error=error,
                 affected_class=node_cls,
@@ -310,16 +290,13 @@ class NodeWrapper:
             issues = []
             
             if not self.state.is_valid:
-                issues.append("Node instance is invalid")
-            
-            if self.state.needs_migration:
-                issues.append("Node needs hot reload migration")
-                
+                issues.append("Node instance is not safe to use")
+                            
             if self.state.error:
                 issues.append(f"Error state: {self.state.error}")
             
-            if not self._initialized:
-                issues.append("Wrapper not initialized")
+            if not self.state.is_instantiated:
+                issues.append("Wrapper node is not instantiated")
             
             # Additional validation can be added here
             # e.g., pin compatibility, data types, etc.
@@ -327,13 +304,13 @@ class NodeWrapper:
             return issues
     
     def add_livecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
-        """Add callback for wrapper state changes (hot reload events)"""
+        """Add subscriber for wrapper state changes (hot reload events)"""
         with self._lock:
             if callback not in self._livecycle_subscribers:
                 self._livecycle_subscribers.append(callback)
     
     def remove_livecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
-        """Remove change callback"""
+        """Remove subscriber for wrapper state changes (hot reload events)"""
         with self._lock:
             if callback in self._livecycle_subscribers:
                 self._livecycle_subscribers.remove(callback)
@@ -348,15 +325,10 @@ class NodeWrapper:
         with self._lock:
             if middleware in self._middleware:
                 self._middleware.remove(middleware)
-    
-    def register_resource(self, resource: Any) -> None:
-        """Register a resource for cleanup"""
-        with self._lock:
-            self._allocated_resources.append(resource)
-            
+                
     def _notify_change(self, event: LifeCycleEvent) -> None:
         """
-        Notify subscribers of wrapper state change.
+        Notifies all subscribers of wrapper state change.
         
         Args:
             event: The live cycle event to propagate to observers
@@ -364,6 +336,16 @@ class NodeWrapper:
         for callback in self._livecycle_subscribers[:]:  # Copy to avoid modification during iteration
             callback(event)
     
+    def recall_change(self, callback: LiveCycleBatchCallback) -> None:
+        """
+        Recall all past lifecycle events to a new subscriber.
+        
+        Args:
+            callback: The callback to notify of past events
+        """
+        with self._lock:
+            callback(self.state.history[-1])
+
     def _execute_with_middleware(self, method_name: str, *args) -> Any:
         """Execute a method with middleware hooks"""
         # Before hooks

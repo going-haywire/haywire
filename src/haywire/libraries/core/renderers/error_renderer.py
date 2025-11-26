@@ -14,8 +14,6 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.ui.renderer.decorator import renderer
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes.palette import ThemePalette
-from haywire.ui.ui_nodecard import UINodeCard
-from haywire.ui.errors.haywire_exception import render_error_details
 from haywire.ui.errors.error_info import error_render_detail, render_error_info
 
 

@@ -1,5 +1,11 @@
 
+import os
+import shutil
+import subprocess
+import platform
 from typing import NamedTuple, Tuple
+
+from nicegui import ui
 
 def generate_pin_uuid(pin_direction: str, node_id: str, pin_id: str) -> str:
     """
@@ -113,3 +119,69 @@ def parse_connection_uuid(connection_uuid: str) -> ConnectionComponents:
         inlet_node_id=parts[5],
         inlet_pin_id=parts[6]
     )
+
+
+def _open_file_in_editor(filepath: str, line_number: int = None):
+    """Open a file in the user's preferred editor with fallback options"""
+    if not os.path.exists(filepath):
+        ui.notify(f'File not found: {filepath}', type='negative')
+        return
+
+    system = platform.system()
+    success = False
+
+    # List of editors to try in order
+    editors_to_try = []
+
+    if system == 'Darwin':  # macOS
+        editors_to_try = [
+            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
+            (['open', '-a', 'Visual Studio Code', filepath], 'VS Code'),
+            (['open', '-a', 'PyCharm', filepath], 'PyCharm'),
+            (['open', '-a', 'Sublime Text', filepath], 'Sublime Text'),
+            (['open', '-t', filepath], 'TextEdit'),
+            (['open', filepath], 'Default app'),
+        ]
+    elif system == 'Windows':
+        editors_to_try = [
+            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
+            (['notepad++', f'-n{line_number or 1}', filepath], 'Notepad++'),
+            (['notepad', filepath], 'Notepad'),
+            (['start', '', filepath], 'Default app'),
+        ]
+    else:  # Linux
+        editors_to_try = [
+            (['code', '--goto', f'{filepath}:{line_number or 1}'], 'VS Code'),
+            (['gedit', f'+{line_number or 1}', filepath], 'gedit'),
+            (['kate', '-l', str(line_number or 1), filepath], 'Kate'),
+            (['xdg-open', filepath], 'Default app'),
+        ]
+
+    # Try each editor until one works
+    for cmd, editor_name in editors_to_try:
+        try:
+            # Check if the command exists (except for 'open' and 'start' which are built-in)
+            if cmd[0] not in ['open', 'start', 'xdg-open']:
+                if not shutil.which(cmd[0]):
+                    continue
+
+            # Try to run the command
+            if system == 'Windows' and cmd[0] == 'start':
+                subprocess.Popen(cmd, shell=True)
+            else:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            ui.notify(f'Opening in {editor_name}...', type='positive')
+            success = True
+            break
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+            continue
+
+    if not success:
+        # Last resort: show the file path and let user open manually
+        ui.notify(
+            f'Could not open file automatically. Path copied to clipboard: {filepath}',
+            type='warning',
+            position='top'
+        )
+        ui.run_javascript(f'navigator.clipboard.writeText({filepath!r})')
