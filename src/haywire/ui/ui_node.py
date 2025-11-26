@@ -66,8 +66,8 @@ class UINode:
         # Subscribe to factory renderer changes for hot reload support
         self.factory.add_factory_lifecycle_subscriber(self.wrapper.node_id, self._listen_on_factory_lifecycle_event)
     
-        self.error_renderer_reg_key: str = self.factory._renderer_registry.get_error_renderer_registry_key()
-        self.default_renderer_reg_key: str = self.factory._renderer_registry.get_default_renderer_registry_key()
+        self._error_renderer_reg_key: str = self.factory._renderer_registry.get_error_renderer_registry_key()
+        self._default_renderer_reg_key: str = self.factory._renderer_registry.get_default_renderer_registry_key()
 
     @property
     def position(self) -> Optional[tuple[int, int]]:
@@ -110,7 +110,7 @@ class UINode:
                 self.haywire_node = self.wrapper.node
             renderer_reg_key = self.haywire_node.ui_config.node_renderer
             if renderer_reg_key is None:
-                renderer_reg_key = self.default_renderer_reg_key
+                renderer_reg_key = self._default_renderer_reg_key
             print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with renderer '{renderer_reg_key}'")
             self.render_in_context(renderer_reg_key, _is_error_render=False)
             
@@ -118,9 +118,8 @@ class UINode:
             # Error occurred during initialization or migration
             if self.wrapper:
                 self.haywire_node = self.wrapper.node  # May now be an error node
-            print(f"⚠️ Node error: Re-rendering node {self.haywire_node.node_id} with error renderer '{self.error_renderer_reg_key}'")
-            self.render_in_context(self.error_renderer_reg_key, _is_error_render=True)
-            error_msg = event.error.message if event.error else "Unknown error"
+            print(f"⚠️ Node error: Re-rendering node {self.haywire_node.node_id} with error renderer '{self._error_renderer_reg_key}'")
+            self.render_in_context(self._error_renderer_reg_key, _is_error_render=True)
             
         elif event.event_type == LifeCycleEventType.CLASS_ADDED:
             # Node was successfully initialized
@@ -128,7 +127,7 @@ class UINode:
                 self.haywire_node = self.wrapper.node
             renderer_reg_key = self.haywire_node.ui_config.node_renderer
             if renderer_reg_key is None or renderer_reg_key == '':
-                renderer_reg_key = self.default_renderer_reg_key
+                renderer_reg_key = self._default_renderer_reg_key
             print(f"✅ Node ready: {self.haywire_node.node_id}")
             self.render_in_context(renderer_reg_key, _is_error_render=False)
         
@@ -153,14 +152,20 @@ class UINode:
         # Run UI updates in the proper context (same as wrapper changes)
         if self.container_slot and hasattr(self.container_slot, 'client'):
             with self.container_slot.client:
-                if self.render(renderer_name, _is_error_render=_is_error_render):
+                if self._render(renderer_name, _is_error_render=_is_error_render):
                     ui.notify(f"Node {self.haywire_node.node_id} hot-reloaded", type='positive')
                 else:
                     ui.notify(f"Error rendering node {self.haywire_node.node_id}", type='negative')
         else:
-            return self.render(renderer_name, _is_error_render=_is_error_render)
+            return self._render(renderer_name, _is_error_render=_is_error_render)
 
-    def render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:
+    def render_from_context(self) -> bool:
+        if self.wrapper.state.error:
+            return self._render(self._error_renderer_reg_key, _is_error_render=True)
+        else:
+            return self._render(None, _is_error_render=False)
+
+    def _render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:
         """
         Render the node using the specified renderer.
         

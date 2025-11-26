@@ -532,7 +532,7 @@ class GraphCanvasManager:
                 
                 # Create UINode with wrapper reference for hot reload support
                 ui_node = UINode(container, wrapper, self.node_render_factory)
-                if not ui_node.render():
+                if not ui_node.render_from_context():
                     print(f"⚠️ ERROR: Failed to render UINode for {node_id}")
                     return False
                 

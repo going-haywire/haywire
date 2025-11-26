@@ -232,7 +232,7 @@ class NodeWrapper:
         
         return self._generate_node_instance(lc_event)
 
-    def _generate_node_instance(self, lc_event: LifeCycleEvent, _recursive: bool = False) -> tuple[BaseNode | None, LifeCycleEvent]:
+    def _generate_node_instance(self, lc_event: LifeCycleEvent, _is_error: bool = False) -> tuple[BaseNode | None, LifeCycleEvent]:
         """
         Generate a node instance based on the lifecycle event.
 
@@ -275,13 +275,13 @@ class NodeWrapper:
                 event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED
                 )
             
-            if _recursive:
+            if _is_error:
                 # Prevent infinite recursion. If there is something wrong with the error node,
                 # we cannot recover from this.
                 return None, event
             
             # Create error node instance
-            return self._generate_node_instance(event, _recursive=True)
+            return self._generate_node_instance(event, _is_error=True)
 
         return node_instance, event
  
