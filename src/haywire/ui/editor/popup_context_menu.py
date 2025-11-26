@@ -12,7 +12,8 @@ Uses the enhanced Popup class that creates elements at page root level to avoid 
 from nicegui import ui, app, events
 from typing import Dict, List, Optional, Callable
 
-from haywire.ui.editor.editor import Editor
+from haywire.core.graph.editor import Editor
+
 from .popup import Popup
 from .event_definitions import  NodeCreateRequestEvent, UserRemoveEvent, UserCopySelectedEvent, UserPasteClipboardEvent
 from .node_menu_builder import NodeMenuBuilder

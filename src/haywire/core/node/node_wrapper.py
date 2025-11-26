@@ -195,7 +195,13 @@ class NodeWrapper:
                     _instance, event = self._generate_node_instance(lc_event)
 
                     if _instance is not None:
+                        # get current position
+                        position = (self._node_instance.ui_state.posX, self._node_instance.ui_state.posY)
                         self._node_instance = _instance
+                        # restore position
+                        self._node_instance.ui_state.posX = position[0]
+                        self._node_instance.ui_state.posY = position[1]
+                        
                         self.state.is_valid = True
                         self.state.needs_migration = True
                         self.state.last_hot_reload = time.time()

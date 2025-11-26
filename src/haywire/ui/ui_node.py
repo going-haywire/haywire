@@ -66,6 +66,9 @@ class UINode:
         # Subscribe to factory renderer changes for hot reload support
         self.factory.add_factory_lifecycle_subscriber(self.wrapper.node_id, self._listen_on_factory_lifecycle_event)
     
+        self.error_renderer_reg_key: str = self.factory._renderer_registry.get_error_renderer_registry_key()
+        self.default_renderer_reg_key: str = self.factory._renderer_registry.get_default_renderer_registry_key()
+
     @property
     def position(self) -> Optional[tuple[int, int]]:
         return self._position
@@ -101,48 +104,34 @@ class UINode:
         print(f"🔄 UINode {self.haywire_node.node_id}: Wrapper event - {event.event_type.value}")
         
         # Define the UI update function that needs to run in UI context
-        def update_ui():
-            try:
-                if event.event_type == LifeCycleEventType.CLASS_RELOADED:
-                    # Node class has been hot-reloaded (migration completed)
-                    if self.wrapper:
-                        self.haywire_node = self.wrapper.node
-                    print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id}")
-                    self.rerender()
-                    ui.notify(f"Node {self.haywire_node.node_id} hot-reloaded", type='positive')
-                    
-                elif event.is_warning_event():
-                    # Error occurred during initialization or migration
-                    if self.wrapper:
-                        self.haywire_node = self.wrapper.node  # May now be an error node
-                    print(f"⚠️ Node error: Re-rendering node {self.haywire_node.node_id} with error state")
-                    self.rerender()
-                    error_msg = event.error.message if event.error else "Unknown error"
-                    ui.notify(f"Error in node {self.haywire_node.node_id}: {error_msg}", type='warning')
-                    
-                elif event.event_type == LifeCycleEventType.CLASS_ADDED:
-                    # Node was successfully initialized
-                    if self.wrapper:
-                        self.haywire_node = self.wrapper.node
-                    print(f"✅ Node ready: {self.haywire_node.node_id}")
-                    # Re-render to ensure UI is in sync
-                    self.rerender()
-            except Exception as e:
-                print(f"❌ Error updating UI for node {self.haywire_node.node_id}: {e}")
+        if event.event_type == LifeCycleEventType.CLASS_RELOADED:
+            # Node class has been hot-reloaded (migration completed)
+            if self.wrapper:
+                self.haywire_node = self.wrapper.node
+            renderer_reg_key = self.haywire_node.ui_config.node_renderer
+            if renderer_reg_key is None:
+                renderer_reg_key = self.default_renderer_reg_key
+            print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with renderer '{renderer_reg_key}'")
+            self.render_in_context(renderer_reg_key, _is_error_render=False)
+            
+        elif event.is_warning_event():
+            # Error occurred during initialization or migration
+            if self.wrapper:
+                self.haywire_node = self.wrapper.node  # May now be an error node
+            print(f"⚠️ Node error: Re-rendering node {self.haywire_node.node_id} with error renderer '{self.error_renderer_reg_key}'")
+            self.render_in_context(self.error_renderer_reg_key, _is_error_render=True)
+            error_msg = event.error.message if event.error else "Unknown error"
+            
+        elif event.event_type == LifeCycleEventType.CLASS_ADDED:
+            # Node was successfully initialized
+            if self.wrapper:
+                self.haywire_node = self.wrapper.node
+            renderer_reg_key = self.haywire_node.ui_config.node_renderer
+            if renderer_reg_key is None or renderer_reg_key == '':
+                renderer_reg_key = self.default_renderer_reg_key
+            print(f"✅ Node ready: {self.haywire_node.node_id}")
+            self.render_in_context(renderer_reg_key, _is_error_render=False)
         
-        # Run UI updates in the proper context
-        # NiceGUI handles thread-safety internally when using context manager
-        try:
-            # Try to get the client context from the container
-            if self.container_slot and hasattr(self.container_slot, 'client'):
-                # Run in the client's context to ensure thread-safety
-                with self.container_slot.client:
-                    update_ui()
-            else:
-                # Fallback: just call directly (may work if we're already in UI thread)
-                update_ui()
-        except Exception as e:
-            print(f"❌ Error in wrapper change handler: {e}")
     
     def _listen_on_factory_lifecycle_event(self, node_id: str) -> None:
         """
@@ -152,38 +141,26 @@ class UINode:
         - a renderer class is reloaded, added, or removed.
         - a widget class is reloaded, added, or removed.
         We check if it's the renderer we're currently using and re-render if so.
-        
-        IMPORTANT: Like wrapper callbacks, this may be called from background threads.
-        
+                
         Args:
             node_id: The ID of the node whose renderer has changed
         """
         # this is a safty check, normally the factory should only notify relevant nodes
         if self.wrapper.node_id == node_id:
-       
-            # Re-render using the same thread-safe pattern as wrapper changes
-            def update_ui():
-                try:
-                    print(f"✨ Hot reload: Re-rendering node {self.haywire_node.node_id} with new renderer")
-                    self.rerender()
-                    ui.notify(f"Renderer for node {self.haywire_node.node_id} hot-reloaded", type='positive')
-                except Exception as e:
-                    print(f"❌ Error updating UI after renderer reload: {e}")
-            
-            # Run UI updates in the proper context (same as wrapper changes)
-            try:
-                if self.container_slot and hasattr(self.container_slot, 'client'):
-                    with self.container_slot.client:
-                        update_ui()
+            self.render_in_context()
+
+    def render_in_context(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:            
+        # Run UI updates in the proper context (same as wrapper changes)
+        if self.container_slot and hasattr(self.container_slot, 'client'):
+            with self.container_slot.client:
+                if self.render(renderer_name, _is_error_render=_is_error_render):
+                    ui.notify(f"Node {self.haywire_node.node_id} hot-reloaded", type='positive')
                 else:
-                    update_ui()
-            except Exception as e:
-                print(f"❌ Error in _listen_on_factory_lifecycle_event change handler: {e}")
-        
+                    ui.notify(f"Error rendering node {self.haywire_node.node_id}", type='negative')
         else:
-            print(f"❌ Error in _listen_on_factory_lifecycle_event: This should not happen: Factory event for node {node_id} ignored by UINode {self.haywire_node.node_id}")
-    
-    def render(self, renderer_name: str | None = None):
+            return self.render(renderer_name, _is_error_render=_is_error_render)
+
+    def render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:
         """
         Render the node using the specified renderer.
         
@@ -191,57 +168,46 @@ class UINode:
             renderer_name: Name of the renderer/renderer to use (None for default)
         """
         with self.container:
-            # Create or clear the container slot
-            if self.container_slot:
-                self.container_slot.clear()  # NiceGUI handles cleanup reliably
-            else:
-                self.container_slot = ui.column().classes('ui-node-slot').props(f'id="{self.ui_node_id}"')
-            
             try:
-                # Render into the container slot
-                with self.container_slot:
-                    if renderer_name is None:
-                        renderer_name = self.haywire_node.ui_config.node_renderer
-                    
-                    self.current_ui_card = self.factory.render(renderer_name, self.wrapper)
-
-                    return True  # Render successful
-
-            except Exception as e:
+                # Clean up old widgets before clearing UI
+                if self.current_ui_card:
+                    self.current_ui_card.cleanup()            # Create or clear the container slot
                 if self.container_slot:
                     self.container_slot.clear()  # NiceGUI handles cleanup reliably
                 else:
                     self.container_slot = ui.column().classes('ui-node-slot').props(f'id="{self.ui_node_id}"')
+                
+                # Render into the container slot
+                with self.container_slot:
+                    if renderer_name is None:
+                        renderer_name = self.haywire_node.ui_config.node_renderer
+
+                    if renderer_name is None:
+                        renderer_name = self.factory._renderer_registry.get_default_renderer_registry_key()
+
+                    self.current_ui_card = self.factory.render(renderer_name, self.wrapper, _is_error_render=_is_error_render)
+
+                    return True  # Render successful
+            except Exception as e:
+                # Clean up old widgets before clearing UI
+                if self.current_ui_card:
+                    self.current_ui_card.cleanup()            # Create or clear the container slot
+                if self.container_slot:
+                    self.container_slot.clear()  # NiceGUI handles cleanup reliably
+
+                self.container_slot = None
 
                 error = HaywireException.from_exception(
                     exception=e,
-                    message=f"Error rendering node: {e}",
-                    category="Rendering Error",
+                    message=f"FATAL Error rendering node: {e}",
+                    category="FATAL Rendering Error",
                     operation="UINode.render",
                 ).enrich(
                     registry_key=renderer_name
                 ).log()
-        
-        return False  # Render failed
-    
-    def rerender(self, renderer_name: str | None = None):
-        """
-        Re-render the node with reliable cleanup.
-        
-        Args:
-            renderer_name: Name of the renderer/renderer to use (None for default)
-        """
-        # Clean up old widgets before clearing UI
-        if self.current_ui_card:
-            self.current_ui_card.cleanup()
-        
-        # Reliable cleanup via container slot
-        if self.container_slot:
-            self.container_slot.clear()  # NiceGUI handles the cleanup
-        
-        # Re-render
-        self.render(renderer_name)
-    
+
+                return False    
+
     def get_widget_instance(self, element_id: str):
         """
         Get a widget instance by element ID.

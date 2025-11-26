@@ -70,7 +70,7 @@ class RenderFactory():
         self._nodeid_to_renderer_regkey: dict[str, str] = {}
     
     # this method is called by UINode to render the node
-    def render(self, renderer_registry_key: str | None, wrapper: NodeWrapper, _recursive: bool = False) -> UINodeCard | None:
+    def render(self, renderer_registry_key: str | None, wrapper: NodeWrapper, _is_error_render: bool = False) -> UINodeCard | None:
         """Render a node with the renderer with the renderer_registry_key.
 
         If no renderer_registry_key is provided, the default renderer set by
@@ -82,12 +82,10 @@ class RenderFactory():
             
         Returns:
             UINodeCard instance or None if rendering failed
-        """        
+        """                
         if renderer_registry_key is None:
-            renderer_registry_key = self._renderer_registry.get_default_renderer_registry_key()
-        
-        # if it is still none we set it to 'NO_RENDERER_DEFINED'
-        if renderer_registry_key is None:
+            # this can happen if :
+            # the node has no renderer assigned AND the registry has no default renderer available
             renderer_registry_key = NO_RENDERER_DEFINED  # Fallback if no default renderer is set"
 
         ui_nodeCard: UINodeCard | None = None
@@ -119,7 +117,7 @@ class RenderFactory():
             self._renderer_cache[renderer_registry_key] = renderer_instance
                 
         except Exception as error:
-            logging.error(f"Failed to render node '{wrapper.node.identity.label}  with node id '{wrapper.node_id}': {error}", exc_info=True)
+            logging.error(f"Failed to use renderer '{renderer_registry_key}' for node '{wrapper.node.identity.label}' with node id '{wrapper.node_id}'", exc_info=True)
             if not isinstance(error, HaywireException):
                 error = HaywireException.from_exception(
                     exception=error,
@@ -129,19 +127,16 @@ class RenderFactory():
                 ).enrich(
                     library_identity=renderer_instance.__class__.class_library if renderer_instance else None,
                     registry_key=renderer_registry_key
-                ).log()
+                )
             
 
             wrapper.state.error = error
             error_renderer_registry_key = self._renderer_registry.get_error_renderer_registry_key()
 
-            if _recursive:
+            if _is_error_render:
                 # Prevent infinite recursion. If there is something wrong with the error node,
                 # we cannot recover from this.
                 
-                # Fallback to error display if node rendering fails completely
-                logging.error(f"Failed to render node '{wrapper.node_id}' with error renderer '{error_renderer_registry_key}': {error}", exc_info=True)
-
                 error_render_detail(error)
 
                 return None
@@ -150,8 +145,12 @@ class RenderFactory():
             ui_nodeCard = self.render(
                     renderer_registry_key=error_renderer_registry_key, 
                     wrapper=wrapper, 
-                    _recursive=True
+                    _is_error_render=True
                 )
+            
+            # if we reach this point, we just returned from an error render that was executed 
+            # because of a render error in the intended/default renderer. ui_nodeCard can be None
+            # if the error renderer also failed, but in is hasn't - we have widgets to track..
         
         if ui_nodeCard:
             # Map renderer registry key to node ID for hot reload tracking
@@ -164,10 +163,13 @@ class RenderFactory():
                 if wrapper.node_id in self._renderer_regkey_to_node_id.get(previous_regkey, set()):
                     self._renderer_regkey_to_node_id[previous_regkey].remove(wrapper.node_id)
             
-            # one to many mapping
-            self._renderer_regkey_to_node_id.setdefault(renderer_registry_key, set()).add(wrapper.node_id)
-            # one to one mapping
-            self._nodeid_to_renderer_regkey[wrapper.node_id] = renderer_registry_key
+            if _is_error_render == False:
+                # this makes sure we only track the intended renderer, not the error renderer
+
+                # one to many mapping
+                self._renderer_regkey_to_node_id.setdefault(renderer_registry_key, set()).add(wrapper.node_id)
+                # one to one mapping
+                self._nodeid_to_renderer_regkey[wrapper.node_id] = renderer_registry_key
 
         return ui_nodeCard
 

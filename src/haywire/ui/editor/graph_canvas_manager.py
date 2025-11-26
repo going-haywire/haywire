@@ -12,17 +12,17 @@ from nicegui import ui, events
 from dataclasses import dataclass
 
 from haywire.core.graph.base import BaseGraph, Edge, EdgeType
+from haywire.core.graph.editor import Editor
 from haywire.core.node.base import BaseNode
-from haywire.ui.utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
-from haywire.ui.ui_node import UINode
-from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 from haywire.core.undo.actions.graph_actions import ClipboardData, PasteClipboardAction
 
+from ..utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
+from ..ui_node import UINode
+from ..pan_zoom.zoom_pan_vue import ZoomPanContainer
 from .graph_canvas_vue import GraphCanvasVue
 from .popup_context_menu import PopupContextMenu
 from .event_definitions import *
 from .event_handlers import handles_event
-from .editor import Editor
 
 
 class GraphCanvasManager:

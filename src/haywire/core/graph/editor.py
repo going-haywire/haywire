@@ -19,7 +19,6 @@ from haywire.core.node.factory import NodeFactory
 from haywire.core.undo.interfaces import IHistoryManager
 from haywire.core.undo.actions.graph_actions import *
 
-
 class Editor:
     """
     High-level editor interface with simple callback-based change notifications.
@@ -301,7 +300,7 @@ class Editor:
             selected_connections = selected_connections or set()
             
             # Convert connection tuples to connection UUIDs
-            from ..utils import generate_connection_uuid
+            from ...ui.utils import generate_connection_uuid
             selected_connection_uuids = set()
             for output_node, outlet_pin, input_node, inlet_pin in selected_connections:
                 connection_uuid = generate_connection_uuid(output_node, outlet_pin, input_node, inlet_pin)

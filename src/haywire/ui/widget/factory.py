@@ -79,7 +79,7 @@ class WidgetFactory(IWidgetFactory):
         except Exception as error:
             library_identity = lc_event.library_identity if lc_event is not None else None
             module_name = lc_event.module_name if lc_event is not None else None
-            logging.error(f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' in node '{node_id}': {error}", exc_info=True)
+            #logging.error(f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' in node '{node_id}': {error}", exc_info=True)
             if not isinstance(error, HaywireException):
                 error = HaywireException.from_exception(
                     exception=error,
