@@ -78,7 +78,7 @@ class WidgetRegistry(BaseRegistry):
 
         if lifecycle_event is None or lifecycle_event.is_successful_event() is False:
             error = HaywireException.create(
-                message=f"Widget '{key}' not found, using error widget",
+                message=f"Widget '{key}' not found",
                 severity=ErrorSeverity.ERROR,
                 category="Widget Not Found",
                 operation="widget_lookup",

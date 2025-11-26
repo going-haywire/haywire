@@ -83,15 +83,7 @@ def error_render_detail(error: HaywireException) -> ui.element:
         with ui.card().classes('w-full bg-red-50 border-l-4 border-red-500 shadow-sm'):
             with ui.row().classes('items-start gap-3 w-full'):
                 # Icon
-                ui.icon(error.get_severity_icon(), color=error.get_severity_color()).classes('text-2xl')
-                
-                # Error message and button
-                with ui.column().classes('flex-grow gap-1'):
-                    ui.label(f"{error.category}").classes('text-red-700 font-bold text-sm')
-                    ui.label(error.message).classes('text-gray-800 text-sm')
-                    
-                    with ui.row().classes('gap-2 mt-2'):
-                        detail_button = ui.button('Show Details', icon='expand_more').classes('bg-red-600 text-white')
+                detail_button = ui.button(icon='bug_report').classes('w-full bg-red-600 text-white')
         
         # Connect button to show details
         detail_button.on_click(show_details)

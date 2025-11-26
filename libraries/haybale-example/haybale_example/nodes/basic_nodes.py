@@ -12,7 +12,7 @@ from ..types.mesh_data import MeshData
 from ..types.specs import Temperature
 
 @node(
-    label='Test Node Four',
+    label='Test Node One',
     search_tags=['constant', 'value', 'output', 'basic'],
     menu='core/basic'
 )
