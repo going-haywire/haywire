@@ -36,3 +36,11 @@ Notable open source projects that realize something similar but with different u
    ```sh
    uv sync --dev
    ```
+
+### Development
+
+Using Visual Studio Code as the developement IDE, Haywire allows to jump directly to the source and correct line number, if VS Code is added to your PATH:
+
+* macOS: Open VS Code → Cmd+Shift+P → Type "Shell Command: Install 'code' command in PATH"
+* Windows: During installation, check "Add to PATH" or reinstall
+* Linux: Usually automatic, or sudo ln -s /usr/share/code/bin/code /usr/local/bin/code
