@@ -65,8 +65,6 @@ class UINode:
         
         # Subscribe to factory renderer changes for hot reload support
         self.factory.add_factory_lifecycle_subscriber(self.wrapper.node_id, self._listen_on_factory_lifecycle_event)
-    
-        self._default_renderer_reg_key: str = self.factory._renderer_registry.get_default_renderer_registry_key()
 
         self.container.client.on_disconnect(lambda: self.cleanup())
 
