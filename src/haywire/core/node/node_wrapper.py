@@ -211,15 +211,13 @@ class NodeWrapper:
                                     "Re-add the node class to the registry",
                                 ],
                             )
-                        event = lc_event.clone()
-                        event.error = error
+                        lc_event = lc_event.clone()
+                        lc_event.error = error
 
-                    self.state.error = event.error
-                    self.state.history.append(event)                      
+                    self.state.error = lc_event.error
+                    self.state.history.append(lc_event)                      
                     # Forward the event to UI components
-                    self._notify_change(event)
-
-
+                    self._notify_change(lc_event)
 
     def _create_node_instance(self) -> tuple[BaseNode | None, LifeCycleEvent]:
         """

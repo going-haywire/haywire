@@ -125,12 +125,12 @@ class UINode:
         # Define the UI update function that needs to run in UI context
         elif event.event_type == LifeCycleEventType.CLASS_RELOADED:
             # Node class has been hot-reloaded (migration completed)
-            logging.debug(f"✨ Hot reload: Re-rendering node {self.wrapper.node_id} with renderer '{renderer_reg_key}'")
+            logging.debug(f"✨ Hot reload: Re-rendering node {self.wrapper.node_id}")
             self.render()
             
         elif event.is_warning_event():
             # Error occurred during initialization or migration
-            _error_renderer_reg_key: str = self.factory._renderer_registry.get_error_renderer_registry_key()
+            _error_renderer_reg_key: str | None = self.factory._renderer_registry.get_error_renderer_registry_key()
             logging.debug(f"⚠️ Node error: Re-rendering node {self.wrapper.node_id} with error renderer '{_error_renderer_reg_key}'")
             self.render(_error_renderer_reg_key, _is_error_render=True)
                     
