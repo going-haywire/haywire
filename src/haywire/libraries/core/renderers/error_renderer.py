@@ -78,20 +78,14 @@ class ErrorNodeRenderer(NodeRenderer):
 
         with main_card:
             # Error header
-            if node and node.error_info:
-                render_error_info(node.error_info)
-            else:
-                with ui.column().classes('items-left'):
-                    with ui.row():
-                        ui.icon('error', color='red').classes('text-lg')
-                        ui.label("Error Node").classes('text-h6 flex-1')
-                
-                    ui.label('This node could not be rendered with the requested renderer.').classes('text-sm text-red-600 mb-2')
+            with ui.column().classes('items-left'):
+                with ui.row():
+                    ui.label(node.identity.label).classes('text-h6')
             
-            if wrapper.state.error:
-                error = wrapper.state.error
-                
-                error_render_detail(error)
+                if wrapper.state.error:
+                    error = wrapper.state.error
+                    ui.label(error.message).classes('text-sm text-red-600 mb-2')
+                    error_render_detail(error)
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
