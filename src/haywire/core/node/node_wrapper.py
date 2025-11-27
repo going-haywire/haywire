@@ -170,8 +170,6 @@ class NodeWrapper:
                     f"NodeWrapper {self.node_id}: Detected live cycle event - {lc_event.event_type.value}"
                 )
                 
-                event = lc_event
-
                 if lc_event.is_successful_event():
                     # Successful reload - mark for migration
                     _instance, event = self._generate_node_instance(lc_event)
@@ -188,14 +186,39 @@ class NodeWrapper:
                         self.state.is_valid = True
                         self.state.last_hot_reload = time.time()
                         self.state.hot_reload_count += 1
+                    else:
+                        self.state.is_valid = False
+
+                    self.state.error = event.error
+                    self.state.history.append(event)                      
+                    # Forward the event to UI components
+                    self._notify_change(event)
                 
                 else:
                     self.state.is_valid = False
+                    if lc_event.is_removal():
+                        # The registry doesn't flag this as an error, but we cannot use the node anymore
+                        # thereforee generate our own error state and enhance the event
+                        error = HaywireException(
+                            operation="Node Removed",
+                            message=f"Node '{self.registry_key}' has been removed from the registry and can no longer be used.",
+                        ).enrich(
+                            node_id=self.node_id,
+                            registry_key=self.registry_key,
+                            module_name=lc_event.module_name,
+                            library_identity=lc_event.library_identity,                            
+                            suggestions=[
+                                    "Re-add the node class to the registry",
+                                ],
+                            )
+                        event = lc_event.clone()
+                        event.error = error
 
-                self.state.error = event.error
-                self.state.history.append(event)                      
-                # Forward the event to UI components
-                self._notify_change(event)
+                    self.state.error = event.error
+                    self.state.history.append(event)                      
+                    # Forward the event to UI components
+                    self._notify_change(event)
+
 
 
     def _create_node_instance(self) -> tuple[BaseNode | None, LifeCycleEvent]:

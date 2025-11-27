@@ -171,7 +171,20 @@ class LifeCycleEvent:
         }
         data.update(overrides)
         return LifeCycleEvent(**data)
-    
+
+    def clone(self) -> 'LifeCycleEvent':
+        """
+        Create a deep copy of this LifeCycleEvent instance.
+        """
+        return LifeCycleEvent(
+            registry_key=self.registry_key,
+            event_type=self.event_type,
+            affected_class=self.affected_class,
+            library_identity=self.library_identity,
+            error=self.error,
+            module_name=self.module_name
+        )
+        
     def __str__(self) -> str:
         """Human-readable representation"""
         status = self.event_type.value

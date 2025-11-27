@@ -587,8 +587,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         event_type=LifeCycleEventType.CLASS_REMOVED,
                         affected_class=removed_cls,
                         library_identity=library_identity,
-                        module_name=module_name,
-                        class_name=removed_cls.__name__
+                        module_name=module_name
                     )
                     self._queue_lifecycle_event(event)
         
