@@ -8,12 +8,11 @@ from haywire.core.node.base import BaseNode
 from haywire.core.data.enums import ContainerType, FlowType
 from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, INT, STRING
 
-
 from ..types.mesh_data import MeshData
 from ..types.specs import Temperature
 
 @node(
-    label='Test Node One',
+    label='Test Node Four',
     search_tags=['constant', 'value', 'output', 'basic'],
     menu='core/basic'
 )
@@ -59,7 +58,15 @@ class TestNodeOne(BaseNode):
                 ui={'properties': {'text': 'Enable Feature'}},
                 default=True
             ))
-        
+
+        self.add(BOOL.as_inlet(
+                id='bool_switch',
+                label='Boolean Switch',
+                widget='core:widget:switch.widget',
+                ui={'properties': {'text': 'Enable Feature'}},
+                default=True
+            ))
+
         self.add(STRING.as_inlet(
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',

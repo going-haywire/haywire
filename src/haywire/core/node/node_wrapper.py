@@ -281,6 +281,10 @@ class NodeWrapper:
                 # we cannot recover from this.
                 return None, event
             
+            if self.state.is_instantiated:
+                # If we already had an instance, we dont need to proceed further
+                return None, event
+            
             # Create error node instance
             return self._generate_node_instance(event, _is_error=True)
 
