@@ -9,13 +9,14 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 """
 
 import logging
-from typing import Optional, TYPE_CHECKING, List
+from typing import Any, Callable, Optional, TYPE_CHECKING, List
 from nicegui import ui
 from haywire.core.node.base import BaseNode
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
+from haywire.ui.editor.event_definitions import SyncNodePositionEvent
 from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.renderer.factory import RenderFactory
 
@@ -68,6 +69,8 @@ class UINode:
 
         self.container.client.on_disconnect(lambda: self.cleanup())
 
+        self.sync_event_emitter: Optional[Callable[[Any], None]] = None
+
     @property
     def position(self) -> Optional[tuple[int, int]]:
         return self._position
@@ -84,6 +87,15 @@ class UINode:
             position: (x, y) tuple for node position
         """
         self.position = position
+
+    def _register_sync_event_emitter(self, emitter: Callable[[Any], None]):
+        """
+        Register a synchronization event emitter for UI updates.
+        
+        Args:
+            emitter: Callable that emits sync events
+        """
+        self.sync_event_emitter = emitter
 
     def refresh(self) -> bool:
         """
@@ -180,6 +192,8 @@ class UINode:
 
                     self.current_ui_card = self.factory.render(renderer_name, self.wrapper, _is_error_render=_is_error_render)
 
+                    self._emit_sync_event()
+                    
                     return True  # Render successful
             except Exception as e:
                 # Clean up old widgets before clearing UI
@@ -200,6 +214,21 @@ class UINode:
                 ).log()
 
                 return False    
+
+    def _emit_sync_event(self):
+        """
+        Emit a synchronization event for UI updates if emitter is registered.
+        This updateds the vue component position to match the HaywireNode position
+        but most importantly updates all the connection lines.
+        """
+        logging.debug(f"UINode {self.wrapper.node_id}: Emitting sync event for position update.")
+        if self.sync_event_emitter:
+            node = self.wrapper.node
+            sync_event = SyncNodePositionEvent(
+                nodeId=node.node_id,
+                position={'x': node.ui_state.posX, 'y': node.ui_state.posY}
+            )
+            self.sync_event_emitter(sync_event)
 
     def get_widget_instance(self, element_id: str):
         """

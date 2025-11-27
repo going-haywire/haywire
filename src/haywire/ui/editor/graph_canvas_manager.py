@@ -533,6 +533,9 @@ class GraphCanvasManager:
                 # Create UINode with wrapper reference for hot reload support
                 ui_node = UINode(container, wrapper, self.node_render_factory)
                 ui_node.refresh()
+                # Register sync event emitter for hot reload updates after 
+                # the refresh() call. we need to wait until the UI is rendered.
+                ui_node._register_sync_event_emitter(self.canvas_vue.emit_sync_event)
                 
                 print(f"Rendered UINode for {node_id}")
                 
