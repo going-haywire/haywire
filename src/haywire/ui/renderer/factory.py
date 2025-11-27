@@ -59,7 +59,7 @@ class RenderFactory():
         self._renderer_cache: Dict[str, BaseRenderer] = {}
         
         # Customer callbacks for factory hot reload notifications
-        # mapping from node_id key to callback function
+        # mapping from node_id key to callback functions of each individual UINode
         self._nodeid_to_factory_subscriber: dict[str, set[FactoryEventCallback]] = {}
 
         # Mapping from renderer registry key to the wrapper node id that uses that renderer
