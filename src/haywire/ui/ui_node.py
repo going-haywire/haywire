@@ -112,16 +112,18 @@ class UINode:
         - CLASS_RELOAD_FAILED: Hot reload failed (initialization or migration errors)
         - CLASS_ADDED: Initial node creation
         
-        IMPORTANT: This may be called from background threads (file watcher).
-        We use ui.context.client to ensure UI updates run in the correct context.
-        
         Args:
             event: The hot reload event with complete context
         """
         logging.debug(f"🔄 UINode {self.wrapper.node_id}: Wrapper event - {event.event_type.value}")
-        
+
+        if event.event_type == LifeCycleEventType.CLASS_ADDED:
+            # Node was successfully initialized
+            logging.debug(f"✅ Node ready: {self.wrapper.node_id}")
+            self.render()
+
         # Define the UI update function that needs to run in UI context
-        if event.event_type == LifeCycleEventType.CLASS_RELOADED:
+        elif event.event_type == LifeCycleEventType.CLASS_RELOADED:
             # Node class has been hot-reloaded (migration completed)
             logging.debug(f"✨ Hot reload: Re-rendering node {self.wrapper.node_id} with renderer '{renderer_reg_key}'")
             self.render()
@@ -131,13 +133,7 @@ class UINode:
             _error_renderer_reg_key: str = self.factory._renderer_registry.get_error_renderer_registry_key()
             logging.debug(f"⚠️ Node error: Re-rendering node {self.wrapper.node_id} with error renderer '{_error_renderer_reg_key}'")
             self.render(_error_renderer_reg_key, _is_error_render=True)
-            
-        elif event.event_type == LifeCycleEventType.CLASS_ADDED:
-            # Node was successfully initialized
-            logging.debug(f"✅ Node ready: {self.wrapper.node_id}")
-            self.render()
-        
-    
+                    
     def _listen_on_factory_lifecycle_event(self, node_id: str) -> None:
         """
         Handle renderer hot reload notifications from NodeRenderFactory.
@@ -154,8 +150,9 @@ class UINode:
         if self.wrapper.node_id == node_id:
             self.render()
 
-    def render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:            
-        # Run UI updates in the proper context (same as wrapper changes)
+    def render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:                    
+        #IMPORTANT: This may be called from background threads (file watcher).
+        # We use ui.context.client to ensure UI updates run in the correct context.
         if self.container_slot and hasattr(self.container_slot, 'client'):
             with self.container_slot.client:
                 if self._render(renderer_name, _is_error_render=_is_error_render):
@@ -163,7 +160,7 @@ class UINode:
                 else:
                     ui.notify(f"Error rendering node {self.wrapper.node_id}", type='negative')
         else:
-            return self._render(renderer_name, _is_error_render=_is_error_render)
+            self._render(renderer_name, _is_error_render=_is_error_render)
 
     def _render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:
         """
