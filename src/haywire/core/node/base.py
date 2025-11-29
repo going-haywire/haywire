@@ -2,7 +2,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, TypeVar, Optional, Union
 from abc import abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 
 from ..data.enums import FlowType
 from ..data.specs import DataPortSpec
@@ -11,6 +11,15 @@ from ..library.utils import derive_library_identity, reg_key
 from ..library.identity import LibraryIdentity
 from ..types.ports import DataPort, PortInlet, PortOutlet
 from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
+
+from .dataclasses import (
+    NodeBehavior, 
+    NodeErrorInfo, 
+    NodeUIConfig, 
+    NodeUIState, 
+    NodeUserMetadata
+)
+from haywire.core.types.ports import DataPort, PortInlet, PortOutlet
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -112,77 +121,206 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
     return decorator if cls is None else decorator(cls)
 
 
-# ============================================================================
-# Node Metaclass
-# ============================================================================
 
-class NodeMeta(type):    
+class NodeMeta(type):
+    """Metaclass for nodes"""
     def __new__(cls, name, bases, attrs):
         new_class = super().__new__(cls, name, bases, attrs)
-        
         return new_class
 
-@abstractmethod
-class NodeData():
-    """Main data structure for a Haywire node"""
+class NodeData:
+    """Node data management with port collections"""
+    
     def __init__(self):
-        """Initialize all pins from class definitions"""
-        self.configs = {}
-        self.properties = {}
+        """Initialize port collections"""
+        self.configs: Dict[str, DataPort] = {}
+        self.properties: Dict[str, DataPort] = {}
         self.inlets: Dict[str, PortInlet] = {}
         self.outlets: Dict[str, PortOutlet] = {}
         self._cache_dirty = True
-
+    
     def add(self, port: DataPort) -> DataPort:
-        """Add an Port Element (inlet or outlet) to the node."""
+        """
+        Add a port (inlet or outlet) to the node.
+        
+        Args:
+            port: DataPort to add (PortInlet or PortOutlet)
+        
+        Returns:
+            The added port
+        
+        Raises:
+            ValueError: If port ID already exists
+        """
         if port.is_inlet():
             inlet = port  # type: PortInlet
             if inlet.id in self.inlets:
-                raise ValueError(f"Inlet ID already exists: {inlet.id}. Cannot add duplicate.")
+                raise ValueError(f"Inlet ID already exists: {inlet.id}")
             self.inlets[inlet.id] = inlet
-            self._cache_dirty = True     
-            return inlet   
+            self._cache_dirty = True
+            return inlet
         else:
             outlet = port  # type: PortOutlet
             if outlet.id in self.outlets:
-                raise ValueError(f"Outlet ID already exists: {outlet.id}. Cannot add duplicate.")
+                raise ValueError(f"Outlet ID already exists: {outlet.id}")
             self.outlets[outlet.id] = outlet
-            self._cache_dirty = True     
+            self._cache_dirty = True
             return outlet
-   
+    
+    def inlet(self, id: str) -> Any:
+        """
+        Get the unwrapped value of an inlet for worker access.
         
-@abstractmethod
+        This is the primary method workers use to read inlet values.
+        It automatically unwraps based on the field type:
+        - PrimitiveField: Returns unwrapped primitive (42.0, "hello")
+        - ComplexField: Returns BaseType instance (MeshData(...))
+        - PooledField: Returns Dict[str, T]
+        - ArrayField: Returns List[T]
+        
+        Args:
+            id: The ID of the inlet
+        
+        Returns:
+            Unwrapped value appropriate for the field type
+        
+        Examples:
+            # Primitive inlet
+            value = self.inlet('float_input')  # Returns: 42.0
+            
+            # Complex inlet
+            mesh = self.inlet('mesh_input')  # Returns: MeshData(...)
+            
+            # Pooled inlet
+            temps = self.inlet('temperature_pool')  # Returns: {"node1": 20.0, "node2": 25.0}
+            
+            # Array inlet
+            numbers = self.inlet('number_array')  # Returns: [1.0, 2.0, 3.0]
+        """
+        inlet = self.inlets.get(id)
+        if not inlet:
+            raise KeyError(f"Inlet '{id}' not found")
+        
+        return inlet.get_value()
+    
+    def outlet_value(self, id: str) -> Any:
+        """
+        Get the unwrapped value of an outlet.
+        
+        Useful for debugging or when a node needs to read its own output.
+        
+        Args:
+            id: The ID of the outlet
+        
+        Returns:
+            Unwrapped value
+        """
+        outlet = self.outlets.get(id)
+        if not outlet:
+            raise KeyError(f"Outlet '{id}' not found")
+        
+        return outlet.get_value()
+    
+    def set_outlet(self, id: str, value: Any) -> None:
+        """
+        Set the value of an outlet from worker.
+        
+        This is the primary method workers use to write output values.
+        Accepts unwrapped values and handles wrapping automatically.
+        
+        Args:
+            id: The ID of the outlet
+            value: Value to set (can be wrapped or unwrapped)
+        
+        Examples:
+            # Primitive outlet
+            self.set_outlet('result', 42.0)  # Stores: FLOAT(42.0)
+            
+            # Complex outlet
+            self.set_outlet('mesh_out', MeshData(...))  # Stores: MeshData(...)
+            
+            # Array outlet
+            self.set_outlet('sorted', [1.0, 2.0, 3.0])  # Stores: [1.0, 2.0, 3.0]
+        """
+        outlet = self.outlets.get(id)
+        if not outlet:
+            raise KeyError(f"Outlet '{id}' not found")
+        
+        outlet.set_value(value)
+
+
 class BaseNode(NodeData, metaclass=NodeMeta):
-    """Base class combining HaywireNode requirements with NodeData"""
+    """
+    Base class for all Haywire nodes.
+    
+    Combines NodeData (port management) with node lifecycle and execution.
+    Subclasses must implement the worker() method for execution logic.
+    """
     
     def __init__(self, node_id: str, wrapper: 'NodeWrapper'):
+        """
+        Initialize node.
+        
+        Args:
+            node_id: Unique identifier for this node instance
+            wrapper: NodeWrapper managing this node
+        """
         super().__init__()
         self.node_id = node_id
         self.wrapper = wrapper
         self.error_info: NodeErrorInfo | None = None
-                    
+        
         self.behavior = NodeBehavior()
         self.ui_config = NodeUIConfig()
         self.ui_state = NodeUIState()
         self.metadata = NodeUserMetadata()
-
+    
     @property
     def identity(self) -> NodeIdentity:
+        """Get node identity from class"""
         return self.__class__.class_identity
-
+    
     @property
     def library(self) -> LibraryIdentity:
+        """Get library identity from class"""
         return self.__class__.class_library
-
+    
     @abstractmethod
     def worker(self, context: dict) -> dict | None:
-        """The main execution logic of the node. Override in subclasses."""
-        pass
-           
-    def to_dict(self) -> dict:
-        """Serialize node to dictionary"""
-        from dataclasses import asdict
+        """
+        The main execution logic of the node.
         
+        Override this method in subclasses to implement node behavior.
+        
+        Args:
+            context: Execution context dictionary
+        
+        Returns:
+            Optional dict with execution results
+        
+        Example:
+            def worker(self, context: dict) -> dict | None:
+                # Read inlet values
+                a = self.inlet('input_a')  # Unwrapped value
+                b = self.inlet('input_b')
+                
+                # Compute result
+                result = a + b
+                
+                # Set outlet
+                self.set_outlet('result', result)
+                
+                return None
+        """
+        pass
+    
+    def to_dict(self) -> dict:
+        """
+        Serialize node to dictionary.
+        
+        Returns:
+            Dict representation of the node
+        """
         return {
             'node_id': self.node_id,
             'registry_key': self.identity.registry_key,
@@ -195,4 +333,3 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             'inlets': {k: v.to_dict() for k, v in self.inlets.items()},
             'outlets': {k: v.to_dict() for k, v in self.outlets.items()}
         }
-

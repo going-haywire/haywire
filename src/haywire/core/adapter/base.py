@@ -59,8 +59,8 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         @adapter(
             registry_id="str_to_int_adapter",
             description="Converts string representations to integers with validation",
-            converts_from=str,
-            converts_to=int,
+            converts_from=STRING,
+            converts_to=INT,
             priority=5
         )
         class StringToIntAdapter(BaseAdapter): ...
@@ -69,10 +69,10 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         from mylib.types.mesh_data import MeshData
         
         @adapter(
-            converts_from=dict,
+            converts_from=DICT,
             converts_to=MeshData,
             priority=10,
-            description="Convert dict to MeshData"
+            description="Convert DICT to MeshData"
         )
         class DictToMeshAdapter(BaseAdapter): ...
     """
@@ -99,7 +99,7 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     return decorator if cls is None else decorator(cls)
 
 # ============================================================================
-#    Decorator
+#    Base Adapter Class
 # ============================================================================
 
 class BaseAdapter(ABC):

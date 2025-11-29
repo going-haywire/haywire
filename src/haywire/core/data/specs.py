@@ -2,8 +2,6 @@ from __future__ import annotations
 from typing import Any, Optional, Type
 from dataclasses import dataclass, field, replace
 
-from .enums import ContainerType
-
 @dataclass
 class DataPortSpec:
     """Defines the specification for a data field.
@@ -26,7 +24,6 @@ class DataPortSpec:
     id: str
     cls_type: Type | None
     key: str = ''
-    container_type: ContainerType = ContainerType.SINGLE
     label: str = ''
     description: str = ''
     color: str = '#757575'  # Default gray

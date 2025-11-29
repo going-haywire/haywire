@@ -1,112 +1,198 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Set, Type
-from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
-from haywire.core.library.identity import LibraryIdentity
-from haywire.core.types.interface import IType
-from haywire.core.data.fields import DataField
 from haywire.core.types.ports import DataPort
-from haywire.core.registry.identity import BaseIdentity
-
-@dataclass
-class WidgetIdentity(BaseIdentity):
-    """Core identifying attributes of a widget"""
-    compatible_types: Set[Type[IType]] = field(default_factory=set)
+from haywire.ui.widget.binding import PropertyBinding
+from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
+from haywire.ui.widget.interface import IWidget
 
 # ============================================================================
 #    BASE WIDGET CLASS
 # ============================================================================
 
-class BaseWidget(ABC):
-    """Abstract base class for all widgets
-    
-    Args:
-        element (DataPort): The data port this widget is associated with.
+class BaseWidget(IWidget, ABC):
     """
-
-    class_identity: WidgetIdentity
-    class_library: LibraryIdentity
-
+    Base class for sophisticated widgets with declarative binding support.
+    
+    Features:
+    - Multiple bindings per widget
+    - Custom converters and validators
+    - Multiple UI elements with targeted bindings
+    - Debouncing, validation, error handling
+    
+    Widgets override configure_bindings() to setup data flow declaratively,
+    eliminating boilerplate for common patterns.
+    """
+    
     def __init__(self, element: DataPort):
-        self.element: DataPort = element
+        """
+        Initialize widget.
+        
+        Args:
+            element: DataPort containing the data to bind to
+        """
+        self.element = element
         self.element_id: str = element.id
-        self.data_field: DataField = element.data
         self.ui_properties: Dict[str, Any] = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}
-        self.ui_element = None
-
-        # Add change handler for the data field
-        self.data_field.on_changed += self._call_on_model_changed
-
-    def _call_on_model_changed(self, new_value: Any):
-        """Handle data field changes by updating the UI"""
-        if self.ui_element is not None and new_value is not None:
-            self.on_value_change(new_value)
-
+        
+        # UI element (created during render)
+        self.ui_element: Optional[Any] = None
+        
+        # Binding management
+        self._bindings: Dict[str, List[PropertyBinding]] = {}
+        
+        # Sub-element references (for complex widgets)
+        self._ui_element_refs: Dict[str, Any] = {}
+    
     @abstractmethod
-    def on_value_change(self, value: Any):
-        """Update the UI element with a new value"""
+    def configure_bindings(self) -> None:
+        """
+        Configure bindings for this widget.
+        
+        Override this method to setup declarative bindings.
+        Called after create_element(), before render completes.
+        
+        Example:
+            def configure_bindings(self):
+                # Simple binding with default converter
+                self.add_binding(self.create_default_binding())
+                
+                # Custom binding with formatting
+                self.add_binding(PropertyBinding(
+                    source_property="value",
+                    converter=FormattingConverter("{:.2f}"),
+                    mode=BindingMode.ONE_WAY
+                ))
+        """
         pass
-
+    
     @abstractmethod
     def create_element(self) -> Any:
-        """Create and return the NiceGUI element"""
+        """
+        Create and return the NiceGUI element for this widget.
+        
+        For complex widgets with multiple sub-elements, store references:
+        
+        Example:
+            def create_element(self):
+                with ui.card() as card:
+                    self.label = ui.label()
+                    self.button = ui.button()
+                
+                # Store refs for targeted bindings
+                self._ui_element_refs['label'] = self.label
+                self._ui_element_refs['button'] = self.button
+                
+                return card
+        """
         pass
-
-    def update_value(self, new_value: Any):
-        """Update the data field value"""
-        self.data_field.set_value(new_value)
-
-    def _update_typed_value(self, new_value: Any):
-        """Update the data field value"""
-        self.data_field.set_inner_value(new_value)
-
-    def get_value(self) -> Any:
-        """Get the current data field value"""
-        return self.data_field.get_value()
-
-    def _get_typed_value(self) -> Any:
-        """
-        Get value from data field, unwrapping if necessary.
-        """
-        raw_value = self.get_value()
-        
-        # Handle pooled fields (returns dict)
-        if isinstance(raw_value, dict):
-            return self._handle_pooled_value(raw_value)
-        
-        # Unwrap PrimitiveType instances
-        if hasattr(raw_value, 'value'):
-            return raw_value.value
-        
-        return raw_value
     
-    def _handle_pooled_value(self, pooled_dict: dict) -> Any:
-        """Handle pooled field values."""
-        if not pooled_dict:
-            return None
-        values = list(pooled_dict.values())
-        first = values[0]
-        return first.value if hasattr(first, 'value') else first
-
-    def on_ui_change(self, e):
-        self.update_value(e.sender.value)
-
+    def add_binding(self, 
+                   binding: PropertyBinding,
+                   target_element: Optional[str] = None) -> None:
+        """
+        Add a binding to this widget.
+        
+        Args:
+            binding: Binding configuration
+            target_element: Optional name of sub-element (for complex widgets)
+                          If None, binds to the main ui_element
+        """
+        target_key = target_element or '__main__'
+        
+        if target_key not in self._bindings:
+            self._bindings[target_key] = []
+        
+        self._bindings[target_key].append(binding)
+        
+        # Activate immediately if target element exists
+        if target_element and target_element in self._ui_element_refs:
+            binding.activate(self.element, self._ui_element_refs[target_element])
+        elif not target_element and self.ui_element is not None:
+            binding.activate(self.element, self.ui_element)
+    
+    def create_default_binding(self,
+                              source_property: str = "value",
+                              target_property: str = "value",
+                              target_event: str = "update:modelValue",
+                              converter: Optional[BindingConverter] = None,
+                              mode: BindingMode = BindingMode.TWO_WAY,
+                              **kwargs) -> PropertyBinding:
+        """
+        Create standard binding for this widget's data port.
+        
+        This is a convenience method that most simple widgets can use.
+        
+        Args:
+            source_property: Property path in container (default: "value")
+            target_property: Property name to bind (default: "value")
+            target_event: Event name to listen for (default: "update:modelValue")
+            converter: Optional custom converter (default: PrimitiveUnwrappingConverter)
+            mode: Binding mode (default: TWO_WAY)
+            **kwargs: Additional PropertyBinding arguments
+        
+        Returns:
+            Configured PropertyBinding
+        """
+        return PropertyBinding(
+            source_property=source_property,
+            target_property=target_property,
+            target_event=target_event,
+            converter=converter or PrimitiveUnwrappingConverter(),
+            mode=mode,
+            **kwargs
+        )
+    
     def render(self) -> Any:
-        """Render the widget and return the UI element"""
+        """
+        Render widget with automatic binding setup.
+        
+        Returns:
+            The rendered UI element
+        """
         if self.ui_element is None:
+            # Create UI element
             self.ui_element = self.create_element()
-            self.ui_element.on('update:modelValue', self.on_ui_change)
-            self.ui_element.client.on_disconnect(lambda: self.cleanup())
+            
+            # Let subclass configure bindings
+            self.configure_bindings()
+            
+            # Activate all bindings
+            self._activate_all_bindings()
+            
+            # Cleanup on disconnect
+            if hasattr(self.ui_element, 'client'):
+                self.ui_element.client.on_disconnect(lambda: self.cleanup())
+        
         return self.ui_element
-
-    def cleanup(self):
+    
+    def _activate_all_bindings(self) -> None:
+        """Activate all configured bindings"""
+        # Activate main bindings
+        if '__main__' in self._bindings:
+            for binding in self._bindings['__main__']:
+                binding.activate(self.element, self.ui_element)
+        
+        # Activate sub-element bindings
+        for element_name, bindings in self._bindings.items():
+            if element_name != '__main__' and element_name in self._ui_element_refs:
+                target_element = self._ui_element_refs[element_name]
+                for binding in bindings:
+                    binding.activate(self.element, target_element)
+    
+    def cleanup(self) -> None:
+        """Clean up bindings and resources"""
         print(f"Cleaning up widget: {self.class_identity.registry_key} for element ID: {self.element_id}")
+        
+        # Deactivate all bindings
+        for bindings_list in self._bindings.values():
+            for binding in bindings_list:
+                binding.deactivate()
+        
+        self._bindings.clear()
+        self._ui_element_refs.clear()
+        
+        # Clear references
         self.element = None
-        self.element_id = None
-
-        """Clean up event handlers"""
-        self.data_field.on_changed -= self._call_on_model_changed
-
-        self.data_field = None
-
+        self.ui_element = None

@@ -1,6 +1,6 @@
 
+from typing import TYPE_CHECKING, Any
 from ..data.enums import FlowType
-from .ports import PortInlet, PortOutlet
 from haywire.core.types.utils import create_port_base
 
 class TypeToDataPort:
@@ -11,7 +11,7 @@ class TypeToDataPort:
     """
 
     @classmethod
-    def as_inlet(cls, id: str, **kwargs) -> PortInlet:
+    def as_inlet(cls, id: str, **kwargs) -> Any:
         """
         Create an inlet from this type.
 
@@ -26,10 +26,11 @@ class TypeToDataPort:
             FLOAT.as_inlet('value', default=1.0)
             Temperature.as_inlet('temp', default=25.0, ui={'unit': '°C'})
         """
+        from .ports import PortInlet
         return create_port_base(cls, PortInlet, id, **kwargs)
 
     @classmethod
-    def as_outlet(cls, id: str, **kwargs) -> PortOutlet:
+    def as_outlet(cls, id: str, **kwargs) -> Any:
         """
         Create an outlet from this type.
 
@@ -44,10 +45,11 @@ class TypeToDataPort:
             FLOAT.as_outlet('result')
             MeshData.as_outlet('mesh')
         """
+        from .ports import PortOutlet
         return create_port_base(cls, PortOutlet, id, **kwargs)
 
     @classmethod
-    def as_config(cls, id: str, **kwargs) -> PortInlet:
+    def as_config(cls, id: str, **kwargs) -> any:
         """
         Create a config inlet (no visible pin) from this type.
 

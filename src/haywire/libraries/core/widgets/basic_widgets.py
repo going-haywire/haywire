@@ -9,197 +9,168 @@ from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
 
 from haywire.libraries.core.types.specs import BOOL, FLOAT, INT, STRING
+from haywire.ui.widget.simple import SimpleWidget
 
 @widget(
-        description="Text input widget for string data",
-        compatible_types=[STRING]
-    )
-class TextInputWidget(BaseWidget):
-    """Text input widget for string data"""
-
-    def on_value_change(self, value: float):  
-        """Update the number input's value"""  
-        unwrapped = self._get_typed_value()
-        self.ui_element.value = unwrapped if unwrapped is not None else 'empty'    
-
-    def create_element(self) -> Any:
-        """Create a text input element"""
-        input_kwargs = {
-            'value': self._get_typed_value() or ''
-        }
-        
-        # Apply direct property mapping
-        for prop in ['label', 'placeholder', 'password', 'password_toggle_button', 'autocomplete']:
-            if prop in self.ui_properties:
-                input_kwargs[prop] = self.ui_properties[prop]
-
-        return ui.input(**input_kwargs).classes('w-full')
-
-@widget(
-        description="Number input widget for numeric data",
-        compatible_types=[FLOAT, INT]
-    )
-class NumberWidget(BaseWidget):
-    """Number input widget for numeric data"""
-
-    def on_value_change(self, value: float):  
-        """Update the number input's value"""  
-        unwrapped = self._get_typed_value()
-        self.ui_element.value = unwrapped if unwrapped is not None else 0    
-     
-    def create_element(self) -> Any:
-        """Create a number input element"""
-        number_kwargs = {
-            'value': self._get_typed_value() or 0
-        }
-        
-        # Apply direct property mapping
-        for prop in ['label', 'placeholder', 'min', 'max', 'precision', 'step', 'prefix', 'suffix', 'format']:
-            if prop in self.ui_properties:
-                number_kwargs[prop] = self.ui_properties[prop]
-        
-		# Create the UI element  
-        return ui.number(**number_kwargs).classes('w-full')
-
-@widget(
-        description="Checkbox widget for boolean data",
-        compatible_types=[BOOL]
-    )
-class CheckboxWidget(BaseWidget):
-    """Checkbox widget for boolean data"""
+    description="Fast number input widget",
+    compatible_types=[FLOAT, INT]
+)
+class NumberWidget(SimpleWidget):
+    """number widget for performance-critical scenarios"""
     
-    def on_value_change(self, value: float):  
-        """Update the number input's value"""  
-        unwrapped = self._get_typed_value()
-        self.ui_element.value = unwrapped if unwrapped is not None else False    
-
     def create_element(self) -> Any:
-        """Create a checkbox element"""
-        checkbox_kwargs = {
-            'value': bool(self._get_typed_value())
-        }
+        kwargs = {'value': 0}
         
-        # Apply direct property mapping
-        for prop in ['text']:
+        # Apply UI properties
+        for prop in ['label', 'min', 'max', 'step', 'precision', 'prefix', 'suffix']:
             if prop in self.ui_properties:
-                checkbox_kwargs[prop] = self.ui_properties[prop]
-
-        return ui.checkbox(**checkbox_kwargs).classes('w-full')
-
-@widget(
-        description="Switch widget for boolean data",
-        compatible_types=[BOOL]
-    )
-class SwitchWidget(BaseWidget):
-    """Switch widget for boolean data"""
-
-    def on_value_change(self, value: float):  
-        """Update the number input's value"""  
-        unwrapped = self._get_typed_value()
-        self.ui_element.value = unwrapped if unwrapped is not None else False    
-
-    def create_element(self) -> Any:
-        """Create a switch element"""
-        switch_kwargs = {
-            'value': bool(self._get_typed_value())
-        }
+                kwargs[prop] = self.ui_properties[prop]
         
-        # Apply direct property mapping
-        for prop in ['text']:
-            if prop in self.ui_properties:
-                switch_kwargs[prop] = self.ui_properties[prop]
-
-        return ui.switch(**switch_kwargs).classes('w-full')
-
-@widget(
-        description="Dropdown select widget for choice-based data",
-        compatible_types=[INT, STRING]
-    )
-class SelectWidget(BaseWidget):
-    """Dropdown select widget for choice-based data"""
+        return ui.number(**kwargs).classes('w-full')
     
-    def on_value_change(self, value: float):  
-        """Update the number input's value"""  
-        unwrapped = self._get_typed_value()
-        self.ui_element.value = unwrapped if unwrapped is not None else 0    
+    def get_default_value(self) -> float:
+        return 0.0
 
+
+@widget(
+    description="Fast text input widget",
+    compatible_types=[STRING]
+)
+class TextWidget(SimpleWidget):
+    """text input for simple string binding"""
+    
     def create_element(self) -> Any:
-        """Create a dropdown select element"""
-        select_kwargs = {
+        kwargs = {'value': ''}
+        
+        for prop in ['label', 'placeholder', 'password']:
+            if prop in self.ui_properties:
+                kwargs[prop] = self.ui_properties[prop]
+        
+        return ui.input(**kwargs).classes('w-full')
+    
+    def get_default_value(self) -> str:
+        return ''
+
+
+@widget(
+    description="checkbox widget",
+    compatible_types=[BOOL]
+)
+class CheckboxWidget(SimpleWidget):
+    """checkbox for boolean binding"""
+    
+    def create_element(self) -> Any:
+        kwargs = {'value': False}
+        
+        if 'text' in self.ui_properties:
+            kwargs['text'] = self.ui_properties['text']
+        
+        return ui.checkbox(**kwargs).classes('w-full')
+    
+    def get_default_value(self) -> bool:
+        return False
+
+
+@widget(
+    description="switch widget",
+    compatible_types=[BOOL]
+)
+class SwitchWidget(SimpleWidget):
+    """switch for boolean binding"""
+    
+    def create_element(self) -> Any:
+        kwargs = {'value': False}
+        
+        if 'text' in self.ui_properties:
+            kwargs['text'] = self.ui_properties['text']
+        
+        return ui.switch(**kwargs).classes('w-full')
+    
+    def get_default_value(self) -> bool:
+        return False
+
+
+@widget(
+    description="slider widget",
+    compatible_types=[FLOAT, INT]
+)
+class SliderWidget(SimpleWidget):
+    """slider for numeric ranges"""
+    
+    def create_element(self) -> Any:
+        kwargs = {
+            'value': 0,
+            'min': self.ui_properties.get('min', 0),
+            'max': self.ui_properties.get('max', 100),
+            'step': self.ui_properties.get('step', 1)
+        }
+        
+        return ui.slider(**kwargs).classes('w-full').props('label-always')
+    
+    def get_default_value(self) -> float:
+        return float(self.ui_properties.get('min', 0))
+
+
+@widget(
+    description="select widget",
+    compatible_types=[INT, STRING]
+)
+class SelectWidget(SimpleWidget):
+    """dropdown select"""
+    
+    def create_element(self) -> Any:
+        kwargs = {
             'options': self.ui_properties.get('options', []),
-            'value': self._get_typed_value()
+            'value': None
         }
         
-        # Apply direct property mapping
-        for prop in ['options', 'clearable', 'multiple', 'with_input']:
+        for prop in ['clearable', 'multiple']:
             if prop in self.ui_properties:
-                select_kwargs[prop] = self.ui_properties[prop]
+                kwargs[prop] = self.ui_properties[prop]
         
-        def update_value(e):
-            self._update_typed_value(e.value)
+        return ui.select(**kwargs).classes('w-full')
 
-        return ui.select(**select_kwargs, on_change=update_value).classes('w-full')
 
 @widget(
-        description="Slider widget for numeric data with range",
-        compatible_types=[FLOAT, INT]
-    )
-class SliderWidget(BaseWidget):
-    """Slider widget for numeric data with range"""
-
-    def on_value_change(self, value: float):  
-        """Update the number input's value"""  
-        unwrapped = self._get_typed_value()
-        self.ui_element.value = unwrapped if unwrapped is not None else 0    
-
+    description="knob widget",
+    compatible_types=[FLOAT, INT]
+)
+class KnobWidget(SimpleWidget):
+    """knob for numeric input"""
+    
     def create_element(self) -> Any:
-        """Create a slider element"""
-        slider_kwargs = {
-            'value': self._get_typed_value() or 0
-        }
-        
-        # Apply direct property mapping
-        for prop in ['min', 'max', 'step']:
-            if prop in self.ui_properties:
-                slider_kwargs[prop] = self.ui_properties[prop]
-        
-        # Set defaults if not specified
-        if 'min' not in slider_kwargs:
-            slider_kwargs['min'] = 0
-        if 'max' not in slider_kwargs:
-            slider_kwargs['max'] = 100
-        
-        def update_value(e):
-            self._update_typed_value(e.value)
-
-        return ui.slider(**slider_kwargs, on_change=update_value).classes('w-full').props('label-always')
-
-@widget(
-        description="Knob widget for numeric data with rotary control",
-        compatible_types=[FLOAT, INT]
-    )
-class KnobWidget(BaseWidget):
-    """Knob widget for numeric data with rotary control"""
-
-    def on_value_change(self, value: float):  
-        """Update the number input's value"""  
-        unwrapped = self._get_typed_value()
-        self.ui_element.value = unwrapped if unwrapped is not None else 0    
-
-    def create_element(self) -> Any:
-        """Create a knob element"""
-        knob_kwargs = {
-            'value': self._get_typed_value() or 0,
+        kwargs = {
+            'value': 0,
             'show_value': True
         }
         
-        # Apply direct property mapping
-        for prop in ['min', 'max', 'step', 'color', 'center_color', 'track_color', 'size', 'show_value']:
+        for prop in ['min', 'max', 'step', 'color', 'size']:
             if prop in self.ui_properties:
-                knob_kwargs[prop] = self.ui_properties[prop]
-
+                kwargs[prop] = self.ui_properties[prop]
+        
         with ui.row().classes('w-full justify-center'):
-            knob = ui.knob(**knob_kwargs)
-
+            knob = ui.knob(**kwargs)
+        
         return knob.classes('w-32 h-32')
+    
+    def get_default_value(self) -> float:
+        return 0.0
 
+
+# Read-only widget example
+@widget(
+    description="Simple label for display only",
+    compatible_types=[STRING, FLOAT, INT]
+)
+class SimpleLabelWidget(SimpleWidget):
+    """Read-only label widget"""
+    
+    # Override class attributes
+    UI_PROPERTY = 'text'
+    IS_READONLY = True
+    
+    def create_element(self) -> Any:
+        return ui.label('').classes('text-base')
+    
+    def get_default_value(self) -> str:
+        return ''

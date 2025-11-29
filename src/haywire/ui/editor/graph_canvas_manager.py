@@ -665,7 +665,7 @@ class GraphCanvasManager:
         
         positions = []
         for node_id in node_ids:
-            node = self.graph.get_node(node_id)
+            node = self.graph.get_node_wrapper(node_id).node
             if node:
                 positions.append((node.ui_state.posX, node.ui_state.posY))
         

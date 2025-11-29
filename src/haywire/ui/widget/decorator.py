@@ -1,10 +1,11 @@
 from typing import Callable, Type, TypeVar, Union
 
 from haywire.core.types.interface import IType
-
 from haywire.core.library.utils import derive_library_identity, reg_key
 
-from .base import BaseWidget, WidgetIdentity
+from .interface import IWidget
+from .identity import WidgetIdentity
+
 
 # ============================================================================
 #    Decorator
@@ -55,7 +56,7 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
         class ErrorWidget(BaseWidget): ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
-        if not issubclass(inner_cls, BaseWidget):
+        if not issubclass(inner_cls, IWidget):
             raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
 
         if 'compatible_types' not in kwargs:

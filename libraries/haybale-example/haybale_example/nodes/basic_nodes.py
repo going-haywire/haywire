@@ -5,7 +5,6 @@ Basic core node implementations
 # Import the node system base class
 from haywire.core.node.base import node
 from haywire.core.node.base import BaseNode
-from haywire.core.data.enums import ContainerType, FlowType
 from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, INT, STRING
 
 from ..types.mesh_data import MeshData
@@ -59,19 +58,11 @@ class TestNodeOne(BaseNode):
                 default=True
             ))
 
-        self.add(BOOL.as_inlet(
-                id='bool_switch',
-                label='Boolean Switch',
-                widget='core:widget:switch.widget',
-                ui={'properties': {'text': 'Enable Feature'}},
-                default=True
-            ))
-
         self.add(STRING.as_inlet(
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',
                 default='Hello, Haywire!',
-                widget='core:widget:text.input.widget',
+                widget='core:widget:text.widget',
                 ui={'properties': {'placeholder': 'Enter text...'}}
             ))
 

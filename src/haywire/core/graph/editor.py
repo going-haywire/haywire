@@ -13,7 +13,6 @@ Design Philosophy:
 
 from typing import Dict, List, Optional, Tuple, Set, Any, Callable
 from haywire.core.graph.base import BaseGraph, Edge, EdgeType
-from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.factory import NodeFactory
 from haywire.core.undo.interfaces import IHistoryManager
@@ -215,18 +214,10 @@ class Editor:
             print(f"❌ Editor: Error removing elements: {e}")
             return False
     
-    def get_node(self, node_id: str) -> Optional[BaseNode]:
-        """Get a node instance by ID (for backward compatibility)."""
-        return self.graph.get_node(node_id)
-    
     def get_node_wrapper(self, node_id: str) -> Optional[NodeWrapper]:
         """Get a node wrapper by ID."""
         return self.graph.get_node_wrapper(node_id)
-    
-    def list_nodes(self) -> List[BaseNode]:
-        """Get a list of all node instances in the graph (for backward compatibility)."""
-        return [wrapper.node for wrapper in self.graph.node_wrappers.values()]
-    
+        
     def list_node_wrappers(self) -> List[NodeWrapper]:
         """Get a list of all node wrappers in the graph."""
         return list(self.graph.node_wrappers.values())

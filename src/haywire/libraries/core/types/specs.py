@@ -3,9 +3,10 @@ Built-in data type specifications for Haywire core library.
 """
 
 from dataclasses import dataclass
+from haywire.core.types.primitive_type import PrimitiveType
 from haywire.core.types.decorator import type
-from haywire.core.types.base import BaseType, PrimitiveType
-from haywire.core.data.enums import ContainerType, FlowType
+from haywire.core.types.base import BaseType
+from haywire.core.data.enums import FlowType
 
 # ============================================================================
 # Exec Types
@@ -13,7 +14,6 @@ from haywire.core.data.enums import ContainerType, FlowType
 
 @type(
     registry_id='exec',
-    container_type=ContainerType.SINGLE,
     flow_type=FlowType.CTRL,
     label='Execution Signal',
     description='Signal for controlling execution flow between nodes',
@@ -31,14 +31,13 @@ class EXEC(BaseType):
 
 @type(
     registry_id='callback',
-    container_type=ContainerType.SINGLE,
     flow_type=FlowType.CALLBACK,
     label='Callback Signal',
     description='Signal for callback execution between nodes',
     color='#ff5722',
     icon='repeat',
     widget=None,
-    default={'value': None},
+    default={},
 )
 class CALLBACK(BaseType):
     """callback signal type - represents callback flow, not data"""
@@ -53,7 +52,6 @@ class CALLBACK(BaseType):
 
 @type(
     registry_id='int',
-    container_type=ContainerType.SINGLE,
     label='Integer',
     description='Whole number',
     color='#f7b0ff',
@@ -69,7 +67,6 @@ class INT(PrimitiveType[int]):
 
 @type(
     registry_id='float',
-    container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='Float',
     description='Decimal numbers',
@@ -89,13 +86,12 @@ class FLOAT(PrimitiveType[float]):
 
 @type(
     registry_id='string',
-    container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='String',
     description='Text data',
     color='#ffc107',
     icon='type',
-    widget='core:widget:text.input.widget',
+    widget='core:widget:text.widget',
     default={'value': ''},
 )
 class STRING(PrimitiveType[str]):
@@ -109,7 +105,6 @@ class STRING(PrimitiveType[str]):
 
 @type(
     registry_id='bool',
-    container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='Boolean',
     description='True or False',
@@ -129,7 +124,6 @@ class BOOL(PrimitiveType[bool]):
 
 @type(
     registry_id='bytes',
-    container_type=ContainerType.SINGLE,
     flow_type=FlowType.DATA,
     label='Bytes',
     description='Binary data',
@@ -149,7 +143,6 @@ class BYTES(PrimitiveType[bytes]):
 
 @type(
     registry_id='list',
-    container_type=ContainerType.LIST,
     flow_type=FlowType.DATA,
     label='List',
     description='Ordered collection',
@@ -164,7 +157,6 @@ class LIST(PrimitiveType[list]):
 
 @type(
     registry_id='dict',
-    container_type=ContainerType.DICT,
     flow_type=FlowType.DATA,
     label='Dictionary',
     description='Key-value pairs',

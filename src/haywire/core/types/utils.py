@@ -1,11 +1,12 @@
 from typing import TYPE_CHECKING, Any, Dict, Type, TypeVar
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
-
-from haywire.core.types.ports import DataPort, PortInlet
 from haywire.ui.widget.globals import validate_widget_type_compatibility
 
 from .interface import IType
+
+if TYPE_CHECKING:
+    from haywire.core.types.ports import DataPort
 
 T = TypeVar('T')
 
@@ -64,7 +65,7 @@ def normalize_and_validate_default(
         normalize_and_validate_default({'vertices': []}, MeshData, "as_inlet")
         # Returns: {'vertices': []}
     """
-    from .base import PrimitiveType
+    from .primitive_type import PrimitiveType
 
     # Already a dict - use as-is
     if isinstance(default_value, dict):
@@ -110,7 +111,7 @@ Utility functions for type system.
 
 def create_port_base(
     type_cls: Type[IType],
-    port_class: DataPort,
+    port_class: 'DataPort',
     id: str,
     **kwargs
 ):
@@ -124,6 +125,7 @@ def create_port_base(
     
     # Normalize and validate default if provided
     if 'default' in kwargs:
+        from haywire.core.types.ports import PortInlet
         port_type = "inlet" if issubclass(port_class, PortInlet) else "outlet"
         kwargs['default'] = normalize_and_validate_default(
             kwargs['default'],

@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 import uuid
 
-from ..node.base import BaseNode
 from ..node.node_wrapper import NodeWrapper
-from ...ui.utils import generate_connection_uuid, parse_connection_uuid
+from ...ui.utils import generate_connection_uuid
 
 if TYPE_CHECKING:
     from ..node.factory import NodeFactory
@@ -209,18 +208,6 @@ class BaseGraph:
         wrapper.cleanup()
         return wrapper
     
-    def get_node(self, node_id: str) -> BaseNode | None:
-        """Get a node instance by its ID (for backward compatibility)
-        
-        Args:
-            node_id: ID of the node to retrieve
-            
-        Returns:
-            The node instance if found, None otherwise
-        """
-        wrapper = self.node_wrappers.get(node_id)
-        return wrapper.node if wrapper else None
-    
     def get_node_wrapper(self, node_id: str) -> NodeWrapper | None:
         """Get a node wrapper by its ID
         
@@ -250,20 +237,6 @@ class BaseGraph:
         wrapper.node.ui_state.posX = new_x
         wrapper.node.ui_state.posY = new_y
         return True
-    
-    def get_nodes_by_type(self, registry_key: str) -> list[BaseNode]:
-        """Get all node instances of a specific type (for backward compatibility)
-        
-        Args:
-            registry_key: The node type to filter by
-            
-        Returns:
-            List of node instances matching the type
-        """
-        return [
-            wrapper.node for wrapper in self.node_wrappers.values() 
-            if wrapper.registry_key == registry_key
-        ]
     
     def get_wrappers_by_type(self, registry_key: str) -> list[NodeWrapper]:
         """Get all node wrappers of a specific type

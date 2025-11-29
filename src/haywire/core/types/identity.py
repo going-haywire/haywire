@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any, Type
 
 from ..registry.identity import BaseIdentity
-from ..data.enums import ContainerType, FlowType
+from ..data.enums import FlowType
 
 from .interface import IType
 
@@ -54,7 +54,6 @@ class DataTypeIdentity(BaseIdentity):
 
     # Type specification:
     type_cls: IType = None  # The Python Type class
-    container_type: ContainerType = ContainerType.SINGLE
     default: dict = None
     
     # UI specification:

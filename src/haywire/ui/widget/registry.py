@@ -4,8 +4,8 @@ from haywire.core.errors.haywire_exception import HaywireException, ErrorSeverit
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
+from haywire.ui.widget.interface import IWidget
 
-from .base import BaseWidget
 from .globals import register_widget_globally, unregister_widget_globally
 
 class WidgetRegistry(BaseRegistry):
@@ -17,13 +17,13 @@ class WidgetRegistry(BaseRegistry):
     def _class_filter(self, cls):
         try:
             return (inspect.isclass(cls) and
-                    issubclass(cls, BaseWidget) and
-                    cls != BaseWidget and
+                    issubclass(cls, IWidget) and
+                    cls != IWidget and
                     hasattr(cls, 'class_identity'))
         except TypeError:
             return False
 
-    def _register_class(self, widget_cls: type[BaseWidget], library_identity: LibraryIdentity) -> str | None:
+    def _register_class(self, widget_cls: type[IWidget], library_identity: LibraryIdentity) -> str | None:
         """Register a UI widget with its metadata
         
         Uses the registry_key that was set by the @widget decorator during class definition.
@@ -45,12 +45,12 @@ class WidgetRegistry(BaseRegistry):
         return reg
 
 
-    def _unregister_class(self, registry_key: str) -> type[BaseWidget] | None:
+    def _unregister_class(self, registry_key: str) -> type[IWidget] | None:
         """Unregister a UI widget by its registry key
         Args:
             registry_key: The haywire registry_key of the widget to unregister
         Returns:
-            type[BaseWidget] | None: The unregistered widget class or None if not found
+            type[IWidget] | None: The unregistered widget class or None if not found
         """
         unreg = super()._unregister(registry_key)
         

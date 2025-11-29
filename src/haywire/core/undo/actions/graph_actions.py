@@ -114,7 +114,7 @@ class MoveNodesAction(ActionBase):
     def _execute_impl(self) -> None:
         """Move all nodes by their delta amounts."""
         for node_id in self.nodes:
-            node = self.graph.get_node(node_id)
+            node = self.graph.get_node_wrapper(node_id).node
             if node:
                 node.ui_state.posX += self.deltaX
                 node.ui_state.posY += self.deltaY
@@ -122,7 +122,7 @@ class MoveNodesAction(ActionBase):
     def _undo_impl(self) -> None:
         """Move all nodes back by subtracting the delta amounts."""
         for node_id in self.nodes:
-            node = self.graph.get_node(node_id)
+            node = self.graph.get_node_wrapper(node_id).node
             if node:
                 node.ui_state.posX -= self.deltaX
                 node.ui_state.posY -= self.deltaY
@@ -225,8 +225,8 @@ class RemoveElementsAction(ActionBase):
             # Restore edges that were connected to this node
             for edge in self.node_connected_edges.get(node_id, []):
                 # Only restore if both nodes still exist
-                if (self.graph.get_node(edge.input_node_id) and 
-                    self.graph.get_node(edge.output_node_id)):
+                if (self.graph.get_node_wrapper(edge.input_node_id).node and 
+                    self.graph.get_node_wrapper(edge.output_node_id).node):
                     self.graph.add_edge(
                         edge.output_node_id,
                         edge.outlet_pin_id,
@@ -237,8 +237,8 @@ class RemoveElementsAction(ActionBase):
         # Then, restore standalone connections (that weren't connected to removed nodes)
         for connection_uuid, edge in self.removed_edges.items():
             # Only restore if both nodes still exist
-            if (self.graph.get_node(edge.input_node_id) and 
-                self.graph.get_node(edge.output_node_id)):
+            if (self.graph.get_node_wrapper(edge.input_node_id).node and 
+                self.graph.get_node_wrapper(edge.output_node_id).node):
                 self.graph.add_edge(
                     edge.output_node_id,
                     edge.outlet_pin_id,
@@ -307,7 +307,7 @@ class DuplicateNodeAction(CompositeAction):
             offset_x: X offset for the new node position
             offset_y: Y offset for the new node position
         """
-        source_node = graph.get_node(source_node_id)
+        source_node = graph.get_node_wrapper(source_node_id).node
         if source_node is None:
             raise ValueError(f"Source node {source_node_id} not found")
         

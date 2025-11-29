@@ -6,11 +6,18 @@ from typing_extensions import Self
 if TYPE_CHECKING:
     from ..adapter.base import BaseAdapter
     from ..adapter.registry import AdapterRegistry
+    from ..library.identity import LibraryIdentity
+    from ..types.identity import DataTypeIdentity
 
 class IType(ABC):
     """
     Interface for all Haywire data types.
     """
+
+    # Set by @type decorator:
+    class_identity: 'DataTypeIdentity'
+    class_library: 'LibraryIdentity'
+
     @abstractmethod
     def is_value_type(self, compare: type) -> bool:
         """

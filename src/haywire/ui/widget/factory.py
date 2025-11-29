@@ -7,7 +7,7 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
 from haywire.core.types.ports import DataPort, PortInlet
-from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.interface import IWidget
 from haywire.ui.widget.registry import WidgetRegistry
 from haywire.ui.errors.error_info import error_render_detail, render_error_info
 from haywire.ui.widget.factory_interface import IWidgetFactory
@@ -49,7 +49,7 @@ class WidgetFactory(IWidgetFactory):
         if callback in self._widget_lifecycle_subscribers:
             self._widget_lifecycle_subscribers.discard(callback)
 
-    def render_widget(self, registry_key: str, inlet: DataPort, node_id: str) -> tuple[BaseWidget | None, ui.element]:
+    def render_widget(self, registry_key: str, inlet: DataPort, node_id: str) -> tuple[IWidget | None, ui.element]:
         """Render a widget for the given inlet and return the widget instance.
         
         Note: The UI element is automatically added to the current NiceGUI context.
@@ -60,9 +60,9 @@ class WidgetFactory(IWidgetFactory):
             node_id: ID of the node containing this inlet
             
         Returns:
-            BaseWidget instance or None if widget creation failed
+            IWidget instance or None if widget creation failed
         """        
-        widget_instance: BaseWidget | None = None
+        widget_instance: IWidget | None = None
 
         ui_element: ui.element | None = None
 
@@ -104,7 +104,7 @@ class WidgetFactory(IWidgetFactory):
     
         return widget_instance, ui_element
 
-    def get_widget(self, registry_key: str, element: DataPort) -> tuple[BaseWidget | None, LifeCycleEvent | None]:
+    def get_widget(self, registry_key: str, element: DataPort) -> tuple[IWidget | None, LifeCycleEvent | None]:
         """
         Get a widget instance for the given element using the widget registry.
         Args:
@@ -115,7 +115,7 @@ class WidgetFactory(IWidgetFactory):
  
         lc_event = self.widget_registry.get_widget_event(registry_key)
 
-        widget_cls: type[BaseWidget] | None = lc_event.affected_class
+        widget_cls: type[IWidget] | None = lc_event.affected_class
 
         widget_instance = None
 

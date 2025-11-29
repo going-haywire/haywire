@@ -3,86 +3,147 @@ from nicegui import ui
 
 from haywire.core.types.ports import DataPort
 
+from haywire.libraries.core.types.specs import FLOAT, INT
 from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.binding import PropertyBinding
+from haywire.ui.widget.converters import BindingConverter, BindingMode, Converters
 from haywire.ui.widget.decorator import widget
 
 from haybale_example.types.specs import Temperature
 
 @widget(
-        description="Custom widget for temperature values with Celsius/Fahrenheit display",
-        compatible_types=[Temperature]  # Assuming 'temperature' is a defined type in the system
-    )
-class TemperatureWidget(BaseWidget):
-    """Custom widget for temperature values with Celsius/Fahrenheit display"""
-
-    def __init__(self, element: DataPort):
-        super().__init__(element)
-        self.conversion_label = None
-        self.unit = self.ui_properties.get('unit', 'celsius')
-
-    def _celsius_to_fahrenheit(self, celsius: float) -> float:
-        """Convert Celsius to Fahrenheit"""
-        return (celsius * 9/5) + 32
-
-    def _fahrenheit_to_celsius(self, fahrenheit: float) -> float:
-        """Convert Fahrenheit to Celsius"""
-        return (fahrenheit - 32) * 5/9
-
-    def _get_display_value(self, celsius_value: float) -> float:
-        """Get the display value based on the current unit"""
-        return celsius_value if self.unit == 'celsius' else self._celsius_to_fahrenheit(celsius_value)
-
-    def _get_conversion_display(self, celsius_value: float) -> str:
-        """Get the conversion display text"""
-        if self.unit == 'celsius':
-            fahrenheit_value = self._celsius_to_fahrenheit(celsius_value)
-            return f"({fahrenheit_value:.1f}°F)"
+    description="Number widget with validation",
+    compatible_types=[FLOAT, INT]
+)
+class ValidatedNumberWidget(BaseWidget):
+    """Number widget with range validation and custom formatting"""
+    
+    def configure_bindings(self) -> None:
+        min_val = self.ui_properties.get('min')
+        max_val = self.ui_properties.get('max')
+        
+        if min_val is not None or max_val is not None:
+            # Use range validation
+            self.add_binding(self.create_default_binding(
+                converter=Converters.chain(
+                    Converters.primitive(default_value=0),
+                    Converters.range(min_value=min_val, max_value=max_val, clamp=True)
+                )
+            ))
         else:
-            return f"({celsius_value:.1f}°C)"
-
-    def on_value_change(self, value: float):  
-        """Update the UI elements when the model value changes"""  
-        celsius_value = self._get_typed_value()
-        display_value = self._get_display_value(celsius_value)
-        
-        # Update the main input
-        if self.ui_element is not None:
-            self.ui_element.value = display_value
-        
-        # Update the conversion label
-        if self.conversion_label is not None:
-            self.conversion_label.text = self._get_conversion_display(celsius_value)
-
-    def on_ui_change(self, e):
-        """Override to handle unit conversion before updating the model"""
-        display_value = e.sender.value
-        # Convert display value back to Celsius for storage
-        celsius_value = display_value if self.unit == 'celsius' else self._fahrenheit_to_celsius(display_value)
-        
-        # Update the model with Celsius value
-        self._update_typed_value(celsius_value)
-        
-        # Update the conversion label
-        if self.conversion_label is not None:
-            self.conversion_label.text = self._get_conversion_display(celsius_value)
-
+            # Simple binding
+            self.add_binding(self.create_default_binding())
+    
     def create_element(self) -> Any:
-        """Create a temperature widget with unit conversion"""
-        temp_celsius = self._get_typed_value() or 0
-        display_value = self._get_display_value(temp_celsius)
+        kwargs = {'value': 0}
+        
+        for prop in ['label', 'min', 'max', 'step', 'precision', 'prefix', 'suffix']:
+            if prop in self.ui_properties:
+                kwargs[prop] = self.ui_properties[prop]
+        
+        return ui.number(**kwargs).classes('w-full')
 
+
+@widget(
+    description="Temperature with unit conversion",
+    compatible_types=[Temperature]
+)
+class TemperatureWidget(BaseWidget):
+    """
+    Temperature widget demonstrating:
+    - Custom converter for unit conversion
+    - Multiple UI elements with separate bindings
+    - Read-only conversion display
+    """
+    
+    def __init__(self, element):
+        super().__init__(element)
+        self.unit = self.ui_properties.get('unit', 'celsius')
+        self.conversion_label = None
+    
+    def configure_bindings(self) -> None:
+        # Main input with unit conversion
+        self.add_binding(PropertyBinding(
+            source_property="value",
+            converter=UnitConversionConverter(self.unit),
+            mode=BindingMode.TWO_WAY
+        ))
+        
+        # Conversion display (read-only)
+        self.add_binding(
+            PropertyBinding(
+                source_property="value",
+                target_property='text',
+                converter=ConversionDisplayConverter(self.unit),
+                mode=BindingMode.ONE_WAY
+            ),
+            target_element='conversion_label'
+        )
+    
+    def create_element(self) -> Any:
         with ui.column().classes('w-full') as wrapper:
-            # Number input for the temperature
+            # Main input
             number_kwargs = {
-                'value': display_value,
+                'value': 0,
                 'suffix': '°C' if self.unit == 'celsius' else '°F',
                 'step': 0.1,
                 'precision': 1
             }
-
             temp_input = ui.number(**number_kwargs).classes('w-full')
-
-            # Display conversion
-            self.conversion_label = ui.label(self._get_conversion_display(temp_celsius)).classes('text-sm text-gray-500')
-
+            
+            # Conversion display
+            self.conversion_label = ui.label('').classes('text-sm text-gray-500')
+            self._ui_element_refs['conversion_label'] = self.conversion_label
+        
         return temp_input
+
+
+# Custom converters for temperature widget
+class UnitConversionConverter(BindingConverter):
+    """Converter for temperature unit conversion"""
+    
+    def __init__(self, unit: str):
+        self.unit = unit
+    
+    def to_view(self, celsius_value: Any) -> float:
+        """Convert stored Celsius to display unit"""
+        # Unwrap if needed
+        if hasattr(celsius_value, 'value'):
+            celsius_value = celsius_value.value
+        
+        if celsius_value is None:
+            return 0.0
+        
+        if self.unit == 'celsius':
+            return celsius_value
+        else:  # fahrenheit
+            return (celsius_value * 9/5) + 32
+    
+    def to_model(self, display_value: float) -> float:
+        """Convert display unit back to Celsius for storage"""
+        if self.unit == 'celsius':
+            return display_value
+        else:  # fahrenheit
+            return (display_value - 32) * 5/9
+
+
+class ConversionDisplayConverter(BindingConverter):
+    """Converter for showing the alternate unit"""
+    
+    def __init__(self, primary_unit: str):
+        self.primary_unit = primary_unit
+    
+    def to_view(self, celsius_value: Any) -> str:
+        """Format conversion display text"""
+        # Unwrap if needed
+        if hasattr(celsius_value, 'value'):
+            celsius_value = celsius_value.value
+        
+        if celsius_value is None:
+            return ''
+        
+        if self.primary_unit == 'celsius':
+            fahrenheit = (celsius_value * 9/5) + 32
+            return f"({fahrenheit:.1f}°F)"
+        else:
+            return f"({celsius_value:.1f}°C)"

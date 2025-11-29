@@ -11,12 +11,12 @@ from typing import Dict, List, Optional, Tuple, Callable, Any, TYPE_CHECKING
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from .base import BaseNode
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
 from ..errors.haywire_exception import HaywireException
 
 if TYPE_CHECKING:
+    from .base import BaseNode
     from ..graph.base import BaseGraph
     from .factory import NodeFactory
 
@@ -88,7 +88,7 @@ class NodeWrapper:
         
         # Lifecycle state
         self.state: NodeWrapperState = NodeWrapperState(creation_time=time.time())
-        self._node_instance: Optional[BaseNode] = None
+        self._node_instance: Optional['BaseNode'] = None
         
         # Change notification callbacks
         self._livecycle_subscribers: List[LiveCycleEventCallback] = []
@@ -219,7 +219,7 @@ class NodeWrapper:
                     # Forward the event to UI components
                     self._notify_change(lc_event)
 
-    def _create_node_instance(self) -> tuple[BaseNode | None, LifeCycleEvent]:
+    def _create_node_instance(self) -> tuple['BaseNode', LifeCycleEvent]:
         """
         Utility internal method to create a node instance.
         
@@ -234,7 +234,7 @@ class NodeWrapper:
         
         return self._generate_node_instance(lc_event)
 
-    def _generate_node_instance(self, lc_event: LifeCycleEvent, _is_error: bool = False) -> tuple[BaseNode | None, LifeCycleEvent]:
+    def _generate_node_instance(self, lc_event: LifeCycleEvent, _is_error: bool = False) -> tuple['BaseNode', LifeCycleEvent]:
         """
         Generate a node instance based on the lifecycle event.
 
@@ -248,7 +248,7 @@ class NodeWrapper:
 
         node_cls = lc_event.affected_class
 
-        node_instance: BaseNode | None = None
+        node_instance: 'BaseNode' | None = None
 
         # Create the node instance 
         try:
@@ -292,7 +292,7 @@ class NodeWrapper:
  
     
     @property  
-    def node(self) -> BaseNode:
+    def node(self) -> 'BaseNode':
         """
         Get the current node instance with validation and migration.
         
