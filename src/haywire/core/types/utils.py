@@ -65,7 +65,7 @@ def normalize_and_validate_default(
         normalize_and_validate_default({'vertices': []}, MeshData, "as_inlet")
         # Returns: {'vertices': []}
     """
-    from .primitive_type import PrimitiveType
+    from .base import PrimitiveType
 
     # Already a dict - use as-is
     if isinstance(default_value, dict):

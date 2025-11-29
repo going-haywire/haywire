@@ -12,7 +12,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar
 
-from haywire.core.types.primitive_type import PrimitiveType
+from haywire.core.types.base import PrimitiveType
 
 if TYPE_CHECKING:
     from haywire.core.adapter.registry import AdapterRegistry

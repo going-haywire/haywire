@@ -16,7 +16,7 @@ from ..library.utils import derive_library_identity, reg_key
 from .base import BaseType
 from .identity import DataTypeIdentity
 from .interface import IType
-from .primitive_type import PrimitiveType
+from .base import PrimitiveType
 from .utils import is_cattrs_serializable, normalize_and_validate_default
 
 T = TypeVar('T')

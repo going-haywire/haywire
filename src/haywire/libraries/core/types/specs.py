@@ -3,7 +3,7 @@ Built-in data type specifications for Haywire core library.
 """
 
 from dataclasses import dataclass
-from haywire.core.types.primitive_type import PrimitiveType
+from haywire.core.types.base import PrimitiveType
 from haywire.core.types.decorator import type
 from haywire.core.types.base import BaseType
 from haywire.core.data.enums import FlowType

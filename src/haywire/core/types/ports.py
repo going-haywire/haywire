@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from haywire.core.data.enums import FlowType
-from haywire.core.types.primitive_type import PrimitiveType
+from haywire.core.types.base import PrimitiveType
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
 from haywire.core.types.base import BaseType
