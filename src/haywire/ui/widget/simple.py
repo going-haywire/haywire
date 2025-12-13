@@ -143,14 +143,14 @@ class SimpleWidget(IWidget, ABC):
         if self._model_changed_callback:
             try:
                 self.element.data.on_changed -= self._model_changed_callback
-            except:
-                pass
+            except Exception as e:
+                self.logger.warning(f"Failed to clean up model event listener: {e}", exc_info=True)
         
         if self._ui_changed_callback and not self.IS_READONLY:
             try:
                 self.ui_element.off(self.UI_EVENT, self._ui_changed_callback)
-            except:
-                pass
+            except Exception as e:
+                self.logger.warning(f"Failed to clean up UI event listener: {e}", exc_info=True)
         
         self.element = None
         self.ui_element = None

@@ -2,8 +2,8 @@
 Node Editor component for individual node rendering and interaction
 """
 
-from typing import Dict, Any
-from nicegui import ui, events
+from typing import Any
+from nicegui import ui
 from utils.node import Node, NodePort
 
 class NodePanel:
@@ -225,13 +225,6 @@ class NodePanel:
                 'user-select: none; '
                 'z-index: 1;'
             )
-    
-    def update_selection(self):
-        """Update the visual selection state"""
-        if self.ui_element:
-            border_style = "2px solid #1976d2" if self.node.selected else "1px solid #ccc"
-            # In a production app, you'd need more sophisticated style management
-            pass
     
     # Local dragging methods
     def _start_local_drag(self, client_x: float, client_y: float):

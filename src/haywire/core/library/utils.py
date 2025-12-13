@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys
 import traceback
-from typing import Dict, Any, Optional, Type
+from typing import Type
 import re
 
 from .identity import LibraryIdentity

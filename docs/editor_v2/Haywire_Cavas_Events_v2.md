@@ -72,9 +72,9 @@ class BaseGraphEvent:
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to wire format"""
         event_data = {}
-        for field in dataclasses.fields(self):
-            if field.name not in ['source_session_id', 'timestamp', 'requires_broadcast']:
-                event_data[field.name] = getattr(self, field.name)
+        for datafield in dataclasses.fields(self):
+            if datafield.name not in ['source_session_id', 'timestamp', 'requires_broadcast']:
+                event_data[datafield.name] = getattr(self, datafield.name)
         
         return {
             'event_type': self.event_type,

@@ -20,7 +20,7 @@ defined in node decorators (e.g., menu='core/basic').
 """
 
 from nicegui import ui
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Callable
 from haywire.core.node.factory import NodeFactory
 
 
@@ -59,7 +59,7 @@ class NodeMenuBuilder:
             
             # Search functionality if requested
             if show_search:
-                search_input = ui.input(
+                ui.input(
                     placeholder='Search nodes...',
                     on_change=lambda e: self._handle_search(e.value, menu_container)
                 ).props('autofocus').classes('w-full mb-2')

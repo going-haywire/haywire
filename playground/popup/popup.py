@@ -1,5 +1,5 @@
 from nicegui import ui
-from typing import Optional, Callable, Any
+from typing import Optional, Callable
 
 class Popup:
     """

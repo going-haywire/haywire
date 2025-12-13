@@ -8,7 +8,7 @@ from enum import Enum
 import importlib
 from pathlib import Path
 import sys
-from typing import Callable, Dict, Any, Optional, Type, List, Tuple
+from typing import Dict, Any, Optional, Type, List, Tuple
 import logging
 
 from ..errors import HaywireException
@@ -218,7 +218,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         module_name=module_name,
                         library_identity=library_identity
                     ).log()
-                except Exception as logging_error:
+                except Exception:
                     logging.error(
                         f"Library '{library_identity.label}': "
                         f"Failed notifying registry : {e}",
@@ -265,7 +265,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         module_name=module_name,
                         library_identity=library_identity
                     ).log()
-                except Exception as logging_error:
+                except Exception:
                     logging.error(
                         f"Library '{library_identity.label}': "
                         f"Failed notifying registry : {e}")

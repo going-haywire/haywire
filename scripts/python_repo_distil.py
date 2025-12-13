@@ -63,8 +63,8 @@ def get_file_info(file_path):
                 end = content.find(quote_type, start + 3)
                 if end != -1:
                     docstring = content[start + 3:end].strip()
-            except:
-                pass
+            except Exception as e:
+                print(f"Failed to extract docstring from {file_path}: {e}", exc_info=True)    
                 
         return {
             'total_lines': total_lines,

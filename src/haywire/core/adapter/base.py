@@ -3,7 +3,7 @@ Base adapter classes for type conversion
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Type, override, TypeVar, Optional, Union
+from typing import Any, Callable, Type, TypeVar, Union
 from dataclasses import dataclass
 
 from haywire.core.registry.identity import BaseIdentity

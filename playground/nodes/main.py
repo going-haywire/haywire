@@ -2,11 +2,9 @@
 """
 Simple Node Graph Editor built with NiceGUI and Quasar
 """
-from nicegui import ui, app
+from nicegui import ui
 
-from utils.NodePanel import NodePanel
 from utils.NodeCanvas import NodeCanvas
-from utils.node import Node, NodeType
 from utils.Graph import GraphManager
 
 try:
@@ -46,9 +44,6 @@ def main():
     graph_manager = GraphManager(notification_service)
     
     # Add API endpoint for position updates
-    from nicegui import app
-    from starlette.requests import Request
-    import json
     
      
     # Create the main layout

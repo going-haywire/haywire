@@ -4,17 +4,15 @@ Error NodeRenderer - Based on the DefaultNodeRenderer
 This renderer provides error styling for nodes.
 """
 
-from typing import Dict, Any
 from nicegui import ui
 
-from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.renderer.decorator import renderer
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes.palette import ThemePalette
-from haywire.ui.errors.error_info import error_render_detail, render_error_info
+from haywire.ui.errors.error_info import error_render_detail
 
 
 from haywire.libraries.core.nodes.node_renderer import NodeRenderer
@@ -33,9 +31,6 @@ class ErrorNodeRenderer(NodeRenderer):
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
 
         node: BaseNode = wrapper.node
-        # Storage for UI elements and widget instances
-        ui_elements: Dict[str, Any] = {}
-        widget_instances: Dict[str, Any] = {}
         
         # Generate unique node ID for CSS scoping
         node_id = f"error-node-{id(node)}"

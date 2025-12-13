@@ -42,8 +42,8 @@ class BaseGraphEvent:
             metadata = GraphEventMetadata()
             
         event_data = {}
-        for field in dataclasses.fields(self):
-            event_data[field.name] = getattr(self, field.name)
+        for datafield in dataclasses.fields(self):
+            event_data[datafield.name] = getattr(self, datafield.name)
         
         return {
             'event_type': self.event_type,

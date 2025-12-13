@@ -5,7 +5,7 @@ This module contains actions that operate on the graph structure,
 including node and edge manipulation, positioning, and selection.
 """
 
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 
 from ....ui.utils import generate_connection_uuid
@@ -177,7 +177,7 @@ class RemoveElementsAction(ActionBase):
             if nodes:
                 super().__init__(description or f"Remove node '{nodes[0]}'")
             else:
-                super().__init__(description or f"Remove connection")
+                super().__init__(description or "Remove connection")
         else:
             super().__init__(description or f"Remove {total_count} elements")
         
@@ -393,7 +393,7 @@ class PasteClipboardAction(CompositeAction):
         
         # Add edge actions
         for connection_uuid, edge in clipboard_data.edges.items():
-            actions.append(AddEdgeAction(graph, edge, f"Paste connection"))
+            actions.append(AddEdgeAction(graph, edge, "Paste connection"))
         
         # Determine description
         node_count = len(clipboard_data.nodes)

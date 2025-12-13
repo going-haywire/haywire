@@ -10,7 +10,7 @@ filter and route at each layer of the system.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Type, Any, Set, Callable
+from typing import Optional, Type, Any, Callable
 
 from ..errors.haywire_exception import HaywireException
 from ..library.identity import LibraryIdentity

@@ -5,7 +5,7 @@ This provides a null object pattern implementation that satisfies the interface
 but performs no actual operations.
 """
 
-from typing import List, Optional
+from typing import Optional
 from .interfaces import IHistoryManager, IAction
 
 

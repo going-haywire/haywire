@@ -6,7 +6,6 @@ It uses TestData from test_a library.
 """
 
 from haywire.core.node.base import node, BaseNode
-from haywire.core.data.enums import FlowType
 from haywire.libraries.core.types.specs import FLOAT, STRING
 
 # Import the custom type from test_a library

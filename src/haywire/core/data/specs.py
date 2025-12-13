@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Optional, Type
+from typing import Any, Type
 from dataclasses import dataclass, field, replace
 
 @dataclass

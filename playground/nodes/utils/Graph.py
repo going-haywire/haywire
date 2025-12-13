@@ -2,7 +2,7 @@
 Utility functions for graph management
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import json
 from utils.node import Node, NodeType, Connection
 from services.notification_service import NotificationService, NullNotificationService

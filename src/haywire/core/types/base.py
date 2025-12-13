@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC
-from typing import TYPE_CHECKING, Generic, TypeVar, final
+from typing import Generic, TypeVar, final
 from typing_extensions import Self
 
 from ..adapter.base import BaseAdapter

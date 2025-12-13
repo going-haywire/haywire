@@ -1,11 +1,8 @@
 
-from typing import Any, Dict
 from nicegui import ui
-from nicegui.element import Element
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.base import BaseNode
 
-from haywire.ui.widget.base import BaseWidget
 from haywire.ui.renderer.decorator import renderer
 
 from haywire.libraries.core.nodes.node_renderer import NodeRenderer
@@ -17,9 +14,6 @@ class ExampleNodeRenderer(NodeRenderer):
     """Custom renderer for nodes with special styling."""
 
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
-
-        ui_elements = {}
-        widget_instances: Dict[str, BaseWidget] = {}
         
         node: BaseNode = wrapper.node
         node_id = f"example-node-{id(node)}"
@@ -69,9 +63,9 @@ class ExampleNodeRenderer(NodeRenderer):
                         for inlet in node.inlets.values():
                             with ui.row().classes('w-full items-center gap-1'):
                                 ui.label(inlet.label).classes('text-xs')
-                                if inlet.is_pooled == False:
+                                if not inlet.is_pooled:
                                     if inlet.widget:
-                                        widget = self.render_widget(inlet, wrapper.node_id)
+                                        self.render_widget(inlet, wrapper.node_id)
                 
                 # Outlets
                 with ui.column().classes('flex-1 gap-1'):

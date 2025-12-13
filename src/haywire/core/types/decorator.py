@@ -7,7 +7,7 @@ This module provides decorators for creating Haywire data types:
 - @type_: Legacy decorator (deprecated, use @primitive_type or @compound_type instead)
 """
 
-from typing import Optional, Type, TypeVar, Callable, get_type_hints
+from typing import Optional, Type, TypeVar, Callable
 from dataclasses import asdict
 
 
@@ -17,7 +17,7 @@ from .base import BaseType
 from .identity import DataTypeIdentity
 from .interface import IType
 from .base import PrimitiveType
-from .utils import is_cattrs_serializable, normalize_and_validate_default
+from .utils import normalize_and_validate_default
 
 T = TypeVar('T')
 

@@ -6,7 +6,7 @@ must implement, following the three-layer separation of concerns architecture.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Optional
 
 
 class IAction(ABC):

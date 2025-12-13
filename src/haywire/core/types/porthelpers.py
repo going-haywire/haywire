@@ -6,7 +6,7 @@ with a clean API similar to Type.as_inlet()/as_outlet().
 """
 
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from haywire.core.types.interface import IType
 from haywire.core.types.ports import PortInlet, PortOutlet

@@ -7,13 +7,12 @@ including creation, hot reload, serialization, and cleanup.
 import time
 import threading
 import logging
-from typing import Dict, List, Optional, Tuple, Callable, Any, TYPE_CHECKING
+from typing import List, Optional, Tuple, Any, TYPE_CHECKING
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
-from ..errors.haywire_exception import HaywireException
 
 if TYPE_CHECKING:
     from .base import BaseNode
@@ -161,7 +160,7 @@ class NodeWrapper:
             # Filter: Only care about events matching our registry key
             if not lc_event.matches_registry_key(self.registry_key):
                 logging.warning(
-                    f"NodeWrapper {self.node_id}: Received unrelated live cycle event for {event.registry_key}"
+                    f"NodeWrapper {self.node_id}: Received unrelated live cycle event for {lc_event.registry_key}"
                 )
                 return
                 

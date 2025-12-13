@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.types.ports import DataPort
-from haywire.core.data.fields import DataField
 from haywire.ui.widget.identity import WidgetIdentity
 
 # ============================================================================

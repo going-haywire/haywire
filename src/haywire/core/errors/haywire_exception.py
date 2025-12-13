@@ -59,7 +59,6 @@ import traceback as tb_module
 import re
 import time
 import os
-from pathlib import Path
 
 from ..library.identity import LibraryIdentity
 
@@ -764,7 +763,7 @@ class HaywireException(Exception):
         extracted.update(kwargs)
         
         return cls(
-            message=message,
+            message=message or exc_message or exc_category or "Unknown Error",
             severity=severity,
             operation=operation,
             **extracted
@@ -952,7 +951,7 @@ class HaywireException(Exception):
             f"┗{horizontal_bar}┛\n",
             f"Operation : {self.operation or 'Unknown'}",
             f"Message   : {self.message}",
-            f"-----------------------------------",
+            "-----------------------------------",
         ]
 
         if self.library_identity:
@@ -971,7 +970,7 @@ class HaywireException(Exception):
         if self.highlighted_item:
             lines.append(f"Item      : {self.highlighted_item}")
 
-        lines.append(f"")
+        lines.append("")
 
         # Find the user frame index in traceback_frames
         user_frame_index = None
@@ -1051,9 +1050,9 @@ class HaywireException(Exception):
                     for line in error_lines[1:]:
                         lines.append(f"            {line}")
                 else:
-                    lines.append(f"")
+                    lines.append("")
                     lines.append(f"Error     : {error_msg}")
-                lines.append(f"")
+                lines.append("")
             
             # Add suggestions if available
             if self.suggestions:

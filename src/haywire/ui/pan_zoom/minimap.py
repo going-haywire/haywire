@@ -1,6 +1,5 @@
 from nicegui import ui
 import uuid
-from typing import Optional, Callable
 
 
 class MinimapCanvas(ui.element):

@@ -8,12 +8,12 @@ Enhanced with customer notification system for UINode hot reload support.
 """
 
 import logging
-from typing import Any, Callable, Dict, Type, List
+from typing import Callable, Dict
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.ui.errors.error_info import error_render_detail, render_error_info
+from haywire.ui.errors.error_info import error_render_detail
 from haywire.ui.ui_nodecard import UINodeCard
 
 from ..widget.factory import WidgetFactory
@@ -99,7 +99,7 @@ class RenderFactory():
                 raise HaywireException(
                     category="Renderer Lookup Error",
                     operation="renderer_lookup",
-                    message=f"No renderer registry key provided and no default renderer has been set in the renderer registry.",
+                    message="No renderer registry key provided and no default renderer has been set in the renderer registry.",
                     suggestions=[
                         "1. Provide a valid renderer registry key",
                         "2. Set a default renderer for the registry",
@@ -165,7 +165,7 @@ class RenderFactory():
             # this might not be the key of the renderer that actually gets used due to fallback
             # to an error renderer, but its the one we are interested in for hot reloads
 
-            if _is_error_render == False:
+            if not _is_error_render:
                 # this makes sure we only track the intended renderer, not the error renderer
 
                 # cleanup previous mappings if any

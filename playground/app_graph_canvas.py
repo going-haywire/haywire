@@ -20,12 +20,6 @@ import os
 import sys
 from nicegui import ui
 
-# Add project paths
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-src_path = os.path.join(project_root, 'src')
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
 # Haywire imports
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
@@ -36,6 +30,12 @@ from haywire.ui.themes import ThemePalette
 
 # DI imports  
 from haywire.core.di.config import create_library_system_service
+
+# Add project paths
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+src_path = os.path.join(project_root, 'src')
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
 class UndoRedoTestAppWithCanvasManager:
     """Enhanced test application with dedicated GraphCanvasManager."""
@@ -113,7 +113,7 @@ class UndoRedoTestAppWithCanvasManager:
         }
         
         print(f"History manager available: {self.history_manager is not None}")
-        print(f"Editor created with change callbacks")
+        print("Editor created with change callbacks")
         print("Shared services configured successfully.")
     
     def _on_theme_changed(self, theme_name: str, theme):
@@ -386,7 +386,7 @@ class UndoRedoTestAppWithCanvasManager:
                 container.clear()
                 with container:
                     canvas_manager = session_data['canvas_manager']
-                    ui.label(f'✓ Canvas Manager Active').classes('text-green-600 text-sm')
+                    ui.label('✓ Canvas Manager Active').classes('text-green-600 text-sm')
                     ui.label(f'Visual Nodes: {len(canvas_manager.node_panels)}').classes('text-sm')
                     ui.label(f'Visual Connections: {len(canvas_manager.connection_paths)}').classes('text-sm')
             
@@ -484,7 +484,7 @@ class UndoRedoTestAppWithCanvasManager:
             if hasattr(self, 'canvas_status_container') and hasattr(self, 'canvas_manager'):
                 self.canvas_status_container.clear()
                 with self.canvas_status_container:
-                    ui.label(f'✓ Canvas Manager Active').classes('text-green-600 text-sm')
+                    ui.label('✓ Canvas Manager Active').classes('text-green-600 text-sm')
                     ui.label(f'Visual Nodes: {len(self.canvas_manager.node_panels)}').classes('text-sm')
                     ui.label(f'Visual Connections: {len(self.canvas_manager.connection_paths)}').classes('text-sm')
                     ui.label(f'Zoom: {self.canvas_manager.current_zoom:.2f}x').classes('text-sm')
@@ -655,77 +655,7 @@ class UndoRedoTestAppWithCanvasManager:
                         ui.label('Library registry not available').classes('text-gray-500')
                 else:
                     ui.label('Library service not available').classes('text-gray-500')
-    
-    def update_libraries_display_for_session(self, session_data):
-        """Update libraries display for a specific session."""
-        containers = session_data.get('ui_containers', {})
-        if 'libraries_container' in containers:
-            container = containers['libraries_container']
-            container.clear()
-            with container:
-                if hasattr(self, 'library_service') and self.library_service:
-                    library_registry = self.library_service.get_library_registry()
-                    if library_registry:
-                        library_names = library_registry.list_names()
-                        if library_names:
-                            ui.label(f'Total Libraries: {len(library_names)}').classes('text-sm font-bold')
-                            
-                            # Add bulk enable/disable buttons
-                            with ui.row().classes('w-full justify-between gap-2 mt-2 mb-3'):
-                                ui.button('Enable All', 
-                                    icon='play_arrow',
-                                    on_click=lambda: self.enable_all_libraries()
-                                ).props('size=sm color=green').classes('flex-1')
-                                ui.button('Disable All', 
-                                    icon='pause',
-                                    on_click=lambda: self.disable_all_libraries()
-                                ).props('size=sm color=orange').classes('flex-1')
-                            
-                            ui.separator()
-                            
-                            for lib_name in sorted(library_names):
-                                lib_identity = library_registry.get_library_identity(lib_name)
-                                is_enabled = library_registry.is_library_enabled(lib_name)
-                                
-                                if lib_identity:
-                                    with ui.card().classes('w-full mb-2 p-2'):
-                                        with ui.row().classes('w-full items-center justify-between'):
-                                            # Library info section
-                                            with ui.column().classes('flex-grow'):
-                                                with ui.row().classes('items-center gap-2'):
-                                                    status_icon = 'check_circle' if is_enabled else 'cancel'
-                                                    status_color = 'text-green-500' if is_enabled else 'text-red-500'
-                                                    ui.icon(status_icon).classes(f'{status_color} text-sm')
-                                                    ui.label(f'{lib_identity.label}').classes('text-sm font-medium')
-                                                
-                                                if lib_identity.version:
-                                                    ui.label(f'v{lib_identity.version}').classes('text-xs text-gray-500')
-                                                if lib_identity.description:
-                                                    ui.label(lib_identity.description).classes('text-xs text-gray-600')
-                                            
-                                            # Control buttons section
-                                            with ui.column().classes('gap-1'):
-                                                if is_enabled:
-                                                    ui.button('Disable', 
-                                                        icon='pause',
-                                                        on_click=lambda ln=lib_name: self.disable_library(ln)
-                                                    ).props('size=sm color=orange')
-                                                else:
-                                                    ui.button('Enable', 
-                                                        icon='play_arrow',
-                                                        on_click=lambda ln=lib_name: self.enable_library(ln)
-                                                    ).props('size=sm color=green')
-                                else:
-                                    with ui.row().classes('items-center gap-2'):
-                                        ui.icon('error').classes('text-red-500 text-sm')
-                                        ui.label(lib_name).classes('text-sm')
-                        else:
-                            ui.label('No libraries loaded').classes('text-gray-500')
-                    else:
-                        ui.label('Library registry not available').classes('text-gray-500')
-                else:
-                    ui.label('Library service not available').classes('text-gray-500')
-    
+        
     def update_theme_display_for_session(self, session_data):
         """Update theme display for a specific session."""
         containers = session_data.get('ui_containers', {})

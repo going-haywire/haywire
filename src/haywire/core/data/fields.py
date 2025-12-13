@@ -8,9 +8,8 @@ uniform API for different access scenarios.
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, TypeVar
 
 from haywire.core.types.base import PrimitiveType
 

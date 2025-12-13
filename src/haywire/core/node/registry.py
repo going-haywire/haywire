@@ -2,7 +2,6 @@
 
 import inspect
 import logging
-from typing import Type, Optional
 
 from ...core.registry.lifecycle_event import LifeCycleEvent
 from ..errors.haywire_exception import HaywireException

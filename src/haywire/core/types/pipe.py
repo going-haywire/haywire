@@ -1,4 +1,5 @@
 
+from typing import Any
 from .ports import PortOutlet, PortInlet
 
 # Example showing how pipes would work with multi-value inlets

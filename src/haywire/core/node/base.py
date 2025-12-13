@@ -1,25 +1,13 @@
 from __future__ import annotations
-from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, TypeVar, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Type, TypeVar, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field, asdict
 
-from ..data.enums import FlowType
-from ..data.specs import DataPortSpec
 from ..registry.identity import BaseIdentity
 from ..library.utils import derive_library_identity, reg_key
 from ..library.identity import LibraryIdentity
 from ..types.ports import DataPort, PortInlet, PortOutlet
 from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
-
-from .dataclasses import (
-    NodeBehavior, 
-    NodeErrorInfo, 
-    NodeUIConfig, 
-    NodeUIState, 
-    NodeUserMetadata
-)
-from haywire.core.types.ports import DataPort, PortInlet, PortOutlet
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper

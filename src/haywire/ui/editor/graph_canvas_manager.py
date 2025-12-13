@@ -6,22 +6,44 @@ CONSOLIDATED VERSION: Simplified drag, selection, and removal events.
 
 import traceback
 import time
-import uuid
 from typing import Dict, List, Optional, Tuple, Callable, Set
-from nicegui import ui, events
-from dataclasses import dataclass
+from nicegui import ui
 
-from haywire.core.graph.base import BaseGraph, Edge, EdgeType
+from haywire.core.graph.base import Edge
 from haywire.core.graph.editor import Editor
 from haywire.core.node.base import BaseNode
-from haywire.core.undo.actions.graph_actions import ClipboardData, PasteClipboardAction
+from haywire.core.undo.actions.graph_actions import ClipboardData
 
-from ..utils import generate_pin_uuid, parse_pin_uuid, generate_connection_uuid, parse_connection_uuid
+from ..utils import generate_connection_uuid, parse_connection_uuid
 from ..ui_node import UINode
 from ..pan_zoom.zoom_pan_vue import ZoomPanContainer
 from .graph_canvas_vue import GraphCanvasVue
 from .popup_context_menu import PopupContextMenu
-from .event_definitions import *
+from .event_definitions import (
+    BaseGraphEvent,
+    UserDragStartEvent,
+    UserDragUpdateEvent,
+    UserDragEndEvent,
+    UserRemoveEvent,
+    ConnectionCreatedEvent,
+    ConnectionClickedEvent,
+    SelectionChangedEvent,
+    ContextMenuCanvasEvent,
+    ContextMenuNodeEvent,
+    ContextMenuConnectionEvent,
+    ContextMenuSelectedEvent,
+    NodeCreateRequestEvent,
+    UserCopySelectedEvent,
+    UserPasteClipboardEvent,
+    SyncNodeObserverAddEvent,
+    SyncNodeObserverRemoveEvent,
+    SyncNodePositionEvent,
+    SyncConnectionAdditionEvent,
+    SyncConnectionRemovalEvent,
+    SyncSelectionsEvent,
+    SyncCanvasClearEvent,
+    GRAPH_EVENT_REGISTRY,
+    )
 from .event_handlers import handles_event
 
 
@@ -218,9 +240,9 @@ class GraphCanvasManager:
             event.inputNodeId,
             event.inletPinId
         ):
-            ui.notify(f"Connection created")
+            ui.notify("Connection created")
         else:
-            ui.notify(f"Failed to create connection", type='negative')
+            ui.notify("Failed to create connection", type='negative')
 
     @handles_event(ConnectionClickedEvent)
     def process_connection_click(self, event: ConnectionClickedEvent):
@@ -623,7 +645,7 @@ class GraphCanvasManager:
         if connection_uuid not in self.connection_paths:
             return False
             
-        edge = self.connection_paths[connection_uuid]
+        self.connection_paths[connection_uuid]
         
         sync_event = SyncConnectionRemovalEvent(connectionUUID=connection_uuid)
         self.canvas_vue.emit_sync_event(sync_event)

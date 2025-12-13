@@ -1,5 +1,5 @@
 import inspect
-from typing import Optional, TypeVar, Union, Type
+from typing import Optional, Type
 
 from ..library.identity import LibraryIdentity
 from ..registry.base import BaseRegistry

@@ -37,5 +37,14 @@ dev = [
     "injector>=0.22.0",
     "attrs==25.4.0",
     "cattrs==25.3.0",
-
 ]
+
+[tool.ruff]
+# Set the maximum line length to 99.
+line-length = 99
+
+[tool.ruff.lint]
+# Add the `line-too-long` rule to the enforced rule set. By default, Ruff omits rules that
+# overlap with the use of a formatter, like Black, but we can override this behavior by
+# explicitly adding the rule.
+extend-select = ["E501"]

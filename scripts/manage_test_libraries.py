@@ -134,8 +134,8 @@ def install_menu():
         status = check_installation_status(lib['name'])
         print(f"  [{key}] {lib['name']} - {status}")
     
-    print(f"  [a] Install all")
-    print(f"  [b] Back to main menu")
+    print("  [a] Install all")
+    print("  [b] Back to main menu")
     print()
     
     choice = input("Your choice: ").strip().lower()
@@ -178,8 +178,8 @@ def uninstall_menu():
         status = check_installation_status(lib['name'])
         print(f"  [{key}] {lib['name']} - {status}")
     
-    print(f"  [a] Uninstall all")
-    print(f"  [b] Back to main menu")
+    print("  [a] Uninstall all")
+    print("  [b] Back to main menu")
     print()
     
     choice = input("Your choice: ").strip().lower()

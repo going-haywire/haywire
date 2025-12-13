@@ -3,7 +3,7 @@ from nicegui import ui
 
 from haywire.core.data.enums import FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.types.ports import PortInlet, PortOutlet, DataPort
+from haywire.core.types.ports import PortInlet, DataPort
 
 from haywire.ui.renderer.base import BaseRenderer
 from haywire.ui.themes.colors import Theme_UI_Color
@@ -29,7 +29,7 @@ class NodeRenderer(BaseRenderer, ABC):
             ui.label(inlet.label).classes('text-xs zoom-pan-lod2')
 
         # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
-        if inlet.is_pooled == False:
+        if not inlet.is_pooled:
             if inlet.widget:
                 # Widget rendering adds UI element to current context automatically
                 self.render_widget(inlet, wrapper.node_id)

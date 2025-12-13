@@ -2,7 +2,7 @@
 Node Graph component for rendering the entire graph canvas
 """
 
-from typing import Dict, List, Any
+from typing import Dict, Any
 from nicegui import ui
 from utils.NodePanel import NodePanel
 from utils.node import Node

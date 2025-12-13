@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict, List, Optional, Callable
-from nicegui import ui, events
+from nicegui import ui
 from nicegui.element import Element
 
 
@@ -57,7 +57,7 @@ class LiteGraphEditor(Element):
         
         # Create the canvas element with the correct ID
         with self:
-            canvas = ui.html(f'''
+            ui.html(f'''
                 <canvas 
                     id="canvas_{self.id}"
                     ref="graphCanvas" 

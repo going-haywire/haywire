@@ -1,7 +1,6 @@
 from typing import Any
 from nicegui import ui
 
-from haywire.core.types.ports import DataPort
 
 from haywire.libraries.core.types.specs import FLOAT, INT
 from haywire.ui.widget.base import BaseWidget
@@ -81,7 +80,7 @@ class TemperatureWidget(BaseWidget):
         )
     
     def create_element(self) -> Any:
-        with ui.column().classes('w-full') as wrapper:
+        with ui.column().classes('w-full'):
             # Main input
             number_kwargs = {
                 'value': 0,

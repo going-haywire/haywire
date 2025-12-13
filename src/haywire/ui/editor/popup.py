@@ -1,5 +1,5 @@
-from nicegui import ui, app
-from typing import Optional, Callable, Any
+from nicegui import ui
+from typing import Optional, Callable
 
 class Popup:
     """
@@ -67,7 +67,7 @@ class Popup:
         # Determine positioning style
         if self.position_x is not None and self.position_y is not None:
             # Context menu positioning
-            popup_style = f'''
+            popup_style = '''
                 position: fixed; 
                 top: 0; 
                 left: 0; 

@@ -8,8 +8,8 @@ from __future__ import annotations
 import sys
 import logging
 from pathlib import Path
-from typing import Iterator, Tuple
-from importlib.metadata import entry_points, EntryPoint, PackageNotFoundError
+from typing import Tuple
+from importlib.metadata import entry_points, EntryPoint
 from importlib import import_module
 from dataclasses import dataclass
 from enum import Enum

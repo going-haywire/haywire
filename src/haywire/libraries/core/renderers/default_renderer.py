@@ -4,15 +4,11 @@ Default NodeRenderer
 This renderer provides the standard node appearance and functionality
 """
 
-from typing import Dict, Any
 from nicegui import ui
-from nicegui.element import Element
 
 from haywire.core.node.node_wrapper import NodeWrapper
 
-from haywire.ui.widget.base import BaseWidget
 from haywire.ui.renderer.decorator import renderer
-from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes import ThemePalette
 
@@ -31,13 +27,10 @@ class DefaultNodeRenderer(NodeRenderer):
     
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
         node = wrapper.node
-        # Storage for UI elements and widget instances
-        ui_elements: Dict[str, Any] = {}
-        widget_instances: Dict[str, BaseWidget] = {}
 
         node_bg = ThemePalette.ui(Theme_UI_Color.NODE_BACKGROUND, 'rgba(255, 255, 255, 0.3)')
         main_card.classes(
-            f'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
+            'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
         ).style(
             f'background-color: {node_bg}; backdrop-filter: blur(10px);'
         )        

@@ -1,15 +1,13 @@
-import logging
-from typing import Callable, List
+from typing import Callable
 
 import nicegui.ui as ui
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.node.dataclasses import NodeErrorInfo
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
-from haywire.core.types.ports import DataPort, PortInlet
+from haywire.core.types.ports import DataPort
 from haywire.ui.widget.interface import IWidget
 from haywire.ui.widget.registry import WidgetRegistry
-from haywire.ui.errors.error_info import error_render_detail, render_error_info
+from haywire.ui.errors.error_info import error_render_detail
 from haywire.ui.widget.factory_interface import IWidgetFactory
 
 NodeIDsBatchCallback = Callable[[set[str]], None]

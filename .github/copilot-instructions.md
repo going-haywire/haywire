@@ -174,3 +174,68 @@ Based on `open_issues.md`:
 - **Module System**: Python import mechanics for node discovery
 
 This architecture prioritizes modularity, performance, and extensibility while maintaining clear separation between execution logic and UI concerns.
+
+## Code Style: Line Length (99 character limit)
+
+**Breaking Long Lines - Priority Order:**
+
+1. **Imports**: One per line in parentheses
+```python
+   from module import (
+       ClassA,
+       ClassB,
+   )
+```
+
+2. **Function Signatures**: Break after parameters
+```python
+   def my_function(
+       param1: str,
+       param2: int,
+       param3: Optional[Dict] = None
+   ) -> ReturnType:
+```
+
+3. **Function Calls**: Break after opening parenthesis
+```python
+   result = some_function(
+       arg1="value",
+       arg2=complex_expression,
+       arg3=another_value
+   )
+```
+
+4. **Strings**: Use implicit concatenation
+```python
+   message = (
+       f"First part {variable} "
+       f"second part {another_var} "
+       "third part"
+   )
+```
+
+5. **Conditionals**: Extract to named variable
+```python
+   is_valid = (
+       condition1 
+       and condition2 
+       and not condition3
+   )
+   if is_valid:
+```
+
+6. **UI Class Chains**: Break at natural boundaries
+```python
+   element.classes(
+       'class1 class2 class3 '
+       'class4 class5 class6'
+   )
+```
+
+7. **Comments**: Move inline comments to line above
+```python
+   # This is what the variable does
+   variable = value
+```
+
+**Never sacrifice readability for line length compliance.**

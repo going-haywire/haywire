@@ -16,7 +16,14 @@ from haywire.core.graph.base import BaseGraph, Edge, EdgeType
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.factory import NodeFactory
 from haywire.core.undo.interfaces import IHistoryManager
-from haywire.core.undo.actions.graph_actions import *
+from haywire.core.undo.actions.graph_actions import (
+    ChangeSelectionAction,
+    AddNodeAction,
+    MoveNodesAction,
+    RemoveElementsAction,
+    AddEdgeAction,
+    SelectionState
+)
 
 class Editor:
     """

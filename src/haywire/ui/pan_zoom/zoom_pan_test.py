@@ -153,7 +153,7 @@ def main():
                 create_zoom_pan_controls(zoom_container)
                 create_zoom_pan_info(zoom_container)
 
-                minimap = MinimapCanvas(
+                MinimapCanvas(
                     zoom_container,
                     width=200,
                     position='top-right',

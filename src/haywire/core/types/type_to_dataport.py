@@ -1,5 +1,5 @@
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from ..data.enums import FlowType
 from haywire.core.types.utils import create_port_base
 

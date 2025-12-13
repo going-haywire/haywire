@@ -147,7 +147,7 @@ class TypeRegistry(BaseRegistry):
         if type_cls is None:
             return False
         
-        identity = type_cls.class_identity
+        #identity = type_cls.class_identity
                
         # For custom compound types, check direct isinstance
         return isinstance(instance, type_cls)

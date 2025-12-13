@@ -2,7 +2,7 @@
 Display widgets for read-only data visualization
 """
 
-from typing import Any, Dict
+from typing import Any
 from nicegui import ui
 
 from haywire.ui.widget.base import BaseWidget

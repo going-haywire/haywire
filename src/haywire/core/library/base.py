@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Dict, List, Tuple, Type, TypeVar, Optional, Union
+from typing import Dict, List, Tuple, Type, Optional
 
 from haywire.core.library.file_watcher import FileWatcher
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.registry.base import BaseRegistry, FileChangeEvent
+from haywire.core.registry.base import BaseRegistry
 
 # ============================================================================
 #    BASE CLASS

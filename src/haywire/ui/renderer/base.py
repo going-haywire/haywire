@@ -61,7 +61,7 @@ class BaseRenderer(IBaseRenderer, ABC):
 
             return node_card
         
-        except Exception as error:
+        except Exception:
             # Clean up any partially created UI elements
             if main_card is not None:
                 try:

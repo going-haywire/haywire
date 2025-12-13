@@ -1,4 +1,4 @@
-from nicegui import ui, events
+from nicegui import ui
 import uuid
 
 from .zoom_pan_vue import ZoomPanContainer

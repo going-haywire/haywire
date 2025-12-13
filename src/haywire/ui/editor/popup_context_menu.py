@@ -9,8 +9,8 @@ This component provides context menus for different elements in the graph canvas
 Uses the enhanced Popup class that creates elements at page root level to avoid zoom/transform inheritance.
 """
 
-from nicegui import ui, app, events
-from typing import Dict, List, Optional, Callable
+from nicegui import ui
+from typing import List, Optional, Callable
 
 from haywire.core.graph.editor import Editor
 

@@ -2,8 +2,8 @@
 Base classes and protocols for theme system.
 """
 
-from typing import Protocol, Dict, Optional, Callable, Any
-from dataclasses import dataclass, field
+from typing import Dict, Optional, Callable
+from dataclasses import dataclass
 
 
 @dataclass

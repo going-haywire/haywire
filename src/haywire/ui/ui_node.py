@@ -9,7 +9,7 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 """
 
 import logging
-from typing import Any, Callable, Optional, TYPE_CHECKING, List
+from typing import Any, Callable, Optional
 from nicegui import ui
 from haywire.core.node.base import BaseNode
 from haywire.core.errors.haywire_exception import HaywireException
@@ -201,7 +201,7 @@ class UINode:
 
                 self.container_slot = None
 
-                error = HaywireException.from_exception(
+                HaywireException.from_exception(
                     exception=e,
                     message=f"FATAL Error rendering node: {e}",
                     category="FATAL Rendering Error",
@@ -283,8 +283,8 @@ class UINode:
                 self.container_slot.clear()
                 # Optionally remove the container itself
                 self.container_slot.delete()
-            except:
-                pass  # Element might already be deleted
+            except Exception as e:
+                self.logger.warning(f"Failed to clean up container slot: {e}", exc_info=True)
             self.container_slot = None
         
         # Clear references

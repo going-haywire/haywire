@@ -10,7 +10,6 @@ Tests all loading priorities:
 """
 
 import sys
-import os
 from pathlib import Path
 
 # Add project to path

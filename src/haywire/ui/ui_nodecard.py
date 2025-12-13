@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from haywire.ui.widget.base import BaseWidget
 

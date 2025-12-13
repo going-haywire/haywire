@@ -6,7 +6,7 @@ with type specification for all data that can flow through ports.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Type
+from typing import Any
 
 from ..registry.identity import BaseIdentity
 from ..data.enums import FlowType

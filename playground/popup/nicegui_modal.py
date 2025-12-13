@@ -1,5 +1,4 @@
 from nicegui import ui
-from typing import Optional, Callable, Any
 from popup import Popup
 
 
@@ -8,7 +7,7 @@ def show_settings_modal():
     """Example: Settings modal"""
     popup_instance = Popup(title="Settings", width="500px", closable=True)
     
-    with popup_instance as popup:
+    with popup_instance:
         ui.label("Configure your preferences:")
         ui.separator()
         
@@ -30,7 +29,7 @@ def show_confirmation_modal():
     """Example: Confirmation modal"""
     popup_instance = Popup(title="Confirm Action", width="350px", backdrop_click_close=False)
     
-    with popup_instance as popup:
+    with popup_instance:
         ui.label("Are you sure you want to delete this item?")
         ui.label("This action cannot be undone.").style('color: #666; font-size: 0.9em;')
         
@@ -46,7 +45,7 @@ def show_form_modal():
     """Example: Form modal"""
     popup_instance = Popup(title="Add New Item", width="600px", height="400px")
     
-    with popup_instance as popup:
+    with popup_instance:
         with ui.column().classes('w-full gap-4'):
             ui.input('Title', placeholder='Enter title').classes('w-full')
             ui.textarea('Description', placeholder='Enter description').classes('w-full')

@@ -1,6 +1,5 @@
 import os
 from typing import Any
-import uuid
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException

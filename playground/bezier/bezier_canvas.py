@@ -1,9 +1,9 @@
 # bezier_canvas_new.py - Interactive Image pattern implementation
 import uuid
-from typing import Callable, Optional, List, Dict, Any, Tuple
+from typing import Callable, Optional, Dict, Any, Tuple
 from nicegui import ui
 from nicegui.element import Element
-from nicegui.events import GenericEventArguments, MouseEventArguments, handle_event
+from nicegui.events import GenericEventArguments, handle_event
 
 class BezierCanvas(Element, component='bezier_canvas.js'):
     """

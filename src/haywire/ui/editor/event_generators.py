@@ -7,8 +7,8 @@ ensuring consistency between frontend and backend event handling.
 
 import dataclasses
 import os
-from typing import Dict, Any, List
-from .event_definitions import GRAPH_EVENT_REGISTRY, BaseGraphEvent
+from typing import Dict
+from .event_definitions import GRAPH_EVENT_REGISTRY
 
 class VueEventGenerator:
     @staticmethod
