@@ -66,7 +66,10 @@ class GraphManager:
             for conn_id, connection in self.connections.items():
                 # Check if connection involves any port of this node
                 for port in node.inputs + node.outputs:
-                    if connection.source_port_id == port.id or connection.target_port_id == port.id:
+                    if (
+                        connection.source_port_id == port.id or 
+                        connection.target_port_id == port.id
+                    ):
                         connections_to_remove.append(conn_id)
                         break
             

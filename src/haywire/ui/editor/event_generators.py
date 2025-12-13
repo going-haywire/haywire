@@ -24,8 +24,10 @@ class VueEventGenerator:
                 'type': event_type,
                 'class_name': event_class.__name__,
                 'description': getattr(event_class, 'description', ''),
-                'fields': [f.name for f in dataclasses.fields(event_class) 
-                          if f.name not in ['source_session_id', 'timestamp', 'requires_broadcast']]
+                'fields': [
+                    f.name for f in dataclasses.fields(event_class) 
+                    if f.name not in ['source_session_id', 'timestamp', 'requires_broadcast']
+                ]
             }
             
             if getattr(event_class, 'category', 'user') == 'user':
@@ -77,7 +79,10 @@ export interface {interface_name} {{'''
                 
                 # Add fields (simplified type mapping)
                 for field in fields:
-                    field_type = VueEventGenerator._get_typescript_type(field, info.get('field_types', {}))
+                    field_type = VueEventGenerator._get_typescript_type(
+                        field,
+                        info.get('field_types', {})
+                    )
                     interface += f'''
   {field}: {field_type};'''
                 

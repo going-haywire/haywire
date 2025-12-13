@@ -1,19 +1,4 @@
 """
-NodeMenuBuilder - Creates hierarchical NiceGUI menus fro                # Create "Add Nodes" button with complete menu
-                with ui.button("➕ Add Nodes").props('flat') \
-                    .classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'):
-                    with ui.menu() as main_menu:
-                        # Add recent nodes section if provided
-                        if recent_nodes:
-                            self._add_recent_nodes_section(recent_nodes, on_node_selected)
-                            ui.separator()
-                        
-                        # Build hierarchical menu
-                        self._build_hierarchical_menu(on_node_selected)
-                        
-                        # Add global menu leave behavior
-                        main_menu.on('mouseleave', self._create_global_menu_leave_handler())ry data
-
 This component builds organized, hierarchical menus using node identity information
 from the NodeFactory, creating nested ui.menu structures based on the menu paths
 defined in node decorators (e.g., menu='core/basic').
@@ -112,7 +97,9 @@ class NodeMenuBuilder:
             if not results:
                 ui.label('No nodes found').classes('text-gray-500 text-sm p-2')
             else:
-                ui.label(f'Found {len(results)} node(s)').classes('text-xs font-semibold text-gray-600 mb-2')
+                ui.label(f'Found {len(results)} node(s)').classes(
+                    'text-xs font-semibold text-gray-600 mb-2'
+                )
                 
                 for node_info in results[:10]:  # Limit to 10 results
                     self._create_search_result_item(node_info)
@@ -126,7 +113,10 @@ class NodeMenuBuilder:
             on_click=lambda ni=node_info: self._on_node_selected(ni['key'])
         )
         btn.props('flat align=left')
-        btn.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+        btn.classes(
+            'w-full justify-start px-3 py-2 '
+            'text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'
+        )
         
         # Add library badge
         with btn:
@@ -137,7 +127,11 @@ class NodeMenuBuilder:
         tooltip_text = f"{description}\nLibrary: {library_id}"
         btn.tooltip(tooltip_text)
     
-    def _add_recent_nodes_section(self, recent_nodes: List[str], on_node_selected: Callable[[str], None]):
+    def _add_recent_nodes_section(
+        self,
+        recent_nodes: List[str],
+        on_node_selected: Callable[[str], None]
+    ):
         """Add section for recently created nodes using native menu with hover functionality."""
         if not recent_nodes:
             return
@@ -209,7 +203,12 @@ class NodeMenuBuilder:
         self._menu_tree_cache = tree
         return tree
     
-    def _create_menu_tree_ui(self, menu_tree: Dict, on_node_selected: Callable[[str], None], level: int = 0):
+    def _create_menu_tree_ui(
+        self,
+        menu_tree: Dict,
+        on_node_selected: Callable[[str], None],
+        level: int = 0
+    ):
         """Create UI elements for the menu tree using native ui.menu components."""
         for category_name, category_data in sorted(menu_tree.items()):
             nodes = category_data.get('_nodes', [])
@@ -229,8 +228,15 @@ class NodeMenuBuilder:
                 # Category only has direct nodes
                 self._create_leaf_category_menu(category_name, nodes, on_node_selected)
     
-    def _create_mixed_category_menu(self, category_name: str, nodes: List[Dict], children: Dict, on_node_selected: Callable[[str], None]):
-        """Create menu for category that has both direct nodes and subcategories with hover functionality."""
+    def _create_mixed_category_menu(
+        self,
+        category_name: str,
+        nodes: List[Dict],
+        children: Dict,
+        on_node_selected: Callable[[str], None]
+    ):
+        """Create menu for category that has both direct nodes and 
+        subcategories with hover functionality."""
         with ui.menu_item(f"📁 {category_name}", auto_close=False) as menu_item:
             with ui.item_section().props('side'):
                 ui.icon('keyboard_arrow_right')
@@ -254,7 +260,12 @@ class NodeMenuBuilder:
             # Add hover functionality with better mouse handling
             self._add_hover_behavior(menu_item, submenu)
 
-    def _create_submenu_category(self, category_name: str, children: Dict, on_node_selected: Callable[[str], None]):
+    def _create_submenu_category(
+        self,
+        category_name: str,
+        children: Dict,
+        on_node_selected: Callable[[str], None]
+    ):
         """Create menu for category that only has subcategories with hover functionality."""
         with ui.menu_item(f"📁 {category_name}", auto_close=False) as menu_item:
             with ui.item_section().props('side'):
@@ -269,7 +280,12 @@ class NodeMenuBuilder:
             # Add hover functionality with better mouse handling
             self._add_hover_behavior(menu_item, submenu)
 
-    def _create_leaf_category_menu(self, category_name: str, nodes: List[Dict], on_node_selected: Callable[[str], None]):
+    def _create_leaf_category_menu(
+        self,
+        category_name: str,
+        nodes: List[Dict],
+        on_node_selected: Callable[[str], None]
+    ):
         """Create menu for category that only has direct nodes with hover functionality."""
         with ui.menu_item(f"📁 {category_name}", auto_close=False) as menu_item:
             with ui.item_section().props('side'):
@@ -284,7 +300,12 @@ class NodeMenuBuilder:
             # Add hover functionality with better mouse handling
             self._add_hover_behavior(menu_item, submenu)
 
-    def _create_submenu_item(self, subcat_name: str, subcat_data: Dict, on_node_selected: Callable[[str], None]):
+    def _create_submenu_item(
+        self,
+        subcat_name: str,
+        subcat_data: Dict,
+        on_node_selected: Callable[[str], None]
+    ):
         """Create a submenu item for a subcategory with hover functionality."""
         subnodes = subcat_data.get('_nodes', [])
         subchildren = subcat_data.get('_children', {})
@@ -314,7 +335,11 @@ class NodeMenuBuilder:
             # Add hover functionality with better mouse handling
             self._add_hover_behavior(menu_item, submenu)
 
-    def _create_menu_item_for_node(self, node_info: Dict[str, str], on_node_selected: Callable[[str], None]):
+    def _create_menu_item_for_node(
+        self,
+        node_info: Dict[str, str],
+        on_node_selected: Callable[[str], None]
+    ):
         """Create a menu item for a single node."""
         # Get the correct key field
         registry_key = node_info.get('registry_key') or node_info.get('key')
@@ -388,7 +413,11 @@ class NodeMenuBuilder:
         
         return lambda: asyncio.create_task(close_all_submenus())
 
-    def _create_node_button(self, node_info: Dict[str, str], on_node_selected: Callable[[str], None]):
+    def _create_node_button(
+        self,
+        node_info: Dict[str, str],
+        on_node_selected: Callable[[str], None]
+    ):
         """Create a button for a single node (used in recent nodes section)."""
         # Get the correct key field
         registry_key = node_info.get('registry_key') or node_info.get('key')
@@ -398,7 +427,10 @@ class NodeMenuBuilder:
             on_click=lambda rk=registry_key: on_node_selected(rk)
         )
         btn.props('flat align=left')
-        btn.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+        btn.classes(
+            'w-full justify-start px-3 py-2 '
+            'text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'
+        )
         
         # Add tooltip with description and tags if available
         if node_info.get('description'):

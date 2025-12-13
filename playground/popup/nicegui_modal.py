@@ -21,7 +21,12 @@ def show_settings_modal():
         
         with ui.row().classes('w-full justify-end gap-2'):
             ui.button('Cancel', on_click=lambda: popup_instance.close()).props('flat')
-            ui.button('Save', on_click=lambda: (ui.notify('Settings saved!'), popup_instance.close()))
+            ui.button(
+                'Save', 
+                on_click=lambda: (
+                    ui.notify('Settings saved!'), popup_instance.close()
+                )
+            )
     
     popup_instance.open()
 
@@ -37,7 +42,12 @@ def show_confirmation_modal():
         
         with ui.row().classes('w-full justify-end gap-2'):
             ui.button('Cancel', on_click=lambda: popup_instance.close()).props('flat')
-            ui.button('Delete', on_click=lambda: (ui.notify('Item deleted!'), popup_instance.close())).props('color=negative')
+            ui.button(
+                'Delete', 
+                on_click=lambda: (
+                    ui.notify('Item deleted!'), popup_instance.close()
+                )
+            ).props('color=negative')
     
     popup_instance.open()
 
@@ -58,7 +68,12 @@ def show_form_modal():
             ui.button('Reset Form', on_click=lambda: ui.notify('Form reset')).props('flat')
             with ui.row().classes('gap-2'):
                 ui.button('Cancel', on_click=lambda: popup_instance.close()).props('flat')
-                ui.button('Create', on_click=lambda: (ui.notify('Item created!'), popup_instance.close()))
+                ui.button(
+                    'Create', 
+                    on_click=lambda: (
+                        ui.notify('Item created!'), popup_instance.close()
+                    )
+                )
 
     popup_instance.open()
 
@@ -80,7 +95,12 @@ def show_custom_styled_modal():
         ui.label("You can customize colors, gradients, and more.")
         
         with ui.row().classes('w-full justify-center mt-4'):
-            ui.button('Close', on_click=lambda: popup_instance.close()).style('background: rgba(255,255,255,0.2); color: white;')
+            ui.button(
+                'Close', 
+                on_click=lambda: popup_instance.close()
+            ).style(
+                'background: rgba(255,255,255,0.2); color: white;'
+            )
     
     # Set a close callback
     popup_instance.on_close(lambda: ui.notify('Custom modal closed!'))
@@ -89,7 +109,9 @@ def show_custom_styled_modal():
 
 # Demo application
 if __name__ in {"__main__", "__mp_main__"}:
-    ui.label('Custom Modal Component Demo').style('font-size: 1.5em; font-weight: bold; margin-bottom: 20px;')
+    ui.label(
+        'Custom Modal Component Demo'
+    ).style('font-size: 1.5em; font-weight: bold; margin-bottom: 20px;')
     
     with ui.row().classes('gap-4'):
         ui.button('Settings Modal', on_click=show_settings_modal)

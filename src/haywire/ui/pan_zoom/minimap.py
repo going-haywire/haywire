@@ -82,11 +82,21 @@ class MinimapCanvas(ui.element):
         # Create canvas and toggle button
         with self:
             self.canvas = ui.element('canvas')
-            self.canvas.props(f'id="{self.canvas_id}" width="{self.minimap_width}" height="{self.minimap_height}"')
+            self.canvas.props(
+                f'id="{self.canvas_id}" '
+                f'width="{self.minimap_width}" '
+                f'height="{self.minimap_height}"'
+            )
             self.canvas.style('display: block; width: 100%; height: 100%;')
             
-            self.toggle_btn = ui.button('×', on_click=self.toggle_visibility).props('round dense size=xs')
-            self.toggle_btn.style('position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; min-width: 16px;')
+            self.toggle_btn = ui.button(
+                '×',
+                on_click=self.toggle_visibility
+            ).props('round dense size=xs')
+            self.toggle_btn.style(
+                'position: absolute; top: -8px; right: -8px; '
+                'width: 16px; height: 16px; min-width: 16px;'
+            )
             self.toggle_btn.classes('bg-gray-600 text-white text-xs')
 
     def _inject_styles(self) -> None:
@@ -147,7 +157,9 @@ class MinimapCanvas(ui.element):
                 }}
                 
                 function updateViewport(zoom, panX, panY) {{
-                    const mainContainer = document.getElementById('{self.zoom_container.container_id}');
+                    const mainContainer = document.getElementById(
+                        '{self.zoom_container.container_id}'
+                    );
                     if (!mainContainer) return;
                     
                     const containerRect = mainContainer.getBoundingClientRect();
@@ -161,7 +173,12 @@ class MinimapCanvas(ui.element):
                     const minimapWidth = Math.max(2, viewWidth * scaleFactor);
                     const minimapHeight = Math.max(2, viewHeight * scaleFactor);
                     
-                    viewportRect = {{ x: minimapX, y: minimapY, width: minimapWidth, height: minimapHeight }};
+                    viewportRect = {{ 
+                        x: minimapX, 
+                        y: minimapY, 
+                        width: minimapWidth, 
+                        height: minimapHeight 
+                    }};
                     drawMinimap();
                 }}
                 
@@ -192,7 +209,8 @@ class MinimapCanvas(ui.element):
                     
                     for (let x = boundsX; x < boundsX + boundsWidth; x += gridSpacing) {{
                         for (let y = boundsY; y < boundsY + boundsHeight; y += gridSpacing) {{
-                            if (x + gridSize <= boundsX + boundsWidth && y + gridSize <= boundsY + boundsHeight) {{
+                            if (x + gridSize <= boundsX + boundsWidth && 
+                                y + gridSize <= boundsY + boundsHeight) {{
                                 ctx.fillRect(x, y, gridSize, gridSize);
                             }}
                         }}
@@ -205,16 +223,24 @@ class MinimapCanvas(ui.element):
                     
                     const clampedX = Math.max(0, Math.min(viewportRect.x, {self.minimap_width}));
                     const clampedY = Math.max(0, Math.min(viewportRect.y, {self.minimap_height}));
-                    const clampedWidth = Math.max(1, Math.min(viewportRect.width, {self.minimap_width} - clampedX));
-                    const clampedHeight = Math.max(1, Math.min(viewportRect.height, {self.minimap_height} - clampedY));
+                    const clampedWidth = Math.max(
+                        1, 
+                        Math.min(viewportRect.width, {self.minimap_width} - clampedX)
+                    );
+                    const clampedHeight = Math.max(
+                        1, 
+                        Math.min(viewportRect.height, {self.minimap_height} - clampedY)
+                    );
                     
                     ctx.fillRect(clampedX, clampedY, clampedWidth, clampedHeight);
                     ctx.strokeRect(clampedX, clampedY, clampedWidth, clampedHeight);
                 }}
                 
                 function minimapToContent(minimapX, minimapY) {{
-                    const contentX = contentBounds.minX + (minimapX - MINIMAP_PADDING) / scaleFactor;
-                    const contentY = contentBounds.minY + (minimapY - MINIMAP_PADDING) / scaleFactor;
+                    const contentX = contentBounds.minX + 
+                        (minimapX - MINIMAP_PADDING) / scaleFactor;
+                    const contentY = contentBounds.minY + 
+                        (minimapY - MINIMAP_PADDING) / scaleFactor;
                     return {{ x: contentX, y: contentY }};
                 }}
                 
@@ -225,7 +251,9 @@ class MinimapCanvas(ui.element):
                     const minimapY = e.clientY - rect.top;
                     const contentPos = minimapToContent(minimapX, minimapY);
                     
-                    const mainContainer = document.getElementById('{self.zoom_container.container_id}');
+                    const mainContainer = document.getElementById(
+                        '{self.zoom_container.container_id}'
+                    );
                     if (mainContainer && mainContainer._zoomPanControls) {{
                         const containerRect = mainContainer.getBoundingClientRect();
                         const currentZoom = mainContainer._zoomPanControls.getZoom();
@@ -296,14 +324,18 @@ class MinimapCanvas(ui.element):
         ui.run_javascript(script)
     
     def _scan_content(self) -> None:
-        """Scan content and update minimap."""
+        """Scan content and update minimap bounds."""
         ui.run_javascript(f'''
-            const container = document.getElementById('{self.zoom_container.container_id}');
+            const container = document.getElementById(
+                '{self.zoom_container.container_id}'
+            );
             const content = container ? container.querySelector('.zoom-pan-content') : null;
             
             if (content) {{
                 // Scan content and update bounds
-                const elements = content.querySelectorAll('.zoomable-card, .card, [class*="card"], [class*="item"]');
+                const elements = content.querySelectorAll(
+                    '.zoomable-card, .card, [class*="card"], [class*="item"]'
+                );
                 
                 let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
                 
@@ -319,7 +351,9 @@ class MinimapCanvas(ui.element):
                         let currentPanY = 0;
                         
                         if (transform) {{
-                            const translateMatch = transform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
+                            const translateMatch = transform.match(
+                                /translate\\(([^,]+),\\s*([^)]+)\\)/
+                            );
                             const scaleMatch = transform.match(/scale\\(([^)]+)\\)/);
                             
                             if (translateMatch) {{
@@ -392,7 +426,8 @@ class MinimapCanvas(ui.element):
         ui.run_javascript(f'''
             const minimap = document.getElementById('{self.minimap_id}');
             if (minimap) {{
-                minimap.style.cssText += '{position_styles.get(position, position_styles["top-right"])}';
+                minimap.style.cssText += 
+                    '{position_styles.get(position, position_styles["top-right"])}';
             }}
         ''')
     
@@ -426,7 +461,8 @@ class MinimapCanvas(ui.element):
             const minimap = document.getElementById('{self.minimap_id}');
             const mainContainer = document.getElementById('{self.zoom_container.container_id}');
             
-            if (minimap && minimap._minimapControls && mainContainer && mainContainer._zoomPanControls) {{
+            if (minimap && minimap._minimapControls && 
+                mainContainer && mainContainer._zoomPanControls) {{
                 const currentZoom = mainContainer._zoomPanControls.getZoom();
                 const currentPan = mainContainer._zoomPanControls.getPan();
                 

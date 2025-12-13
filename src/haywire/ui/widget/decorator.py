@@ -57,7 +57,10 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, IWidget):
-            raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
+            raise TypeError(
+                f"@widget can only be applied to BaseWidget subclasses, "
+                f"got {inner_cls}"
+            )
 
         if 'compatible_types' not in kwargs:
             raise ValueError("'compatible_types' must be provided when registering a widget")
@@ -67,7 +70,8 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
         
         types = kwargs['compatible_types']
 
-        # However, we allow no type constraints. This has to be explicit by setting an empty set/list.
+        # However, we allow no type constraints. 
+        # This has to be explicit by setting an empty set/list.
 
         for typ in types:
             if not issubclass(typ, IType):

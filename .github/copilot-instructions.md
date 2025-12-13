@@ -238,4 +238,22 @@ This architecture prioritizes modularity, performance, and extensibility while m
    variable = value
 ```
 
+8. **Dictionaries/Lists**: One item per line
+```python
+   my_dict = {
+       'key1': value1,
+       'key2': value2,
+       'key3': value3,
+   }
+```
+
+9. **Ternary Expressions**: Use full if-else
+```python
+self.ui_properties: dict = (
+    element.ui.get('properties', {}) 
+    if hasattr(element, 'ui') 
+    else {}
+)
+````
+
 **Never sacrifice readability for line length compliance.**

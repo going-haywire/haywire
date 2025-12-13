@@ -15,7 +15,12 @@ from typing import Any, Callable, List, Optional
 
 from haywire.core.types.ports import DataPort
 from haywire.core.data.fields import PrimitiveField, ComplexField, PooledField, ArrayField
-from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter, UpdateTrigger
+from haywire.ui.widget.converters import (
+    BindingConverter,
+    BindingMode,
+    PrimitiveUnwrappingConverter,
+    UpdateTrigger
+)
 
 
 @dataclass

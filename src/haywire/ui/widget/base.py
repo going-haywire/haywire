@@ -4,7 +4,11 @@ from typing import Any, Dict, List, Optional
 
 from haywire.core.types.ports import DataPort
 from haywire.ui.widget.binding import PropertyBinding
-from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
+from haywire.ui.widget.converters import (
+    BindingConverter,
+    BindingMode,
+    PrimitiveUnwrappingConverter
+)
 from haywire.ui.widget.interface import IWidget
 
 # ============================================================================
@@ -34,7 +38,11 @@ class BaseWidget(IWidget, ABC):
         """
         self.element = element
         self.element_id: str = element.id
-        self.ui_properties: Dict[str, Any] = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}
+        self.ui_properties: Dict[str, Any] = (
+            element.ui.get('properties', {}) 
+            if hasattr(element, 'ui') 
+            else {}
+        )
         
         # UI element (created during render)
         self.ui_element: Optional[Any] = None
@@ -183,7 +191,8 @@ class BaseWidget(IWidget, ABC):
     
     def cleanup(self) -> None:
         """Clean up bindings and resources"""
-        print(f"Cleaning up widget: {self.class_identity.registry_key} for element ID: {self.element_id}")
+        print(f"Cleaning up widget: {self.class_identity.registry_key} "
+              f"for element ID: {self.element_id}")
         
         # Deactivate all bindings
         for bindings_list in self._bindings.values():

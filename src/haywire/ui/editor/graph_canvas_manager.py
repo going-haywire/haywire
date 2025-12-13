@@ -221,7 +221,10 @@ class GraphCanvasManager:
     def process_element_removal(self, event: UserRemoveEvent):
         """Handle unified element removal"""
         total_elements = len(event.nodes) + len(event.connections)
-        print(f"🗑️ Removing {total_elements} elements: {len(event.nodes)} nodes, {len(event.connections)} connections")
+        print(
+            f"🗑️ Removing {total_elements} elements: "
+            f"{len(event.nodes)} nodes, {len(event.connections)} connections"
+        )
         
         # Use the new unified removal method
         if self.editor.remove_elements(event.nodes, event.connections):
@@ -232,7 +235,10 @@ class GraphCanvasManager:
     @handles_event(ConnectionCreatedEvent)
     def process_connection_creation(self, event: ConnectionCreatedEvent):
         """Handle connection creation"""
-        print(f"Creating connection: {event.outputNodeId}:{event.outletPinId} -> {event.inputNodeId}:{event.inletPinId}")
+        print(
+            f"Creating connection: {event.outputNodeId}:{event.outletPinId} -> "
+            f"{event.inputNodeId}:{event.inletPinId}"
+        )
 
         if self.editor.create_connection(
             event.outputNodeId,
@@ -255,7 +261,10 @@ class GraphCanvasManager:
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Handle selection changes"""
-        print(f"Selection changed: nodes={event.selectedNodes}, connections={event.selectedConnections}")
+        print(
+            f"Selection changed: nodes={event.selectedNodes}, "
+            f"connections={event.selectedConnections}"
+        )
         
         # Create new selection state
         selected_nodes_set = set(event.selectedNodes)
@@ -278,13 +287,23 @@ class GraphCanvasManager:
         self.selected_nodes = selected_nodes_set
         self.selected_connections = selected_connections_set
     
-    @handles_event(ContextMenuCanvasEvent, ContextMenuNodeEvent, ContextMenuConnectionEvent, ContextMenuSelectedEvent)
+    @handles_event(
+        ContextMenuCanvasEvent,
+        ContextMenuNodeEvent,
+        ContextMenuConnectionEvent,
+        ContextMenuSelectedEvent
+    )
     def process_context_menu(self, event):
         """Handle context menu events"""
         if isinstance(event, ContextMenuCanvasEvent):
             print(f"Canvas context menu at ({event.screenX}, {event.screenY})")
             if self.context_menu:
-                self.context_menu.show_canvas_menu(event.screenX, event.screenY, event.canvasX, event.canvasY)
+                self.context_menu.show_canvas_menu(
+                    event.screenX,
+                    event.screenY,
+                    event.canvasX,
+                    event.canvasY
+                )
             
         elif isinstance(event, ContextMenuNodeEvent):
             print(f"Node context menu for {event.nodeId} at ({event.screenX}, {event.screenY})")
@@ -292,19 +311,38 @@ class GraphCanvasManager:
                 self.context_menu.show_node_menu(event.screenX, event.screenY, event.nodeId)
             
         elif isinstance(event, ContextMenuConnectionEvent):
-            print(f"Connection context menu for {event.connectionUUID} at ({event.screenX}, {event.screenY})")
+            print(
+                f"Connection context menu for {event.connectionUUID} "
+                f"at ({event.screenX}, {event.screenY})"
+            )
             if self.context_menu:
-                self.context_menu.show_connection_menu(event.screenX, event.screenY, event.connectionUUID)
+                self.context_menu.show_connection_menu(
+                    event.screenX,
+                    event.screenY,
+                    event.connectionUUID
+                )
         
         elif isinstance(event, ContextMenuSelectedEvent):
-            print(f"Selected context menu at ({event.screenX}, {event.screenY}) for {len(event.selectedNodes)} nodes, {len(event.selectedConnections)} connections")
+            print(
+                f"Selected context menu at ({event.screenX}, {event.screenY}) "
+                f"for {len(event.selectedNodes)} nodes, "
+                f"{len(event.selectedConnections)} connections"
+            )
             if self.context_menu:
-                self.context_menu.show_selected_menu(event.screenX, event.screenY, event.selectedNodes, event.selectedConnections)
+                self.context_menu.show_selected_menu(
+                    event.screenX,
+                    event.screenY,
+                    event.selectedNodes,
+                    event.selectedConnections
+                )
     
     @handles_event(NodeCreateRequestEvent)
     def process_node_creation_request(self, event: NodeCreateRequestEvent):
         """Handle node creation requests from context menu or other sources."""
-        print(f"📝 Processing node creation request: {event.registryKey} at ({event.position['x']}, {event.position['y']})")
+        print(
+            f"📝 Processing node creation request: {event.registryKey} "
+            f"at ({event.position['x']}, {event.position['y']})"
+        )
         
         try:
             wrapper = self.editor.create_wrapper(
@@ -313,7 +351,10 @@ class GraphCanvasManager:
             )
             
             if wrapper:
-                print(f"✅ Created node {wrapper.node_id} at ({event.position['x']}, {event.position['y']})")
+                print(
+                    f"✅ Created node {wrapper.node_id} "
+                    f"at ({event.position['x']}, {event.position['y']})"
+                )
                 ui.notify(f"Created {event.registryKey} node", type='positive')
             else:
                 ui.notify(f"Failed to create node of type: {event.registryKey}", type='negative')
@@ -325,7 +366,10 @@ class GraphCanvasManager:
     @handles_event(UserCopySelectedEvent)
     def process_copy_selection(self, event: UserCopySelectedEvent):
         """Handle copying selected elements to clipboard."""
-        print(f"📋 Copying {len(event.selectedNodes)} nodes and {len(event.selectedConnections)} connections")
+        print(
+            f"📋 Copying {len(event.selectedNodes)} nodes and "
+            f"{len(event.selectedConnections)} connections"
+        )
         
         try:
             # Calculate bounding box for positioning
@@ -354,7 +398,11 @@ class GraphCanvasManager:
             ui.notify("Nothing to paste", type='warning')
             return
             
-        print(f"📄 Pasting {len(self.clipboard.nodes)} nodes and {len(self.clipboard.edges)} connections at ({event.canvasX}, {event.canvasY})")
+        print(
+            f"📄 Pasting {len(self.clipboard.nodes)} nodes and "
+            f"{len(self.clipboard.edges)} connections "
+            f"at ({event.canvasX}, {event.canvasY})"
+        )
 
         """
 
@@ -363,7 +411,8 @@ class GraphCanvasManager:
             valid_edges = []
             for conn_uuid in self.clipboard.edges:
                 edge = self.graph.get_edge(conn_uuid)
-                if edge and edge.output_node_id in self.clipboard.edges and edge.input_node_id in event.selectedNodes:
+                if (edge and edge.output_node_id in self.clipboard.edges 
+                    and edge.input_node_id in event.selectedNodes):
                     valid_edges.append((conn_uuid, edge))
                         
             # Create new node instances with new IDs
@@ -378,7 +427,9 @@ class GraphCanvasManager:
                 # Generate new ID and create new instance
                 new_node_id = f"copy_{uuid.uuid4().hex[:8]}_{original_node_id}"
 
-                new_node_wrapper = self.graph.create_node_wrapper(registry_key=original_node.identity.registry_key)
+                new_node_wrapper = self.graph.create_node_wrapper(
+                    registry_key=original_node.identity.registry_key
+                )
                 new_node_wrapper.initialize()
 
 
@@ -504,7 +555,10 @@ class GraphCanvasManager:
                 print(f"🔄 Removing old connection: {connection_uuid}")
                 self.remove_connection_visual(connection_uuid)
             
-            print(f"🔄 Incremental connection sync: {len(graph_connection_uuids)} total connections")
+            print(
+                f"🔄 Incremental connection sync: "
+                f"{len(graph_connection_uuids)} total connections"
+            )
             
             # Sync selection state from graph to UI
             graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
@@ -521,7 +575,10 @@ class GraphCanvasManager:
 
             self.canvas_vue.update() 
                 
-            print(f"🔄 Selection synced from graph: {len(graph_selected_nodes)} nodes, {len(graph_selected_connections)} connections")
+            print(
+                f"🔄 Selection sync: {len(graph_selected_nodes)} nodes, "
+                f"{len(graph_selected_connections)} connections"
+            )
         except Exception as e:
             print(f"Error during graph sync: {e}")
             traceback.print_exc()
@@ -620,7 +677,11 @@ class GraphCanvasManager:
         
     def add_connection_visual(self, edge: Edge) -> bool:
         """Add a visual connection between two nodes."""
-        print(f"🔗 Python: Adding connection visual for {edge.output_node_id}:{edge.outlet_pin_id} -> {edge.input_node_id}:{edge.inlet_pin_id}")
+        print(
+            f"🔗 Creating connection visual: "
+            f"{edge.output_node_id}:{edge.outlet_pin_id} -> "
+            f"{edge.input_node_id}:{edge.inlet_pin_id}"
+        )
         connection_uuid = generate_connection_uuid(
             edge.output_node_id, edge.outlet_pin_id,
             edge.input_node_id, edge.inlet_pin_id

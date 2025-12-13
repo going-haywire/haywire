@@ -12,7 +12,12 @@ from .identity import LibraryIdentity
 class LibraryFileHandler(FileSystemEventHandler):
     """Handles file system events for a specific library path with debouncing"""
     
-    def __init__(self, library_identity: LibraryIdentity, registry: HotReloadRegistry, debounce_delay: float = 0.5):
+    def __init__(
+        self, 
+        library_identity: LibraryIdentity, 
+        registry: HotReloadRegistry, 
+        debounce_delay: float = 0.5
+    ):
         self.library_identity = library_identity
         self.registry = registry
         self.debounce_delay = debounce_delay
@@ -93,7 +98,13 @@ class FileWatcher:
         self.handlers: Dict[str, LibraryFileHandler] = {}  # path -> handler
         self._lock = threading.Lock()
     
-    def add_watch(self, path: str, library_identity: LibraryIdentity, registry: HotReloadRegistry, debounce_delay: float = 0.5):
+    def add_watch(
+        self, 
+        path: str, 
+        library_identity: LibraryIdentity, 
+        registry: HotReloadRegistry, 
+        debounce_delay: float = 0.5
+    ):
         """Add a path to be watched for a specific library and registry"""
         with self._lock:
             if path in self.observers:

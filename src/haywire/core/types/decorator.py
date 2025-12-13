@@ -122,7 +122,10 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             # No parent, use defaults
             kwargs.setdefault('registry_id', inner_cls.__name__)
             kwargs.setdefault('label', inner_cls.__name__)
-            kwargs.setdefault('description', inner_cls.__doc__.strip() if inner_cls.__doc__ else '')
+            kwargs.setdefault(
+                'description',
+                inner_cls.__doc__.strip() if inner_cls.__doc__ else ''
+            )
             identity_dict = kwargs
 
         # Validate 'default' parameter

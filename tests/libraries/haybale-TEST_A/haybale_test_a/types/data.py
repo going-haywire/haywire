@@ -84,4 +84,7 @@ class TestData(BaseType):
     
     def __str__(self) -> str:
         """String representation of the test data."""
-        return f"TestData('{self.label}', value={self.value}, metadata_keys={list(self.metadata.keys())})"
+        return (
+            f"TestData('{self.label}', value={self.value}, "
+            f"metadata_keys={list(self.metadata.keys())})"
+        )

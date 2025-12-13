@@ -184,7 +184,9 @@ class UndoRedoTestAppWithCanvasManager:
             
             self.create_header()
             
-            with ui.row().classes('w-full flex-grow gap-4 p-4').style('height: calc(100vh - 80px);'):
+            with ui.row().classes('w-full flex-grow gap-4 p-4').style(
+                'height: calc(100vh - 80px);'
+            ):
                 self.create_left_panel()
                 self.create_main_editor()
     
@@ -193,11 +195,17 @@ class UndoRedoTestAppWithCanvasManager:
         with ui.header().classes('bg-blue-600 text-white px-4 py-2'):
             with ui.row().classes('w-full justify-between items-center'):
                 with ui.row().classes('items-center gap-4'):
-                    ui.label(f'Enhanced Haywire Test App - Session {self.current_client_id[:8]}').classes('text-xl font-bold')
+                    ui.label(
+                        f'Enhanced Haywire Test App - Session {self.current_client_id[:8]}'
+                    ).classes('text-xl font-bold')
                     
                     # Quick action buttons
-                    ui.button('Undo', icon='undo', on_click=self.undo_action).props('outline').classes('text-white')
-                    ui.button('Redo', icon='redo', on_click=self.redo_action).props('outline').classes('text-white')
+                    ui.button(
+                        'Undo', icon='undo', on_click=self.undo_action
+                    ).props('outline').classes('text-white')
+                    ui.button(
+                        'Redo', icon='redo', on_click=self.redo_action
+                    ).props('outline').classes('text-white')
     
     def create_left_panel(self):
         """Create the left control panel with all information sections."""
@@ -208,7 +216,9 @@ class UndoRedoTestAppWithCanvasManager:
             with ui.expansion('Canvas Manager Status', icon='dashboard').classes('w-full'):
                 with ui.column() as canvas_status_container:
                     # Store reference in session data
-                    self.current_session['ui_containers']['canvas_status_container'] = canvas_status_container
+                    self.current_session['ui_containers'][
+                        'canvas_status_container'
+                    ] = canvas_status_container
                     ui.label('Canvas Manager: Initializing...').classes('text-sm text-gray-600')
                                                 
             # Statistics
@@ -232,13 +242,17 @@ class UndoRedoTestAppWithCanvasManager:
             # Selected Nodes
             with ui.expansion('Selection', icon='check_circle').classes('w-full'):
                 with ui.column() as selection_container:
-                    self.current_session['ui_containers']['selection_container'] = selection_container
+                    self.current_session['ui_containers'][
+                        'selection_container'
+                    ] = selection_container
                     ui.label('No nodes selected').classes('text-gray-500')
             
             # Installed Libraries
             with ui.expansion('Installed Libraries', icon='extension').classes('w-full'):
                 with ui.column() as libraries_container:
-                    self.current_session['ui_containers']['libraries_container'] = libraries_container
+                    self.current_session['ui_containers'][
+                        'libraries_container'
+                    ] = libraries_container
                     self.update_libraries_display()
             
             # Theme Selection
@@ -272,8 +286,12 @@ class UndoRedoTestAppWithCanvasManager:
     
     def create_main_editor(self):
         """Create the main node editor with GraphCanvasManager."""
-        with ui.card().classes('flex-grow').style('min-width: 600px; height: calc(100vh - 120px);'):
-            ui.label(f'Node Editor - Session {self.current_client_id[:8]}').classes('text-lg font-bold mb-2')
+        with ui.card().classes('flex-grow').style(
+            'min-width: 600px; height: calc(100vh - 120px);'
+        ):
+            ui.label(
+                f'Node Editor - Session {self.current_client_id[:8]}'
+            ).classes('text-lg font-bold mb-2')
             
             # Capture current session data for callbacks
             session_data = self.current_session
@@ -387,8 +405,12 @@ class UndoRedoTestAppWithCanvasManager:
                 with container:
                     canvas_manager = session_data['canvas_manager']
                     ui.label('✓ Canvas Manager Active').classes('text-green-600 text-sm')
-                    ui.label(f'Visual Nodes: {len(canvas_manager.node_panels)}').classes('text-sm')
-                    ui.label(f'Visual Connections: {len(canvas_manager.connection_paths)}').classes('text-sm')
+                    ui.label(
+                        f'Visual Nodes: {len(canvas_manager.node_panels)}'
+                    ).classes('text-sm')
+                    ui.label(
+                        f'Visual Connections: {len(canvas_manager.connection_paths)}'
+                    ).classes('text-sm')
             
             # Update history display for this specific session
             self.update_history_display_for_session(session_data)
@@ -418,19 +440,28 @@ class UndoRedoTestAppWithCanvasManager:
                     total_selected = len(selected_nodes) + len(selected_connections)
                     
                     if total_selected > 0:
-                        ui.label(f'Selected: {len(selected_nodes)} nodes, {len(selected_connections)} connections').classes('font-bold')
+                        ui.label(
+                            f'Selected: {len(selected_nodes)} nodes, '
+                            f'{len(selected_connections)} connections'
+                        ).classes('font-bold')
                         
                         # Show first 5 selected nodes
                         for node_id in list(selected_nodes)[:5]:
                             ui.label(f'• Node: {node_id}').classes('text-xs pl-2')
                         if len(selected_nodes) > 5:
-                            ui.label(f'... and {len(selected_nodes) - 5} more nodes').classes('text-xs pl-2 text-gray-500')
+                            ui.label(
+                                f'... and {len(selected_nodes) - 5} more nodes'
+                            ).classes('text-xs pl-2 text-gray-500')
                         
                         # Show first 3 selected connections
                         for connection_id in list(selected_connections)[:3]:
-                            ui.label(f'• Connection: {connection_id[:30]}...').classes('text-xs pl-2')
+                            ui.label(
+                                f'• Connection: {connection_id[:30]}...'
+                            ).classes('text-xs pl-2')
                         if len(selected_connections) > 3:
-                            ui.label(f'... and {len(selected_connections) - 3} more connections').classes('text-xs pl-2 text-gray-500')
+                            ui.label(
+                                f'... and {len(selected_connections) - 3} more connections'
+                            ).classes('text-xs pl-2 text-gray-500')
                     else:
                         ui.label('No nodes selected').classes('text-gray-500')
         except Exception as e:
@@ -485,10 +516,19 @@ class UndoRedoTestAppWithCanvasManager:
                 self.canvas_status_container.clear()
                 with self.canvas_status_container:
                     ui.label('✓ Canvas Manager Active').classes('text-green-600 text-sm')
-                    ui.label(f'Visual Nodes: {len(self.canvas_manager.node_panels)}').classes('text-sm')
-                    ui.label(f'Visual Connections: {len(self.canvas_manager.connection_paths)}').classes('text-sm')
-                    ui.label(f'Zoom: {self.canvas_manager.current_zoom:.2f}x').classes('text-sm')
-                    ui.label(f'Pan: ({self.canvas_manager.pan_x:.0f}, {self.canvas_manager.pan_y:.0f})').classes('text-sm')
+                    ui.label(
+                        f'Visual Nodes: {len(self.canvas_manager.node_panels)}'
+                    ).classes('text-sm')
+                    ui.label(
+                        f'Visual Connections: {len(self.canvas_manager.connection_paths)}'
+                    ).classes('text-sm')
+                    ui.label(
+                        f'Zoom: {self.canvas_manager.current_zoom:.2f}x'
+                    ).classes('text-sm')
+                    ui.label(
+                        f'Pan: ({self.canvas_manager.pan_x:.0f}, '
+                        f'{self.canvas_manager.pan_y:.0f})'
+                    ).classes('text-sm')
     
     def update_stats_display(self):
         """Update the statistics display for current session."""
@@ -526,8 +566,12 @@ class UndoRedoTestAppWithCanvasManager:
                 container.clear()
                 with container:
                     if self.history_manager:
-                        ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
-                        ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
+                        ui.label(
+                            f'History Size: {len(self.history_manager.history)}'
+                        ).classes('text-sm')
+                        ui.label(
+                            f'Current Index: {self.history_manager.current_index}'
+                        ).classes('text-sm')
                         if self.history_manager.history:
                             ui.label('Recent Actions:').classes('font-bold text-sm')
                             # Show last 5 actions
@@ -545,7 +589,9 @@ class UndoRedoTestAppWithCanvasManager:
                 self.history_container.clear()
                 with self.history_container:
                     if self.history_manager:
-                        ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
+                        ui.label(
+                            f'History Size: {len(self.history_manager.history)}'
+                        ).classes('text-sm')
                     else:
                         ui.label('History not available').classes('text-gray-500')
     
@@ -557,8 +603,12 @@ class UndoRedoTestAppWithCanvasManager:
             container.clear()
             with container:
                 if self.history_manager:
-                    ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
-                    ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
+                    ui.label(
+                        f'History Size: {len(self.history_manager.history)}'
+                    ).classes('text-sm')
+                    ui.label(
+                        f'Current Index: {self.history_manager.current_index}'
+                    ).classes('text-sm')
                     if self.history_manager.history:
                         ui.label('Recent Actions:').classes('font-bold text-sm')
                         # Show last 5 actions
@@ -598,7 +648,9 @@ class UndoRedoTestAppWithCanvasManager:
                     if library_registry:
                         library_names = library_registry.list_names()
                         if library_names:
-                            ui.label(f'Total Libraries: {len(library_names)}').classes('text-sm font-bold')
+                            ui.label(
+                                f'Total Libraries: {len(library_names)}'
+                            ).classes('text-sm font-bold')
                             
                             # Add bulk enable/disable buttons
                             with ui.row().classes('w-full justify-between gap-2 mt-2 mb-3'):
@@ -619,31 +671,53 @@ class UndoRedoTestAppWithCanvasManager:
                                 
                                 if lib_identity:
                                     with ui.card().classes('w-full mb-2 p-2'):
-                                        with ui.row().classes('w-full items-center justify-between'):
+                                        with ui.row().classes(
+                                            'w-full items-center justify-between'
+                                        ):
                                             # Library info section
                                             with ui.column().classes('flex-grow'):
                                                 with ui.row().classes('items-center gap-2'):
-                                                    status_icon = 'check_circle' if is_enabled else 'cancel'
-                                                    status_color = 'text-green-500' if is_enabled else 'text-red-500'
-                                                    ui.icon(status_icon).classes(f'{status_color} text-sm')
-                                                    ui.label(f'{lib_identity.label}').classes('text-sm font-medium')
+                                                    status_icon = (
+                                                        'check_circle' if is_enabled else 'cancel'
+                                                    )
+                                                    status_color = (
+                                                        'text-green-500' 
+                                                        if is_enabled 
+                                                        else 'text-red-500'
+                                                    )
+                                                    ui.icon(status_icon).classes(
+                                                        f'{status_color} text-sm'
+                                                    )
+                                                    ui.label(
+                                                        f'{lib_identity.label}'
+                                                    ).classes('text-sm font-medium')
                                                 
                                                 if lib_identity.version:
-                                                    ui.label(f'v{lib_identity.version}').classes('text-xs text-gray-500')
+                                                    ui.label(
+                                                        f'v{lib_identity.version}'
+                                                    ).classes('text-xs text-gray-500')
                                                 if lib_identity.description:
-                                                    ui.label(lib_identity.description).classes('text-xs text-gray-600')
+                                                    ui.label(
+                                                        lib_identity.description
+                                                    ).classes('text-xs text-gray-600')
                                             
                                             # Control buttons section
                                             with ui.column().classes('gap-1'):
                                                 if is_enabled:
-                                                    ui.button('Disable', 
+                                                    ui.button(
+                                                        'Disable', 
                                                         icon='pause',
-                                                        on_click=lambda ln=lib_name: self.disable_library(ln)
+                                                        on_click=lambda ln=lib_name: (
+                                                            self.disable_library(ln)
+                                                        )
                                                     ).props('size=sm color=orange')
                                                 else:
-                                                    ui.button('Enable', 
+                                                    ui.button(
+                                                        'Enable', 
                                                         icon='play_arrow',
-                                                        on_click=lambda ln=lib_name: self.enable_library(ln)
+                                                        on_click=lambda ln=lib_name: (
+                                                            self.enable_library(ln)
+                                                        )
                                                     ).props('size=sm color=green')
                                 else:
                                     with ui.row().classes('items-center gap-2'):
@@ -672,9 +746,13 @@ class UndoRedoTestAppWithCanvasManager:
                 
                 # Show theme metadata
                 if current_theme.metadata.author:
-                    ui.label(f'Author: {current_theme.metadata.author}').classes('text-xs text-gray-600')
+                    ui.label(
+                        f'Author: {current_theme.metadata.author}'
+                    ).classes('text-xs text-gray-600')
                 if current_theme.metadata.description:
-                    ui.label(f'{current_theme.metadata.description}').classes('text-xs text-gray-500 mb-2')
+                    ui.label(
+                        f'{current_theme.metadata.description}'
+                    ).classes('text-xs text-gray-500 mb-2')
                 
                 ui.separator().classes('my-2')
                 
@@ -800,7 +878,11 @@ class UndoRedoTestAppWithCanvasManager:
         """Run the application."""
         print("Starting Enhanced Test App with Canvas Manager...")
         self.create_ui()
-        ui.run(port=8082, show=True, title="Enhanced Haywire Test with Canvas Manager", reload=False)
+        ui.run(
+            port=8082, show=True, 
+            title="Enhanced Haywire Test with Canvas Manager", 
+            reload=False
+        )
     
     def cleanup(self):
         """Cleanup resources."""

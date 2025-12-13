@@ -60,18 +60,24 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         # stores the last life-cycle event for each class that has been processed
         # it keeps track of what was the last event type for each class, 
         # even those that have been removed
-        self._regkey_to_last_lifecycle_event: Dict[str, LifeCycleEvent] = {}  # registry_key -> event
+        # registry_key -> event
+        self._regkey_to_last_lifecycle_event: Dict[str, LifeCycleEvent] = {}
 
         # BaseClassRegistry specific attributes
         self._regkey_to_class_name: Dict[str, str] = {}  # registry_key -> class name
-        self._module_to_registry_keys: Dict[str, list[str]] = {}  #  module -> list of registry_keys
-        self._folder_to_library: Dict[str, LibraryIdentity] = {} # folder_path -> library_identity
+        # module -> list of registry_keys
+        self._module_to_registry_keys: Dict[str, list[str]] = {}
+        # folder_path -> library_identity
+        self._folder_to_library: Dict[str, LibraryIdentity] = {}
         
         # Hot reload callback management
-        self._lifecycle_event_queue: List[LifeCycleEvent] = []  # Queue of events to process after reload
+        # Queue of events to process after reload
+        self._lifecycle_event_queue: List[LifeCycleEvent] = []
 
-        self._registry_subscribers: List[HotReloadRegistry] = []  # Other registries that depend on this one
-        self._batch_event_subscribers: List[LiveCycleBatchCallback] = []  # Direct consumers (factories, etc.)
+        # Other registries that depend on this one
+        self._registry_subscribers: List[HotReloadRegistry] = []
+        # Direct consumers (factories, etc.)
+        self._batch_event_subscribers: List[LiveCycleBatchCallback] = []
 
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:
@@ -104,19 +110,30 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """List all registered class names"""
         return list(self._classes.keys())
 
-    def _register(self, registry_key: str, cls: Any, library_identity: Optional[LibraryIdentity] = None) -> str | None:
+    def _register(
+        self, 
+        registry_key: str, 
+        cls: Any, 
+        library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """
         Register a class with its name and optional metadata
         Args:
             registry_key (str): The haywire registry_key of the class to register
             cls (Any): The class to register
-            library_identity (Optional[LibraryIdentity]): The library identity to associate with the class
+            library_identity (Optional[LibraryIdentity]): 
+                The library identity to associate with the class
         Returns:
             str: The haywire registry_key of the registered class
         """
         # Check if class_identity exists
         if not hasattr(cls, 'class_identity'):
-            raise ValueError(f"Library '{library_identity.label}': Class {cls} does not have a class_identity attribute. Cannot register. This is likely due to a missing condition in the implementation of the registry's class filter method.")
+            raise ValueError(
+                f"Library '{library_identity.label}': Class {cls} does not "
+                f"have a class_identity attribute. Cannot register. This is "
+                f"likely due to a missing condition in the implementation of "
+                f"the registry's class filter method."
+            )
 
         # Check for duplicates
         if self.has(registry_key):
@@ -124,7 +141,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 f"Library '{library_identity.label}': "
                 f"Attempt to register Node '{cls.class_identity.label}' "
                 f"under an existing registry_key '{registry_key}'. "
-                f"This is not allowed. Indication of double use of a node registry_id or node class name.")
+                f"This is not allowed. Indication of double use of a node "
+                f"registry_id or node class name."
+            )
 
         # Register the class
         self._classes[registry_key] = cls
@@ -170,7 +189,12 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
     # Folder-Aware Registry (File System Integration)
     # ============================================================================
 
-    def add_folder(self, folder_path: str, library_identity: LibraryIdentity, exclude_patterns: Optional[list[str]] = None):
+    def add_folder(
+        self, 
+        folder_path: str, 
+        library_identity: LibraryIdentity, 
+        exclude_patterns: Optional[list[str]] = None
+    ):
         """
         Initial scan of the folder for classes matching the registry's class filter
         and add them to this registry.
@@ -190,9 +214,11 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         
         self._folder_to_library[folder_path] = library_identity
 
+        rel_path = folder_path[len(library_identity.folder_path):]
         logging.info(
             f"Library '{library_identity.label}': START Scanning folder "
-            f"'{folder_path[len(library_identity.folder_path):]}' for files to register classes...")
+            f"'{rel_path}' for files to register classes..."
+        )
 
         file_paths = self.folder_scan_for_pyfiles(folder_path, exclude_patterns)
 
@@ -213,7 +239,10 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                     HaywireException.from_exception(
                         exception=e,
                         operation="Registry folder import",
-                        message=f"Failed while importing folder '{file_path}' in library '{library_identity.label}'"
+                        message=(
+                            f"Failed while importing folder '{file_path}' in "
+                            f"library '{library_identity.label}'"
+                        )
                     ).enrich(
                         module_name=module_name,
                         library_identity=library_identity
@@ -230,7 +259,12 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             f"Library '{library_identity.label}': ... Scanning folder -> DONE. "
             f"{len(file_paths)} files processed.")
 
-    def remove_folder(self, folder_path: str, library_identity: LibraryIdentity, exclude_patterns: Optional[list[str]] = None):
+    def remove_folder(
+        self, 
+        folder_path: str, 
+        library_identity: LibraryIdentity, 
+        exclude_patterns: Optional[list[str]] = None
+    ):
         """ 
         Remove all classes associated with a library_identity from this registry.
         This method is called by the library when it is disabled.
@@ -260,7 +294,10 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                     HaywireException.from_exception(
                         exception=e,
                         operation="Registry folder import",
-                        message=f"Failed while importing folder '...{rel_path}' in library '{library_identity.label}'"
+                        message=(
+                            f"Failed while importing folder '...{rel_path}' in "
+                            f"library '{library_identity.label}'"
+                        )
                     ).enrich(
                         module_name=module_name,
                         library_identity=library_identity
@@ -318,8 +355,13 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 if module_name in sys.modules:
                     self._on_change(module_name, event.library_identity, event)
                 else:
-                    # covering an edge case where a module is modified but not yet loaded
-                    logging.info(f"Library '{event.library_identity.label}': Module '{module_name}' not found in sys.modules. Creating new module.")
+                    # covering an edge case where a module is modified but 
+                    # not yet loaded
+                    logging.info(
+                        f"Library '{event.library_identity.label}': Module "
+                        f"'{module_name}' not found in sys.modules. Creating "
+                        f"new module."
+                    )
                     self._on_creation(module_name, event.library_identity)
             elif event.event_type == FileEventType.DELETED:
                 self._on_delete(module_name, event.library_identity)
@@ -343,7 +385,10 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         error=HaywireException.from_exception(
                             exception=e,
                             operation="Registry Hotreload File Module Reload",
-                            message=f"Failed reloading module '{module_name}' in library '{event.library_identity.label}'"
+                            message=(
+                                f"Failed reloading module '{module_name}' in "
+                                f"library '{event.library_identity.label}'"
+                            )
                         ).enrich(
                             registry_key=key,
                             module_name=module_name,
@@ -363,7 +408,10 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 HaywireException.from_exception(
                     exception=e,
                     operation="Registry Hotreload Callback",
-                    message=f"Failed notifying about file {event.event_type.value} in library '{event.library_identity.label}'"
+                    message=(
+                        f"Failed notifying about file {event.event_type.value} "
+                        f"in library '{event.library_identity.label}'"
+                    )
                 ).enrich(
                     module_name=locals().get('module_name', 'unknown'),
                     library_identity=event.library_identity
@@ -389,7 +437,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         if module_name is None:
             return  # Skip processing if validation failed
 
-        added_classes, _ = self.module_scan_for_classes(module_name, library_identity, self._class_filter, True)
+        added_classes, _ = self.module_scan_for_classes(
+            module_name, library_identity, self._class_filter, True
+        )
         if added_classes:
             # Get tracking scopes from library dependencies
             scope_prefixes = self._get_tracking_scopes(library_identity)
@@ -411,16 +461,23 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                     self._queue_lifecycle_event(event)
 
     
-    def _on_change(self, module_name: str, library_identity: LibraryIdentity, event: Optional[FileChangeEvent] = None):
+    def _on_change(
+        self, 
+        module_name: str, 
+        library_identity: LibraryIdentity, 
+        event: Optional[FileChangeEvent] = None
+    ):
         """
         re-registering existing classes within the module
         and returning the classes that need to be
         additionally registered / unregistered
         Args:
             module_name (str): The module name that has changed.
-            event (Optional[FileChangeEvent]): The file change event (used to track reloaded modules)
+            event (Optional[FileChangeEvent]): The file change event 
+                (used to track reloaded modules)
         Returns:
-            [list,list]: [(List of classes to be registered), (List of haywire class names to be unregistered)]
+            [list,list]: [(List of classes to be registered), 
+                         (List of haywire class names to be unregistered)]
         """
         if module_name is None:
             return  # Skip processing if validation failed
@@ -477,7 +534,12 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         # if anything goes wrong, we can rollback to this snapshot
         try:
             # Get all classes in this module
-            classes_to_add, module = self.module_scan_for_classes(module_name, library_identity=library_identity, class_filter=self._class_filter, force_reload=True)
+            classes_to_add, module = self.module_scan_for_classes(
+                module_name,
+                library_identity=library_identity,
+                class_filter=self._class_filter,
+                force_reload=True
+            )
             class_names_to_remove = []
             # Simple container for old/new class pairs
 
@@ -488,11 +550,23 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             if class_reg_keys_to_update:
 
                 # Store old class info for re-registration
-                mod_to_class_name_mapping: Dict[str, str] = {} # module class name -> haywire class registry_key
+                # module class name -> haywire class registry_key
+                mod_to_class_name_mapping: Dict[str, str] = {}
                 for mod_class_reg_key in class_reg_keys_to_update:
-                    mod_to_class_name_mapping[self._regkey_to_class_name[mod_class_reg_key]] = mod_class_reg_key
-                    # check if the registered old class name matches a class name in the new module
-                    class_to_remove = next((cls for cls in classes_to_add if cls.__name__ == self._regkey_to_class_name[mod_class_reg_key]), None)
+                    mod_to_class_name_mapping[
+                        self._regkey_to_class_name[mod_class_reg_key]
+                    ] = mod_class_reg_key
+                    # check if the registered old class name matches a class 
+                    # name in the new module
+                    class_to_remove = next(
+                        (
+                            cls for cls in classes_to_add 
+                            if cls.__name__ == self._regkey_to_class_name[
+                                mod_class_reg_key
+                            ]
+                        ),
+                        None
+                    )
                     if class_to_remove:
                         # Remove the class from the list to avoid re-registering it
                         classes_to_add.remove(class_to_remove)
@@ -500,7 +574,8 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 # Re-register classes from reloaded module  
                 for mod_class_reg_key in mod_to_class_name_mapping:
                     if hasattr(module, mod_class_reg_key):
-                        # to update a class, we need to unregister the old one and register the new one
+                        # to update a class, we need to unregister the old one 
+                        # and register the new one
                         new_class: Type[Any] = getattr(module, mod_class_reg_key)
                         old_class_name = mod_to_class_name_mapping[mod_class_reg_key]
                         classes_to_reload.append((old_class_name, new_class))
@@ -520,7 +595,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                     new_key = self._register_class(new_cls, library_identity)
                     logging.info(
                         f"Library '{library_identity.label}': "
-                        f"...Re-loaded and re-registered {new_cls.class_identity.registry_key} from {module_name}")
+                        f"...Re-loaded and re-registered "
+                        f"{new_cls.class_identity.registry_key} from {module_name}"
+                    )
                     # Notify customer callbacks about reloaded class
                     if new_key:
                         event = LifeCycleEvent(
@@ -620,7 +697,12 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         
         return snapshot
  
-    def _rollback_snapshot(self, module_name: str, snapshot: Dict[str, Any], library_identity: LibraryIdentity):
+    def _rollback_snapshot(
+        self, 
+        module_name: str, 
+        snapshot: Dict[str, Any], 
+        library_identity: LibraryIdentity
+    ):
         """Restore module from snapshot after failed reload"""            
         if snapshot:
             # Restore module in sys.modules
@@ -775,6 +857,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 registry.event_dispatcher(event)
             except Exception as e:
                 logging.error(
-                    f"Registry subscriber '{registry.__class__.__name__}' callback failed for {event.file_path}: {e}",
+                    f"Registry subscriber '{registry.__class__.__name__}' "
+                    f"callback failed for {event.file_path}: {e}",
                     exc_info=True
                 )

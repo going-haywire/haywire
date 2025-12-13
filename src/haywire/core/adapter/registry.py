@@ -25,7 +25,11 @@ class AdapterRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, adapter_cls: type[BaseAdapter], library_identity: Optional[LibraryIdentity] = None) -> str | None:
+    def _register_class(
+        self, 
+        adapter_cls: type[BaseAdapter], 
+        library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """
         Register adapter class using actual Python class types as keys.
         

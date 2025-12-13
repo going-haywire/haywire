@@ -36,7 +36,9 @@ class NodePanel:
         ).props(f'data-node-id="{self.node.id}"') as self.node_card:
             
             # Node header with drag handle
-            with ui.row().classes('w-full items-center justify-between q-pa-xs drag-handle').style('cursor: grab;'):
+            with ui.row().classes(
+                'w-full items-center justify-between q-pa-xs drag-handle'
+            ).style('cursor: grab;'):
                 ui.icon('drag_indicator').classes(
                         'text-grey-6'
                     ).on(
@@ -206,7 +208,8 @@ class NodePanel:
         # Only select if we're not dragging
         if not self._is_dragging:
             self.node_graph.select_node(self.node.id, multi_select=False)
-            # Note: Removed direct ui.notify call - notifications should be handled by higher layers
+            # Note: Removed direct ui.notify call - notifications should be 
+            # handled by higher layers
     
     def update_position(self, x: float, y: float):
         """Update the visual position of the node"""

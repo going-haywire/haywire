@@ -66,7 +66,10 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseLibrary):
-            raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
+            raise TypeError(
+                f"@library can only be applied to BaseLibrary subclasses, "
+                f"got {inner_cls}"
+            )
 
         # Require label field
         if 'label' not in kwargs:

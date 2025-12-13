@@ -30,7 +30,11 @@ class RendererRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, renderer_cls: type[IBaseRenderer], library_identity: Optional[LibraryIdentity] = None) -> str | None:
+    def _register_class(
+        self,
+        renderer_cls: type[IBaseRenderer],
+        library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """
         Register a renderer class.
         
@@ -49,11 +53,17 @@ class RendererRegistry(BaseRegistry):
         # Check if this is an error node and register it automatically
         if renderer_cls.class_identity._is_error:
             if self._error_renderer is not None:
-                if renderer_cls.class_identity._error_priority > self._error_renderer.class_identity._error_priority:
+                if (
+                    renderer_cls.class_identity._error_priority > 
+                    self._error_renderer.class_identity._error_priority
+                ):
                     logging.warning(
-                        f"Overriding already registered error renderer: '{self._error_renderer.class_identity.registry_key}'"
+                        f"Overriding already registered error renderer: "
+                        f"'{self._error_renderer.class_identity.registry_key}'"
                         f" with : '{renderer_cls.class_identity.registry_key}'"
-                        f" due to higher _error_priority ({renderer_cls.class_identity._error_priority} > {self._error_renderer.class_identity._error_priority})"
+                        f" due to higher _error_priority "
+                        f"({renderer_cls.class_identity._error_priority} > "
+                        f"{self._error_renderer.class_identity._error_priority})"
                     )
                     self._error_renderer = renderer_cls
             else:
@@ -65,9 +75,11 @@ class RendererRegistry(BaseRegistry):
             if new_error_priority > self._error_priority:
                 if self._error_renderer_name:
                     logging.warning(
-                        f"Overriding already registered error renderer: '{self._error_renderer_name}'"
+                        f"Overriding already registered error renderer: "
+                        f"'{self._error_renderer_name}'"
                         f" with : '{registry_key}'"
-                        f" due to higher _error_priority ({new_error_priority} > {self._error_priority})"
+                        f" due to higher _error_priority "
+                        f"({new_error_priority} > {self._error_priority})"
                     )
                 self._error_renderer_name = registry_key
                 self._error_priority = new_error_priority
@@ -79,9 +91,11 @@ class RendererRegistry(BaseRegistry):
             if new_default_priority > self._default_priority:
                 if self._default_renderer_name:
                     logging.warning(
-                        f"Overriding already registered default renderer: '{self._default_renderer_name}'"
+                        f"Overriding already registered default renderer: "
+                        f"'{self._default_renderer_name}'"
                         f" with : '{registry_key}'"
-                        f" due to higher _default_priority ({new_default_priority} > {self._default_priority})"
+                        f" due to higher _default_priority "
+                        f"({new_default_priority} > {self._default_priority})"
                     )
                 self._default_renderer_name = registry_key
                 self._default_priority = new_default_priority
@@ -99,7 +113,10 @@ class RendererRegistry(BaseRegistry):
         
         if removed_class == self._error_renderer:
             self._error_renderer = None
-            logging.warning(f"Error renderer '{registry_key}' unregistered, no error renderer left in registry")    
+            logging.warning(
+                f"Error renderer '{registry_key}' unregistered, "
+                "no error renderer left in registry"
+            )    
         
         return removed_class
    

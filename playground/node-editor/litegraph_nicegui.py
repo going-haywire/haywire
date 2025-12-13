@@ -100,7 +100,10 @@ class LiteGraphEditor(Element):
                     canvas: graphCanvas,
                     canvasElement: canvas
                 }};
-                console.log('Stored editor in window.lgEditor_{self.id}:', window.lgEditor_{self.id});
+                console.log(
+                    'Stored editor in window.lgEditor_{self.id}:', 
+                    window.lgEditor_{self.id}
+                );
                 
                 // Configure canvas
                 graphCanvas.background_image = null;
@@ -227,7 +230,10 @@ class LiteGraphEditor(Element):
             
             // Copy other properties from the class definition
             for (let key in nodeClass) {{
-                if (key !== 'inputs' && key !== 'outputs' && key !== 'properties' && key !== 'size') {{
+                if (
+                    key !== 'inputs' && key !== 'outputs' && 
+                    key !== 'properties' && key !== 'size'
+                ) {{
                     this[key] = nodeClass[key];
                 }}
             }}
@@ -244,7 +250,10 @@ class LiteGraphEditor(Element):
                 console.log('Registering function for {node_type}:', {js_function_name});
                 LiteGraph.registerNodeType("{node_type}", {js_function_name});
                 console.log('Successfully registered node type: {node_type}');
-                console.log('Available node types after registration:', Object.keys(LiteGraph.registered_node_types || {{}}));
+                console.log(
+                    'Available node types after registration:', 
+                    Object.keys(LiteGraph.registered_node_types || {{}})
+                );
             }} catch (error) {{
                 console.error('Error registering node type {node_type}:', error);
             }}
@@ -316,7 +325,12 @@ class LiteGraphEditor(Element):
             
         return '\n'.join(js_parts)
     
-    def add_node(self, node_type: str, position: List[int] = [100, 100], properties: Dict = None) -> None:
+    def add_node(
+        self, 
+        node_type: str, 
+        position: List[int] = [100, 100], 
+        properties: Dict = None
+    ) -> None:
         """
         Add a node to the graph programmatically.
         
@@ -335,14 +349,20 @@ class LiteGraphEditor(Element):
             console.log('createNode result:', node);
             if (node) {{
                 node.pos = {position};
-                if ({json.dumps(properties or {})} && Object.keys({json.dumps(properties or {})}).length > 0) {{
+                if (
+                    {json.dumps(properties or {})} && 
+                    Object.keys({json.dumps(properties or {})}).length > 0
+                ) {{
                     Object.assign(node.properties, {json.dumps(properties or {})});
                 }}
                 editor.graph.add(node);
                 console.log('Successfully added node:', node);
             }} else {{
                 console.error('Failed to create node of type: {node_type}');
-                console.log('Available node types:', Object.keys(LiteGraph.registered_node_types || {{}}));
+                console.log(
+                    'Available node types:', 
+                    Object.keys(LiteGraph.registered_node_types || {{}})
+                );
             }}
         }} else {{
             console.error('Editor or graph not found. Editor:', editor);
@@ -560,7 +580,8 @@ def create_demo():
     - **Display**: Shows the input value (terminal node)
     
     The component provides full bidirectional communication between Python and JavaScript,
-    allowing you to control the node editor programmatically and receive events from user interactions.
+    allowing you to control the node editor programmatically and receive events from user 
+    interactions.
     ''')
 
 

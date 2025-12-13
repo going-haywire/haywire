@@ -23,7 +23,11 @@ class WidgetRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, widget_cls: type[IWidget], library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self,
+        widget_cls: type[IWidget],
+        library_identity: LibraryIdentity
+    ) -> str | None:
         """Register a UI widget with its metadata
         
         Uses the registry_key that was set by the @widget decorator during class definition.

@@ -169,7 +169,8 @@ def find_most_relevant_user_frame(
     # find the LAST user code frame (deepest in import chain)
     module_level_frames = [
         f for f in traceback_frames 
-        if f.get('function') == '<module>' and not is_framework_code(f.get('file', ''), framework_paths)
+        if f.get('function') == '<module>' and 
+        not is_framework_code(f.get('file', ''), framework_paths)
     ]
     
     if module_level_frames:
@@ -986,7 +987,8 @@ class HaywireException(Exception):
         
         if user_frame_index is not None:
             frames_before = self.traceback_frames[:user_frame_index]
-            frames_after = self.traceback_frames[user_frame_index + 1:]  # Skip the user frame itself
+            # Skip the user frame itself
+            frames_after = self.traceback_frames[user_frame_index + 1:]
         elif self.traceback_frames:
             # Fallback: if we can't find user frame, show all as "after"
             frames_after = self.traceback_frames
@@ -1002,9 +1004,15 @@ class HaywireException(Exception):
                 indent_spaces = "  " * (len(interesting_frames_before) - i - 1)
                 
                 # Use reversed box drawing (going down instead of up)
-                lines.append(f"             {indent_spaces}╒═╧═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
+                lines.append(
+                    f"             {indent_spaces}╒═╧═ {base_filename} in "
+                    f"{frame['function']} | File \"{frame['file']}\""
+                )
                 lines.append(f"             {indent_spaces}│    │   ┌─────┄┄┄")
-                lines.append(f"             {indent_spaces}│    └───┤ line {frame['line']}: {frame['code'].strip()}")
+                lines.append(
+                    f"             {indent_spaces}│    └───┤ line {frame['line']}: "
+                    f"{frame['code'].strip()}"
+                )
                 lines.append(f"             {indent_spaces}│        └─────┄┄┄")
                 lines.append(f"             {indent_spaces}│")     
 
@@ -1073,7 +1081,10 @@ class HaywireException(Exception):
                         # Create border patterns
                         left_pattern = "━━╍╍╍┅┅┅┅┉┉┉"
                         right_pattern = "┉┉┅┅┅╍╍╍━━"
-                        gap_width = max(20, total_content_width - len(left_pattern) - len(right_pattern))
+                        gap_width = max(
+                            20, 
+                            total_content_width - len(left_pattern) - len(right_pattern)
+                        )
                         gap_spaces = " " * gap_width
                         
                         top_border = left_pattern + gap_spaces + right_pattern
@@ -1109,9 +1120,15 @@ class HaywireException(Exception):
                 base_filename = os.path.basename(frame['file'])
                 space_indent = "  " * i
                 
-                lines.append(f"           {space_indent}╘═╤═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
+                lines.append(
+                    f"           {space_indent}╘═╤═ {base_filename} in "
+                    f"{frame['function']} | File \"{frame['file']}\""
+                )
                 lines.append(f"           {space_indent}  │    │   ┌─────┄┄┄")
-                lines.append(f"           {space_indent}  │    └───┤ line {frame['line']}: {frame['code'].strip()}")
+                lines.append(
+                    f"           {space_indent}  │    └───┤ line {frame['line']}: "
+                    f"{frame['code'].strip()}"
+                )
                 lines.append(f"           {space_indent}  │        └─────┄┄┄")
                 lines.append(f"           {space_indent}  │")        
 

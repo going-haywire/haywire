@@ -31,4 +31,8 @@ class Pipe:
         
         # Update connection status based on remaining sources
         # Use polymorphic has_sources method
-        self.target_inlet.is_connected = self.target_inlet.data.has_sources() if self.target_inlet.data else False
+        self.target_inlet.is_connected = (
+            self.target_inlet.data.has_sources() 
+            if self.target_inlet.data 
+            else False
+        )

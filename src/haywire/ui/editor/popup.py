@@ -161,7 +161,9 @@ class Popup:
                             ui.element('div')  # Spacer
                             
                         if self.closable:
-                            ui.button(icon='close', on_click=self.close).props('flat round size=sm')
+                            ui.button(icon='close', on_click=self.close).props(
+                                'flat round size=sm'
+                            )
                     
                     if self.title:  # Only add separator if there's a title
                         ui.separator()

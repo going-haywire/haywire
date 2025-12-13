@@ -78,7 +78,10 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseAdapter):
-            raise TypeError(f"@adapter can only be applied to BaseAdapter subclasses, got {inner_cls}")
+            raise TypeError(
+                f"@adapter can only be applied to BaseAdapter subclasses, "
+                f"got {inner_cls}"
+            )
 
         # Set defaults from class name if not provided
         kwargs.setdefault('registry_id', inner_cls.__name__)

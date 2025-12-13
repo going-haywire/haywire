@@ -43,7 +43,9 @@ def main():
             point_type = getattr(e, 'pointType', 'unknown')
             print(f"  Dragging {point_type} of {curve_id} to ({x:.1f}, {y:.1f})")
     
-    ui.label('Interactive Bézier Canvas - New Implementation').style('font-size: 1.5em; font-weight: bold; margin-bottom: 1em;')
+    ui.label(
+        'Interactive Bézier Canvas - New Implementation'
+    ).style('font-size: 1.5em; font-weight: bold; margin-bottom: 1em;')
     ui.label('• Click on grid background to see grid click events')
     ui.label('• Click on curves to see curve click events')
     ui.label('• Drag curve points (start, end, control) to see drag events')

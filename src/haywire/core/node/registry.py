@@ -26,7 +26,9 @@ class NodeRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, node_cls: type[BaseNode], library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self, node_cls: type[BaseNode], library_identity: LibraryIdentity
+    ) -> str | None:
         """
         Register a node class with library metadata.
 
@@ -47,11 +49,17 @@ class NodeRegistry(BaseRegistry):
         # Check if this is an error node and register it automatically
         if node_cls.class_identity._is_error:
             if self._error_node is not None:
-                if node_cls.class_identity._error_priority > self._error_node.class_identity._error_priority:
+                if (
+                    node_cls.class_identity._error_priority 
+                    > self._error_node.class_identity._error_priority
+                ):
                     logging.warning(
-                        f"Overriding already registered error node: '{self._error_node.class_identity.registry_key}'."
+                        f"Overriding already registered error node: "
+                        f"'{self._error_node.class_identity.registry_key}'."
                         f" with : '{node_cls.class_identity.registry_key}'"
-                        f" due to higher _error_priority ({node_cls.class_identity._error_priority} > {self._error_node.class_identity._error_priority})"
+                        f" due to higher _error_priority "
+                        f"({node_cls.class_identity._error_priority} > "
+                        f"{self._error_node.class_identity._error_priority})"
                     )
                     self._error_node = node_cls
             else:
@@ -70,7 +78,10 @@ class NodeRegistry(BaseRegistry):
         """
         if self.get(registry_key) == self._error_node:
             self._error_node = None
-            logging.warning(f"Error node '{registry_key}' unregistered, no error node left in registry")
+            logging.warning(
+                f"Error node '{registry_key}' unregistered, "
+                f"no error node left in registry"
+            )
     
         return super()._unregister(registry_key)
 

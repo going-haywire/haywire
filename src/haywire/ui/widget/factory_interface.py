@@ -13,7 +13,11 @@ class IWidgetFactory(ABC):
     """
     
     @abstractmethod
-    def render_widget(self, inlet: PortInlet, node_id: str) -> tuple[BaseWidget | None, ui.element] :
+    def render_widget(
+        self,
+        inlet: PortInlet,
+        node_id: str
+    ) -> tuple[BaseWidget | None, ui.element] :
         """Render a widget for the given inlet and return the widget instance.
         
         Note: The UI element is automatically added to the current NiceGUI context.

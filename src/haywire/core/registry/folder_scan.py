@@ -64,7 +64,10 @@ class FolderScanMixin:
         # Convert filesystem path to module path   
         module_prefix = self.resolve_module_name(library_dir)
         if not module_prefix:
-            logging.warning(f"Could not resolve module name for {library_path}. No __init__.py found in parent directories.")
+            logging.warning(
+                f"Could not resolve module name for {library_path}. "
+                "No __init__.py found in parent directories."
+            )
             return []
 
         for py_file in library_dir.glob('*.py'):
@@ -124,7 +127,12 @@ class FolderScanMixin:
 
         return discovered_classes, module
 
-    def resolve_module_name(self, file_path: str, library_root: Optional[str] = None, module_prefix: Optional[str] = None) -> Optional[str]:
+    def resolve_module_name(
+        self,
+        file_path: str,
+        library_root: Optional[str] = None,
+        module_prefix: Optional[str] = None
+    ) -> Optional[str]:
         """
         Resolve module name from file path relative to library root.
         
@@ -134,7 +142,8 @@ class FolderScanMixin:
             module_prefix: Module name prefix to use (module_name from LibraryIdentity)
         
         Returns:
-            Fully qualified module name (e.g., 'haywire.libraries.core.nodes.math_nodes' or 'example.nodes.math_nodes')
+            # Fully qualified module name
+            # (e.g., 'haywire.libraries.core.nodes.math_nodes' or 'example.nodes.math_nodes')
         """
         file_path = Path(file_path).resolve()
         library_root_path = Path(library_root).resolve() if library_root else None

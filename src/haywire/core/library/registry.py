@@ -28,8 +28,9 @@ class LibraryRegistry:
     
     def __init__(self):
         # Registry functionality moved from BaseRegistry
-        self._libraries: Dict[str, BaseLibrary] = {} # registry_id -> library_instance
-        self._class_registries: Dict[Type[BaseRegistry], BaseRegistry] = {} # registry_cls -> registry instance
+        self._libraries: Dict[str, BaseLibrary] = {}  # registry_id -> library_instance
+        # registry_cls -> registry instance
+        self._class_registries: Dict[Type[BaseRegistry], BaseRegistry] = {}
         
         # LibraryRegistry specific attributes
         self.discovered_libraries: Dict[str, Dict[str, Any]] = {}
@@ -172,8 +173,15 @@ class LibraryRegistry:
                     continue
                 
                 all_discovered[lib.identity.id] = lib
-                install_type_label = "regular install" if lib.install_type == InstallType.REGULAR else "editable install"
-                logger.info(f"  ✓ Found {install_type_label}: {lib.identity.label} ({lib.identity.id})")
+                install_type_label = (
+                    "regular install" 
+                    if lib.install_type == InstallType.REGULAR 
+                    else "editable install"
+                )
+                logger.info(
+                    f"  ✓ Found {install_type_label}: "
+                    f"{lib.identity.label} ({lib.identity.id})"
+                )
         
         # Priority 4: Manual folder paths
         if self._library_root_paths:
@@ -219,13 +227,20 @@ class LibraryRegistry:
         try:
             for item in os.listdir(directory):
                 item_path = os.path.join(directory, item)
-                if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
+                if (
+                    os.path.isdir(item_path) 
+                    and not item.startswith('.') 
+                    and not item.startswith('__pycache__')
+                ):
                     module_paths = self._check_library_structure(item, item_path)
                     for module_path in module_paths:
                         # Use the module folder name as the library_id
                         module_folder_name = os.path.basename(module_path)
                         lib_folders[module_folder_name] = module_path
-                        logger.info(f"Valid library found: '{module_folder_name}' at {module_path}")
+                        logger.info(
+                            f"Valid library found: '{module_folder_name}' "
+                            f"at {module_path}"
+                        )
 
         except OSError as e:
             logger.error(f"Scanning library directory '{directory}': {e}")
@@ -262,7 +277,11 @@ class LibraryRegistry:
                 try:
                     for item in os.listdir(library_path):
                         item_path = os.path.join(library_path, item)
-                        if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
+                        if (
+                            os.path.isdir(item_path) 
+                            and not item.startswith('.') 
+                            and not item.startswith('__pycache__')
+                        ):
                             init_path = os.path.join(item_path, '__init__.py')
                             if os.path.exists(init_path):
                                 module_paths.append(item_path)
@@ -274,7 +293,8 @@ class LibraryRegistry:
                 logger.error(
                     f"Library '{library_id}': "
                     f"Invalid library structure at '{library_path}'. "
-                    f"Expected either '__init__.py' (flat) or 'pyproject.toml' with nested modules (package)."
+                    f"Expected either '__init__.py' (flat) or "
+                    f"'pyproject.toml' with nested modules (package)."
                 )
                 
         except Exception as e:
@@ -282,7 +302,9 @@ class LibraryRegistry:
 
         return module_paths    
 
-    def _load_library_class(self, library_folder_name: str, library_path: str) -> type[BaseLibrary]:
+    def _load_library_class(
+        self, library_folder_name: str, library_path: str
+    ) -> type[BaseLibrary]:
         """Load a library class from its path"""       
         try:
             # Use the existing metadata loading method to get both module and metadata
@@ -294,7 +316,9 @@ class LibraryRegistry:
                     logger.error(
                         f"Library '{library_folder_name}': "
                         f"Has no a valid 'class_identity'. "
-                        f"Check if @library decorator is applied to the class in '__init__.py' at '{library_path}'")
+                        f"Check if @library decorator is applied to the class in "
+                        f"'__init__.py' at '{library_path}'"
+                    )
             else:
                 logger.error(
                     f"Library with folder name '{library_folder_name}': "
@@ -306,7 +330,9 @@ class LibraryRegistry:
                 f"Failed instantiating {e} \n {traceback.format_exc()}")
             raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}")
 
-    def _load_module_and_metadata(self, library_id: str, library_path: str) -> Optional[ModuleType]:
+    def _load_module_and_metadata(
+        self, library_id: str, library_path: str
+    ) -> Optional[ModuleType]:
         """
         Load module from a library's __init__.py.
         Handles both flat and package structures automatically.
@@ -384,7 +410,10 @@ class LibraryRegistry:
         
         for search_path in self._library_root_paths:
             # Skip core libraries path if it's in the list
-            if self.core_libraries_path and os.path.samefile(search_path, self.core_libraries_path):
+            if (
+                self.core_libraries_path 
+                and os.path.samefile(search_path, self.core_libraries_path)
+            ):
                 continue
             
             lib_folders = self._scan_directory(search_path)

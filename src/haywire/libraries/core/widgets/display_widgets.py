@@ -58,7 +58,11 @@ class ProgressWidget(BaseWidget):
         
         return ui.linear_progress(value=normalized_value).classes('w-full').bind_value_from(
             self.data_field, 'value', 
-            backward=lambda x: max(0, min(1, (x - min_val) / (max_val - min_val))) if x is not None else 0
+            backward=lambda x: (
+                max(0, min(1, (x - min_val) / (max_val - min_val))) 
+                if x is not None 
+                else 0
+            )
         )
 
 @widget(

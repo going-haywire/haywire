@@ -220,7 +220,12 @@ class ZoomPanContainer(ui.element, component='zoom_pan_container.vue'):
         """Automatically fit the content to the container."""
         self.run_method('$el._zoomPanControls.fitToContent')
     
-    def set_zoom(self, zoom: float, center_x: Optional[float] = None, center_y: Optional[float] = None) -> None:
+    def set_zoom(
+        self,
+        zoom: float,
+        center_x: Optional[float] = None,
+        center_y: Optional[float] = None
+    ) -> None:
         """Set zoom level programmatically."""
         if center_x is not None and center_y is not None:
             self.run_method('$el._zoomPanControls.setZoom', zoom, center_x, center_y)
@@ -256,7 +261,8 @@ def create_zoom_pan_controls(container: ZoomPanContainer) -> None:
 
 
 def create_zoom_pan_info(container: ZoomPanContainer) -> ui.label:
-    """Create info display with comprehensive performance metrics for current zoom and pan values."""
+    """Create info display with comprehensive performance metrics 
+    for current zoom and pan values."""
     info_label = ui.label().classes('zoom-pan-info')
     
     # Additional performance tracking for the info display
@@ -355,7 +361,9 @@ def main():
         # Main layout with left panel and zoom container
         with ui.row().classes('w-full gap-4').style('height: 80vh;'):
             # Right side with zoom container (create first so we can reference it)
-            with ui.card().classes('flex-grow').style('height: 100%; display: flex; flex-direction: column;'):
+            with ui.card().classes('flex-grow').style(
+                'height: 100%; display: flex; flex-direction: column;'
+            ):
                 ui.label('Zoomable Content Area').classes('text-lg mb-2 flex-shrink-0')
                 
                 # Create the zoom/pan container
@@ -371,35 +379,61 @@ def main():
                 with zoom_container:
                     with ui.grid(columns=50).classes('gap-6 p-8'):
                         for i in range(500):
-                            with ui.card().classes('w-32 h-32 bg-blue-100 flex flex-col items-center justify-center zoomable-card'):
+                            with ui.card().classes(
+                                'w-32 h-32 bg-blue-100 flex flex-col '
+                                'items-center justify-center zoomable-card'
+                            ):
                                 ui.label(f'Item {i+1}').classes('text-center text-sm mb-2')
-                                ui.button('Click', on_click=lambda i=i: ui.notify(f'Clicked item {i+1}')).classes('text-xs')
+                                ui.button(
+                                    'Click',
+                                    on_click=lambda i=i: ui.notify(f'Clicked item {i+1}')
+                                ).classes('text-xs')
                 
                 # Add controls
                 create_zoom_pan_controls(zoom_container)
                 create_zoom_pan_info(zoom_container)
             
             # Left panel with controls and documentation
-            with ui.card().classes('w-80 flex-shrink-0').style('height: 100%; display: flex; flex-direction: column;'):
+            with ui.card().classes('w-80 flex-shrink-0').style(
+                'height: 100%; display: flex; flex-direction: column;'
+            ):
                 ui.label('Controls & Info').classes('text-xl font-bold mb-4')
                 
                 # Additional demo controls
                 with ui.column().classes('gap-2 mb-6'):
                     ui.label('Demo Controls').classes('text-lg font-semibold mb-2')
-                    ui.button('Zoom to 2x', on_click=lambda: zoom_container.set_zoom(2.0)).classes('w-full')
-                    ui.button('Pan to (100, 50)', on_click=lambda: zoom_container.set_pan(100, 50)).classes('w-full')
+                    ui.button(
+                        'Zoom to 2x',
+                        on_click=lambda: zoom_container.set_zoom(2.0)
+                    ).classes('w-full')
+                    ui.button(
+                        'Pan to (100, 50)',
+                        on_click=lambda: zoom_container.set_pan(100, 50)
+                    ).classes('w-full')
                     ui.button('Reset View', on_click=zoom_container.reset_view).classes('w-full')
-                    ui.button('Fit Content', on_click=zoom_container.fit_to_content).classes('w-full')
+                    ui.button(
+                        'Fit Content',
+                        on_click=zoom_container.fit_to_content
+                    ).classes('w-full')
                     
                     # Performance controls
                     ui.separator()
                     ui.label('Performance').classes('text-md font-semibold mb-2')
-                    ui.button('Show Performance Summary', 
-                             on_click=lambda: ui.notify(zoom_container.get_performance_summary(), 
-                                                       type='info', timeout=10000)).classes('w-full')
-                    ui.button('Reset Performance Metrics', 
-                             on_click=lambda: (zoom_container.reset_performance_metrics(), 
-                                             ui.notify('Performance metrics reset', type='positive'))).classes('w-full')
+                    ui.button(
+                        'Show Performance Summary', 
+                        on_click=lambda: ui.notify(
+                            zoom_container.get_performance_summary(), 
+                            type='info', 
+                            timeout=10000
+                        )
+                    ).classes('w-full')
+                    ui.button(
+                        'Reset Performance Metrics', 
+                        on_click=lambda: (
+                            zoom_container.reset_performance_metrics(), 
+                            ui.notify('Performance metrics reset', type='positive')
+                        )
+                    ).classes('w-full')
                 
                 # Controls documentation
                 with ui.column().classes('flex-grow'):

@@ -12,7 +12,12 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
 from ..errors import HaywireException
-from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback, LiveCycleEventCallback
+from ..registry.lifecycle_event import (
+    LifeCycleEvent,
+    LifeCycleEventType,
+    LiveCycleBatchCallback,
+    LiveCycleEventCallback
+)
 
 if TYPE_CHECKING:
     from .base import BaseNode
@@ -138,7 +143,9 @@ class NodeWrapper:
         """Full cleanup when wrapper is being destroyed"""
         with self._lock:
             # Remove event subscription
-            self._node_factory.remove_event_subscriber(self.registry_key, self._listen_on_livecycle_event)
+            self._node_factory.remove_event_subscriber(
+                self.registry_key, self._listen_on_livecycle_event
+            )
                         
             self._livecycle_subscribers.clear()
             self._middleware.clear()
@@ -160,13 +167,15 @@ class NodeWrapper:
             # Filter: Only care about events matching our registry key
             if not lc_event.matches_registry_key(self.registry_key):
                 logging.warning(
-                    f"NodeWrapper {self.node_id}: Received unrelated live cycle event for {lc_event.registry_key}"
+                    f"NodeWrapper {self.node_id}: Received unrelated live "
+                    f"cycle event for {lc_event.registry_key}"
                 )
                 return
                 
             with self._lock:
                 logging.info(
-                    f"NodeWrapper {self.node_id}: Detected live cycle event - {lc_event.event_type.value}"
+                    f"NodeWrapper {self.node_id}: Detected live cycle event - "
+                    f"{lc_event.event_type.value}"
                 )
                 
                 if lc_event.is_successful_event():
@@ -175,7 +184,10 @@ class NodeWrapper:
 
                     if _instance is not None:
                         # get current position
-                        position = (self._node_instance.ui_state.posX, self._node_instance.ui_state.posY)
+                        position = (
+                            self._node_instance.ui_state.posX,
+                            self._node_instance.ui_state.posY
+                        )
                         self._node_instance = _instance
                         # restore position
                         self._node_instance.ui_state.posX = position[0]
@@ -196,11 +208,15 @@ class NodeWrapper:
                 else:
                     self.state.is_valid = False
                     if lc_event.is_removal():
-                        # The registry doesn't flag this as an error, but we cannot use the node anymore
-                        # thereforee generate our own error state and enhance the event
+                        # The registry doesn't flag this as an error, but we 
+                        # cannot use the node anymore. Therefore generate our 
+                        # own error state and enhance the event
                         error = HaywireException(
                             operation="Node Removed",
-                            message=f"Node '{self.registry_key}' has been removed from the registry and can no longer be used.",
+                            message=(
+                                f"Node '{self.registry_key}' has been removed "
+                                f"from the registry and can no longer be used."
+                            ),
                         ).enrich(
                             node_id=self.node_id,
                             registry_key=self.registry_key,
@@ -233,7 +249,9 @@ class NodeWrapper:
         
         return self._generate_node_instance(lc_event)
 
-    def _generate_node_instance(self, lc_event: LifeCycleEvent, _is_error: bool = False) -> tuple['BaseNode', LifeCycleEvent]:
+    def _generate_node_instance(
+        self, lc_event: LifeCycleEvent, _is_error: bool = False
+    ) -> tuple['BaseNode', LifeCycleEvent]:
         """
         Generate a node instance based on the lifecycle event.
 
@@ -357,7 +375,8 @@ class NodeWrapper:
         Args:
             event: The live cycle event to propagate to observers
         """
-        for callback in self._livecycle_subscribers[:]:  # Copy to avoid modification during iteration
+        # Copy to avoid modification during iteration
+        for callback in self._livecycle_subscribers[:]:
             callback(event)
     
     def recall_change(self, callback: LiveCycleBatchCallback) -> None:
@@ -398,4 +417,7 @@ class NodeWrapper:
         return result
     
     def __repr__(self) -> str:
-        return f"NodeWrapper(id={self.node_id}, registry_key={self.registry_key}, valid={self.state.is_valid})"
+        return (
+            f"NodeWrapper(id={self.node_id}, "
+            f"registry_key={self.registry_key}, valid={self.state.is_valid})"
+        )

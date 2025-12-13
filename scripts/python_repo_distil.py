@@ -52,7 +52,10 @@ def get_file_info(file_path):
             
         lines = content.split('\n')
         total_lines = len(lines)
-        code_lines = len([line for line in lines if line.strip() and not line.strip().startswith('#')])
+        code_lines = len([
+            line for line in lines 
+            if line.strip() and not line.strip().startswith('#')
+        ])
         
         # Extract docstring if present
         docstring = None
@@ -88,7 +91,10 @@ def scan_repository(repo_path, ignore_patterns):
     
     for root, dirs, files in os.walk(repo_path):
         # Filter out ignored directories
-        dirs[:] = [d for d in dirs if not should_ignore_directory(os.path.join(root, d), ignore_patterns)]
+        dirs[:] = [
+            d for d in dirs 
+            if not should_ignore_directory(os.path.join(root, d), ignore_patterns)
+        ]
         
         for file in files:
             if file.endswith('.py'):
@@ -138,7 +144,10 @@ def generate_markdown(python_files, repo_path, output_file):
     for file_data in python_files:
         path_parts = Path(file_data['path']).parts
         indent = '  ' * (len(path_parts) - 1)
-        markdown_content += f"{indent}├── {path_parts[-1]} ({file_data['info']['total_lines']} lines)\n"
+        markdown_content += (
+            f"{indent}├── {path_parts[-1]} "
+            f"({file_data['info']['total_lines']} lines)\n"
+        )
     
     markdown_content += "```\n\n"
     
@@ -175,7 +184,8 @@ def generate_markdown(python_files, repo_path, output_file):
     markdown_content += f"""
 ---
 
-*This documentation was automatically generated from the Python files in `{repo_path}` on {datetime.now().strftime('%Y-%m-%d at %H:%M:%S')}.*
+*This documentation was automatically generated from the Python files in `{repo_path}` 
+on {datetime.now().strftime('%Y-%m-%d at %H:%M:%S')}.*
 """
     
     return markdown_content
@@ -210,7 +220,10 @@ Examples:
     parser.add_argument(
         '--ignore',
         nargs='*',
-        default=['__pycache__', '*.pyc', '.git', '.pytest_cache', 'venv', 'env', '.venv', 'node_modules', '.DS_Store'],
+        default=[
+            '__pycache__', '*.pyc', '.git', '.pytest_cache', 
+            'venv', 'env', '.venv', 'node_modules', '.DS_Store'
+        ],
         help='Patterns to ignore (default: common build/cache directories)'
     )
     
@@ -280,7 +293,10 @@ Examples:
             f.write(markdown_content)
         
         print(f"✅ Successfully created '{args.output_file}'")
-        print(f"📊 Processed {len(python_files)} files with {sum(f['info']['total_lines'] for f in python_files):,} total lines")
+        print(
+            f"📊 Processed {len(python_files)} files with "
+            f"{sum(f['info']['total_lines'] for f in python_files):,} total lines"
+        )
         
     except Exception as e:
         print(f"❌ Error writing to file: {str(e)}")

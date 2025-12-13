@@ -33,7 +33,8 @@ class AddNodeAction(ActionBase):
             node: The node to add
             description: Optional description override
         """
-        # Use library label if available, otherwise fallback to identity name or node_id or class name
+        # Use library label if available, otherwise fallback to identity name
+        # or node_id or class name
         super().__init__(description or f"Add node '{registry_key}'")
         self.graph = graph
         self.registry_key = registry_key
@@ -43,7 +44,11 @@ class AddNodeAction(ActionBase):
 
     def _execute_impl(self) -> None:
         """Add the node to the graph."""
-        self.wrapper = NodeWrapper(registry_key=self.registry_key, node_factory=self.node_factory, position=self.position)
+        self.wrapper = NodeWrapper(
+            registry_key=self.registry_key,
+            node_factory=self.node_factory,
+            position=self.position
+        )
         if not self.wrapper.register(self.graph):
             raise RuntimeError(f"Failed to register node '{self.registry_key}' in graph")
     
@@ -149,7 +154,13 @@ class MoveNodesAction(ActionBase):
         else:
             description = f"Move {node_count} nodes"
         
-        merged = MoveNodesAction(self.graph, self.nodes, combined_deltaX, combined_deltaY, description)
+        merged = MoveNodesAction(
+            self.graph,
+            self.nodes,
+            combined_deltaX,
+            combined_deltaY,
+            description
+        )
         
         return merged
 
@@ -188,7 +199,8 @@ class RemoveElementsAction(ActionBase):
         # Store removed elements for restoration
         self.removed_wrappers: Dict[str, NodeWrapper] = {}
         self.removed_edges: Dict[str, Edge] = {}
-        self.node_connected_edges: Dict[str, List[Edge]] = {}  # node_id -> edges that were connected to it
+        # node_id -> edges that were connected to it
+        self.node_connected_edges: Dict[str, List[Edge]] = {}
     
     def _execute_impl(self) -> None:
         """Remove all specified elements and store them for undo."""

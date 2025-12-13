@@ -38,7 +38,9 @@ class NodeCanvas:
             ) as graph_canvas:
                 
                 # SVG overlay for connections
-                with ui.element('svg').classes('absolute inset-0 w-full h-full pointer-events-none') as svg:
+                with ui.element('svg').classes(
+                    'absolute inset-0 w-full h-full pointer-events-none'
+                ) as svg:
                     svg.props('width="100%" height="100%"')
                     self.connection_svg = svg
                 
@@ -226,7 +228,10 @@ class NodeCanvas:
     
     def update_node_property(self, node_id: str, key: str, value: Any):
         """Update a node property"""
-        self.graph_manager.status_message = f"Updated {self.graph_manager.nodes[node_id].name} property: {key}"
+        self.graph_manager.status_message = (
+            f"Updated {self.graph_manager.nodes[node_id].name} "
+            f"property: {key}"
+        )
     
     # Event handlers for node drag operations
     def on_node_drag_started(self, node_id: str):

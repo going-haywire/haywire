@@ -94,7 +94,11 @@ class TestProcessorNode(BaseNode):
         else:
             # Process existing TestData
             test_data_out = TestData(
-                value=test_data_in.value if test_data_in.value is None else test_data_in.value + modifier,
+                value=(
+                    test_data_in.value 
+                    if test_data_in.value is None 
+                    else test_data_in.value + modifier
+                ),
                 label=f"Processed: {test_data_in.label}",
                 metadata={**test_data_in.metadata, "processed_by": "test_b.test_processor"}
             )

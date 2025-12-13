@@ -97,4 +97,7 @@ class MeshData(BaseType):
     
     def __str__(self) -> str:
         """String representation of the mesh."""
-        return f"MeshData('{self.name}', {self.vertex_count()} vertices, {self.face_count()} faces)"
+        return (
+            f"MeshData('{self.name}', {self.vertex_count()} vertices, "
+            f"{self.face_count()} faces)"
+        )

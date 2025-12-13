@@ -160,7 +160,10 @@ class HistoryManager(IHistoryManager):
         
         if self.config.enable_debug_logging:
             self.logger.debug(f"Added action: {action.description}")
-            self.logger.debug(f"History state: {len(self.history)} items, current_index: {self.current_index}")
+            self.logger.debug(
+                f"History state: {len(self.history)} items, "
+                f"current_index: {self.current_index}"
+            )
             self.logger.debug(f"Can undo: {self.can_undo()}, Can redo: {self.can_redo()}")
     
     def add_fence(self) -> None:
@@ -301,7 +304,11 @@ class HistoryManager(IHistoryManager):
         if not self.history or not self._pending_actions:
             return False
         
-        last_action = self._pending_actions[-1] if self._pending_actions else self._get_last_action()
+        last_action = (
+            self._pending_actions[-1] 
+            if self._pending_actions 
+            else self._get_last_action()
+        )
         if not last_action:
             return False
         

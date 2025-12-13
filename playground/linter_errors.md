@@ -1,595 +1,4 @@
-(haywire) mfroehli@NX-41545 haywire-repo % 
-(haywire) mfroehli@NX-41545 haywire-repo % 
 (haywire) mfroehli@NX-41545 haywire-repo % uv run ruff check
-      Built haywire-framework @ file:///Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo
-Uninstalled 1 package in 3ms
-░░░░░░░░░░░░░░░░░░░░ [0/1] Installing wheels...                                                                               warning: Failed to clone files; falling back to full copy. This may lead to degraded performance.
-         If the cache and target directories are on different filesystems, reflinking may not be supported.
-         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
-Installed 1 package in 9ms
-libraries/haybale-example/haybale_example/nodes/display_node.py:25:100: E501 Line too long (104 > 99)
-   |
-24 |         # Using the new .as_inlet() API
-25 |         self.add(FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:number.widget'))
-   |                                                                                                    ^^^^^ E501
-26 |         self.add(FLOAT.as_inlet('b', label='Value B', default=3.4, widget='core:widget:number.widget'))
-27 |         self.add(STRING.as_inlet('operation', label='Operation', default='add', widget='core:widget:text.widget'))   
-   |
-
-libraries/haybale-example/haybale_example/nodes/display_node.py:26:100: E501 Line too long (103 > 99)
-   |
-24 |         # Using the new .as_inlet() API
-25 |         self.add(FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:number.widget'))
-26 |         self.add(FLOAT.as_inlet('b', label='Value B', default=3.4, widget='core:widget:number.widget'))
-   |                                                                                                    ^^^^ E501
-27 |         self.add(STRING.as_inlet('operation', label='Operation', default='add', widget='core:widget:text.widget'))   
-28 |         self.add(FLOAT.as_outlet('result', label='Result'))
-   |
-
-libraries/haybale-example/haybale_example/nodes/display_node.py:27:100: E501 Line too long (117 > 99)
-   |
-25 |         self.add(FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:number.widget'))
-26 |         self.add(FLOAT.as_inlet('b', label='Value B', default=3.4, widget='core:widget:number.widget'))
-27 |         self.add(STRING.as_inlet('operation', label='Operation', default='add', widget='core:widget:text.widget'))   
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^ E501
-28 |         self.add(FLOAT.as_outlet('result', label='Result'))
-   |
-
-libraries/haybale-example/haybale_example/types/mesh_data.py:100:100: E501 Line too long (100 > 99)
-    |
- 98 |     def __str__(self) -> str:
- 99 |         """String representation of the mesh."""
-100 |         return f"MeshData('{self.name}', {self.vertex_count()} vertices, {self.face_count()} faces)"
-    |                                                                                                    ^ E501
-    |
-
-playground/app_graph_canvas.py:187:100: E501 Line too long (101 > 99)
-    |
-185 |             self.create_header()
-186 |             
-187 |             with ui.row().classes('w-full flex-grow gap-4 p-4').style('height: calc(100vh - 80px);'):
-    |                                                                                                    ^^ E501
-188 |                 self.create_left_panel()
-189 |                 self.create_main_editor()
-    |
-
-playground/app_graph_canvas.py:196:100: E501 Line too long (126 > 99)
-    |
-194 |             with ui.row().classes('w-full justify-between items-center'):
-195 |                 with ui.row().classes('items-center gap-4'):
-196 |                     ui.label(f'Enhanced Haywire Test App - Session {self.current_client_id[:8]}').classes('text-xl font-bold')
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-197 |                     
-198 |                     # Quick action buttons
-    |
-
-playground/app_graph_canvas.py:199:100: E501 Line too long (116 > 99)
-    |
-198 |                     # Quick action buttons
-199 |                     ui.button('Undo', icon='undo', on_click=self.undo_action).props('outline').classes('text-white')
-    |                                                                                                    ^^^^^^^^^^^^^^^^^ E501
-200 |                     ui.button('Redo', icon='redo', on_click=self.redo_action).props('outline').classes('text-white')
-    |
-
-playground/app_graph_canvas.py:200:100: E501 Line too long (116 > 99)
-    |
-198 |                     # Quick action buttons
-199 |                     ui.button('Undo', icon='undo', on_click=self.undo_action).props('outline').classes('text-white')
-200 |                     ui.button('Redo', icon='redo', on_click=self.redo_action).props('outline').classes('text-white')
-    |                                                                                                    ^^^^^^^^^^^^^^^^^ E501
-201 |     
-202 |     def create_left_panel(self):
-    |
-
-playground/app_graph_canvas.py:211:100: E501 Line too long (110 > 99)
-    |
-209 |                 with ui.column() as canvas_status_container:
-210 |                     # Store reference in session data
-211 |                     self.current_session['ui_containers']['canvas_status_container'] = canvas_status_container
-    |                                                                                                    ^^^^^^^^^^^ E501
-212 |                     ui.label('Canvas Manager: Initializing...').classes('text-sm text-gray-600')
-    |
-
-playground/app_graph_canvas.py:235:100: E501 Line too long (102 > 99)
-    |
-233 |             with ui.expansion('Selection', icon='check_circle').classes('w-full'):
-234 |                 with ui.column() as selection_container:
-235 |                     self.current_session['ui_containers']['selection_container'] = selection_container
-    |                                                                                                    ^^^ E501
-236 |                     ui.label('No nodes selected').classes('text-gray-500')
-    |
-
-playground/app_graph_canvas.py:241:100: E501 Line too long (102 > 99)
-    |
-239 |             with ui.expansion('Installed Libraries', icon='extension').classes('w-full'):
-240 |                 with ui.column() as libraries_container:
-241 |                     self.current_session['ui_containers']['libraries_container'] = libraries_container
-    |                                                                                                    ^^^ E501
-242 |                     self.update_libraries_display()
-    |
-
-playground/app_graph_canvas.py:275:100: E501 Line too long (100 > 99)
-    |
-273 |     def create_main_editor(self):
-274 |         """Create the main node editor with GraphCanvasManager."""
-275 |         with ui.card().classes('flex-grow').style('min-width: 600px; height: calc(100vh - 120px);'):
-    |                                                                                                    ^ E501
-276 |             ui.label(f'Node Editor - Session {self.current_client_id[:8]}').classes('text-lg font-bold mb-2')
-    |
-
-playground/app_graph_canvas.py:276:100: E501 Line too long (109 > 99)
-    |
-274 |         """Create the main node editor with GraphCanvasManager."""
-275 |         with ui.card().classes('flex-grow').style('min-width: 600px; height: calc(100vh - 120px);'):
-276 |             ui.label(f'Node Editor - Session {self.current_client_id[:8]}').classes('text-lg font-bold mb-2')
-    |                                                                                                    ^^^^^^^^^^ E501
-277 |             
-278 |             # Capture current session data for callbacks
-    |
-
-playground/app_graph_canvas.py:391:100: E501 Line too long (110 > 99)
-    |
-389 |                     ui.label('✓ Canvas Manager Active').classes('text-green-600 text-sm')
-390 |                     ui.label(f'Visual Nodes: {len(canvas_manager.node_panels)}').classes('text-sm')
-391 |                     ui.label(f'Visual Connections: {len(canvas_manager.connection_paths)}').classes('text-sm')
-    |                                                                                                    ^^^^^^^^^^^ E501
-392 |             
-393 |             # Update history display for this specific session
-    |
-
-playground/app_graph_canvas.py:421:100: E501 Line too long (136 > 99)
-    |
-420 | …     if total_selected > 0:
-421 | …         ui.label(f'Selected: {len(selected_nodes)} nodes, {len(selected_connections)} connections').classes('font-bold')
-    |                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-422 | …         
-423 | …         # Show first 5 selected nodes
-    |
-
-playground/app_graph_canvas.py:427:100: E501 Line too long (123 > 99)
-    |
-425 |                             ui.label(f'• Node: {node_id}').classes('text-xs pl-2')
-426 |                         if len(selected_nodes) > 5:
-427 |                             ui.label(f'... and {len(selected_nodes) - 5} more nodes').classes('text-xs pl-2 text-gray-500')
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^ E501
-428 |                         
-429 |                         # Show first 3 selected connections
-    |
-
-playground/app_graph_canvas.py:431:100: E501 Line too long (102 > 99)
-    |
-429 | …     # Show first 3 selected connections
-430 | …     for connection_id in list(selected_connections)[:3]:
-431 | …         ui.label(f'• Connection: {connection_id[:30]}...').classes('text-xs pl-2')
-    |                                                                                  ^^^ E501
-432 | …     if len(selected_connections) > 3:
-433 | …         ui.label(f'... and {len(selected_connections) - 3} more connections').classes('text-xs pl-2 text-gray-500')
-    |
-
-playground/app_graph_canvas.py:433:100: E501 Line too long (135 > 99)
-    |
-431 | …             ui.label(f'• Connection: {connection_id[:30]}...').classes('text-xs pl-2')
-432 | …         if len(selected_connections) > 3:
-433 | …             ui.label(f'... and {len(selected_connections) - 3} more connections').classes('text-xs pl-2 text-gray-500')
-    |                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-434 | …     else:
-435 | …         ui.label('No nodes selected').classes('text-gray-500')
-    |
-
-playground/app_graph_canvas.py:488:100: E501 Line too long (104 > 99)
-    |
-486 |                 with self.canvas_status_container:
-487 |                     ui.label('✓ Canvas Manager Active').classes('text-green-600 text-sm')
-488 |                     ui.label(f'Visual Nodes: {len(self.canvas_manager.node_panels)}').classes('text-sm')
-    |                                                                                                    ^^^^^ E501
-489 |                     ui.label(f'Visual Connections: {len(self.canvas_manager.connection_paths)}').classes('text-sm')
-490 |                     ui.label(f'Zoom: {self.canvas_manager.current_zoom:.2f}x').classes('text-sm')
-    |
-
-playground/app_graph_canvas.py:489:100: E501 Line too long (115 > 99)
-    |
-487 |                     ui.label('✓ Canvas Manager Active').classes('text-green-600 text-sm')
-488 |                     ui.label(f'Visual Nodes: {len(self.canvas_manager.node_panels)}').classes('text-sm')
-489 |                     ui.label(f'Visual Connections: {len(self.canvas_manager.connection_paths)}').classes('text-sm')
-    |                                                                                                    ^^^^^^^^^^^^^^^^ E501
-490 |                     ui.label(f'Zoom: {self.canvas_manager.current_zoom:.2f}x').classes('text-sm')
-491 |                     ui.label(f'Pan: ({self.canvas_manager.pan_x:.0f}, {self.canvas_manager.pan_y:.0f})').classes('text-sm')
-    |
-
-playground/app_graph_canvas.py:491:100: E501 Line too long (123 > 99)
-    |
-489 |                     ui.label(f'Visual Connections: {len(self.canvas_manager.connection_paths)}').classes('text-sm')
-490 |                     ui.label(f'Zoom: {self.canvas_manager.current_zoom:.2f}x').classes('text-sm')
-491 |                     ui.label(f'Pan: ({self.canvas_manager.pan_x:.0f}, {self.canvas_manager.pan_y:.0f})').classes('text-sm')
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^ E501
-492 |     
-493 |     def update_stats_display(self):
-    |
-
-playground/app_graph_canvas.py:529:100: E501 Line too long (105 > 99)
-    |
-527 |                 with container:
-528 |                     if self.history_manager:
-529 |                         ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
-    |                                                                                                    ^^^^^^ E501
-530 |                         ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
-531 |                         if self.history_manager.history:
-    |
-
-playground/app_graph_canvas.py:530:100: E501 Line too long (107 > 99)
-    |
-528 |                     if self.history_manager:
-529 |                         ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
-530 |                         ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
-    |                                                                                                    ^^^^^^^^ E501
-531 |                         if self.history_manager.history:
-532 |                             ui.label('Recent Actions:').classes('font-bold text-sm')
-    |
-
-playground/app_graph_canvas.py:548:100: E501 Line too long (105 > 99)
-    |
-546 |                 with self.history_container:
-547 |                     if self.history_manager:
-548 |                         ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
-    |                                                                                                    ^^^^^^ E501
-549 |                     else:
-550 |                         ui.label('History not available').classes('text-gray-500')
-    |
-
-playground/app_graph_canvas.py:560:100: E501 Line too long (101 > 99)
-    |
-558 |             with container:
-559 |                 if self.history_manager:
-560 |                     ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
-    |                                                                                                    ^^ E501
-561 |                     ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
-562 |                     if self.history_manager.history:
-    |
-
-playground/app_graph_canvas.py:561:100: E501 Line too long (103 > 99)
-    |
-559 |                 if self.history_manager:
-560 |                     ui.label(f'History Size: {len(self.history_manager.history)}').classes('text-sm')
-561 |                     ui.label(f'Current Index: {self.history_manager.current_index}').classes('text-sm')
-    |                                                                                                    ^^^^ E501
-562 |                     if self.history_manager.history:
-563 |                         ui.label('Recent Actions:').classes('font-bold text-sm')
-    |
-
-playground/app_graph_canvas.py:601:100: E501 Line too long (107 > 99)
-    |
-599 |                         library_names = library_registry.list_names()
-600 |                         if library_names:
-601 |                             ui.label(f'Total Libraries: {len(library_names)}').classes('text-sm font-bold')
-    |                                                                                                    ^^^^^^^^ E501
-602 |                             
-603 |                             # Add bulk enable/disable buttons
-    |
-
-playground/app_graph_canvas.py:622:100: E501 Line too long (101 > 99)
-    |
-620 | …                     if lib_identity:
-621 | …                         with ui.card().classes('w-full mb-2 p-2'):
-622 | …                             with ui.row().classes('w-full items-center justify-between'):
-    |                                                                                          ^^ E501
-623 | …                                 # Library info section
-624 | …                                 with ui.column().classes('flex-grow'):
-    |
-
-playground/app_graph_canvas.py:626:100: E501 Line too long (108 > 99)
-    |
-624 | …                     with ui.column().classes('flex-grow'):
-625 | …                         with ui.row().classes('items-center gap-2'):
-626 | …                             status_icon = 'check_circle' if is_enabled else 'cancel'
-    |                                                                              ^^^^^^^^^ E501
-627 | …                             status_color = 'text-green-500' if is_enabled else 'text-red-500'
-628 | …                             ui.icon(status_icon).classes(f'{status_color} text-sm')
-    |
-
-playground/app_graph_canvas.py:627:100: E501 Line too long (117 > 99)
-    |
-625 | …                     with ui.row().classes('items-center gap-2'):
-626 | …                         status_icon = 'check_circle' if is_enabled else 'cancel'
-627 | …                         status_color = 'text-green-500' if is_enabled else 'text-red-500'
-    |                                                                          ^^^^^^^^^^^^^^^^^^ E501
-628 | …                         ui.icon(status_icon).classes(f'{status_color} text-sm')
-629 | …                         ui.label(f'{lib_identity.label}').classes('text-sm font-medium')
-    |
-
-playground/app_graph_canvas.py:628:100: E501 Line too long (107 > 99)
-    |
-626 | …                     status_icon = 'check_circle' if is_enabled else 'cancel'
-627 | …                     status_color = 'text-green-500' if is_enabled else 'text-red-500'
-628 | …                     ui.icon(status_icon).classes(f'{status_color} text-sm')
-    |                                                                      ^^^^^^^^ E501
-629 | …                     ui.label(f'{lib_identity.label}').classes('text-sm font-medium')
-    |
-
-playground/app_graph_canvas.py:629:100: E501 Line too long (116 > 99)
-    |
-627 | …                         status_color = 'text-green-500' if is_enabled else 'text-red-500'
-628 | …                         ui.icon(status_icon).classes(f'{status_color} text-sm')
-629 | …                         ui.label(f'{lib_identity.label}').classes('text-sm font-medium')
-    |                                                                          ^^^^^^^^^^^^^^^^^ E501
-630 | …                     
-631 | …                     if lib_identity.version:
-    |
-
-playground/app_graph_canvas.py:632:100: E501 Line too long (121 > 99)
-    |
-631 | …                     if lib_identity.version:
-632 | …                         ui.label(f'v{lib_identity.version}').classes('text-xs text-gray-500')
-    |                                                                          ^^^^^^^^^^^^^^^^^^^^^^ E501
-633 | …                     if lib_identity.description:
-634 | …                         ui.label(lib_identity.description).classes('text-xs text-gray-600')
-    |
-
-playground/app_graph_canvas.py:634:100: E501 Line too long (119 > 99)
-    |
-632 | …                             ui.label(f'v{lib_identity.version}').classes('text-xs text-gray-500')
-633 | …                         if lib_identity.description:
-634 | …                             ui.label(lib_identity.description).classes('text-xs text-gray-600')
-    |                                                                              ^^^^^^^^^^^^^^^^^^^^ E501
-635 | …                     
-636 | …                     # Control buttons section
-    |
-
-playground/app_graph_canvas.py:641:100: E501 Line too long (109 > 99)
-    |
-639 | …                         ui.button('Disable', 
-640 | …                             icon='pause',
-641 | …                             on_click=lambda ln=lib_name: self.disable_library(ln)
-    |                                                                          ^^^^^^^^^^ E501
-642 | …                         ).props('size=sm color=orange')
-643 | …                     else:
-    |
-
-playground/app_graph_canvas.py:646:100: E501 Line too long (108 > 99)
-    |
-644 | …                                         ui.button('Enable', 
-645 | …                                             icon='play_arrow',
-646 | …                                             on_click=lambda ln=lib_name: self.enable_library(ln)
-    |                                                                                          ^^^^^^^^^ E501
-647 | …                                         ).props('size=sm color=green')
-648 | …                     else:
-    |
-
-playground/app_graph_canvas.py:675:100: E501 Line too long (105 > 99)
-    |
-673 |                 # Show theme metadata
-674 |                 if current_theme.metadata.author:
-675 |                     ui.label(f'Author: {current_theme.metadata.author}').classes('text-xs text-gray-600')
-    |                                                                                                    ^^^^^^ E501
-676 |                 if current_theme.metadata.description:
-677 |                     ui.label(f'{current_theme.metadata.description}').classes('text-xs text-gray-500 mb-2')
-    |
-
-playground/app_graph_canvas.py:677:100: E501 Line too long (107 > 99)
-    |
-675 |                     ui.label(f'Author: {current_theme.metadata.author}').classes('text-xs text-gray-600')
-676 |                 if current_theme.metadata.description:
-677 |                     ui.label(f'{current_theme.metadata.description}').classes('text-xs text-gray-500 mb-2')
-    |                                                                                                    ^^^^^^^^ E501
-678 |                 
-679 |                 ui.separator().classes('my-2')
-    |
-
-playground/app_graph_canvas.py:803:100: E501 Line too long (101 > 99)
-    |
-801 |         print("Starting Enhanced Test App with Canvas Manager...")
-802 |         self.create_ui()
-803 |         ui.run(port=8082, show=True, title="Enhanced Haywire Test with Canvas Manager", reload=False)
-    |                                                                                                    ^^ E501
-804 |     
-805 |     def cleanup(self):
-    |
-
-playground/bezier/bezier_canvas.py:169:100: E501 Line too long (106 > 99)
-    |
-167 |         # Auto-calculate control points if not provided
-168 |         if control_point1 is None:
-169 |             control_point1 = (start_point[0] + (end_point[0] - start_point[0]) * 0.3, start_point[1] - 50)
-    |                                                                                                    ^^^^^^^ E501
-170 |         if control_point2 is None:
-171 |             control_point2 = (start_point[0] + (end_point[0] - start_point[0]) * 0.7, end_point[1] - 50)
-    |
-
-playground/bezier/bezier_canvas.py:171:100: E501 Line too long (104 > 99)
-    |
-169 |             control_point1 = (start_point[0] + (end_point[0] - start_point[0]) * 0.3, start_point[1] - 50)
-170 |         if control_point2 is None:
-171 |             control_point2 = (start_point[0] + (end_point[0] - start_point[0]) * 0.7, end_point[1] - 50)
-    |                                                                                                    ^^^^^ E501
-172 |         
-173 |         curve_data = {
-    |
-
-playground/bezier/bezier_canvas.py:318:100: E501 Line too long (113 > 99)
-    |
-316 |         cp1 = curve['controlPoint1']
-317 |         cp2 = curve['controlPoint2']
-318 |         return f"M {start['x']},{start['y']} C {cp1['x']},{cp1['y']} {cp2['x']},{cp2['y']} {end['x']},{end['y']}"
-    |                                                                                                    ^^^^^^^^^^^^^^ E501
-319 |
-320 |     def _update_curves(self):
-    |
-
-playground/bezier/multi_curve_background.py:46:100: E501 Line too long (128 > 99)
-   |
-44 |             print(f"  Dragging {point_type} of {curve_id} to ({x:.1f}, {y:.1f})")
-45 |     
-46 |     ui.label('Interactive Bézier Canvas - New Implementation').style('font-size: 1.5em; font-weight: bold; margin-bottom: 1em;')
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-47 |     ui.label('• Click on grid background to see grid click events')
-48 |     ui.label('• Click on curves to see curve click events')
-   |
-
-playground/connections/bezier_canvas.py:169:100: E501 Line too long (106 > 99)
-    |
-167 |         # Auto-calculate control points if not provided
-168 |         if control_point1 is None:
-169 |             control_point1 = (start_point[0] + (end_point[0] - start_point[0]) * 0.3, start_point[1] - 50)
-    |                                                                                                    ^^^^^^^ E501
-170 |         if control_point2 is None:
-171 |             control_point2 = (start_point[0] + (end_point[0] - start_point[0]) * 0.7, end_point[1] - 50)
-    |
-
-playground/connections/bezier_canvas.py:171:100: E501 Line too long (104 > 99)
-    |
-169 |             control_point1 = (start_point[0] + (end_point[0] - start_point[0]) * 0.3, start_point[1] - 50)
-170 |         if control_point2 is None:
-171 |             control_point2 = (start_point[0] + (end_point[0] - start_point[0]) * 0.7, end_point[1] - 50)
-    |                                                                                                    ^^^^^ E501
-172 |         
-173 |         curve_data = {
-    |
-
-playground/connections/bezier_canvas.py:318:100: E501 Line too long (113 > 99)
-    |
-316 |         cp1 = curve['controlPoint1']
-317 |         cp2 = curve['controlPoint2']
-318 |         return f"M {start['x']},{start['y']} C {cp1['x']},{cp1['y']} {cp2['x']},{cp2['y']} {end['x']},{end['y']}"
-    |                                                                                                    ^^^^^^^^^^^^^^ E501
-319 |
-320 |     def _update_curves(self):
-    |
-
-playground/connections/multi_curve_background.py:46:100: E501 Line too long (128 > 99)
-   |
-44 |             print(f"  Dragging {point_type} of {curve_id} to ({x:.1f}, {y:.1f})")
-45 |     
-46 |     ui.label('Interactive Bézier Canvas - New Implementation').style('font-size: 1.5em; font-weight: bold; margin-bottom: 1em;')
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-47 |     ui.label('• Click on grid background to see grid click events')
-48 |     ui.label('• Click on curves to see curve click events')
-   |
-
-playground/node-editor/litegraph_nicegui.py:103:100: E501 Line too long (102 > 99)
-    |
-101 |                     canvasElement: canvas
-102 |                 }};
-103 |                 console.log('Stored editor in window.lgEditor_{self.id}:', window.lgEditor_{self.id});
-    |                                                                                                    ^^^ E501
-104 |                 
-105 |                 // Configure canvas
-    |
-
-playground/node-editor/litegraph_nicegui.py:230:100: E501 Line too long (103 > 99)
-    |
-228 |             // Copy other properties from the class definition
-229 |             for (let key in nodeClass) {{
-230 |                 if (key !== 'inputs' && key !== 'outputs' && key !== 'properties' && key !== 'size') {{
-    |                                                                                                    ^^^^ E501
-231 |                     this[key] = nodeClass[key];
-232 |                 }}
-    |
-
-playground/node-editor/litegraph_nicegui.py:247:100: E501 Line too long (126 > 99)
-    |
-245 |                 LiteGraph.registerNodeType("{node_type}", {js_function_name});
-246 |                 console.log('Successfully registered node type: {node_type}');
-247 |                 console.log('Available node types after registration:', Object.keys(LiteGraph.registered_node_types || {{}}));
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-248 |             }} catch (error) {{
-249 |                 console.error('Error registering node type {node_type}:', error);
-    |
-
-playground/node-editor/litegraph_nicegui.py:319:100: E501 Line too long (106 > 99)
-    |
-317 |         return '\n'.join(js_parts)
-318 |     
-319 |     def add_node(self, node_type: str, position: List[int] = [100, 100], properties: Dict = None) -> None:
-    |                                                                                                    ^^^^^^^ E501
-320 |         """
-321 |         Add a node to the graph programmatically.
-    |
-
-playground/node-editor/litegraph_nicegui.py:338:100: E501 Line too long (112 > 99)
-    |
-336 |             if (node) {{
-337 |                 node.pos = {position};
-338 |                 if ({json.dumps(properties or {})} && Object.keys({json.dumps(properties or {})}).length > 0) {{
-    |                                                                                                    ^^^^^^^^^^^^^ E501
-339 |                     Object.assign(node.properties, {json.dumps(properties or {})});
-340 |                 }}
-    |
-
-playground/node-editor/litegraph_nicegui.py:345:100: E501 Line too long (107 > 99)
-    |
-343 |             }} else {{
-344 |                 console.error('Failed to create node of type: {node_type}');
-345 |                 console.log('Available node types:', Object.keys(LiteGraph.registered_node_types || {{}}));
-    |                                                                                                    ^^^^^^^^ E501
-346 |             }}
-347 |         }} else {{
-    |
-
-playground/node-editor/litegraph_nicegui.py:563:100: E501 Line too long (103 > 99)
-    |
-562 |     The component provides full bidirectional communication between Python and JavaScript,
-563 |     allowing you to control the node editor programmatically and receive events from user interactions.
-    |                                                                                                    ^^^^ E501
-564 |     ''')
-    |
-
-playground/nodes/main.py:54:100: E501 Line too long (118 > 99)
-   |
-52 |         ui.space()
-53 |         with ui.row():
-54 |             ui.button('New Graph', icon='add', on_click=lambda: graph_manager.clear_graph()).props('flat color=white')
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^ E501
-55 |             ui.button('Save Graph', icon='save', on_click=lambda: graph_manager.save_graph()).props('flat color=white')
-56 |             ui.button('Load Graph', icon='folder_open', on_click=lambda: graph_manager.load_graph()).props('flat color=white')
-   |
-
-playground/nodes/main.py:55:100: E501 Line too long (119 > 99)
-   |
-53 |         with ui.row():
-54 |             ui.button('New Graph', icon='add', on_click=lambda: graph_manager.clear_graph()).props('flat color=white')
-55 |             ui.button('Save Graph', icon='save', on_click=lambda: graph_manager.save_graph()).props('flat color=white')
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^ E501
-56 |             ui.button('Load Graph', icon='folder_open', on_click=lambda: graph_manager.load_graph()).props('flat color=white')
-   |
-
-playground/nodes/main.py:56:100: E501 Line too long (126 > 99)
-   |
-54 |             ui.button('New Graph', icon='add', on_click=lambda: graph_manager.clear_graph()).props('flat color=white')
-55 |             ui.button('Save Graph', icon='save', on_click=lambda: graph_manager.save_graph()).props('flat color=white')
-56 |             ui.button('Load Graph', icon='folder_open', on_click=lambda: graph_manager.load_graph()).props('flat color=white')
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-57 |     
-58 |     # Create the main container
-   |
-
-playground/nodes/utils/Graph.py:69:100: E501 Line too long (100 > 99)
-   |
-67 |                 # Check if connection involves any port of this node
-68 |                 for port in node.inputs + node.outputs:
-69 |                     if connection.source_port_id == port.id or connection.target_port_id == port.id:
-   |                                                                                                    ^ E501
-70 |                         connections_to_remove.append(conn_id)
-71 |                         break
-   |
-
-playground/nodes/utils/NodeCanvas.py:41:100: E501 Line too long (108 > 99)
-   |
-40 |                 # SVG overlay for connections
-41 |                 with ui.element('svg').classes('absolute inset-0 w-full h-full pointer-events-none') as svg:
-   |                                                                                                    ^^^^^^^^^ E501
-42 |                     svg.props('width="100%" height="100%"')
-43 |                     self.connection_svg = svg
-   |
-
-playground/nodes/utils/NodeCanvas.py:229:100: E501 Line too long (111 > 99)
-    |
-227 |     def update_node_property(self, node_id: str, key: str, value: Any):
-228 |         """Update a node property"""
-229 |         self.graph_manager.status_message = f"Updated {self.graph_manager.nodes[node_id].name} property: {key}"
-    |                                                                                                    ^^^^^^^^^^^^ E501
-230 |     
-231 |     # Event handlers for node drag operations
-    |
-
 playground/nodes/utils/NodePanel.py:39:100: E501 Line too long (116 > 99)
    |
 38 |             # Node header with drag handle
@@ -599,592 +8,91 @@ playground/nodes/utils/NodePanel.py:39:100: E501 Line too long (116 > 99)
 41 |                         'text-grey-6'
    |
 
-playground/nodes/utils/NodePanel.py:209:100: E501 Line too long (100 > 99)
+scripts/python_repo_distil.py:187:100: E501 Line too long (141 > 99)
     |
-207 |         if not self._is_dragging:
-208 |             self.node_graph.select_node(self.node.id, multi_select=False)
-209 |             # Note: Removed direct ui.notify call - notifications should be handled by higher layers
-    |                                                                                                    ^ E501
-210 |     
-211 |     def update_position(self, x: float, y: float):
-    |
-
-playground/popup/nicegui_modal.py:24:100: E501 Line too long (102 > 99)
-   |
-22 |         with ui.row().classes('w-full justify-end gap-2'):
-23 |             ui.button('Cancel', on_click=lambda: popup_instance.close()).props('flat')
-24 |             ui.button('Save', on_click=lambda: (ui.notify('Settings saved!'), popup_instance.close()))
-   |                                                                                                    ^^^ E501
-25 |     
-26 |     popup_instance.open()
-   |
-
-playground/popup/nicegui_modal.py:40:100: E501 Line too long (126 > 99)
-   |
-38 |         with ui.row().classes('w-full justify-end gap-2'):
-39 |             ui.button('Cancel', on_click=lambda: popup_instance.close()).props('flat')
-40 |             ui.button('Delete', on_click=lambda: (ui.notify('Item deleted!'), popup_instance.close())).props('color=negative')
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-41 |     
-42 |     popup_instance.open()
-   |
-
-playground/popup/nicegui_modal.py:61:100: E501 Line too long (106 > 99)
-   |
-59 |             with ui.row().classes('gap-2'):
-60 |                 ui.button('Cancel', on_click=lambda: popup_instance.close()).props('flat')
-61 |                 ui.button('Create', on_click=lambda: (ui.notify('Item created!'), popup_instance.close()))
-   |                                                                                                    ^^^^^^^ E501
-62 |
-63 |     popup_instance.open()
-   |
-
-playground/popup/nicegui_modal.py:83:100: E501 Line too long (129 > 99)
-   |
-82 |         with ui.row().classes('w-full justify-center mt-4'):
-83 |             ui.button('Close', on_click=lambda: popup_instance.close()).style('background: rgba(255,255,255,0.2); color: white;')
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-84 |     
-85 |     # Set a close callback
-   |
-
-playground/popup/nicegui_modal.py:92:100: E501 Line too long (110 > 99)
-   |
-90 | # Demo application
-91 | if __name__ in {"__main__", "__mp_main__"}:
-92 |     ui.label('Custom Modal Component Demo').style('font-size: 1.5em; font-weight: bold; margin-bottom: 20px;')
-   |                                                                                                    ^^^^^^^^^^^ E501
-93 |     
-94 |     with ui.row().classes('gap-4'):
-   |
-
-playground/popup/popup.py:99:100: E501 Line too long (100 > 99)
-    |
- 98 |                         if self.closable:
- 99 |                             ui.button(icon='close', on_click=self.close).props('flat round size=sm')
-    |                                                                                                    ^ E501
-100 |                     
-101 |                     ui.separator()
-    |
-
-scripts/manage_test_libraries.py:245:100: E501 Line too long (113 > 99)
-    |
-243 |             print("REINSTALL ALL LIBRARIES")
-244 |             print("=" * 70)
-245 |             confirm = input("This will uninstall and reinstall all libraries. Continue? [y/N]: ").strip().lower()
-    |                                                                                                    ^^^^^^^^^^^^^^ E501
-246 |             if confirm == 'y':
-247 |                 for key, lib in LIBRARIES.items():
-    |
-
-scripts/python_repo_distil.py:55:100: E501 Line too long (103 > 99)
-   |
-53 |         lines = content.split('\n')
-54 |         total_lines = len(lines)
-55 |         code_lines = len([line for line in lines if line.strip() and not line.strip().startswith('#')])
-   |                                                                                                    ^^^^ E501
-56 |         
-57 |         # Extract docstring if present
-   |
-
-scripts/python_repo_distil.py:91:100: E501 Line too long (106 > 99)
-   |
-89 |     for root, dirs, files in os.walk(repo_path):
-90 |         # Filter out ignored directories
-91 |         dirs[:] = [d for d in dirs if not should_ignore_directory(os.path.join(root, d), ignore_patterns)]
-   |                                                                                                    ^^^^^^^ E501
-92 |         
-93 |         for file in files:
-   |
-
-scripts/python_repo_distil.py:141:100: E501 Line too long (104 > 99)
-    |
-139 |         path_parts = Path(file_data['path']).parts
-140 |         indent = '  ' * (len(path_parts) - 1)
-141 |         markdown_content += f"{indent}├── {path_parts[-1]} ({file_data['info']['total_lines']} lines)\n"
-    |                                                                                                    ^^^^^ E501
-142 |     
-143 |     markdown_content += "```\n\n"
-    |
-
-scripts/python_repo_distil.py:178:100: E501 Line too long (141 > 99)
-    |
-176 | …
-177 | …
-178 | …Python files in `{repo_path}` on {datetime.now().strftime('%Y-%m-%d at %H:%M:%S')}.*
+185 | …
+186 | …
+187 | …Python files in `{repo_path}` on {datetime.now().strftime('%Y-%m-%d at %H:%M:%S')}.*
     |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-179 | …
+188 | …
     |
 
-scripts/python_repo_distil.py:213:100: E501 Line too long (119 > 99)
-    |
-211 |         '--ignore',
-212 |         nargs='*',
-213 |         default=['__pycache__', '*.pyc', '.git', '.pytest_cache', 'venv', 'env', '.venv', 'node_modules', '.DS_Store'],
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^ E501
-214 |         help='Patterns to ignore (default: common build/cache directories)'
-215 |     )
-    |
-
-scripts/python_repo_distil.py:283:99: E501 Line too long (129 > 99)
-    |
-282 |         print(f"✅ Successfully created '{args.output_file}'")
-283 |         print(f"📊 Processed {len(python_files)} files with {sum(f['info']['total_lines'] for f in python_files):,} total lines")
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-284 |         
-285 |     except Exception as e:
-    |
-
-src/haywire/core/adapter/base.py:81:100: E501 Line too long (103 > 99)
-   |
-79 |     def decorator(inner_cls: Type[T]) -> Type[T]:
-80 |         if not issubclass(inner_cls, BaseAdapter):
-81 |             raise TypeError(f"@adapter can only be applied to BaseAdapter subclasses, got {inner_cls}")
-   |                                                                                                    ^^^^ E501
-82 |
-83 |         # Set defaults from class name if not provided
-   |
-
-src/haywire/core/adapter/registry.py:28:100: E501 Line too long (128 > 99)
-   |
-26 |             return False
-27 |
-28 |     def _register_class(self, adapter_cls: type[BaseAdapter], library_identity: Optional[LibraryIdentity] = None) -> str | None:
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-29 |         """
-30 |         Register adapter class using actual Python class types as keys.
-   |
-
-src/haywire/core/data/fields.py:264:100: E501 Line too long (102 > 99)
-    |
-262 |             return (True, chain_str)
-263 |         
-264 |         return (False, f"No adapter from {other_field.type_cls.__name__} to {self.type_cls.__name__}")
-    |                                                                                                    ^^^ E501
-265 |     
-266 |     def reset(self) -> None:
-    |
-
-src/haywire/core/data/fields.py:363:100: E501 Line too long (102 > 99)
-    |
-361 |             return (True, "->".join([c.__name__ for c in chain]))
-362 |         
-363 |         return (False, f"No adapter from {other_field.type_cls.__name__} to {self.type_cls.__name__}")
-    |                                                                                                    ^^^ E501
-364 |     
-365 |     def reset(self) -> None:
-    |
-
-src/haywire/core/data/fields.py:492:100: E501 Line too long (103 > 99)
-    |
-491 |         if adapter_registry.has_adapter(other_field.element_type_cls, self.element_type_cls):
-492 |             return (True, f"{other_field.element_type_cls.__name__}->{self.element_type_cls.__name__}")
-    |                                                                                                    ^^^^ E501
-493 |         
-494 |         chain = adapter_registry.find_adapter_chain(other_field.element_type_cls, self.element_type_cls)
-    |
-
-src/haywire/core/data/fields.py:494:100: E501 Line too long (104 > 99)
-    |
-492 |             return (True, f"{other_field.element_type_cls.__name__}->{self.element_type_cls.__name__}")
-493 |         
-494 |         chain = adapter_registry.find_adapter_chain(other_field.element_type_cls, self.element_type_cls)
-    |                                                                                                    ^^^^^ E501
-495 |         if chain:
-496 |             return (True, "->".join([c.__name__ for c in chain]))
-    |
-
-src/haywire/core/data/fields.py:498:100: E501 Line too long (118 > 99)
-    |
-496 |             return (True, "->".join([c.__name__ for c in chain]))
-497 |         
-498 |         return (False, f"No adapter from {other_field.element_type_cls.__name__} to {self.element_type_cls.__name__}")
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^ E501
-499 |     
-500 |     def reset(self) -> None:
-    |
-
-src/haywire/core/data/fields.py:678:100: E501 Line too long (116 > 99)
-    |
-677 |         if adapter_registry.has_adapter(other_field.element_type_cls, self.element_type_cls):
-678 |             return (True, f"Array[{other_field.element_type_cls.__name__}->Array[{self.element_type_cls.__name__}]")
-    |                                                                                                    ^^^^^^^^^^^^^^^^^ E501
-679 |         
-680 |         chain = adapter_registry.find_adapter_chain(other_field.element_type_cls, self.element_type_cls)
-    |
-
-src/haywire/core/data/fields.py:680:100: E501 Line too long (104 > 99)
-    |
-678 |             return (True, f"Array[{other_field.element_type_cls.__name__}->Array[{self.element_type_cls.__name__}]")
-679 |         
-680 |         chain = adapter_registry.find_adapter_chain(other_field.element_type_cls, self.element_type_cls)
-    |                                                                                                    ^^^^^ E501
-681 |         if chain:
-682 |             chain_str = "->".join([c.__name__ for c in chain])
-    |
-
-src/haywire/core/data/fields.py:685:100: E501 Line too long (132 > 99)
-    |
-683 |             return (True, f"Array[{chain_str}]")
-684 |         
-685 |         return (False, f"No adapter from Array[{other_field.element_type_cls.__name__}] to Array[{self.element_type_cls.__name__}]")
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-686 |     
-687 |     def reset(self) -> None:
-    |
-
-src/haywire/core/errors/haywire_exception.py:172:100: E501 Line too long (104 > 99)
-    |
-170 |     module_level_frames = [
-171 |         f for f in traceback_frames 
-172 |         if f.get('function') == '<module>' and not is_framework_code(f.get('file', ''), framework_paths)
-    |                                                                                                    ^^^^^ E501
-173 |     ]
-    |
-
-src/haywire/core/errors/haywire_exception.py:989:100: E501 Line too long (101 > 99)
-    |
-987 |         if user_frame_index is not None:
-988 |             frames_before = self.traceback_frames[:user_frame_index]
-989 |             frames_after = self.traceback_frames[user_frame_index + 1:]  # Skip the user frame itself
-    |                                                                                                    ^^ E501
-990 |         elif self.traceback_frames:
-991 |             # Fallback: if we can't find user frame, show all as "after"
-    |
-
-src/haywire/core/errors/haywire_exception.py:1005:100: E501 Line too long (131 > 99)
+src/haywire/core/errors/haywire_exception.py:1007:100: E501 Line too long (131 > 99)
      |
-1004 | …     # Use reversed box drawing (going down instead of up)
-1005 | …     lines.append(f"             {indent_spaces}╒═╧═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
+1006 | …     # Use reversed box drawing (going down instead of up)
+1007 | …     lines.append(f"             {indent_spaces}╒═╧═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
      |                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-1006 | …     lines.append(f"             {indent_spaces}│    │   ┌─────┄┄┄")
-1007 | …     lines.append(f"             {indent_spaces}│    └───┤ line {frame['line']}: {frame['code'].strip()}")
+1008 | …     lines.append(f"             {indent_spaces}│    │   ┌─────┄┄┄")
+1009 | …     lines.append(f"             {indent_spaces}│    └───┤ line {frame['line']}: {frame['code'].strip()}")
      |
 
-src/haywire/core/errors/haywire_exception.py:1007:100: E501 Line too long (117 > 99)
+src/haywire/core/errors/haywire_exception.py:1009:100: E501 Line too long (117 > 99)
      |
-1005 | …     lines.append(f"             {indent_spaces}╒═╧═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
-1006 | …     lines.append(f"             {indent_spaces}│    │   ┌─────┄┄┄")
-1007 | …     lines.append(f"             {indent_spaces}│    └───┤ line {frame['line']}: {frame['code'].strip()}")
+1007 | …     lines.append(f"             {indent_spaces}╒═╧═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
+1008 | …     lines.append(f"             {indent_spaces}│    │   ┌─────┄┄┄")
+1009 | …     lines.append(f"             {indent_spaces}│    └───┤ line {frame['line']}: {frame['code'].strip()}")
      |                                                                                          ^^^^^^^^^^^^^^^^^^ E501
-1008 | …     lines.append(f"             {indent_spaces}│        └─────┄┄┄")
-1009 | …     lines.append(f"             {indent_spaces}│")     
+1010 | …     lines.append(f"             {indent_spaces}│        └─────┄┄┄")
+1011 | …     lines.append(f"             {indent_spaces}│")     
      |
 
-src/haywire/core/errors/haywire_exception.py:1076:100: E501 Line too long (105 > 99)
+src/haywire/core/errors/haywire_exception.py:1117:100: E501 Line too long (128 > 99)
      |
-1074 |                         left_pattern = "━━╍╍╍┅┅┅┅┉┉┉"
-1075 |                         right_pattern = "┉┉┅┅┅╍╍╍━━"
-1076 |                         gap_width = max(20, total_content_width - len(left_pattern) - len(right_pattern))
-     |                                                                                                    ^^^^^^ E501
-1077 |                         gap_spaces = " " * gap_width
-     |
-
-src/haywire/core/errors/haywire_exception.py:1112:100: E501 Line too long (128 > 99)
-     |
-1110 | …     space_indent = "  " * i
-1111 | …     
-1112 | …     lines.append(f"           {space_indent}╘═╤═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
+1115 | …     space_indent = "  " * i
+1116 | …     
+1117 | …     lines.append(f"           {space_indent}╘═╤═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
      |                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-1113 | …     lines.append(f"           {space_indent}  │    │   ┌─────┄┄┄")
-1114 | …     lines.append(f"           {space_indent}  │    └───┤ line {frame['line']}: {frame['code'].strip()}")
+1118 | …     lines.append(f"           {space_indent}  │    │   ┌─────┄┄┄")
+1119 | …     lines.append(f"           {space_indent}  │    └───┤ line {frame['line']}: {frame['code'].strip()}")
      |
 
-src/haywire/core/errors/haywire_exception.py:1114:100: E501 Line too long (116 > 99)
+src/haywire/core/errors/haywire_exception.py:1119:100: E501 Line too long (116 > 99)
      |
-1112 | …     lines.append(f"           {space_indent}╘═╤═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
-1113 | …     lines.append(f"           {space_indent}  │    │   ┌─────┄┄┄")
-1114 | …     lines.append(f"           {space_indent}  │    └───┤ line {frame['line']}: {frame['code'].strip()}")
+1117 | …     lines.append(f"           {space_indent}╘═╤═ {base_filename} in {frame['function']} | File \"{frame['file']}\"")
+1118 | …     lines.append(f"           {space_indent}  │    │   ┌─────┄┄┄")
+1119 | …     lines.append(f"           {space_indent}  │    └───┤ line {frame['line']}: {frame['code'].strip()}")
      |                                                                                          ^^^^^^^^^^^^^^^^^ E501
-1115 | …     lines.append(f"           {space_indent}  │        └─────┄┄┄")
-1116 | …     lines.append(f"           {space_indent}  │")        
+1120 | …     lines.append(f"           {space_indent}  │        └─────┄┄┄")
+1121 | …     lines.append(f"           {space_indent}  │")        
      |
 
-src/haywire/core/graph/base.py:268:100: E501 Line too long (110 > 99)
-    |
-266 |     # ========================================================================
-267 |     
-268 |     def add_edge(self, output_node_id: str, outlet_pin_id: str, input_node_id: str, inlet_pin_id: str) -> str:
-    |                                                                                                    ^^^^^^^^^^^ E501
-269 |         """Add edge by node and pin identifiers and return its connection uuid
-    |
-
-src/haywire/core/graph/base.py:419:100: E501 Line too long (128 > 99)
-    |
-417 |                 return EdgeType.DATA
-418 |         
-419 |         raise ValueError(f"Determining edge type: inside node '{output_node_id}' no outlet id:'{outlet_pin_id}' found in graph")
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-    |
-
-src/haywire/core/graph/base.py:514:100: E501 Line too long (115 > 99)
-    |
-512 |         for connection_uuid, edge in self.edges.items():
-513 |             if edge.output_node_id not in self.node_wrappers:
-514 |                 errors.append(f"Edge {connection_uuid} references non-existent output node: {edge.output_node_id}")
-    |                                                                                                    ^^^^^^^^^^^^^^^^ E501
-515 |             if edge.input_node_id not in self.node_wrappers:
-516 |                 errors.append(f"Edge {connection_uuid} references non-existent input node: {edge.input_node_id}")
-    |
-
-src/haywire/core/graph/base.py:516:100: E501 Line too long (113 > 99)
-    |
-514 |                 errors.append(f"Edge {connection_uuid} references non-existent output node: {edge.output_node_id}")
-515 |             if edge.input_node_id not in self.node_wrappers:
-516 |                 errors.append(f"Edge {connection_uuid} references non-existent input node: {edge.input_node_id}")
-    |                                                                                                    ^^^^^^^^^^^^^^ E501
-517 |         
-518 |         # Check wrapper validation
-    |
-
-src/haywire/core/graph/base.py:654:100: E501 Line too long (103 > 99)
-    |
-652 |             "created_at": self.created_at,
-653 |             "modified_at": self.modified_at,
-654 |             "nodes": {node_id: wrapper.serialize() for node_id, wrapper in self.node_wrappers.items()},
-    |                                                                                                    ^^^^ E501
-655 |             "edges": {connection_uuid: edge.to_dict() for connection_uuid, edge in self.edges.items()},
-656 |             "variables": {name: var.to_dict() for name, var in self.variables.items()}
-    |
-
-src/haywire/core/graph/base.py:655:100: E501 Line too long (103 > 99)
-    |
-653 |             "modified_at": self.modified_at,
-654 |             "nodes": {node_id: wrapper.serialize() for node_id, wrapper in self.node_wrappers.items()},
-655 |             "edges": {connection_uuid: edge.to_dict() for connection_uuid, edge in self.edges.items()},
-    |                                                                                                    ^^^^ E501
-656 |             "variables": {name: var.to_dict() for name, var in self.variables.items()}
-657 |         }
-    |
-
-src/haywire/core/graph/editor.py:37:100: E501 Line too long (102 > 99)
+src/haywire/core/graph/editor.py:92:100: E501 Line too long (104 > 99)
    |
-35 |     """
-36 |     
-37 |     def __init__(self, graph: BaseGraph, history_manager: IHistoryManager, node_factory: NodeFactory):
-   |                                                                                                    ^^^ E501
-38 |         """
-39 |         Initialize the editor with core components.
-   |
-
-src/haywire/core/graph/editor.py:80:99: E501 Line too long (106 > 99)
-   |
-78 |     def _notify_change(self, operation_type: str = "unknown"):
-79 |         """Notify all callbacks of a graph change."""
-80 |         print(f"📡 Editor: Notifying {len(self._change_callbacks)} callbacks of change: {operation_type}")
-   |                                                                                                    ^^^^^^^ E501
-81 |         
-82 |         # Notify callbacks (with error handling to prevent one bad callback from breaking others)
-   |
-
-src/haywire/core/graph/editor.py:83:100: E501 Line too long (104 > 99)
-   |
-82 |         # Notify callbacks (with error handling to prevent one bad callback from breaking others)
-83 |         for callback in self._change_callbacks[:]:  # Copy list to prevent modification during iteration
+90 |         # Notify callbacks (with error handling to prevent one bad callback 
+91 |         # from breaking others)
+92 |         for callback in self._change_callbacks[:]:  # Copy list to prevent modification during iteration
    |                                                                                                    ^^^^^ E501
-84 |             try:
-85 |                 callback()
+93 |             try:
+94 |                 callback()
    |
 
-src/haywire/core/graph/editor.py:115:100: E501 Line too long (117 > 99)
-    |
-113 |     # =============================================================================
-114 |     
-115 |     def create_wrapper(self, registry_key: str, position: Tuple[float, float] = (100, 100)) -> Optional[NodeWrapper]:
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^ E501
-116 |         """
-117 |         Create a new node wrapper of the specified type at the given position.
-    |
-
-src/haywire/core/graph/editor.py:203:100: E501 Line too long (102 > 99)
-    |
-202 |         # Validate connections exist
-203 |         missing_connections = [conn_id for conn_id in connections if not self.graph.get_edge(conn_id)]
-    |                                                                                                    ^^^ E501
-204 |         if missing_connections:
-205 |             print(f"⚠️ Editor: Connections not found for removal: {missing_connections}")
-    |
-
-src/haywire/core/graph/editor.py:217:99: E501 Line too long (116 > 99)
-    |
-216 |             total_count = len(nodes) + len(connections)
-217 |             print(f"✅ Editor: Removed {total_count} elements ({len(nodes)} nodes, {len(connections)} connections)")
-    |                                                                                                    ^^^^^^^^^^^^^^^^^ E501
-218 |             return True
-    |
-
-src/haywire/core/graph/editor.py:240:100: E501 Line too long (114 > 99)
-    |
-238 |     # =============================================================================
-239 |     
-240 |     def create_connection(self, output_node_id: str, outlet_pin: str, input_node_id: str, inlet_pin: str) -> bool:
-    |                                                                                                    ^^^^^^^^^^^^^^^ E501
-241 |         """
-242 |         Create a connection between two nodes.
-    |
-
-src/haywire/core/graph/editor.py:270:99: E501 Line too long (112 > 99)
-    |
-268 |             self._notify_change("create_connection")
-269 |             
-270 |             print(f"✅ Editor: Created connection {output_node_id}:{outlet_pin} -> {input_node_id}:{inlet_pin}")
-    |                                                                                                    ^^^^^^^^^^^^^ E501
-271 |             return True
-    |
-
-src/haywire/core/graph/editor.py:285:100: E501 Line too long (130 > 99)
-    |
-283 |     # =============================================================================
-284 |     
-285 |     def set_selection(self, selected_nodes: Set[str] = None, selected_connections: Set[Tuple[str, str, str, str]] = None) -> bool:
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-286 |         """
-287 |         Set the current selection.
-    |
-
-src/haywire/core/graph/editor.py:291:100: E501 Line too long (116 > 99)
-    |
-289 |         Args:
-290 |             selected_nodes: Set of selected node IDs
-291 |             selected_connections: Set of selected connection tuples (output_node, outlet_pin, input_node, inlet_pin)
-    |                                                                                                    ^^^^^^^^^^^^^^^^^ E501
-292 |             
-293 |         Returns:
-    |
-
-src/haywire/core/graph/editor.py:304:100: E501 Line too long (106 > 99)
-    |
-302 |             selected_connection_uuids = set()
-303 |             for output_node, outlet_pin, input_node, inlet_pin in selected_connections:
-304 |                 connection_uuid = generate_connection_uuid(output_node, outlet_pin, input_node, inlet_pin)
-    |                                                                                                    ^^^^^^^ E501
-305 |                 selected_connection_uuids.add(connection_uuid)
-    |
-
-src/haywire/core/graph/editor.py:314:99: E501 Line too long (118 > 99)
-    |
-312 |             self._notify_change("set_selection")
-313 |             
-314 |             print(f"✅ Editor: Set selection to {len(selected_nodes)} nodes, {len(selected_connections)} connections")
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^ E501
-315 |             return True
-    |
-
-src/haywire/core/graph/editor.py:393:100: E501 Line too long (103 > 99)
-    |
-391 |             'can_redo': self.can_redo(),
-392 |             'history_size': len(self.history_manager.history) if self.history_manager else 0,
-393 |             'current_history_index': self.history_manager.current_index if self.history_manager else -1
-    |                                                                                                    ^^^^ E501
-394 |         }
-    |
-
-src/haywire/core/library/base.py:23:100: E501 Line too long (105 > 99)
+src/haywire/core/library/base.py:34:100: E501 Line too long (144 > 99)
    |
-21 |     """
-22 |
-23 |     def __init__(self, file_path: str, enforce_file_watching: bool = False, debounce_delay: float = 0.5):
-   |                                                                                                    ^^^^^^ E501
-24 |         self.file_path = file_path
-25 |         self.registries = {}
-   |
-
-src/haywire/core/library/base.py:29:100: E501 Line too long (144 > 99)
-   |
-27 | …
-28 | …
-29 | …uple[str, Optional[List[str]]]] = {} # registry_cls -> (folder_path, exclude_patterns)
+32 | …
+33 | …
+34 | …uple[str, Optional[List[str]]]] = {} # registry_cls -> (folder_path, exclude_patterns)
    |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-30 | …
-31 | …y default
+35 | …
+36 | …y default
    |
 
-src/haywire/core/library/base.py:80:100: E501 Line too long (121 > 99)
-   |
-78 |         pass
-79 |
-80 |     def add_folder_to_registry(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^ E501
-81 |         """
-82 |         Scan a folder for classes matching the registry's class filter
-   |
-
-src/haywire/core/library/base.py:109:100: E501 Line too long (115 > 99)
+src/haywire/core/library/base.py:134:100: E501 Line too long (150 > 99)
     |
-107 |         self.file_watcher.stop()
-108 |
-109 |     def _register_folder(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
-    |                                                                                                    ^^^^^^^^^^^^^^^^ E501
-110 |         """Inform the registry to add classes from a folder and start watching it if needed"""
-111 |         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
-    |
-
-src/haywire/core/library/base.py:119:100: E501 Line too long (150 > 99)
-    |
-117 | …atcher:
-118 | …ntity, registry, self.debounce_delay)
-119 | …tarted watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
+132 | …atcher:
+133 | …ntity, registry, self.debounce_delay)
+134 | …tarted watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
     |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-120 | …
-121 | …ls: Type, exclude_patterns: Optional[List[str]] = None):
+135 | …
+136 | …
     |
 
-src/haywire/core/library/base.py:121:100: E501 Line too long (117 > 99)
+src/haywire/core/library/base.py:151:100: E501 Line too long (150 > 99)
     |
-119 |             logging.info(f"Library '{self.identity.label}': Started watching '{folder_path[len(self.identity.folder_path):]}' for hot…
-120 |
-121 |     def _unregister_folder(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^ E501
-122 |         """Inform the registry to remove classes from a folder and stop watching it if needed"""
-123 |         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
-    |
-
-src/haywire/core/library/base.py:131:100: E501 Line too long (150 > 99)
-    |
-129 | …atcher:
-130 | …
-131 | …topped watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
+149 | …atcher:
+150 | …
+151 | …topped watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
     |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
     |
-
-src/haywire/core/library/decorator.py:69:100: E501 Line too long (103 > 99)
-   |
-67 |     def decorator(inner_cls: Type[T]) -> Type[T]:
-68 |         if not issubclass(inner_cls, BaseLibrary):
-69 |             raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
-   |                                                                                                    ^^^^ E501
-70 |
-71 |         # Require label field
-   |
-
-src/haywire/core/library/discovery.py:127:100: E501 Line too long (100 > 99)
-    |
-126 |     @classmethod
-127 |     def _get_library_path_and_type(cls, library_cls: type[BaseLibrary]) -> Tuple[Path, InstallType]:
-    |                                                                                                    ^ E501
-128 |         """
-129 |         Get library path and determine if it's an editable or regular install.
-    |
-
-src/haywire/core/library/file_watcher.py:15:100: E501 Line too long (116 > 99)
-   |
-13 |     """Handles file system events for a specific library path with debouncing"""
-14 |     
-15 |     def __init__(self, library_identity: LibraryIdentity, registry: HotReloadRegistry, debounce_delay: float = 0.5):
-   |                                                                                                    ^^^^^^^^^^^^^^^^^ E501
-16 |         self.library_identity = library_identity
-17 |         self.registry = registry
-   |
-
-src/haywire/core/library/file_watcher.py:96:100: E501 Line too long (128 > 99)
-   |
-94 |         self._lock = threading.Lock()
-95 |     
-96 |     def add_watch(self, path: str, library_identity: LibraryIdentity, registry: HotReloadRegistry, debounce_delay: float = 0.5):
-   |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
-97 |         """Add a path to be watched for a specific library and registry"""
-98 |         with self._lock:
-   |
 
 src/haywire/core/library/identity.py:14:100: E501 Line too long (137 > 99)
    |
@@ -1196,120 +104,92 @@ src/haywire/core/library/identity.py:14:100: E501 Line too long (137 > 99)
 16 | …der, auto set during registration
    |
 
-src/haywire/core/library/registry.py:32:100: E501 Line too long (111 > 99)
-   |
-30 |         # Registry functionality moved from BaseRegistry
-31 |         self._libraries: Dict[str, BaseLibrary] = {} # registry_id -> library_instance
-32 |         self._class_registries: Dict[Type[BaseRegistry], BaseRegistry] = {} # registry_cls -> registry instance
-   |                                                                                                    ^^^^^^^^^^^^ E501
-33 |         
-34 |         # LibraryRegistry specific attributes
-   |
-
-src/haywire/core/library/registry.py:175:100: E501 Line too long (121 > 99)
+src/haywire/core/library/registry.py:230:100: E501 Line too long (112 > 99)
     |
-174 |                 all_discovered[lib.identity.id] = lib
-175 |                 install_type_label = "regular install" if lib.install_type == InstallType.REGULAR else "editable install"
-    |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^ E501
-176 |                 logger.info(f"  ✓ Found {install_type_label}: {lib.identity.label} ({lib.identity.id})")
-    |
-
-src/haywire/core/library/registry.py:176:100: E501 Line too long (104 > 99)
-    |
-174 |                 all_discovered[lib.identity.id] = lib
-175 |                 install_type_label = "regular install" if lib.install_type == InstallType.REGULAR else "editable install"
-176 |                 logger.info(f"  ✓ Found {install_type_label}: {lib.identity.label} ({lib.identity.id})")
-    |                                                                                                    ^^^^^ E501
-177 |         
-178 |         # Priority 4: Manual folder paths
-    |
-
-src/haywire/core/library/registry.py:222:100: E501 Line too long (112 > 99)
-    |
-220 |             for item in os.listdir(directory):
-221 |                 item_path = os.path.join(directory, item)
-222 |                 if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
+228 |             for item in os.listdir(directory):
+229 |                 item_path = os.path.join(directory, item)
+230 |                 if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
     |                                                                                                    ^^^^^^^^^^^^^ E501
-223 |                     module_paths = self._check_library_structure(item, item_path)
-224 |                     for module_path in module_paths:
+231 |                     module_paths = self._check_library_structure(item, item_path)
+232 |                     for module_path in module_paths:
     |
 
-src/haywire/core/library/registry.py:228:100: E501 Line too long (100 > 99)
+src/haywire/core/library/registry.py:236:100: E501 Line too long (100 > 99)
     |
-226 |                         module_folder_name = os.path.basename(module_path)
-227 |                         lib_folders[module_folder_name] = module_path
-228 |                         logger.info(f"Valid library found: '{module_folder_name}' at {module_path}")
+234 |                         module_folder_name = os.path.basename(module_path)
+235 |                         lib_folders[module_folder_name] = module_path
+236 |                         logger.info(f"Valid library found: '{module_folder_name}' at {module_path}")
     |                                                                                                    ^ E501
-229 |
-230 |         except OSError as e:
+237 |
+238 |         except OSError as e:
     |
 
-src/haywire/core/library/registry.py:265:100: E501 Line too long (120 > 99)
+src/haywire/core/library/registry.py:273:100: E501 Line too long (120 > 99)
     |
-263 |                     for item in os.listdir(library_path):
-264 |                         item_path = os.path.join(library_path, item)
-265 |                         if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
+271 |                     for item in os.listdir(library_path):
+272 |                         item_path = os.path.join(library_path, item)
+273 |                         if os.path.isdir(item_path) and not item.startswith('.') and not item.startswith('__pycache__'):
     |                                                                                                    ^^^^^^^^^^^^^^^^^^^^^ E501
-266 |                             init_path = os.path.join(item_path, '__init__.py')
-267 |                             if os.path.exists(init_path):
+274 |                             init_path = os.path.join(item_path, '__init__.py')
+275 |                             if os.path.exists(init_path):
     |
 
-src/haywire/core/library/registry.py:277:100: E501 Line too long (110 > 99)
+src/haywire/core/library/registry.py:285:100: E501 Line too long (110 > 99)
     |
-275 |                     f"Library '{library_id}': "
-276 |                     f"Invalid library structure at '{library_path}'. "
-277 |                     f"Expected either '__init__.py' (flat) or 'pyproject.toml' with nested modules (package)."
+283 |                     f"Library '{library_id}': "
+284 |                     f"Invalid library structure at '{library_path}'. "
+285 |                     f"Expected either '__init__.py' (flat) or 'pyproject.toml' with nested modules (package)."
     |                                                                                                    ^^^^^^^^^^^ E501
-278 |                 )
+286 |                 )
     |
 
-src/haywire/core/library/registry.py:285:100: E501 Line too long (100 > 99)
+src/haywire/core/library/registry.py:293:100: E501 Line too long (100 > 99)
     |
-283 |         return module_paths    
-284 |
-285 |     def _load_library_class(self, library_folder_name: str, library_path: str) -> type[BaseLibrary]:
+291 |         return module_paths    
+292 |
+293 |     def _load_library_class(self, library_folder_name: str, library_path: str) -> type[BaseLibrary]:
     |                                                                                                    ^ E501
-286 |         """Load a library class from its path"""       
-287 |         try:
+294 |         """Load a library class from its path"""       
+295 |         try:
     |
 
-src/haywire/core/library/registry.py:297:100: E501 Line too long (116 > 99)
+src/haywire/core/library/registry.py:305:100: E501 Line too long (116 > 99)
     |
-295 |                         f"Library '{library_folder_name}': "
-296 |                         f"Has no a valid 'class_identity'. "
-297 |                         f"Check if @library decorator is applied to the class in '__init__.py' at '{library_path}'")
+303 |                         f"Library '{library_folder_name}': "
+304 |                         f"Has no a valid 'class_identity'. "
+305 |                         f"Check if @library decorator is applied to the class in '__init__.py' at '{library_path}'")
     |                                                                                                    ^^^^^^^^^^^^^^^^^ E501
-298 |             else:
-299 |                 logger.error(
+306 |             else:
+307 |                 logger.error(
     |
 
-src/haywire/core/library/registry.py:309:100: E501 Line too long (100 > 99)
+src/haywire/core/library/registry.py:317:100: E501 Line too long (100 > 99)
     |
-307 |             raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}")
-308 |
-309 |     def _load_module_and_metadata(self, library_id: str, library_path: str) -> Optional[ModuleType]:
+315 |             raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}")
+316 |
+317 |     def _load_module_and_metadata(self, library_id: str, library_path: str) -> Optional[ModuleType]:
     |                                                                                                    ^ E501
-310 |         """
-311 |         Load module from a library's __init__.py.
+318 |         """
+319 |         Load module from a library's __init__.py.
     |
 
-src/haywire/core/library/registry.py:387:100: E501 Line too long (100 > 99)
+src/haywire/core/library/registry.py:395:100: E501 Line too long (100 > 99)
     |
-385 |         for search_path in self._library_root_paths:
-386 |             # Skip core libraries path if it's in the list
-387 |             if self.core_libraries_path and os.path.samefile(search_path, self.core_libraries_path):
+393 |         for search_path in self._library_root_paths:
+394 |             # Skip core libraries path if it's in the list
+395 |             if self.core_libraries_path and os.path.samefile(search_path, self.core_libraries_path):
     |                                                                                                    ^ E501
-388 |                 continue
+396 |                 continue
     |
 
-src/haywire/core/library/registry.py:409:100: E501 Line too long (105 > 99)
+src/haywire/core/library/registry.py:417:100: E501 Line too long (105 > 99)
     |
-407 |         return discovered
-408 |     
-409 |     def _instantiate_libraries(self, discovered: Dict[str, DiscoveredLibrary]) -> Dict[str, BaseLibrary]:
+415 |         return discovered
+416 |     
+417 |     def _instantiate_libraries(self, discovered: Dict[str, DiscoveredLibrary]) -> Dict[str, BaseLibrary]:
     |                                                                                                    ^^^^^^ E501
-410 |         """Instantiate all discovered libraries"""
-411 |         instantiated = {}
+418 |         """Instantiate all discovered libraries"""
+419 |         instantiated = {}
     |
 
 src/haywire/core/library/utils.py:108:100: E501 Line too long (102 > 99)
@@ -3955,5 +2835,5 @@ tests/libraries/haybale-TEST_B/haybale_test_b/nodes/processor.py:97:100: E501 Li
 99 |                 metadata={**test_data_in.metadata, "processed_by": "test_b.test_processor"}
    |
 
-Found 410 errors.
+Found 295 errors.
 (haywire) mfroehli@NX-41545 haywire-repo % 

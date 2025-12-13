@@ -11,7 +11,11 @@ from typing import Dict, List, Optional, Any
 
 from .base import BaseNode, node
 from .registry import NodeRegistry
-from ..registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback, LiveCycleEventCallback
+from ..registry.lifecycle_event import (
+    LifeCycleEvent,
+    LiveCycleBatchCallback,
+    LiveCycleEventCallback
+)
 
 
 # ============================================================================ 
@@ -64,7 +68,10 @@ class NodeFactory:
         self._livecycle_batch_subscribers: List[LiveCycleBatchCallback] = []
 
         # individual event notification callbacks
-        self._livecycle_event_subscribers: Dict[str, List[LiveCycleEventCallback]] = {} # registry_key -> list of callbacks
+        # registry_key -> list of callbacks
+        self._livecycle_event_subscribers: Dict[
+            str, List[LiveCycleEventCallback]
+        ] = {}
         
         # Register this factory for livecycle events from node registry hot reloads
         self.node_registry.add_batch_event_subscriber(self._listen_on_livecycle_event)
@@ -97,8 +104,9 @@ class NodeFactory:
         """
         listener for node livecycle changes from registry
         
-        This is called by the NodeRegistry when a node class is reloaded, added, or removed.
-        It forwards the notification to all registered hot reload listeners (typically NodeWrappers).
+        This is called by the NodeRegistry when a node class is reloaded, added, 
+        or removed. It forwards the notification to all registered hot reload 
+        listeners (typically NodeWrappers).
         
         Args:
             batch: The batch of events with complete context

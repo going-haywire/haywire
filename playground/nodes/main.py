@@ -51,9 +51,18 @@ def main():
         ui.label('Node Graph Editor').style('font-size: 1.5rem; font-weight: bold; color: white')
         ui.space()
         with ui.row():
-            ui.button('New Graph', icon='add', on_click=lambda: graph_manager.clear_graph()).props('flat color=white')
-            ui.button('Save Graph', icon='save', on_click=lambda: graph_manager.save_graph()).props('flat color=white')
-            ui.button('Load Graph', icon='folder_open', on_click=lambda: graph_manager.load_graph()).props('flat color=white')
+            ui.button(
+                'New Graph', icon='add', 
+                on_click=lambda: graph_manager.clear_graph()
+            ).props('flat color=white')
+            ui.button(
+                'Save Graph', icon='save', 
+                on_click=lambda: graph_manager.save_graph()
+            ).props('flat color=white')
+            ui.button(
+                'Load Graph', icon='folder_open', 
+                on_click=lambda: graph_manager.load_graph()
+            ).props('flat color=white')
     
     # Create the main container
     with ui.splitter(value=20).classes('w-full h-screen') as splitter:

@@ -14,7 +14,8 @@ def create_zoom_pan_controls(container: ZoomPanContainer) -> None:
         ui.button('⛶', on_click=container.fit_to_content).props('round dense').classes('text-xs')
 
 def create_zoom_pan_info(container: ZoomPanContainer) -> ui.label:
-    """Create info display with comprehensive performance metrics for current zoom and pan values."""
+    """Create info display with comprehensive performance metrics 
+    for current zoom and pan values."""
     info_label = ui.label().classes('zoom-pan-info')
     
     # Additional performance tracking for the info display
@@ -112,7 +113,9 @@ def main():
         # Main layout with left panel and zoom container
         with ui.row().classes('w-full gap-4').style('height: 80vh;'):
             # Right side with zoom container (create first so we can reference it)
-            with ui.card().classes('flex-grow').style('height: 100%; display: flex; flex-direction: column;'):
+            with ui.card().classes('flex-grow').style(
+                'height: 100%; display: flex; flex-direction: column;'
+            ):
                 ui.label('Zoomable Content Area').classes('text-lg mb-2 flex-shrink-0')
                 
                 # Create the zoom/pan container
@@ -138,16 +141,27 @@ def main():
                     with ui.grid(columns=50).classes('gap-6 p-8') as grid:
                         grid.classes('right-[2000px] bottom-[2000px] relative')
                         for i in range(1000):
-                            with ui.card().classes('w-32 h-32 bg-blue-100 flex flex-col items-center justify-center zoom-pan-lod0 node-card'):
+                            with ui.card().classes(
+                                'w-32 h-32 bg-blue-100 flex flex-col '
+                                'items-center justify-center zoom-pan-lod0 node-card'
+                            ):
                                 with ui.column():
                                     # Drag handle (should be draggable, not pan the view)
-                                    with ui.row().classes('drag-handle w-full justify-center mb-1'):
+                                    with ui.row().classes(
+                                        'drag-handle w-full justify-center mb-1'
+                                    ):
                                         ui.icon('drag_indicator').classes('text-grey-6 text-xs')
-                                    ui.label(f'Item {i+1}').classes('text-center text-sm mb-2 zoom-pan-lod1')
-                                    ui.input(value='some text').props('clearable outlined').classes('text-xs zoom-pan-lod2').style('cursor: text; pointer-events: auto;')
+                                    ui.label(f'Item {i+1}').classes(
+                                        'text-center text-sm mb-2 zoom-pan-lod1'
+                                    )
+                                    ui.input(value='some text').props('clearable outlined').classes(
+                                        'text-xs zoom-pan-lod2'
+                                    ).style('cursor: text; pointer-events: auto;')
                                     # Add a port-like element
                                     with ui.row().classes('justify-center mt-1'):
-                                        ui.element('div').classes('port output-port w-3 h-3 bg-red-500 rounded-full').style('cursor: crosshair;')
+                                        ui.icon('fiber_manual_record').classes(
+                                            'port output-port w-3 h-3 bg-red-500 rounded-full'
+                                        ).style('cursor: crosshair;')
 
                 # Add controls
                 create_zoom_pan_controls(zoom_container)
@@ -162,26 +176,46 @@ def main():
   
 
             # Left panel with controls and documentation (create after zoom_container)
-            with ui.card().classes('w-80 flex-shrink-0').style('height: 100%; display: flex; flex-direction: column;'):
+            with ui.card().classes('w-80 flex-shrink-0').style(
+                'height: 100%; display: flex; flex-direction: column;'
+            ):
                 ui.label('Controls & Info').classes('text-xl font-bold mb-4')
                 
                 # Additional demo controls
                 with ui.column().classes('gap-2 mb-6'):
                     ui.label('Demo Controls').classes('text-lg font-semibold mb-2')
-                    ui.button('Zoom to 2x', on_click=lambda: zoom_container.set_zoom(2.0)).classes('w-full')
-                    ui.button('Pan to (100, 50)', on_click=lambda: zoom_container.set_pan(100, 50)).classes('w-full')
+                    ui.button(
+                        'Zoom to 2x',
+                        on_click=lambda: zoom_container.set_zoom(2.0)
+                    ).classes('w-full')
+                    ui.button(
+                        'Pan to (100, 50)',
+                        on_click=lambda: zoom_container.set_pan(100, 50)
+                    ).classes('w-full')
                     ui.button('Reset View', on_click=zoom_container.reset_view).classes('w-full')
-                    ui.button('Fit Content', on_click=zoom_container.fit_to_content).classes('w-full')
+                    ui.button(
+                        'Fit Content',
+                        on_click=zoom_container.fit_to_content
+                    ).classes('w-full')
                     
                     # Performance controls
                     ui.separator()
                     ui.label('Performance').classes('text-md font-semibold mb-2')
-                    ui.button('Show Performance Summary', 
-                             on_click=lambda: ui.notify(zoom_container.get_performance_summary(), 
-                                                       type='info', timeout=10000)).classes('w-full')
-                    ui.button('Reset Performance Metrics', 
-                             on_click=lambda: (zoom_container.reset_performance_metrics(), 
-                                             ui.notify('Performance metrics reset', type='positive'))).classes('w-full')
+                    ui.button(
+                        'Show Performance Summary', 
+                        on_click=lambda: ui.notify(
+                            zoom_container.get_performance_summary(), 
+                            type='info', 
+                            timeout=10000
+                        )
+                    ).classes('w-full')
+                    ui.button(
+                        'Reset Performance Metrics', 
+                        on_click=lambda: (
+                            zoom_container.reset_performance_metrics(), 
+                            ui.notify('Performance metrics reset', type='positive')
+                        )
+                    ).classes('w-full')
                 
                 # Controls documentation
                 with ui.column().classes('flex-grow'):

@@ -166,9 +166,15 @@ class BezierCanvas(Element, component='bezier_canvas.js'):
         
         # Auto-calculate control points if not provided
         if control_point1 is None:
-            control_point1 = (start_point[0] + (end_point[0] - start_point[0]) * 0.3, start_point[1] - 50)
+            control_point1 = (
+                start_point[0] + (end_point[0] - start_point[0]) * 0.3, 
+                start_point[1] - 50
+            )
         if control_point2 is None:
-            control_point2 = (start_point[0] + (end_point[0] - start_point[0]) * 0.7, end_point[1] - 50)
+            control_point2 = (
+                start_point[0] + (end_point[0] - start_point[0]) * 0.7, 
+                end_point[1] - 50
+            )
         
         curve_data = {
             'id': curve_id,
@@ -315,7 +321,11 @@ class BezierCanvas(Element, component='bezier_canvas.js'):
         end = curve['endPoint']
         cp1 = curve['controlPoint1']
         cp2 = curve['controlPoint2']
-        return f"M {start['x']},{start['y']} C {cp1['x']},{cp1['y']} {cp2['x']},{cp2['y']} {end['x']},{end['y']}"
+        return (
+            f"M {start['x']},{start['y']} "
+            f"C {cp1['x']},{cp1['y']} {cp2['x']},{cp2['y']} "
+            f"{end['x']},{end['y']}"
+        )
 
     def _update_curves(self):
         """Update the curves prop and refresh the component."""

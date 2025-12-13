@@ -24,7 +24,8 @@ def generate_pin_uuid(pin_direction: str, node_id: str, pin_id: str) -> str:
         -> 'inlet__node_abc123__temperature'
     """
     if pin_direction not in ('inlet', 'outlet'):
-        raise ValueError(f"Invalid pin direction: {pin_direction}. Must be 'inlet' or 'outlet'")
+        raise ValueError(f"Invalid pin direction: {pin_direction}."
+                         f" Must be 'inlet' or 'outlet'")
 
     return f"{pin_direction}__{node_id}__{pin_id}"
 
@@ -54,7 +55,11 @@ def parse_pin_uuid(pin_id: str) -> Tuple[str, str, str]:
     return direction, node_id, pin_id_part
 
 
-def generate_connection_uuid(outlet_node_id: str, outlet_pin_id: str, inlet_node_id: str, inlet_pin_id: str) -> str:
+def generate_connection_uuid(
+        outlet_node_id: str, 
+        outlet_pin_id: str, 
+        inlet_node_id: str, 
+        inlet_pin_id: str) -> str:
     """
     Generate a unique connection identifier for UI and graph systems.
 
@@ -73,8 +78,9 @@ def generate_connection_uuid(outlet_node_id: str, outlet_pin_id: str, inlet_node
         generate_connection_uuid('node_123', 'output', 'node_456', 'input')
         -> 'connection__outlet__node_123__output__inlet__node_456__input'
     """
-    return f"connection__{generate_pin_uuid('outlet', outlet_node_id, outlet_pin_id)}__{generate_pin_uuid('inlet', inlet_node_id, inlet_pin_id)}"
-
+    outlet_uuid = generate_pin_uuid('outlet', outlet_node_id, outlet_pin_id)
+    inlet_uuid = generate_pin_uuid('inlet', inlet_node_id, inlet_pin_id)
+    return f"connection__{outlet_uuid}__{inlet_uuid}"
 
 class ConnectionComponents(NamedTuple):
     """Components of a parsed connection ID."""
@@ -104,7 +110,8 @@ def parse_connection_uuid(connection_uuid: str) -> ConnectionComponents:
     """
     parts = connection_uuid.split('__')
     if len(parts) != 7:
-        raise ValueError(f"Invalid connection ID format: {connection_uuid}. Expected 7 parts, got {len(parts)}")
+        raise ValueError(f"Invalid connection ID format: {connection_uuid}. "
+                         f"Expected 7 parts, got {len(parts)}")
 
     if parts[0] != 'connection':
         raise ValueError(f"Connection ID must start with 'connection', got: {parts[0]}")

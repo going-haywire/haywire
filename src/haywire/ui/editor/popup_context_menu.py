@@ -6,7 +6,8 @@ This component provides context menus for different elements in the graph canvas
 - Nodes: Node operations menu when Ctrl+clicking on nodes  
 - Connections: Connection operations menu when Ctrl+clicking on connections
 
-Uses the enhanced Popup class that creates elements at page root level to avoid zoom/transform inheritance.
+Uses the enhanced Popup class that creates elements at page root level 
+to avoid zoom/transform inheritance.
 """
 
 from nicegui import ui
@@ -15,7 +16,12 @@ from typing import List, Optional, Callable
 from haywire.core.graph.editor import Editor
 
 from .popup import Popup
-from .event_definitions import  NodeCreateRequestEvent, UserRemoveEvent, UserCopySelectedEvent, UserPasteClipboardEvent
+from .event_definitions import (
+    NodeCreateRequestEvent,
+    UserRemoveEvent,
+    UserCopySelectedEvent,
+    UserPasteClipboardEvent
+)
 from .node_menu_builder import NodeMenuBuilder
 
 
@@ -157,7 +163,10 @@ class PopupContextMenu:
                 if self._has_clipboard_content():
                     btn_paste = ui.button('📄 Paste', on_click=lambda: self._paste_clipboard())
                     btn_paste.props('flat align=left')
-                    btn_paste.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                    btn_paste.classes(
+                        'w-full justify-start px-3 py-2 '
+                        'text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'
+                    )
                     
                     # Add separator if we have paste option
                     ui.separator().classes('w-full my-1')
@@ -190,17 +199,29 @@ class PopupContextMenu:
         
         with popup:
             with ui.column().classes('w-full gap-1'):
-                btn1 = ui.button('📋 Duplicate Node', on_click=lambda: self._duplicate_node(node_id))
+                btn1 = ui.button(
+                    '📋 Duplicate Node',
+                    on_click=lambda: self._duplicate_node(node_id)
+                )
                 btn1.props('flat align=left')
-                btn1.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                btn1.classes(
+                    'w-full justify-start px-3 py-2 '
+                    'text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'
+                )
                 
                 btn2 = ui.button('📄 Copy Node', on_click=lambda: self._copy_node(node_id))
                 btn2.props('flat align=left')
-                btn2.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                btn2.classes(
+                    'w-full justify-start px-3 py-2 '
+                    'text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'
+                )
                 
                 btn3 = ui.button('🗑️ Delete Node', on_click=lambda: self._delete_node(node_id))
                 btn3.props('flat align=left')
-                btn3.classes('w-full justify-start px-3 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm')
+                btn3.classes(
+                    'w-full justify-start px-3 py-2 '
+                    'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
+                )
         
         popup.open()
         self._current_popup = popup
@@ -217,18 +238,36 @@ class PopupContextMenu:
         
         with popup:
             with ui.column().classes('w-full gap-1'):
-                btn1 = ui.button('🔍 Inspect Connection', on_click=lambda: self._inspect_connection(connection_id))
+                btn1 = ui.button(
+                    '🔍 Inspect Connection',
+                    on_click=lambda: self._inspect_connection(connection_id)
+                )
                 btn1.props('flat align=left')
-                btn1.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                btn1.classes(
+                    'w-full justify-start px-3 py-2 '
+                    'text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'
+                )
                 
-                btn2 = ui.button('🗑️ Delete Connection', on_click=lambda: self._delete_connection(connection_id))
+                btn2 = ui.button(
+                    '🗑️ Delete Connection',
+                    on_click=lambda: self._delete_connection(connection_id)
+                )
                 btn2.props('flat align=left')
-                btn2.classes('w-full justify-start px-3 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm')
+                btn2.classes(
+                    'w-full justify-start px-3 py-2 '
+                    'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
+                )
         
         popup.open()
         self._current_popup = popup
     
-    def show_selected_menu(self, x: float, y: float, selected_nodes: List[str], selected_connections: List[str]):
+    def show_selected_menu(
+        self,
+        x: float,
+        y: float,
+        selected_nodes: List[str],
+        selected_connections: List[str]
+    ):
         """Show context menu for multi-selection operations."""
         self._close_current_menu()
         
@@ -247,7 +286,10 @@ class PopupContextMenu:
         elif node_count > 0:
             title = f"Selection ({node_count} {'node' if node_count == 1 else 'nodes'})"
         elif connection_count > 0:
-            title = f"Selection ({connection_count} {'connection' if connection_count == 1 else 'connections'})"
+            title = (
+                f"Selection ({connection_count} "
+                f"{'connection' if connection_count == 1 else 'connections'})"
+            )
         else:
             title = "Selection"
                 
@@ -260,19 +302,34 @@ class PopupContextMenu:
                 if node_count > 0 or connection_count > 0:
                     btn1 = ui.button('🗑️ Delete Selected', on_click=lambda: self._delete_selected())
                     btn1.props('flat align=left')
-                    btn1.classes('w-full justify-start px-3 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm')
+                    btn1.classes(
+                        'w-full justify-start px-3 py-2 '
+                        'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
+                    )
                 
                 # Group selected (placeholder - not implemented yet)
                 if node_count > 1:
-                    btn2 = ui.button('📦 Group Nodes', on_click=lambda: self._group_selected_nodes())
+                    btn2 = ui.button(
+                        '📦 Group Nodes',
+                        on_click=lambda: self._group_selected_nodes()
+                    )
                     btn2.props('flat align=left')
-                    btn2.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                    btn2.classes(
+                        'w-full justify-start px-3 py-2 '
+                        'text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'
+                    )
                 
                 # Copy selected (placeholder - not implemented yet)
                 if node_count > 0:
-                    btn3 = ui.button('📋 Copy Selected', on_click=lambda: self._copy_selected_nodes())
+                    btn3 = ui.button(
+                        '📋 Copy Selected',
+                        on_click=lambda: self._copy_selected_nodes()
+                    )
                     btn3.props('flat align=left')
-                    btn3.classes('w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm')
+                    btn3.classes(
+                        'w-full justify-start px-3 py-2 '
+                        'text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm'
+                    )
         
         popup.open()
         self._current_popup = popup

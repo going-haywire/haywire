@@ -71,7 +71,8 @@ def validate_widget_type_compatibility(
     
     if widget_class is None:
         return True, None
-    # If widget class not found, skip validation. This will be caught later during widget instantiation.
+    # If widget class not found, skip validation. 
+    # This will be caught later during widget instantiation.
     #    return False, f"Widget '{widget_registry_key}' not found in global registry"
     
 

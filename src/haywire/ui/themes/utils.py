@@ -62,7 +62,11 @@ class ColorUtils:
         
         # Handle short form (#RGB -> #RRGGBB)
         if len(hex_color) == 4:  # #RGB
-            hex_color = f"#{hex_color[1]}{hex_color[1]}{hex_color[2]}{hex_color[2]}{hex_color[3]}{hex_color[3]}"
+            hex_color = (
+                f"#{hex_color[1]}{hex_color[1]}"
+                f"{hex_color[2]}{hex_color[2]}"
+                f"{hex_color[3]}{hex_color[3]}"
+            )
         
         # Extract R, G, B values
         r = int(hex_color[1:3], 16)
@@ -175,7 +179,11 @@ class ColorUtils:
         """
         # If #RGB format, expand to #RRGGBB
         if cls.HEX_SHORT_PATTERN.match(hex_color):
-            return f"#{hex_color[1]}{hex_color[1]}{hex_color[2]}{hex_color[2]}{hex_color[3]}{hex_color[3]}"
+            return (
+                f"#{hex_color[1]}{hex_color[1]}"
+                f"{hex_color[2]}{hex_color[2]}"
+                f"{hex_color[3]}{hex_color[3]}"
+            )
         
         # Ensure uppercase
         if cls.HEX_PATTERN.match(hex_color):

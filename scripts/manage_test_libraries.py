@@ -242,7 +242,9 @@ def main_menu():
             print("\n" + "=" * 70)
             print("REINSTALL ALL LIBRARIES")
             print("=" * 70)
-            confirm = input("This will uninstall and reinstall all libraries. Continue? [y/N]: ").strip().lower()
+            confirm = input(
+                "This will uninstall and reinstall all libraries. Continue? [y/N]: "
+            ).strip().lower()
             if confirm == 'y':
                 for key, lib in LIBRARIES.items():
                     print(f"\n--- Processing {lib['name']} ---")

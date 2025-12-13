@@ -161,7 +161,8 @@ def create_port_base(
     kwargs.pop('default', None)
     
     # Store creation recipe for serialization
-    if type_cls.class_identity.registry_key and not type_cls.class_identity.registry_key.startswith('default:'):
+    if (type_cls.class_identity.registry_key 
+        and not type_cls.class_identity.registry_key.startswith('default:')):
         method_name = 'as_inlet' if port_class.__name__ == 'PortInlet' else 'as_outlet'
         port._creation_recipe = {
             'registry_key': type_cls.class_identity.registry_key,

@@ -37,7 +37,11 @@ class BaseType(IType, TypeToDataPort, ABC):
     def has_adapter(self, type_cls: type[BaseType], adapter_registry: AdapterRegistry) -> bool:
         return adapter_registry.has_adapter(type(self), type_cls)
 
-    def get_adapter(self, type_cls: type[BaseType], adapter_registry: AdapterRegistry) -> BaseAdapter:
+    def get_adapter(
+        self,
+        type_cls: type[BaseType],
+        adapter_registry: AdapterRegistry
+    ) -> BaseAdapter:
         return adapter_registry.get_adapter(type(self), type_cls)
 
     def is_value_type(self, compare: type) -> bool:
@@ -76,8 +80,10 @@ class BaseType(IType, TypeToDataPort, ABC):
             return cls(**default_kwargs)
         except Exception as e:
             raise TypeError(
-                f"Cannot create default instance of {cls.__name__} using default={default_kwargs}. "
-                f"Consider overriding create_default() classmethod for complex initialization. "
+                f"Cannot create default instance of {cls.__name__} "
+                f"using default={default_kwargs}. "
+                f"Consider overriding create_default() classmethod "
+                f"for complex initialization. "
                 f"Original error: {e}"
             ) from e
 

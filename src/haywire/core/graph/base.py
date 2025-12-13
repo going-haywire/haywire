@@ -265,7 +265,13 @@ class BaseGraph:
     # Edge Management
     # ========================================================================
     
-    def add_edge(self, output_node_id: str, outlet_pin_id: str, input_node_id: str, inlet_pin_id: str) -> str:
+    def add_edge(
+        self, 
+        output_node_id: str, 
+        outlet_pin_id: str, 
+        input_node_id: str, 
+        inlet_pin_id: str
+    ) -> str:
         """Add edge by node and pin identifiers and return its connection uuid
         
         Args:
@@ -416,7 +422,10 @@ class BaseGraph:
                 # For 'none' or any unknown type, default to DATA
                 return EdgeType.DATA
         
-        raise ValueError(f"Determining edge type: inside node '{output_node_id}' no outlet id:'{outlet_pin_id}' found in graph")
+        raise ValueError(
+            f"Determining edge type: inside node '{output_node_id}' "
+            f"no outlet id:'{outlet_pin_id}' found in graph"
+        )
     
 
 
@@ -511,9 +520,15 @@ class BaseGraph:
         # Check for orphaned edges (edges referencing non-existent nodes)
         for connection_uuid, edge in self.edges.items():
             if edge.output_node_id not in self.node_wrappers:
-                errors.append(f"Edge {connection_uuid} references non-existent output node: {edge.output_node_id}")
+                errors.append(
+                    f"Edge {connection_uuid} references non-existent "
+                    f"output node: {edge.output_node_id}"
+                )
             if edge.input_node_id not in self.node_wrappers:
-                errors.append(f"Edge {connection_uuid} references non-existent input node: {edge.input_node_id}")
+                errors.append(
+                    f"Edge {connection_uuid} references non-existent "
+                    f"input node: {edge.input_node_id}"
+                )
         
         # Check wrapper validation
         for wrapper in self.node_wrappers.values():
@@ -651,8 +666,14 @@ class BaseGraph:
             "author": self.author,
             "created_at": self.created_at,
             "modified_at": self.modified_at,
-            "nodes": {node_id: wrapper.serialize() for node_id, wrapper in self.node_wrappers.items()},
-            "edges": {connection_uuid: edge.to_dict() for connection_uuid, edge in self.edges.items()},
+            "nodes": {
+                node_id: wrapper.serialize() 
+                for node_id, wrapper in self.node_wrappers.items()
+            },
+            "edges": {
+                connection_uuid: edge.to_dict() 
+                for connection_uuid, edge in self.edges.items()
+            },
             "variables": {name: var.to_dict() for name, var in self.variables.items()}
         }
     

@@ -306,7 +306,11 @@ class DependencyGraph:
             f"+{len(added)} -{len(removed)} (total: {len(new_deps)})"
         )
     
-    def get_reload_plan(self, changed_module: str, exclude_modules: Optional[Set[str]] = None) -> ReloadPlan:
+    def get_reload_plan(
+        self,
+        changed_module: str,
+        exclude_modules: Optional[Set[str]] = None
+    ) -> ReloadPlan:
         """
         Generate a reload plan for when a module changes.
         
@@ -499,7 +503,11 @@ class DependencyGraph:
         
         return dep_count
     
-    def _extract_direct_dependencies(self, module_name: str, scope_prefixes: List[str]) -> Set[str]:
+    def _extract_direct_dependencies(
+        self,
+        module_name: str,
+        scope_prefixes: List[str]
+    ) -> Set[str]:
         """
         Extract direct (first-order) module dependencies by parsing source code.
         

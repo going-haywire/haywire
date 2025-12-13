@@ -261,7 +261,11 @@ class PrimitiveField(DataField[T]):
             chain_str = "->".join([c.__name__ for c in chain])
             return (True, chain_str)
         
-        return (False, f"No adapter from {other_field.type_cls.__name__} to {self.type_cls.__name__}")
+        return (
+            False, 
+            f"No adapter from {other_field.type_cls.__name__} to "
+            f"{self.type_cls.__name__}"
+        )
     
     def reset(self) -> None:
         """Reset to default value"""
@@ -360,7 +364,11 @@ class ComplexField(DataField[BaseType]):
         if chain:
             return (True, "->".join([c.__name__ for c in chain]))
         
-        return (False, f"No adapter from {other_field.type_cls.__name__} to {self.type_cls.__name__}")
+        return (
+            False, 
+            f"No adapter from {other_field.type_cls.__name__} to "
+            f"{self.type_cls.__name__}"
+        )
     
     def reset(self) -> None:
         """Reset to default value"""
@@ -489,13 +497,23 @@ class PooledField(DataField[Dict[str, T]]):
             return (True, "direct")
         
         if adapter_registry.has_adapter(other_field.element_type_cls, self.element_type_cls):
-            return (True, f"{other_field.element_type_cls.__name__}->{self.element_type_cls.__name__}")
+            return (
+                True, 
+                f"{other_field.element_type_cls.__name__}->"
+                f"{self.element_type_cls.__name__}"
+            )
         
-        chain = adapter_registry.find_adapter_chain(other_field.element_type_cls, self.element_type_cls)
+        chain = adapter_registry.find_adapter_chain(
+            other_field.element_type_cls, self.element_type_cls
+        )
         if chain:
             return (True, "->".join([c.__name__ for c in chain]))
         
-        return (False, f"No adapter from {other_field.element_type_cls.__name__} to {self.element_type_cls.__name__}")
+        return (
+            False, 
+            f"No adapter from {other_field.element_type_cls.__name__} to "
+            f"{self.element_type_cls.__name__}"
+        )
     
     def reset(self) -> None:
         """Clear all sources"""
@@ -675,14 +693,24 @@ class ArrayField(DataField[List[T]]):
             return (True, "direct")
         
         if adapter_registry.has_adapter(other_field.element_type_cls, self.element_type_cls):
-            return (True, f"Array[{other_field.element_type_cls.__name__}->Array[{self.element_type_cls.__name__}]")
+            return (
+                True, 
+                f"Array[{other_field.element_type_cls.__name__}->Array["
+                f"{self.element_type_cls.__name__}]"
+            )
         
-        chain = adapter_registry.find_adapter_chain(other_field.element_type_cls, self.element_type_cls)
+        chain = adapter_registry.find_adapter_chain(
+            other_field.element_type_cls, self.element_type_cls
+        )
         if chain:
             chain_str = "->".join([c.__name__ for c in chain])
             return (True, f"Array[{chain_str}]")
         
-        return (False, f"No adapter from Array[{other_field.element_type_cls.__name__}] to Array[{self.element_type_cls.__name__}]")
+        return (
+            False, 
+            f"No adapter from Array[{other_field.element_type_cls.__name__}] to "
+            f"Array[{self.element_type_cls.__name__}]"
+        )
     
     def reset(self) -> None:
         """Reset to default array"""

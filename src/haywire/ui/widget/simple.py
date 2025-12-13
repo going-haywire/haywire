@@ -56,7 +56,11 @@ class SimpleWidget(IWidget, ABC):
         """Initialize simple widget"""
         self.element = element
         self.element_id: str = element.id
-        self.ui_properties: dict = element.ui.get('properties', {}) if hasattr(element, 'ui') else {}
+        self.ui_properties: dict = (
+            element.ui.get('properties', {}) 
+            if hasattr(element, 'ui') 
+            else {}
+        )
         
         # UI element (created during render)
         self.ui_element: Optional[Any] = None

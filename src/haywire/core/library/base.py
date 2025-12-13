@@ -20,13 +20,22 @@ class BaseLibrary(ABC):
     and be decorated with the @library decorator.
     """
 
-    def __init__(self, file_path: str, enforce_file_watching: bool = False, debounce_delay: float = 0.5):
+    def __init__(
+        self, 
+        file_path: str, 
+        enforce_file_watching: bool = False, 
+        debounce_delay: float = 0.5
+    ):
         self.file_path = file_path
         self.registries = {}
         self.file_watcher: FileWatcher = FileWatcher()
         self.enforce_file_watching = enforce_file_watching
         self.debounce_delay = debounce_delay
-        self._registry_folders: Dict[Type[BaseRegistry], Tuple[str, Optional[List[str]]]] = {} # registry_cls -> (folder_path, exclude_patterns)
+        # registry_cls -> (folder_path, exclude_patterns)
+        self._registry_folders: Dict[
+            Type[BaseRegistry], 
+            Tuple[str, Optional[List[str]]]
+        ] = {}
 
         self._enabled = False  # Library starts disabled by default
 
@@ -77,7 +86,12 @@ class BaseLibrary(ABC):
         """Validate that this library is properly structured"""
         pass
 
-    def add_folder_to_registry(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
+    def add_folder_to_registry(
+        self, 
+        folder_path: str, 
+        registry_cls: Type, 
+        exclude_patterns: Optional[List[str]] = None
+    ):
         """
         Scan a folder for classes matching the registry's class filter
         and add them to the specified registry.
@@ -106,7 +120,12 @@ class BaseLibrary(ABC):
 
         self.file_watcher.stop()
 
-    def _register_folder(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
+    def _register_folder(
+        self, 
+        folder_path: str, 
+        registry_cls: Type, 
+        exclude_patterns: Optional[List[str]] = None
+    ):
         """Inform the registry to add classes from a folder and start watching it if needed"""
         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
         if not registry:
@@ -115,10 +134,21 @@ class BaseLibrary(ABC):
         registry.add_folder(folder_path, self.identity, exclude_patterns)
 
         if self.enforce_file_watching or self.identity.file_watcher:
-            self.file_watcher.add_watch(folder_path, self.identity, registry, self.debounce_delay)
-            logging.info(f"Library '{self.identity.label}': Started watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
+            self.file_watcher.add_watch(
+                folder_path, self.identity, registry, self.debounce_delay
+            )
+            rel_path = folder_path[len(self.identity.folder_path):]
+            logging.info(
+                f"Library '{self.identity.label}': "
+                f"Started watching '{rel_path}' for hot reload events."
+            )
 
-    def _unregister_folder(self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None):
+    def _unregister_folder(
+        self, 
+        folder_path: str, 
+        registry_cls: Type, 
+        exclude_patterns: Optional[List[str]] = None
+    ):
         """Inform the registry to remove classes from a folder and stop watching it if needed"""
         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
         if not registry:
@@ -128,6 +158,10 @@ class BaseLibrary(ABC):
 
         if self.enforce_file_watching or self.identity.file_watcher:
             self.file_watcher.remove_watch(folder_path)
-            logging.info(f"Library '{self.identity.label}': Stopped watching '{folder_path[len(self.identity.folder_path):]}' for hot reload events.")
+            rel_path = folder_path[len(self.identity.folder_path):]
+            logging.info(
+                f"Library '{self.identity.label}': "
+                f"Stopped watching '{rel_path}' for hot reload events."
+            )
 
         

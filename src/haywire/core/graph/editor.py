@@ -34,7 +34,12 @@ class Editor:
     Uses simple callbacks for change notifications rather than complex events.
     """
     
-    def __init__(self, graph: BaseGraph, history_manager: IHistoryManager, node_factory: NodeFactory):
+    def __init__(
+        self, 
+        graph: BaseGraph, 
+        history_manager: IHistoryManager, 
+        node_factory: NodeFactory
+    ):
         """
         Initialize the editor with core components.
         
@@ -77,10 +82,15 @@ class Editor:
     
     def _notify_change(self, operation_type: str = "unknown"):
         """Notify all callbacks of a graph change."""
-        print(f"📡 Editor: Notifying {len(self._change_callbacks)} callbacks of change: {operation_type}")
+        print(
+            f"📡 Editor: Notifying {len(self._change_callbacks)} callbacks "
+            f"of change: {operation_type}"
+        )
         
-        # Notify callbacks (with error handling to prevent one bad callback from breaking others)
-        for callback in self._change_callbacks[:]:  # Copy list to prevent modification during iteration
+        # Notify callbacks (with error handling to prevent one bad callback 
+        # from breaking others)
+        # Copy list to prevent modification during iteration
+        for callback in self._change_callbacks[:]:
             try:
                 callback()
             except Exception as e:
@@ -112,7 +122,11 @@ class Editor:
     # NODE OPERATIONS
     # =============================================================================
     
-    def create_wrapper(self, registry_key: str, position: Tuple[float, float] = (100, 100)) -> Optional[NodeWrapper]:
+    def create_wrapper(
+        self, 
+        registry_key: str, 
+        position: Tuple[float, float] = (100, 100)
+    ) -> Optional[NodeWrapper]:
         """
         Create a new node wrapper of the specified type at the given position.
         
@@ -200,7 +214,10 @@ class Editor:
             return False
         
         # Validate connections exist
-        missing_connections = [conn_id for conn_id in connections if not self.graph.get_edge(conn_id)]
+        missing_connections = [
+            conn_id for conn_id in connections 
+            if not self.graph.get_edge(conn_id)
+        ]
         if missing_connections:
             print(f"⚠️ Editor: Connections not found for removal: {missing_connections}")
             return False
@@ -214,7 +231,10 @@ class Editor:
             self._notify_change("remove_elements")
             
             total_count = len(nodes) + len(connections)
-            print(f"✅ Editor: Removed {total_count} elements ({len(nodes)} nodes, {len(connections)} connections)")
+            print(
+                f"✅ Editor: Removed {total_count} elements "
+                f"({len(nodes)} nodes, {len(connections)} connections)"
+            )
             return True
             
         except Exception as e:
@@ -237,7 +257,13 @@ class Editor:
     # CONNECTION OPERATIONS
     # =============================================================================
     
-    def create_connection(self, output_node_id: str, outlet_pin: str, input_node_id: str, inlet_pin: str) -> bool:
+    def create_connection(
+        self, 
+        output_node_id: str, 
+        outlet_pin: str, 
+        input_node_id: str, 
+        inlet_pin: str
+    ) -> bool:
         """
         Create a connection between two nodes.
         
@@ -267,7 +293,10 @@ class Editor:
             # Notify callbacks
             self._notify_change("create_connection")
             
-            print(f"✅ Editor: Created connection {output_node_id}:{outlet_pin} -> {input_node_id}:{inlet_pin}")
+            print(
+                f"✅ Editor: Created connection {output_node_id}:{outlet_pin} -> "
+                f"{input_node_id}:{inlet_pin}"
+            )
             return True
             
         except Exception as e:
@@ -282,13 +311,18 @@ class Editor:
     # SELECTION OPERATIONS  
     # =============================================================================
     
-    def set_selection(self, selected_nodes: Set[str] = None, selected_connections: Set[Tuple[str, str, str, str]] = None) -> bool:
+    def set_selection(
+        self, 
+        selected_nodes: Set[str] = None, 
+        selected_connections: Set[Tuple[str, str, str, str]] = None
+    ) -> bool:
         """
         Set the current selection.
         
         Args:
             selected_nodes: Set of selected node IDs
-            selected_connections: Set of selected connection tuples (output_node, outlet_pin, input_node, inlet_pin)
+            selected_connections: Set of selected connection tuples 
+                (output_node, outlet_pin, input_node, inlet_pin)
             
         Returns:
             True if selection was updated, False otherwise
@@ -301,7 +335,9 @@ class Editor:
             from ...ui.utils import generate_connection_uuid
             selected_connection_uuids = set()
             for output_node, outlet_pin, input_node, inlet_pin in selected_connections:
-                connection_uuid = generate_connection_uuid(output_node, outlet_pin, input_node, inlet_pin)
+                connection_uuid = generate_connection_uuid(
+                    output_node, outlet_pin, input_node, inlet_pin
+                )
                 selected_connection_uuids.add(connection_uuid)
             
             new_selection = SelectionState(selected_nodes, selected_connection_uuids)
@@ -311,7 +347,10 @@ class Editor:
             # Notify callbacks
             self._notify_change("set_selection")
             
-            print(f"✅ Editor: Set selection to {len(selected_nodes)} nodes, {len(selected_connections)} connections")
+            print(
+                f"✅ Editor: Set selection to {len(selected_nodes)} nodes, "
+                f"{len(selected_connections)} connections"
+            )
             return True
             
         except Exception as e:
@@ -390,7 +429,10 @@ class Editor:
             'can_undo': self.can_undo(),
             'can_redo': self.can_redo(),
             'history_size': len(self.history_manager.history) if self.history_manager else 0,
-            'current_history_index': self.history_manager.current_index if self.history_manager else -1
+            'current_history_index': (
+                self.history_manager.current_index 
+                if self.history_manager else -1
+            )
         }
     
     def is_valid(self) -> bool:

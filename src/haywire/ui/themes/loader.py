@@ -163,7 +163,10 @@ class ThemeLoader:
                     parent_theme = cls.load_theme(extends_name, theme_registry)
                     
                     if parent_theme is None:
-                        print(f"Warning: Parent theme '{extends_name}' not found for theme at {path}")
+                        print(
+                            f"Warning: Parent theme '{extends_name}' "
+                            f"not found for theme at {path}"
+                        )
             
             # Create TOMLTheme with parent reference
             theme = TOMLTheme(toml_data, parent_theme)
@@ -202,7 +205,8 @@ class ThemeLoader:
         
         if not has_color_section:
             raise ThemeValidationError(
-                f"Theme must have at least one color section: {', '.join(color_sections)}{path_str}"
+                f"Theme must have at least one color section: "
+                f"{', '.join(color_sections)}{path_str}"
             )
         
         # Verify each section is a dict and validate color values
@@ -219,7 +223,10 @@ class ThemeLoader:
         
         # Raise ThemeValidationError with specific error messages
         if errors:
-            error_msg = f"Theme validation failed{path_str}:\n" + "\n".join(f"  - {err}" for err in errors)
+            error_msg = (
+                f"Theme validation failed{path_str}:\n" + 
+                "\n".join(f"  - {err}" for err in errors)
+            )
             raise ThemeValidationError(error_msg)
     
     @classmethod
@@ -240,7 +247,10 @@ class ThemeLoader:
         for key, value in color_dict.items():
             # Check if value is a string
             if not isinstance(value, str):
-                errors.append(f"[{section_name}] '{key}': value must be a string, got {type(value).__name__}")
+                errors.append(
+                    f"[{section_name}] '{key}': value must be a string, "
+                    f"got {type(value).__name__}"
+                )
                 continue
             
             # Check if valid using ColorUtils.is_valid_color()
@@ -259,7 +269,11 @@ class ThemeLoader:
         cls._loaded_themes_cache.clear()
     
     @classmethod
-    def reload_theme(cls, theme_name: str, theme_registry: Optional[Dict] = None) -> Optional[TOMLTheme]:
+    def reload_theme(
+        cls,
+        theme_name: str,
+        theme_registry: Optional[Dict] = None
+    ) -> Optional[TOMLTheme]:
         """
         Force reload a theme from disk, bypassing cache.
         

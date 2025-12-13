@@ -5,8 +5,15 @@ from nicegui import ui
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui.utils import _open_file_in_editor
 
-def _create_detail_row(label: str, value: str, icon: str, multiline: bool = False, monospace: bool = False, 
-                       file_path: str = None, line_number: int = None):
+def _create_detail_row(
+    label: str,
+    value: str,
+    icon: str,
+    multiline: bool = False,
+    monospace: bool = False,
+    file_path: str = None,
+    line_number: int = None
+):
     """Helper to create a consistent detail row with optional file open button"""
     classes = 'text-sm ' + ('font-mono' if monospace else '')
     
@@ -32,7 +39,9 @@ def _create_detail_row(label: str, value: str, icon: str, multiline: bool = Fals
                         # Also add a copy path button
                         ui.button(
                             icon='content_copy',
-                            on_click=lambda p=file_path: ui.run_javascript(f'navigator.clipboard.writeText({p!r})')
+                            on_click=lambda p=file_path: ui.run_javascript(
+                                f'navigator.clipboard.writeText({p!r})'
+                            )
                         ).props('flat dense size=sm').tooltip('Copy file path')
 
 
@@ -56,7 +65,9 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
     with parent_container:
         # Header
         with ui.row().classes('items-center gap-2 pb-3 border-b'):
-            ui.icon(error.get_severity_icon(), color=error.get_severity_color()).classes('text-3xl')
+            ui.icon(error.get_severity_icon(), color=error.get_severity_color()).classes(
+                'text-3xl'
+            )
             ui.label(f"{error.category}").classes('text-xl font-bold text-gray-800')
             ui.button(
                 icon='content_copy',
@@ -86,7 +97,9 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                     if error.source_context:
                         with ui.column().classes('mt-2'):
                             code_lines = [line_content for _, line_content in error.source_context]
-                            first_line_num = error.source_context[0][0] if error.source_context else 1
+                            first_line_num = (
+                                error.source_context[0][0] if error.source_context else 1
+                            )
 
                             # Detect language from filename extension
                             language = 'python'
@@ -119,12 +132,18 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                         exc_type_name = type(error.original_exception).__name__
                                         exc_message = str(error.original_exception)
                                         numbered_lines.append(f"{'':>{line_num_width}} ")
-                                        numbered_lines.append(f"{'':>{line_num_width}} -> {exc_type_name}: {exc_message} ")
+                                        numbered_lines.append(
+                                            f"{'':>{line_num_width}} -> {exc_type_name}: {exc_message} "
+                                        )
                                     numbered_lines.append(f"{'':>{line_num_width}} ")
-                                    numbered_lines.append(f"{line_num:>{line_num_width}} >> {line}  <<")
+                                    numbered_lines.append(
+                                        f"{line_num:>{line_num_width}} >> {line}  <<"
+                                    )
                                     numbered_lines.append(f"{'':>{line_num_width}} ")
                                 else:
-                                    numbered_lines.append(f"{line_num:>{line_num_width}}  : {line}")
+                                    numbered_lines.append(
+                                        f"{line_num:>{line_num_width}}  : {line}"
+                                    )
                             
                             code_with_numbers = '\n'.join(numbered_lines)
                             
@@ -135,21 +154,33 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                             file_display = error.filename
                             if error.library_identity and error.library_identity.folder_path:
                                 try:
-                                    rel_path = os.path.relpath(error.filename, error.library_identity.folder_path)
+                                    rel_path = os.path.relpath(
+                                        error.filename,
+                                        error.library_identity.folder_path
+                                    )
                                     if not rel_path.startswith(".."):
                                         file_display = f"./{rel_path}"
                                 except ValueError:
                                     pass
 
-                            _create_detail_row('File', file_display, 'description', monospace=True, 
-                                             file_path=error.filename, line_number=error.line_number)
+                            _create_detail_row(
+                                'File',
+                                file_display,
+                                'description',
+                                monospace=True,
+                                file_path=error.filename,
+                                line_number=error.line_number
+                            )
 
                             if error.line_number:
                                 _create_detail_row('Line', str(error.line_number), 'tag')
 
         # Traceback section (filter interesting frames)
         if error.traceback_frames:
-            interesting_frames = [f for f in error.traceback_frames if error.is_interesting_frame(f)]
+            interesting_frames = [
+                f for f in error.traceback_frames 
+                if error.is_interesting_frame(f)
+            ]
 
             if interesting_frames:
                 with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
@@ -165,30 +196,44 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
 
                                 base_filename = os.path.basename(filename)
 
-                                with ui.column().classes('gap-1 border-l-2 border-blue-300 pl-3 py-1'):
+                                with ui.column().classes(
+                                    'gap-1 border-l-2 border-blue-300 pl-3 py-1'
+                                ):
                                     # Location with Open button
                                     with ui.row().classes('items-center gap-2'):
                                         ui.icon('arrow_right', color='blue').classes('text-sm')
                                         ui.label(f"{base_filename}").classes('font-bold text-sm')
-                                        ui.label(f"in {function_name}").classes('text-sm text-gray-600')
+                                        ui.label(f"in {function_name}").classes(
+                                            'text-sm text-gray-600'
+                                        )
                                         # Add open button for each frame
                                         if os.path.exists(filename):
                                             ui.button(
                                                 icon='open_in_new',
-                                                on_click=lambda f=filename, ln=line_number: _open_file_in_editor(f, ln)
+                                                on_click=lambda f=filename, ln=line_number: (
+                                                    _open_file_in_editor(f, ln)
+                                                )
                                             ).props('flat dense size=xs').tooltip('Open in editor')
 
                                     # File path (truncated if too long)
                                     display_path = filename
                                     if len(display_path) > 60:
                                         display_path = '...' + display_path[-57:]
-                                    ui.label(f'File "{display_path}"').classes('text-xs text-gray-500 font-mono')
+                                    ui.label(f'File "{display_path}"').classes(
+                                        'text-xs text-gray-500 font-mono'
+                                    )
 
                                     # Source line
                                     if source_line.strip():
-                                        with ui.row().classes('items-start gap-2 mt-1 bg-gray-100 rounded p-2'):
-                                            ui.label(f"line {line_number}:").classes('text-xs text-blue-600 font-mono')
-                                            ui.label(source_line.strip()).classes('text-xs font-mono')
+                                        with ui.row().classes(
+                                            'items-start gap-2 mt-1 bg-gray-100 rounded p-2'
+                                        ):
+                                            ui.label(f"line {line_number}:").classes(
+                                                'text-xs text-blue-600 font-mono'
+                                            )
+                                            ui.label(source_line.strip()).classes(
+                                                'text-xs font-mono'
+                                            )
 
         # Show the actual error message right above the code
         if error.original_exception:
@@ -210,7 +255,11 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                     _create_detail_row('Operation', error.operation, 'build')
 
                 if error.severity:
-                    _create_detail_row('Severity', error.severity.value.upper(), error.get_severity_icon())
+                    _create_detail_row(
+                        'Severity',
+                        error.severity.value.upper(),
+                        error.get_severity_icon()
+                    )
 
                 if error.context_type:
                     _create_detail_row('Context', error.context_type, 'code')
@@ -227,7 +276,12 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                     if error.library_identity:
                         _create_detail_row('Library', error.library_identity.label, 'folder')
                         if error.library_identity.folder_path:
-                            _create_detail_row('Path', error.library_identity.folder_path, 'folder_open', monospace=True)
+                            _create_detail_row(
+                                'Path',
+                                error.library_identity.folder_path,
+                                'folder_open',
+                                monospace=True
+                            )
 
                     if error.registry_key:
                         _create_detail_row('Registry', error.registry_key, 'key')

@@ -95,7 +95,11 @@ class UserRemoveEvent(BaseGraphEvent):
     nodes: List[str]
     connections: List[str]
 
-@graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
+@graph_event(
+    "nodeCreateRequest",
+    category="user",
+    description="Request to create node from context menu"
+)
 @dataclass
 class NodeCreateRequestEvent(BaseGraphEvent):
     registryKey: str
@@ -137,7 +141,11 @@ class ContextMenuNodeEvent(BaseGraphEvent):
     canvasY: float
     nodeId: str
 
-@graph_event("contextMenuConnection", category="user", description="Connection context menu triggered")
+@graph_event(
+    "contextMenuConnection",
+    category="user",
+    description="Connection context menu triggered"
+)
 @dataclass
 class ContextMenuConnectionEvent(BaseGraphEvent):
     screenX: float
@@ -146,7 +154,11 @@ class ContextMenuConnectionEvent(BaseGraphEvent):
     canvasY: float
     connectionUUID: str
 
-@graph_event("contextMenuSelected", category="user", description="Context menu triggered on selected elements")
+@graph_event(
+    "contextMenuSelected",
+    category="user",
+    description="Context menu triggered on selected elements"
+)
 @dataclass
 class ContextMenuSelectedEvent(BaseGraphEvent):
     screenX: float
@@ -156,7 +168,11 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
     selectedNodes: List[str]
     selectedConnections: List[str]
 
-@graph_event("userCopySelected", category="user", description="Copy selected elements to clipboard")
+@graph_event(
+    "userCopySelected",
+    category="user",
+    description="Copy selected elements to clipboard"
+)
 @dataclass
 class UserCopySelectedEvent(BaseGraphEvent):
     selectedNodes: List[str]
@@ -189,7 +205,11 @@ class SyncNodePositionEvent(BaseGraphEvent):
     nodeId: str
     position: Dict[str, float]
 
-@graph_event("syncConnectionAddition", category="sync", description="Sync connection addition to UI")
+@graph_event(
+    "syncConnectionAddition",
+    category="sync",
+    description="Sync connection addition to UI"
+)
 @dataclass
 class SyncConnectionAdditionEvent(BaseGraphEvent):
     connectionUUID: str
@@ -199,7 +219,11 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
     inletPinId: str
     isValid: bool
 
-@graph_event("syncConnectionRemoval", category="sync", description="Sync connection removal from UI")
+@graph_event(
+    "syncConnectionRemoval",
+    category="sync",
+    description="Sync connection removal from UI"
+)
 @dataclass
 class SyncConnectionRemovalEvent(BaseGraphEvent):
     connectionUUID: str

@@ -65,7 +65,10 @@ class UINode:
         self.wrapper.add_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
         
         # Subscribe to factory renderer changes for hot reload support
-        self.factory.add_factory_lifecycle_subscriber(self.wrapper.node_id, self._listen_on_factory_lifecycle_event)
+        self.factory.add_factory_lifecycle_subscriber(
+            self.wrapper.node_id,
+            self._listen_on_factory_lifecycle_event
+        )
 
         self.container.client.on_disconnect(lambda: self.cleanup())
 
@@ -115,7 +118,10 @@ class UINode:
         Args:
             event: The hot reload event with complete context
         """
-        logging.debug(f"🔄 UINode {self.wrapper.node_id}: Wrapper event - {event.event_type.value}")
+        logging.debug(
+            f"🔄 UINode {self.wrapper.node_id}: "
+            f"Wrapper event - {event.event_type.value}"
+        )
 
         if event.event_type == LifeCycleEventType.CLASS_ADDED:
             # Node was successfully initialized
@@ -130,8 +136,13 @@ class UINode:
             
         elif event.is_warning_event():
             # Error occurred during initialization or migration
-            _error_renderer_reg_key: str | None = self.factory._renderer_registry.get_error_renderer_registry_key()
-            logging.debug(f"⚠️ Node error: Re-rendering node {self.wrapper.node_id} with error renderer '{_error_renderer_reg_key}'")
+            _error_renderer_reg_key: str | None = (
+                self.factory._renderer_registry.get_error_renderer_registry_key()
+            )
+            logging.debug(
+                f"⚠️ Node error: Re-rendering node {self.wrapper.node_id} "
+                f"with error renderer '{_error_renderer_reg_key}'"
+            )
             self.render(_error_renderer_reg_key, _is_error_render=True)
                     
     def _listen_on_factory_lifecycle_event(self, node_id: str) -> None:
@@ -150,7 +161,11 @@ class UINode:
         if self.wrapper.node_id == node_id:
             self.render()
 
-    def render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:                    
+    def render(
+        self,
+        renderer_name: str | None = None,
+        _is_error_render: bool = False
+    ) -> bool:                    
         #IMPORTANT: This may be called from background threads (file watcher).
         # We use ui.context.client to ensure UI updates run in the correct context.
         if self.container_slot and hasattr(self.container_slot, 'client'):
@@ -177,7 +192,9 @@ class UINode:
                 if self.container_slot:
                     self.container_slot.clear()  # NiceGUI handles cleanup reliably
                 else:
-                    self.container_slot = ui.column().classes('ui-node-slot').props(f'id="{self.ui_node_id}"')
+                    self.container_slot = ui.column().classes('ui-node-slot').props(
+                        f'id="{self.ui_node_id}"'
+                    )
                 
                 # Render into the container slot
                 with self.container_slot:
@@ -185,9 +202,16 @@ class UINode:
                         renderer_name = self.wrapper.node.ui_config.node_renderer
 
                     if renderer_name is None:
-                        renderer_name = self.factory._renderer_registry.get_default_renderer_registry_key()
+                        renderer_name = (
+                            self.factory._renderer_registry
+                            .get_default_renderer_registry_key()
+                        )
 
-                    self.current_ui_card = self.factory.render(renderer_name, self.wrapper, _is_error_render=_is_error_render)
+                    self.current_ui_card = self.factory.render(
+                        renderer_name,
+                        self.wrapper,
+                        _is_error_render=_is_error_render
+                    )
 
                     self._emit_sync_event()
                     
@@ -270,7 +294,10 @@ class UINode:
         Enhanced to unsubscribe from wrapper and factory callbacks.
         """
         logging.info(f"🔌 Cleaning up UINode {self.wrapper.node_id} ..")
-        self.factory.remove_factory_lifecycle_subscriber(self.wrapper.node_id, self._listen_on_factory_lifecycle_event)
+        self.factory.remove_factory_lifecycle_subscriber(
+            self.wrapper.node_id,
+            self._listen_on_factory_lifecycle_event
+        )
 
         
         # Clean up widgets before clearing UI

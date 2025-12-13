@@ -58,7 +58,10 @@ def renderer(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseRenderer):
-            raise TypeError(f"@renderer can only be applied to BaseNodeRenderer subclasses, got {inner_cls}")
+            raise TypeError(
+                f"@renderer can only be applied to BaseNodeRenderer subclasses, "
+                f"got {inner_cls}"
+            )
 
         # Set defaults from class name if not provided
         kwargs.setdefault('registry_id', inner_cls.__name__)

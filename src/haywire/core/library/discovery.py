@@ -124,7 +124,9 @@ class LibraryDiscovery:
             return None
     
     @classmethod
-    def _get_library_path_and_type(cls, library_cls: type[BaseLibrary]) -> Tuple[Path, InstallType]:
+    def _get_library_path_and_type(
+        cls, library_cls: type[BaseLibrary]
+    ) -> Tuple[Path, InstallType]:
         """
         Get library path and determine if it's an editable or regular install.
         
