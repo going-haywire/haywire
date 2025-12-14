@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..registry.identity import BaseIdentity
-from ..data.enums import FlowType
+from ..data.enums import ContainerType, FlowType
 
 from .interface import IType
 
@@ -41,7 +41,6 @@ class DataTypeIdentity(BaseIdentity):
         default: Default value for this type
         ui: Additional UI properties (dict)
         help_url: Documentation link
-        _is_variant: True for type variants (primitive wrappers), False for custom types
     """
     # Inherited from BaseIdentity:
     # registry_id: str = ''
@@ -50,6 +49,7 @@ class DataTypeIdentity(BaseIdentity):
     # description: str = ''
     
     # Override flow_type to make it required for ports
+    container_type: str = ContainerType.SINGLE
     flow_type: FlowType = FlowType.NONE
 
     # Type specification:

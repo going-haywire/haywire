@@ -19,7 +19,35 @@ if TYPE_CHECKING:
 
 class IType(ABC):
     """
-    Abstract base class for all Haywire data types.
+    Abstract base for Haywire type system.
+    
+    ARCHITECTURE:
+    
+    Type System (IType):
+        - Describes data types (metadata, ports, adapters)
+        - Can be instantiated for adapters and defaults
+        - Instances are TEMPLATES, not runtime storage
+    
+    Storage System (DataField):
+        - Stores actual runtime data efficiently
+        - Uses unwrapped values for primitives
+        - Uses instances for complex types
+    
+    TWO PATTERNS:
+    
+    1. PRIMITIVES (FLOAT, INT, STRING)
+       - Type: FLOAT class (descriptor)
+       - Instance: FLOAT(value=42.0) (template for adapters/defaults)
+       - Storage: 42.0 (unwrapped in PrimitiveField)
+    
+    2. COMPLEX (MeshData, Vector3)
+       - Type: MeshData class (descriptor AND data container)
+       - Instance: MeshData(...) (descriptor instance IS the data)
+       - Storage: MeshData(...) instance (in ComplexField)
+    
+    The .value property provides uniform interface:
+    - PrimitiveType.value → unwrapped primitive
+    - BaseType.value → self (instance is the value)
     
     **Abstract Requirements** (subclasses must implement):
     - value property: Returns the type's data in natural form
@@ -43,6 +71,8 @@ class IType(ABC):
     
     # Subclasses must declare which field class handles them
     field_class: type['DataField'] = None
+    class_identity: 'DataTypeIdentity'
+    class_library: 'LibraryIdentity'
     
     @property
     @abstractmethod
