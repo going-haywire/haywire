@@ -3,11 +3,14 @@ Base adapter classes for type conversion
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Type, TypeVar, Union
 from dataclasses import dataclass
 
 from haywire.core.registry.identity import BaseIdentity
 from haywire.core.library.utils import derive_library_identity, reg_key
+
+if TYPE_CHECKING:
+    from haywire.core.types.interface import IType
 
 @dataclass
 class AdapterIdentity(BaseIdentity):
@@ -106,24 +109,114 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
 # ============================================================================
 
 class BaseAdapter(ABC):
-    """Abstract base class for type adapters"""
+    """
+    Base class for type adapters.
     
-    source_type: Type
-    target_type: Type
+    Key design:
+    - Type-level operations use IType classes (for registration, matching)
+    - Value-level operations use unwrapped primitives/instances (for conversion)
     
-    def __init__(self):
-        if not hasattr(self, 'source_type') or not hasattr(self, 'target_type'):
-            raise NotImplementedError("Adapter must define source_type and target_type")
+    This creates clean separation between type system and runtime values.
+    
+    Example:
+        # Register with type classes
+        registry.register_adapter(
+            source=Temperature,  # IType class
+            target=FLOAT,        # IType class
+            adapter=TemperatureToFloatAdapter
+        )
         
+        # Convert with unwrapped values
+        adapter = TemperatureToFloatAdapter()
+        result = adapter.convert(25.0)  # float -> float (not FLOAT -> FLOAT)
+    """
+    
+    @classmethod
+    @abstractmethod
+    def can_adapt(cls, source: type['IType'], target: type['IType']) -> bool:
+        """
+        Type-level check: Can we adapt between these TYPE CLASSES?
+        
+        This is used for registration and validation.
+        Operates on type classes, not instances or values.
+        
+        Args:
+            source: Source IType class (e.g., Temperature)
+            target: Target IType class (e.g., FLOAT)
+        
+        Returns:
+            True if this adapter can convert source to target
+        
+        Example:
+            class TemperatureToFloatAdapter(BaseAdapter):
+                @classmethod
+                def can_adapt(cls, source, target):
+                    return source == Temperature and target == FLOAT
+        """
+        pass
+
     @abstractmethod
     def convert(self, value: Any) -> Any:
-        """Convert the value from source type to target type"""
+        """
+        Value-level conversion: Convert UNWRAPPED value.
+        
+        This is where actual data transformation happens.
+        Operates on unwrapped primitives or instances, not IType wrappers.
+        
+        Args:
+            value: Unwrapped value from source field
+                   - For primitives: 25.0 (not FLOAT(25.0))
+                   - For complex: MeshData(...) instance
+        
+        Returns:
+            Unwrapped value for target field
+            - For primitives: 77.0 (not FLOAT(77.0))
+            - For complex: PointCloud(...) instance
+        
+        Note: Type is already validated via can_adapt().
+              This method focuses purely on value conversion.
+        
+        Examples:
+            # Primitive to primitive
+            def convert(self, celsius: float) -> float:
+                return (celsius * 9/5) + 32
+            
+            # Complex to complex
+            def convert(self, mesh: MeshData) -> PointCloud:
+                return PointCloud(points=mesh.vertices)
+            
+            # Primitive to string
+            def convert(self, value: float) -> str:
+                return f"{value:.2f}"
+        """
         pass
-    
+
     @classmethod
     def get_conversion_info(cls) -> tuple[Type, Type]:
         """Get the source and target types for this adapter"""
         return cls.source_type, cls.target_type
+
+
+class IdentityAdapter(BaseAdapter):
+    """
+    Identity adapter that passes values through unchanged.
+    
+    Useful when source and target types are the same or
+    when a derived type needs to convert to its base.
+    """
+    
+    def __init__(self, source: type['IType'], target: type['IType']):
+        self.source = source
+        self.target = target
+    
+    @classmethod
+    def can_adapt(cls, source: type['IType'], target: type['IType']) -> bool:
+        """Identity can adapt if types are the same"""
+        return source == target
+    
+    def convert(self, value: Any) -> Any:
+        """Pass through unchanged"""
+        return value
 
 
 class ConversionError(Exception):

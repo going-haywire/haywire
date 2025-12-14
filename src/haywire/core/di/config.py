@@ -199,7 +199,7 @@ class LibrarySystemService:
         print("=" * 70)
         print("Initializing Haywire Library System")
         print("=" * 70)
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.INFO)
         
         # Get all required services from DI
         library_registry = self.injector.get(LibraryRegistry)

@@ -7,7 +7,13 @@ from ..registry.identity import BaseIdentity
 from ..library.utils import derive_library_identity, reg_key
 from ..library.identity import LibraryIdentity
 from ..types.ports import DataPort, PortInlet, PortOutlet
-from .dataclasses import NodeBehavior, NodeErrorInfo, NodeUIConfig, NodeUIState, NodeUserMetadata
+from .dataclasses import (
+    NodeBehavior, 
+    NodeErrorInfo, 
+    NodeUIConfig, 
+    NodeUIState, 
+    NodeUserMetadata
+)
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -116,6 +122,7 @@ class NodeMeta(type):
         new_class = super().__new__(cls, name, bases, attrs)
         return new_class
 
+
 class NodeData:
     """Node data management with port collections"""
     
@@ -160,11 +167,11 @@ class NodeData:
         Get the unwrapped value of an inlet for worker access.
         
         This is the primary method workers use to read inlet values.
-        It automatically unwraps based on the field type:
-        - PrimitiveField: Returns unwrapped primitive (42.0, "hello")
-        - ComplexField: Returns BaseType instance (MeshData(...))
-        - PooledField: Returns Dict[str, T]
-        - ArrayField: Returns List[T]
+        Returns data in its most convenient form:
+        - PrimitiveField: Unwrapped primitive (42.0, "hello")
+        - ComplexField: BaseType instance (MeshData(...))
+        - PooledField: Dict[str, T] of unwrapped values
+        - ArrayField: List[T] of unwrapped values
         
         Args:
             id: The ID of the inlet
@@ -214,21 +221,21 @@ class NodeData:
         Set the value of an outlet from worker.
         
         This is the primary method workers use to write output values.
-        Accepts unwrapped values and handles wrapping automatically.
+        Accepts unwrapped values - no need to wrap in IType!
         
         Args:
             id: The ID of the outlet
-            value: Value to set (can be wrapped or unwrapped)
+            value: Unwrapped value to set
         
         Examples:
             # Primitive outlet
-            self.set_outlet('result', 42.0)  # Stores: FLOAT(42.0)
+            self.set_outlet('result', 42.0)  # Just pass the float!
             
             # Complex outlet
-            self.set_outlet('mesh_out', MeshData(...))  # Stores: MeshData(...)
+            self.set_outlet('mesh_out', MeshData(...))  # Pass the instance
             
             # Array outlet
-            self.set_outlet('sorted', [1.0, 2.0, 3.0])  # Stores: [1.0, 2.0, 3.0]
+            self.set_outlet('sorted', [1.0, 2.0, 3.0])  # Pass the list
         """
         outlet = self.outlets.get(id)
         if not outlet:
@@ -243,6 +250,11 @@ class BaseNode(NodeData, metaclass=NodeMeta):
     
     Combines NodeData (port management) with node lifecycle and execution.
     Subclasses must implement the worker() method for execution logic.
+    
+    The new architecture provides clean API:
+    - inlet(id) - Get unwrapped value
+    - set_outlet(id, value) - Set unwrapped value
+    - No manual wrapping/unwrapping needed!
     """
     
     def __init__(self, node_id: str, wrapper: 'NodeWrapper'):
@@ -288,14 +300,14 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         
         Example:
             def worker(self, context: dict) -> dict | None:
-                # Read inlet values
-                a = self.inlet('input_a')  # Unwrapped value
-                b = self.inlet('input_b')
+                # Read inlet values (already unwrapped!)
+                a = self.inlet('input_a')  # 5.0
+                b = self.inlet('input_b')  # 3.0
                 
                 # Compute result
-                result = a + b
+                result = a + b  # 8.0
                 
-                # Set outlet
+                # Set outlet (no wrapping needed!)
                 self.set_outlet('result', result)
                 
                 return None

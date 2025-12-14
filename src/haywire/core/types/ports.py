@@ -10,20 +10,17 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from haywire.core.data.enums import FlowType
-from haywire.core.types.base import PrimitiveType
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
-from haywire.core.types.base import BaseType
+from haywire.core.types.base import PrimitiveType, BaseType, CompoundType
 
 # Import the new DataField classes
 from haywire.core.data.fields import (
     DataField,
     PrimitiveField,
     ComplexField,
-    PooledField,
-    ArrayField
+    CompoundField
 )
-
 
 @dataclass
 class DataPort(DataTypeIdentity):
@@ -33,39 +30,44 @@ class DataPort(DataTypeIdentity):
     Adds runtime-specific fields on top of the identity:
     - id: Port identifier within the node
     - flow_type: CTRL, DATA, CALLBACK, or NONE
-    - data: Runtime data field for storing values
-    - Connection state, pooling, callbacks, etc.
+    - data: Runtime data field for storing values (created by type)
+    - Connection state, element type, etc.
+    
+    Key simplification: Field is created by type.create_field(), not factory.
     """
     
     # Port identifier within node (different from registry_id!)
     id: str = ''
     
-    # Runtime fields
+    # Runtime data field (created by type in __post_init__)
     data: Optional[DataField] = None
     
-    # Pin-specific (unused for Config/Property)
-    is_connected: bool = False
+    # Type tracking
+    type_cls: type[IType] = None  # The type class (FLOAT, ArrayType, etc.)
+    element_type_cls: Optional[type[IType]] = None  # For compound types
     
-    # Inlet-specific (unused for Outlet/Config/Property)
-    is_pooled: bool = False
+    # Connection state
+    is_connected: bool = False
+    allow_multiple_connections: bool = False  # True for pooled inlets
+    
+    # Inlet-specific
     use_mode: str = 'optional'
     is_lazy: bool = False
     
-    # Outlet-specific (unused for Inlet/Config/Property)
+    # Outlet-specific
     pipes: list = field(default_factory=list)
     
-    # Type tracking for arrays and pooled fields
-    element_type_cls: Optional[type[IType]] = None
+    # Internal: Store default override for field creation
+    _default_override: Optional[Dict[str, Any]] = field(default=None, init=False, repr=False)
     
     def get_value(self) -> Any:
         """
         Get unwrapped value for worker convenience.
         
         Returns:
-            - For PrimitiveField: Unwrapped primitive (42.0, "hello")
+            - For PrimitiveField: Unwrapped primitive (42.0)
             - For ComplexField: BaseType instance (MeshData(...))
-            - For PooledField: Dict[str, T] or List[T]
-            - For ArrayField: List[T]
+            - For CompoundField: Container (dict, list, etc.)
             - None if no data
         """
         if not self.data:
@@ -87,10 +89,20 @@ class DataPort(DataTypeIdentity):
         self.data.set_value(new_value, source_id=source_id)
     
     def __post_init__(self):
-        """Skip parent's post_init for runtime ports"""
-        # Note: We skip DataTypeIdentity's __post_init__() because runtime
-        # ports already have their fields explicitly set
-        pass
+        """
+        Create data field via type.
+        
+        Simplified - no factory! Type creates its own field.
+        """
+        # Skip parent's post_init for runtime ports
+        
+        # Create data field if needed
+        if self.data is None and self.type_cls is not None:
+            # Type creates its own field!
+            self.data = self.type_cls.create_field(
+                element_type_cls=self.element_type_cls,
+                default_override=self._default_override
+            )
     
     def is_pin(self) -> bool:
         """Check if this is a visible pin (not a config)"""
@@ -104,20 +116,17 @@ class DataPort(DataTypeIdentity):
         """
         Serialize port to dict.
         
-        If the port was created via Type.as_inlet()/as_outlet(), uses the stored
-        creation recipe for compact serialization.
+        Uses stored creation recipe for compact serialization.
         
         Returns:
-            Dict with recipe format: {type: 'recipe', registry_key, method, kwargs}
+            Dict with recipe format
         """
-        # If port has a creation recipe, use that for serialization
         if hasattr(self, '_creation_recipe'):
             return {
                 'type': 'recipe',
                 **self._creation_recipe
             }
         
-        # Fallback: should not happen in normal usage
         raise NotImplementedError("Port serialization requires _creation_recipe")
     
     @classmethod
@@ -131,12 +140,8 @@ class DataPort(DataTypeIdentity):
         
         Returns:
             Reconstructed PortInlet or PortOutlet
-        
-        Raises:
-            ValueError: If registry_key not found or data format invalid
         """
         if data.get('type') == 'recipe':
-            # Recipe format - recreate via Type.as_inlet()/as_outlet()
             registry_key = data['registry_key']
             method_name = data['method']
             kwargs = data['kwargs']
@@ -146,80 +151,26 @@ class DataPort(DataTypeIdentity):
             if not type_cls:
                 raise ValueError(f"Type '{registry_key}' not found in registry")
             
-            # Get the method (as_inlet or as_outlet) directly from type class
-            method = getattr(type_cls, method_name)
+            # Handle compound types with element_type
+            if 'element_type_registry_key' in kwargs:
+                element_type_key = kwargs.pop('element_type_registry_key')
+                element_type_cls = type_registry.get_type_class(element_type_key)
+                
+                # Reconstruct: CompoundType[ElementType].as_inlet(...)
+                parameterized = type_cls[element_type_cls]
+                method = getattr(parameterized, method_name)
+            else:
+                # Simple type: Type.as_inlet(...)
+                method = getattr(type_cls, method_name)
             
-            # Extract id (required positional arg)
+            # Extract id
             port_id = kwargs.pop('id')
             
-            # Recreate the port by calling the method
+            # Recreate the port (field created in __post_init__)
             return method(port_id, **kwargs)
         
         else:
             raise ValueError(f"Unknown port serialization format: {data.get('type')}")
-
-
-class DataFieldFactory:
-    """Factory for creating DataField instances based on type and configuration"""
-    
-    @staticmethod
-    def create(
-        type_cls: type[IType],
-        is_pooled: bool = False,
-        is_array: bool = False,
-        element_type_cls: Optional[type[IType]] = None,
-        default_override: Optional[Dict[str, Any]] = None
-    ) -> DataField:
-        """
-        Create appropriate DataField instance.
-        
-        Args:
-            type_cls: Type class (FLOAT, MeshData, etc.)
-            is_pooled: Whether this is a pooled field
-            is_array: Whether this is an array field
-            element_type_cls: Element type for pooled/array fields
-            default_override: Override default kwargs
-        
-        Returns:
-            Appropriate DataField subclass instance
-        """
-        # Pooled field
-        if is_pooled:
-            if not element_type_cls:
-                raise ValueError("Pooled fields require element_type_cls")
-            return PooledField(element_type_cls=element_type_cls)
-        
-        # Array field
-        if is_array:
-            if not element_type_cls:
-                raise ValueError("Array fields require element_type_cls")
-            
-            # Get default kwargs from type or use override
-            default_kwargs = default_override or getattr(type_cls.class_identity, 'default', {})
-            
-            return ArrayField(
-                element_type_cls=element_type_cls,
-                default_kwargs=default_kwargs
-            )
-        
-        # Get default kwargs from type or use override
-        default_kwargs = default_override or getattr(type_cls.class_identity, 'default', {})
-        
-        # Primitive field
-        if issubclass(type_cls, PrimitiveType):
-            return PrimitiveField(
-                type_cls=type_cls,
-                default_kwargs=default_kwargs
-            )
-        
-        # Complex field
-        if issubclass(type_cls, BaseType):
-            return ComplexField(
-                type_cls=type_cls,
-                default_kwargs=default_kwargs
-            )
-        
-        raise TypeError(f"Cannot create DataField for type {type_cls}")
 
 
 @dataclass
@@ -229,32 +180,11 @@ class PortInlet(DataPort):
     def is_inlet(self) -> bool:
         return True
     
-    def __post_init__(self):
-        super().__post_init__()
-        
-        # Create data field if needed
-        if self.data is None:
-            self.data = DataFieldFactory.create(
-                type_cls=self.type_cls,
-                is_pooled=self.is_pooled,
-                is_array=getattr(self, 'is_array', False),
-                element_type_cls=self.element_type_cls
-            )
+    # __post_init__ inherited from DataPort
 
 
 @dataclass
 class PortOutlet(DataPort):
     """Outlet port - can send data to connections"""
     
-    def __post_init__(self):
-        super().__post_init__()
-        
-        # Create data field if needed
-        if self.data is None:
-            # Outlets cannot be pooled
-            self.data = DataFieldFactory.create(
-                type_cls=self.type_cls,
-                is_pooled=False,
-                is_array=getattr(self, 'is_array', False),
-                element_type_cls=self.element_type_cls
-            )
+   # __post_init__ inherited from DataPort

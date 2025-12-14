@@ -20,6 +20,7 @@ from haywire.core.data.event import Event
 from haywire.core.types.interface import IType
 from haywire.core.types.base import BaseType
 
+
 T = TypeVar('T')
 
 # ============================================================================
@@ -31,21 +32,17 @@ class DataField(ABC, Generic[T]):
     """
     Abstract base class for all data field types.
     
-    DataFields store data in their natural form (not wrapped in IType containers)
-    and provide uniform access patterns for different use cases:
+    DataFields store data in their natural form and provide uniform
+    access patterns for different use cases:
     - Node-to-node data transfer
     - Worker method access
-    - Widget property binding
+    - Connection validation
     
-    Each subclass handles a specific storage pattern:
-    - PrimitiveField: Single primitive value wrapped in PrimitiveType
-    - ComplexField: Single BaseType instance
-    - PooledField: Dict of source_id -> unwrapped values
-    - ArrayField: List of unwrapped values
+    Each IType declares which DataField class handles its storage.
     """
     
-    type_cls: type[IType]           # Container type (FLOAT, MeshData, etc.)
-    element_type_cls: type[IType]   # Element type (for arrays/pooled)
+    type_cls: type[IType]           # Type class (FLOAT, MeshData, ArrayType, etc.)
+    element_type_cls: type[IType]   # For compound types, the element type
     is_pooled: bool
     is_array: bool
     
@@ -61,13 +58,12 @@ class DataField(ABC, Generic[T]):
     @abstractmethod
     def get_value(self) -> T:
         """
-        Get value for worker access.
+        Get value for worker/binding access.
         
-        Returns data in most convenient form for workers:
-        - PrimitiveField: Unwrapped primitive (42.0, "hello")
+        Returns data in most convenient form:
+        - PrimitiveField: Unwrapped primitive (42.0)
         - ComplexField: BaseType instance (MeshData(...))
-        - PooledField: Dict[str, T] or List[T]
-        - ArrayField: List[T]
+        - CompoundField: Container (dict, list, etc.)
         """
         pass
     
@@ -76,52 +72,35 @@ class DataField(ABC, Generic[T]):
         """
         Set value from connection or programmatic update.
         
-        Handles both wrapped (IType instances from connections) and
-        unwrapped values (direct programmatic setting).
+        Handles both wrapped (IType instances) and unwrapped values.
         
         Args:
-            value: Can be IType instance (from connection) or raw value
+            value: Can be IType instance or raw value
             source_id: Required for PooledField, ignored for others
         """
         pass
     
     @abstractmethod
-    def get_for_transfer(self) -> IType | List[IType]:
+    def get_for_transfer(self) -> Any:
         """
-        Get value wrapped in IType for node-to-node transfer.
+        Get value for node-to-node transfer.
         
-        Returns:
-            IType instance or list of IType instances ready to send
+        Returns unwrapped values (primitives, instances, containers).
+        Type information tracked via type_cls/element_type_cls.
         """
         pass
     
     @abstractmethod
     def is_compatible_with(
-        self, 
-        other_field: 'DataField', 
+        self,
+        other_field: 'DataField',
         adapter_registry: 'AdapterRegistry'
     ) -> tuple[bool, str]:
         """
         Check if this field can receive data from other_field.
         
-        Considers:
-        - Direct type match
-        - Available adapters
-        - Adapter chains
-        - Structural compatibility (single vs pooled vs array)
-        
-        Args:
-            other_field: Source field to check compatibility with
-            adapter_registry: Registry for looking up adapters
-        
         Returns:
             (is_compatible, reason_or_adapter_chain)
-            
-        Examples:
-            (True, "direct")  # Same type
-            (True, "Temperature->FLOAT")  # Single adapter
-            (True, "Temperature->FLOAT->STRING")  # Adapter chain
-            (False, "No adapter found")  # Incompatible
         """
         pass
     
@@ -157,24 +136,26 @@ class DataField(ABC, Generic[T]):
 
 
 # ============================================================================
-# PRIMITIVEFIELD - Stores PrimitiveType[T] instances
+# PRIMITIVEFIELD - Stores unwrapped primitives
 # ============================================================================
 
 @dataclass
 class PrimitiveField(DataField[T]):
     """
-    Stores single PrimitiveType instance (FLOAT, INT, STRING, etc.).
+    Stores unwrapped primitive value for maximum performance.
     
-    Storage: PrimitiveType[T] instance (e.g., FLOAT(42.0))
-    Worker Access: Unwrapped primitive (e.g., 42.0)
-    Transfer: PrimitiveType instance (no re-wrapping needed)
+    Storage: T (unwrapped primitive - 42.0 not FLOAT(42.0))
+    Worker Access: T (unwrapped primitive)
+    Transfer: T (unwrapped primitive)
     
-    This avoids repeated instantiation - the wrapper is created once
-    and its .value property is updated via the setter.
+    Key insight: We store the primitive directly, not wrapped in PrimitiveType.
+    Type information comes from type_cls, not from wrapping every value.
+    
+    This eliminates instantiation overhead and simplifies the data model.
     """
     
-    _container: PrimitiveType[T] = field(init=False, repr=False)
-    _default_kwargs: Dict[str, Any] = field(default_factory=dict)
+    _value: T = field(init=False, repr=False)
+    _default: T = field(init=False, repr=False)
     
     def __init__(self, type_cls: type[PrimitiveType], default_kwargs: Dict[str, Any]):
         """
@@ -189,92 +170,69 @@ class PrimitiveField(DataField[T]):
         self.is_pooled = False
         self.is_array = False
         
-        self._default_kwargs = default_kwargs
-        self._container = type_cls(**default_kwargs)
+        # Extract and store unwrapped primitive
+        self._default = default_kwargs.get('value')
+        self._value = self._default
         
         super().__post_init__()
     
+    def get_value(self) -> T:
+        """Get unwrapped primitive - O(1) direct access"""
+        return self._value
+    
     def set_value(self, value: Any, source_id: str | None = None) -> None:
         """
-        Set value from connection or programmatic update.
+        Store primitive value - NO INSTANTIATION overhead!
+        
+        Accepts both wrapped (rare, from adapters) and unwrapped (common).
         
         Examples:
-            field.set_value(FLOAT(42.0))  # From connection (already wrapped)
-            field.set_value(42.0)         # Programmatic (auto-wrap)
+            field.set_value(42.0)           # From worker - stores 42.0
+            field.set_value(FLOAT(42.0))    # From adapter - unwraps to 42.0
         """
-        if isinstance(value, self.type_cls):
-            # Already wrapped - store directly
-            self._container = value
-        elif isinstance(value, IType):
-            # Different IType - type mismatch
-            raise TypeError(f"Expected {self.type_cls.__name__}, got {type(value).__name__}")
+        # Unwrap if it's a PrimitiveType instance (rare case)
+        if isinstance(value, PrimitiveType):
+            self._value = value.value
         else:
-            # Raw primitive - wrap it
-            self._container = self.type_cls(value=value)
+            # Common case: raw primitive - ZERO OVERHEAD!
+            self._value = value
         
         self.is_dirty = True
-        self.fire(self._container)
+        self.fire(self._value)
     
-    def get_value(self) -> T:
-        """
-        Get unwrapped primitive for worker access.
-        
-        Returns:
-            42.0  # Unwrapped via .value property
-        """
-        return self._container.value
-    
-    def get_for_transfer(self) -> IType:
-        """
-        Get stored instance for transfer.
-        
-        Returns:
-            FLOAT(42.0)  # The actual stored instance (efficient!)
-        """
-        return self._container
+    def get_for_transfer(self) -> T:
+        """Return unwrapped primitive - O(1) direct access"""
+        return self._value
     
     def is_compatible_with(
-        self, 
-        other_field: DataField, 
+        self,
+        other_field: DataField,
         adapter_registry: 'AdapterRegistry'
     ) -> tuple[bool, str]:
-        """
-        Check type compatibility.
-        
-        Examples:
-            FLOAT <- FLOAT: (True, "direct")
-            FLOAT <- Temperature: (True, "Temperature->FLOAT")
-            FLOAT <- STRING: (False, "No adapter found")
-        """
+        """Check type compatibility"""
         # Direct type match
         if other_field.type_cls == self.type_cls:
             return (True, "direct")
         
         # Check for single adapter
         if adapter_registry.has_adapter(other_field.type_cls, self.type_cls):
-            adapter_chain = f"{other_field.type_cls.__name__}->{self.type_cls.__name__}"
-            return (True, adapter_chain)
+            return (True, f"{other_field.type_cls.__name__}->{self.type_cls.__name__}")
         
-        # Check for adapter chain (multi-hop)
+        # Check for adapter chain
         chain = adapter_registry.find_adapter_chain(other_field.type_cls, self.type_cls)
         if chain:
-            chain_str = "->".join([c.__name__ for c in chain])
-            return (True, chain_str)
+            return (True, "->".join([c.__name__ for c in chain]))
         
-        return (
-            False, 
-            f"No adapter from {other_field.type_cls.__name__} to "
-            f"{self.type_cls.__name__}"
-        )
+        return (False, f"No adapter from {other_field.type_cls.__name__} to {self.type_cls.__name__}")
     
     def reset(self) -> None:
         """Reset to default value"""
-        self._container = self.type_cls(**self._default_kwargs)
+        self._value = self._default
         self.is_dirty = True
     
     def has_data(self) -> bool:
         """Check if has data"""
-        return self._container is not None
+        return self._value is not None
 
 
 # ============================================================================
@@ -284,13 +242,13 @@ class PrimitiveField(DataField[T]):
 @dataclass
 class ComplexField(DataField[BaseType]):
     """
-    Stores single BaseType instance (MeshData, custom dataclasses, etc.).
+    Stores BaseType instance.
     
-    Storage: BaseType instance (e.g., MeshData(vertices=[], faces=[]))
-    Worker Access: Same BaseType instance
-    Transfer: Same instance (no wrapping needed)
+    Storage: BaseType instance (MeshData(...))
+    Worker Access: BaseType instance
+    Transfer: BaseType instance
     
-    Complex types are already "wrapped" - they are the data containers.
+    Complex types are already "unwrapped" - the instance IS the value.
     """
     
     _container: BaseType = field(init=False, repr=False)
@@ -302,10 +260,10 @@ class ComplexField(DataField[BaseType]):
         
         Args:
             type_cls: BaseType class (MeshData, etc.)
-            default_kwargs: Constructor kwargs (e.g., {'vertices': [], 'faces': []})
+            default_kwargs: Constructor kwargs
         """
         self.type_cls = type_cls
-        self.element_type_cls = type_cls  # Same as type_cls for complex types
+        self.element_type_cls = type_cls  # Same as type_cls
         self.is_pooled = False
         self.is_array = False
         
@@ -314,13 +272,12 @@ class ComplexField(DataField[BaseType]):
         
         super().__post_init__()
     
+    def get_value(self) -> BaseType:
+        """Get instance"""
+        return self._container
+    
     def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """
-        Set BaseType instance from connection.
-        
-        Examples:
-            field.set_value(MeshData(vertices=[...], faces=[...]))
-        """
+        """Store BaseType instance"""
         if not isinstance(value, self.type_cls):
             raise TypeError(f"Expected {self.type_cls.__name__}, got {type(value).__name__}")
         
@@ -328,32 +285,16 @@ class ComplexField(DataField[BaseType]):
         self.is_dirty = True
         self.fire(self._container)
     
-    def get_value(self) -> BaseType:
-        """
-        Get instance for worker access.
-        
-        Returns:
-            MeshData(vertices=[...], faces=[...])
-        """
-        return self._container
-    
-    def get_for_transfer(self) -> IType:
-        """
-        Get instance for transfer.
-        
-        Returns:
-            MeshData(...)  # The actual instance (no wrapping needed)
-        """
+    def get_for_transfer(self) -> BaseType:
+        """Return instance (no wrapping needed)"""
         return self._container
     
     def is_compatible_with(
-        self, 
-        other_field: DataField, 
+        self,
+        other_field: DataField,
         adapter_registry: 'AdapterRegistry'
     ) -> tuple[bool, str]:
-        """
-        Check type compatibility (same logic as PrimitiveField).
-        """
+        """Check type compatibility"""
         if other_field.type_cls == self.type_cls:
             return (True, "direct")
         
@@ -364,11 +305,7 @@ class ComplexField(DataField[BaseType]):
         if chain:
             return (True, "->".join([c.__name__ for c in chain]))
         
-        return (
-            False, 
-            f"No adapter from {other_field.type_cls.__name__} to "
-            f"{self.type_cls.__name__}"
-        )
+        return (False, f"No adapter from {other_field.type_cls.__name__} to {self.type_cls.__name__}")
     
     def reset(self) -> None:
         """Reset to default value"""
@@ -381,363 +318,38 @@ class ComplexField(DataField[BaseType]):
 
 
 # ============================================================================
-# POOLEDFIELD - Stores Dict[str, T]
+# COMPOUNDFIELD - Base for collections (Array, Pooled, etc.)
 # ============================================================================
 
 @dataclass
-class PooledField(DataField[Dict[str, T]]):
+class CompoundField(DataField, ABC):
     """
-    Stores dict of source_id -> unwrapped values (multi-source inlet).
+    Abstract base for compound/collection fields.
     
-    Storage: Dict[str, T] where T is unwrapped primitive or BaseType
-    Worker Access: Dict or list of unwrapped values
-    Transfer: Not allowed (inlet-only)
+    All compound fields:
+    - Track element_type_cls for type safety
+    - Store unwrapped elements for performance
+    - Implement collection-specific semantics
     
-    Used when a node needs to aggregate data from multiple upstream nodes.
-    Each source is tracked by its node ID, allowing updates/removals.
+    Subclasses:
+    - ArrayField: List[T] with homogeneous elements
+    - PooledField: Dict[str, T] with source tracking
+    - SetField: Set[T] with unique elements (future)
     """
     
-    _sources: Dict[str, T] = field(default_factory=dict, init=False, repr=False)
+    # Compound fields always have element_type_cls
+    element_type_cls: type[IType]
     
-    def __init__(self, element_type_cls: type[IType]):
+    @abstractmethod
+    def _unwrap_value(self, value: Any) -> Any:
         """
-        Initialize pooled field.
+        Unwrap a single value if it's an IType instance.
         
-        Args:
-            element_type_cls: Type of elements in the pool (FLOAT, MeshData, etc.)
+        Used when receiving values that might be wrapped.
         """
-        # Pooled uses a synthetic type_cls as marker
-        self.type_cls = type('PooledType', (BaseType,), {})
-        self.element_type_cls = element_type_cls
-        self.is_pooled = True
-        self.is_array = False
-        
-        self._sources = {}
-        
-        super().__post_init__()
-    
-    def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """
-        Set value from a specific source.
-        
-        Examples:
-            field.set_value(FLOAT(42.0), source_id="node1")
-            # Stores: {"node1": 42.0}
-            
-            field.set_value(FLOAT(15.0), source_id="node2")
-            # Stores: {"node1": 42.0, "node2": 15.0}
-            
-            field.set_value(FLOAT(99.0), source_id="node1")
-            # Stores: {"node1": 99.0, "node2": 15.0}  # Overwrites node1
-        """
-        if source_id is None:
-            raise ValueError("PooledField requires source_id")
-        
-        # Unwrap value based on type
-        if isinstance(value, PrimitiveType):
-            unwrapped = value.value
-        elif isinstance(value, BaseType):
-            unwrapped = value  # Keep complex types as-is
-        else:
-            unwrapped = value
-        
-        # Check if value actually changed
-        if self._sources.get(source_id) == unwrapped:
-            return
-        
-        # Update source
-        self._sources[source_id] = unwrapped
-        self.is_dirty = True
-        self.fire(dict(self._sources))
-    
-    def get_value(self) -> Dict[str, T]:
-        """
-        Get dict of all source values.
-        
-        Returns:
-            {"node1": 42.0, "node2": 15.0}  # Primitives unwrapped
-            or
-            {"node1": MeshData(...), "node2": MeshData(...)}  # Complex as-is
-        """
-        return dict(self._sources)
-    
-    def get_for_transfer(self) -> IType:
-        """
-        Not allowed - pooled fields are inlet-only.
-        """
-        raise RuntimeError(
-            "PooledField cannot be used with outlets. "
-            "Pooled fields are for aggregating multiple inputs only."
-        )
-    
-    def is_compatible_with(
-        self, 
-        other_field: DataField, 
-        adapter_registry: 'AdapterRegistry'
-    ) -> tuple[bool, str]:
-        """
-        Check if incoming field's element type is compatible.
-        
-        Examples:
-            Pooled[FLOAT] <- FLOAT: (True, "direct")
-            Pooled[FLOAT] <- Temperature: (True, "Temperature->FLOAT")
-            Pooled[FLOAT] <- Pooled[FLOAT]: (False, "Cannot connect pooled to pooled")
-            Pooled[FLOAT] <- Array[FLOAT]: (False, "Cannot pool arrays")
-        """
-        # Cannot receive from another pooled field
-        if other_field.is_pooled:
-            return (False, "Cannot connect pooled to pooled")
-        
-        # Cannot receive arrays
-        if other_field.is_array:
-            return (False, "Cannot pool array outputs")
-        
-        # Check element type compatibility
-        if other_field.element_type_cls == self.element_type_cls:
-            return (True, "direct")
-        
-        if adapter_registry.has_adapter(other_field.element_type_cls, self.element_type_cls):
-            return (
-                True, 
-                f"{other_field.element_type_cls.__name__}->"
-                f"{self.element_type_cls.__name__}"
-            )
-        
-        chain = adapter_registry.find_adapter_chain(
-            other_field.element_type_cls, self.element_type_cls
-        )
-        if chain:
-            return (True, "->".join([c.__name__ for c in chain]))
-        
-        return (
-            False, 
-            f"No adapter from {other_field.element_type_cls.__name__} to "
-            f"{self.element_type_cls.__name__}"
-        )
-    
-    def reset(self) -> None:
-        """Clear all sources"""
-        self._sources.clear()
-        self.is_dirty = True
-    
-    def has_data(self) -> bool:
-        """Check if has any sources"""
-        return len(self._sources) > 0
-    
-    # ========================================================================
-    # POOLED-SPECIFIC HELPERS
-    # ========================================================================
-    
-    def remove_source(self, source_id: str) -> None:
-        """
-        Remove a disconnected source.
-        
-        Args:
-            source_id: Node ID to remove
-        """
-        if source_id in self._sources:
-            del self._sources[source_id]
-            self.is_dirty = True
-            self.fire(dict(self._sources))
-    
-    def get_values_list(self) -> List[T]:
-        """
-        Get values as list (for iteration).
-        
-        Returns:
-            [42.0, 15.0]
-        """
-        return list(self._sources.values())
-    
-    def get_source_ids(self) -> List[str]:
-        """
-        Get list of source node IDs.
-        
-        Returns:
-            ["node1", "node2"]
-        """
-        return list(self._sources.keys())
+        pass
 
 
-# ============================================================================
-# ARRAYFIELD - Stores List[T]
-# ============================================================================
-
-@dataclass
-class ArrayField(DataField[List[T]]):
-    """
-    Stores list of unwrapped values (homogeneous, typed).
-    
-    Storage: List[T] where T is unwrapped primitive or BaseType
-    Worker Access: Same list of unwrapped values
-    Transfer: List of wrapped IType instances
-    
-    Used for typed arrays like Array[FLOAT] or Array[MeshData].
-    Elements are stored unwrapped for efficiency.
-    """
-    
-    _items: List[T] = field(default_factory=list, init=False, repr=False)
-    _default_kwargs: Dict[str, Any] = field(default_factory=dict)
-    
-    def __init__(self, element_type_cls: type[IType], default_kwargs: Dict[str, Any]):
-        """
-        Initialize array field.
-        
-        Args:
-            element_type_cls: Type of array elements (FLOAT, MeshData, etc.)
-            default_kwargs: Constructor kwargs (e.g., {'value': [1.0, 2.0, 3.0]})
-        """
-        # Array uses a synthetic type_cls as marker
-        self.type_cls = type('ArrayType', (BaseType,), {})
-        self.element_type_cls = element_type_cls
-        self.is_pooled = False
-        self.is_array = True
-        
-        self._default_kwargs = default_kwargs
-        
-        # Initialize from default
-        initial_list = default_kwargs.get('value', [])
-        self._items = self._unwrap_items(initial_list)
-        
-        super().__post_init__()
-    
-    def _unwrap_items(self, items: List[Any]) -> List[T]:
-        """
-        Helper to unwrap list items if they're IType instances.
-        
-        Args:
-            items: List that may contain IType instances or raw values
-            
-        Returns:
-            List of unwrapped values
-        """
-        result = []
-        for item in items:
-            if isinstance(item, PrimitiveType):
-                result.append(item.value)  # Unwrap primitive
-            else:
-                result.append(item)  # Already unwrapped
-        return result
-    
-    def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """
-        Set array from connection or programmatic update.
-        
-        Examples:
-            # From connection (list of instances):
-            field.set_value([FLOAT(1), FLOAT(2), FLOAT(3)])
-            # Stored: [1.0, 2.0, 3.0]
-            
-            # Programmatic (already unwrapped):
-            field.set_value([1.0, 2.0, 3.0])
-            # Stored: [1.0, 2.0, 3.0]
-            
-            # Complex types:
-            field.set_value([MeshData(...), MeshData(...)])
-            # Stored: [MeshData(...), MeshData(...)]
-        """
-        if not isinstance(value, list):
-            raise TypeError(f"ArrayField requires list, got {type(value).__name__}")
-        
-        self._items = self._unwrap_items(value)
-        self.is_dirty = True
-        self.fire(list(self._items))
-    
-    def get_value(self) -> List[T]:
-        """
-        Get list for worker access.
-        
-        Returns:
-            [42.0, 3.14, 27.5]  # Primitives unwrapped
-            or
-            [MeshData(...), MeshData(...)]  # Complex types as-is
-        """
-        return list(self._items)
-    
-    def get_for_transfer(self) -> List[IType]:
-        """
-        Get list wrapped for transfer.
-        
-        Re-wraps primitives, keeps complex types as-is.
-        
-        Returns:
-            [FLOAT(1.0), FLOAT(2.0), FLOAT(3.0)]  # Primitives re-wrapped
-            or
-            [MeshData(...), MeshData(...)]  # Complex types as-is
-        """
-        # Re-wrap primitives, keep complex types as-is
-        if issubclass(self.element_type_cls, PrimitiveType):
-            return [self.element_type_cls(value=item) for item in self._items]
-        else:
-            return list(self._items)  # Already BaseType instances
-    
-    def is_compatible_with(
-        self, 
-        other_field: DataField, 
-        adapter_registry: 'AdapterRegistry'
-    ) -> tuple[bool, str]:
-        """
-        Check if incoming array has compatible element type.
-        
-        Examples:
-            Array[FLOAT] <- Array[FLOAT]: (True, "direct")
-            Array[FLOAT] <- Array[Temperature]: (True, "Array[Temperature->FLOAT]")
-            Array[FLOAT] <- FLOAT: (False, "Cannot connect single to array")
-        """
-        # Must be array to array
-        if not other_field.is_array:
-            return (False, "Cannot connect non-array to array inlet")
-        
-        # Check element type compatibility
-        if other_field.element_type_cls == self.element_type_cls:
-            return (True, "direct")
-        
-        if adapter_registry.has_adapter(other_field.element_type_cls, self.element_type_cls):
-            return (
-                True, 
-                f"Array[{other_field.element_type_cls.__name__}->Array["
-                f"{self.element_type_cls.__name__}]"
-            )
-        
-        chain = adapter_registry.find_adapter_chain(
-            other_field.element_type_cls, self.element_type_cls
-        )
-        if chain:
-            chain_str = "->".join([c.__name__ for c in chain])
-            return (True, f"Array[{chain_str}]")
-        
-        return (
-            False, 
-            f"No adapter from Array[{other_field.element_type_cls.__name__}] to "
-            f"Array[{self.element_type_cls.__name__}]"
-        )
-    
-    def reset(self) -> None:
-        """Reset to default array"""
-        initial_list = self._default_kwargs.get('value', [])
-        self._items = self._unwrap_items(initial_list)
-        self.is_dirty = True
-    
-    def has_data(self) -> bool:
-        """Check if has any items"""
-        return len(self._items) > 0
-    
-    # ========================================================================
-    # ARRAY-SPECIFIC HELPERS
-    # ========================================================================
-    
-    def get_item(self, index: int) -> T:
-        """
-        Get specific item by index.
-        
-        Args:
-            index: Item index
-            
-        Returns:
-            Item at index (unwrapped)
-        """
-        return self._items[index]
-    
-    def __len__(self) -> int:
-        """Get array length"""
-        return len(self._items)
+# Set field_class attributes after classes are defined
+PrimitiveType.field_class = PrimitiveField
+BaseType.field_class = ComplexField

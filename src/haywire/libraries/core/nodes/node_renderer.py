@@ -29,7 +29,7 @@ class NodeRenderer(BaseRenderer, ABC):
             ui.label(inlet.label).classes('text-xs zoom-pan-lod2')
 
         # Render inlet widget if it has a pin that is not pooled (is_pooled == False)
-        if not inlet.is_pooled:
+        if not inlet.allow_multiple_connections:
             if inlet.widget:
                 # Widget rendering adds UI element to current context automatically
                 self.render_widget(inlet, wrapper.node_id)

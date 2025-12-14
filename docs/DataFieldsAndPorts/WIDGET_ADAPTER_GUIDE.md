@@ -40,16 +40,16 @@ class SimpleWidget:
 - ✅ `set_value()` handles wrapping automatically
 - ✅ No changes needed for simple widgets
 
-**Advanced Binding:**
+**Advanced Binding with PropertyBinding:**
 ```python
 class PropertyBinding:
     def _sync_to_view(self):
-        # Extract value using path
         if self.source_property == "value":
+            # Use high-level API - works for all field types
             model_value = self._element.get_value()  # Unwrapped
         else:
-            # Navigate property path for complex types
-            container = self._element.data.get_container()  # Get wrapper
+            # Navigate to nested property
+            container = self._get_container()  # Gets PrimitiveType wrapper
             model_value = self._navigate_path(container, self.source_property)
         
         view_value = self.converter.to_view(model_value)
@@ -59,16 +59,18 @@ class PropertyBinding:
         model_value = self.converter.to_model(view_value)
         
         if self.source_property == "value":
-            # Use DataPort API
+            # Simple replacement
             self._element.set_value(model_value)
         else:
-            # Use update_property for granular updates
-            self._element.update_property(self.source_property, model_value)
+            # Property-level update (now in PropertyBinding!)
+            self._update_nested_property(self.source_property, model_value)
 ```
 
 **Key Change:**
-- For `source_property == "value"`: Use `get_value()/set_value()` (unwrapped API)
-- For other properties: Use `update_property()` (property-level API)
+- Property updates now handled by PropertyBinding, not DataField
+- PropertyBinding calls `_get_container()` to get the wrapper/instance
+- PropertyBinding navigates and updates properties directly
+- PropertyBinding fires observers via `field.fire()`
 
 #### 2. Binding to ComplexField
 
@@ -82,11 +84,16 @@ binding = PropertyBinding(
     mode=BindingMode.TWO_WAY
 )
 
-# Binding implementation
+# Binding implementation (in PropertyBinding)
 def _sync_to_model(self, view_value):
-    # Update specific property
-    self._element.update_property('scale', view_value)
-    # Internally: container.scale = view_value, fires observers
+    # PropertyBinding handles the update internally
+    self._update_nested_property('scale', view_value)
+    
+def _update_nested_property(self, path, value):
+    container = self._get_container()  # Gets MeshData instance
+    setattr(container, path, value)  # container.scale = value
+    field.is_dirty = True
+    field.fire(container)  # Notify observers
 ```
 
 **Multi-Property Widget:**
@@ -99,7 +106,7 @@ class VectorWidget(BaseWidget):
             target_property="value"
         ), target_element="x_input")
         
-        # Bind Y component
+        # Bind Y component  
         self.add_binding(PropertyBinding(
             source_property="y",
             target_property="value"
@@ -111,6 +118,11 @@ class VectorWidget(BaseWidget):
             target_property="value"
         ), target_element="z_input")
 ```
+
+**Key Observation:**
+- PropertyBinding navigates to container and updates directly
+- No need for DataField to know about widget-specific operations
+- Clean separation: DataField stores, PropertyBinding binds
 
 #### 3. Binding to PooledField
 
@@ -221,40 +233,74 @@ class ArrayEditorWidget(BaseWidget):
 
 1. **SimpleWidget**: No changes needed, already compatible
 2. **BaseWidget/PropertyBinding**: 
-   - Update `_sync_to_view()` to use `get_value()` for primitives
-   - Update `_sync_to_model()` to use `update_property()` for non-value properties
-   - Add field type detection to choose appropriate API
+   - ✅ Already updated! Property update logic moved to PropertyBinding
+   - `_get_container()` retrieves PrimitiveType or BaseType for navigation
+   - `_navigate_path()` reads nested properties
+   - `_update_nested_property()` writes nested properties and fires observers
+   - Field type detection ensures clear errors for Pooled/Array
 3. **Pooled Widgets**: Implement read-only display widgets with one-way bindings
 4. **Array Widgets**: Implement with wholesale replacement pattern, not element-wise editing
 
 ### Code Changes Required
 
-**PropertyBinding._sync_to_model():**
+**PropertyBinding (COMPLETE - see binding_updated.py):**
 ```python
-def _sync_to_model(self, view_value: Any) -> None:
-    # Validate and convert
-    model_value = self.converter.to_model(view_value)
+class PropertyBinding:
+    def _sync_to_model(self, view_value: Any) -> None:
+        model_value = self.converter.to_model(view_value)
+        
+        if self.source_property == "value":
+            # High-level API - works for all types
+            self._element.set_value(model_value)
+        else:
+            # Property-level update - now handled here!
+            self._update_nested_property(self.source_property, model_value)
     
-    # Choose API based on source_property and field type
-    if self.source_property == "value":
-        # Use high-level API (works for all types)
-        self._element.set_value(model_value)
-    else:
-        # Use property update API (PrimitiveField and ComplexField only)
-        try:
-            self._element.update_property(self.source_property, model_value)
-        except ValueError as e:
-            # Pooled/Array fields don't support this
-            if self.on_error:
-                self.on_error(str(e))
+    def _update_nested_property(self, path: str, value: Any) -> None:
+        """Update property and notify observers"""
+        field = self._element.data
+        
+        # Validate field type
+        if isinstance(field, (PooledField, ArrayField)):
+            raise ValueError(f"Cannot update properties of {type(field).__name__}")
+        
+        # Get container and navigate path
+        container = self._get_container()
+        parts = path.split('.')
+        current = container
+        for part in parts[:-1]:
+            current = getattr(current, part)
+        
+        # Update property
+        setattr(current, parts[-1], value)
+        
+        # Notify via field
+        field.is_dirty = True
+        field.fire(container)
 ```
 
-**SimpleWidget._sync_to_model():**
+**DataField (COMPLETE - see datafields.py):**
 ```python
+# No update_property() method - simpler API!
+class DataField(ABC):
+    @abstractmethod
+    def get_value(self) -> T: pass
+    
+    @abstractmethod
+    def set_value(self, value, source_id=None): pass
+    
+    @abstractmethod
+    def get_for_transfer(self) -> IType: pass
+    
+    # No update_property() - that's PropertyBinding's job!
+```
+
+**SimpleWidget (NO CHANGES):**
+```python
+# Already works perfectly!
 def _sync_to_model(self) -> None:
     value = getattr(self.ui_element, self.UI_PROPERTY)
-    # This already works! set_value() handles wrapping
-    self.element.set_value(value)
+    self.element.set_value(value)  # Works for all field types!
 ```
 
 ---

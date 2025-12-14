@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, Optional
+from nicegui import ui
 from haywire.core.types.ports import DataPort
 from haywire.ui.widget.interface import IWidget
 
@@ -63,7 +64,7 @@ class SimpleWidget(IWidget, ABC):
         )
         
         # UI element (created during render)
-        self.ui_element: Optional[Any] = None
+        self.ui_element: ui.element | None = None
         
         # Cleanup callbacks
         self._model_changed_callback: Optional[Callable] = None
@@ -152,7 +153,7 @@ class SimpleWidget(IWidget, ABC):
         
         if self._ui_changed_callback and not self.IS_READONLY:
             try:
-                self.ui_element.off(self.UI_EVENT, self._ui_changed_callback)
+                self.ui_element.delete()
             except Exception as e:
                 self.logger.warning(f"Failed to clean up UI event listener: {e}", exc_info=True)
         
