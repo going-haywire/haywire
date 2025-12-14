@@ -14,7 +14,7 @@ import threading
 from typing import Any, Callable, List, Optional
 
 from haywire.core.types.ports import DataPort
-from haywire.core.data.fields import PrimitiveField, ComplexField
+from haywire.core.data.fields import PrimitiveField, BaseField
 from haywire.ui.widget.converters import (
     BindingConverter,
     BindingMode,
@@ -117,9 +117,9 @@ class PropertyBinding:
                 model_value = self._element.get_value()
             else:
                 # For complex properties, navigate the path
-                # This only works for ComplexField (not Primitive/Pooled/Array)
+                # This only works for BaseField (not Primitive/Pooled/Array)
                 field = self._element.data
-                if isinstance(field, ComplexField):
+                if isinstance(field, BaseField):
                     container = field._container
                     model_value = self._navigate_path(container, self.source_property)
                 elif isinstance(field, PrimitiveField):
@@ -256,10 +256,10 @@ class PropertyBinding:
         """
         field = self._element.data
         
-        # Only works for ComplexField
-        if not isinstance(field, ComplexField):
+        # Only works for BaseField
+        if not isinstance(field, BaseField):
             raise ValueError(
-                f"Property updates only supported for ComplexField, got {type(field).__name__}. "
+                f"Property updates only supported for BaseField, got {type(field).__name__}. "
                 f"Use source_property='value' for other field types."
             )
         

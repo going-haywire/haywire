@@ -169,7 +169,7 @@ class NodeData:
         This is the primary method workers use to read inlet values.
         Returns data in its most convenient form:
         - PrimitiveField: Unwrapped primitive (42.0, "hello")
-        - ComplexField: BaseType instance (MeshData(...))
+        - BaseField: BaseType instance (MeshData(...))
         - PooledField: Dict[str, T] of unwrapped values
         - ArrayField: List[T] of unwrapped values
         

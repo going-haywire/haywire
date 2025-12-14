@@ -122,9 +122,7 @@ class PooledField(CompoundField[Dict[str, T]]):
         """
         self.type_cls = PooledType
         self.element_type_cls = element_type_cls
-        self.is_pooled = True
-        self.is_array = False
-        
+       
         self._sources = {}
         
         super().__post_init__()
@@ -207,14 +205,7 @@ class PooledField(CompoundField[Dict[str, T]]):
             Pooled[FLOAT] <- Pooled[FLOAT]: (False, "Cannot connect pooled to pooled")
             Pooled[FLOAT] <- Array[FLOAT]: (False, "Cannot pool arrays")
         """
-        # Cannot receive from another pooled field
-        if other_field.is_pooled:
-            return (False, "Cannot connect pooled to pooled")
-        
-        # Cannot receive arrays
-        if other_field.is_array:
-            return (False, "Cannot pool array outputs")
-        
+       
         # Check element type compatibility
         if other_field.element_type_cls == self.element_type_cls:
             return (True, "direct")

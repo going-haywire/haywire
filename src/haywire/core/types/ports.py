@@ -18,7 +18,7 @@ from haywire.core.types.base import PrimitiveType, BaseType, CompoundType
 from haywire.core.data.fields import (
     DataField,
     PrimitiveField,
-    ComplexField,
+    BaseField,
     CompoundField
 )
 
@@ -34,6 +34,14 @@ class DataPort(DataTypeIdentity):
     - Connection state, element type, etc.
     
     Key simplification: Field is created by type.create_field(), not factory.
+    
+    Type tracking:
+    - type_cls: The IType class (FLOAT, MeshData, ArrayType)
+    - element_type_cls: For compound types, the element IType (FLOAT, MeshData)
+    
+    Hierarchical access:
+        port.element_type_cls → FLOAT (for ArrayType[FLOAT])
+        port.element_type_cls.element_type_cls → float (Python type)
     """
     
     # Port identifier within node (different from registry_id!)
@@ -44,7 +52,7 @@ class DataPort(DataTypeIdentity):
     
     # Type tracking
     type_cls: type[IType] = None  # The type class (FLOAT, ArrayType, etc.)
-    element_type_cls: Optional[type[IType]] = None  # For compound types
+    element_type_cls: Optional[type[IType]] = None  # For compound types, the element IType
     
     # Connection state
     is_connected: bool = False
@@ -66,7 +74,7 @@ class DataPort(DataTypeIdentity):
         
         Returns:
             - For PrimitiveField: Unwrapped primitive (42.0)
-            - For ComplexField: BaseType instance (MeshData(...))
+            - For BaseField: BaseType instance (MeshData(...))
             - For CompoundField: Container (dict, list, etc.)
             - None if no data
         """

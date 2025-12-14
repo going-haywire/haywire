@@ -5,7 +5,7 @@ This package contains the complete implementation of the new Haywire type and da
 ## 🎯 Key Improvements
 
 ### Architecture
-- **Three-category pattern**: PrimitiveType ↔ PrimitiveField, BaseType ↔ ComplexField, CompoundType ↔ CompoundField
+- **Three-category pattern**: PrimitiveType ↔ PrimitiveField, BaseType ↔ BaseField, CompoundType ↔ CompoundField
 - **Type parameterization**: `ArrayType[FLOAT].as_inlet(id='numbers')`
 - **Co-located definitions**: Type and Field in same file
 - **Clean API**: `self.inlet('id')` and `self.set_outlet('id', value)`
@@ -87,7 +87,7 @@ class SortNode(BaseNode):
 TYPE                  FIELD                   STORAGE
 ────────────         ────────────            ────────
 PrimitiveType[T] ←→  PrimitiveField[T]      42.0 (unwrapped)
-BaseType         ←→  ComplexField            MeshData(...) (instance)
+BaseType         ←→  BaseField            MeshData(...) (instance)
 CompoundType[T]  ←→  CompoundField[T]        [1.0, 2.0] (unwrapped)
   ├─ ArrayType         ├─ ArrayField          List[T]
   └─ PooledType        └─ PooledField         Dict[str, T]

@@ -95,8 +95,6 @@ class ArrayField(CompoundField[List[T]]):
         """
         self.type_cls = ArrayType
         self.element_type_cls = element_type_cls
-        self.is_pooled = False
-        self.is_array = True
         
         self._default_kwargs = default_kwargs
         
@@ -176,11 +174,7 @@ class ArrayField(CompoundField[List[T]]):
             Array[FLOAT] <- Array[FLOAT]: (True, "direct")
             Array[FLOAT] <- Array[Temperature]: (True, "Array[Temperature->FLOAT]")
             Array[FLOAT] <- FLOAT: (False, "Cannot connect single to array")
-        """
-        # Must be array to array
-        if not other_field.is_array:
-            return (False, "Cannot connect non-array to array inlet")
-        
+        """        
         # Check element type compatibility
         if other_field.element_type_cls == self.element_type_cls:
             return (True, "direct")

@@ -2717,7 +2717,7 @@ src/haywire/ui/widget/base.py:186:100: E501 Line too long (106 > 99)
 src/haywire/ui/widget/binding.py:18:100: E501 Line too long (115 > 99)
    |
 16 | from haywire.core.types.ports import DataPort
-17 | from haywire.core.data.fields import PrimitiveField, ComplexField, PooledField, ArrayField
+17 | from haywire.core.data.fields import PrimitiveField, BaseField, PooledField, ArrayField
 18 | from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter, UpdateTrigger
    |                                                                                                    ^^^^^^^^^^^^^^^^ E501
    |

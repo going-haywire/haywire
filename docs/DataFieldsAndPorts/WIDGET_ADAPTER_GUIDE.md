@@ -72,7 +72,7 @@ class PropertyBinding:
 - PropertyBinding navigates and updates properties directly
 - PropertyBinding fires observers via `field.fire()`
 
-#### 2. Binding to ComplexField
+#### 2. Binding to BaseField
 
 **Example: Binding to MeshData.scale**
 ```python

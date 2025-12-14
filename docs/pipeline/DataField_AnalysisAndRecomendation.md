@@ -173,7 +173,7 @@ def reset(self) -> None:
 # Widget needs to check:
 if isinstance(port.data, PrimitiveField):
     binding.source_property = 'value'
-elif isinstance(port.data, ComplexField):
+elif isinstance(port.data, BaseField):
     binding.source_property = 'radius'  # Or whatever
 elif isinstance(port.data, ArrayField):
     # Can't bind!
@@ -193,7 +193,7 @@ def get_bindable_properties(self) -> Dict[str, type]:
 def get_bindable_properties(self) -> Dict[str, type]:
     return {'value': type(self._container.value)}
 
-# ComplexField:
+# BaseField:
 def get_bindable_properties(self) -> Dict[str, type]:
     # Introspect the container
     return {
@@ -215,7 +215,7 @@ def get_bindable_properties(self) -> Dict[str, type]:
 
 ```python
 # Need to serialize:
-# 1. Field type (PrimitiveField, ComplexField, etc.)
+# 1. Field type (PrimitiveField, BaseField, etc.)
 # 2. Current values
 # 3. Type metadata (type_cls, element_type_cls)
 

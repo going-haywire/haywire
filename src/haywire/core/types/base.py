@@ -27,6 +27,13 @@ class PrimitiveType(IType, ABC, Generic[T]):
     
     Storage strategy: PrimitiveField stores unwrapped primitive (42.0 not FLOAT(42.0))
     
+    AUTOMATIC element_type_cls:
+    
+    element_type_cls is extracted from Generic[T] parameter automatically:
+        class FLOAT(PrimitiveType[float]):
+            pass
+        # → FLOAT.element_type_cls = float
+    
     Examples:
         @type(default={'value': 12.0})
         class FLOAT(PrimitiveType[float]):
@@ -34,10 +41,29 @@ class PrimitiveType(IType, ABC, Generic[T]):
         
         # PrimitiveField will be used automatically
         FLOAT.field_class  # Returns PrimitiveField
+        FLOAT.element_type_cls  # Returns float
     """
     
     # Field class set after PrimitiveField is defined
     field_class = None  # Will be set to PrimitiveField
+    
+    def __init_subclass__(cls, **kwargs):
+        """
+        Extract element_type_cls from Generic[T] parameter.
+        
+        Called automatically when PrimitiveType is subclassed.
+        """
+        super().__init_subclass__(**kwargs)
+        
+        # Extract T from PrimitiveType[T]
+        if hasattr(cls, '__orig_bases__'):
+            for base in cls.__orig_bases__:
+                if hasattr(base, '__origin__'):
+                    origin_name = getattr(base.__origin__, '__name__', None)
+                    if origin_name == 'PrimitiveType':
+                        if hasattr(base, '__args__') and base.__args__:
+                            cls.element_type_cls = base.__args__[0]
+                            break
     
     def __init__(self, value: T = None, **kwargs):
         """
@@ -89,10 +115,17 @@ class BaseType(IType, ABC):
     Complex types are user-defined dataclasses or classes that represent
     structured data (e.g., MeshData, Vector3, Transform).
     
-    Storage strategy: ComplexField stores the instance directly (instance IS the value)
+    Storage strategy: BaseField stores the instance directly (instance IS the value)
     
     Key insight: For BaseType, value property returns self because
     the instance itself is the data container.
+    
+    AUTOMATIC element_type_cls:
+    
+    element_type_cls is set to the class itself automatically:
+        class MeshData(BaseType):
+            pass
+        # → MeshData.element_type_cls = MeshData
     
     Examples:
         @type(default={'vertices': [], 'faces': []})
@@ -101,12 +134,23 @@ class BaseType(IType, ABC):
             vertices: list
             faces: list
         
-        # ComplexField will be used automatically
-        MeshData.field_class  # Returns ComplexField
+        # BaseField will be used automatically
+        MeshData.field_class  # Returns BaseField
+        MeshData.element_type_cls  # Returns MeshData
     """
     
-    # Field class set after ComplexField is defined
-    field_class = None  # Will be set to ComplexField
+    # Field class set after BaseField is defined
+    field_class = None  # Will be set to BaseField
+    
+    def __init_subclass__(cls, **kwargs):
+        """
+        Set element_type_cls to self for complex types.
+        
+        Called automatically when BaseType is subclassed.
+        """
+        super().__init_subclass__(**kwargs)
+        # The class IS the element type
+        cls.element_type_cls = cls
     
     @property
     def value(self):
@@ -132,6 +176,14 @@ class CompoundType(BaseType, ABC, Generic[T]):
     
     Storage strategy: CompoundField subclasses store unwrapped elements
     
+    HIERARCHICAL element_type_cls:
+    
+    element_type_cls is set during parameterization to the IType:
+        ArrayType[FLOAT].element_type_cls → FLOAT
+        ArrayType[FLOAT].element_type_cls.element_type_cls → float
+    
+    This creates a two-level hierarchy for drilling down to Python types.
+    
     Type parameterization via __class_getitem__:
         ArrayType[FLOAT].as_inlet(id='numbers')
         PooledType[MeshData].as_inlet(id='meshes')
@@ -148,6 +200,7 @@ class CompoundType(BaseType, ABC, Generic[T]):
         
         # Usage with type parameterization:
         ArrayType[FLOAT].as_inlet(id='numbers')
+        # → element_type_cls = FLOAT
         
         # Or explicit element_type_cls:
         ArrayType.as_inlet(id='numbers', element_type_cls=FLOAT)
@@ -190,21 +243,42 @@ class CompoundType(BaseType, ABC, Generic[T]):
             
             This is not instantiated - it just provides static methods
             that inject element_type_cls into the actual as_inlet/as_outlet calls.
+            
+            The element_type_cls is stored as a class attribute and passed
+            to port creation methods.
             """
+            
+            # Store element type as class attribute for inspection
+            _element_type_cls = element_type_cls
             
             @staticmethod
             def as_inlet(id: str, **kwargs):
-                """Create inlet with remembered element_type_cls"""
+                """
+                Create inlet with remembered element_type_cls.
+                
+                Called by: ArrayType[FLOAT].as_inlet('numbers')
+                Injects: element_type_cls=FLOAT
+                """
                 return cls.as_inlet(id, element_type_cls=element_type_cls, **kwargs)
             
             @staticmethod
             def as_outlet(id: str, **kwargs):
-                """Create outlet with remembered element_type_cls"""
+                """
+                Create outlet with remembered element_type_cls.
+                
+                Called by: ArrayType[FLOAT].as_outlet('result')
+                Injects: element_type_cls=FLOAT
+                """
                 return cls.as_outlet(id, element_type_cls=element_type_cls, **kwargs)
             
             @staticmethod
             def as_config(id: str, **kwargs):
-                """Create config inlet with remembered element_type_cls"""
+                """
+                Create config with remembered element_type_cls.
+                
+                Called by: ArrayType[FLOAT].as_config('params')
+                Injects: element_type_cls=FLOAT
+                """
                 return cls.as_config(id, element_type_cls=element_type_cls, **kwargs)
         
         return _ParameterizedCompound

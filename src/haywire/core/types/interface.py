@@ -43,11 +43,22 @@ class IType(ABC):
     2. COMPLEX (MeshData, Vector3)
        - Type: MeshData class (descriptor AND data container)
        - Instance: MeshData(...) (descriptor instance IS the data)
-       - Storage: MeshData(...) instance (in ComplexField)
+       - Storage: MeshData(...) instance (in BaseField)
     
     The .value property provides uniform interface:
     - PrimitiveType.value → unwrapped primitive
     - BaseType.value → self (instance is the value)
+    
+    HIERARCHICAL TYPE SYSTEM:
+    
+    element_type_cls creates a hierarchical structure:
+    - PrimitiveType: Points to Python primitive (float, str, int, bool)
+    - BaseType: Points to itself (the class IS the element type)
+    - CompoundType: Points to IType of elements (FLOAT, MeshData)
+    
+    This enables drilling down through type layers:
+        ArrayType[FLOAT].element_type_cls → FLOAT
+        FLOAT.element_type_cls → float
     
     **Abstract Requirements** (subclasses must implement):
     - value property: Returns the type's data in natural form
@@ -59,7 +70,8 @@ class IType(ABC):
     - _configure_port: Port configuration hook (default: no config)
     
     **Class Attributes** (subclasses must set):
-    - field_class: DataField class that handles storage for this type
+    - field_class: DataField class that handles storage
+    - element_type_cls: What this type wraps/contains (set automatically)
     
     This follows Python's ABC pattern where base classes provide both
     abstract requirements and concrete default implementations.
@@ -69,8 +81,11 @@ class IType(ABC):
         class_library: LibraryIdentity of the library this type belongs to
     """
     
-    # Subclasses must declare which field class handles them
+    # STRUCTURAL ATTRIBUTES (type system mechanics)
     field_class: type['DataField'] = None
+    element_type_cls: type = None  # What this type wraps/contains
+    
+    # IDENTITY ATTRIBUTES (set by @type decorator)
     class_identity: 'DataTypeIdentity'
     class_library: 'LibraryIdentity'
     

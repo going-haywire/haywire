@@ -39,12 +39,15 @@ class DataField(ABC, Generic[T]):
     - Connection validation
     
     Each IType declares which DataField class handles its storage.
+    
+    Type tracking via element_type_cls:
+    - PrimitiveField: element_type_cls = Python type (float, str, etc.)
+    - BaseField: element_type_cls = BaseType class (MeshData, etc.)
+    - CompoundField: element_type_cls = IType of elements (FLOAT, MeshData)
     """
     
     type_cls: type[IType]           # Type class (FLOAT, MeshData, ArrayType, etc.)
-    element_type_cls: type[IType]   # For compound types, the element type
-    is_pooled: bool
-    is_array: bool
+    element_type_cls: type[IType]   # For hierarchical type inspection
     
     def __post_init__(self):
         """Initialize event system"""
@@ -62,7 +65,7 @@ class DataField(ABC, Generic[T]):
         
         Returns data in most convenient form:
         - PrimitiveField: Unwrapped primitive (42.0)
-        - ComplexField: BaseType instance (MeshData(...))
+        - BaseField: BaseType instance (MeshData(...))
         - CompoundField: Container (dict, list, etc.)
         """
         pass
@@ -166,10 +169,9 @@ class PrimitiveField(DataField[T]):
             default_kwargs: Constructor kwargs (e.g., {'value': 42.0})
         """
         self.type_cls = type_cls
-        self.element_type_cls = type_cls  # Same as type_cls for primitives
-        self.is_pooled = False
-        self.is_array = False
-        
+        # Get element_type_cls from type (e.g., FLOAT.element_type_cls = float)
+        self.element_type_cls = type_cls.element_type_cls
+       
         # Extract and store unwrapped primitive
         self._default = default_kwargs.get('value')
         self._value = self._default
@@ -236,11 +238,11 @@ class PrimitiveField(DataField[T]):
 
 
 # ============================================================================
-# COMPLEXFIELD - Stores BaseType instances
+# BASEFIELD - Stores BaseType instances
 # ============================================================================
 
 @dataclass
-class ComplexField(DataField[BaseType]):
+class BaseField(DataField[BaseType]):
     """
     Stores BaseType instance.
     
@@ -263,9 +265,8 @@ class ComplexField(DataField[BaseType]):
             default_kwargs: Constructor kwargs
         """
         self.type_cls = type_cls
-        self.element_type_cls = type_cls  # Same as type_cls
-        self.is_pooled = False
-        self.is_array = False
+        # Get element_type_cls from type (e.g., MeshData.element_type_cls = MeshData)
+        self.element_type_cls = type_cls.element_type_cls
         
         self._default_kwargs = default_kwargs
         self._container = type_cls(**default_kwargs)
@@ -327,9 +328,13 @@ class CompoundField(DataField, ABC):
     Abstract base for compound/collection fields.
     
     All compound fields:
-    - Track element_type_cls for type safety
+    - Track element_type_cls for type safety (the IType of elements)
     - Store unwrapped elements for performance
     - Implement collection-specific semantics
+    
+    Hierarchical type access:
+        field.element_type_cls → FLOAT (IType)
+        field.element_type_cls.element_type_cls → float (Python type)
     
     Subclasses:
     - ArrayField: List[T] with homogeneous elements
@@ -337,7 +342,7 @@ class CompoundField(DataField, ABC):
     - SetField: Set[T] with unique elements (future)
     """
     
-    # Compound fields always have element_type_cls
+    # Compound fields always have element_type_cls set to IType
     element_type_cls: type[IType]
     
     @abstractmethod
@@ -352,4 +357,4 @@ class CompoundField(DataField, ABC):
 
 # Set field_class attributes after classes are defined
 PrimitiveType.field_class = PrimitiveField
-BaseType.field_class = ComplexField
+BaseType.field_class = BaseField

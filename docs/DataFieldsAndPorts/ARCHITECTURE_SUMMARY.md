@@ -14,7 +14,7 @@ PrimitiveType[T]     ←→    PrimitiveField[T]        T (unwrapped)
   STRING                                              "hello"
   BOOL                                                True
 
-BaseType             ←→    ComplexField              BaseType instance
+BaseType             ←→    BaseField              BaseType instance
   MeshData                                            MeshData(...)
   CustomClass                                         CustomClass(...)
 
@@ -50,7 +50,7 @@ CompoundType[T]      ←→    CompoundField[T]          Container[T]
 | Field Type | Outlet Sends | Inlet Receives | What Gets Stored |
 |------------|--------------|----------------|------------------|
 | **PrimitiveField** | `42.0` (unwrapped) | `42.0` (unwrapped) | `42.0` (unwrapped) |
-| **ComplexField** | `MeshData(...)` | `MeshData(...)` | `MeshData(...)` instance |
+| **BaseField** | `MeshData(...)` | `MeshData(...)` | `MeshData(...)` instance |
 | **PooledField** | ❌ **INVALID** | `42.0` from "node1" | `{"node1": 42.0}` (unwrapped) |
 | **ArrayField** | `[1.0, 2.0, 3.0]` | `[1.0, 2.0, 3.0]` | `[1.0, 2.0, 3.0]` (unwrapped) |
 
@@ -65,7 +65,7 @@ CompoundType[T]      ←→    CompoundField[T]          Container[T]
 | Field Type | What Worker Gets | Example |
 |------------|------------------|---------|
 | **PrimitiveField** | Unwrapped `T` | `42.0`, `"hello"`, `True` |
-| **ComplexField** | Instance | `MeshData(vertices=[], faces=[])` |
+| **BaseField** | Instance | `MeshData(vertices=[], faces=[])` |
 | **PooledField** | `Dict[str, T]` | `{"node1": 42.0, "node2": 15.0}` |
 | **ArrayField** | `List[T]` | `[42.0, 3.14]` or `[MeshData(...), ...]` |
 
@@ -90,7 +90,7 @@ def worker(self, context):
 | Field Type | Supports Binding? | Binding Target | Handled By |
 |------------|-------------------|----------------|------------|
 | **PrimitiveField** | ✅ Yes (value only) | Unwrapped primitive | PropertyBinding |
-| **ComplexField** | ✅ Yes (any property) | Instance attributes | PropertyBinding |
+| **BaseField** | ✅ Yes (any property) | Instance attributes | PropertyBinding |
 | **PooledField** | ⚠️ Read-only | Dict display | PropertyBinding |
 | **ArrayField** | ⚠️ Wholesale only | List replacement | PropertyBinding |
 
@@ -138,7 +138,7 @@ class MeshData(BaseType):
     vertices: list
     faces: list
     
-    # field_class set automatically to ComplexField
+    # field_class set automatically to BaseField
 
 # Usage
 MeshData.as_inlet(id='mesh', default={'vertices': [], 'faces': []})
@@ -181,7 +181,7 @@ Each IType declares which DataField handles it:
 ```python
 # Automatic for built-in categories
 PrimitiveType.field_class = PrimitiveField
-BaseType.field_class = ComplexField
+BaseType.field_class = BaseField
 
 # Explicit for compound types
 class ArrayType(CompoundType[T]):
@@ -289,7 +289,7 @@ haywire/
 │   │   ├── ports.py             # DataPort, PortInlet, PortOutlet
 │   │   └── identity.py          # DataTypeIdentity
 │   ├── data/
-│   │   ├── datafields.py        # DataField, PrimitiveField, ComplexField, CompoundField
+│   │   ├── datafields.py        # DataField, PrimitiveField, BaseField, CompoundField
 │   │   └── event.py             # Event system
 │   ├── node/
 │   │   └── base.py              # BaseNode
@@ -351,7 +351,7 @@ haywire/
 
 1. **Field Storage**
    - PrimitiveField stores unwrapped: `_value == 42.0`
-   - ComplexField stores instance: `_container == instance`
+   - BaseField stores instance: `_container == instance`
    - ArrayField stores list: `_items == [1.0, 2.0]`
    - PooledField stores dict: `_sources == {"n1": 42.0}`
 
