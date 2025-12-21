@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Optional, List, Tuple
 from dataclasses import dataclass
 from enum import Enum
 import uuid
@@ -9,55 +9,11 @@ from ...ui.utils import generate_connection_uuid
 
 if TYPE_CHECKING:
     from ..node.factory import NodeFactory
+    from ..adapter.factory import AdapterFactory
+    from .edge_wrapper import EdgeWrapper
 
-
-# ============================================================================
-# Edge Types and Data Structures
-# ============================================================================
-
-class EdgeType(Enum):
-    """Types of edges in a Haywire graph"""
-    CONTROL = "control"
-    DATA = "data"
-    CALLBACK = "callback"
-
-
-@dataclass
-class Edge:
-    """Represents a connection between two nodes in a graph
-    
-    Based on the Haywire design specification, an Edge contains:
-    - output-node's node-id, outlet-pin-id, outlet-pin-data-type
-    - input-node's node-id, inlet-pin-id, inlet-pin-data-type
-    """
-    edge_type: EdgeType
-    
-    # Output node information
-    output_node_id: str
-    outlet_pin_id: str # also known as the id of an outlet
-    
-    # Input node information
-    input_node_id: str
-    inlet_pin_id: str # also known as the id of an inlet
-    
-    # Optional fields with defaults
-    outlet_pin_data_type: str | None = None
-    inlet_pin_data_type: str | None = None
-
-    is_valid: bool = True
-    
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize edge to dictionary"""
-        return {
-            "edge_type": self.edge_type.value,
-            "output_node_id": self.output_node_id,
-            "outlet_pin_id": self.outlet_pin_id,
-            "outlet_pin_data_type": self.outlet_pin_data_type,
-            "input_node_id": self.input_node_id,
-            "inlet_pin_id": self.inlet_pin_id,
-            "inlet_pin_data_type": self.inlet_pin_data_type,
-            "is_valid": self.is_valid
-        }
+# Re-export Edge and EdgeType from new location for backward compatibility
+from .edge import Edge, EdgeType
 
 
 @dataclass
@@ -112,26 +68,35 @@ class BaseGraph:
     - A Graph can be treated as a node (Graph-node) within another graph
     """
     
-    def __init__(self, graph_id: str, node_factory: 'NodeFactory', name: str = ""):
+    def __init__(
+        self, 
+        graph_id: str, 
+        name: str,
+        node_factory: 'NodeFactory', 
+        adapter_factory: 'AdapterFactory'
+    ):
         """Initialize a new Haywire graph
         
         Args:
             graph_id: Unique identifier for this graph
             node_factory: Factory for creating node wrappers
             name: Human-readable name for the graph
+            adapter_factory: Optional factory for creating adapter chains
         """
         self.graph_id: str = graph_id
         self.name: str = name or f"Graph_{graph_id}"
-        self.node_factory = node_factory
+        self.node_factory = node_factory        
+        self.adapter_factory = adapter_factory
         
         # Core containers - NOW USING WRAPPERS
         self.node_wrappers: dict[str, NodeWrapper] = {}
-        self.edges: dict[str, Edge] = {}
+        self.edges: dict[str, Edge] = {}  # Legacy - kept for compatibility
+        self.edge_wrappers: dict[str, 'EdgeWrapper'] = {}  # NEW
         self.variables: dict[str, Variable] = {}
         
         # Selection state - shared across all sessions
         self.selected_nodes: set[str] = set()
-        self.selected_connections: set[str] = set()  # Using connection uuids (edge keys)
+        self.selected_connections: set[str] = set()
         
         # Metadata
         self.description: str = ""
@@ -155,12 +120,44 @@ class BaseGraph:
             if node_id not in self.node_wrappers:
                 return node_id
     
-
-    def add_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper:
-        """Add an already created node wrapper to the graph
+    def create_node_wrapper(
+        self,
+        registry_key: str,
+        position: Tuple[float, float] = (100, 100)
+    ) -> Optional[NodeWrapper]:
+        """
+        Create and register NodeWrapper (graph-managed factory pattern).
         
         Args:
-            wrapper: NodeWrapper instance to add
+            registry_key: Node type to create
+            position: (x, y) position for the node
+            
+        Returns:
+            NodeWrapper if successful, None if failed
+        """
+        # Create new wrapper
+        wrapper = NodeWrapper(
+            registry_key=registry_key,
+            node_factory=self.node_factory,
+            position=position
+        )
+        
+        # Initialize wrapper (returns self if successful)
+        if wrapper.initialize(self):
+            # Add to graph's collection
+            return self.add_node_wrapper(wrapper)
+        else:
+            return None
+
+    def add_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper:
+        """
+        Add an initialized wrapper to the graph's collection.
+        
+        Used by create_node_wrapper() for new wrappers and by undo/redo
+        operations to re-add existing wrappers.
+        
+        Args:
+            wrapper: NodeWrapper instance to add (must be initialized)
             
         Returns:
             The added wrapper
@@ -169,14 +166,12 @@ class BaseGraph:
             ValueError: If node_id already exists in graph
         """
         if wrapper.node_id in self.node_wrappers:
-            raise ValueError(f"Node wrapper with ID '{wrapper.node_id}' already exists in graph")
+            raise ValueError(
+                f"Node wrapper with ID '{wrapper.node_id}' already exists "
+                f"in graph"
+            )
         
         self.node_wrappers[wrapper.node_id] = wrapper
-        
-        # Set graph reference on the actual node instance
-        if wrapper._node_instance:
-            wrapper.node.wrapper = self
-        
         return wrapper
     
     def remove_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper | None:
@@ -238,7 +233,7 @@ class BaseGraph:
         wrapper.node.ui_state.posY = new_y
         return True
     
-    def get_wrappers_by_type(self, registry_key: str) -> list[NodeWrapper]:
+    def get_node_wrappers_by_type(self, registry_key: str) -> list[NodeWrapper]:
         """Get all node wrappers of a specific type
         
         Args:
@@ -260,174 +255,127 @@ class BaseGraph:
         """
         return list(self.node_wrappers.values())
 
-
+  
     # ========================================================================
-    # Edge Management
+    # EdgeWrapper Management (NEW)
     # ========================================================================
     
-    def add_edge(
-        self, 
-        output_node_id: str, 
-        outlet_pin_id: str, 
-        input_node_id: str, 
+    def create_edge_wrapper(
+        self,
+        output_node_id: str,
+        outlet_pin_id: str,
+        input_node_id: str,
         inlet_pin_id: str
-    ) -> str:
-        """Add edge by node and pin identifiers and return its connection uuid
+    ) -> Optional['EdgeWrapper']:
+        """
+        Create and register EdgeWrapper (graph-managed factory pattern).
         
         Args:
-            output_node_id: ID of the output node
-            outlet_pin_id: ID of the outlet pin
-            input_node_id: ID of the input node
-            inlet_pin_id: ID of the inlet pin
+            output_node_id: Source node ID
+            outlet_pin_id: Source outlet ID
+            input_node_id: Target node ID
+            inlet_pin_id: Target inlet ID
             
         Returns:
-            The connection uuid (UUID)
-            
-        Raises:
-            ValueError: If referenced nodes don't exist or connection already exists
+            EdgeWrapper if successful, None if failed
         """
-        # Generate connection UUID from components
-        connection_uuid = generate_connection_uuid(
-            output_node_id, outlet_pin_id, input_node_id, inlet_pin_id
-        )
-        
-        # Prevent duplicates
-        if connection_uuid in self.edges:
-            raise ValueError(f"Connection already exists: {connection_uuid}")
-        
-        # Validate that referenced node wrappers exist
-        if output_node_id not in self.node_wrappers:
-            raise ValueError(f"Output node '{output_node_id}' not found in graph")
-        if input_node_id not in self.node_wrappers:
-            raise ValueError(f"Input node '{input_node_id}' not found in graph")
-        
-        # Evaluate edge type from the node and outlet that is referenced
-        edge_type = self._determine_edge_type(output_node_id, outlet_pin_id)
-        
-        # TODO: Validate that connection is valid (pin types match or adapter exists)
-        
-        # Create Edge instance
-        edge = Edge(
-            edge_type=edge_type,
+        from .edge_wrapper import EdgeWrapper
+                
+        # Create new wrapper
+        wrapper = EdgeWrapper(
             output_node_id=output_node_id,
             outlet_pin_id=outlet_pin_id,
             input_node_id=input_node_id,
-            inlet_pin_id=inlet_pin_id
+            inlet_pin_id=inlet_pin_id,
+            adapter_factory=self.adapter_factory
         )
         
-        self.edges[connection_uuid] = edge
-        return connection_uuid
+        # Initialize wrapper (returns self if successful)
+        if wrapper.initialize(self):
+            # Add to graph's collection
+            return self.add_edge_wrapper(wrapper)
+        else:
+            return None
     
-    def remove_edge(self, output_node_id: str, outlet_pin_id: str, 
-                   input_node_id: str, inlet_pin_id: str) -> bool:
-        """Remove an edge from the graph (backward compatibility)
+    def add_edge_wrapper(self, wrapper: 'EdgeWrapper') -> 'EdgeWrapper':
+        """
+        Add an initialized wrapper to the graph's collection.
+        
+        Used by create_edge_wrapper() for new wrappers and by undo/redo
+        operations to re-add existing wrappers.
         
         Args:
-            output_node_id: ID of the output node
-            outlet_pin_id: ID of the outlet pin
-            input_node_id: ID of the input node
-            inlet_pin_id: ID of the inlet pin
+            wrapper: EdgeWrapper instance to add (must be initialized)
             
         Returns:
-            True if edge was found and removed, False otherwise
+            The added wrapper
+            
+        Raises:
+            ValueError: If connection_uuid already exists
         """
-        # Generate connection UUID from components
-        connection_uuid = generate_connection_uuid(
-            output_node_id, outlet_pin_id, input_node_id, inlet_pin_id
-        )
+        if wrapper.connection_uuid in self.edge_wrappers:
+            raise ValueError(
+                f"Edge wrapper with UUID '{wrapper.connection_uuid}' "
+                f"already exists in graph"
+            )
         
-        return self.remove_edge_by_uuid(connection_uuid) is not None
+        self.edge_wrappers[wrapper.connection_uuid] = wrapper
+        
+        # Also add to legacy edges dict for backward compatibility
+        if wrapper.edge:
+            self.edges[wrapper.connection_uuid] = wrapper.edge
+        
+        return wrapper
     
-    def remove_edge_by_uuid(self, connection_uuid: str) -> Edge | None:
-        """Remove edge by connection uuid
+    def remove_edge_wrapper(
+        self,
+        connection_uuid: str
+    ) -> Optional['EdgeWrapper']:
+        """
+        Remove EdgeWrapper from graph.
         
         Args:
             connection_uuid: Connection UUID to remove
             
         Returns:
-            The removed edge, or None if not found
+            Removed wrapper or None
         """
-        return self.edges.pop(connection_uuid, None)
+        if connection_uuid not in self.edge_wrappers:
+            return None
+        
+        wrapper = self.edge_wrappers[connection_uuid]
+        wrapper.cleanup()
+        del self.edge_wrappers[connection_uuid]
+        
+        # Also remove from legacy edges dict
+        if connection_uuid in self.edges:
+            del self.edges[connection_uuid]
+        
+        return wrapper
     
-    def get_edge(self, connection_uuid: str) -> Edge | None:
-        """Get edge by connection uuid
+    def get_edge_wrapper(
+        self,
+        connection_uuid: str
+    ) -> Optional['EdgeWrapper']:
+        """
+        Get EdgeWrapper by connection UUID.
         
         Args:
-            connection_uuid: Connection UUID to retrieve
+            connection_uuid: Connection UUID
             
         Returns:
-            The edge if found, None otherwise
+            EdgeWrapper if found, None otherwise
         """
-        return self.edges.get(connection_uuid)
+        return self.edge_wrappers.get(connection_uuid)
     
-    def list_edges(self) -> list[Edge]:
-        """Get all edges as list
+    def list_edge_wrappers(self) -> List['EdgeWrapper']:
+        """
+        Get all EdgeWrappers.
         
         Returns:
-            List of all edges in the graph
+            List of all edge wrappers
         """
-        return list(self.edges.values())
-    
-    def get_edges_from_node(self, node_id: str) -> list[Edge]:
-        """Get all edges originating from a node
-        
-        Args:
-            node_id: ID of the output node
-            
-        Returns:
-            List of edges from the node
-        """
-        return [edge for edge in self.edges.values() if edge.output_node_id == node_id]
-    
-    def get_edges_to_node(self, node_id: str) -> list[Edge]:
-        """Get all edges going to a node
-        
-        Args:
-            node_id: ID of the input node
-            
-        Returns:
-            List of edges to the node
-        """
-        return [edge for edge in self.edges.values() if edge.input_node_id == node_id]
-
-    def _determine_edge_type(self, output_node_id: str, outlet_pin_id: str) -> EdgeType:
-        """Determine the edge type based on the output node's outlet flow type
-        
-        Args:
-            output_node_id: ID of the output node
-            outlet_pin_id: ID of the outlet pin
-            
-        Returns:
-            EdgeType based on the outlet's flow type
-        """
-        wrapper = self.node_wrappers.get(output_node_id)
-        if not wrapper:
-            raise ValueError(f"Determining edge type: node '{output_node_id}' not found in graph")
-        
-        output_node = wrapper.node
-        
-        # Check if the outlet exists on the node
-        if hasattr(output_node, 'outlets') and outlet_pin_id in output_node.outlets:
-            outlet = output_node.outlets[outlet_pin_id]
-            flow_type = outlet.flow_type
-            
-            # Map FlowType to EdgeType
-            if flow_type == 'control':
-                return EdgeType.CONTROL
-            elif flow_type == 'data':
-                return EdgeType.DATA
-            elif flow_type == 'callback':
-                return EdgeType.CALLBACK
-            else:
-                # For 'none' or any unknown type, default to DATA
-                return EdgeType.DATA
-        
-        raise ValueError(
-            f"Determining edge type: inside node '{output_node_id}' "
-            f"no outlet id:'{outlet_pin_id}' found in graph"
-        )
-    
-
+        return list(self.edge_wrappers.values())
 
     # ========================================================================
     # Variable Management

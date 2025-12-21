@@ -14,7 +14,6 @@ Design Philosophy:
 from typing import Dict, List, Optional, Tuple, Set, Any, Callable
 from haywire.core.graph.base import BaseGraph, Edge, EdgeType
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.node.factory import NodeFactory
 from haywire.core.undo.interfaces import IHistoryManager
 from haywire.core.undo.actions.graph_actions import (
     ChangeSelectionAction,
@@ -37,20 +36,17 @@ class Editor:
     def __init__(
         self, 
         graph: BaseGraph, 
-        history_manager: IHistoryManager, 
-        node_factory: NodeFactory
+        history_manager: IHistoryManager
     ):
         """
         Initialize the editor with core components.
         
         Args:
             graph: The HaywireGraph instance to manipulate
-            history_manager: History manager for undo/redo operations  
-            node_factory: Factory for creating new nodes
+            history_manager: History manager for undo/redo operations
         """
         self.graph: BaseGraph = graph
         self.history_manager: IHistoryManager = history_manager
-        self.node_factory: NodeFactory = node_factory
         
         # Simple callback system for change notifications
         self._change_callbacks: List[Callable[[], None]] = []
@@ -133,7 +129,6 @@ class Editor:
         Args:
             registry_key: Registry key for the node type to create
             position: (x, y) position for the node
-            node_id: Optional specific node ID (auto-generated if None)
             
         Returns:
             The created node wrapper or None if creation failed
@@ -143,9 +138,8 @@ class Editor:
             action = AddNodeAction(
                 graph=self.graph, 
                 registry_key=registry_key, 
-                node_factory=self.node_factory, 
                 position=position
-                )
+            )
             self.history_manager.add_action(action)
 
             print(f"✅ Editor: Created node of type {registry_key} at {position}")
@@ -216,7 +210,7 @@ class Editor:
         # Validate connections exist
         missing_connections = [
             conn_id for conn_id in connections 
-            if not self.graph.get_edge(conn_id)
+            if not self.graph.get_edge_wrapper(conn_id)
         ]
         if missing_connections:
             print(f"⚠️ Editor: Connections not found for removal: {missing_connections}")
@@ -251,7 +245,7 @@ class Editor:
     
     def get_available_node_regkeys(self) -> List[str]:
         """Get a list of all available node types from the factory."""
-        return self.node_factory.node_registry.list_names()
+        return self.graph.node_factory.node_registry.list_names()
 
     # =============================================================================
     # CONNECTION OPERATIONS
@@ -277,17 +271,14 @@ class Editor:
             True if connection was created, False otherwise
         """
         try:
-            # Create edge
-            edge = Edge(
-                edge_type=EdgeType.DATA,
+            # Create and execute action using graph-managed pattern
+            action = AddEdgeAction(
+                graph=self.graph,
                 output_node_id=output_node_id,
                 outlet_pin_id=outlet_pin,
                 input_node_id=input_node_id,
                 inlet_pin_id=inlet_pin
             )
-            
-            # Create and execute action
-            action = AddEdgeAction(self.graph, edge)
             self.history_manager.add_action(action)
             
             # Notify callbacks
@@ -438,5 +429,4 @@ class Editor:
     def is_valid(self) -> bool:
         """Check if the editor is in a valid state."""
         return (self.graph is not None and 
-                self.history_manager is not None and 
-                self.node_factory is not None)
+                self.history_manager is not None)

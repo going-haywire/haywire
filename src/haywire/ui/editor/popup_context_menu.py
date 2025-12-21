@@ -13,7 +13,7 @@ to avoid zoom/transform inheritance.
 from nicegui import ui
 from typing import List, Optional, Callable
 
-from haywire.core.graph.editor import Editor
+from haywire.core.node.factory import NodeFactory
 
 from .popup import Popup
 from .event_definitions import (
@@ -29,20 +29,20 @@ class PopupContextMenu:
     """NiceGUI-based context menu using enhanced Popup class with cursor positioning."""
     
     def __init__(self, 
-                 editor: Editor,
+                 node_factory: NodeFactory,
                  on_emit_event: Optional[Callable[[object], None]] = None,
                  clipboard_checker: Optional[Callable[[], bool]] = None):
                 
+        self.node_factory = node_factory
         # New event system
         self._on_emit_event = on_emit_event
-        self.editor = editor
         self._clipboard_checker = clipboard_checker
         
         self._current_popup: Optional[Popup] = None
         self._menu_data: dict = {}
         
         # Node menu builder for creating hierarchical menus
-        self._menu_builder = NodeMenuBuilder(editor.node_factory)
+        self._menu_builder = NodeMenuBuilder(node_factory)
         self._recent_nodes: List[str] = []  # Track recently created nodes
         
         # Setup hot reload listener
@@ -57,7 +57,7 @@ class PopupContextMenu:
     
     def _setup_hot_reload_listener(self):
         """Setup listener for node hot reload events."""
-        self.editor.node_factory.add_batch_listener(
+        self.node_factory.add_batch_listener(
             lambda event: self._menu_builder.invalidate_cache()
         )
     

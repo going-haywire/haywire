@@ -105,19 +105,23 @@ class NodeWrapper:
         
         self.graph: Optional['BaseGraph' | None] = None
 
-    def register(self, graph: 'BaseGraph') -> bool:
+    def initialize(self, graph: 'BaseGraph') -> Optional['NodeWrapper']:
         """
         Initialize the wrapper by creating the node instance.
         
         This is separate from __init__ to allow for deferred instantiation
-        and better error handling during creation.
+        and better error handling during creation. Does NOT add wrapper to
+        graph - that's the caller's responsibility.
         
+        Args:
+            graph: The graph this wrapper belongs to
+            
         Returns:
-            bool: True if initialization succeeded, False if no node was created
+            Self if initialization succeeded, None if failed
         """
         with self._lock:
             if self.state.is_instantiated:
-                return self.state.is_valid
+                return self if self.state.is_valid else None
             
             self.graph = graph
 
@@ -133,11 +137,10 @@ class NodeWrapper:
                 self.state.history.append(_event)
                 self.state.error = _event.error
                 self.state.is_instantiated = True
-                self.graph.add_node_wrapper(self)
                 self._notify_change(_event)
-                return True
+                return self
             else:
-                return False
+                return None
 
     def cleanup(self) -> None:
         """Full cleanup when wrapper is being destroyed"""

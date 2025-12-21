@@ -191,33 +191,50 @@ class PooledField(CompoundField[Dict[str, T]]):
             "Pooled fields are inlet-only."
         )
     
-    def is_compatible_with(
-        self,
-        other_field,
-        adapter_registry
-    ) -> tuple[bool, str]:
+    def get_compatible_type(self, outlet_field: 'CompoundField') -> type:
         """
-        Check if incoming field's element type is compatible.
+        Pooled accepts both scalar and compound sources.
+        
+        Unlike other compound fields, pooled inlets are flexible:
+        - Can aggregate scalars from multiple sources
+        - Can aggregate compounds (arrays, etc.) from multiple sources
+        
+        The element_type_cls determines what adapters are needed:
         
         Examples:
-            Pooled[FLOAT] <- FLOAT: (True, "direct")
-            Pooled[FLOAT] <- Temperature: (True, "Temperature->FLOAT")
-            Pooled[FLOAT] <- Pooled[FLOAT]: (False, "Cannot connect pooled to pooled")
-            Pooled[FLOAT] <- Array[FLOAT]: (False, "Cannot pool arrays")
+            FLOAT → Pooled[FLOAT]:
+                - outlet returns FLOAT (type_cls)
+                - inlet returns FLOAT (element_type_cls)
+                - Adapter checks: FLOAT → FLOAT ✓
+            
+            Temperature → Pooled[FLOAT]:
+                - outlet returns Temperature (type_cls)
+                - inlet returns FLOAT (element_type_cls)
+                - Adapter checks: Temperature → FLOAT (if adapter exists)
+            
+            Array[FLOAT] → Pooled[Array[FLOAT]]:
+                - outlet returns FLOAT (element_type_cls from CompoundField)
+                - inlet returns FLOAT (element_type_cls)
+                - Adapter checks: FLOAT → FLOAT ✓
+            
+            Array[Temperature] → Pooled[Array[FLOAT]]:
+                - outlet returns Temperature (element_type_cls)
+                - inlet returns FLOAT (element_type_cls)
+                - Adapter checks: Temperature → FLOAT (if adapter exists)
+        
+        Returns:
+            element_type_cls for adapter compatibility checking
         """
-       
-        # Check element type compatibility
-        if other_field.element_type_cls == self.element_type_cls:
-            return (True, "direct")
-        
-        if adapter_registry.has_adapter(other_field.element_type_cls, self.element_type_cls):
-            return (True, f"{other_field.element_type_cls.__name__}->{self.element_type_cls.__name__}")
-        
-        chain = adapter_registry.find_adapter_chain(other_field.element_type_cls, self.element_type_cls)
-        if chain:
-            return (True, "->".join([c.__name__ for c in chain]))
-        
-        return (False, f"No adapter from {other_field.element_type_cls.__name__} to {self.element_type_cls.__name__}")
+        if isinstance(outlet_field, CompoundField):
+            # Verify outlet is also the same compound type (Array→Array, etc.)
+            if type(outlet_field.type_cls) != type(self.element_type_cls):
+                raise ValueError(
+                    f"Cannot connect {type(outlet_field).__name__} "
+                    f"to {type(self).__name__}. "
+                    f"Compound field types must match."
+                )
+
+        return self.element_type_cls
     
     def reset(self) -> None:
         """Clear all sources"""

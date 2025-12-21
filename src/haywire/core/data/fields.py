@@ -9,7 +9,16 @@ uniform API for different access scenarios.
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, TypeVar
+from typing import (
+    TYPE_CHECKING, 
+    Any, 
+    Callable, 
+    Dict, 
+    Generic, 
+    List, 
+    Optional, 
+    TypeVar
+)
 
 from haywire.core.types.base import PrimitiveType
 
@@ -93,19 +102,43 @@ class DataField(ABC, Generic[T]):
         """
         pass
     
-    @abstractmethod
-    def is_compatible_with(
-        self,
-        other_field: 'DataField',
-        adapter_registry: 'AdapterRegistry'
-    ) -> tuple[bool, str]:
+    def get_compatible_type(self, outlet_field: 'DataField') -> type:
         """
-        Check if this field can receive data from other_field.
+        Return the type needed for adapter compatibility checking.
         
+        This method allows fields to declare what type they need from
+        the outlet for compatibility. EdgeWrapper uses this to determine
+        which types to pass to AdapterFactory for chain creation.
+        
+        For structural validation (e.g., rejecting certain field types),
+        raise ValueError with a clear error message.
+        
+        Args:
+            outlet_field: The outlet's DataField being connected
+            
         Returns:
-            (is_compatible, reason_or_adapter_chain)
+            type: The IType class needed for compatibility
+            
+        Raises:
+            ValueError: If structurally incompatible
+            
+        Examples:
+            # PrimitiveField/BaseField (scalar)
+            def get_compatible_type(self, outlet_field):
+                return self.type_cls  # FLOAT, MeshData, etc.
+            
+            # CompoundField (element-level checking)
+            def get_compatible_type(self, outlet_field):
+                if not isinstance(outlet_field, CompoundField):
+                    raise ValueError("Cannot connect scalar to compound")
+                return self.element_type_cls  # Element type for adapter
+            
+            # PooledField (accepts both scalar and compound)
+            def get_compatible_type(self, outlet_field):
+                return self.element_type_cls  # Always element type
         """
-        pass
+        # Default: scalar field compatibility (type_cls)
+        return self.type_cls
     
     @abstractmethod
     def reset(self) -> None:
@@ -153,8 +186,7 @@ class PrimitiveField(DataField[T]):
     
     Key insight: We store the primitive directly, not wrapped in PrimitiveType.
     Type information comes from type_cls, not from wrapping every value.
-    
-    This eliminates instantiation overhead and simplifies the data model.
+
     """
     
     _value: T = field(init=False, repr=False)
@@ -184,7 +216,7 @@ class PrimitiveField(DataField[T]):
     
     def set_value(self, value: Any, source_id: str | None = None) -> None:
         """
-        Store primitive value - NO INSTANTIATION overhead!
+        Store primitive value
         
         Accepts both wrapped (rare, from adapters) and unwrapped (common).
         
@@ -196,7 +228,7 @@ class PrimitiveField(DataField[T]):
         if isinstance(value, PrimitiveType):
             self._value = value.value
         else:
-            # Common case: raw primitive - ZERO OVERHEAD!
+            # Common case: raw primitive
             self._value = value
         
         self.is_dirty = True
@@ -205,27 +237,6 @@ class PrimitiveField(DataField[T]):
     def get_for_transfer(self) -> T:
         """Return unwrapped primitive - O(1) direct access"""
         return self._value
-    
-    def is_compatible_with(
-        self,
-        other_field: DataField,
-        adapter_registry: 'AdapterRegistry'
-    ) -> tuple[bool, str]:
-        """Check type compatibility"""
-        # Direct type match
-        if other_field.type_cls == self.type_cls:
-            return (True, "direct")
-        
-        # Check for single adapter
-        if adapter_registry.has_adapter(other_field.type_cls, self.type_cls):
-            return (True, f"{other_field.type_cls.__name__}->{self.type_cls.__name__}")
-        
-        # Check for adapter chain
-        chain = adapter_registry.find_adapter_chain(other_field.type_cls, self.type_cls)
-        if chain:
-            return (True, "->".join([c.__name__ for c in chain]))
-        
-        return (False, f"No adapter from {other_field.type_cls.__name__} to {self.type_cls.__name__}")
     
     def reset(self) -> None:
         """Reset to default value"""
@@ -290,24 +301,6 @@ class BaseField(DataField[BaseType]):
         """Return instance (no wrapping needed)"""
         return self._container
     
-    def is_compatible_with(
-        self,
-        other_field: DataField,
-        adapter_registry: 'AdapterRegistry'
-    ) -> tuple[bool, str]:
-        """Check type compatibility"""
-        if other_field.type_cls == self.type_cls:
-            return (True, "direct")
-        
-        if adapter_registry.has_adapter(other_field.type_cls, self.type_cls):
-            return (True, f"{other_field.type_cls.__name__}->{self.type_cls.__name__}")
-        
-        chain = adapter_registry.find_adapter_chain(other_field.type_cls, self.type_cls)
-        if chain:
-            return (True, "->".join([c.__name__ for c in chain]))
-        
-        return (False, f"No adapter from {other_field.type_cls.__name__} to {self.type_cls.__name__}")
-    
     def reset(self) -> None:
         """Reset to default value"""
         self._container = self.type_cls(**self._default_kwargs)
@@ -344,6 +337,39 @@ class CompoundField(DataField, ABC):
     
     # Compound fields always have element_type_cls set to IType
     element_type_cls: type[IType]
+    
+    def get_compatible_type(self, outlet_field: 'DataField') -> type:
+        """
+        Compound types require element-level compatibility checking.
+        
+        Arrays can only connect to arrays with compatible element types:
+        - Array[FLOAT] → Array[FLOAT] ✓ (direct element match)
+        - Array[Temperature] → Array[FLOAT] ✓ (if adapter exists)
+        - FLOAT → Array[FLOAT] ✗ (structural mismatch)
+        - Array[FLOAT] → Array[STRING] ✗ (no adapter)
+        
+        Returns element_type_cls for adapter chain creation.
+        
+        Raises:
+            ValueError: If outlet is not a compound field
+        """
+        if not isinstance(outlet_field, CompoundField):
+            raise ValueError(
+                f"Cannot connect scalar field {outlet_field.type_cls.__name__} "
+                f"to compound field {self.type_cls.__name__}. "
+                f"Compound fields require compound sources."
+            )
+        
+        # Verify outlet is also the same compound type (Array→Array, etc.)
+        if type(outlet_field) != type(self):
+            raise ValueError(
+                f"Cannot connect {type(outlet_field).__name__} "
+                f"to {type(self).__name__}. "
+                f"Compound field types must match."
+            )
+        
+        # Return type for adapter compatibility checking
+        return self.type_cls
     
     @abstractmethod
     def _unwrap_value(self, value: Any) -> Any:

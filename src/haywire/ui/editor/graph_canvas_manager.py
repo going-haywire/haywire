@@ -61,10 +61,12 @@ class GraphCanvasManager:
         self, 
         editor: Editor,
         node_render_factory,
+        node_factory,
         session_id: Optional[str] = None,
     ):
         self.editor = editor
         self.node_render_factory = node_render_factory
+        self.node_factory = node_factory
         self.session_id = session_id or "default"
         
         # Access graph for read operations
@@ -173,7 +175,7 @@ class GraphCanvasManager:
             )
             
             self.context_menu = PopupContextMenu(
-                editor=self.editor,
+                node_factory=self.node_factory,
                 on_emit_event=self._handle_canvas_event,
                 clipboard_checker=self._has_clipboard_content
             )
@@ -459,9 +461,8 @@ class GraphCanvasManager:
                         outlet_pin_id=edge.outlet_pin_id,
                         input_node_id=id_mapping[edge.input_node_id],
                         inlet_pin_id=edge.inlet_pin_id,
-                        outlet_pin_data_type=edge.outlet_pin_data_type,
-                        inlet_pin_data_type=edge.inlet_pin_data_type,
-                        is_valid=edge.is_valid
+                        adapter_registry_keys=edge.adapter_registry_keys,
+                        connection_uuid=new_conn_uuid
                     )
                     
                     new_edges[new_conn_uuid] = new_edge
@@ -543,12 +544,12 @@ class GraphCanvasManager:
             current_connection_uuids = set(self.connection_paths.keys())
             graph_connection_uuids = set()
             
-            for connection_uuid, edge in self.graph.edges.items():
+            for connection_uuid, edge_wrapper in self.graph.edge_wrappers.items():
                 graph_connection_uuids.add(connection_uuid)
                 
                 if connection_uuid not in current_connection_uuids:
                     print(f"🔄 Adding new connection: {connection_uuid}")
-                    self.add_connection_visual(edge)
+                    self.add_connection_visual(edge_wrapper)
             
             connections_to_remove = current_connection_uuids - graph_connection_uuids
             for connection_uuid in connections_to_remove:
@@ -675,8 +676,9 @@ class GraphCanvasManager:
         )
         self.canvas_vue.emit_sync_event(sync_event)
         
-    def add_connection_visual(self, edge: Edge) -> bool:
+    def add_connection_visual(self, edge_wrapper) -> bool:
         """Add a visual connection between two nodes."""
+        edge = edge_wrapper.edge
         print(
             f"🔗 Creating connection visual: "
             f"{edge.output_node_id}:{edge.outlet_pin_id} -> "
@@ -693,7 +695,7 @@ class GraphCanvasManager:
             outletPinId=edge.outlet_pin_id,
             inputNodeId=edge.input_node_id,
             inletPinId=edge.inlet_pin_id,
-            isValid=edge.is_valid
+            isValid=edge_wrapper.state.is_valid
         )        
         self.canvas_vue.emit_sync_event(sync_event)
 

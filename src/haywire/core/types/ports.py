@@ -120,6 +120,64 @@ class DataPort(DataTypeIdentity):
         """Check if this is an inlet"""
         return False
     
+    def validate_connection_rules(
+        self,
+        outlet_port: 'DataPort'
+    ) -> tuple[bool, Optional[str]]:
+        """
+        Validate port-level connection rules (NO type checking).
+        
+        This checks only port-specific rules:
+        - Port direction (inlet vs outlet)
+        - Connection count limits
+        - Connection state
+        - Custom port logic (subclass overrides)
+        
+        Type compatibility is handled separately by AdapterFactory.
+        
+        Args:
+            outlet_port: The outlet DataPort attempting to connect
+            
+        Returns:
+            (is_valid, error_message)
+            
+        Example:
+            inlet_port = node.inlets['my_inlet']
+            outlet_port = other_node.outlets['my_outlet']
+            
+            is_valid, error = (
+                inlet_port.validate_connection_rules(outlet_port)
+            )
+            if not is_valid:
+                print(f"Port rule violation: {error}")
+        """
+        # Check if this is an inlet (sanity check)
+        if not self.is_inlet():
+            return (False, "Cannot connect to outlet port")
+        
+        # Check if outlet is actually an outlet
+        if outlet_port.is_inlet():
+            return (False, "Cannot connect inlet to inlet")
+        
+        # Check connection count limits
+        if (
+            not self.allow_multiple_connections and 
+            self.is_connected
+        ):
+            return (
+                False, 
+                f"Inlet '{self.id}' already connected and does not "
+                f"allow multiple connections"
+            )
+        
+        # DataFields must exist
+        if not self.data or not outlet_port.data:
+            return (False, "Missing DataField on inlet or outlet")
+        
+        # All port-level checks passed
+        # Type compatibility will be checked via adapter chain creation
+        return (True, None)
+    
     def to_dict(self) -> dict:
         """
         Serialize port to dict.

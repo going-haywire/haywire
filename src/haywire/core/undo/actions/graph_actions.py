@@ -9,10 +9,10 @@ from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 
 from ....ui.utils import generate_connection_uuid
-from ...node.factory import NodeFactory
 from ...node.node_wrapper import NodeWrapper
-from ...graph.base import BaseGraph, Edge
 from ...node.base import BaseNode
+from ...graph.base import BaseGraph, Edge
+from ...graph.edge_wrapper import EdgeWrapper
 from ..base_action import ActionBase, CompositeAction
 
 class AddNodeAction(ActionBase):
@@ -22,7 +22,6 @@ class AddNodeAction(ActionBase):
             self, 
             graph: BaseGraph, 
             registry_key: str, 
-            node_factory: 'NodeFactory', 
             position: Tuple[float, float] = (100, 100),
             description: Optional[str] = None):
         """
@@ -30,65 +29,98 @@ class AddNodeAction(ActionBase):
         
         Args:
             graph: The graph to add the node to
-            node: The node to add
+            registry_key: Node type to create
+            position: Initial position for the node
             description: Optional description override
         """
-        # Use library label if available, otherwise fallback to identity name
-        # or node_id or class name
         super().__init__(description or f"Add node '{registry_key}'")
         self.graph = graph
         self.registry_key = registry_key
-        self.node_factory = node_factory
         self.position = position
         self.wrapper = None
 
     def _execute_impl(self) -> None:
         """Add the node to the graph."""
-        self.wrapper = NodeWrapper(
-            registry_key=self.registry_key,
-            node_factory=self.node_factory,
-            position=self.position
-        )
-        if not self.wrapper.register(self.graph):
-            raise RuntimeError(f"Failed to register node '{self.registry_key}' in graph")
+        if self.wrapper is None:
+            # First execution: Create new wrapper via graph
+            self.wrapper = self.graph.create_node_wrapper(
+                registry_key=self.registry_key,
+                position=self.position
+            )
+        else:
+            # Redo: Re-add existing wrapper
+            self.wrapper = self.graph.add_node_wrapper(self.wrapper)
+        
+        if not self.wrapper:
+            raise RuntimeError(
+                f"Failed to create node wrapper '{self.registry_key}'"
+            )
     
     def _undo_impl(self) -> None:
         """Remove the node from the graph."""
         self.graph.remove_node_wrapper(self.wrapper)
 
 class AddEdgeAction(ActionBase):
-    """Action for adding an edge to the graph."""
+    """Action for adding an edge to the graph using EdgeWrapper."""
     
-    def __init__(self, graph: BaseGraph, edge: Edge, description: Optional[str] = None):
+    def __init__(
+        self, 
+        graph: BaseGraph,
+        output_node_id: str,
+        outlet_pin_id: str,
+        input_node_id: str,
+        inlet_pin_id: str,
+        description: Optional[str] = None
+    ):
         """
         Initialize the add edge action.
         
         Args:
             graph: The graph to add the edge to
-            edge: The edge to add
+            output_node_id: Source node ID
+            outlet_pin_id: Source outlet ID
+            input_node_id: Target node ID
+            inlet_pin_id: Target inlet ID
             description: Optional description override
         """
-        super().__init__(description or f"Connect {edge.output_node_id} to {edge.input_node_id}")
-        self.graph = graph
-        self.edge = edge
-        # Generate connection UUID for the new API
-        self.connection_uuid = generate_connection_uuid(
-            edge.output_node_id, edge.outlet_pin_id, 
-            edge.input_node_id, edge.inlet_pin_id
+        super().__init__(
+            description or 
+            f"Connect {output_node_id} to {input_node_id}"
         )
+        self.graph = graph
+        self.output_node_id = output_node_id
+        self.outlet_pin_id = outlet_pin_id
+        self.input_node_id = input_node_id
+        self.inlet_pin_id = inlet_pin_id
+        
+        # Wrapper created during execute
+        self.wrapper: Optional[EdgeWrapper] = None
     
     def _execute_impl(self) -> None:
         """Add the edge to the graph."""
-        self.graph.add_edge(
-            self.edge.output_node_id,
-            self.edge.outlet_pin_id,
-            self.edge.input_node_id,
-            self.edge.inlet_pin_id
-        )
+        if self.wrapper is None:
+            # First execution: Create new wrapper via graph
+            self.wrapper = self.graph.create_edge_wrapper(
+                self.output_node_id,
+                self.outlet_pin_id,
+                self.input_node_id,
+                self.inlet_pin_id
+            )
+        else:
+            # Redo: Re-add existing wrapper
+            self.wrapper = self.graph.add_edge_wrapper(self.wrapper)
+        
+        if not self.wrapper:
+            raise RuntimeError(
+                f"Failed to create edge wrapper for connection "
+                f"{self.output_node_id}:{self.outlet_pin_id} -> "
+                f"{self.input_node_id}:{self.inlet_pin_id}"
+            )
     
     def _undo_impl(self) -> None:
         """Remove the edge from the graph."""
-        self.graph.remove_edge_by_uuid(self.connection_uuid)
+        if self.wrapper:
+            self.graph.remove_edge_wrapper(self.wrapper.connection_uuid)
 
 class MoveNodesAction(ActionBase):
     """Action for moving one or multiple nodes using delta values."""
@@ -165,10 +197,18 @@ class MoveNodesAction(ActionBase):
         return merged
 
 class RemoveElementsAction(ActionBase):
-    """Action for removing multiple nodes and connections in a single operation."""
+    """
+    Action for removing multiple nodes and connections in a single
+    operation.
+    """
     
-    def __init__(self, graph: BaseGraph, nodes: List[str] = None, connections: List[str] = None,
-                 description: Optional[str] = None):
+    def __init__(
+        self, 
+        graph: BaseGraph, 
+        nodes: List[str] = None, 
+        connections: List[str] = None,
+        description: Optional[str] = None
+    ):
         """
         Initialize the remove elements action.
         
@@ -183,14 +223,20 @@ class RemoveElementsAction(ActionBase):
         
         total_count = len(nodes) + len(connections)
         if total_count == 0:
-            raise ValueError("Must specify at least one node or connection to remove")
+            raise ValueError(
+                "Must specify at least one node or connection to remove"
+            )
         elif total_count == 1:
             if nodes:
-                super().__init__(description or f"Remove node '{nodes[0]}'")
+                super().__init__(
+                    description or f"Remove node '{nodes[0]}'"
+                )
             else:
                 super().__init__(description or "Remove connection")
         else:
-            super().__init__(description or f"Remove {total_count} elements")
+            super().__init__(
+                description or f"Remove {total_count} elements"
+            )
         
         self.graph = graph
         self.nodes = nodes
@@ -198,34 +244,43 @@ class RemoveElementsAction(ActionBase):
         
         # Store removed elements for restoration
         self.removed_wrappers: Dict[str, NodeWrapper] = {}
-        self.removed_edges: Dict[str, Edge] = {}
-        # node_id -> edges that were connected to it
-        self.node_connected_edges: Dict[str, List[Edge]] = {}
+        self.removed_edge_wrappers: Dict[str, EdgeWrapper] = {}
+        # node_id -> edge wrappers that were connected to it
+        self.node_connected_edge_wrappers: Dict[str, List[EdgeWrapper]] = {}
     
     def _execute_impl(self) -> None:
         """Remove all specified elements and store them for undo."""
         # First, store and remove connections
         for connection_uuid in self.connections:
-            edge = self.graph.get_edge(connection_uuid)
-            if edge:
-                self.removed_edges[connection_uuid] = edge
-                self.graph.remove_edge_by_uuid(connection_uuid)
+            edge_wrapper = self.graph.get_edge_wrapper(connection_uuid)
+            if edge_wrapper:
+                self.removed_edge_wrappers[connection_uuid] = edge_wrapper
+                self.graph.remove_edge_wrapper(connection_uuid)
         
-        # Then, store and remove nodes (which will also remove any remaining connected edges)
+        # Then, store and remove nodes
+        # (which will also remove any remaining connected edges)
         for node_id in self.nodes:
             wrapper = self.graph.get_node_wrapper(node_id)
             if wrapper:
                 self.removed_wrappers[node_id] = wrapper
                 
-                # Store all edges connected to this node for restoration
-                connected_edges = []
-                for edge in list(self.graph.edges.values()):
-                    if edge.input_node_id == node_id or edge.output_node_id == node_id:
-                        connected_edges.append(edge)
+                # Store all edge wrappers connected to this node
+                connected_edge_wrappers = []
+                for edge_wrapper in list(
+                    self.graph.edge_wrappers.values()
+                ):
+                    if (
+                        edge_wrapper.input_node_id == node_id or 
+                        edge_wrapper.output_node_id == node_id
+                    ):
+                        connected_edge_wrappers.append(edge_wrapper)
                 
-                self.node_connected_edges[node_id] = connected_edges
+                self.node_connected_edge_wrappers[node_id] = (
+                    connected_edge_wrappers
+                )
                 
-                # Remove the node wrapper (this will also remove connected edges)
+                # Remove the node wrapper
+                # (this will also remove connected edges)
                 self.graph.remove_node_wrapper(wrapper)
     
     def _undo_impl(self) -> None:
@@ -234,29 +289,38 @@ class RemoveElementsAction(ActionBase):
         for node_id, wrapper in self.removed_wrappers.items():
             self.graph.add_node_wrapper(wrapper)
             
-            # Restore edges that were connected to this node
-            for edge in self.node_connected_edges.get(node_id, []):
+            # Restore edge wrappers that were connected to this node
+            for edge_wrapper in self.node_connected_edge_wrappers.get(
+                node_id, []
+            ):
                 # Only restore if both nodes still exist
-                if (self.graph.get_node_wrapper(edge.input_node_id).node and 
-                    self.graph.get_node_wrapper(edge.output_node_id).node):
-                    self.graph.add_edge(
-                        edge.output_node_id,
-                        edge.outlet_pin_id,
-                        edge.input_node_id,
-                        edge.inlet_pin_id
-                    )
-        
-        # Then, restore standalone connections (that weren't connected to removed nodes)
-        for connection_uuid, edge in self.removed_edges.items():
-            # Only restore if both nodes still exist
-            if (self.graph.get_node_wrapper(edge.input_node_id).node and 
-                self.graph.get_node_wrapper(edge.output_node_id).node):
-                self.graph.add_edge(
-                    edge.output_node_id,
-                    edge.outlet_pin_id,
-                    edge.input_node_id,
-                    edge.inlet_pin_id
+                input_wrapper = self.graph.get_node_wrapper(
+                    edge_wrapper.input_node_id
                 )
+                output_wrapper = self.graph.get_node_wrapper(
+                    edge_wrapper.output_node_id
+                )
+                
+                if input_wrapper and output_wrapper:
+                    # Re-add existing wrapper
+                    self.graph.add_edge_wrapper(edge_wrapper)
+        
+        # Then, restore standalone connections
+        # (that weren't connected to removed nodes)
+        for connection_uuid, edge_wrapper in (
+            self.removed_edge_wrappers.items()
+        ):
+            # Only restore if both nodes still exist
+            input_wrapper = self.graph.get_node_wrapper(
+                edge_wrapper.input_node_id
+            )
+            output_wrapper = self.graph.get_node_wrapper(
+                edge_wrapper.output_node_id
+            )
+            
+            if input_wrapper and output_wrapper:
+                # Re-add existing wrapper
+                self.graph.add_edge_wrapper(edge_wrapper)
 
 
 @dataclass

@@ -57,7 +57,7 @@ NumpyArray.create_default()  # ✅ Returns NumpyArray with np.zeros((2, 3))
 
 
 # ============================================================================
-# COMPLEX TYPES - Use decorator default
+# BASE TYPES - Use decorator default
 # ============================================================================
 
 @type(
@@ -74,7 +74,7 @@ MeshData.create_default()  # ✅ Returns MeshData(vertices=[], faces=[], name='D
 
 
 # ============================================================================
-# COMPLEX TYPES - default
+# BASE TYPES - default
 # ============================================================================
 
 @type(
@@ -92,7 +92,7 @@ class Color(BaseType):
 Color.create_default()  # ✅ Returns Color(0, 255, 0, 1.0)
 
 # ============================================================================
-# COMPLEX TYPES - Override for computed defaults
+# BASE TYPES - Override for computed defaults
 # ============================================================================
 
 @type(

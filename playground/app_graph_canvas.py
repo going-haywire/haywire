@@ -87,7 +87,9 @@ class UndoRedoTestAppWithCanvasManager:
         self.node_registry = self.library_service.get_node_registry()
         self.node_factory = self.library_service.get_node_factory()
         self.node_render_factory = self.library_service.get_node_render_factory()
+        self.adapter_factory = self.library_service.get_adapter_factory()
         self.history_manager = self.library_service.get_history_manager()
+
         
         # Get theme palette from DI
         self.theme_palette = self.library_service.get_theme_palette()
@@ -96,10 +98,15 @@ class UndoRedoTestAppWithCanvasManager:
         ThemePalette.register_observer(self._on_theme_changed)
         
         # Create ONE shared graph for all sessions
-        self.graph = BaseGraph("shared_graph", self.node_factory, "Shared Graph Across Sessions")
+        self.graph = BaseGraph(
+            "shared_graph", 
+            "Shared Graph Across Sessions",
+            self.node_factory, 
+            self.adapter_factory
+        )
         
-        # Create shared Editor instance
-        self.editor = Editor(self.graph, self.history_manager, self.node_factory)
+        # Create shared Editor instance (graph-managed pattern)
+        self.editor = Editor(self.graph, self.history_manager)
         
         # Register global change listener for app-level updates
         self.editor.add_change_callback(self._on_global_graph_change)
@@ -303,6 +310,7 @@ class UndoRedoTestAppWithCanvasManager:
             canvas_manager = GraphCanvasManager(
                 editor=self.editor,  # Pass the shared Editor instance
                 node_render_factory=self.node_render_factory,
+                node_factory=self.node_factory,
                 session_id=client_id,
             )
             session_data['canvas_manager'] = canvas_manager

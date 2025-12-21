@@ -40,7 +40,7 @@ class IType(ABC):
        - Instance: FLOAT(value=42.0) (template for adapters/defaults)
        - Storage: 42.0 (unwrapped in PrimitiveField)
     
-    2. COMPLEX (MeshData, Vector3)
+    2. BASE (MeshData, Vector3)
        - Type: MeshData class (descriptor AND data container)
        - Instance: MeshData(...) (descriptor instance IS the data)
        - Storage: MeshData(...) instance (in BaseField)

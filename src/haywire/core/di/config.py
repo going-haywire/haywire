@@ -19,6 +19,7 @@ from ...ui.themes.palette import ThemePalette
 from ..library.registry import LibraryRegistry
 from ..node.registry import NodeRegistry
 from ..adapter.registry import AdapterRegistry
+from ..adapter.factory import AdapterFactory
 from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
 from ..undo.interfaces import IHistoryManager
@@ -136,8 +137,20 @@ class HaywireModule(Module):
     
     @provider
     @singleton
-    def provide_node_render_factory(self, renderer_registry: RendererRegistry, 
-                                   widget_registry: WidgetRegistry) -> RenderFactory:
+    def provide_adapter_factory(
+        self, 
+        adapter_registry: AdapterRegistry
+    ) -> AdapterFactory:
+        """Provide AdapterFactory for creating adapter chains."""
+        return AdapterFactory(adapter_registry)
+    
+    @provider
+    @singleton
+    def provide_node_render_factory(
+        self, 
+        renderer_registry: RendererRegistry, 
+        widget_registry: WidgetRegistry
+    ) -> RenderFactory:
         """Provide NodeRenderFactory."""
         return RenderFactory(renderer_registry, widget_registry)
     
@@ -391,6 +404,10 @@ class LibrarySystemService:
         """Get the node factory."""
         return self.injector.get(NodeFactory)
     
+    def get_adapter_factory(self) -> AdapterFactory:
+        """Get the adapter factory."""
+        return self.injector.get(AdapterFactory)
+    
     def get_node_render_factory(self) -> RenderFactory:
         """Get the node render factory."""
         return self.injector.get(RenderFactory)
@@ -467,3 +484,40 @@ def create_library_system_service(project_root: Optional[str] = None,
     service.initialize()
     
     return service
+
+
+# ============================================================================
+# Global Helper Functions for DI Access
+# ============================================================================
+
+_global_injector: Optional[Injector] = None
+
+
+def set_global_injector(injector: Injector) -> None:
+    """
+    Set the global DI injector.
+    
+    This should be called during application initialization.
+    
+    Args:
+        injector: The configured injector to use globally
+    """
+    global _global_injector
+    _global_injector = injector
+
+
+def get_adapter_factory() -> AdapterFactory:
+    """
+    Get the AdapterFactory from the global injector.
+    
+    Returns:
+        AdapterFactory instance
+        
+    Raises:
+        RuntimeError: If global injector not set
+    """
+    if _global_injector is None:
+        raise RuntimeError(
+            "Global injector not set. Call set_global_injector() first."
+        )
+    return _global_injector.get(AdapterFactory)

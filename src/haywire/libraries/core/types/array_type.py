@@ -162,33 +162,6 @@ class ArrayField(CompoundField[List[T]]):
         """
         return list(self._items)
     
-    def is_compatible_with(
-        self,
-        other_field,
-        adapter_registry
-    ) -> tuple[bool, str]:
-        """
-        Check if incoming array has compatible element type.
-        
-        Examples:
-            Array[FLOAT] <- Array[FLOAT]: (True, "direct")
-            Array[FLOAT] <- Array[Temperature]: (True, "Array[Temperature->FLOAT]")
-            Array[FLOAT] <- FLOAT: (False, "Cannot connect single to array")
-        """        
-        # Check element type compatibility
-        if other_field.element_type_cls == self.element_type_cls:
-            return (True, "direct")
-        
-        if adapter_registry.has_adapter(other_field.element_type_cls, self.element_type_cls):
-            return (True, f"Array[{other_field.element_type_cls.__name__}->Array[{self.element_type_cls.__name__}]]")
-        
-        chain = adapter_registry.find_adapter_chain(other_field.element_type_cls, self.element_type_cls)
-        if chain:
-            chain_str = "->".join([c.__name__ for c in chain])
-            return (True, f"Array[{chain_str}]")
-        
-        return (False, f"No adapter from Array[{other_field.element_type_cls.__name__}] to Array[{self.element_type_cls.__name__}]")
-    
     def reset(self) -> None:
         """Reset to default array"""
         initial_list = self._default_kwargs.get('value', [])
