@@ -422,6 +422,20 @@ class HaywireException(Exception):
     
     This is the single source of truth for all user-facing errors in Haywire.
     Combines the functionality of the old HaywireError and HaywireException.
+
+    Usage:
+        ```
+        HaywireException.create(
+            "Node failed to load",
+            severity=ErrorSeverity.ERROR,   
+            category="Node Load Error"
+        )
+        HaywireException.from_exception(
+            exc,
+            message="Widget rendering failed",
+            operation="render"
+        ).enrich(registry_key="mylib:MyWidget")
+        ```
     """
     
     # ========================================================================
@@ -560,7 +574,7 @@ class HaywireException(Exception):
         return cls(message=message, severity=severity, category=category, **kwargs)
     
     @classmethod
-    def extract(cls, exception: Exception) -> Dict[str, Any]:
+    def _extract(cls, exception: Exception) -> Dict[str, Any]:
         """
         Extract technical details from a Python exception.
         
@@ -743,7 +757,7 @@ class HaywireException(Exception):
             New HaywireException with extracted context
         """
         # Extract technical details
-        extracted = cls.extract(exception)
+        extracted = cls._extract(exception)
         
         # Map exc_message and exc_category to message/category if not provided
         exc_message = extracted.pop('exc_message', None)
@@ -808,7 +822,7 @@ class HaywireException(Exception):
         """
         # Extract from exception if provided and we don't have technical details yet
         if exception and not self.has_source_location():
-            extracted = self.__class__.extract(exception)
+            extracted = self.__class__._extract(exception)
             for key, value in extracted.items():
                 if not getattr(self, key, None):  # Only set if not already present
                     setattr(self, key, value)

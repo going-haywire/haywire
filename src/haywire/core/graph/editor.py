@@ -12,7 +12,7 @@ Design Philosophy:
 """
 
 from typing import Dict, List, Optional, Tuple, Set, Any, Callable
-from haywire.core.graph.base import BaseGraph, Edge, EdgeType
+from haywire.core.graph.base import BaseGraph, Edge, FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.undo.interfaces import IHistoryManager
 from haywire.core.undo.actions.graph_actions import (

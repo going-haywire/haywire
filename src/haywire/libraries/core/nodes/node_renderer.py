@@ -68,9 +68,9 @@ class NodeRenderer(BaseRenderer, ABC):
             f'data-pin-dir-y="{dir_y}"'
         )
         
-        if pin.flow_type == FlowType.CTRL:
+        if pin.flow_type == FlowType.CONTROL:
             # Get control flow color from theme
-            ctrl_color = ThemePalette.flow_type(FlowType.CTRL)
+            ctrl_color = ThemePalette.flow_type(FlowType.CONTROL)
             # Pin connector
             ui.icon('label', color=ctrl_color, size='xs').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'

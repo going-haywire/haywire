@@ -13,7 +13,7 @@ from haywire.core.data.enums import FlowType
 
 @type(
     registry_id='exec',
-    flow_type=FlowType.CTRL,
+    flow_type=FlowType.CONTROL,
     label='Execution Signal',
     description='Signal for controlling execution flow between nodes',
     color='#ff9800',

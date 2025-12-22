@@ -102,42 +102,19 @@ class DataField(ABC, Generic[T]):
         """
         pass
     
-    def get_compatible_type(self, outlet_field: 'DataField') -> type:
+    def get_compatible_type(self) -> type:
         """
         Return the type needed for adapter compatibility checking.
         
         This method allows fields to declare what type they need from
-        the outlet for compatibility. EdgeWrapper uses this to determine
-        which types to pass to AdapterFactory for chain creation.
-        
-        For structural validation (e.g., rejecting certain field types),
-        raise ValueError with a clear error message.
-        
-        Args:
-            outlet_field: The outlet's DataField being connected
-            
+        the outlet for compatibility. EdgeWrapper uses this to evaluate 
+        compatibility and which types to pass to AdapterFactory 
+        for chain creation.
+                    
         Returns:
             type: The IType class needed for compatibility
             
-        Raises:
-            ValueError: If structurally incompatible
-            
-        Examples:
-            # PrimitiveField/BaseField (scalar)
-            def get_compatible_type(self, outlet_field):
-                return self.type_cls  # FLOAT, MeshData, etc.
-            
-            # CompoundField (element-level checking)
-            def get_compatible_type(self, outlet_field):
-                if not isinstance(outlet_field, CompoundField):
-                    raise ValueError("Cannot connect scalar to compound")
-                return self.element_type_cls  # Element type for adapter
-            
-            # PooledField (accepts both scalar and compound)
-            def get_compatible_type(self, outlet_field):
-                return self.element_type_cls  # Always element type
         """
-        # Default: scalar field compatibility (type_cls)
         return self.type_cls
     
     @abstractmethod
@@ -337,40 +314,7 @@ class CompoundField(DataField, ABC):
     
     # Compound fields always have element_type_cls set to IType
     element_type_cls: type[IType]
-    
-    def get_compatible_type(self, outlet_field: 'DataField') -> type:
-        """
-        Compound types require element-level compatibility checking.
         
-        Arrays can only connect to arrays with compatible element types:
-        - Array[FLOAT] → Array[FLOAT] ✓ (direct element match)
-        - Array[Temperature] → Array[FLOAT] ✓ (if adapter exists)
-        - FLOAT → Array[FLOAT] ✗ (structural mismatch)
-        - Array[FLOAT] → Array[STRING] ✗ (no adapter)
-        
-        Returns element_type_cls for adapter chain creation.
-        
-        Raises:
-            ValueError: If outlet is not a compound field
-        """
-        if not isinstance(outlet_field, CompoundField):
-            raise ValueError(
-                f"Cannot connect scalar field {outlet_field.type_cls.__name__} "
-                f"to compound field {self.type_cls.__name__}. "
-                f"Compound fields require compound sources."
-            )
-        
-        # Verify outlet is also the same compound type (Array→Array, etc.)
-        if type(outlet_field) != type(self):
-            raise ValueError(
-                f"Cannot connect {type(outlet_field).__name__} "
-                f"to {type(self).__name__}. "
-                f"Compound field types must match."
-            )
-        
-        # Return type for adapter compatibility checking
-        return self.type_cls
-    
     @abstractmethod
     def _unwrap_value(self, value: Any) -> Any:
         """

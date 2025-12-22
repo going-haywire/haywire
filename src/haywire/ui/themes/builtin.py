@@ -31,7 +31,7 @@ class DefaultTheme(PythonTheme):
     
     # Flow type colors - using FlowType enum keys
     FLOW_TYPES = {
-        FlowType.CTRL.value: "#0000ff",
+        FlowType.CONTROL.value: "#0000ff",
         FlowType.CALLBACK.value: "#ff0000",
         FlowType.DATA.value: "#00ff00",
     }

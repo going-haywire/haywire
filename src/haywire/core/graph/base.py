@@ -5,15 +5,16 @@ from enum import Enum
 import uuid
 
 from ..node.node_wrapper import NodeWrapper
-from ...ui.utils import generate_connection_uuid
+from ..data.enums import FlowType
+
 
 if TYPE_CHECKING:
     from ..node.factory import NodeFactory
     from ..adapter.factory import AdapterFactory
     from .edge_wrapper import EdgeWrapper
 
-# Re-export Edge and EdgeType from new location for backward compatibility
-from .edge import Edge, EdgeType
+# Re-export Edge and FlowType from new location for backward compatibility
+from .edge import Edge
 
 
 @dataclass
@@ -320,7 +321,7 @@ class BaseGraph:
             )
         
         self.edge_wrappers[wrapper.connection_uuid] = wrapper
-        
+        wrapper.state.is_registered = True
         # Also add to legacy edges dict for backward compatibility
         if wrapper.edge:
             self.edges[wrapper.connection_uuid] = wrapper.edge
@@ -346,6 +347,7 @@ class BaseGraph:
         wrapper = self.edge_wrappers[connection_uuid]
         wrapper.cleanup()
         del self.edge_wrappers[connection_uuid]
+        wrapper.state.is_registered = False
         
         # Also remove from legacy edges dict
         if connection_uuid in self.edges:
@@ -683,7 +685,7 @@ class BaseGraph:
             if "edges" in data:
                 for connection_uuid, edge_data in data["edges"].items():
                     edge = Edge(
-                        edge_type=EdgeType(edge_data["edge_type"]),
+                        edge_type=FlowType(edge_data["edge_type"]),
                         output_node_id=edge_data["output_node_id"],
                         outlet_pin_id=edge_data["outlet_pin_id"],
                         input_node_id=edge_data["input_node_id"],

@@ -10,13 +10,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, List
 
-
-class EdgeType(Enum):
-    """Types of edges in a Haywire graph"""
-    CONTROL = "control"
-    DATA = "data"
-    CALLBACK = "callback"
-
+from ..data.enums import FlowType
 
 @dataclass
 class Edge:
@@ -35,7 +29,7 @@ class Edge:
     inlet_pin_id: str
     
     # Edge classification
-    edge_type: EdgeType
+    edge_type: FlowType
     
     # Adapter chain metadata (for serialization/deserialization)
     adapter_registry_keys: List[str] = field(default_factory=list)
@@ -68,7 +62,7 @@ class Edge:
             outlet_pin_id=data['outlet_pin_id'],
             input_node_id=data['input_node_id'],
             inlet_pin_id=data['inlet_pin_id'],
-            edge_type=EdgeType(data['edge_type']),
+            edge_type=FlowType(data['edge_type']),
             adapter_registry_keys=data.get('adapter_registry_keys', []),
             connection_uuid=data.get('connection_uuid', '')
         )

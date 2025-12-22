@@ -909,7 +909,7 @@ class GraphCanvasManager:
             
             # Create edge in graph
             edge = Edge(
-                edge_type=EdgeType.DATA,
+                edge_type=FlowType.DATA,
                 output_node_id=event.outputNodeId,
                 outlet_pin_id=event.outletPinId,
                 input_node_id=event.inputNodeId,

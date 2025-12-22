@@ -118,7 +118,7 @@ class AdapterFactory:
         """
         # Direct type match - no adapters needed
         if source_type == target_type:
-            return (AdapterChain([]), None)
+            return (AdapterChain([PassThroughAdapter()]), None)
         
         # Determine if types are compound
         source_is_compound = issubclass(source_type, CompoundType)
@@ -431,9 +431,9 @@ class AdapterFactory:
     
     def rebuild_chain(
         self,
-        connection_uuid: str,
         source_type: type[IType],
         target_type: type[IType],
+        connection_uuid: str,
         max_depth: int = 3
     ) -> tuple[Optional[AdapterChain], Optional[str], bool]:
         """
@@ -483,6 +483,13 @@ class AdapterFactory:
         # Clean up dependency tracking
         self._unregister_edge_dependencies(connection_uuid)
     
+    # there is a good reason to separate the registration methods of the 
+    # dependencies and the callback methods:
+    # the dependecy registration is done internally when the chain is created,
+    # and alse when the chain is rebuilt during hot-reload
+    # the callback registration/unregistration is done externally by the
+    # EdgeWrapper when it is created/destroyed
+
     def _register_edge_dependencies(
         self,
         connection_uuid: str,
@@ -521,21 +528,26 @@ class AdapterFactory:
         Handle adapter hot reload events from registry.
         
         Notifies affected EdgeWrappers when their adapters change.
+        Each EdgeWrapper receives only events for adapters it depends on.
         """
-        # Collect affected edges
-        affected_edges: Set[str] = set()
+        # Group events by affected edges
+        # edge_uuid -> list of relevant events
+        edge_to_events: Dict[str, List[LifeCycleEvent]] = {}
         
         for event in batch:
-            # Find edges that use this adapter
             adapter_key = event.registry_key
             if adapter_key in self._adapter_to_edges:
-                affected_edges.update(self._adapter_to_edges[adapter_key])
+                # This adapter affects some edges
+                for connection_uuid in self._adapter_to_edges[adapter_key]:
+                    if connection_uuid not in edge_to_events:
+                        edge_to_events[connection_uuid] = []
+                    edge_to_events[connection_uuid].append(event)
         
-        # Notify affected EdgeWrappers
-        for connection_uuid in affected_edges:
+        # Notify affected EdgeWrappers with filtered events
+        for connection_uuid, events in edge_to_events.items():
             if connection_uuid in self._edge_callbacks:
                 callback = self._edge_callbacks[connection_uuid]
-                callback(batch)
+                callback(events)
     
     def get_available_adapters(
         self,

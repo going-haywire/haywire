@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, TypeVar
 
 from haywire.core.types.base import CompoundType, PrimitiveType, BaseType
-from haywire.core.data.fields import CompoundField
+from haywire.core.data.fields import CompoundField, DataField
 from haywire.core.types.decorator import type
 from haywire.core.data.enums import ContainerType, FlowType
 
@@ -191,49 +191,8 @@ class PooledField(CompoundField[Dict[str, T]]):
             "Pooled fields are inlet-only."
         )
     
-    def get_compatible_type(self, outlet_field: 'CompoundField') -> type:
-        """
-        Pooled accepts both scalar and compound sources.
-        
-        Unlike other compound fields, pooled inlets are flexible:
-        - Can aggregate scalars from multiple sources
-        - Can aggregate compounds (arrays, etc.) from multiple sources
-        
-        The element_type_cls determines what adapters are needed:
-        
-        Examples:
-            FLOAT → Pooled[FLOAT]:
-                - outlet returns FLOAT (type_cls)
-                - inlet returns FLOAT (element_type_cls)
-                - Adapter checks: FLOAT → FLOAT ✓
-            
-            Temperature → Pooled[FLOAT]:
-                - outlet returns Temperature (type_cls)
-                - inlet returns FLOAT (element_type_cls)
-                - Adapter checks: Temperature → FLOAT (if adapter exists)
-            
-            Array[FLOAT] → Pooled[Array[FLOAT]]:
-                - outlet returns FLOAT (element_type_cls from CompoundField)
-                - inlet returns FLOAT (element_type_cls)
-                - Adapter checks: FLOAT → FLOAT ✓
-            
-            Array[Temperature] → Pooled[Array[FLOAT]]:
-                - outlet returns Temperature (element_type_cls)
-                - inlet returns FLOAT (element_type_cls)
-                - Adapter checks: Temperature → FLOAT (if adapter exists)
-        
-        Returns:
-            element_type_cls for adapter compatibility checking
-        """
-        if isinstance(outlet_field, CompoundField):
-            # Verify outlet is also the same compound type (Array→Array, etc.)
-            if type(outlet_field.type_cls) != type(self.element_type_cls):
-                raise ValueError(
-                    f"Cannot connect {type(outlet_field).__name__} "
-                    f"to {type(self).__name__}. "
-                    f"Compound field types must match."
-                )
-
+    def get_compatible_type(self) -> type:
+        # other than all other fields, pooled is only compatible with the element type
         return self.element_type_cls
     
     def reset(self) -> None:

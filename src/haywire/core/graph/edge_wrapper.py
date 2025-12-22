@@ -1,19 +1,10 @@
-"""
-EdgeWrapper - Complete lifecycle management for Haywire edges.
-
-This wrapper manages the complete lifecycle of an Edge instance,
-including creation, adapter chain management, hot reload, validation,
-serialization, and cleanup.
-
-Parallel to NodeWrapper design.
-"""
-
 import logging
 import time
 from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-from .edge import Edge, EdgeType
+from ...ui.utils import generate_connection_uuid
+from ..data.enums import FlowType
 from ..adapter.chain import AdapterChain
 from ..errors import HaywireException
 from ..registry.lifecycle_event import (
@@ -23,6 +14,7 @@ from ..registry.lifecycle_event import (
 )
 from ..types.interface import IType
 from ..types.ports import DataPort
+from .edge import Edge
 
 if TYPE_CHECKING:
     from .base import BaseGraph
@@ -31,13 +23,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class EdgeWrapperState:
     """Lifecycle state of wrapper and its edge instance"""
     is_registered: bool = False
     """The edge has been registered with the graph"""
-    is_valid: bool = True
+    is_valid: bool = False
     """The edge connection is valid (adapter chain exists)"""
     is_executing: bool = False
     """Edge is currently transforming data"""
@@ -53,7 +44,7 @@ class EdgeWrapperState:
     """Number of times transform() was called"""
     hot_reload_count: int = 0
     """Number of adapter chain rebuilds"""
-    chain_changed_warning: bool = False
+    warning: str = ""
     """True if adapter chain changed during hot reload"""
 
 
@@ -80,7 +71,7 @@ class EdgeWrapper:
         input_node_id: str,
         inlet_pin_id: str,
         adapter_factory: 'AdapterFactory',
-        edge_type: Optional[EdgeType] = None
+        edge_type: Optional[FlowType] = None
     ):
         """
         Initialize EdgeWrapper (similar to NodeWrapper.__init__).
@@ -101,11 +92,13 @@ class EdgeWrapper:
         self._adapter_factory = adapter_factory
         
         # Generate connection UUID
-        from ...ui.utils import generate_connection_uuid
         self.connection_uuid = generate_connection_uuid(
             output_node_id, outlet_pin_id, input_node_id, inlet_pin_id
         )
         
+        # Reference to parent graph
+        self._graph: Optional['BaseGraph'] = None
+
         # Edge instance (created during registration)
         self._edge: Optional[Edge] = None
         
@@ -151,76 +144,41 @@ class EdgeWrapper:
             Self if initialization successful, None otherwise
         """
         try:
-            # Get node wrapper references
-            self._output_wrapper = graph.get_node_wrapper(self.output_node_id)
-            self._input_wrapper = graph.get_node_wrapper(self.input_node_id)
+            self._graph = graph
+            # test connection validity, raise exception on failure
+            self._connection_validation(graph)
             
-            if not self._output_wrapper or not self._input_wrapper:
-                raise HaywireException(
-                    message=(
-                        f"Node wrappers not found for edge "
-                        f"{self.connection_uuid}"
-                    )
+            # create adapter chain (only for DATA edges)
+            if self._edge_type == FlowType.DATA:
+                # Inlet determines what type it needs from outlet
+                target_type = self._inlet_port.data.get_compatible_type()
+                
+                outlet_field = self._outlet_port.data
+                source_type = outlet_field.type_cls
+                    
+                # Create adapter chain
+                chain, error_msg = self._adapter_factory.create_chain(
+                    source_type,
+                    target_type,
+                    self.connection_uuid
                 )
-            
-            # Get DataPort references
-            outlet_node = self._output_wrapper.node
-            inlet_node = self._input_wrapper.node
-            
-            self._outlet_port = outlet_node.outlets.get(self.outlet_pin_id)
-            self._inlet_port = inlet_node.inlets.get(self.inlet_pin_id)
-            
-            if not self._outlet_port or not self._inlet_port:
-                raise HaywireException(
-                    message=(
-                        f"Ports not found for edge {self.connection_uuid}"
+
+                if chain:
+                    self._adapter_chain = chain
+
+                    # Subscribe to adapter factory for hot reload 
+                    self._adapter_factory.register_edge_callback(
+                        self.connection_uuid,
+                        self._on_adapter_lifecycle_event
                     )
-                )
-            
-            # Determine edge type if not set
-            if self._edge_type is None:
-                self._edge_type = self._determine_edge_type()
-            
-            # Validate and create adapter chain (only for DATA edges)
-            if self._edge_type == EdgeType.DATA:
-                success, error = self._create_adapter_chain()
-                if not success:
-                    self.state.is_valid = False
-                    self.state.error = error
-                    # Still create edge but mark invalid
-            
-            # Create Edge instance
-            self._edge = Edge(
-                output_node_id=self.output_node_id,
-                outlet_pin_id=self.outlet_pin_id,
-                input_node_id=self.input_node_id,
-                inlet_pin_id=self.inlet_pin_id,
-                edge_type=self._edge_type,
-                adapter_registry_keys=(
-                    self._adapter_chain.get_registry_keys() 
-                    if self._adapter_chain else []
-                ),
-                connection_uuid=self.connection_uuid
-            )
-            
-            # Subscribe to adapter factory for hot reload
-            self._adapter_factory.register_edge_callback(
-                self.connection_uuid,
-                self._on_adapter_lifecycle_event
-            )
-            
-            self.state.is_registered = True
-            
-            # Notify subscribers
-            self._notify_lifecycle_event(LifeCycleEvent(
-                registry_key=self.connection_uuid,
-                event_type=LifeCycleEventType.CLASS_INSTANTIATED,
-                affected_class=Edge,
-                library_identity=None
-            ))
-            
-            return self
-            
+
+                else:
+                    raise Exception(
+                        f"Adapter chain creation failed: {error_msg}"
+                    )
+                                    
+            self.state.is_valid = True
+                                    
         except Exception as e:
             logger.error(
                 f"Failed to initialize edge {self.connection_uuid}: {e}"
@@ -230,94 +188,87 @@ class EdgeWrapper:
                 original_exception=e
             )
             self.state.is_valid = False
-            return None
-    
-    def _determine_edge_type(self) -> EdgeType:
-        """Determine edge type from outlet's flow type"""
-        from ..data.enums import FlowType
-        
-        flow_type = self._outlet_port.flow_type
-        
-        if flow_type == FlowType.CTRL:
-            return EdgeType.CONTROL
-        elif flow_type == FlowType.DATA:
-            return EdgeType.DATA
-        elif flow_type == FlowType.CALLBACK:
-            return EdgeType.CALLBACK
-        else:
-            # Default to DATA
-            return EdgeType.DATA
-    
-    def _create_adapter_chain(
-        self
-    ) -> Tuple[bool, Optional[HaywireException]]:
+
+        # Create Edge instance in any case
+        self._edge = Edge(
+            output_node_id=self.output_node_id,
+            outlet_pin_id=self.outlet_pin_id,
+            input_node_id=self.input_node_id,
+            inlet_pin_id=self.inlet_pin_id,
+            edge_type=self._edge_type,
+            adapter_registry_keys=(
+                self._adapter_chain.get_registry_keys() 
+                if self._adapter_chain else []
+            ),
+            connection_uuid=self.connection_uuid
+        )
+
+        # Notify subscribers / this also logs the event
+        self._notify_lifecycle_event(LifeCycleEvent(
+            registry_key=self.connection_uuid,
+            event_type=LifeCycleEventType.CLASS_INSTANTIATED,
+            affected_class=Edge,
+            library_identity=None
+        ))
+
+        return self
+
+    def _connection_validation(self, graph: 'BaseGraph'):
         """
-        Validate connection and create adapter chain.
+        Validate connection between ports.
         
-        Two-step validation process:
-        1. Port-level rules (connection count, state, direction)
-        2. Field compatibility with adapter chain creation
-        
-        Fields declare their compatible types via get_compatible_type(),
-        which handles both structural validation (via ValueError) and
-        type compatibility determination (returns type for adapter checking).
-        
-        Returns:
-            (success, error)
+        Args:
+            graph: The graph containing this edge
+        Raises:
+            Exception: If validation fails
         """
-        # Step 1: Validate port-level rules (no type checking)
+        # Get node wrapper references
+        self._output_wrapper = graph.get_node_wrapper(self.output_node_id)
+        self._input_wrapper = graph.get_node_wrapper(self.input_node_id)
+        
+        if not self._output_wrapper or not self._input_wrapper:
+            raise Exception(
+                f"Nodes not found for edge: "
+                f"{self.connection_uuid} | "
+                f" (output_node_id={self.output_node_id}, input_node_id={self.input_node_id})"
+            )
+        
+        # Get DataPort references
+        outlet_node = self._output_wrapper.node
+        inlet_node = self._input_wrapper.node
+        
+        self._outlet_port = outlet_node.outlets.get(self.outlet_pin_id)
+        self._inlet_port = inlet_node.inlets.get(self.inlet_pin_id)
+
+        # Determine edge type if not set
+        if self._edge_type is None:
+            self._edge_type = self._outlet_port.flow_type
+
+        if not self._outlet_port or not self._inlet_port:
+            raise Exception(
+                f"Ports not found for edge: "
+                f"{self.connection_uuid} | "
+                f"(outlet_pin_id={self.outlet_pin_id}, inlet_pin_id={self.inlet_pin_id})"
+            )
+
+        # Validate port-level rules for inlet(no type checking)
         is_valid, error_msg = self._inlet_port.validate_connection_rules(
             self._outlet_port
         )
         if not is_valid:
-            error = HaywireException(
-                message=f"Port validation failed: {error_msg}"
+            raise Exception(
+                f"Inlet connection validation failed: {error_msg}"
             )
-            return (False, error)
         
-        # Step 2: Get compatible types and create adapter chain
-        # Fields determine what to compare (type_cls vs element_type_cls)
-        # and perform structural validation (raise ValueError if incompatible)
-        try:
-            # Inlet determines what type it needs from outlet
-            target_type = self._inlet_port.data.get_compatible_type(
-                self._outlet_port.data
-            )
-            
-            # Outlet determines what type it provides to inlet
-            # For scalar fields: returns type_cls
-            # For compound fields: returns element_type_cls
-            outlet_field = self._outlet_port.data
-            source_type = outlet_field.type_cls
-                
-        except ValueError as e:
-            # Structural incompatibility (e.g., scalar → array)
-            error = HaywireException(
-                message=f"Field structural incompatibility: {str(e)}"
-            )
-            return (False, error)
-        
-        # Step 3: Create adapter chain
-        # (SINGLE SOURCE OF TRUTH for type compatibility via registry)
-        chain, error_msg = self._adapter_factory.create_chain(
-            source_type,
-            target_type,
-            self.connection_uuid
+        # Validate port-level rules for outlet (no type checking)
+        is_valid, error_msg = self._outlet_port.validate_connection_rules(
+            self._inlet_port
         )
-        
-        if chain:
-            self._adapter_chain = chain
-            return (True, None)
-        else:
-            # Type incompatible - no adapter chain exists
-            error = HaywireException(
-                message=(
-                    f"Type incompatible: "
-                    f"{error_msg or 'Unknown error'}"
-                )
+        if not is_valid:
+            raise Exception(
+                f"Outlet connection validation failed: {error_msg}"
             )
-            return (False, error)
-    
+
     def transform(self, value: Any) -> Any:
         """
         Transform value through adapter chain.
@@ -352,7 +303,7 @@ class EdgeWrapper:
             )
         
         # For CONTROL edges, pass through unchanged
-        if self._edge_type != EdgeType.DATA:
+        if self._edge_type != FlowType.DATA:
             return value
         
         # No adapter chain needed (direct type match)
@@ -381,67 +332,97 @@ class EdgeWrapper:
             f"Edge {self.connection_uuid} received adapter lifecycle "
             f"events: {len(batch)} events"
         )
-        
-        # Attempt to rebuild chain
-        source_type = self._outlet_port.type_cls
-        target_type = self._inlet_port.type_cls
-        
-        chain, error, chain_changed = self._adapter_factory.rebuild_chain(
-            self.connection_uuid,
-            source_type,
-            target_type
-        )
-        
-        self.state.last_hot_reload = time.time()
-        self.state.hot_reload_count += 1
-        
-        if chain:
-            # Successfully rebuilt
-            old_chain = self._adapter_chain
-            self._adapter_chain = chain
-            self.state.is_valid = True
-            self.state.error = None
-            
-            # Warn if chain changed
-            if chain_changed:
-                self.state.chain_changed_warning = True
-                logger.warning(
-                    f"Edge {self.connection_uuid} adapter chain changed "
-                    f"during hot reload - graph behavior may differ!"
-                )
-                
-                # Update Edge instance with new adapter keys
-                if self._edge:
-                    self._edge.adapter_registry_keys = (
-                        chain.get_registry_keys()
+
+        # before attempting rebuild, check for warnings/errors
+        for event in batch:
+            if event.is_warning_event():
+                self.state.is_valid = False
+                if event.error:
+                    self.state.warning = event.error
+                else:   
+                    self.state.error = HaywireException.create(
+                        message=f"Adapter lifecycle event error on edge {self.connection_uuid}",
+                        operation="Adapter Hot Reload: {event.event_type}",
+                    ).enrich(
+                        library_identity=event.library_identity,
+                        module_name=event.module_name,
+                        registry_key=event.registry_key
                     )
+                
+                self.state.error.log()
+
+                self._notify_lifecycle_event(event.create_derived_event(
+                    registry_key=self.connection_uuid,
+                    affected_class=Edge,
+                    error=self.state.error
+                ))
+                return  # abort on first warning/error           
+
+        try:
+            # test connection validity, raise exception on failure
+            self._connection_validation(self._graph)
+
+            # Attempt to rebuild chain
+            source_type = self._outlet_port.type_cls
+            target_type = self._inlet_port.type_cls
             
-            # Notify subscribers
-            self._notify_lifecycle_event(LifeCycleEvent(
-                registry_key=self.connection_uuid,
-                event_type=LifeCycleEventType.CLASS_RELOADED,
-                affected_class=Edge,
-                library_identity=None
-            ))
-        else:
-            # Failed to rebuild
+            chain, error, chain_changed = self._adapter_factory.rebuild_chain(
+                source_type,
+                target_type,
+                self.connection_uuid,
+            )
+            
+            self.state.last_hot_reload = time.time()
+            self.state.hot_reload_count += 1
+            
+            if chain:
+                # Successfully rebuilt
+                old_chain = self._adapter_chain
+                self._adapter_chain = chain
+                self.state.is_valid = True
+                self.state.error = None
+                
+                # Warn if chain changed
+                if chain_changed:
+                    self.state.warning = str(
+                        f"Edge {self.connection_uuid} adapter chain composition changed "
+                        f"during hot reload - graph behavior may differ!"
+                    )
+                    
+                    # Update Edge instance with new adapter keys
+                    if self._edge:
+                        self._edge.adapter_registry_keys = (
+                            chain.get_registry_keys()
+                        )
+                else:
+                    self.state.warning = ""
+                
+                # Notify subscribers
+                self._notify_lifecycle_event(LifeCycleEvent(
+                    registry_key=self.connection_uuid,
+                    event_type=LifeCycleEventType.CLASS_RELOADED,
+                    affected_class=Edge,
+                    library_identity=None
+                ))
+            else:
+                raise Exception(f"Failed to rebuild adapter chain: {error}")
+
+        except Exception as e:
             self.state.is_valid = False
-            self.state.error = HaywireException(
-                message=f"Failed to rebuild adapter chain: {error}",
-                error=None
-            )
-            
-            logger.error(
-                f"Edge {self.connection_uuid} became invalid - "
-                f"no adapter chain available"
+            self.state.error = HaywireException.create(
+                message=f"Edge rebuild failed: {e}",
+                operation="Adapter Hot Reload",
+                library_identity=batch[0].library_identity if batch else None,
+                module_name=batch[0].module_name if batch else None,
+                registry_key=batch[0].registry_key if batch else None,
+                suggestion="Check adapter compatibility and registration"
             )
             
             # Notify subscribers
             self._notify_lifecycle_event(LifeCycleEvent(
                 registry_key=self.connection_uuid,
-                event_type=LifeCycleEventType.CLASS_RELOAD_FAILED,
+                event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED,
                 affected_class=Edge,
-                library_identity=None,
                 error=self.state.error
             ))
     
@@ -486,12 +467,12 @@ class EdgeWrapper:
             errors.append(f"Edge invalid: {self.state.error}")
         
         if (
-            self._edge_type == EdgeType.DATA and 
+            self._edge_type == FlowType.DATA and 
             not self._adapter_chain
         ):
             errors.append("DATA edge missing adapter chain")
         
-        if self.state.chain_changed_warning:
+        if self.state.warning:
             errors.append(
                 "WARNING: Adapter chain changed during hot reload - "
                 "graph behavior may differ"
@@ -514,7 +495,7 @@ class EdgeWrapper:
             'is_valid': self.state.is_valid,
             'execution_count': self.state.execution_count,
             'hot_reload_count': self.state.hot_reload_count,
-            'chain_changed_warning': self.state.chain_changed_warning,
+            'chain_changed_warning': self.state.warning,
         }
         
         if self._adapter_chain:

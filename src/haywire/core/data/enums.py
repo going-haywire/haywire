@@ -10,7 +10,7 @@ class ContainerType(Enum):
 
 class FlowType(Enum):
     """Defines the type of flow for inlets and outlets."""
-    CTRL = 'control'
+    CONTROL = 'control'
     DATA = 'data'
     CALLBACK = 'callback'
     NONE = 'none'

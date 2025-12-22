@@ -100,7 +100,13 @@ class LifeCycleEvent:
         return self.module_name == module_name
     
     def is_successful_event(self) -> bool:
-        """Check if this was a successful reload (not removal or failure)"""
+        """Check if this was a successful reload (not removal or failure)
+        
+            this includes:
+            CLASS_ADDED, 
+            CLASS_RELOADED, 
+            CLASS_INSTANTIATED
+        """
         return self.event_type in (
             LifeCycleEventType.CLASS_ADDED,
             LifeCycleEventType.CLASS_RELOADED,
@@ -108,7 +114,14 @@ class LifeCycleEvent:
         ) and self.affected_class is not None
     
     def is_warning_event(self) -> bool:
-        """Check if this event represents an warning (potentialy critical)"""
+        """Check if this event represents an warning (potentialy critical)
+
+            this includes:
+            CLASS_NOT_FOUND, 
+            CLASS_REMOVED, 
+            CLASS_RELOAD_FAILED, 
+            CLASS_INSTANTIATION_FAILED
+        """
         return self.event_type in (
             LifeCycleEventType.CLASS_NOT_FOUND,
             LifeCycleEventType.CLASS_REMOVED,
@@ -117,7 +130,11 @@ class LifeCycleEvent:
         ) or self.affected_class is None
     
     def is_error_event(self) -> bool:
-        """Check if this event represents a critical error"""
+        """Check if this event represents a critical error
+        
+            this includes:
+            CLASS_NOT_FOUND
+        """
         return self.event_type in (
             LifeCycleEventType.CLASS_NOT_FOUND
         ) or self.affected_class is None

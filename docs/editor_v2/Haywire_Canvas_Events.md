@@ -774,7 +774,7 @@ class GraphCanvasManager:
             
             # Create edge
             edge = Edge(
-                edge_type=EdgeType.DATA,
+                edge_type=FlowType.DATA,
                 output_node_id=output_node_id,
                 outlet_pin_id=outlet_pin_id,
                 input_node_id=input_node_id,
