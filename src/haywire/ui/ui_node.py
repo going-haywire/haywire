@@ -74,6 +74,9 @@ class UINode:
 
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
 
+        self.wrapper.recall_change(self._listen_on_wrapper_livecycle_event)
+
+
     @property
     def position(self) -> Optional[tuple[int, int]]:
         return self._position
@@ -91,7 +94,7 @@ class UINode:
         """
         self.position = position
 
-    def _register_sync_event_emitter(self, emitter: Callable[[Any], None]):
+    def register_sync_event_emitter(self, emitter: Callable[[Any], None]):
         """
         Register a synchronization event emitter for UI updates.
         
@@ -99,12 +102,6 @@ class UINode:
             emitter: Callable that emits sync events
         """
         self.sync_event_emitter = emitter
-
-    def refresh(self) -> bool:
-        """
-        Refresh the current rendering of the node.
-        """
-        self.wrapper.recall_change(self._listen_on_wrapper_livecycle_event)
 
     def _listen_on_wrapper_livecycle_event(self, event: LifeCycleEvent):
         """

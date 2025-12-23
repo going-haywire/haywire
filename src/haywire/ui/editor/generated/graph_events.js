@@ -24,7 +24,7 @@ window.GraphEvents = {
     SYNC_NODE_ADDITION: 'syncNodeAddition', // Sync node addition to UI
     SYNC_NODE_REMOVAL: 'syncNodeRemoval', // Sync node removal from UI
     SYNC_NODE_POSITION: 'syncNodePosition', // Sync node position to UI
-    SYNC_CONNECTION_ADDITION: 'syncConnectionAddition', // Sync connection addition to UI
+    SYNC_CONNECTION_ADDITION: 'syncConnectionAddition', // Sync connection addition/update to UI with visual properties
     SYNC_CONNECTION_REMOVAL: 'syncConnectionRemoval', // Sync connection removal from UI
     SYNC_SELECTIONS: 'syncSelections', // Sync selection state to UI
     SYNC_CANVAS_CLEAR: 'syncCanvasClear', // Clear entire canvas

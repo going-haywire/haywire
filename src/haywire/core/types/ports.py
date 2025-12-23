@@ -55,7 +55,7 @@ class DataPort(DataTypeIdentity):
     element_type_cls: Optional[type[IType]] = None  # For compound types, the element IType
     
     # Connection state
-    is_connected: bool = False
+    connection_count: int = 0
     allow_multiple_connections: bool = False  # True for pooled inlets
     
     # Inlet-specific
@@ -148,7 +148,7 @@ class DataPort(DataTypeIdentity):
         # Check connection count limits
         if (
             not self.allow_multiple_connections and 
-            self.is_connected
+            self.connection_count > 0
         ):
             return (
                 False, 

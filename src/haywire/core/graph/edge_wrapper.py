@@ -496,6 +496,7 @@ class EdgeWrapper:
             'execution_count': self.state.execution_count,
             'hot_reload_count': self.state.hot_reload_count,
             'chain_changed_warning': self.state.warning,
+            'error': self.state.error,  # Include error for context menu display
         }
         
         if self._adapter_chain:

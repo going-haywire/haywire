@@ -63,7 +63,9 @@ export default {
                 dragOffset: { x: 0, y: 0 },
                 hasActuallyMoved: false,
                 dragThreshold: 5,
-                mouseDownEvent: null
+                mouseDownEvent: null,
+                finalDeltaX: 0,
+                finalDeltaY: 0
             },
             
             // Unified selection state
@@ -290,24 +292,55 @@ export default {
         },
 
         _syncConnectionAddition(data) {
-            const { connectionUUID, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid } = data;
+            const {
+                connectionUUID,
+                outputNodeId,
+                outletPinId,
+                inputNodeId,
+                inletPinId,
+                isValid = true,
+                hasWarning = false,
+                strokeColor = 'auto',
+                strokeWidth = 2,
+                strokeDasharray = '',
+                opacity = 1.0
+            } = data;
             
+            // Check if connection already exists
             if (this.connectionPaths.has(connectionUUID)) {
+                // Update existing connection visual properties
                 const connectionInfo = this.connectionPaths.get(connectionUUID);
-                if (connectionInfo.isValid === isValid) {
-                    return;
-                } else {
-                    this._removeConnection(connectionUUID);
-                }
+                
+                connectionInfo.isValid = isValid;
+                connectionInfo.hasWarning = hasWarning;
+                connectionInfo.strokeColor = strokeColor;
+                connectionInfo.strokeWidth = strokeWidth;
+                connectionInfo.strokeDasharray = strokeDasharray;
+                connectionInfo.opacity = opacity;
+                
+                // Trigger visual update
+                this._updateConnection(connectionUUID);
+                
+                console.log(
+                    `🔗 Vue updated connection: ${connectionUUID} -> ` +
+                    `valid=${isValid}, warning=${hasWarning}, color=${strokeColor}`
+                );
+                return;
             }
 
+            // Create new connection with visual properties
             const result = this._createConnection(
                 connectionUUID,
-                outputNodeId, 
-                outletPinId, 
-                inputNodeId, 
-                inletPinId, 
-                isValid
+                outputNodeId,
+                outletPinId,
+                inputNodeId,
+                inletPinId,
+                isValid,
+                hasWarning,
+                strokeColor,
+                strokeWidth,
+                strokeDasharray,
+                opacity
             );
             
             if (result.success) {
@@ -1277,7 +1310,19 @@ export default {
         // CONNECTION MANAGEMENT (keeping connection visual methods as-is)
         // =============================================================================
 
-        _createConnection(connectionUUID, outputNodeId, outletPinId, inputNodeId, inletPinId, isValid) {
+        _createConnection(
+            connectionUUID,
+            outputNodeId,
+            outletPinId,
+            inputNodeId,
+            inletPinId,
+            isValid = true,
+            hasWarning = false,
+            strokeColor = 'auto',
+            strokeWidth = 2,
+            strokeDasharray = '',
+            opacity = 1.0
+        ) {
             const outletPinUUID = this._buildOutletPinUUID(outputNodeId, outletPinId);
             const inletPinUUID = this._buildInletPinUUID(inputNodeId, inletPinId);
 
@@ -1302,21 +1347,13 @@ export default {
             const inletConnectDir = this._getPinDirectionVector(inletPin);
             
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.dataset.isValid = isValid.toString();
             path.setAttribute('id', connectionUUID);
-            path.setAttribute('data-connection-uuid', connectionUUID); 
-            if (isValid) {
-                path.setAttribute('stroke', outletColor); 
-            } else {
-                path.setAttribute('stroke', '#FF0000'); 
-                path.setAttribute('stroke-dasharray', '2');
-            }
-            path.setAttribute('stroke-width', '2');
+            path.setAttribute('data-connection-uuid', connectionUUID);
             path.setAttribute('fill', 'none');
             path.style.pointerEvents = 'stroke';
             path.style.cursor = 'pointer';
 
-            // ENHANCED: Store comprehensive connection info
+            // Store comprehensive connection info with visual properties
             const connectionInfo = {
                 path: path,
                 outletNodeId: outputNodeId,
@@ -1331,7 +1368,13 @@ export default {
                 inletPos: inletPos,
                 inletColor: inletColor,
                 inletConnectDir: inletConnectDir,
-                isValid: isValid
+                // Visual state properties
+                isValid: isValid,
+                hasWarning: hasWarning,
+                strokeColor: strokeColor,
+                strokeWidth: strokeWidth,
+                strokeDasharray: strokeDasharray,
+                opacity: opacity
             };
 
             const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1415,8 +1458,36 @@ export default {
                 hitArea.setAttribute('d', pathData);
             }
 
+            // Apply visual properties from connectionInfo
             const stroke = this._createBezierStroke(connectionUUID);
             connectionInfo.path.setAttribute('stroke', stroke);
+            connectionInfo.path.setAttribute(
+                'stroke-width',
+                connectionInfo.strokeWidth
+            );
+            connectionInfo.path.setAttribute(
+                'stroke-dasharray',
+                connectionInfo.strokeDasharray
+            );
+            connectionInfo.path.style.opacity = connectionInfo.opacity;
+            
+            // Update CSS classes for additional styling
+            connectionInfo.path.classList.toggle(
+                'connection-invalid',
+                !connectionInfo.isValid
+            );
+            connectionInfo.path.classList.toggle(
+                'connection-warning',
+                connectionInfo.hasWarning
+            );
+            
+            // Update hit area width
+            if (hitArea) {
+                hitArea.setAttribute(
+                    'stroke-width',
+                    connectionInfo.strokeWidth + 8
+                );
+            }
         },
 
         _updateConnectionsForNode(nodeId) {
@@ -1632,6 +1703,10 @@ export default {
         // Wrapper method for established connections
         _createBezierPathForConnection(connectionUUID) {
             const connectionInfo = this.connectionPaths.get(connectionUUID);
+            if (!connectionInfo) {
+                console.error(`Connection info not found for: ${connectionUUID}`);
+                return 'M 0 0';
+            }
 
             return this._createBezierPath(
                 connectionInfo.outletPos,
@@ -1645,9 +1720,15 @@ export default {
             const connectionInfo = this.connectionPaths.get(connectionUUID);
             if (!connectionInfo) {
                 console.error(`Connection not found: ${connectionUUID}`);
-                return '#ff0000';
+                return '#000000';
             }
-
+            
+            // If strokeColor is not 'auto', use the solid color directly
+            if (connectionInfo.strokeColor !== 'auto') {
+                return connectionInfo.strokeColor;
+            }
+            
+            // Otherwise create gradient (existing logic)
             const startPos = connectionInfo.outletPos;
             const endPos = connectionInfo.inletPos;
             const startColor = connectionInfo.outletColor;
@@ -1913,6 +1994,16 @@ export default {
 
 path.connection-selected {
     filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
+}
+
+/* Connection state styles - UIEdge visual feedback */
+/* Specific to SVG path elements only */
+path.connection-invalid {
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5));
+}
+
+path.connection-warning {
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
 }
 
 [data-node-id] .widget-container {

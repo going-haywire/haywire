@@ -208,16 +208,31 @@ class SyncNodePositionEvent(BaseGraphEvent):
 @graph_event(
     "syncConnectionAddition",
     category="sync",
-    description="Sync connection addition to UI"
+    description="Sync connection addition/update to UI with visual properties"
 )
 @dataclass
 class SyncConnectionAdditionEvent(BaseGraphEvent):
+    """Sync connection to UI - handles both creation and updates.
+    
+    Visual properties:
+    - strokeColor: 'auto' uses gradient, otherwise solid color
+    - strokeWidth: Line thickness
+    - strokeDasharray: Dash pattern ('' for solid)
+    - opacity: Transparency (0.0-1.0)
+    - isValid: Connection validity state
+    - hasWarning: Warning indicator
+    """
     connectionUUID: str
     outputNodeId: str
     outletPinId: str
     inputNodeId: str
     inletPinId: str
-    isValid: bool
+    isValid: bool = True
+    hasWarning: bool = False
+    strokeColor: str = 'auto'  # 'auto' = use gradient, else solid color
+    strokeWidth: int = 2
+    strokeDasharray: str = ''
+    opacity: float = 1.0
 
 @graph_event(
     "syncConnectionRemoval",

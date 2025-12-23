@@ -10,12 +10,14 @@ from typing import Dict, List, Optional, Tuple, Callable, Set
 from nicegui import ui
 
 from haywire.core.graph.base import Edge
+from haywire.core.graph.edge_wrapper import EdgeWrapper
 from haywire.core.graph.editor import Editor
 from haywire.core.node.base import BaseNode
 from haywire.core.undo.actions.graph_actions import ClipboardData
 
 from ..utils import generate_connection_uuid, parse_connection_uuid
 from ..ui_node import UINode
+from ..ui_edge import UIEdge
 from ..pan_zoom.zoom_pan_vue import ZoomPanContainer
 from .graph_canvas_vue import GraphCanvasVue
 from .popup_context_menu import PopupContextMenu
@@ -81,7 +83,8 @@ class GraphCanvasManager:
         self._setup_wrapper_callbacks()
                 
         # Visual state
-        self.node_panels: Dict[str, UINode] = {}  # node_id -> {ui_node, container, position}
+        self.node_panels: Dict[str, UINode] = {}  # node_id -> UINode
+        self.edge_ui_instances: Dict[str, UIEdge] = {}  # connection_uuid -> UIEdge
         self.connection_paths: Dict[str, Edge] = {}  # connection_uuid -> Edge object
         self.selected_nodes: Set[str] = set()
         self.selected_connections: Set[str] = set()
@@ -177,7 +180,8 @@ class GraphCanvasManager:
             self.context_menu = PopupContextMenu(
                 node_factory=self.node_factory,
                 on_emit_event=self._handle_canvas_event,
-                clipboard_checker=self._has_clipboard_content
+                clipboard_checker=self._has_clipboard_content,
+                edge_metrics_provider=self._get_edge_metrics
             )
 
     def _handle_canvas_event(self, event: BaseGraphEvent):
@@ -612,10 +616,9 @@ class GraphCanvasManager:
                 
                 # Create UINode with wrapper reference for hot reload support
                 ui_node = UINode(container, wrapper, self.node_render_factory)
-                ui_node.refresh()
                 # Register sync event emitter for hot reload updates after 
                 # the refresh() call. we need to wait until the UI is rendered.
-                ui_node._register_sync_event_emitter(self.canvas_vue.emit_sync_event)
+                ui_node.register_sync_event_emitter(self.canvas_vue.emit_sync_event)
                 
                 print(f"Rendered UINode for {node_id}")
                 
@@ -676,44 +679,48 @@ class GraphCanvasManager:
         )
         self.canvas_vue.emit_sync_event(sync_event)
         
-    def add_connection_visual(self, edge_wrapper) -> bool:
+    def add_connection_visual(self, edge_wrapper: EdgeWrapper) -> bool:
         """Add a visual connection between two nodes."""
         edge = edge_wrapper.edge
+        connection_uuid = edge_wrapper.connection_uuid
+        
         print(
             f"🔗 Creating connection visual: "
             f"{edge.output_node_id}:{edge.outlet_pin_id} -> "
             f"{edge.input_node_id}:{edge.inlet_pin_id}"
         )
-        connection_uuid = generate_connection_uuid(
-            edge.output_node_id, edge.outlet_pin_id,
-            edge.input_node_id, edge.inlet_pin_id
+        
+        # Create UIEdge instance
+        ui_edge = UIEdge(
+            wrapper=edge_wrapper,
+            sync_event_emitter=self.canvas_vue.emit_sync_event
         )
         
-        sync_event = SyncConnectionAdditionEvent(
-            connectionUUID=connection_uuid,
-            outputNodeId=edge.output_node_id,
-            outletPinId=edge.outlet_pin_id,
-            inputNodeId=edge.input_node_id,
-            inletPinId=edge.inlet_pin_id,
-            isValid=edge_wrapper.state.is_valid
-        )        
-        self.canvas_vue.emit_sync_event(sync_event)
+        # Store reference
+        self.edge_ui_instances[connection_uuid] = ui_edge
+        
 
         self.connection_paths[connection_uuid] = edge
-        print(f"🔗 Python: Created connection via direct sync event with ID: {connection_uuid}")
+        print(f"🔗 Created UIEdge and connection visual: {connection_uuid}")
         return True
    
     def remove_connection_visual(self, connection_uuid: str) -> bool:
         """Remove a connection's visual representation."""
         if connection_uuid not in self.connection_paths:
             return False
-            
-        self.connection_paths[connection_uuid]
         
+        # Cleanup UIEdge instance
+        ui_edge = self.edge_ui_instances.get(connection_uuid)
+        if ui_edge:
+            ui_edge.cleanup()
+            del self.edge_ui_instances[connection_uuid]
+        
+        # Emit removal sync event
         sync_event = SyncConnectionRemovalEvent(connectionUUID=connection_uuid)
         self.canvas_vue.emit_sync_event(sync_event)
 
         del self.connection_paths[connection_uuid]
+        print(f"🔗 Removed UIEdge and connection visual: {connection_uuid}")
         return True
    
     def clear_all_visuals(self):
@@ -742,6 +749,21 @@ class GraphCanvasManager:
     def _has_clipboard_content(self) -> bool:
         """Check if clipboard has content available for pasting."""
         return self.clipboard is not None and len(self.clipboard.nodes) > 0
+    
+    def _get_edge_metrics(self, connection_uuid: str) -> dict:
+        """
+        Get edge metrics for context menu display.
+        
+        Args:
+            connection_uuid: Connection UUID to get metrics for
+            
+        Returns:
+            Dict with edge metrics and information
+        """
+        ui_edge = self.edge_ui_instances.get(connection_uuid)
+        if ui_edge:
+            return ui_edge.get_metrics()
+        return {'connection_uuid': connection_uuid, 'error': 'UIEdge not found'}
     
     def _calculate_selection_bounds(self, node_ids: List[str]) -> Dict[str, float]:
         """Calculate bounding box of selected nodes."""
