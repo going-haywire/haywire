@@ -91,9 +91,9 @@ class AddEdgeAction(ActionBase):
         )
         self.graph = graph
         self.output_node_id = output_node_id
-        self.outlet_pin_id = outlet_pin_id
+        self.outlet_port_id = outlet_pin_id
         self.input_node_id = input_node_id
-        self.inlet_pin_id = inlet_pin_id
+        self.inlet_port_id = inlet_pin_id
         
         # Wrapper created during execute
         self.wrapper: Optional[EdgeWrapper] = None
@@ -104,9 +104,9 @@ class AddEdgeAction(ActionBase):
             # First execution: Create new wrapper via graph
             self.wrapper = self.graph.create_edge_wrapper(
                 self.output_node_id,
-                self.outlet_pin_id,
+                self.outlet_port_id,
                 self.input_node_id,
-                self.inlet_pin_id
+                self.inlet_port_id
             )
         else:
             # Redo: Re-add existing wrapper
@@ -115,8 +115,8 @@ class AddEdgeAction(ActionBase):
         if not self.wrapper:
             raise RuntimeError(
                 f"Failed to create edge wrapper for connection "
-                f"{self.output_node_id}:{self.outlet_pin_id} -> "
-                f"{self.input_node_id}:{self.inlet_pin_id}"
+                f"{self.output_node_id}:{self.outlet_port_id} -> "
+                f"{self.input_node_id}:{self.inlet_port_id}"
             )
     
     def _undo_impl(self) -> None:

@@ -251,7 +251,7 @@ class PopupContextMenu:
         with popup:
             with ui.column().classes('w-full gap-1'):
                 # Connection UUID (shortened)
-                ui.label(f"ID: {connection_id[:16]}...").classes(
+                ui.label(f"ID: {connection_id}").classes(
                     'text-xs text-gray-500 px-3 py-1'
                 )
                 
@@ -271,6 +271,20 @@ class PopupContextMenu:
                 ui.label(f"Valid: {status_icon}").classes(
                     f'text-sm {status_color} px-3 py-1'
                 )
+
+                # Warning if present
+                warning = metrics.get('chain_changed_warning')
+                if warning:
+                    ui.label(f"⚠ {warning}").classes(
+                        'text-xs text-orange-600 px-3 py-1'
+                    )
+                
+                # Error details if present (using error_render_detail)
+                error = metrics.get('error')
+                if error and isinstance(error, HaywireException):
+                    ui.separator()
+                    # Render the error detail with button to show full details
+                    error_render_detail(error)
                 
                 # Adapter Chain Info (if available)
                 if 'adapter_chain' in metrics:
@@ -295,20 +309,6 @@ class PopupContextMenu:
                             'text-xs text-gray-600 px-3 py-1'
                         )
                 
-                # Warning if present
-                warning = metrics.get('chain_changed_warning')
-                if warning:
-                    ui.separator()
-                    ui.label("⚠ Chain changed during hot reload").classes(
-                        'text-xs text-orange-600 px-3 py-1'
-                    )
-                
-                # Error details if present (using error_render_detail)
-                error = metrics.get('error')
-                if error and isinstance(error, HaywireException):
-                    ui.separator()
-                    # Render the error detail with button to show full details
-                    error_render_detail(error)
                 
                 # Actions
                 ui.separator()

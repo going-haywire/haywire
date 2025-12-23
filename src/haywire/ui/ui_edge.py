@@ -99,35 +99,18 @@ class UIEdge:
         # Perform initial sync to UI
         self._sync_to_ui()
 
-    def _on_wrapper_lifecycle_event(self, batch: List[LifeCycleEvent]):
+    def _on_wrapper_lifecycle_event(self):
         """
         Handle EdgeWrapper lifecycle events.
         
         Called by EdgeWrapper when hot reload or state changes occur.
-        
-        Events handled:
-        - CLASS_INSTANTIATED: Initial creation (already synced in __init__)
-        - CLASS_RELOADED: Adapter chain successfully rebuilt
-        - CLASS_RELOAD_FAILED: Hot reload failed
-        - CLASS_INSTANTIATION_FAILED: Creation failed
-        
-        Args:
-            batch: List of lifecycle events (usually single event)
         """
         # Process events and sync if state changed
-        for event in batch:
-            logging.debug(
-                f"🔗 UIEdge {self.wrapper.connection_uuid}: "
-                f"Wrapper event - {event.event_type.value}"
-            )
-            
-            if event.event_type == LifeCycleEventType.CLASS_RELOADED:
-                # Adapter chain was rebuilt - update visual state
-                self._sync_to_ui()
-                
-            elif event.is_warning_event():
-                # Error or warning occurred - update visual state
-                self._sync_to_ui()
+        logging.info(
+            f"UIEdge '{self.wrapper.connection_uuid}' needs update"
+        )
+        
+        self._sync_to_ui()
 
     def _calculate_visual_state(self) -> EdgeVisualState:
         """
@@ -144,7 +127,7 @@ class UIEdge:
         wrapper_state = self.wrapper.state
         
         # State: INVALID (highest priority)
-        if not wrapper_state.is_valid or wrapper_state.error:
+        if not wrapper_state.is_valid or wrapper_state.error_main:
             return EdgeVisualState(
                 connection_uuid=self.wrapper.connection_uuid,
                 stroke_color="#EF4444",  # Red
@@ -156,7 +139,7 @@ class UIEdge:
             )
         
         # State: WARNING (adapter chain changed)
-        if wrapper_state.warning:
+        if wrapper_state.warning_rebuild:
             return EdgeVisualState(
                 connection_uuid=self.wrapper.connection_uuid,
                 stroke_color="#F59E0B",  # Orange/Amber
@@ -272,7 +255,7 @@ class UIEdge:
 
     def has_warning(self) -> bool:
         """Check if connection has warnings"""
-        return bool(self.wrapper.state.warning) if self.wrapper else False
+        return bool(self.wrapper.state.warning_rebuild) if self.wrapper else False
 
     def get_connection_uuid(self) -> str:
         """Get the connection UUID"""

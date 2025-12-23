@@ -14,7 +14,7 @@ import logging
 
 from .base import PassThroughAdapter, ChainAdapter
 from .chain import AdapterChain
-from .meta import StructuralAdapter
+from .base import StructuralAdapter
 from .registry import AdapterRegistry
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
@@ -23,10 +23,7 @@ from ..registry.lifecycle_event import (
 )
 from ..types.interface import IType
 from ..types.base import CompoundType
-from ..errors import HaywireException
 
-if TYPE_CHECKING:
-    from ..graph.edge_wrapper import EdgeWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -67,14 +64,52 @@ class AdapterFactory:
         self.adapter_registry.add_batch_event_subscriber(
             self._on_adapter_lifecycle_event
         )
-    
+
+    def rebuild_chain(
+        self,
+        source_type: type[IType],
+        target_type: type[IType],
+        connection_uuid: str,
+        max_depth: int = 3
+    ) -> tuple[Optional[AdapterChain], Optional[str], bool]:
+        """
+        Rebuild adapter chain (used during hot reload).
+        
+        Returns:
+            (chain, error, chain_changed)
+            
+        The chain_changed flag indicates if adapters are different,
+        which should trigger a warning to the user.
+        """
+        # Get old adapter keys for comparison
+        old_adapter_keys = self._edge_to_adapters.get(connection_uuid, set())
+        
+        # Unregister old dependencies
+        self._unregister_edge_dependencies(connection_uuid)
+        
+        # Create new chain
+        chain, error, _ = self.create_chain(
+            source_type,
+            target_type,
+            connection_uuid,
+            max_depth
+        )
+        
+        # Check if chain changed
+        chain_changed = False
+        if chain:
+            new_adapter_keys = set(chain.get_registry_keys())
+            chain_changed = (old_adapter_keys != new_adapter_keys)
+        
+        return (chain, error, chain_changed)
+
     def create_chain(
         self,
         source_type: type[IType],
         target_type: type[IType],
         connection_uuid: str,
         max_depth: int = 3
-    ) -> tuple[Optional[AdapterChain], Optional[str]]:
+    ) -> tuple[Optional[AdapterChain], Optional[str], bool]:
         """
         Create adapter chain, handling scalar and compound types.
         
@@ -105,7 +140,7 @@ class AdapterFactory:
             max_depth: Maximum chain length (default 3)
             
         Returns:
-            (AdapterChain or None, error_message or None)
+            (AdapterChain or None, error_message or None, chain_changed: bool)
             
         Example:
             chain, error = factory.create_chain(
@@ -118,7 +153,7 @@ class AdapterFactory:
         """
         # Direct type match - no adapters needed
         if source_type == target_type:
-            return (AdapterChain([PassThroughAdapter()]), None)
+            return (AdapterChain([PassThroughAdapter()]), None, False)
         
         # Determine if types are compound
         source_is_compound = issubclass(source_type, CompoundType)
@@ -165,7 +200,7 @@ class AdapterFactory:
                 (
                     f"Cannot convert between scalar and compound types: "
                     f"{source_type.__name__} → {target_type.__name__}"
-                )
+                ), False
             )
         
         # Register dependencies ONLY at top level
@@ -175,7 +210,7 @@ class AdapterFactory:
                 chain.get_registry_keys()
             )
         
-        return (chain, error)
+        return (chain, error, False)
     
     def _create_scalar_chain(
         self,
@@ -428,45 +463,7 @@ class AdapterFactory:
                 None,
                 f"Failed to create structural chain: {e}"
             )
-    
-    def rebuild_chain(
-        self,
-        source_type: type[IType],
-        target_type: type[IType],
-        connection_uuid: str,
-        max_depth: int = 3
-    ) -> tuple[Optional[AdapterChain], Optional[str], bool]:
-        """
-        Rebuild adapter chain (used during hot reload).
         
-        Returns:
-            (chain, error, chain_changed)
-            
-        The chain_changed flag indicates if adapters are different,
-        which should trigger a warning to the user.
-        """
-        # Get old adapter keys for comparison
-        old_adapter_keys = self._edge_to_adapters.get(connection_uuid, set())
-        
-        # Unregister old dependencies
-        self._unregister_edge_dependencies(connection_uuid)
-        
-        # Create new chain
-        chain, error = self.create_chain(
-            source_type,
-            target_type,
-            connection_uuid,
-            max_depth
-        )
-        
-        # Check if chain changed
-        chain_changed = False
-        if chain:
-            new_adapter_keys = set(chain.get_registry_keys())
-            chain_changed = (old_adapter_keys != new_adapter_keys)
-        
-        return (chain, error, chain_changed)
-    
     def register_edge_callback(
         self,
         connection_uuid: str,

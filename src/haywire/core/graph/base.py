@@ -264,9 +264,9 @@ class BaseGraph:
     def create_edge_wrapper(
         self,
         output_node_id: str,
-        outlet_pin_id: str,
+        outlet_port_id: str,
         input_node_id: str,
-        inlet_pin_id: str
+        inlet_port_id: str
     ) -> Optional['EdgeWrapper']:
         """
         Create and register EdgeWrapper (graph-managed factory pattern).
@@ -281,14 +281,16 @@ class BaseGraph:
             EdgeWrapper if successful, None if failed
         """
         from .edge_wrapper import EdgeWrapper
-                
+        
+        flow_type = self.node_wrappers[output_node_id].node.outlets[outlet_port_id].flow_type
+
         # Create new wrapper
         wrapper = EdgeWrapper(
             output_node_id=output_node_id,
-            outlet_pin_id=outlet_pin_id,
+            outlet_port_id=outlet_port_id,
             input_node_id=input_node_id,
-            inlet_pin_id=inlet_pin_id,
-            adapter_factory=self.adapter_factory
+            inlet_port_id=inlet_port_id,
+            edge_type=flow_type,
         )
         
         # Initialize wrapper (returns self if successful)
@@ -319,14 +321,11 @@ class BaseGraph:
                 f"Edge wrapper with UUID '{wrapper.connection_uuid}' "
                 f"already exists in graph"
             )
-        
-        if wrapper.state.is_valid:
-            # in this case we can just increase the connection counts
-            self.node_wrappers[wrapper.output_node_id].node.outlets[wrapper.outlet_pin_id].connection_count += 1
-            self.node_wrappers[wrapper.input_node_id].node.inlets[wrapper.inlet_pin_id].connection_count += 1
-        else:
-            self._update_connections_on_adding(wrapper)
-            wrapper.state.is_valid = True
+
+        self._validate_edge_wrapper(wrapper)
+
+        # TODO: Not pretty, but need to update error states after validating connections
+        wrapper._update_error_states()
 
         # Add to collection after updating connections!
         self.edge_wrappers[wrapper.connection_uuid] = wrapper
@@ -359,7 +358,20 @@ class BaseGraph:
         wrapper.state.is_registered = False
         
         # Update connections after removal
-        self._update_connections_on_removing(wrapper)
+        if wrapper.state.is_valid:
+            self._remove_edge_on_port(
+                wrapper,
+                wrapper.input_node_id,
+                wrapper.inlet_port_id,
+                is_inlet=True
+            )
+            self._remove_edge_on_port(
+                wrapper,
+                wrapper.output_node_id,
+                wrapper.outlet_port_id,
+                is_inlet=False
+            ) 
+            wrapper.state.is_valid = False
 
         # Also remove from legacy edges dict
         if connection_uuid in self.edges:
@@ -367,85 +379,116 @@ class BaseGraph:
         
         return wrapper
 
-    def _update_connections_on_adding(self, wrapper: 'EdgeWrapper') -> None:
-        """
-        Check existing connections to ports and disable them if needed
-        """
-        # we need to look for other connections to this outlet and make them invalid if the port so requires
-        out_port = self._disable_all_connections_to_port(
-            wrapper.output_node_id,
-            wrapper.outlet_pin_id,
-            is_inlet=False
-        )
-        if out_port:
-            out_port.connection_count += 1
-
-        in_port = self._disable_all_connections_to_port(
-            wrapper.input_node_id,
-            wrapper.inlet_pin_id,
-            is_inlet=True
-        )          
-        if in_port:      
-            in_port.connection_count += 1
-
-    def _update_connections_on_removing(self, wrapper: 'EdgeWrapper') -> None:
-        """
-        Check existing connections to ports and enable one if connected
-        """
-        # we need to look for other connections to this outlet and make them invalid if the port so requires
-        out_port = self._enable_one_connections_to_port(
-            wrapper.output_node_id,
-            wrapper.outlet_pin_id,
-            is_inlet=False
-        )
-
-        in_port = self._enable_one_connections_to_port(
-            wrapper.input_node_id,
-            wrapper.inlet_pin_id,
-            is_inlet=True
-        )          
-
-    def _disable_all_connections_to_port(
+    def _validate_edge_wrapper(
             self,
+            wrapper: 'EdgeWrapper'
+        ) -> bool:
+        """
+        Validate an EdgeWrapper's connection.
+        
+        Args:
+            wrapper: EdgeWrapper to validate
+            
+        Returns:
+            True if valid, False otherwise
+        """
+        if wrapper.state.is_port_type_validated and wrapper.state.is_built:
+            self._add_edge_to_port(
+                wrapper,
+                wrapper.input_node_id,
+                wrapper.inlet_port_id,
+                is_inlet=True
+            )
+            self._add_edge_to_port(
+                wrapper,
+                wrapper.output_node_id,
+                wrapper.outlet_port_id,
+                is_inlet=False
+            ) 
+            wrapper.state.is_valid = True
+        
+    def _add_edge_to_port(
+            self,
+            wrapper: 'EdgeWrapper',
             node_id: str,
             port_id: str,
             is_inlet: bool
         ) -> DataPort:
+        """
+        Add edge to a port. 
+        Update port connection state.
+        Validate and update already existing connections.
+        """
         port = self._get_port(node_id, port_id, is_inlet=is_inlet)
-        if port and not port.allow_multiple_connections:
+        if port:
+            port._add_connection(wrapper)
+            if is_inlet:
+                wrapper.state.is_inlet_validated = True
+            else:
+                wrapper.state.is_outlet_validated = True
             edges_wrps = self._get_edge_wrappers_for_port(
                 node_id,
                 port_id,
                 is_inlet=is_inlet
             )
+            if wrapper in edges_wrps:
+                edges_wrps.remove(wrapper)
             for ew in edges_wrps:
-                ew.state.is_valid = False
-                #TODO: callback to update the UI
-            port.connection_count = 0
-
+                if not port._is_connected(ew.connection_uuid):
+                    if is_inlet:
+                        ew.state.is_inlet_validated = False
+                    else:
+                        ew.state.is_outlet_validated = False
+                    if ew.state.is_valid:
+                        ew.state.is_valid = False
+                        ew.refresh(validate=False)
         return port
 
-    def _enable_one_connections_to_port(
+    def _remove_edge_on_port(
             self,
+            wrapper: 'EdgeWrapper',
             node_id: str,
             port_id: str,
             is_inlet: bool
         ) -> DataPort:
+        """
+        Add edge to a port. 
+        Update port connection state.
+        Validate and update already existing connections.
+        """
         port = self._get_port(node_id, port_id, is_inlet=is_inlet)
-        if port and not port.allow_multiple_connections:
-            port.connection_count = 0
+        if port:
+            port._clear_all_connections()
+            if is_inlet:
+                wrapper.state.is_inlet_validated = False
+            else:
+                wrapper.state.is_outlet_validated = False
             edges_wrps = self._get_edge_wrappers_for_port(
                 node_id,
                 port_id,
                 is_inlet=is_inlet
             )
+            if wrapper in edges_wrps:
+                edges_wrps.remove(wrapper)
             for ew in edges_wrps:
-                port.connection_count = 1
-                ew.state.is_valid = True
-                #TODO: callback to update the UI
-                # if we have multiple connections, only enable the first one
-                return port
-
+                port._add_connection(ew)
+                if is_inlet:
+                    ew.state.is_inlet_validated = True
+                else:
+                    ew.state.is_outlet_validated = True
+                if ew.state.is_outlet_validated and ew.state.is_inlet_validated:
+                    ew.state.is_valid = True
+            for ew in edges_wrps:   
+                if not port._is_connected(ew.connection_uuid):
+                    if is_inlet:
+                        ew.state.is_inlet_validated = False
+                    else:
+                        ew.state.is_outlet_validated = False
+                    if ew.state.is_valid:
+                        ew.state.is_valid = False
+            for ew in edges_wrps:
+                ew.refresh(validate=False)
+ 
         return port
 
     def get_edge_wrapper(
@@ -507,14 +550,14 @@ class BaseGraph:
                 # Check if this edge connects to the specified inlet
                 if (
                     wrapper.input_node_id == node_id 
-                    and wrapper.inlet_pin_id == port_id
+                    and wrapper.inlet_port_id == port_id
                 ):
                     connected_wrappers.append(wrapper)
             else:
                 # Check if this edge connects from the specified outlet
                 if (
                     wrapper.output_node_id == node_id 
-                    and wrapper.outlet_pin_id == port_id
+                    and wrapper.outlet_port_id == port_id
                 ):
                     connected_wrappers.append(wrapper)
         

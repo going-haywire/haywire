@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from haywire.core.data.enums import FlowType
+from haywire.core.graph.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
 from haywire.core.types.base import PrimitiveType, BaseType, CompoundType
@@ -51,19 +52,30 @@ class DataPort(DataTypeIdentity):
     data: Optional[DataField] = None
     
     # Type tracking
-    type_cls: type[IType] = None  # The type class (FLOAT, ArrayType, etc.)
-    element_type_cls: Optional[type[IType]] = None  # For compound types, the element IType
+    type_cls: type[IType] = field(default=None, metadata={'serialize': False}) 
+    """The type class (FLOAT, ArrayType, etc.)"""
+    element_type_cls: Optional[type[IType]] = field(default=None, metadata={'serialize': False})
+    """ For compound types, the element IType"""
     
     # Connection state
     connection_count: int = 0
-    allow_multiple_connections: bool = False  # True for pooled inlets
+    """deprecated: Use len(_edges) instead"""
+    _edges: set[str] = field(default_factory=set)
+    """Set of EdgeWrapper UUIDs connected to this port"""
+    _edge_wrappers: dict[str, EdgeWrapper] = field(
+        default_factory=dict, 
+        repr=False, 
+        metadata={'serialize': False})
+    """Set of EdgeWrapper instances connected to this port"""
+    allow_multiple_connections: bool = False  
+    """Whether multiple connections are allowed"""
     
     # Inlet-specific
     use_mode: str = 'optional'
     is_lazy: bool = False
     
     # Outlet-specific
-    pipes: list = field(default_factory=list)
+    pipes: list = field(default_factory=list, metadata={'serialize': False})
     
     # Internal: Store default override for field creation
     _default_override: Optional[Dict[str, Any]] = field(default=None, init=False, repr=False)
@@ -120,49 +132,48 @@ class DataPort(DataTypeIdentity):
         """Check if this is an inlet"""
         return False
     
-    def validate_connection_rules(
-        self,
-        other_port: 'DataPort'
-    ) -> tuple[bool, Optional[str]]:
+    def _add_connection(self, wrapper: EdgeWrapper) -> None:
         """
-        Validate port-level connection rules (NO type checking).
-        
-        This checks only port-specific rules:
-        - Port connection: inlet <-> outlet
-        - Connection state
-        - Connection count limits
-        - DataField existence
-        
-        Type compatibility is handled separately by AdapterFactory.
-        
-        Args:
-            other_port: The other DataPort attempting to connect
-            
-        Returns:
-            (is_valid, error_message)
-        """
-        # Check if this is an inlet (sanity check)
-        if self.is_inlet() == other_port.is_inlet():
-            return (False, "Cannot connect inlet to inlet or outlet to outlet")
-        
-        # Check connection count limits
-        if (
-            not self.allow_multiple_connections and 
-            self.connection_count > 0
-        ):
-            return (
-                False, 
-                f"Port '{self.id}' already connected and does not "
-                f"allow multiple connections"
-            )
-        
-        # DataFields must exist
-        if not self.data:
-            return (False, "Missing DataField on port '{self.id}'")
+        Register a connection edge.
 
-        # All port-level checks passed
-        # Type compatibility will be checked via adapter chain creation
-        return (True, None)
+        If multiple connections are not allowed, replaces existing.
+
+        Args:
+            wrapper:  EdgeWrapper representing the connection
+        """
+        if self.allow_multiple_connections:
+            self._edges.add(wrapper.connection_uuid)
+            self._edge_wrappers[wrapper.connection_uuid] = wrapper
+        else:
+            self._edges = {wrapper.connection_uuid}
+            self._edge_wrappers = {wrapper.connection_uuid: wrapper}
+    
+    def _is_connected(self, wrapper_uuid: str) -> bool:
+        """
+        Check if connected to given edge.
+        Args:
+            wrapper_uuid: UUID of EdgeWrapper to check
+        Returns:
+            True if connected, False otherwise
+        """
+        return wrapper_uuid in self._edges
+    
+    def _clear_connection(self, wrapper_uuid: str) -> None:
+        """
+        Remove a connection edge.
+
+        Args:
+            wrapper_uuid: UUID of EdgeWrapper representing the connection
+        """
+        self._edges.discard(wrapper_uuid)
+        self._edge_wrappers.pop(wrapper_uuid, None)
+
+    def _clear_all_connections(self) -> None:
+        """
+        Clear all connection edges.
+        """
+        self._edges.clear()
+        self._edge_wrappers.clear()
     
     def to_dict(self) -> dict:
         """
@@ -240,3 +251,7 @@ class PortOutlet(DataPort):
     """Outlet port - can send data to connections"""
     
    # __post_init__ inherited from DataPort
+    def __post_init__(self):
+        super().__post_init__()
+        if self.flow_type == FlowType.DATA:
+            self.allow_multiple_connections = True
