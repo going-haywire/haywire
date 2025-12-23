@@ -57,6 +57,21 @@ class IAction(ABC):
         """
         return None
     
+    def cleanup(self) -> None:
+        """
+        Clean up resources held by this action.
+        
+        This method is called when the action is being permanently removed
+        from the history stack (e.g., due to history limits or clearing).
+        Actions that hold references to removed nodes/edges should perform
+        final cleanup here to prevent resource leaks.
+        
+        This is separate from undo() because resources must be preserved
+        for potential redo operations. Only when the action is truly
+        discarded should cleanup() be called.
+        """
+        pass
+    
     @property
     def description(self) -> str:
         """

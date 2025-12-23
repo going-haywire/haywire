@@ -129,6 +129,16 @@ class ActionBase(IAction, ABC):
         """
         return None
     
+    def cleanup(self) -> None:
+        """
+        Clean up resources held by this action.
+        
+        Default implementation does nothing. Subclasses that hold
+        references to removed graph elements should override this
+        to perform proper cleanup when the action is discarded.
+        """
+        pass
+    
     def set_metadata(self, key: str, value: Any) -> None:
         """
         Set metadata for the action.
@@ -249,3 +259,8 @@ class CompositeAction(ActionBase):
     def can_merge(self, other: IAction) -> bool:
         """Composite actions generally don't merge."""
         return False
+    
+    def cleanup(self) -> None:
+        """Clean up all sub-actions."""
+        for action in self.actions:
+            action.cleanup()

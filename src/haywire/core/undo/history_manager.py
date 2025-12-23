@@ -275,6 +275,14 @@ class HistoryManager(IHistoryManager):
     
     def clear(self) -> None:
         """Clear all history."""
+        # Cleanup all items in history
+        for item in self.history:
+            self._cleanup_item(item)
+        
+        # Cleanup pending actions
+        for action in self._pending_actions:
+            action.cleanup()
+        
         self.history.clear()
         self.current_index = -1
         self._pending_actions.clear()
@@ -368,6 +376,11 @@ class HistoryManager(IHistoryManager):
     def _clear_redo_history(self) -> None:
         """Clear any redo history when a new action is added."""
         if self.current_index + 1 < len(self.history):
+            # Cleanup all discarded items
+            for item in self.history[self.current_index + 1:]:
+                self._cleanup_item(item)
+            
+            # Remove from history
             self.history = self.history[:self.current_index + 1]
     
     def _get_current_undoable_item(self) -> Optional[Union[IAction, ActionGroup]]:
@@ -431,14 +444,46 @@ class HistoryManager(IHistoryManager):
         # Remove old items if we exceed the action limit
         if len(self.history) > self.config.max_actions:
             items_to_remove = len(self.history) - self.config.max_actions
+            
+            # Cleanup items that will be removed
+            for item in self.history[:items_to_remove]:
+                self._cleanup_item(item)
+            
             self.history = self.history[items_to_remove:]
-            self.current_index = max(-1, self.current_index - items_to_remove)
+            self.current_index = max(
+                -1, 
+                self.current_index - items_to_remove
+            )
     
     def _show_notification(self, message: str) -> None:
         """Show a notification message (placeholder for UI integration)."""
         # This would integrate with the UI notification system
         if self.config.enable_debug_logging:
             self.logger.info(f"Notification: {message}")
+    
+    def _cleanup_item(self, item: Union[IAction, ActionGroup, Fence]) -> None:
+        """
+        Clean up a history item.
+        
+        Calls cleanup() on actions and recursively on action groups.
+        Fences have no cleanup needed.
+        
+        Args:
+            item: The history item to cleanup
+        """
+        if isinstance(item, Fence):
+            # Fences have no cleanup
+            return
+        elif isinstance(item, ActionGroup):
+            # Recursively cleanup all actions in the group
+            for action in item.actions:
+                if isinstance(action, ActionGroup):
+                    self._cleanup_item(action)
+                else:
+                    action.cleanup()
+        else:
+            # Regular action
+            item.cleanup()
     
     # Debug and monitoring methods
     

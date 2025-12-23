@@ -178,12 +178,11 @@ class BaseGraph:
         return wrapper
     
     def remove_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper | None:
-        """Remove a node wrapper from the graph
-        
-        Also removes all edges connected to this node and cleans up the wrapper.
+        """Remove a node wrapper from the graph        
+        Also removes all edges connected to this node.
         
         Args:
-            node_id: ID of the node to remove
+            wrapper: The node wrapper to remove
             
         Returns:
             The removed wrapper, or None if not found
@@ -201,9 +200,8 @@ class BaseGraph:
         for connection_uuid in edges_to_remove:
             self.edges.pop(connection_uuid)
         
-        # Remove and cleanup wrapper
+        # Remove wrapper (but don't cleanup - undo system handles that)
         wrapper = self.node_wrappers.pop(node_id)
-        wrapper.cleanup()
         return wrapper
     
     def get_node_wrapper(self, node_id: str) -> NodeWrapper | None:
@@ -346,7 +344,7 @@ class BaseGraph:
     ) -> Optional['EdgeWrapper']:
         """
         Remove EdgeWrapper from graph.
-        
+       
         Args:
             connection_uuid: Connection UUID to remove
             
@@ -357,11 +355,10 @@ class BaseGraph:
             return None
                 
         wrapper = self.edge_wrappers[connection_uuid]
-        wrapper.cleanup()
         del self.edge_wrappers[connection_uuid]
         wrapper.state.is_registered = False
         
-        # Update connections after removal!!
+        # Update connections after removal
         self._update_connections_on_removing(wrapper)
 
         # Also remove from legacy edges dict
