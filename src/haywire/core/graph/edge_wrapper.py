@@ -178,7 +178,7 @@ class EdgeWrapper:
 
         self._build_adapter_chain(False)
 
-        self._notify_lifecycle_event()
+        self.refresh_state()
 
         return self
 
@@ -375,22 +375,6 @@ class EdgeWrapper:
         finally:
             self.state.is_executing = False
     
-    def refresh(self, validate: bool = True):
-        """
-        Refresh edge state. 
-
-        Called by the graph when other edges are removed or added and
-        may affect this edge's validity.
-
-        Args:
-            validate: Whether to re-validate the connection
-        """
-        if validate:
-            self._validate_port_types(self._graph)
-
-        # Notify subscribers
-        self._notify_lifecycle_event()
-
     def _on_adapter_lifecycle_event(self, batch: List[LifeCycleEvent]):
         """
         Handle adapter hot reload events.
@@ -419,45 +403,29 @@ class EdgeWrapper:
                 self.state.is_built = False
                 self.state.warning_rebuild = ""
 
-                self._notify_lifecycle_event()
+                self.refresh_state()
                 return  # abort on first warning/error           
 
         self._validate_port_types(self._graph)
 
         self._build_adapter_chain(True)
 
-        if self.state.is_built and self.state.is_port_type_validated:
-            self._graph._validate_edge_wrapper(self)
+        self._graph.validate_edge_wrapper(self)
             
-        # Notify subscribers
-        self._notify_lifecycle_event()
-    
-    def add_lifecycle_subscriber(self, callback: LiveCycleBatchCallback):
-        """Add subscriber for lifecycle events (for UIEdge)"""
-        if callback not in self._lifecycle_subscribers:
-            self._lifecycle_subscribers.append(callback)
-    
-    def remove_lifecycle_subscriber(
-            self, 
-            callback: LiveCycleBatchCallback
-        ):
-        """Remove lifecycle subscriber"""
-        if callback in self._lifecycle_subscribers:
-            self._lifecycle_subscribers.remove(callback)
-    
-    def _notify_lifecycle_event(self):
-        """Notify all subscribers of lifecycle event"""
-        
-        self._update_error_states()
+        self.refresh_state()
 
-        for callback in self._lifecycle_subscribers:
-            try:
-                callback()
-            except Exception as e:
-                logger.error(f"Lifecycle subscriber error: {e}")
-    
-
-    def _update_error_states(self):
+    def refresh_state(self, validate: bool = True):
+        """
+        Refresh edge state and notify lifecycle subscribers.
+        """
+        if (self.state.is_port_type_validated
+            and self.state.is_built 
+            and self.state.is_inlet_validated 
+            and self.state.is_outlet_validated):
+            self.state.is_valid = True
+        else:
+            self.state.is_valid = False
+            
         # Update main error state
         if self.state.error_port_type:
             self.state.error_main = self.state.error_port_type
@@ -479,6 +447,32 @@ class EdgeWrapper:
             self.state.warning_main = self.state.warning_rebuild
         else:
             self.state.warning_main = ""
+
+        # Notify subscribers
+        self._notify_lifecycle_event()
+
+    def _notify_lifecycle_event(self):
+        """Notify all subscribers of lifecycle event"""
+        for callback in self._lifecycle_subscribers:
+            try:
+                callback()
+            except Exception as e:
+                logger.error(f"Lifecycle subscriber error: {e}")
+
+
+    def add_lifecycle_subscriber(self, callback: LiveCycleBatchCallback):
+        """Add subscriber for lifecycle events (for UIEdge)"""
+        if callback not in self._lifecycle_subscribers:
+            self._lifecycle_subscribers.append(callback)
+    
+    def remove_lifecycle_subscriber(
+            self, 
+            callback: LiveCycleBatchCallback
+        ):
+        """Remove lifecycle subscriber"""
+        if callback in self._lifecycle_subscribers:
+            self._lifecycle_subscribers.remove(callback)
+        
 
 
     def validate(self) -> List[str]:

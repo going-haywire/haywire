@@ -322,14 +322,15 @@ class BaseGraph:
                 f"already exists in graph"
             )
 
-        self._validate_edge_wrapper(wrapper)
-
-        # TODO: Not pretty, but need to update error states after validating connections
-        wrapper._update_error_states()
-
         # Add to collection after updating connections!
         self.edge_wrappers[wrapper.connection_uuid] = wrapper
         wrapper.state.is_registered = True
+
+        # this needs to be done after registration
+        self.validate_edge_wrapper(wrapper)
+
+        # Need to update states after validating
+        wrapper.refresh_state()
 
         # Also add to legacy edges dict for backward compatibility
         if wrapper.edge:
@@ -357,21 +358,11 @@ class BaseGraph:
         del self.edge_wrappers[connection_uuid]
         wrapper.state.is_registered = False
         
-        # Update connections after removal
-        if wrapper.state.is_valid:
-            self._remove_edge_on_port(
-                wrapper,
-                wrapper.input_node_id,
-                wrapper.inlet_port_id,
-                is_inlet=True
-            )
-            self._remove_edge_on_port(
-                wrapper,
-                wrapper.output_node_id,
-                wrapper.outlet_port_id,
-                is_inlet=False
-            ) 
-            wrapper.state.is_valid = False
+        # needs to be done after deregistration
+        self.validate_edge_wrapper(wrapper)
+
+        # for safety, mark as invalid
+        wrapper.state.is_valid = False
 
         # Also remove from legacy edges dict
         if connection_uuid in self.edges:
@@ -379,7 +370,7 @@ class BaseGraph:
         
         return wrapper
 
-    def _validate_edge_wrapper(
+    def validate_edge_wrapper(
             self,
             wrapper: 'EdgeWrapper'
         ) -> bool:
@@ -392,7 +383,9 @@ class BaseGraph:
         Returns:
             True if valid, False otherwise
         """
-        if wrapper.state.is_port_type_validated and wrapper.state.is_built:
+        if (wrapper.state.is_registered and 
+            wrapper.state.is_port_type_validated and 
+            wrapper.state.is_built):
             self._add_edge_to_port(
                 wrapper,
                 wrapper.input_node_id,
@@ -405,7 +398,20 @@ class BaseGraph:
                 wrapper.outlet_port_id,
                 is_inlet=False
             ) 
-            wrapper.state.is_valid = True
+        else:
+            self._remove_edge_on_port(
+                wrapper,
+                wrapper.input_node_id,
+                wrapper.inlet_port_id,
+                is_inlet=True
+            )
+            self._remove_edge_on_port(
+                wrapper,
+                wrapper.output_node_id,
+                wrapper.outlet_port_id,
+                is_inlet=False
+            ) 
+
         
     def _add_edge_to_port(
             self,
@@ -440,8 +446,7 @@ class BaseGraph:
                     else:
                         ew.state.is_outlet_validated = False
                     if ew.state.is_valid:
-                        ew.state.is_valid = False
-                        ew.refresh(validate=False)
+                        ew.refresh_state()
         return port
 
     def _remove_edge_on_port(
@@ -476,18 +481,14 @@ class BaseGraph:
                     ew.state.is_inlet_validated = True
                 else:
                     ew.state.is_outlet_validated = True
-                if ew.state.is_outlet_validated and ew.state.is_inlet_validated:
-                    ew.state.is_valid = True
             for ew in edges_wrps:   
                 if not port._is_connected(ew.connection_uuid):
                     if is_inlet:
                         ew.state.is_inlet_validated = False
                     else:
                         ew.state.is_outlet_validated = False
-                    if ew.state.is_valid:
-                        ew.state.is_valid = False
             for ew in edges_wrps:
-                ew.refresh(validate=False)
+                ew.refresh_state()
  
         return port
 
