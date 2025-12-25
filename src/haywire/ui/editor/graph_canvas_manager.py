@@ -517,8 +517,8 @@ class GraphCanvasManager:
             
             # Add missing nodes
             for node_id in graph_node_ids - visual_node_ids:
-                wrapper = self.graph.node_wrappers[node_id]
-                node = wrapper.node  # Get node instance from wrapper
+                node_wrapper = self.graph.node_wrappers[node_id]
+                node = node_wrapper.node  # Get node instance from wrapper
                 position = (
                     node.ui_state.posX,
                     node.ui_state.posY
@@ -531,8 +531,8 @@ class GraphCanvasManager:
                 
             # Update positions of existing nodes
             for node_id in graph_node_ids.intersection(visual_node_ids):
-                wrapper = self.graph.node_wrappers[node_id]
-                node = wrapper.node  # Get node instance from wrapper
+                node_wrapper = self.graph.node_wrappers[node_id]
+                node = node_wrapper.node  # Get node instance from wrapper
                 new_position = (
                     node.ui_state.posX,
                     node.ui_state.posY

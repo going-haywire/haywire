@@ -177,15 +177,15 @@ class UIEdge:
         self._current_visual_state = new_state
         
         # Get node/pin IDs from wrapper
-        edge = self.wrapper.edge
+        edge = self.wrapper
         
         # Emit sync event to Vue (handles both add and update)
         event = SyncConnectionAdditionEvent(
             connectionUUID=new_state.connection_uuid,
             outputNodeId=edge.output_node_id,
-            outletPinId=edge.outlet_pin_id,
+            outletPinId=edge.outlet_port_id,
             inputNodeId=edge.input_node_id,
-            inletPinId=edge.inlet_pin_id,
+            inletPinId=edge.inlet_port_id,
             isValid=new_state.is_valid,
             hasWarning=new_state.has_warning,
             strokeColor=new_state.stroke_color,

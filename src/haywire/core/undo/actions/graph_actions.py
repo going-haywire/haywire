@@ -39,6 +39,8 @@ class AddNodeAction(ActionBase):
         self.position = position
         self.wrapper = None
 
+        self.undo_wrapper = None
+
     def _execute_impl(self) -> None:
         """Add the node to the graph."""
         if self.wrapper is None:
@@ -51,6 +53,8 @@ class AddNodeAction(ActionBase):
             # Redo: Re-add existing wrapper
             self.wrapper = self.graph.add_node_wrapper(self.wrapper)
         
+        self.undo_wrapper = None
+
         if not self.wrapper:
             raise RuntimeError(
                 f"Failed to create node wrapper '{self.registry_key}'"
@@ -59,9 +63,19 @@ class AddNodeAction(ActionBase):
     def _undo_impl(self) -> None:
         """Remove the node from the graph."""
         if self.wrapper:
-            self.graph.remove_node_wrapper(self.wrapper)
-            self.wrapper.cleanup()
-    
+            self.undo_wrapper = self.graph.remove_node_wrapper(self.wrapper)
+
+    def cleanup(self) -> None:
+        """
+        Clean up all undone elements when action is discarded.
+        
+        This is called when the action is removed from history and
+        can no longer be undone. We now permanently cleanup all
+        undone node wrappers.
+        """
+        if self.undo_wrapper:
+            self.undo_wrapper.cleanup()
+
 class AddEdgeAction(ActionBase):
     """Action for adding an edge to the graph using EdgeWrapper."""
     
@@ -97,6 +111,8 @@ class AddEdgeAction(ActionBase):
         
         # Wrapper created during execute
         self.wrapper: Optional[EdgeWrapper] = None
+
+        self.undo_wrapper = None
     
     def _execute_impl(self) -> None:
         """Add the edge to the graph."""
@@ -112,6 +128,8 @@ class AddEdgeAction(ActionBase):
             # Redo: Re-add existing wrapper
             self.wrapper = self.graph.add_edge_wrapper(self.wrapper)
         
+        self.undo_wrapper = None
+
         if not self.wrapper:
             raise RuntimeError(
                 f"Failed to create edge wrapper for connection "
@@ -122,8 +140,19 @@ class AddEdgeAction(ActionBase):
     def _undo_impl(self) -> None:
         """Remove the edge from the graph."""
         if self.wrapper:
-            self.graph.remove_edge_wrapper(self.wrapper.connection_uuid)
-            self.wrapper.cleanup()
+            self.undo_wrapper = self.graph.remove_edge_wrapper(self.wrapper.connection_uuid)
+
+    def cleanup(self) -> None:
+        """
+        Clean up all undone elements when action is discarded.
+        
+        This is called when the action is removed from history and
+        can no longer be undone. We now permanently cleanup all
+        undone edge wrappers.
+        """
+        if self.undo_wrapper:
+            self.undo_wrapper.cleanup()
+
 
 
 class MoveNodesAction(ActionBase):
@@ -247,10 +276,10 @@ class RemoveElementsAction(ActionBase):
         self.connections = connections
         
         # Store removed elements for restoration
-        self.removed_wrappers: Dict[str, NodeWrapper] = {}
+        self.removed_node_wrappers: Dict[str, NodeWrapper] = {}
         self.removed_edge_wrappers: Dict[str, EdgeWrapper] = {}
         # node_id -> edge wrappers that were connected to it
-        self.node_connected_edge_wrappers: Dict[str, List[EdgeWrapper]] = {}
+        self.node_connected_edge_wrappers: Dict[str, EdgeWrapper] = {}
     
     def _execute_impl(self) -> None:
         """Remove all specified elements and store them for undo."""
@@ -262,74 +291,41 @@ class RemoveElementsAction(ActionBase):
                 self.graph.remove_edge_wrapper(connection_uuid)
         
         # Then, store and remove nodes
-        # (which will also remove any remaining connected edges)
         for node_id in self.nodes:
-            wrapper = self.graph.get_node_wrapper(node_id)
-            if wrapper:
-                self.removed_wrappers[node_id] = wrapper
+            node_wrapper = self.graph.get_node_wrapper(node_id)
+            if node_wrapper:
+                self.removed_node_wrappers[node_id] = node_wrapper
                 
-                # Store all edge wrappers connected to this node
-                connected_edge_wrappers = []
-                for edge_wrapper in list(
-                    self.graph.edge_wrappers.values()
-                ):
-                    if (
-                        edge_wrapper.input_node_id == node_id or 
-                        edge_wrapper.output_node_id == node_id
-                    ):
-                        connected_edge_wrappers.append(edge_wrapper)
-                
-                self.node_connected_edge_wrappers[node_id] = (
-                    connected_edge_wrappers
-                )
+                all_edges = self.graph._get_all_connected_edges(node_id)
+
+                for edge in all_edges:
+                    self.node_connected_edge_wrappers[edge.connection_uuid] = edge
+                    # Remove the connected edge wrapper
+                    self.graph.remove_edge_wrapper(edge.connection_uuid)
                 
                 # Remove the node wrapper
-                # (this will also remove connected edges)
-                self.graph.remove_node_wrapper(wrapper)
+                self.graph.remove_node_wrapper(node_wrapper)
     
     def _undo_impl(self) -> None:
         """Restore all removed elements."""
         # First, restore node wrappers
-        for node_id, wrapper in self.removed_wrappers.items():
-            self.graph.add_node_wrapper(wrapper)
-            
-            # Restore edge wrappers that were connected to this node
-            for edge_wrapper in self.node_connected_edge_wrappers.get(
-                node_id, []
-            ):
-                # Only restore if both nodes still exist
-                input_wrapper = self.graph.get_node_wrapper(
-                    edge_wrapper.input_node_id
-                )
-                output_wrapper = self.graph.get_node_wrapper(
-                    edge_wrapper.output_node_id
-                )
-                
-                if input_wrapper and output_wrapper:
-                    # Re-add existing wrapper
-                    self.graph.add_edge_wrapper(edge_wrapper)
+        for node_id, node_wrapper in self.removed_node_wrappers.items():
+            self.graph.add_node_wrapper(node_wrapper)
+
+        # then, restore all edges connected to restored nodes
+        for connection_uuid, edge_wrapper in self.node_connected_edge_wrappers.items():
+            # Re-add existing wrapper
+            self.graph.add_edge_wrapper(edge_wrapper)
                 
         # Then, restore standalone connections
         # (that weren't connected to removed nodes)
-        for connection_uuid, edge_wrapper in (
-            self.removed_edge_wrappers.items()
-        ):
-            # Only restore if both nodes still exist
-            input_wrapper = self.graph.get_node_wrapper(
-                edge_wrapper.input_node_id
-            )
-            output_wrapper = self.graph.get_node_wrapper(
-                edge_wrapper.output_node_id
-            )
-            
-            if input_wrapper and output_wrapper:
-                # Re-add existing wrapper
-                self.graph.add_edge_wrapper(edge_wrapper)
+        for connection_uuid, edge_wrapper in self.removed_edge_wrappers.items():
+            self.graph.add_edge_wrapper(edge_wrapper)
     
         # Clear away store after restoration otherwise
         # they are cleaned-up when the action is discarded
         self.removed_edge_wrappers.clear()
-        self.removed_wrappers.clear()
+        self.removed_node_wrappers.clear()
         self.node_connected_edge_wrappers.clear()
 
     def cleanup(self) -> None:
@@ -338,23 +334,22 @@ class RemoveElementsAction(ActionBase):
         
         This is called when the action is removed from history and
         can no longer be undone. We now permanently cleanup all
-        stored node and edge wrappers.
+        removed node and edge wrappers.
         """
         # Cleanup all removed edge wrappers
         for edge_wrapper in self.removed_edge_wrappers.values():
             edge_wrapper.cleanup()
         
         # Cleanup all edge wrappers connected to removed nodes
-        for edge_wrappers in self.node_connected_edge_wrappers.values():
-            for edge_wrapper in edge_wrappers:
-                edge_wrapper.cleanup()
+        for edge_wrapper in self.node_connected_edge_wrappers.values():
+            edge_wrapper.cleanup()
         
         # Cleanup all removed node wrappers
-        for wrapper in self.removed_wrappers.values():
+        for wrapper in self.removed_node_wrappers.values():
             wrapper.cleanup()
         
         # Clear the storage dictionaries
-        self.removed_wrappers.clear()
+        self.removed_node_wrappers.clear()
         self.removed_edge_wrappers.clear()
         self.node_connected_edge_wrappers.clear()
 

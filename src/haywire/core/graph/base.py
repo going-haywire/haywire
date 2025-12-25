@@ -247,7 +247,31 @@ class BaseGraph:
         """
         return list(self.node_wrappers.values())
 
-  
+    def _get_port(
+            self,
+            node_id: str,
+            port_id: str,
+            is_inlet: bool
+        ) -> DataPort:  
+        """Get inlet or outlet port from a node."""
+        if is_inlet:          
+            return self.node_wrappers[node_id].node.inlets[port_id]
+        else:
+            return self.node_wrappers[node_id].node.outlets[port_id]
+
+    def _get_ports(
+            self,
+            node_id: str
+        ) -> List[DataPort]:  
+        """Get all current inlet and outlet ports from a node."""
+        ports = []
+        for port_id in self.node_wrappers[node_id].node.inlets:
+            ports.append(self.node_wrappers[node_id].node.inlets[port_id])
+        for port_id in self.node_wrappers[node_id].node.outlets:
+            ports.append(self.node_wrappers[node_id].node.outlets[port_id])
+        
+        return ports
+
     # ========================================================================
     # EdgeWrapper Management
     # ========================================================================
@@ -500,18 +524,6 @@ class BaseGraph:
         """
         return list(self.edge_wrappers.values())
     
-    def _get_port(
-            self,
-            node_id: str,
-            port_id: str,
-            is_inlet: bool
-        ) -> DataPort:  
-        """Get inlet or outlet port from a node."""
-        if is_inlet:          
-            return self.node_wrappers[node_id].node.inlets[port_id]
-        else:
-            return self.node_wrappers[node_id].node.outlets[port_id]
-
     def _get_edge_wrappers_for_port(
         self,
         node_id: str,
@@ -549,6 +561,70 @@ class BaseGraph:
         
         return connected_wrappers
 
+    def _get_edge_wrappers_for_node(
+        self,
+        node_id: str
+    ) -> List['EdgeWrapper']:
+        """
+        Get all EdgeWrappers connected to a specific inlet or outlet.
+        
+        Args:
+            node_id: ID of the node containing the port
+            port_id: ID of the inlet or outlet
+            is_inlet: True if port is an inlet, False if outlet
+            
+        Returns:
+            List of EdgeWrappers connected to the specified port
+        """
+        connected_wrappers = []
+        
+        for wrapper in self.edge_wrappers.values():
+                # Check if this edge connects to the specified inlet
+                if (
+                    wrapper.input_node_id == node_id 
+                    or wrapper.outlet_port_id == node_id
+                ):
+                    connected_wrappers.append(wrapper)
+        
+        return connected_wrappers
+
+    def _get_all_connected_edges(
+            self,
+            node_id: str
+        ) -> List[EdgeWrapper]:  
+        """
+        Get **all** edges from and to a node.
+        These are the valid and invalid edges connected to the node.
+        Args:
+            node_id: ID of the node
+        Returns:    
+            List of valid EdgeWrappers connected to the node
+        """
+        connected_edges = []
+        for edges in self.edge_wrappers.values():
+            if edges.input_node_id == node_id or edges.output_node_id == node_id:
+                connected_edges.append(edges)
+        return connected_edges
+
+    def _get_valid_connected_edges(
+            self,
+            node_id: str
+        ) -> List[EdgeWrapper]:  
+        """
+        Get all **valid** edges from and to a node.
+        These are not necessaray all the edges connected to the node,
+        but only the valid ones.
+        Args:
+            node_id: ID of the node
+        Returns:    
+            List of valid EdgeWrappers connected to the node
+        """
+        connected_edges = []
+        for port in self._get_ports(node_id):
+            for edge_uuid in port._get_connections_uuid():
+                connected_edges.append(self.edge_wrappers[edge_uuid])
+        return connected_edges
+ 
     # ========================================================================
     # Variable Management
     # ========================================================================

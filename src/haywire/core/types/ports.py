@@ -147,7 +147,16 @@ class DataPort(DataTypeIdentity):
         else:
             self._edges = {wrapper.connection_uuid}
             self._edge_wrappers = {wrapper.connection_uuid: wrapper}
-    
+
+    def _get_connections_uuid(self) -> list[str]:
+        """
+        Get list of connected edge UUIDs.
+
+        Returns:
+            List of EdgeWrapper UUIDs connected to this port
+        """
+        return list(self._edges)
+
     def _is_connected(self, wrapper_uuid: str) -> bool:
         """
         Check if connected to given edge.
