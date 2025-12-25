@@ -93,7 +93,6 @@ class BaseGraph:
         
         # Core containers - NOW USING WRAPPERS
         self.node_wrappers: dict[str, NodeWrapper] = {}
-        self.edges: dict[str, Edge] = {}  # Legacy - kept for compatibility
         self.edge_wrappers: dict[str, 'EdgeWrapper'] = {}  # NEW
         self.variables: dict[str, Variable] = {}
         
@@ -129,7 +128,7 @@ class BaseGraph:
         position: Tuple[float, float] = (100, 100)
     ) -> Optional[NodeWrapper]:
         """
-        Create and register NodeWrapper (graph-managed factory pattern).
+        Create and adds NodeWrapper (graph-managed factory pattern).
         
         Args:
             registry_key: Node type to create
@@ -191,15 +190,7 @@ class BaseGraph:
         
         if node_id not in self.node_wrappers:
             return None
-        
-        # Remove all edges connected to this node
-        edges_to_remove = [
-            connection_uuid for connection_uuid, edge in self.edges.items()
-            if edge.input_node_id == node_id or edge.output_node_id == node_id
-        ]
-        for connection_uuid in edges_to_remove:
-            self.edges.pop(connection_uuid)
-        
+                
         # Remove wrapper (but don't cleanup - undo system handles that)
         wrapper = self.node_wrappers.pop(node_id)
         return wrapper
@@ -258,7 +249,7 @@ class BaseGraph:
 
   
     # ========================================================================
-    # EdgeWrapper Management (NEW)
+    # EdgeWrapper Management
     # ========================================================================
     
     def create_edge_wrapper(
@@ -269,7 +260,7 @@ class BaseGraph:
         inlet_port_id: str
     ) -> Optional['EdgeWrapper']:
         """
-        Create and register EdgeWrapper (graph-managed factory pattern).
+        Create and adds EdgeWrapper (graph-managed factory pattern).
         
         Args:
             output_node_id: Source node ID
@@ -331,11 +322,7 @@ class BaseGraph:
 
         # Need to update states after validating
         wrapper.refresh_state()
-
-        # Also add to legacy edges dict for backward compatibility
-        if wrapper.edge:
-            self.edges[wrapper.connection_uuid] = wrapper.edge
-        
+       
         return wrapper
 
     def remove_edge_wrapper(
@@ -363,11 +350,7 @@ class BaseGraph:
 
         # for safety, mark as invalid
         wrapper.state.is_valid = False
-
-        # Also remove from legacy edges dict
-        if connection_uuid in self.edges:
-            del self.edges[connection_uuid]
-        
+ 
         return wrapper
 
     def validate_edge_wrapper(
@@ -376,6 +359,7 @@ class BaseGraph:
         ) -> bool:
         """
         Validate an EdgeWrapper's connection.
+        This causes a refresh of all the connections on the ports this edge connects to.
         
         Args:
             wrapper: EdgeWrapper to validate
@@ -517,11 +501,12 @@ class BaseGraph:
         return list(self.edge_wrappers.values())
     
     def _get_port(
-        self,
-        node_id: str,
-        port_id: str,
-        is_inlet: bool
-    ) -> DataPort:  
+            self,
+            node_id: str,
+            port_id: str,
+            is_inlet: bool
+        ) -> DataPort:  
+        """Get inlet or outlet port from a node."""
         if is_inlet:          
             return self.node_wrappers[node_id].node.inlets[port_id]
         else:
@@ -653,7 +638,7 @@ class BaseGraph:
         errors = []
         
         # Check for orphaned edges (edges referencing non-existent nodes)
-        for connection_uuid, edge in self.edges.items():
+        for connection_uuid, edge in self.node_wrappers.items():
             if edge.output_node_id not in self.node_wrappers:
                 errors.append(
                     f"Edge {connection_uuid} references non-existent "
@@ -689,7 +674,7 @@ class BaseGraph:
             component.append(node_id)
             
             # Follow all edges from this node
-            for edge in self.edges.values():
+            for edge in self.node_wrappers.values():
                 if edge.output_node_id == node_id:
                     dfs(edge.input_node_id, component)
                 elif edge.input_node_id == node_id:
@@ -778,7 +763,6 @@ class BaseGraph:
             wrapper.cleanup()
         
         self.node_wrappers.clear()
-        self.edges.clear()
         self.variables.clear()
         self.selected_nodes.clear()
         self.selected_connections.clear()
@@ -806,8 +790,8 @@ class BaseGraph:
                 for node_id, wrapper in self.node_wrappers.items()
             },
             "edges": {
-                connection_uuid: edge.to_dict() 
-                for connection_uuid, edge in self.edges.items()
+                connection_uuid: self.node_wrappers.to_dict() 
+                for connection_uuid, edge in self.node_wrappers.items()
             },
             "variables": {name: var.to_dict() for name, var in self.variables.items()}
         }
@@ -869,17 +853,14 @@ class BaseGraph:
             # Load edges
             if "edges" in data:
                 for connection_uuid, edge_data in data["edges"].items():
-                    edge = Edge(
-                        edge_type=FlowType(edge_data["edge_type"]),
+                    edge = EdgeWrapper(
                         output_node_id=edge_data["output_node_id"],
-                        outlet_pin_id=edge_data["outlet_pin_id"],
+                        outlet_port_id=edge_data["outlet_port_id"],
                         input_node_id=edge_data["input_node_id"],
-                        inlet_pin_id=edge_data["inlet_pin_id"],
-                        outlet_pin_data_type=edge_data.get("outlet_pin_data_type"),
-                        inlet_pin_data_type=edge_data.get("inlet_pin_data_type"),
-                        is_valid=edge_data.get("is_valid", True)
+                        inlet_port_id=edge_data["inlet_port_id"],
+                        edge_type=FlowType(edge_data["edge_type"]),
                     )
-                    self.edges[connection_uuid] = edge
+                    self.add_edge_wrapper(edge)
             
             return True
             
@@ -890,7 +871,7 @@ class BaseGraph:
     def __str__(self) -> str:
         """String representation of the graph"""
         return (f"HaywireGraph(id='{self.graph_id}', name='{self.name}', "
-                f"nodes={len(self.node_wrappers)}, edges={len(self.edges)}, "
+                f"nodes={len(self.node_wrappers)}, edges={len(self.edge_wrappers)}, "
                 f"variables={len(self.variables)})")
     
     def __repr__(self) -> str:

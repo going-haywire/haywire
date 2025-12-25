@@ -13,6 +13,7 @@ Design Philosophy:
 
 from typing import Dict, List, Optional, Tuple, Set, Any, Callable
 from haywire.core.graph.base import BaseGraph, Edge, FlowType
+from haywire.core.graph.edge_wrapper import EdgeWrapper
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.undo.interfaces import IHistoryManager
 from haywire.core.undo.actions.graph_actions import (
@@ -294,9 +295,9 @@ class Editor:
             print(f"❌ Editor: Error creating connection: {e}")
             return False
     
-    def list_connections(self) -> List[Edge]:
+    def list_connections(self) -> List[EdgeWrapper]:
         """Get a list of all connections in the graph."""
-        return list(self.graph.edges.values())
+        return list(self.graph.edge_wrappers.values())
     
     # =============================================================================
     # SELECTION OPERATIONS  
@@ -416,7 +417,7 @@ class Editor:
         return {
             'graph_id': self.graph.graph_id,
             'node_count': len(self.graph.node_wrappers),
-            'connection_count': len(self.graph.edges),
+            'connection_count': len(self.graph.edge_wrappers),
             'can_undo': self.can_undo(),
             'can_redo': self.can_redo(),
             'history_size': len(self.history_manager.history) if self.history_manager else 0,

@@ -150,7 +150,7 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Update global stats
         self.global_stats['nodes_created'] = len(self.graph.node_wrappers)
-        self.global_stats['edges_created'] = len(self.graph.edges)
+        self.global_stats['edges_created'] = len(self.graph.edge_wrappers)
         
         # Update displays for all sessions
         for session_data in self.sessions.values():
@@ -329,7 +329,7 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Update global stats - the actual graph changes are already handled by GraphCanvasManager
         self.global_stats['nodes_created'] = len(self.graph.node_wrappers)
-        self.global_stats['edges_created'] = len(self.graph.edges)
+        self.global_stats['edges_created'] = len(self.graph.edge_wrappers)
         
         # Sync ALL sessions (including the originating one for consistency)
         self.sync_all_sessions()
@@ -400,7 +400,7 @@ class UndoRedoTestAppWithCanvasManager:
                 with container:
                     ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
                     ui.label(f'Nodes: {len(self.graph.node_wrappers)}')
-                    ui.label(f'Connections: {len(self.graph.edges)}')
+                    ui.label(f'Connections: {len(self.graph.edge_wrappers)}')
                     
                     if self.history_manager:
                         ui.label(f'Can Undo: {self.editor.can_undo()}')
@@ -563,7 +563,7 @@ class UndoRedoTestAppWithCanvasManager:
                 with self.info_container:
                     ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
                     ui.label(f'Nodes: {len(self.graph.node_wrappers)}')
-                    ui.label(f'Connections: {len(self.graph.edges)}')
+                    ui.label(f'Connections: {len(self.graph.edge_wrappers)}')
     
     def update_history_display(self):
         """Update the history display for current session."""

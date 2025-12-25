@@ -100,8 +100,7 @@ class EdgeWrapper:
             outlet_pin_id: Source outlet ID
             input_node_id: Target node ID
             inlet_pin_id: Target inlet ID
-            adapter_factory: Factory for creating adapter chains
-            edge_type: Optional edge type (determined during registration)
+            edge_type: edge type
         """
         self.output_node_id = output_node_id
         self.outlet_port_id = outlet_port_id
@@ -428,7 +427,7 @@ class EdgeWrapper:
         """
 
         # Update Edge instance with new adapter keys
-        if self._edge:
+        if self._edge and self._adapter_chain:
             self._edge.adapter_registry_keys = (
                 self._adapter_chain.get_registry_keys()
             )
@@ -488,8 +487,6 @@ class EdgeWrapper:
         if callback in self._lifecycle_subscribers:
             self._lifecycle_subscribers.remove(callback)
         
-
-
     def validate(self) -> List[str]:
         """
         Validate edge state.

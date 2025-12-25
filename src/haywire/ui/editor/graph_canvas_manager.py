@@ -84,8 +84,7 @@ class GraphCanvasManager:
                 
         # Visual state
         self.node_panels: Dict[str, UINode] = {}  # node_id -> UINode
-        self.edge_ui_instances: Dict[str, UIEdge] = {}  # connection_uuid -> UIEdge
-        self.connection_paths: Dict[str, Edge] = {}  # connection_uuid -> Edge object
+        self.connection_paths: Dict[str, UIEdge] = {}  # connection_uuid -> UIEdge object
         self.selected_nodes: Set[str] = set()
         self.selected_connections: Set[str] = set()
         
@@ -640,8 +639,8 @@ class GraphCanvasManager:
             
         # Remove all connected edges visually first
         edges_to_remove = []
-        for connection_uuid, edge in self.graph.edges.items():
-            if edge.input_node_id == node_id or edge.output_node_id == node_id:
+        for connection_uuid, edge_wrapper in self.graph.edge_wrappers.items():
+            if edge_wrapper.input_node_id == node_id or edge_wrapper.output_node_id == node_id:
                 edges_to_remove.append(connection_uuid)
         
         for connection_uuid in edges_to_remove:
@@ -681,13 +680,12 @@ class GraphCanvasManager:
         
     def add_connection_visual(self, edge_wrapper: EdgeWrapper) -> bool:
         """Add a visual connection between two nodes."""
-        edge = edge_wrapper.edge
         connection_uuid = edge_wrapper.connection_uuid
         
         print(
             f"🔗 Creating connection visual: "
-            f"{edge.output_node_id}:{edge.outlet_pin_id} -> "
-            f"{edge.input_node_id}:{edge.inlet_pin_id}"
+            f"{edge_wrapper.output_node_id}:{edge_wrapper.outlet_port_id} -> "
+            f"{edge_wrapper.input_node_id}:{edge_wrapper.inlet_port_id}"
         )
         
         # Create UIEdge instance
@@ -697,10 +695,8 @@ class GraphCanvasManager:
         )
         
         # Store reference
-        self.edge_ui_instances[connection_uuid] = ui_edge
+        self.connection_paths[connection_uuid] = ui_edge
         
-
-        self.connection_paths[connection_uuid] = edge
         print(f"🔗 Created UIEdge and connection visual: {connection_uuid}")
         return True
    
@@ -710,16 +706,15 @@ class GraphCanvasManager:
             return False
         
         # Cleanup UIEdge instance
-        ui_edge = self.edge_ui_instances.get(connection_uuid)
+        ui_edge = self.connection_paths.get(connection_uuid)
         if ui_edge:
             ui_edge.cleanup()
-            del self.edge_ui_instances[connection_uuid]
+            del self.connection_paths[connection_uuid]
         
         # Emit removal sync event
         sync_event = SyncConnectionRemovalEvent(connectionUUID=connection_uuid)
         self.canvas_vue.emit_sync_event(sync_event)
 
-        del self.connection_paths[connection_uuid]
         print(f"🔗 Removed UIEdge and connection visual: {connection_uuid}")
         return True
    
@@ -760,7 +755,7 @@ class GraphCanvasManager:
         Returns:
             Dict with edge metrics and information
         """
-        ui_edge = self.edge_ui_instances.get(connection_uuid)
+        ui_edge = self.connection_paths.get(connection_uuid)
         if ui_edge:
             return ui_edge.get_metrics()
         return {'connection_uuid': connection_uuid, 'error': 'UIEdge not found'}
