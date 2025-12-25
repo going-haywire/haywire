@@ -74,8 +74,11 @@ class GraphCanvasManager:
         # Access graph for read operations
         self.graph = editor.graph
         
+        # Store callback reference for later removal during cleanup
+        self._graph_change_callback = self._on_graph_changed
+        
         # Register for simple graph change notifications
-        self.editor.add_change_callback(self._on_graph_changed)
+        self.editor.add_change_callback(self._graph_change_callback)
         
         # Register for NodeWrapper change notifications
         # Note: We keep wrapper callback setup to ensure wrappers are properly initialized

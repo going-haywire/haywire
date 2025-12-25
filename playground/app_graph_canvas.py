@@ -18,7 +18,7 @@ Key improvements:
 
 import os
 import sys
-from nicegui import ui
+from nicegui import ui, app
 
 # Haywire imports
 from haywire.core.graph.editor import Editor
@@ -51,7 +51,57 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Session-specific UI state (client_id -> session_data)
         self.sessions = {}
-        
+
+        app.on_disconnect(self.on_disconnect)
+
+    def on_disconnect(self, client):
+        """Handle client disconnect and clean up session data."""
+        client_id = getattr(client, 'id', None)
+
+        if client_id and client_id in self.sessions:
+            session_data = self.sessions[client_id]
+            print(
+                f"Client disconnected: {client_id[:8]}, "
+                "cleaning up session and UI."
+            )
+
+            # IMPORTANT: Remove canvas manager's graph change listener FIRST
+            # This prevents it from receiving updates during cleanup
+            canvas_manager = session_data.get('canvas_manager')
+            if canvas_manager:
+                try:
+                    # Remove the canvas manager's callback from the editor
+                    # This prevents sync attempts on a deleted client
+                    if hasattr(canvas_manager, '_graph_change_callback'):
+                        self.editor.remove_change_callback(
+                            canvas_manager._graph_change_callback
+                        )
+                        print(
+                            f"Removed graph change listener for "
+                            f"session {client_id[:8]}"
+                        )
+                except Exception as e:
+                    print(f"Error removing graph listener: {e}")
+                
+                # Now cleanup the canvas manager
+                try:
+                    if hasattr(canvas_manager, 'cleanup'):
+                        canvas_manager.cleanup()
+                except Exception as e:
+                    print(f"Error cleaning up canvas manager: {e}")
+
+            # Clean up UI containers
+            containers = session_data.get('ui_containers', {})
+            for container in containers.values():
+                try:
+                    container.clear()
+                except Exception as e:
+                    print(f"Error clearing UI container: {e}")
+
+            # Remove session from dict
+            del self.sessions[client_id]
+            print(f"Session {client_id[:8]} fully cleaned up")
+            
     def get_session_data(self):
         """Get or create session-specific data for current client."""
         from nicegui import context
@@ -175,7 +225,8 @@ class UndoRedoTestAppWithCanvasManager:
         # Services will now be accessed per session
         # Remove the old global service setup
         pass
-    
+
+
     def create_ui(self):
         """Create the main UI."""
         @ui.page('/', title="Enhanced Haywire Test App with Canvas Manager")
@@ -348,30 +399,44 @@ class UndoRedoTestAppWithCanvasManager:
         sessions_to_remove = []
         
         for client_id, session_data in list(self.sessions.items()):
-            if session_data.get('canvas_manager'):
-                try:
-                    canvas_manager = session_data['canvas_manager']
-                    # Ensure each session's canvas manager syncs properly
-                    print(f"Syncing session {client_id[:8]} with graph data")
-                    canvas_manager.sync_with_graph()
-                    
-                    # Force update displays for each session
-                    self.update_displays_for_session(session_data)
-                    
-                    print(f"Synced graph data for session {client_id[:8]}")
-                except RuntimeError as e:
-                    if "client this element belongs to has been deleted" in str(e):
-                        print(f"Client {client_id[:8]} disconnected, marking for cleanup")
-                        sessions_to_remove.append(client_id)
-                    else:
-                        print(f"Runtime error syncing session {client_id[:8]}: {e}")
-                except Exception as e:
-                    print(f"Error syncing session {client_id[:8]}: {e}")
+            canvas_manager = session_data.get('canvas_manager')
+            if not canvas_manager:
+                continue
+                
+            try:
+                # Check if canvas manager is still valid before syncing
+                if hasattr(canvas_manager, 'canvas_vue'):
+                    # Attempt a safe operation to check if client is alive
+                    _ = canvas_manager.canvas_vue.client
+                
+                print(f"Syncing session {client_id[:8]} with graph data")
+                canvas_manager.sync_with_graph()
+                
+                # Force update displays for each session
+                self.update_displays_for_session(session_data)
+                
+                print(f"Synced graph data for session {client_id[:8]}")
+                
+            except RuntimeError as e:
+                if "client this element belongs to has been deleted" in str(e):
+                    print(
+                        f"Client {client_id[:8]} disconnected, "
+                        "marking for cleanup"
+                    )
+                    sessions_to_remove.append(client_id)
+                else:
+                    print(f"Runtime error syncing session {client_id[:8]}: {e}")
+            except Exception as e:
+                print(f"Error syncing session {client_id[:8]}: {e}")
+                # Consider marking for removal if errors persist
+                sessions_to_remove.append(client_id)
         
         # Clean up disconnected sessions
         for client_id in sessions_to_remove:
-            print(f"Removing disconnected session: {client_id[:8]}")
-            del self.sessions[client_id]
+            print(f"Force removing disconnected session: {client_id[:8]}")
+            if client_id in self.sessions:
+                # Call on_disconnect logic manually
+                self.on_disconnect(type('obj', (), {'id': client_id})())
     
     def update_current_session_displays(self):
         """Update displays only for the current session."""
