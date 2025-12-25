@@ -178,6 +178,12 @@ class EdgeWrapper:
 
         self._build_adapter_chain(False)
 
+        # Subscribe to adapter factory for hot reload 
+        self._adapter_factory.register_edge_callback(
+            self.connection_uuid,
+            self._on_adapter_lifecycle_event
+        )
+
         self.refresh_state()
 
         return self
@@ -203,51 +209,53 @@ class EdgeWrapper:
                         target_type,
                         self.connection_uuid,
                     )
-                    # Warn if chain changed
-                    if chain_changed:
-                        self.state.warning_rebuild = str(
-                            f"Edge {self.connection_uuid} adapter chain composition changed "
-                            f"during hot reload - graph behavior may differ!"
-                        )
-                        
-                        # Update Edge instance with new adapter keys
-                        if self._edge:
-                            self._edge.adapter_registry_keys = (
-                                chain.get_registry_keys()
-                            )
-                    else:
-                        self.state.warning_rebuild = ""
                 else:
                     chain, error, chain_changed = self._adapter_factory.create_chain(
                         source_type,
                         target_type,
                         self.connection_uuid
                     )
-                    if chain:
-                        # Subscribe to adapter factory for hot reload 
-                        self._adapter_factory.register_edge_callback(
-                            self.connection_uuid,
-                            self._on_adapter_lifecycle_event
-                        )
+
+                # Warn if chain changed
+                if chain_changed:
+                    self.state.warning_rebuild = str(
+                        f"Edge {self.connection_uuid} adapter chain composition changed "
+                        f"during hot reload - graph behavior may differ!"
+                    )
+                else:
+                    self.state.warning_rebuild = ""
 
                 if chain:
                     self._adapter_chain = chain
                 else:
-                    raise Exception(
-                        f"Adapter chain creation failed: {error}"
+                    self.state.error_build = HaywireException.create(
+                        message=f"Edge adapter creation failed: {error}",
+                    ).enrich(
+                        operation="Adapter Chain Creation",
+                        suggestions=[
+                            "Check that libraries with required adapters are registered",
+                            "Create custom adapters if needed for your data types"]
                     )
-                                    
+                    self.state.error_build.log()
+                    self.state.is_built = False
+                    self.state.warning_rebuild = ""
+                    return
+                                            
             self.state.is_built = True
             self.state.error_build = None
                                     
         except Exception as e:
-            logger.error(
-                f"Failed to build adapter chain for edge {self.connection_uuid}: {e}"
-            )
             self.state.error_build = HaywireException.from_exception(
                 exception=e,
-                message=f"Edge adapter creation failed: {e}",
+                message=f"Edge adapter creation failed for edge {self.connection_uuid}: {e}",
+                operation="Adapter Chain Creation",
+                category="Adapter Creation Error"
+            ).enrich(
+                suggestions=[
+                    "Check that libraries with required adapters are registered",
+                    "Create custom adapters if needed for your data types"]
             )
+            self.state.error_build.log()
             self.state.is_built = False
             self.state.warning_rebuild = ""
 
@@ -418,6 +426,13 @@ class EdgeWrapper:
         """
         Refresh edge state and notify lifecycle subscribers.
         """
+
+        # Update Edge instance with new adapter keys
+        if self._edge:
+            self._edge.adapter_registry_keys = (
+                self._adapter_chain.get_registry_keys()
+            )
+
         if (self.state.is_port_type_validated
             and self.state.is_built 
             and self.state.is_inlet_validated 
