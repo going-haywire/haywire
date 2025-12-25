@@ -3,8 +3,6 @@ from abc import ABC
 from typing import Generic, TypeVar, final
 from typing_extensions import Self
 
-from ..adapter.base import BaseAdapter
-from ..adapter.registry import AdapterRegistry
 from .interface import IType
 
 T = TypeVar('T')
@@ -234,25 +232,26 @@ class CompoundType(BaseType, ABC, Generic[T]):
             # Calls _ParameterizedCompound.as_inlet('numbers')
             # Which calls ArrayType.as_inlet('numbers', element_type_cls=FLOAT)
         """
-        class _ParameterizedCompound:
+        class _ParameterizedCompound(cls):  # Inherit from parent CompoundType!
             """
-            Temporary class-like object that remembers element_type_cls.
+            Parameterized version that remembers element_type_cls.
+            
+            CRITICAL: Must inherit from cls (the CompoundType subclass) so that
+            ArrayType(CompoundType[T]) properly inherits the full type hierarchy
+            including IType for decorator validation.
             
             Created by __class_getitem__ to enable clean syntax:
                 ArrayType[FLOAT].as_inlet(id='numbers')
             
-            This is not instantiated - it just provides static methods
-            that inject element_type_cls into the actual as_inlet/as_outlet calls.
-            
             The element_type_cls is stored as a class attribute and passed
-            to port creation methods.
+            to port creation methods automatically.
             """
             
             # Store element type as class attribute for inspection
             _element_type_cls = element_type_cls
             
-            @staticmethod
-            def as_inlet(id: str, **kwargs):
+            @classmethod
+            def as_inlet(cls_inner, id: str, **kwargs):
                 """
                 Create inlet with remembered element_type_cls.
                 
@@ -261,8 +260,8 @@ class CompoundType(BaseType, ABC, Generic[T]):
                 """
                 return cls.as_inlet(id, element_type_cls=element_type_cls, **kwargs)
             
-            @staticmethod
-            def as_outlet(id: str, **kwargs):
+            @classmethod
+            def as_outlet(cls_inner, id: str, **kwargs):
                 """
                 Create outlet with remembered element_type_cls.
                 
@@ -271,8 +270,8 @@ class CompoundType(BaseType, ABC, Generic[T]):
                 """
                 return cls.as_outlet(id, element_type_cls=element_type_cls, **kwargs)
             
-            @staticmethod
-            def as_config(id: str, **kwargs):
+            @classmethod
+            def as_config(cls_inner, id: str, **kwargs):
                 """
                 Create config with remembered element_type_cls.
                 

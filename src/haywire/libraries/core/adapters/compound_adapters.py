@@ -1,18 +1,8 @@
-"""
-Compound type adapters for array transformations.
-
-These adapters handle array-to-array transformations and are registered
-like any other adapter. The AdapterFactory injects element adapters.
-"""
-
 from typing import Any, List, Optional, override, TYPE_CHECKING
 
 from haywire.core.adapter.base import adapter, BaseAdapter
 
-if TYPE_CHECKING:
-    from haywire.core.adapter.base import IAdapter
-
-from haywire.libraries.core.types.array_type import ArrayType
+from ..types.array_type import ArrayType
 
 
 @adapter(
@@ -27,11 +17,9 @@ class ArrayArrayAdapter(BaseAdapter):
     """
     Transforms ArrayType[X] → ArrayType[Y].
     
-    Accepts optional element_adapter for element transformation.
+    Uses internal adapter chain for element transformation.
     Always skips None values to prevent chain failures.
-    
-    If you need to preserve None values, use a dedicated filter node.
-    
+       
     Examples:
         # ArrayType[FLOAT] → ArrayType[FLOAT] (no element transformation)
         adapter = ArrayArrayAdapter()
@@ -45,22 +33,6 @@ class ArrayArrayAdapter(BaseAdapter):
         # → ["1.50", "2.70"]  (None skipped)
     """
     
-    def __init__(
-        self,
-        element_adapter: BaseAdapter = None,
-        child: 'IAdapter' = None
-    ):
-        """
-        Initialize array adapter.
-        
-        Args:
-            element_adapter: Optional adapter for element transformation.
-                           Injected by AdapterFactory when element types differ.
-            child: Optional next adapter in chain
-        """
-        super().__init__(child)
-        self._element_adapter = element_adapter
-    
     @override
     def convert(self, values: List[Any]) -> List[Any]:
         """
@@ -73,22 +45,12 @@ class ArrayArrayAdapter(BaseAdapter):
             List of transformed elements (None values skipped)
         """
         return [
-            self._element_adapter.convert(v)
+            self._chain.execute(v)
             for v in values
             if v is not None  # Always skip None
         ]
     
+    # Override to execute conversion since we treat the inner chain as element adapter
     @override
-    def _get_registry_keys(self) -> List[str]:
-        """
-        Get registry keys including nested element adapter.
-        
-        Returns:
-            List with this adapter's key plus element adapter's keys
-        """
-        keys = [self.class_identity.registry_key]
-        
-        if self._element_adapter:
-            keys.extend(self._element_adapter._get_registry_keys())
-        
-        return keys
+    def execute(self, value):
+        return self.convert(value)

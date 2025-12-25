@@ -71,7 +71,7 @@ class ArrayType(CompoundType[T]):
 # ============================================================================
 
 @dataclass
-class ArrayField(CompoundField[List[T]]):
+class ArrayField(CompoundField):
     """
     Field implementation for ArrayType.
     

@@ -42,7 +42,7 @@ class IAdapter(ABC):
         pass
     
     @abstractmethod
-    def _execute(self, value: Any) -> Any:
+    def execute(self, value: Any) -> Any:
         """Execute this adapter, then execute the inside chain"""
         pass
     
@@ -164,7 +164,7 @@ class ReturnAdapter(IAdapter):
         """Pass through unchanged"""
         return value
     
-    def _execute(self, value: Any) -> Any:
+    def execute(self, value: Any) -> Any:
         """Terminal - just return value"""
         return value
 
@@ -234,7 +234,7 @@ class BaseAdapter(IAdapter):
         """
         pass
     
-    def _execute(self, value: Any) -> Any:
+    def execute(self, value: Any) -> Any:
         """
         Execute this adapter, then delegate to chain.
         
@@ -245,7 +245,7 @@ class BaseAdapter(IAdapter):
             Transformed value after executing entire chain
         """
         converted = self.convert(value)
-        return self._chain._execute(converted)
+        return self._chain.execute(converted)
     
     def _get_registry_keys(self) -> List[str]:
         """

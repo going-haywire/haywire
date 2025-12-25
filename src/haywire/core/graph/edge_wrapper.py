@@ -357,7 +357,7 @@ class EdgeWrapper:
             start_time = time.perf_counter()
             self.state.is_executing = True
 
-            result = self._first_adapter._execute(value)
+            result = self._first_adapter.execute(value)
             
             # Update metrics
             execution_time = (time.perf_counter() - start_time) * 1000
