@@ -3,7 +3,16 @@ Base adapter classes for type conversion
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, List, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union
+)
 from dataclasses import dataclass
 
 from haywire.core.registry.identity import BaseIdentity
@@ -11,7 +20,37 @@ from haywire.core.library.utils import derive_library_identity, reg_key
 
 if TYPE_CHECKING:
     from haywire.core.types.interface import IType
-    from .chain import AdapterChain
+
+
+# ============================================================================
+#    Adapter Interface
+# ============================================================================
+
+class IAdapter(ABC):
+    """
+    Interface for all adapters.
+    
+    All adapters must implement:
+    - convert(): Transform a value
+    - execute(): Execute this adapter, then chain to next
+    - get_registry_keys(): Get all registry keys in chain
+    """
+    
+    @abstractmethod
+    def convert(self, value: Any) -> Any:
+        """Transform value"""
+        pass
+    
+    @abstractmethod
+    def _execute(self, value: Any) -> Any:
+        """Execute this adapter, then execute the inside chain"""
+        pass
+    
+    @abstractmethod
+    def _get_registry_keys(self) -> List[str]:
+        """Get all registry keys in chain"""
+        pass
+
 
 @dataclass
 class AdapterIdentity(BaseIdentity):
@@ -113,13 +152,35 @@ def adapter(
 #    Base Adapter Class
 # ============================================================================
 
-class BaseAdapter(ABC):
+class ReturnAdapter(IAdapter):
+    """
+    Terminal adapter that returns values unchanged.
+    
+    Used as the default terminal adapter in chains.
+    Does not have a registry key (not registered).
+    """
+       
+    def convert(self, value: Any) -> Any:
+        """Pass through unchanged"""
+        return value
+    
+    def _execute(self, value: Any) -> Any:
+        """Terminal - just return value"""
+        return value
+
+    def _get_registry_keys(self) -> List[str]:
+        """Terminal - no registry keys"""
+        return []
+
+
+class BaseAdapter(IAdapter):
     """
     Base class for type adapters.
     
     Key design:
     - Type-level operations use IType classes (for registration, matching)
     - Value-level operations use unwrapped primitives/instances (for conversion)
+    - Chaining via _chain attribute for recursive execution
     
     This creates clean separation between type system and runtime values.
     
@@ -135,6 +196,10 @@ class BaseAdapter(ABC):
         adapter = TemperatureToFloatAdapter()
         result = adapter.convert(25.0)  # float -> float (not FLOAT -> FLOAT)
     """
+
+    def __init__(self, child: Optional[IAdapter] = None):
+        """Initialize adapter with child in chain"""
+        self._chain: IAdapter = child if child is not None else ReturnAdapter()
 
     @abstractmethod
     def convert(self, value: Any) -> Any:
@@ -169,155 +234,35 @@ class BaseAdapter(ABC):
         """
         pass
     
-    def get_registry_keys(self) -> List[str]:
+    def _execute(self, value: Any) -> Any:
+        """
+        Execute this adapter, then delegate to chain.
+        
+        Args:
+            value: Input value (unwrapped)
+            
+        Returns:
+            Transformed value after executing entire chain
+        """
+        converted = self.convert(value)
+        return self._chain._execute(converted)
+    
+    def _get_registry_keys(self) -> List[str]:
         """
         Get all registry keys for this adapter and any nested adapters.
         
-        Base implementation returns only this adapter's key.
+        Base implementation returns this adapter's key plus chained keys.
         Compound adapters (ArrayArrayAdapter, StructuralAdapter) should
         override to include nested adapter keys.
         
         Returns:
             List of registry keys for hot-reload dependency tracking
         """
-        return [self.class_identity.registry_key]
-
-
-class PassThroughAdapter(BaseAdapter):
-    """
-    Identity adapter that passes values through unchanged.
-    
-    Used when source and target types are the same.
-    Registered automatically by AdapterRegistry.
-    """
-       
-    def convert(self, value: Any) -> Any:
-        """Pass through unchanged"""
-        return value
-
-    def get_registry_keys(self) -> List[str]:
-        return []
-
-
-class ChainAdapter(BaseAdapter):
-    """
-    Utility adapter that wraps an AdapterChain.
-    
-    Used internally by AdapterFactory when a multi-adapter chain
-    needs to be injected as a single element adapter in compound
-    type transformations.
-    
-    Example:
-        # ARRAY[FLOAT] → ARRAY[STRING] where FLOAT → STRING
-        # requires multiple adapters: FLOAT → INT → STRING
-        element_chain = AdapterChain([
-            FloatToIntAdapter(),
-            IntToStringAdapter()
-        ])
-        
-        # Wrap chain to inject into ArrayArrayAdapter
-        wrapper = ChainAdapter(element_chain)
-        container = ArrayArrayAdapter(element_adapter=wrapper)
-    """
-    
-    def __init__(self, chain: 'AdapterChain'):
-        """
-        Args:
-            chain: The adapter chain to wrap
-        """
-        self._chain = chain
-        
-        # Create synthetic identity based on wrapped chain
-        chain_desc = chain.get_chain_description()
-        self.class_identity = type('AdapterIdentity', (), {
-            'registry_key': f"chain_{id(chain)}",
-            'label': f"Chain: {chain_desc}",
-        })()
-    
-    def convert(self, value: Any) -> Any:
-        """Execute wrapped chain"""
-        return self._chain.execute(value)
-    
-    def get_registry_keys(self) -> List[str]:
-        """Delegate to wrapped chain"""
-        return self._chain.get_registry_keys()
+        keys = [self.class_identity.registry_key]
+        keys.extend(self._chain._get_registry_keys())
+        return keys
 
 
 class ConversionError(Exception):
     """Raised when a type conversion fails"""
     pass
-
-
-class StructuralAdapter(BaseAdapter):
-    """
-    System meta-adapter: Combines structural + element transformation.
-
-    Created dynamically by AdapterFactory. Not registered.
-    Wraps both structural and element adapters.
-
-    Example:
-        # Factory creates this internally:
-        structural = MapToArrayAdapter()  # Registered adapter
-        element = FloatToStringAdapter()  # Registered adapter
-        combined = StructuralAdapter(structural, element)  # System
-
-        # MAP[FLOAT] → ARRAY[STRING]
-        result = combined.convert({"a": 1.5, "b": 2.7})
-        # → ["1.50", "2.70"]
-    """
-
-    def __init__(
-        self,
-        structural_adapter: BaseAdapter,
-        elemental_adapter: BaseAdapter
-    ):
-        """
-        Args:
-            structural_adapter: Container transform (MAP → ARRAY)
-            elemental_adapter: Element transform (ARRAY[FLOAT] → ARRAY[STRING])
-        """
-        self._structural = structural_adapter
-        self._elemental = elemental_adapter
-
-        # Create synthetic identity (not registered)
-        label = structural_adapter.class_identity.label
-        if elemental_adapter:
-            label += f" + {elemental_adapter.class_identity.label}"
-
-        self.class_identity = type('AdapterIdentity', (), {
-            'registry_key': (
-                f"structural_"
-                f"{structural_adapter.class_identity.registry_key}"
-            ),
-            'label': label,
-        })()
-
-    def convert(self, value: Any) -> Any:
-        """Apply structural then element transformation"""
-        # First: structural transformation (e.g., MAP → ARRAY)
-        result = self._structural.convert(value)
-
-        # Second: element transformation (e.g. ARRAY[FLOAT] → ARRAY[STRING])
-        result = self._elemental.convert(result)
-
-        return result
-
-    def get_registry_keys(self) -> List[str]:
-        """
-        Get registry keys including structural and element adapters.
-
-        Returns:
-            List with synthetic key plus all nested adapter keys
-        """
-        keys = [self.class_identity.registry_key]
-
-        # Add structural adapter keys
-        if self._structural:
-            keys.extend(self._structural.get_registry_keys())
-
-        # Add element adapter keys
-        if self._elemental:
-            keys.extend(self._elemental.get_registry_keys())
-
-        return keys
-

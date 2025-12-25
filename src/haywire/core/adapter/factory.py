@@ -2,7 +2,7 @@
 AdapterFactory - Creates adapter chains and manages hot reload.
 
 This factory:
-- Creates AdapterChain instances from type compatibility queries
+- Creates linked adapter chains from type compatibility queries
 - Handles compound types (ARRAY, MAP) with structural adapters
 - Tracks which EdgeWrappers depend on which adapters
 - Notifies EdgeWrappers when adapters are hot-reloaded
@@ -12,9 +12,7 @@ This factory:
 from typing import Dict, List, Optional, Set, TYPE_CHECKING
 import logging
 
-from .base import PassThroughAdapter, ChainAdapter
-from .chain import AdapterChain
-from .base import StructuralAdapter
+from .base import ReturnAdapter, IAdapter
 from .registry import AdapterRegistry
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
@@ -71,24 +69,24 @@ class AdapterFactory:
         target_type: type[IType],
         connection_uuid: str,
         max_depth: int = 3
-    ) -> tuple[Optional[AdapterChain], Optional[str], bool]:
+    ) -> tuple[Optional[IAdapter], Optional[str], bool]:
         """
         Rebuild adapter chain (used during hot reload).
         
         Returns:
-            (chain, error, chain_changed)
+            (first_adapter, error, chain_changed)
             
         The chain_changed flag indicates if adapters are different,
         which should trigger a warning to the user.
         """
         # Get old adapter keys for comparison
-        old_adapter_keys = self._edge_to_adapters.get(connection_uuid, set())
+        old_adapter_keys = self._edge_to_adapters.get(connection_uuid, None)
         
         # Unregister old dependencies
         self._unregister_edge_dependencies(connection_uuid)
         
         # Create new chain
-        chain, error, _ = self.create_chain(
+        first_adapter, error, _ = self.create_chain(
             source_type,
             target_type,
             connection_uuid,
@@ -97,11 +95,11 @@ class AdapterFactory:
         
         # Check if chain changed
         chain_changed = False
-        if chain:
-            new_adapter_keys = set(chain.get_registry_keys())
+        if first_adapter and old_adapter_keys is not None:
+            new_adapter_keys = set(first_adapter._get_registry_keys())
             chain_changed = (old_adapter_keys != new_adapter_keys)
         
-        return (chain, error, chain_changed)
+        return (first_adapter, error, chain_changed)
 
     def create_chain(
         self,
@@ -109,7 +107,7 @@ class AdapterFactory:
         target_type: type[IType],
         connection_uuid: str,
         max_depth: int = 3
-    ) -> tuple[Optional[AdapterChain], Optional[str], bool]:
+    ) -> tuple[Optional[IAdapter], Optional[str], bool]:
         """
         Create adapter chain, handling scalar and compound types.
         
@@ -117,21 +115,21 @@ class AdapterFactory:
         
         Case 1 - Scalar → Scalar:
             FLOAT → STRING
-            Uses registry: [FloatToStringAdapter]
+            Uses registry: FloatToStringAdapter
         
         Case 2 - Same compound structure:
             ARRAY[FLOAT] → ARRAY[STRING]
             Requires registered ArrayArrayAdapter
             Factory injects element chain
-            Result: [ArrayArrayAdapter(FloatToStringAdapter)]
+            Result: ArrayArrayAdapter(FloatToStringAdapter)
         
         Case 3 - Structural transformation:
             MAP[FLOAT] → ARRAY[STRING]
             Uses StructuralAdapter (core system)
             Wraps registered MapToArrayAdapter + element chain
-            Result: [StructuralAdapter(
+            Result: StructuralAdapter(
                 MapToArrayAdapter, FloatToStringAdapter
-            )]
+            )
         
         Args:
             source_type: Source IType (from outlet)
@@ -140,32 +138,32 @@ class AdapterFactory:
             max_depth: Maximum chain length (default 3)
             
         Returns:
-            (AdapterChain or None, error_message or None, chain_changed: bool)
+            (first_adapter or None, error_message or None, chain_changed: bool)
             
         Example:
-            chain, error = factory.create_chain(
+            first_adapter, error = factory.create_chain(
                 Temperature, 
                 INT, 
                 "conn_uuid_123"
             )
-            if chain:
-                result = chain.execute(temp_value)
+            if first_adapter:
+                result = first_adapter.execute(temp_value)
         """
         # Direct type match - no adapters needed
         if source_type == target_type:
-            return (AdapterChain([PassThroughAdapter()]), None, False)
+            return (ReturnAdapter(), None, False)
         
         # Determine if types are compound
         source_is_compound = issubclass(source_type, CompoundType)
         target_is_compound = issubclass(target_type, CompoundType)
         
         # Create chain without registration (internal=True)
-        chain = None
+        first_adapter = None
         error = None
         
         # Case 1: Both scalar
         if not source_is_compound and not target_is_compound:
-            chain, error = self._create_scalar_chain(
+            first_adapter, error = self._create_scalar_chain(
                 source_type,
                 target_type,
                 max_depth
@@ -177,7 +175,7 @@ class AdapterFactory:
             and target_is_compound
             and source_type == target_type
         ):
-            chain, error = self._create_element_chain(
+            first_adapter, error = self._create_element_chain(
                 source_type,
                 getattr(source_type, 'element_type_cls', None),
                 target_type,
@@ -187,7 +185,7 @@ class AdapterFactory:
         
         # Case 3: Structural transformation (MAP→ARRAY, etc.)
         elif source_is_compound and target_is_compound:
-            chain, error = self._create_structural_chain(
+            first_adapter, error = self._create_structural_chain(
                 source_type,
                 target_type,
                 max_depth
@@ -204,29 +202,29 @@ class AdapterFactory:
             )
         
         # Register dependencies ONLY at top level
-        if chain and error is None:
+        if first_adapter and error is None:
             self._register_edge_dependencies(
                 connection_uuid,
-                chain.get_registry_keys()
+                first_adapter._get_registry_keys()
             )
         
-        return (chain, error, False)
+        return (first_adapter, error, False)
     
     def _create_scalar_chain(
         self,
         source_type: type[IType],
         target_type: type[IType],
         max_depth: int
-    ) -> tuple[Optional[AdapterChain], Optional[str]]:
+    ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
         Case 1: Create chain for scalar types.
         
         Example: FLOAT → STRING
-        Result: [FloatToStringAdapter]
+        Result: FloatToStringAdapter (linked to ReturnAdapter)
         """
         # Direct match - no adapters needed
         if source_type == target_type:
-            return (AdapterChain([PassThroughAdapter()]), None)
+            return (ReturnAdapter(), None)
         
         adapter_classes = self.adapter_registry.find_adapter_chain(
             source_type,
@@ -244,8 +242,12 @@ class AdapterFactory:
             )
         
         try:
-            adapters = [cls() for cls in adapter_classes]
-            chain = AdapterChain(adapters)
+            # Build chain from right to left (terminal to first)
+            chain = ReturnAdapter()  # Terminal
+            
+            for cls in reversed(adapter_classes):
+                chain = cls(child=chain)
+            
             return (chain, None)
             
         except Exception as e:
@@ -261,7 +263,7 @@ class AdapterFactory:
         target_type: type[CompoundType],
         target_element: type[IType],
         max_depth: int
-    ) -> tuple[Optional[AdapterChain], Optional[str]]:
+    ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
         Case 2: Same structure compound types.
         
@@ -272,7 +274,7 @@ class AdapterFactory:
         1. Registry must have ArrayArrayAdapter
         2. Find FLOAT → STRING chain
         3. Inject into ArrayArrayAdapter
-        Result: [ArrayArrayAdapter(FloatToStringAdapter)]
+        Result: ArrayArrayAdapter(FloatToStringAdapter)
         """
         
         if source_element is None or target_element is None:
@@ -299,7 +301,7 @@ class AdapterFactory:
                 )
             )
 
-        # safty check - should only be one container adapter
+        # safety check - should only be one container adapter
         if len(container_classes) != 1:
             return (
                 None,
@@ -313,9 +315,8 @@ class AdapterFactory:
         # Same element type - no transformation needed
         if source_element == target_element:
             try:
-                # Instantiate Neutral adapter - no transformation needed
-                chain = AdapterChain([PassThroughAdapter()])
-                return (chain, None)
+                # Instantiate PassThrough adapter - no transformation needed
+                return (ReturnAdapter(), None)
                 
             except Exception as e:
                 return (
@@ -324,30 +325,21 @@ class AdapterFactory:
                 )
         
         # Different element types - find element chain
-        element_chain, error = self._create_scalar_chain(
+        element_adapter, error = self._create_scalar_chain(
             source_element,
             target_element,
             max_depth
         )
         
-        if element_chain is None:
+        if element_adapter is None:
             return (None, f"Element chain failed: {error}")
         
         # Inject element adapter into container adapter
-        try:            
-            # Wrap element chain if needed
-            if len(element_chain.adapters) == 1:
-                # Single element adapter
-                element_adapter = element_chain.adapters[0]
-            else:
-                # Multiple element adapters - wrap chain
-                element_adapter = ChainAdapter(element_chain)
-            
+        try:
             # Instantiate container adapter with element adapter
-            adapter = container_classes[0](element_adapter=element_adapter)
+            adapter = container_classes[0](child=element_adapter)
             
-            chain = AdapterChain([adapter])
-            return (chain, None)
+            return (adapter, None)
             
         except Exception as e:
             return (
@@ -360,7 +352,7 @@ class AdapterFactory:
         source_type: type[CompoundType],
         target_type: type[CompoundType],
         max_depth: int
-    ) -> tuple[Optional[AdapterChain], Optional[str]]:
+    ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
         Case 3: Structural transformation.
         
@@ -383,7 +375,17 @@ class AdapterFactory:
         1. MAP[FLOAT] → ArrayList[FLOAT] (structural transform)
         2. ArrayList[FLOAT] → ArrayList[STRING] (element transform via container)
         """
-        # Find structural adapter via registry
+        # Get element types
+        source_element = getattr(source_type, 'element_type_cls', None)
+        target_element = getattr(target_type, 'element_type_cls', None)
+        
+        if source_element is None or target_element is None:
+            return (
+                None,
+                f"Compound types missing element_type_cls"
+            )
+ 
+         # Find structural adapter via registry
         structural_classes = self.adapter_registry.find_adapter_chain(
             source_type,
             target_type,
@@ -407,30 +409,11 @@ class AdapterFactory:
                     f"found {len(structural_classes)} adapters"
                 )
             )
-        
-        # Instantiate structural adapter
-        try:
-            structural_adapter = structural_classes[0]()
-        except Exception as e:
-            return (
-                None,
-                f"Failed to instantiate structural adapter: {e}"
-            )
-        
-        # Get element types
-        source_element = getattr(source_type, 'element_type_cls', None)
-        target_element = getattr(target_type, 'element_type_cls', None)
-        
-        if source_element is None or target_element is None:
-            return (
-                None,
-                f"Compound types missing element_type_cls"
-            )
-        
+               
         # Create element transformation chain using _create_element_chain
         # This handles the transformation AFTER structural change
         # e.g., ArrayList[FLOAT] → ArrayList[STRING] after Map[FLOAT] → ArrayList[FLOAT]
-        element_chain, error = self._create_element_chain(
+        element_adapter, error = self._create_element_chain(
             target_type,  # Use target structure (e.g., ArrayList)
             source_element,  # But source element type (e.g., FLOAT)
             target_type,  # Target structure (e.g., ArrayList)
@@ -438,25 +421,13 @@ class AdapterFactory:
             max_depth
         )
         
-        if element_chain is None:
+        if element_adapter is None:
             return (None, f"Element chain failed: {error}")
-        
-        # Wrap element chain if needed
-        elif len(element_chain.adapters) == 1:
-            # Single adapter (could be container or scalar)
-            element_adapter = element_chain.adapters[0]
-        else:
-            # Multiple adapters - wrap chain
-            element_adapter = ChainAdapter(element_chain)
         
         # Wrap in StructuralAdapter (core system component)
         try:
-            combined = StructuralAdapter(
-                structural_adapter,
-                element_adapter
-            )
-            chain = AdapterChain([combined])
-            return (chain, None)
+            structural_adapter = structural_classes[0](child=element_adapter)
+            return (structural_adapter, None)
             
         except Exception as e:
             return (

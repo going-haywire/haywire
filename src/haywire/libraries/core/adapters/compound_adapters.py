@@ -5,9 +5,13 @@ These adapters handle array-to-array transformations and are registered
 like any other adapter. The AdapterFactory injects element adapters.
 """
 
-from typing import Any, List, override
+from typing import Any, List, Optional, override, TYPE_CHECKING
 
 from haywire.core.adapter.base import adapter, BaseAdapter
+
+if TYPE_CHECKING:
+    from haywire.core.adapter.base import IAdapter
+
 from haywire.libraries.core.types.array_type import ArrayType
 
 
@@ -41,14 +45,20 @@ class ArrayArrayAdapter(BaseAdapter):
         # → ["1.50", "2.70"]  (None skipped)
     """
     
-    def __init__(self, element_adapter: BaseAdapter = None):
+    def __init__(
+        self,
+        element_adapter: BaseAdapter = None,
+        child: 'IAdapter' = None
+    ):
         """
         Initialize array adapter.
         
         Args:
             element_adapter: Optional adapter for element transformation.
                            Injected by AdapterFactory when element types differ.
+            child: Optional next adapter in chain
         """
+        super().__init__(child)
         self._element_adapter = element_adapter
     
     @override
@@ -69,7 +79,7 @@ class ArrayArrayAdapter(BaseAdapter):
         ]
     
     @override
-    def get_registry_keys(self) -> List[str]:
+    def _get_registry_keys(self) -> List[str]:
         """
         Get registry keys including nested element adapter.
         
@@ -79,6 +89,6 @@ class ArrayArrayAdapter(BaseAdapter):
         keys = [self.class_identity.registry_key]
         
         if self._element_adapter:
-            keys.extend(self._element_adapter.get_registry_keys())
+            keys.extend(self._element_adapter._get_registry_keys())
         
         return keys

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from ...ui.utils import generate_connection_uuid
 from ..data.enums import FlowType
-from ..adapter.chain import AdapterChain
+from ..adapter.base import IAdapter
 from ..errors import HaywireException
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
@@ -118,8 +118,8 @@ class EdgeWrapper:
         # Adapter factory reference
         self._adapter_factory: Optional['AdapterFactory'] = None
        
-        # Adapter chain (created during registration)
-        self._adapter_chain: Optional[AdapterChain] = None
+        # First adapter in chain (created during registration)
+        self._first_adapter: Optional[IAdapter] = None
         
         # Node wrapper references (set during registration)
         self._output_wrapper: Optional['NodeWrapper'] = None
@@ -175,7 +175,7 @@ class EdgeWrapper:
 
         self._validate_port_types(graph)
 
-        self._build_adapter_chain(False)
+        self._build_adapter_chain()
 
         # Subscribe to adapter factory for hot reload 
         self._adapter_factory.register_edge_callback(
@@ -187,7 +187,7 @@ class EdgeWrapper:
 
         return self
 
-    def _build_adapter_chain(self, rebuild: bool = False):
+    def _build_adapter_chain(self):
         """
         Build adapter chain for this edge.
         Args:
@@ -201,31 +201,27 @@ class EdgeWrapper:
                 
                 outlet_field = self._outlet_port.data
                 source_type = outlet_field.type_cls
-                    
-                if rebuild:
-                    chain, error, chain_changed = self._adapter_factory.rebuild_chain(
+                
+                # Build adapter chain via factory
+                first_adapter, error, chain_changed = (
+                    self._adapter_factory.rebuild_chain(
                         source_type,
                         target_type,
                         self.connection_uuid,
                     )
-                else:
-                    chain, error, chain_changed = self._adapter_factory.create_chain(
-                        source_type,
-                        target_type,
-                        self.connection_uuid
-                    )
-
+                )
+                
                 # Warn if chain changed
                 if chain_changed:
                     self.state.warning_rebuild = str(
-                        f"Edge {self.connection_uuid} adapter chain composition changed "
-                        f"during hot reload - graph behavior may differ!"
+                        f"Edge {self.connection_uuid} adapter chain composition "
+                        f"changed during hot reload - graph behavior may differ!"
                     )
                 else:
                     self.state.warning_rebuild = ""
 
-                if chain:
-                    self._adapter_chain = chain
+                if first_adapter:
+                    self._first_adapter = first_adapter
                 else:
                     self.state.error_build = HaywireException.create(
                         message=f"Edge adapter creation failed: {error}",
@@ -361,7 +357,7 @@ class EdgeWrapper:
             start_time = time.perf_counter()
             self.state.is_executing = True
 
-            result = self._adapter_chain.execute(value)
+            result = self._first_adapter._execute(value)
             
             # Update metrics
             execution_time = (time.perf_counter() - start_time) * 1000
@@ -415,7 +411,7 @@ class EdgeWrapper:
 
         self._validate_port_types(self._graph)
 
-        self._build_adapter_chain(True)
+        self._build_adapter_chain()
 
         self._graph.validate_edge_wrapper(self)
             
@@ -427,9 +423,9 @@ class EdgeWrapper:
         """
 
         # Update Edge instance with new adapter keys
-        if self._edge and self._adapter_chain:
+        if self._edge and self._first_adapter:
             self._edge.adapter_registry_keys = (
-                self._adapter_chain.get_registry_keys()
+                self._first_adapter._get_registry_keys()
             )
 
         if (self.state.is_port_type_validated
@@ -504,7 +500,7 @@ class EdgeWrapper:
         
         if (
             self._edge_type == FlowType.DATA and 
-            not self._adapter_chain
+            not self._first_adapter
         ):
             errors.append("DATA edge missing adapter chain")
         
@@ -534,12 +530,12 @@ class EdgeWrapper:
             'error': self.state.error_main if self.state.error_main else None,  # Include error for context menu display
         }
         
-        if self._adapter_chain:
+        if self._first_adapter:
             metrics.update({
                 'adapter_chain': (
-                    self._adapter_chain.get_chain_description()
+                    self._first_adapter._get_registry_keys()
                 ),
-                'chain_length': len(self.edge.adapter_registry_keys),
+                'chain_length': len(self._first_adapter._get_registry_keys()),
                 'avg_time_ms': self.state.average_execution_time_ms,
                 'last_time_ms': self.state.last_execution_time_ms,
                 'total_time_ms': self.state.total_execution_time_ms,
@@ -557,7 +553,7 @@ class EdgeWrapper:
         )
         
         # Clear references
-        self._adapter_chain = None
+        self._first_adapter = None
         self._output_wrapper = None
         self._input_wrapper = None
         self._outlet_port = None
@@ -578,17 +574,26 @@ class EdgeWrapper:
         return self.state.is_valid
     
     @property
-    def adapter_chain(self) -> Optional[AdapterChain]:
-        """Get the adapter chain"""
-        return self._adapter_chain
+    def first_adapter(self) -> Optional[IAdapter]:
+        """Get the first adapter in the chain"""
+        return self._first_adapter
     
     def __repr__(self) -> str:
         status = "valid" if self.state.is_valid else "invalid"
-        chain_desc = (
-            self._adapter_chain.get_chain_description() 
-            if self._adapter_chain 
-            else "none"
-        )
+        
+        # Build chain description from linked adapters
+        if self._first_adapter:
+            adapter_names = []
+            current = self._first_adapter
+            while hasattr(current, '_chain'):
+                adapter_names.append(current.__class__.__name__)
+                current = current._chain
+                if current.__class__.__name__ == 'ReturnAdapter':
+                    break
+            chain_desc = " → ".join(adapter_names) if adapter_names else "direct"
+        else:
+            chain_desc = "none"
+            
         return (
             f"EdgeWrapper({self.connection_uuid}, "
             f"type={self._edge_type.value if self._edge_type else 'unknown'}, "

@@ -64,7 +64,7 @@ class AdapterChain:
         """
         keys = []
         for adapter in self.adapters:
-            keys.extend(adapter.get_registry_keys())
+            keys.extend(adapter._get_registry_keys())
         return keys
     
     def get_chain_description(self) -> str:
