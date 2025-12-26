@@ -461,29 +461,46 @@ export default {
         // UNIFIED EVENT HANDLERS
         // =============================================================================
 
+
         handleMouseDown(e) {
             if (e.button === 2) return; // Skip right-click
 
-            // Skip if clicking on high z-index overlays (popups, dialogs)
-            const target = e.target;
-            const overlay = target.closest('[style*="z-index: 1000"], .draggable-popup, .popup-content-area');
-            if (overlay) {
-                // Check if this overlay is above the canvas
-                const overlayZIndex = parseInt(window.getComputedStyle(overlay).zIndex) || 0;
-                if (overlayZIndex >= 1000) {
-                    return; // Let the popup handle this event
-                }
-            }
-            
-            const clickTime = Date.now();
-            this.selectionState.lastClickTime = clickTime;
-
-            // Check for connection pin first
+            // Check for connection pin FIRST - before any other checks
+            // Pins must work even if they're inside interactive elements
             const pin = e.target.closest('.connection-pin');
             if (pin) {
                 this._startConnectionDrag(e, pin);
                 return;
             }
+
+            // Skip if clicking inside a popup - let the popup handle its own events
+            const popupElement = e.target.closest(
+                '[data-popup-container="true"], ' +
+                '[data-popup-drag-handle="true"], ' +
+                '[data-popup="true"], ' +
+                '.popup-card, ' +
+                '.popup-overlay, ' +
+                '.popup-content-area, ' +
+                '.popup-title-bar'
+            );
+            if (popupElement) {
+                console.log('Click inside popup - letting popup handle it');
+                return;
+            }
+
+            // Skip if clicking on high z-index overlays (popups, dialogs)
+            const target = e.target;
+            const overlay = target.closest('[style*="z-index"]');
+            if (overlay) {
+                const overlayZIndex = parseInt(window.getComputedStyle(overlay).zIndex) || 0;
+                if (overlayZIndex >= 1000) {
+                    console.log('Click on high z-index overlay (' + overlayZIndex + ') - skipping');
+                    return;
+                }
+            }
+            
+            const clickTime = Date.now();
+            this.selectionState.lastClickTime = clickTime;
 
             // Check for interactive widgets
             if (this._isInteractiveWidgetElement(e.target)) {
@@ -1615,6 +1632,27 @@ export default {
         },
 
         _isInteractiveWidgetElement(element) {
+            // Connection pins are NOT interactive widgets - they need special handling
+            // This check ensures pins aren't blocked by being inside interactive containers
+            if (element.closest('.connection-pin')) {
+                return false;
+            }
+
+            // Check for popup elements - these handle their own interactions entirely
+            const isPopupElement = element.closest(
+                '[data-popup-container="true"], ' +
+                '[data-popup-drag-handle="true"], ' +
+                '[data-popup="true"], ' +
+                '.popup-card, ' +
+                '.popup-overlay, ' +
+                '.popup-content-area, ' +
+                '.popup-title-bar, ' +
+                '.popup-backdrop'
+            );
+            if (isPopupElement) {
+                return true;
+            }
+
             const isFormElement = element.matches('input, textarea, select, button, [contenteditable]') ||
                 element.closest('input, textarea, select, button, [contenteditable]');
 
@@ -1625,14 +1663,9 @@ export default {
             const isMarkedInteractive = element.closest('[data-interactive="true"], .interactive, .clickable');
             const isDragHandle = element.closest('.drag-handle');
 
-            const isPopupElement = element.closest('.popup-content-area, .draggable-popup, [data-popup="true"]');
-
+            // Node drag handles should NOT be treated as interactive widgets
             if (isDragHandle) {
                 return false;
-            }
-
-            if (isPopupElement) {
-                return true;  // Don't intercept popup interactions
             }
 
             return isFormElement || isQuasarElement || isWidgetContainer || isMarkedInteractive;
