@@ -86,7 +86,7 @@ class UIEdge:
         self.sync_event_emitter = sync_event_emitter
         
         # Generate unique ID for this UIEdge
-        self.ui_edge_id = f"ui-edge-{id(self)}"
+        self.ui_edge_id = wrapper.connection_uuid
         
         # Track current visual state to detect changes
         self._current_visual_state: Optional[EdgeVisualState] = None
@@ -139,7 +139,7 @@ class UIEdge:
             )
         
         # State: WARNING (adapter chain changed)
-        if wrapper_state.warning_rebuild:
+        if wrapper_state.warning_chain_rebuild:
             return EdgeVisualState(
                 connection_uuid=self.wrapper.connection_uuid,
                 stroke_color="#F59E0B",  # Orange/Amber
@@ -211,24 +211,8 @@ class UIEdge:
         
         Returns:
             Dict with connection information
-        """
-        metrics = self.wrapper.get_metrics()
-        
-        # Add UI-specific information
-        if self._current_visual_state:
-            metrics['ui_edge_id'] = self.ui_edge_id
-            metrics['visual_state'] = {
-                'color': self._current_visual_state.stroke_color,
-                'width': self._current_visual_state.stroke_width,
-                'style': (
-                    'dashed' 
-                    if self._current_visual_state.stroke_dasharray 
-                    else 'solid'
-                ),
-                'opacity': self._current_visual_state.opacity
-            }
-        
-        return metrics
+        """                
+        return self.wrapper.get_metrics()
 
     def cleanup(self):
         """
@@ -255,7 +239,7 @@ class UIEdge:
 
     def has_warning(self) -> bool:
         """Check if connection has warnings"""
-        return bool(self.wrapper.state.warning_rebuild) if self.wrapper else False
+        return bool(self.wrapper.state.warning_chain_rebuild) if self.wrapper else False
 
     def get_connection_uuid(self) -> str:
         """Get the connection UUID"""

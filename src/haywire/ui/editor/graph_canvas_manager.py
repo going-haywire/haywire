@@ -182,8 +182,7 @@ class GraphCanvasManager:
             self.context_menu = PopupContextMenu(
                 node_factory=self.node_factory,
                 on_emit_event=self._handle_canvas_event,
-                clipboard_checker=self._has_clipboard_content,
-                edge_metrics_provider=self._get_edge_metrics
+                clipboard_checker=self._has_clipboard_content
             )
 
     def _handle_canvas_event(self, event: BaseGraphEvent):
@@ -324,10 +323,13 @@ class GraphCanvasManager:
                 f"at ({event.screenX}, {event.screenY})"
             )
             if self.context_menu:
+                # Get metrics directly and pass to menu
+                metrics = self._get_edge_metrics(event.connectionUUID)
                 self.context_menu.show_connection_menu(
                     event.screenX,
                     event.screenY,
-                    event.connectionUUID
+                    event.connectionUUID,
+                    metrics
                 )
         
         elif isinstance(event, ContextMenuSelectedEvent):

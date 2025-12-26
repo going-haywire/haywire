@@ -33,14 +33,12 @@ class PopupContextMenu:
     def __init__(self, 
                  node_factory: NodeFactory,
                  on_emit_event: Optional[Callable[[object], None]] = None,
-                 clipboard_checker: Optional[Callable[[], bool]] = None,
-                 edge_metrics_provider: Optional[Callable[[str], dict]] = None):
+                 clipboard_checker: Optional[Callable[[], bool]] = None):
                 
         self.node_factory = node_factory
         # New event system
         self._on_emit_event = on_emit_event
         self._clipboard_checker = clipboard_checker
-        self._edge_metrics_provider = edge_metrics_provider
         
         self._current_popup: Optional[Popup] = None
         self._menu_data: dict = {}
@@ -230,20 +228,18 @@ class PopupContextMenu:
         popup.open()
         self._current_popup = popup
     
-    def show_connection_menu(self, x: float, y: float, connection_id: str):
+    def show_connection_menu(
+        self,
+        x: float,
+        y: float,
+        connection_id: str,
+        metrics: dict
+    ):
         """Show context menu for connection operations with detailed metrics."""
         self._close_current_menu()
         
         # Store connection ID for operations  
         self._menu_data = {'connection_id': connection_id}
-        
-        # Get metrics if provider is available
-        metrics = {}
-        if self._edge_metrics_provider:
-            try:
-                metrics = self._edge_metrics_provider(connection_id)
-            except Exception as e:
-                print(f"Error getting edge metrics: {e}")
                 
         # Create context menu popup positioned at cursor
         popup = Popup.create_context_menu("Connection Info", x + 5, y + 5)

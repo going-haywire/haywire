@@ -63,51 +63,13 @@ class AdapterFactory:
             self._on_adapter_lifecycle_event
         )
 
-    def rebuild_chain(
-        self,
-        source_type: type[IType],
-        target_type: type[IType],
-        connection_uuid: str,
-        max_depth: int = 3
-    ) -> tuple[Optional[IAdapter], Optional[str], bool]:
-        """
-        Rebuild adapter chain (used during hot reload).
-        
-        Returns:
-            (first_adapter, error, chain_changed)
-            
-        The chain_changed flag indicates if adapters are different,
-        which should trigger a warning to the user.
-        """
-        # Get old adapter keys for comparison
-        old_adapter_keys = self._edge_to_adapters.get(connection_uuid, None)
-        
-        # Unregister old dependencies
-        self._unregister_edge_dependencies(connection_uuid)
-        
-        # Create new chain
-        first_adapter, error, _ = self.create_chain(
-            source_type,
-            target_type,
-            connection_uuid,
-            max_depth
-        )
-        
-        # Check if chain changed
-        chain_changed = False
-        if first_adapter and old_adapter_keys is not None:
-            new_adapter_keys = set(first_adapter._get_registry_keys())
-            chain_changed = (old_adapter_keys != new_adapter_keys)
-        
-        return (first_adapter, error, chain_changed)
-
     def create_chain(
         self,
         source_type: type[IType],
         target_type: type[IType],
         connection_uuid: str,
         max_depth: int = 3
-    ) -> tuple[Optional[IAdapter], Optional[str], bool]:
+    ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
         Create adapter chain, handling scalar and compound types.
         
@@ -138,7 +100,7 @@ class AdapterFactory:
             max_depth: Maximum chain length (default 3)
             
         Returns:
-            (first_adapter or None, error_message or None, chain_changed: bool)
+            (first_adapter or None, error_message or None)
             
         Example:
             first_adapter, error = factory.create_chain(
@@ -151,7 +113,7 @@ class AdapterFactory:
         """
         # Direct type match - no adapters needed
         if source_type == target_type:
-            return (ReturnAdapter(), None, False)
+            return (ReturnAdapter(), None)
         
         # Determine if types are compound
         source_is_compound = issubclass(source_type, CompoundType)
@@ -198,17 +160,20 @@ class AdapterFactory:
                 (
                     f"Cannot convert between scalar and compound types: "
                     f"{source_type.__name__} → {target_type.__name__}"
-                ), False
+                )
             )
         
         # Register dependencies ONLY at top level
         if first_adapter and error is None:
+            # Unregister old dependencies
+            self._unregister_edge_dependencies(connection_uuid)
+            # Register new dependencies
             self._register_edge_dependencies(
                 connection_uuid,
                 first_adapter._get_registry_keys()
             )
         
-        return (first_adapter, error, False)
+        return (first_adapter, error)
     
     def _create_scalar_chain(
         self,

@@ -32,7 +32,7 @@ class Edge:
     edge_type: FlowType
     
     # Adapter chain metadata (for serialization/deserialization)
-    adapter_registry_keys: List[str] = field(default_factory=list)
+    chain_adapter_keys: List[str] = field(default_factory=list)
     """
     List of adapter registry keys in execution order.
     Example: ['temp_to_float', 'float_to_int']
@@ -50,7 +50,7 @@ class Edge:
             'input_node_id': self.input_node_id,
             'inlet_pin_id': self.inlet_pin_id,
             'edge_type': self.edge_type.value,
-            'adapter_registry_keys': self.adapter_registry_keys,
+            'adapter_registry_keys': self.chain_adapter_keys,
             'connection_uuid': self.connection_uuid
         }
     

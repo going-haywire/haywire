@@ -40,7 +40,7 @@ class EdgeWrapperState:
     """The edge has been registered with the graph"""
     is_executing: bool = False
     """Edge is currently transforming data"""
-    warning_rebuild: str = ""
+    warning_chain_rebuild: str = ""
     """rebuilding adapter chain produced a different chain"""
     warning_port_validation: str = ""
     """port validation warning message"""
@@ -66,6 +66,8 @@ class EdgeWrapperState:
     """Number of transform() errors"""
     last_error: Optional[str] = None
     """Last transform() error message"""
+    chain_adapter_keys: List[str] = field(default_factory=list)
+    """Registry keys of adapters in the chain"""
 
 
 class EdgeWrapper:
@@ -106,7 +108,10 @@ class EdgeWrapper:
         self.outlet_port_id = outlet_port_id
         self.input_node_id = input_node_id
         self.inlet_port_id = inlet_port_id
-                
+
+        # Edge type (may be overridden during registration)
+        self._edge_type = edge_type
+
         # Generate connection UUID
         self.connection_uuid = generate_connection_uuid(
             output_node_id, outlet_port_id, input_node_id, inlet_port_id
@@ -117,10 +122,7 @@ class EdgeWrapper:
 
         # Adapter factory reference
         self._adapter_factory: Optional['AdapterFactory'] = None
-       
-        # First adapter in chain (created during registration)
-        self._first_adapter: Optional[IAdapter] = None
-        
+               
         # Node wrapper references (set during registration)
         self._output_wrapper: Optional['NodeWrapper'] = None
         self._input_wrapper: Optional['NodeWrapper'] = None
@@ -128,16 +130,16 @@ class EdgeWrapper:
         # DataPort references (set during registration)
         self._outlet_port: Optional['DataPort'] = None
         self._inlet_port: Optional['DataPort'] = None
-        
+
+        # First adapter in chain (created during registration)
+        self._first_adapter: Optional[IAdapter] = None
+
         # State management
         self.state = EdgeWrapperState(creation_time=time.time())
         
         # Lifecycle event subscribers (for UIEdge)
         self._lifecycle_subscribers: List[LiveCycleBatchCallback] = []
         
-        # Edge type (may be overridden during registration)
-        self._edge_type = edge_type
-
         # Create Edge instance in any case
         self._edge = Edge(
             output_node_id=self.output_node_id,
@@ -145,24 +147,15 @@ class EdgeWrapper:
             input_node_id=self.input_node_id,
             inlet_pin_id=self.inlet_port_id,
             edge_type=self._edge_type,
-            adapter_registry_keys=([]),
+            chain_adapter_keys=([]),
             connection_uuid=self.connection_uuid
         )
 
     def initialize(self, graph: 'BaseGraph') -> Optional['EdgeWrapper']:
         """
-        Initialize edge wrapper (similar to NodeWrapper.initialize).
-        
-        This is the second initialization step where we:
-        1. Get node wrapper references
-        2. Get DataPort references
-        3. Determine edge type
-        4. Validate compatibility
-        5. Create adapter chain
-        6. Create Edge instance
-        7. Subscribe to adapter factory
-        
-        Does NOT add wrapper to graph - that's the caller's responsibility.
+        Initialize edge wrapper 
+                
+        Does neiter add wrapper to graph nor build the adapter chain - that's the caller's responsibility.
         
         Args:
             graph: The graph containing this edge
@@ -173,19 +166,50 @@ class EdgeWrapper:
         self._graph = graph
         self._adapter_factory = graph.adapter_factory
 
-        self._validate_port_types(graph)
-
-        self._build_adapter_chain()
-
         # Subscribe to adapter factory for hot reload 
         self._adapter_factory.register_edge_callback(
             self.connection_uuid,
             self._on_adapter_lifecycle_event
         )
 
-        self.refresh_state()
-
         return self
+
+    def rebuild(self):
+        """
+        Build edge wrapper (including rebuild adapter chain).        
+        Does **not** notify lifecycle subscribers.
+        """
+        logger.debug(
+            f"Start edge rebuilding: {self.connection_uuid} ... "
+        )
+        self._validate_port_types()
+
+        self._build_adapter_chain()
+            
+        self.refresh_state()        
+
+        logger.debug(
+            f".. rebuilding edge done."
+        )
+
+
+    def refresh(self):
+        """
+        Refresh edge wrapper state without rebuilding adapter chain.  
+        Does notify lifecycle subscribers.      
+        """
+        logger.debug(
+            f"Start edge refreshing: {self.connection_uuid} ... "
+        )
+        self._validate_port_types()
+            
+        self.refresh_state()        
+
+        self._notify_lifecycle_subscribers()
+
+        logger.debug(
+            f".. refreshing edge done."
+        )
 
     def _build_adapter_chain(self):
         """
@@ -201,39 +225,42 @@ class EdgeWrapper:
                 
                 outlet_field = self._outlet_port.data
                 source_type = outlet_field.type_cls
-                
-                # Build adapter chain via factory
-                first_adapter, error, chain_changed = (
-                    self._adapter_factory.rebuild_chain(
-                        source_type,
-                        target_type,
-                        self.connection_uuid,
-                    )
+                                               
+                # Create new chain
+                first_adapter, error = self._adapter_factory.create_chain(
+                    source_type,
+                    target_type,
+                    self.connection_uuid
                 )
                 
-                # Warn if chain changed
-                if chain_changed:
-                    self.state.warning_rebuild = str(
-                        f"Edge {self.connection_uuid} adapter chain composition "
-                        f"changed during hot reload - graph behavior may differ!"
-                    )
-                else:
-                    self.state.warning_rebuild = ""
-
                 if first_adapter:
+                    # Check for chain changes on rebuild
+                    if self.state.chain_adapter_keys is not None:
+                        old_adapter_keys = set(self.state.chain_adapter_keys)
+                        new_adapter_keys = set(first_adapter._get_registry_keys())
+                        if old_adapter_keys != new_adapter_keys:
+                            self.state.warning_chain_rebuild = (
+                                f"Adapter chain composition changed during hot reload. "
+                                f"From {' > '.join(old_adapter_keys)} "
+                                f"to {' > '.join(new_adapter_keys)}. "
+                                f"Graph behavior may differ!"
+                            )
+                    # Set first adapter
                     self._first_adapter = first_adapter
+                    self.state.chain_adapter_keys = first_adapter._get_registry_keys()
+                    
                 else:
                     self.state.error_build = HaywireException.create(
                         message=f"Edge adapter creation failed: {error}",
                     ).enrich(
                         operation="Adapter Chain Creation",
                         suggestions=[
-                            "Check that libraries with required adapters are registered",
+                            "Check if libraries with required adapters are registered",
                             "Create custom adapters if needed for your data types"]
                     )
                     self.state.error_build.log()
                     self.state.is_built = False
-                    self.state.warning_rebuild = ""
+                    self.state.warning_chain_rebuild = ""
                     return
                                             
             self.state.is_built = True
@@ -247,15 +274,15 @@ class EdgeWrapper:
                 category="Adapter Creation Error"
             ).enrich(
                 suggestions=[
-                    "Check that libraries with required adapters are registered",
+                    "Check if libraries with required adapters are registered",
                     "Create custom adapters if needed for your data types"]
             )
             self.state.error_build.log()
             self.state.is_built = False
-            self.state.warning_rebuild = ""
+            self.state.warning_chain_rebuild = ""
 
 
-    def _validate_port_types(self, graph: 'BaseGraph'):
+    def _validate_port_types(self):
         """
         Validate connection between ports.
 
@@ -272,8 +299,8 @@ class EdgeWrapper:
 
         try:
             # Get node wrapper references
-            self._output_wrapper = graph.get_node_wrapper(self.output_node_id)
-            self._input_wrapper = graph.get_node_wrapper(self.input_node_id)
+            self._output_wrapper = self._graph.get_node_wrapper(self.output_node_id)
+            self._input_wrapper = self._graph.get_node_wrapper(self.input_node_id)
             
             if not self._output_wrapper or not self._input_wrapper:
                 raise Exception(
@@ -327,29 +354,16 @@ class EdgeWrapper:
             self.state.is_port_type_validated = False            
             
 
-    def transform(self, value: Any) -> Any:
+    def test(self) -> bool:
         """
-        Transform value through adapter chain.
+        test adapter chain with test value.
         
         This method will be referenced by the outlet DataPort for
         data transformation during graph execution.
         
-        Args:
-            value: Source value from outlet
-            
         Returns:
-            Transformed value ready for inlet
+            True if test passes, False otherwise
             
-        Raises:
-            HaywireException: If edge is invalid or transformation fails
-            
-        Example:
-            # Store reference in outlet port
-            outlet_port.edge_transform = edge_wrapper.transform
-            
-            # During execution
-            transformed = outlet_port.edge_transform(raw_value)
-            inlet_port.set_value(transformed)
         """
 
         try:
@@ -357,7 +371,7 @@ class EdgeWrapper:
             start_time = time.perf_counter()
             self.state.is_executing = True
 
-            result = self._first_adapter.execute(value)
+            result = self._first_adapter.execute(34)
             
             # Update metrics
             execution_time = (time.perf_counter() - start_time) * 1000
@@ -404,27 +418,27 @@ class EdgeWrapper:
                 
                 self.state.error_build.log()
                 self.state.is_built = False
-                self.state.warning_rebuild = ""
+                self.state.warning_chain_rebuild = ""
 
                 self.refresh_state()
+                self._notify_lifecycle_subscribers()
+
                 return  # abort on first warning/error           
 
-        self._validate_port_types(self._graph)
-
-        self._build_adapter_chain()
+        self.rebuild()
 
         self._graph.validate_edge_wrapper(self)
-            
-        self.refresh_state()
+
+        self._notify_lifecycle_subscribers()
 
     def refresh_state(self, validate: bool = True):
         """
-        Refresh edge state and notify lifecycle subscribers.
+        Refresh edge state without notifying lifecycle subscribers.
         """
 
         # Update Edge instance with new adapter keys
         if self._edge and self._first_adapter:
-            self._edge.adapter_registry_keys = (
+            self._edge.chain_adapter_keys = (
                 self._first_adapter._get_registry_keys()
             )
 
@@ -453,16 +467,17 @@ class EdgeWrapper:
 
         if self.state.warning_port_validation:
             self.state.warning_main = self.state.warning_port_validation
-        elif self.state.warning_rebuild:
-            self.state.warning_main = self.state.warning_rebuild
+        elif self.state.warning_chain_rebuild:
+            self.state.warning_main = self.state.warning_chain_rebuild
         else:
             self.state.warning_main = ""
 
-        # Notify subscribers
-        self._notify_lifecycle_event()
 
-    def _notify_lifecycle_event(self):
-        """Notify all subscribers of lifecycle event"""
+    def _notify_lifecycle_subscribers(self):
+        """
+        Notify all subscribers of lifecycle event
+        These are most likely UIEdge instances.
+        """
         for callback in self._lifecycle_subscribers:
             try:
                 callback()
@@ -504,7 +519,7 @@ class EdgeWrapper:
         ):
             errors.append("DATA edge missing adapter chain")
         
-        if self.state.warning_rebuild:
+        if self.state.warning_chain_rebuild:
             errors.append(
                 "WARNING: Adapter chain changed during hot reload - "
                 "graph behavior may differ"

@@ -311,6 +311,7 @@ class BaseGraph:
         # Initialize wrapper (returns self if successful)
         if wrapper.initialize(self):
             # Add to graph's collection
+            wrapper.rebuild()
             return self.add_edge_wrapper(wrapper)
         else:
             return None
@@ -454,7 +455,7 @@ class BaseGraph:
                     else:
                         ew.state.is_outlet_validated = False
                     if ew.state.is_valid:
-                        ew.refresh_state()
+                        ew.refresh()
         return port
 
     def _remove_edge_on_port(
@@ -496,7 +497,7 @@ class BaseGraph:
                     else:
                         ew.state.is_outlet_validated = False
             for ew in edges_wrps:
-                ew.refresh_state()
+                ew.refresh()
  
         return port
 
