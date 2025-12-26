@@ -311,6 +311,17 @@ export default {
   pointer-events: auto;
   cursor: auto;
 }
+.zoom-pan-container .popup-content-area,
+.zoom-pan-container .popup-content-area *,
+.zoom-pan-container .draggable-popup,
+.zoom-pan-container .q-card {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  pointer-events: auto;
+  cursor: auto;
+}
 
 /* Specific cursor styles for different interactive elements */
 .zoom-pan-container .drag-handle {

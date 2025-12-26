@@ -463,6 +463,17 @@ export default {
 
         handleMouseDown(e) {
             if (e.button === 2) return; // Skip right-click
+
+            // Skip if clicking on high z-index overlays (popups, dialogs)
+            const target = e.target;
+            const overlay = target.closest('[style*="z-index: 1000"], .draggable-popup, .popup-content-area');
+            if (overlay) {
+                // Check if this overlay is above the canvas
+                const overlayZIndex = parseInt(window.getComputedStyle(overlay).zIndex) || 0;
+                if (overlayZIndex >= 1000) {
+                    return; // Let the popup handle this event
+                }
+            }
             
             const clickTime = Date.now();
             this.selectionState.lastClickTime = clickTime;
@@ -1613,9 +1624,15 @@ export default {
             const isWidgetContainer = element.closest('.widget-container');
             const isMarkedInteractive = element.closest('[data-interactive="true"], .interactive, .clickable');
             const isDragHandle = element.closest('.drag-handle');
-            
+
+            const isPopupElement = element.closest('.popup-content-area, .draggable-popup, [data-popup="true"]');
+
             if (isDragHandle) {
                 return false;
+            }
+
+            if (isPopupElement) {
+                return true;  // Don't intercept popup interactions
             }
 
             return isFormElement || isQuasarElement || isWidgetContainer || isMarkedInteractive;
