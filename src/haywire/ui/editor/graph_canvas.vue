@@ -465,21 +465,19 @@ export default {
         handleMouseDown(e) {
             if (e.button === 2) return; // Skip right-click
 
-            // Check for connection pin FIRST - before any other checks
-            // Pins must work even if they're inside interactive elements
+            // 1. Check for connection pin FIRST - before anything else
             const pin = e.target.closest('.connection-pin');
             if (pin) {
                 this._startConnectionDrag(e, pin);
                 return;
             }
 
-            // Skip if clicking inside a popup - let the popup handle its own events
+            // 2. Skip if clicking inside a popup - let popup handle it
             const popupElement = e.target.closest(
                 '[data-popup-container="true"], ' +
                 '[data-popup-drag-handle="true"], ' +
                 '[data-popup="true"], ' +
                 '.popup-card, ' +
-                '.popup-overlay, ' +
                 '.popup-content-area, ' +
                 '.popup-title-bar'
             );
@@ -488,34 +486,23 @@ export default {
                 return;
             }
 
-            // Skip if clicking on high z-index overlays (popups, dialogs)
-            const target = e.target;
-            const overlay = target.closest('[style*="z-index"]');
-            if (overlay) {
-                const overlayZIndex = parseInt(window.getComputedStyle(overlay).zIndex) || 0;
-                if (overlayZIndex >= 1000) {
-                    console.log('Click on high z-index overlay (' + overlayZIndex + ') - skipping');
-                    return;
-                }
-            }
-            
             const clickTime = Date.now();
             this.selectionState.lastClickTime = clickTime;
 
-            // Check for interactive widgets
+            // 3. Check for interactive widgets (but NOT drag handles)
             if (this._isInteractiveWidgetElement(e.target)) {
                 console.log('Click on interactive widget element - skipping drag');
                 return;
             }
 
-            // Check for elements that can be dragged
+            // 4. Check for elements that can be dragged (nodes)
             const draggableElement = this._findDraggableElement(e.target);
             if (draggableElement) {
                 this._startUnifiedDrag(e, draggableElement);
                 return;
             }
 
-            // Start box selection on empty canvas
+            // 5. Start box selection on empty canvas
             this._startBoxSelection(e);
         },
 
@@ -1632,27 +1619,28 @@ export default {
         },
 
         _isInteractiveWidgetElement(element) {
-            // Connection pins are NOT interactive widgets - they need special handling
-            // This check ensures pins aren't blocked by being inside interactive containers
+            // Connection pins are NOT interactive widgets
             if (element.closest('.connection-pin')) {
                 return false;
             }
 
-            // Check for popup elements - these handle their own interactions entirely
+            // Node drag handles are NOT interactive widgets - they should be draggable
+            if (element.closest('.drag-handle')) {
+                return false;
+            }
+
+            // Popup elements ARE interactive - handled separately in handleMouseDown
             const isPopupElement = element.closest(
                 '[data-popup-container="true"], ' +
                 '[data-popup-drag-handle="true"], ' +
-                '[data-popup="true"], ' +
                 '.popup-card, ' +
-                '.popup-overlay, ' +
-                '.popup-content-area, ' +
-                '.popup-title-bar, ' +
-                '.popup-backdrop'
+                '.popup-content-area'
             );
             if (isPopupElement) {
                 return true;
             }
 
+            // ... rest of your existing checks ...
             const isFormElement = element.matches('input, textarea, select, button, [contenteditable]') ||
                 element.closest('input, textarea, select, button, [contenteditable]');
 
@@ -1661,12 +1649,6 @@ export default {
 
             const isWidgetContainer = element.closest('.widget-container');
             const isMarkedInteractive = element.closest('[data-interactive="true"], .interactive, .clickable');
-            const isDragHandle = element.closest('.drag-handle');
-
-            // Node drag handles should NOT be treated as interactive widgets
-            if (isDragHandle) {
-                return false;
-            }
 
             return isFormElement || isQuasarElement || isWidgetContainer || isMarkedInteractive;
         },
