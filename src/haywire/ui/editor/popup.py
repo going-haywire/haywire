@@ -221,13 +221,19 @@ class Popup:
     @classmethod
     def create_context_menu(cls, title: str, x: float, y: float, **kwargs):
         """Convenience method to create a context menu positioned at coordinates"""
+        # Set defaults that can be overridden by kwargs
+        defaults = {
+            'width': "auto",
+            'height': "auto",
+            'backdrop_click_close': True,
+            'backdrop_color': "transparent"
+        }
+        # Merge defaults with kwargs (kwargs override defaults)
+        config = {**defaults, **kwargs}
+        
         return cls(
             title=title,
             position_x=x,
             position_y=y,
-            width="auto",
-            height="auto",
-            backdrop_click_close=True,
-            backdrop_color="transparent",
-            **kwargs
+            **config
         )

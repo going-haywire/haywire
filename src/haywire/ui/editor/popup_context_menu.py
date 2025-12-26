@@ -15,7 +15,6 @@ from typing import List, Optional, Callable
 
 from haywire.core.graph.edge import Edge
 from haywire.core.node.factory import NodeFactory
-from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.graph.edge_wrapper import EdgeWrapperState
 
 from .popup import Popup
@@ -26,7 +25,7 @@ from .event_definitions import (
     UserPasteClipboardEvent
 )
 from .node_menu_builder import NodeMenuBuilder
-from haywire.ui.errors.error_info import error_render_detail
+from .connection_info_popup import ConnectionInfoPopup
 
 
 class PopupContextMenu:
@@ -48,6 +47,9 @@ class PopupContextMenu:
         # Node menu builder for creating hierarchical menus
         self._menu_builder = NodeMenuBuilder(node_factory)
         self._recent_nodes: List[str] = []  # Track recently created nodes
+        
+        # Connection info popup
+        self._connection_info_popup = ConnectionInfoPopup()
         
         # Setup hot reload listener
         self._setup_hot_reload_listener()
@@ -138,9 +140,16 @@ class PopupContextMenu:
         
     # Connection Actions
     def _inspect_connection(self, connection_id: str):
-        """Handle connection inspection."""
-        print(f"[PopupContextMenu] Not Yet implemented: Inspecting connection {connection_id}")
-        # not yet implemented
+        """Handle connection inspection - show detailed popup."""
+        edge = self._menu_data.get('edge')
+        state = self._menu_data.get('state')
+        
+        if edge and state:
+            # Get cursor position to show popup near the menu
+            x = self._menu_data.get('x', 100)
+            y = self._menu_data.get('y', 100)
+            self._connection_info_popup.show(x, y, connection_id, edge, state)
+        
         self._close_current_menu()
     
 
@@ -241,25 +250,31 @@ class PopupContextMenu:
         """Show context menu for connection operations with detailed metrics."""
         self._close_current_menu()
         
-        # Store connection ID for operations  
-        self._menu_data = {'connection_id': connection_id}
-                
+        # Store connection data for operations  
+        self._menu_data = {
+            'connection_id': connection_id,
+            'edge': edge,
+            'state': state,
+            'x': x,
+            'y': y
+        }
+        
         # Create context menu popup positioned at cursor
-        popup = Popup.create_context_menu("Connection Info", x + 5, y + 5)
+        popup = Popup.create_context_menu("Connection Menu", x + 5, y + 5)
         
         with popup:
             with ui.column().classes('w-full gap-1'):
-                # Actions                
-                # Error details if present (using error_render_detail)
-                error = state.error_main
-                if error and isinstance(error, HaywireException):
-                    ui.label(f"Error: {error.category}").classes(
-                        'text-sm text-gray-700 px-3 py-1'
-                    )                    
-                    ui.separator()
-                    # Render the error detail with button to show full details
-                    error_render_detail(error)
+                # Quick status indicator
+                is_valid = state.is_valid
+                status_icon = '✓' if is_valid else '✗'
+                status_color = 'text-green-600' if is_valid else 'text-red-600'
+                ui.label(f"Status: {status_icon}").classes(
+                    f'text-sm {status_color} px-3 py-1 font-bold'
+                )
                 
+                ui.separator()
+                
+                # Actions
                 btn1 = ui.button(
                     '🔍 Inspect Connection',
                     on_click=lambda: self._inspect_connection(connection_id)
@@ -279,63 +294,6 @@ class PopupContextMenu:
                     'w-full justify-start px-3 py-2 '
                     'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
                 )
-
-                ui.separator()
-
-                # Connection UUID (shortened)
-                ui.label(f"Edge: {edge.output_node_id} -> {edge.input_node_id}" ).classes(
-                    'text-xs text-gray-700 px-3 py-1'
-                )
-                ui.label(f"Port: {edge.outlet_port_id} -> {edge.inlet_port_id}" ).classes(
-                    'text-xs text-gray-700 px-3 py-1'
-                )
-                
-                # Separator
-                ui.separator()
-                
-                # Connection Type
-                ui.label(f"Type: {edge.edge_type}").classes(
-                    'text-sm text-gray-700 px-3 py-1'
-                )
-                
-                # Valid Status
-                is_valid = state.is_valid
-                status_icon = '✓' if is_valid else '✗'
-                status_color = 'text-green-600' if is_valid else 'text-red-600'
-                ui.label(f"Valid: {status_icon}").classes(
-                    f'text-sm {status_color} px-3 py-1'
-                )
-                                
-                # Adapter Chain Info (if available)
-                if edge.chain_adapter_keys:
-                    ui.separator()
-                    ui.label("Adapter Chain:").classes(
-                        'text-xs font-bold text-gray-600 px-3 py-1'
-                    )
-                    ui.label(str(edge.chain_adapter_keys)).classes(
-                        'text-xs text-gray-700 px-3 py-1'
-                    )
-
-                    # Warning if present
-                    warning = state.warning_main
-                    if warning:
-                        ui.label(f"⚠ {warning}").classes(
-                            'text-xs text-orange-600 px-3 py-1'
-                        )
-
-                    # Execution stats
-                    exec_count = state.execution_count
-                    ui.label(f"Executions: {exec_count}").classes(
-                        'text-xs text-gray-600 px-3 py-1'
-                    )
-                    
-                    avg_time = state.average_execution_time_ms
-                    if avg_time > 0:
-                        ui.label(f"Avg Time: {avg_time:.2f}ms").classes(
-                            'text-xs text-gray-600 px-3 py-1'
-                        )
-                
-            
         
         popup.open()
         self._current_popup = popup
