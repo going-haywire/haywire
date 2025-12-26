@@ -5,17 +5,23 @@ from typing import Optional, Callable
 class Popup:
     """
     A reusable popup component for NiceGUI with drag support.
-    Uses NiceGUI's native event system for more reliable event handling.
+    Debug version to understand position reset issues.
     """
     
     _css_added = False
+    _global_handlers_initialized = False
     
     @classmethod
     def _ensure_css(cls):
         if not cls._css_added:
             ui.add_css('''
                 .popup-overlay { z-index: 5000 !important; }
-                .popup-card { z-index: 5001 !important; pointer-events: auto !important; }
+                
+                .popup-card {
+                    z-index: 5001 !important;
+                    pointer-events: auto !important;
+                }
+                
                 .popup-content-area {
                     user-select: text !important;
                     -webkit-user-select: text !important;
@@ -45,6 +51,156 @@ class Popup:
                 }
             ''')
             cls._css_added = True
+    
+    @classmethod
+    def _ensure_global_handlers(cls):
+        """Setup global drag handlers once."""
+        if cls._global_handlers_initialized:
+            return
+        
+        script = '''
+        (function() {
+            if (window._popupGlobalHandlersSetup) return;
+            window._popupGlobalHandlersSetup = true;
+            
+            window._popupDragState = null;
+            window._popupPositions = window._popupPositions || {};
+            window._popupAnimationFrames = window._popupAnimationFrames || {};
+            window._popupDebugCounter = 0;
+            
+            function enforcePosition(containerId) {
+                const container = document.getElementById(containerId);
+                const pos = window._popupPositions[containerId];
+                
+                if (!container || !pos) {
+                    if (window._popupAnimationFrames[containerId]) {
+                        cancelAnimationFrame(window._popupAnimationFrames[containerId]);
+                        delete window._popupAnimationFrames[containerId];
+                    }
+                    return;
+                }
+                
+                // Get current position
+                const rect = container.getBoundingClientRect();
+                const currentLeft = rect.left;
+                const currentTop = rect.top;
+                
+                // Debug every 60 frames (about once per second)
+                window._popupDebugCounter++;
+                if (window._popupDebugCounter % 60 === 0) {
+                    console.log('Position check:', {
+                        stored: pos,
+                        actual: { x: currentLeft, y: currentTop },
+                        styleLeft: container.style.left,
+                        styleTop: container.style.top
+                    });
+                }
+                
+                // Check if position needs correction (using getBoundingClientRect for accuracy)
+                if (Math.abs(currentLeft - pos.x) > 2 || Math.abs(currentTop - pos.y) > 2) {
+                    console.log('>>> POSITION DRIFT DETECTED! Correcting...', {
+                        stored: pos,
+                        actual: { x: currentLeft, y: currentTop }
+                    });
+                    
+                    container.style.cssText = `
+                        position: fixed !important;
+                        left: ${pos.x}px !important;
+                        top: ${pos.y}px !important;
+                        margin: 0 !important;
+                        transform: none !important;
+                        min-width: ${container.style.minWidth || 'auto'};
+                        max-width: 90vw;
+                        max-height: 90vh;
+                        overflow: auto;
+                        z-index: 5001;
+                        pointer-events: auto;
+                    `;
+                }
+                
+                window._popupAnimationFrames[containerId] = requestAnimationFrame(() => enforcePosition(containerId));
+            }
+            
+            window._startPopupPositionEnforcement = function(containerId, initialX, initialY) {
+                console.log('Starting position enforcement:', containerId, initialX, initialY);
+                window._popupPositions[containerId] = { x: initialX, y: initialY };
+                
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.style.cssText = `
+                        position: fixed !important;
+                        left: ${initialX}px !important;
+                        top: ${initialY}px !important;
+                        margin: 0 !important;
+                        transform: none !important;
+                        min-width: ${container.style.minWidth || 'auto'};
+                        max-width: 90vw;
+                        max-height: 90vh;
+                        overflow: auto;
+                        z-index: 5001;
+                        pointer-events: auto;
+                    `;
+                }
+                
+                if (!window._popupAnimationFrames[containerId]) {
+                    enforcePosition(containerId);
+                }
+            };
+            
+            window._stopPopupPositionEnforcement = function(containerId) {
+                console.log('Stopping position enforcement:', containerId);
+                if (window._popupAnimationFrames[containerId]) {
+                    cancelAnimationFrame(window._popupAnimationFrames[containerId]);
+                    delete window._popupAnimationFrames[containerId];
+                }
+                delete window._popupPositions[containerId];
+            };
+            
+            document.addEventListener('mousemove', function(e) {
+                const state = window._popupDragState;
+                if (!state || !state.isDragging) return;
+                
+                const container = document.getElementById(state.containerId);
+                if (!container) return;
+                
+                const dx = e.clientX - state.startX;
+                const dy = e.clientY - state.startY;
+                
+                let newX = state.initialX + dx;
+                let newY = state.initialY + dy;
+                
+                newX = Math.max(0, Math.min(newX, window.innerWidth - container.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - container.offsetHeight));
+                
+                // Update stored position
+                window._popupPositions[state.containerId] = { x: newX, y: newY };
+                
+                // Apply immediately
+                container.style.left = newX + 'px';
+                container.style.top = newY + 'px';
+                
+                e.preventDefault();
+            }, true);
+            
+            document.addEventListener('mouseup', function(e) {
+                const state = window._popupDragState;
+                if (!state || !state.isDragging) return;
+                
+                console.log('Drag ended, final position:', window._popupPositions[state.containerId]);
+                
+                const container = document.getElementById(state.containerId);
+                if (container) {
+                    container.classList.remove('popup-dragging');
+                }
+                
+                window._popupDragState = null;
+            }, true);
+            
+            console.log('Popup: Global handlers initialized');
+        })();
+        '''
+        ui.run_javascript(script)
+        cls._global_handlers_initialized = True
     
     def __init__(self, 
                  title: Optional[str] = None,
@@ -76,7 +232,6 @@ class Popup:
         self._backdrop = None
         self._is_open = False
         self._on_close_callback = None
-        self._drag_handlers_initialized = False
         
     def __enter__(self):
         if self._popup_element is not None:
@@ -91,7 +246,8 @@ class Popup:
     def _create_popup_structure(self):
         if self.position_x is not None and self.position_y is not None:
             popup_style = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 5000; display: none; pointer-events: none;'
-            content_style = f'position: fixed; left: {self.position_x}px; top: {self.position_y}px; min-width: {self.width}; height: {self.height}; max-width: 90vw; max-height: 90vh; overflow: auto; z-index: 5001; pointer-events: auto;'
+            # Minimal initial style - position will be set by JS
+            content_style = f'min-width: {self.width}; height: {self.height}; max-width: 90vw; max-height: 90vh; overflow: auto; z-index: 5001; pointer-events: auto;'
             backdrop_style = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: transparent; pointer-events: auto;'
         else:
             popup_style = f'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: {self.backdrop_color}; z-index: 5000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); pointer-events: auto;'
@@ -131,123 +287,79 @@ class Popup:
                     if self.title:
                         ui.separator()
                     
-                    # Setup drag using NiceGUI's event system
                     if self.draggable:
-                        self._setup_native_drag_events()
+                        self._setup_drag_handler()
                 
                 self._content_area = ui.column().classes('popup-content-area w-full interactive')
                 self._content_area._props['data-interactive'] = 'true'
     
-    def _setup_native_drag_events(self):
-        """Setup drag events using NiceGUI's native .on() method with js_handler."""
+    def _setup_drag_handler(self):
+        """Setup drag handler on title bar."""
         if not self._title_row or not self._content_container:
             return
         
         container_id = self._content_container.id
         
-        # Use NiceGUI's .on() with a js_handler that handles the drag start
-        # This ensures the event is properly registered through NiceGUI's system
         self._title_row.on(
             'mousedown',
             js_handler=f'''(e) => {{
-                // Skip if clicking on button
                 if (e.target.closest('button, .q-btn')) return;
-                
-                // Skip if menu is open
                 if (document.querySelector('.q-menu')) return;
-                
-                console.log('>>> NATIVE DRAG START <<<');
                 
                 const container = document.getElementById('c{container_id}');
                 if (!container) return;
                 
-                // Initialize drag state on window to make it globally accessible
+                const pos = window._popupPositions && window._popupPositions['c{container_id}'];
+                let currentX, currentY;
+                
+                if (pos) {{
+                    currentX = pos.x;
+                    currentY = pos.y;
+                }} else {{
+                    const rect = container.getBoundingClientRect();
+                    currentX = rect.left;
+                    currentY = rect.top;
+                }}
+                
+                console.log('Drag starting from:', currentX, currentY);
+                
                 window._popupDragState = {{
                     isDragging: true,
                     containerId: 'c{container_id}',
                     startX: e.clientX,
                     startY: e.clientY,
-                    initialLeft: container.getBoundingClientRect().left,
-                    initialTop: container.getBoundingClientRect().top
+                    initialX: currentX,
+                    initialY: currentY
                 }};
                 
                 container.classList.add('popup-dragging');
-                
                 e.preventDefault();
                 e.stopPropagation();
             }}'''
         )
     
-    def _setup_global_drag_handlers(self):
-        """Setup global mousemove/mouseup handlers for drag."""
-        if self._drag_handlers_initialized:
+    def _start_position_enforcement(self):
+        """Start the continuous position enforcement loop."""
+        if not self._content_container:
             return
         
-        container_id = self._content_container.id
+        container_id = f'c{self._content_container.id}'
+        initial_x = self.position_x if self.position_x is not None else 100
+        initial_y = self.position_y if self.position_y is not None else 100
         
-        script = f'''
-        (function() {{
-            // Only setup once globally
-            if (window._popupGlobalDragHandlersSetup) return;
-            window._popupGlobalDragHandlersSetup = true;
-            
-            console.log('Setting up global popup drag handlers');
-            
-            document.addEventListener('mousemove', function(e) {{
-                const state = window._popupDragState;
-                if (!state || !state.isDragging) return;
-                
-                const container = document.getElementById(state.containerId);
-                if (!container) return;
-                
-                const dx = e.clientX - state.startX;
-                const dy = e.clientY - state.startY;
-                
-                let newLeft = state.initialLeft + dx;
-                let newTop = state.initialTop + dy;
-                
-                // Keep within viewport
-                newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - container.offsetWidth));
-                newTop = Math.max(0, Math.min(newTop, window.innerHeight - container.offsetHeight));
-                
-                container.style.position = 'fixed';
-                container.style.left = newLeft + 'px';
-                container.style.top = newTop + 'px';
-                container.style.margin = '0';
-                container.style.transform = 'none';
-                
-                e.preventDefault();
-            }}, true);
-            
-            document.addEventListener('mouseup', function(e) {{
-                const state = window._popupDragState;
-                if (!state || !state.isDragging) return;
-                
-                console.log('>>> NATIVE DRAG END <<<');
-                
-                const container = document.getElementById(state.containerId);
-                if (container) {{
-                    container.classList.remove('popup-dragging');
-                }}
-                
-                window._popupDragState = null;
-            }}, true);
-            
-            window.addEventListener('blur', function() {{
-                const state = window._popupDragState;
-                if (state && state.isDragging) {{
-                    const container = document.getElementById(state.containerId);
-                    if (container) {{
-                        container.classList.remove('popup-dragging');
-                    }}
-                    window._popupDragState = null;
-                }}
-            }});
-        }})();
-        '''
+        ui.run_javascript(f'''
+            window._startPopupPositionEnforcement('{container_id}', {initial_x}, {initial_y});
+        ''')
+    
+    def _stop_position_enforcement(self):
+        """Stop the position enforcement loop."""
+        if not self._content_container:
+            return
         
-        ui.run_javascript(script)
-        self._drag_handlers_initialized = True
+        container_id = f'c{self._content_container.id}'
+        ui.run_javascript(f'''
+            window._stopPopupPositionEnforcement('{container_id}');
+        ''')
         
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._content_area:
@@ -267,14 +379,15 @@ class Popup:
             self._popup_element.style('display: flex')
             self._is_open = True
             
-            # Setup global drag handlers
-            if self.draggable:
-                ui.timer(0.1, self._setup_global_drag_handlers, once=True)
+            self._ensure_global_handlers()
+            ui.timer(0.05, self._start_position_enforcement, once=True)
             
     def close(self):
         if self._popup_element and self._is_open:
             self._popup_element.style('display: none')
             self._is_open = False
+            self._stop_position_enforcement()
+            
             if self._on_close_callback:
                 self._on_close_callback()
                 
@@ -286,6 +399,8 @@ class Popup:
                 
     def delete(self):
         if self._popup_element:
+            self._stop_position_enforcement()
+            
             self._popup_element.delete()
             self._popup_element = None
             self._content_container = None
@@ -293,7 +408,6 @@ class Popup:
             self._title_row = None
             self._backdrop = None
             self._is_open = False
-            self._drag_handlers_initialized = False
             
     def on_close(self, callback: Callable):
         self._on_close_callback = callback
@@ -321,28 +435,32 @@ if __name__ in {"__main__", "__mp_main__"}:
     
     def show_popup():
         popup = Popup(
-            title="Drag This Title Bar!",
+            title="Drag Me - Check Console!",
             width="400px",
             closable=True,
             backdrop_click_close=True,
             escape_close=True,
-            draggable=True
+            draggable=True,
+            position_x=200,
+            position_y=150
         )
         
         with popup:
-            ui.label("Check browser console for debug output")
-            ui.label("Try clicking on the title bar area (not the X button)")
+            ui.label("Open browser console (F12) to see position logs")
+            ui.label("Drag, then expand sections and watch console")
+            
             ui.separator()
-            ui.input("Text input works").classes('w-full')
-            ui.separator()
-            with ui.button("Menu Test"):
-                with ui.menu():
-                    ui.menu_item("Option 1", lambda: ui.notify("1"))
+            
+            with ui.expansion("Section 1", icon="folder"):
+                ui.label("Content of section 1")
+            
+            with ui.expansion("Section 2", icon="folder"):
+                ui.label("Content of section 2")
+                ui.input("Input field").classes('w-full')
         
         popup.open()
     
-    ui.label("Popup Native Events Test").classes('text-2xl font-bold')
-    ui.label("Open browser console (F12) and try to drag the popup").classes('text-gray-600')
+    ui.label("Popup Debug Test").classes('text-2xl font-bold')
     ui.button("Open Popup", on_click=show_popup).classes('mt-4')
     
     ui.run()
