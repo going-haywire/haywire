@@ -132,14 +132,14 @@ class DataPort(DataTypeIdentity):
         """Check if this is an inlet"""
         return False
     
-    def _add_connection(self, wrapper: EdgeWrapper) -> None:
+    def _add_link(self, wrapper: EdgeWrapper) -> None:
         """
-        Register a connection edge.
+        Register a linked edge.
 
-        If multiple connections are not allowed, replaces existing.
+        If multiple links are not allowed, replaces existing.
 
         Args:
-            wrapper:  EdgeWrapper representing the connection
+            wrapper:  EdgeWrapper representing the link
         """
         if self.allow_multiple_connections:
             self._edges.add(wrapper.connection_uuid)
@@ -148,38 +148,38 @@ class DataPort(DataTypeIdentity):
             self._edges = {wrapper.connection_uuid}
             self._edge_wrappers = {wrapper.connection_uuid: wrapper}
 
-    def _get_connections_uuid(self) -> list[str]:
+    def _get_linked_edges_uuid(self) -> list[str]:
         """
-        Get list of connected edge UUIDs.
+        Get list of linked edge UUIDs.
 
         Returns:
-            List of EdgeWrapper UUIDs connected to this port
+            List of EdgeWrapper UUIDs linked to this port
         """
         return list(self._edges)
 
-    def _is_connected(self, wrapper_uuid: str) -> bool:
+    def _is_linked(self, wrapper_uuid: str) -> bool:
         """
-        Check if connected to given edge.
+        Check if linked to given edge.
         Args:
             wrapper_uuid: UUID of EdgeWrapper to check
         Returns:
-            True if connected, False otherwise
+            True if linked, False otherwise
         """
         return wrapper_uuid in self._edges
     
-    def _clear_connection(self, wrapper_uuid: str) -> None:
+    def _clear_link(self, wrapper_uuid: str) -> None:
         """
-        Remove a connection edge.
+        Remove a linked edge.
 
         Args:
-            wrapper_uuid: UUID of EdgeWrapper representing the connection
+            wrapper_uuid: UUID of EdgeWrapper representing the link
         """
         self._edges.discard(wrapper_uuid)
         self._edge_wrappers.pop(wrapper_uuid, None)
 
-    def _clear_all_connections(self) -> None:
+    def _clear_all_links(self) -> None:
         """
-        Clear all connection edges.
+        Clear all linked edges.
         """
         self._edges.clear()
         self._edge_wrappers.clear()

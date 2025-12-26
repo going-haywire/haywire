@@ -324,13 +324,15 @@ class GraphCanvasManager:
             )
             if self.context_menu:
                 # Get metrics directly and pass to menu
-                metrics = self._get_edge_metrics(event.connectionUUID)
-                self.context_menu.show_connection_menu(
-                    event.screenX,
-                    event.screenY,
-                    event.connectionUUID,
-                    metrics
-                )
+                ui_edge = self.connection_paths.get(event.connectionUUID)
+                if ui_edge and ui_edge.wrapper:
+                    self.context_menu.show_connection_menu(
+                        event.screenX,
+                        event.screenY,
+                        event.connectionUUID,
+                        ui_edge.wrapper.edge,
+                        ui_edge.wrapper.get_state()
+                    )
         
         elif isinstance(event, ContextMenuSelectedEvent):
             print(
@@ -749,21 +751,6 @@ class GraphCanvasManager:
     def _has_clipboard_content(self) -> bool:
         """Check if clipboard has content available for pasting."""
         return self.clipboard is not None and len(self.clipboard.nodes) > 0
-    
-    def _get_edge_metrics(self, connection_uuid: str) -> dict:
-        """
-        Get edge metrics for context menu display.
-        
-        Args:
-            connection_uuid: Connection UUID to get metrics for
-            
-        Returns:
-            Dict with edge metrics and information
-        """
-        ui_edge = self.connection_paths.get(connection_uuid)
-        if ui_edge:
-            return ui_edge.get_metrics()
-        return {'connection_uuid': connection_uuid, 'error': 'UIEdge not found'}
     
     def _calculate_selection_bounds(self, node_ids: List[str]) -> Dict[str, float]:
         """Calculate bounding box of selected nodes."""

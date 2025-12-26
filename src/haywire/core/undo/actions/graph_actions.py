@@ -296,7 +296,7 @@ class RemoveElementsAction(ActionBase):
             if node_wrapper:
                 self.removed_node_wrappers[node_id] = node_wrapper
                 
-                all_edges = self.graph._get_all_connected_edges(node_id)
+                all_edges = self.graph._get_all_edges(node_id)
 
                 for edge in all_edges:
                     self.node_connected_edge_wrappers[edge.connection_uuid] = edge

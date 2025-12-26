@@ -124,10 +124,9 @@ class UIEdge:
         Returns:
             EdgeVisualState with appropriate styling
         """
-        wrapper_state = self.wrapper.state
         
         # State: INVALID (highest priority)
-        if not wrapper_state.is_valid or wrapper_state.error_main:
+        if not self.wrapper.is_valid:
             return EdgeVisualState(
                 connection_uuid=self.wrapper.connection_uuid,
                 stroke_color="#EF4444",  # Red
@@ -139,7 +138,7 @@ class UIEdge:
             )
         
         # State: WARNING (adapter chain changed)
-        if wrapper_state.warning_chain_rebuild:
+        if self.wrapper.has_warning():
             return EdgeVisualState(
                 connection_uuid=self.wrapper.connection_uuid,
                 stroke_color="#F59E0B",  # Orange/Amber
@@ -155,11 +154,16 @@ class UIEdge:
             connection_uuid=self.wrapper.connection_uuid,
             stroke_color="auto",  # Use gradient from pins
             stroke_width=2,
-            stroke_dasharray="",  # Solid
+            stroke_dasharray=self.calculate_dasharray(len(self.wrapper.edge.chain_adapter_keys)),  # Solid
             opacity=1.0,
             is_valid=True,
             has_warning=False
         )
+
+    def calculate_dasharray(self, chain_length: int) -> str:
+        if chain_length < 1:
+            return ""
+        return "40,2,2,2" 
 
     def _sync_to_ui(self):
         """
@@ -203,16 +207,6 @@ class UIEdge:
             f"warning={new_state.has_warning}"
         )
 
-    def get_metrics(self) -> dict:
-        """
-        Get connection metrics for context menu display.
-        
-        Delegates to EdgeWrapper.get_metrics() and adds UI-specific info.
-        
-        Returns:
-            Dict with connection information
-        """                
-        return self.wrapper.get_metrics()
 
     def cleanup(self):
         """
@@ -235,11 +229,7 @@ class UIEdge:
 
     def is_valid(self) -> bool:
         """Check if connection is in valid state"""
-        return self.wrapper.state.is_valid if self.wrapper else False
-
-    def has_warning(self) -> bool:
-        """Check if connection has warnings"""
-        return bool(self.wrapper.state.warning_chain_rebuild) if self.wrapper else False
+        return self.wrapper.is_valid() if self.wrapper else False
 
     def get_connection_uuid(self) -> str:
         """Get the connection UUID"""

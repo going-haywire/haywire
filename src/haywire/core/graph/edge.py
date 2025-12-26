@@ -24,9 +24,9 @@ class Edge:
     
     # Connection endpoints
     output_node_id: str
-    outlet_pin_id: str
+    outlet_port_id: str
     input_node_id: str
-    inlet_pin_id: str
+    inlet_port_id: str
     
     # Edge classification
     edge_type: FlowType
@@ -46,9 +46,9 @@ class Edge:
         """Serialize edge for graph save"""
         return {
             'output_node_id': self.output_node_id,
-            'outlet_pin_id': self.outlet_pin_id,
+            'outlet_port_id': self.outlet_port_id,
             'input_node_id': self.input_node_id,
-            'inlet_pin_id': self.inlet_pin_id,
+            'inlet_port_id': self.inlet_port_id,
             'edge_type': self.edge_type.value,
             'adapter_registry_keys': self.chain_adapter_keys,
             'connection_uuid': self.connection_uuid
@@ -59,9 +59,9 @@ class Edge:
         """Deserialize edge from graph load"""
         return cls(
             output_node_id=data['output_node_id'],
-            outlet_pin_id=data['outlet_pin_id'],
+            outlet_port_id=data['outlet_port_id'],
             input_node_id=data['input_node_id'],
-            inlet_pin_id=data['inlet_pin_id'],
+            inlet_port_id=data['inlet_port_id'],
             edge_type=FlowType(data['edge_type']),
             adapter_registry_keys=data.get('adapter_registry_keys', []),
             connection_uuid=data.get('connection_uuid', '')

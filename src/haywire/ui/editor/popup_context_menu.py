@@ -13,8 +13,10 @@ to avoid zoom/transform inheritance.
 from nicegui import ui
 from typing import List, Optional, Callable
 
+from haywire.core.graph.edge import Edge
 from haywire.core.node.factory import NodeFactory
 from haywire.core.errors.haywire_exception import HaywireException
+from haywire.core.graph.edge_wrapper import EdgeWrapperState
 
 from .popup import Popup
 from .event_definitions import (
@@ -233,7 +235,8 @@ class PopupContextMenu:
         x: float,
         y: float,
         connection_id: str,
-        metrics: dict
+        edge: Edge,
+        state: EdgeWrapperState
     ):
         """Show context menu for connection operations with detailed metrics."""
         self._close_current_menu()
@@ -246,68 +249,16 @@ class PopupContextMenu:
         
         with popup:
             with ui.column().classes('w-full gap-1'):
-                # Connection UUID (shortened)
-                ui.label(f"ID: {connection_id}").classes(
-                    'text-xs text-gray-500 px-3 py-1'
-                )
-                
-                # Separator
-                ui.separator()
-                
-                # Connection Type
-                edge_type = metrics.get('edge_type', 'unknown')
-                ui.label(f"Type: {edge_type}").classes(
-                    'text-sm text-gray-700 px-3 py-1'
-                )
-                
-                # Valid Status
-                is_valid = metrics.get('is_valid', False)
-                status_icon = '✓' if is_valid else '✗'
-                status_color = 'text-green-600' if is_valid else 'text-red-600'
-                ui.label(f"Valid: {status_icon}").classes(
-                    f'text-sm {status_color} px-3 py-1'
-                )
-
-                # Warning if present
-                warning = metrics.get('chain_changed_warning')
-                if warning:
-                    ui.label(f"⚠ {warning}").classes(
-                        'text-xs text-orange-600 px-3 py-1'
-                    )
-                
+                # Actions                
                 # Error details if present (using error_render_detail)
-                error = metrics.get('error')
+                error = state.error_main
                 if error and isinstance(error, HaywireException):
+                    ui.label(f"Error: {error.category}").classes(
+                        'text-sm text-gray-700 px-3 py-1'
+                    )                    
                     ui.separator()
                     # Render the error detail with button to show full details
                     error_render_detail(error)
-                
-                # Adapter Chain Info (if available)
-                if 'adapter_chain' in metrics:
-                    ui.separator()
-                    ui.label("Adapter Chain:").classes(
-                        'text-xs font-bold text-gray-600 px-3 py-1'
-                    )
-                    ui.label(metrics['adapter_chain']).classes(
-                        'text-xs text-gray-700 px-3 py-1'
-                    )
-                    
-                    # Execution stats
-                    exec_count = metrics.get('execution_count', 0)
-                    ui.label(f"Executions: {exec_count}").classes(
-                        'text-xs text-gray-600 px-3 py-1'
-                    )
-                    
-                    chain_metrics = metrics.get('chain_metrics', {})
-                    avg_time = chain_metrics.get('avg_time_ms', 0)
-                    if avg_time > 0:
-                        ui.label(f"Avg Time: {avg_time:.2f}ms").classes(
-                            'text-xs text-gray-600 px-3 py-1'
-                        )
-                
-                
-                # Actions
-                ui.separator()
                 
                 btn1 = ui.button(
                     '🔍 Inspect Connection',
@@ -328,6 +279,63 @@ class PopupContextMenu:
                     'w-full justify-start px-3 py-2 '
                     'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
                 )
+
+                ui.separator()
+
+                # Connection UUID (shortened)
+                ui.label(f"Edge: {edge.output_node_id} -> {edge.input_node_id}" ).classes(
+                    'text-xs text-gray-700 px-3 py-1'
+                )
+                ui.label(f"Port: {edge.outlet_port_id} -> {edge.inlet_port_id}" ).classes(
+                    'text-xs text-gray-700 px-3 py-1'
+                )
+                
+                # Separator
+                ui.separator()
+                
+                # Connection Type
+                ui.label(f"Type: {edge.edge_type}").classes(
+                    'text-sm text-gray-700 px-3 py-1'
+                )
+                
+                # Valid Status
+                is_valid = state.is_valid
+                status_icon = '✓' if is_valid else '✗'
+                status_color = 'text-green-600' if is_valid else 'text-red-600'
+                ui.label(f"Valid: {status_icon}").classes(
+                    f'text-sm {status_color} px-3 py-1'
+                )
+                                
+                # Adapter Chain Info (if available)
+                if edge.chain_adapter_keys:
+                    ui.separator()
+                    ui.label("Adapter Chain:").classes(
+                        'text-xs font-bold text-gray-600 px-3 py-1'
+                    )
+                    ui.label(str(edge.chain_adapter_keys)).classes(
+                        'text-xs text-gray-700 px-3 py-1'
+                    )
+
+                    # Warning if present
+                    warning = state.warning_main
+                    if warning:
+                        ui.label(f"⚠ {warning}").classes(
+                            'text-xs text-orange-600 px-3 py-1'
+                        )
+
+                    # Execution stats
+                    exec_count = state.execution_count
+                    ui.label(f"Executions: {exec_count}").classes(
+                        'text-xs text-gray-600 px-3 py-1'
+                    )
+                    
+                    avg_time = state.average_execution_time_ms
+                    if avg_time > 0:
+                        ui.label(f"Avg Time: {avg_time:.2f}ms").classes(
+                            'text-xs text-gray-600 px-3 py-1'
+                        )
+                
+            
         
         popup.open()
         self._current_popup = popup

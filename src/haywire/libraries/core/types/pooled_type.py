@@ -98,7 +98,7 @@ class PooledType(CompoundType[T]):
 # ============================================================================
 
 @dataclass
-class PooledField(CompoundField[Dict[str, T]]):
+class PooledField(CompoundField):
     """
     Field implementation for PooledType.
     

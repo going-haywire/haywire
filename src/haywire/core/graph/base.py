@@ -340,12 +340,12 @@ class BaseGraph:
 
         # Add to collection after updating connections!
         self.edge_wrappers[wrapper.connection_uuid] = wrapper
-        wrapper.state.is_registered = True
+        wrapper.set_as_registered(True)
 
         # this needs to be done after registration
-        self.validate_edge_wrapper(wrapper)
+        self.update_port_link(wrapper)
 
-        # Need to update states after validating
+        # Need to update states after updating links
         wrapper.refresh_state()
        
         return wrapper
@@ -368,53 +368,54 @@ class BaseGraph:
                 
         wrapper = self.edge_wrappers[connection_uuid]
         del self.edge_wrappers[connection_uuid]
-        wrapper.state.is_registered = False
+        wrapper.set_as_registered(False)
         
         # needs to be done after deregistration
-        self.validate_edge_wrapper(wrapper)
+        self.update_port_link(wrapper)
 
-        # for safety, mark as invalid
-        wrapper.state.is_valid = False
+        # Need to update states after updating links
+        wrapper.refresh_state()
  
         return wrapper
 
-    def validate_edge_wrapper(
+    # this method is also called by the edge wrapper when its state changes
+    def update_port_link(
             self,
             wrapper: 'EdgeWrapper'
-        ) -> bool:
+        ):
         """
-        Validate an EdgeWrapper's connection.
-        This causes a refresh of all the connections on the ports this edge connects to.
+        Updates the link of an EdgeWrapper to the data ports.
+        An edge beeing linked to a port means that the 
+        port knows about the edge and the edge is functional.
+        This causes an update of all the other connected edges on the ports 
+        this edge connects to and might cause other edges to change their 
+        linked state if the port connection rules demands it.
         
         Args:
             wrapper: EdgeWrapper to validate
-            
-        Returns:
-            True if valid, False otherwise
+
         """
-        if (wrapper.state.is_registered and 
-            wrapper.state.is_port_type_validated and 
-            wrapper.state.is_built):
-            self._add_edge_to_port(
+        if (wrapper.is_functional()):
+            self._link_edge_to_port(
                 wrapper,
                 wrapper.input_node_id,
                 wrapper.inlet_port_id,
                 is_inlet=True
             )
-            self._add_edge_to_port(
+            self._link_edge_to_port(
                 wrapper,
                 wrapper.output_node_id,
                 wrapper.outlet_port_id,
                 is_inlet=False
             ) 
         else:
-            self._remove_edge_on_port(
+            self._unlink_edge_from_port(
                 wrapper,
                 wrapper.input_node_id,
                 wrapper.inlet_port_id,
                 is_inlet=True
             )
-            self._remove_edge_on_port(
+            self._unlink_edge_from_port(
                 wrapper,
                 wrapper.output_node_id,
                 wrapper.outlet_port_id,
@@ -422,7 +423,7 @@ class BaseGraph:
             ) 
 
         
-    def _add_edge_to_port(
+    def _link_edge_to_port(
             self,
             wrapper: 'EdgeWrapper',
             node_id: str,
@@ -430,17 +431,14 @@ class BaseGraph:
             is_inlet: bool
         ) -> DataPort:
         """
-        Add edge to a port. 
-        Update port connection state.
-        Validate and update already existing connections.
+        Links an edge to a port. 
+        Update port link state.
+        Update link of other connected edges and refresh them.
         """
         port = self._get_port(node_id, port_id, is_inlet=is_inlet)
         if port:
-            port._add_connection(wrapper)
-            if is_inlet:
-                wrapper.state.is_inlet_validated = True
-            else:
-                wrapper.state.is_outlet_validated = True
+            port._add_link(wrapper)
+            wrapper.validate_link(port)
             edges_wrps = self._get_edge_wrappers_for_port(
                 node_id,
                 port_id,
@@ -449,16 +447,11 @@ class BaseGraph:
             if wrapper in edges_wrps:
                 edges_wrps.remove(wrapper)
             for ew in edges_wrps:
-                if not port._is_connected(ew.connection_uuid):
-                    if is_inlet:
-                        ew.state.is_inlet_validated = False
-                    else:
-                        ew.state.is_outlet_validated = False
-                    if ew.state.is_valid:
-                        ew.refresh()
+                ew.validate_link(port)
+                ew.refresh()
         return port
 
-    def _remove_edge_on_port(
+    def _unlink_edge_from_port(
             self,
             wrapper: 'EdgeWrapper',
             node_id: str,
@@ -466,17 +459,14 @@ class BaseGraph:
             is_inlet: bool
         ) -> DataPort:
         """
-        Add edge to a port. 
-        Update port connection state.
-        Validate and update already existing connections.
+        Unlinks the edge from a port. 
+        Updates port link state.
+        Update link of other connected edges and refresh them.
         """
         port = self._get_port(node_id, port_id, is_inlet=is_inlet)
         if port:
-            port._clear_all_connections()
-            if is_inlet:
-                wrapper.state.is_inlet_validated = False
-            else:
-                wrapper.state.is_outlet_validated = False
+            port._clear_all_links()
+            wrapper.validate_link(port)
             edges_wrps = self._get_edge_wrappers_for_port(
                 node_id,
                 port_id,
@@ -485,18 +475,10 @@ class BaseGraph:
             if wrapper in edges_wrps:
                 edges_wrps.remove(wrapper)
             for ew in edges_wrps:
-                port._add_connection(ew)
-                if is_inlet:
-                    ew.state.is_inlet_validated = True
-                else:
-                    ew.state.is_outlet_validated = True
+                if ew.is_functional():
+                    port._add_link(ew)
             for ew in edges_wrps:   
-                if not port._is_connected(ew.connection_uuid):
-                    if is_inlet:
-                        ew.state.is_inlet_validated = False
-                    else:
-                        ew.state.is_outlet_validated = False
-            for ew in edges_wrps:
+                ew.validate_link(port)
                 ew.refresh()
  
         return port
@@ -567,15 +549,13 @@ class BaseGraph:
         node_id: str
     ) -> List['EdgeWrapper']:
         """
-        Get all EdgeWrappers connected to a specific inlet or outlet.
+        Get all EdgeWrappers connected to a specific node.
         
         Args:
             node_id: ID of the node containing the port
-            port_id: ID of the inlet or outlet
-            is_inlet: True if port is an inlet, False if outlet
-            
+
         Returns:
-            List of EdgeWrappers connected to the specified port
+            List of EdgeWrappers connected to the specified node
         """
         connected_wrappers = []
         
@@ -589,13 +569,13 @@ class BaseGraph:
         
         return connected_wrappers
 
-    def _get_all_connected_edges(
+    def _get_all_edges(
             self,
             node_id: str
         ) -> List[EdgeWrapper]:  
         """
         Get **all** edges from and to a node.
-        These are the valid and invalid edges connected to the node.
+        These are the linked and unlinked edges connected to the node.
         Args:
             node_id: ID of the node
         Returns:    
@@ -607,22 +587,22 @@ class BaseGraph:
                 connected_edges.append(edges)
         return connected_edges
 
-    def _get_valid_connected_edges(
+    def _get_linked_edges(
             self,
             node_id: str
         ) -> List[EdgeWrapper]:  
         """
-        Get all **valid** edges from and to a node.
+        Get all **linked** edges from and to a node.
         These are not necessaray all the edges connected to the node,
-        but only the valid ones.
+        but only the linked ones.
         Args:
             node_id: ID of the node
         Returns:    
-            List of valid EdgeWrappers connected to the node
+            List of linked EdgeWrappers connected to the node
         """
         connected_edges = []
         for port in self._get_ports(node_id):
-            for edge_uuid in port._get_connections_uuid():
+            for edge_uuid in port._get_linked_edges_uuid():
                 connected_edges.append(self.edge_wrappers[edge_uuid])
         return connected_edges
  
