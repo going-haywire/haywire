@@ -112,18 +112,27 @@ class PooledField(CompoundField):
     """
     
     _sources: Dict[str, T] = field(default_factory=dict, init=False, repr=False)
+    _default_kwargs: Dict[str, Any] = field(default_factory=dict)
     
-    def __init__(self, element_type_cls: type):
+    def __init__(self, element_type_cls: type, default_kwargs: Dict[str, Any] = None):
         """
         Initialize pooled field.
         
         Args:
             element_type_cls: Type of pooled elements (FLOAT, MeshData, etc.)
+            default_kwargs: Constructor kwargs (e.g., {'value': {}}) - optional
         """
         self.type_cls = PooledType
         self.element_type_cls = element_type_cls
-       
-        self._sources = {}
+        
+        self._default_kwargs = default_kwargs or {}
+        
+        # Initialize from default if provided
+        initial_dict = self._default_kwargs.get('value', {})
+        if initial_dict:
+            self._sources = {k: self._unwrap_value(v) for k, v in initial_dict.items()}
+        else:
+            self._sources = {}
         
         super().__post_init__()
     

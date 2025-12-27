@@ -232,6 +232,11 @@ class CompoundType(BaseType, ABC, Generic[T]):
             # Calls _ParameterizedCompound.as_inlet('numbers')
             # Which calls ArrayType.as_inlet('numbers', element_type_cls=FLOAT)
         """
+
+        # Store parent class and element type for use in methods
+        _parent_cls = cls
+        _element_type_cls = element_type_cls
+        
         class _ParameterizedCompound(cls):  # Inherit from parent CompoundType!
             """
             Parameterized version that remembers element_type_cls.
@@ -245,10 +250,10 @@ class CompoundType(BaseType, ABC, Generic[T]):
             
             The element_type_cls is stored as a class attribute and passed
             to port creation methods automatically.
-            """
             
-            # Store element type as class attribute for inspection
-            _element_type_cls = element_type_cls
+            Note: class_identity, class_library, and field_class are inherited
+            from the parent cls automatically through Python's attribute lookup.
+            """
             
             @classmethod
             def as_inlet(cls_inner, id: str, **kwargs):
@@ -257,8 +262,14 @@ class CompoundType(BaseType, ABC, Generic[T]):
                 
                 Called by: ArrayType[FLOAT].as_inlet('numbers')
                 Injects: element_type_cls=FLOAT
+                
+                Note: We must use __func__ to bypass MRO because _parent_cls itself
+                may inherit from _ParameterizedCompound, which would cause recursion.
                 """
-                return cls.as_inlet(id, element_type_cls=element_type_cls, **kwargs)
+                # Remove element_type_cls from kwargs if present to avoid conflict
+                kwargs.pop('element_type_cls', None)
+                # Call IType.as_inlet directly, passing parent class explicitly
+                return IType.as_inlet.__func__(_parent_cls, id, element_type_cls=_element_type_cls, **kwargs)
             
             @classmethod
             def as_outlet(cls_inner, id: str, **kwargs):
@@ -268,7 +279,10 @@ class CompoundType(BaseType, ABC, Generic[T]):
                 Called by: ArrayType[FLOAT].as_outlet('result')
                 Injects: element_type_cls=FLOAT
                 """
-                return cls.as_outlet(id, element_type_cls=element_type_cls, **kwargs)
+                # Remove element_type_cls from kwargs if present to avoid conflict
+                kwargs.pop('element_type_cls', None)
+                # Call IType.as_outlet directly, passing parent class explicitly
+                return IType.as_outlet.__func__(_parent_cls, id, element_type_cls=_element_type_cls, **kwargs)
             
             @classmethod
             def as_config(cls_inner, id: str, **kwargs):
@@ -278,7 +292,10 @@ class CompoundType(BaseType, ABC, Generic[T]):
                 Called by: ArrayType[FLOAT].as_config('params')
                 Injects: element_type_cls=FLOAT
                 """
-                return cls.as_config(id, element_type_cls=element_type_cls, **kwargs)
+                # Remove element_type_cls from kwargs if present to avoid conflict
+                kwargs.pop('element_type_cls', None)
+                # Call IType.as_config directly, passing parent class explicitly
+                return IType.as_config.__func__(_parent_cls, id, element_type_cls=_element_type_cls, **kwargs)
         
         return _ParameterizedCompound
 

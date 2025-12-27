@@ -5,6 +5,7 @@ Basic core node implementations
 # Import the node system base class
 from haywire.core.node.base import node
 from haywire.core.node.base import BaseNode
+from haywire.libraries.core.types.pooled_type import PooledType
 from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, INT, STRING
 
 from ..types.mesh_data import MeshData
@@ -32,6 +33,11 @@ class TestNodeOne(BaseNode):
                 id='temp_config',
                 default=40.0
             )) 
+
+        self.add(PooledType[STRING].as_inlet(
+                id='pooled_data_inlet',
+                label='Pooled Data Inlet'
+            ))
 
         # Add inlets with different widget types
         self.add(STRING.as_inlet(

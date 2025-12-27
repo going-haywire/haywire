@@ -164,13 +164,13 @@ def create_port_from_type(
         **kwargs  # User overrides
     }
     
+    # Add element_type_cls if provided (must be before port creation)
+    if element_type_cls:
+        port_kwargs['element_type_cls'] = element_type_cls
+    
     # Create port
     port = port_cls(**port_kwargs)
     port.type_cls = type_cls
-    
-    # Set element type for compounds
-    if element_type_cls:
-        port.element_type_cls = element_type_cls
     
     # Store default override for field creation in __post_init__
     if default_override is not None:
