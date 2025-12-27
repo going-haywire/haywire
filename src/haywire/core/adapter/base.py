@@ -47,6 +47,11 @@ class IAdapter(ABC):
         pass
     
     @abstractmethod
+    def test(self) -> bool:
+        """Test this adapter with sample data"""
+        pass
+
+    @abstractmethod
     def _get_registry_keys(self) -> List[str]:
         """Get all registry keys in chain"""
         pass
@@ -167,6 +172,10 @@ class ReturnAdapter(IAdapter):
     def execute(self, value: Any) -> Any:
         """Terminal - just return value"""
         return value
+    
+    def test(self) -> bool:
+        """Terminal - always succeeds"""
+        return True
 
     def _get_registry_keys(self) -> List[str]:
         """Terminal - no registry keys"""

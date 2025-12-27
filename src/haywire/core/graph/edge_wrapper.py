@@ -388,7 +388,7 @@ class EdgeWrapper:
             # Execute adapter chain with performance tracking
             start_time = time.perf_counter()
 
-            result = self._first_adapter.execute(34)
+            result = self._first_adapter.test()
             
             # Update metrics
             execution_time = (time.perf_counter() - start_time) * 1000
@@ -432,17 +432,20 @@ class EdgeWrapper:
         # before attempting rebuild, check for warnings/errors
         for event in batch:
             if event.is_warning_event():
-                self._state.error_build = HaywireException.from_exception(
-                    exception=event.error,
-                    message=f"Adapter hot reload error on edge {self.connection_uuid}",
-                    operation="Adapter Hot Reload: {event.event_type}",
-                    category="Adapter Hot Reload Error"
-                ).enrich(
-                    library_identity=event.library_identity,
-                    module_name=event.module_name,
-                    registry_key=event.registry_key
-                )
-                
+                if event.error:
+                    self._state.error_build = event.error
+                else:
+                    self._state.error_build = HaywireException.from_exception(
+                        exception=event.error,
+                        message=f"Adapter hot reload error on edge {self.connection_uuid}",
+                        operation="Adapter Hot Reload: {event.event_type}",
+                        category="Adapter Hot Reload Error"
+                    ).enrich(
+                        library_identity=event.library_identity,
+                        module_name=event.module_name,
+                        registry_key=event.registry_key
+                    )
+
                 self._state.error_build.log()
                 self._state.is_built = False
                 self._state.warning_chain_rebuild = ""
