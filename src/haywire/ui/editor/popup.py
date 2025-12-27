@@ -5,7 +5,6 @@ from typing import Optional, Callable
 class Popup:
     """
     A reusable popup component for NiceGUI with drag support.
-    Debug version to understand position reset issues.
     """
     
     _css_added = False
@@ -51,28 +50,31 @@ class Popup:
                 }
             ''')
             cls._css_added = True
-    
+        
     @classmethod
     def _ensure_global_handlers(cls):
         """Setup global drag handlers once."""
-        if cls._global_handlers_initialized:
-            return
         
         script = '''
         (function() {
-            if (window._popupGlobalHandlersSetup) return;
+            // Don't re-initialize if already set up - preserve state!
+            if (window._popupGlobalHandlersSetup) {
+                console.log('Popup: Handlers already initialized, skipping');
+                return;
+            }
             window._popupGlobalHandlersSetup = true;
             
             window._popupDragState = null;
+            // Use existing positions if they exist (persist across re-init)
             window._popupPositions = window._popupPositions || {};
             window._popupAnimationFrames = window._popupAnimationFrames || {};
-            window._popupDebugCounter = 0;
             
             function enforcePosition(containerId) {
                 const container = document.getElementById(containerId);
                 const pos = window._popupPositions[containerId];
                 
-                if (!container || !pos) {
+                if (!pos) {
+                    // No position stored - stop the loop
                     if (window._popupAnimationFrames[containerId]) {
                         cancelAnimationFrame(window._popupAnimationFrames[containerId]);
                         delete window._popupAnimationFrames[containerId];
@@ -80,75 +82,64 @@ class Popup:
                     return;
                 }
                 
-                // Get current position
-                const rect = container.getBoundingClientRect();
-                const currentLeft = rect.left;
-                const currentTop = rect.top;
-                
-                // Debug every 60 frames (about once per second)
-                window._popupDebugCounter++;
-                if (window._popupDebugCounter % 60 === 0) {
-                    console.log('Position check:', {
-                        stored: pos,
-                        actual: { x: currentLeft, y: currentTop },
-                        styleLeft: container.style.left,
-                        styleTop: container.style.top
-                    });
+                if (!container) {
+                    // Container temporarily missing - keep trying but don't clear position!
+                    // This handles the case where NiceGUI re-renders components
+                    window._popupAnimationFrames[containerId] = requestAnimationFrame(() => enforcePosition(containerId));
+                    return;
                 }
                 
-                // Check if position needs correction (using getBoundingClientRect for accuracy)
-                if (Math.abs(currentLeft - pos.x) > 2 || Math.abs(currentTop - pos.y) > 2) {
-                    console.log('>>> POSITION DRIFT DETECTED! Correcting...', {
-                        stored: pos,
-                        actual: { x: currentLeft, y: currentTop }
-                    });
-                    
-                    container.style.cssText = `
-                        position: fixed !important;
-                        left: ${pos.x}px !important;
-                        top: ${pos.y}px !important;
-                        margin: 0 !important;
-                        transform: none !important;
-                        min-width: ${container.style.minWidth || 'auto'};
-                        max-width: 90vw;
-                        max-height: 90vh;
-                        overflow: auto;
-                        z-index: 5001;
-                        pointer-events: auto;
-                    `;
-                }
+                // Apply position
+                container.style.setProperty('position', 'fixed', 'important');
+                container.style.setProperty('left', pos.x + 'px', 'important');
+                container.style.setProperty('top', pos.y + 'px', 'important');
+                container.style.setProperty('margin', '0', 'important');
+                container.style.setProperty('transform', 'none', 'important');
                 
                 window._popupAnimationFrames[containerId] = requestAnimationFrame(() => enforcePosition(containerId));
             }
             
             window._startPopupPositionEnforcement = function(containerId, initialX, initialY) {
-                console.log('Starting position enforcement:', containerId, initialX, initialY);
-                window._popupPositions[containerId] = { x: initialX, y: initialY };
-                
-                const container = document.getElementById(containerId);
-                if (container) {
-                    container.style.cssText = `
-                        position: fixed !important;
-                        left: ${initialX}px !important;
-                        top: ${initialY}px !important;
-                        margin: 0 !important;
-                        transform: none !important;
-                        min-width: ${container.style.minWidth || 'auto'};
-                        max-width: 90vw;
-                        max-height: 90vh;
-                        overflow: auto;
-                        z-index: 5001;
-                        pointer-events: auto;
-                    `;
+                // Only set initial position if not already stored
+                if (!window._popupPositions[containerId]) {
+                    console.log('Setting initial position:', containerId, initialX, initialY);
+                    window._popupPositions[containerId] = { x: initialX, y: initialY };
+                } else {
+                    console.log('Using existing position:', containerId, window._popupPositions[containerId]);
                 }
                 
+                const pos = window._popupPositions[containerId];
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.style.setProperty('position', 'fixed', 'important');
+                    container.style.setProperty('left', pos.x + 'px', 'important');
+                    container.style.setProperty('top', pos.y + 'px', 'important');
+                    container.style.setProperty('margin', '0', 'important');
+                    container.style.setProperty('transform', 'none', 'important');
+                    container.style.setProperty('max-width', '90vw', 'important');
+                    container.style.setProperty('max-height', '90vh', 'important');
+                    container.style.setProperty('overflow', 'auto', 'important');
+                    container.style.setProperty('z-index', '5001', 'important');
+                    container.style.setProperty('pointer-events', 'auto', 'important');
+                }
+                
+                // Start loop if not already running
                 if (!window._popupAnimationFrames[containerId]) {
                     enforcePosition(containerId);
                 }
             };
             
             window._stopPopupPositionEnforcement = function(containerId) {
-                console.log('Stopping position enforcement:', containerId);
+                console.log('Stopping enforcement (keeping position):', containerId);
+                if (window._popupAnimationFrames[containerId]) {
+                    cancelAnimationFrame(window._popupAnimationFrames[containerId]);
+                    delete window._popupAnimationFrames[containerId];
+                }
+                // DON'T delete position - it may be needed if popup is re-rendered
+            };
+            
+            window._cleanupPopupPosition = function(containerId) {
+                console.log('Cleanup position:', containerId);
                 if (window._popupAnimationFrames[containerId]) {
                     cancelAnimationFrame(window._popupAnimationFrames[containerId]);
                     delete window._popupAnimationFrames[containerId];
@@ -172,12 +163,10 @@ class Popup:
                 newX = Math.max(0, Math.min(newX, window.innerWidth - container.offsetWidth));
                 newY = Math.max(0, Math.min(newY, window.innerHeight - container.offsetHeight));
                 
-                // Update stored position
                 window._popupPositions[state.containerId] = { x: newX, y: newY };
                 
-                // Apply immediately
-                container.style.left = newX + 'px';
-                container.style.top = newY + 'px';
+                container.style.setProperty('left', newX + 'px', 'important');
+                container.style.setProperty('top', newY + 'px', 'important');
                 
                 e.preventDefault();
             }, true);
@@ -186,11 +175,20 @@ class Popup:
                 const state = window._popupDragState;
                 if (!state || !state.isDragging) return;
                 
-                console.log('Drag ended, final position:', window._popupPositions[state.containerId]);
+                const finalPos = window._popupPositions[state.containerId];
+                console.log('Drag ended, final position:', finalPos);
                 
                 const container = document.getElementById(state.containerId);
                 if (container) {
                     container.classList.remove('popup-dragging');
+                }
+                
+                if (finalPos) {
+                    emitEvent('popup_position_update', {
+                        containerId: state.containerId,
+                        x: finalPos.x,
+                        y: finalPos.y
+                    });
                 }
                 
                 window._popupDragState = null;
@@ -201,7 +199,10 @@ class Popup:
         '''
         ui.run_javascript(script)
         cls._global_handlers_initialized = True
-    
+
+    # Class-level registry of popup instances by container ID
+    _instances = {}
+
     def __init__(self, 
                  title: Optional[str] = None,
                  width: str = "auto",
@@ -232,6 +233,7 @@ class Popup:
         self._backdrop = None
         self._is_open = False
         self._on_close_callback = None
+        self._event_listener = None
         
     def __enter__(self):
         if self._popup_element is not None:
@@ -246,7 +248,6 @@ class Popup:
     def _create_popup_structure(self):
         if self.position_x is not None and self.position_y is not None:
             popup_style = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 5000; display: none; pointer-events: none;'
-            # Minimal initial style - position will be set by JS
             content_style = f'min-width: {self.width}; height: {self.height}; max-width: 90vw; max-height: 90vh; overflow: auto; z-index: 5001; pointer-events: auto;'
             backdrop_style = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: transparent; pointer-events: auto;'
         else:
@@ -269,6 +270,9 @@ class Popup:
             self._content_container._props['data-interactive'] = 'true'
             self._content_container._props['data-popup-container'] = 'true'
             
+            # STOP CLICK PROPAGATION on the content container!
+            self._content_container.on('click', lambda e: None, js_handler='(e) => e.stopPropagation()')
+
             with self._content_container:
                 if self.title or self.closable:
                     title_bar_classes = 'popup-title-bar' if self.draggable else 'popup-title-bar not-draggable'
@@ -338,16 +342,53 @@ class Popup:
             }}'''
         )
     
+    def _on_position_update(self, e):
+        """Handle position update from JavaScript after drag."""
+        args = e.args
+        if not args:
+            return
+            
+        container_id = f'c{self._content_container.id}' if self._content_container else None
+        
+        # Check if this event is for this popup instance
+        if args.get('containerId') == container_id:
+            self.position_x = args.get('x', self.position_x)
+            self.position_y = args.get('y', self.position_y)
+            print(f"Position updated to: ({self.position_x}, {self.position_y})")
+    
+    def _register_position_listener(self):
+        """Register listener for position updates from JS."""
+        # Use ui.on to listen for the custom event
+        self._event_listener = ui.on('popup_position_update', self._on_position_update)
+        
+        # Register this instance in the class registry
+        if self._content_container:
+            container_id = f'c{self._content_container.id}'
+            Popup._instances[container_id] = self
+
+    def _unregister_position_listener(self):
+        """Unregister the position listener."""
+        # Remove from instance registry
+        if self._content_container:
+            container_id = f'c{self._content_container.id}'
+            Popup._instances.pop(container_id, None)
+    
     def _start_position_enforcement(self):
         """Start the continuous position enforcement loop."""
+        print(f"DEBUG _start_position_enforcement called!")
+        
         if not self._content_container:
+            print("DEBUG: No content container!")
             return
         
         container_id = f'c{self._content_container.id}'
         initial_x = self.position_x if self.position_x is not None else 100
         initial_y = self.position_y if self.position_y is not None else 100
         
+        print(f"DEBUG: Starting enforcement for {container_id} at ({initial_x}, {initial_y})")
+        
         ui.run_javascript(f'''
+            console.log('Python requesting start enforcement:', '{container_id}', {initial_x}, {initial_y});
             window._startPopupPositionEnforcement('{container_id}', {initial_x}, {initial_y});
         ''')
     
@@ -357,8 +398,25 @@ class Popup:
             return
         
         container_id = f'c{self._content_container.id}'
+        
+        print(f"DEBUG: _stop_position_enforcement called for {container_id}")
+
+        
         ui.run_javascript(f'''
+            console.log('Stopping position enforcement:', '{container_id}');
             window._stopPopupPositionEnforcement('{container_id}');
+        ''')
+    
+    def _cleanup_position(self):
+        """Clean up stored position when popup is deleted."""
+        print("DEBUG _cleanup_position called!")
+        
+        if not self._content_container:
+            return
+        
+        container_id = f'c{self._content_container.id}'
+        ui.run_javascript(f'''
+            window._cleanupPopupPosition('{container_id}');
         ''')
         
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -373,19 +431,45 @@ class Popup:
     def _handle_escape_key(self, e):
         if e.key == 'Escape' and self._is_open:
             self.close()
-    
+
     def open(self):
+        print(f"DEBUG open() called, _is_open={self._is_open}, _popup_element={self._popup_element is not None}")
+        
         if self._popup_element and not self._is_open:
+            self._ensure_global_handlers()
+            
+            # Register position listener
+            self._register_position_listener()
+            
+            # Set initial position directly before showing
+            if self._content_container and self.position_x is not None and self.position_y is not None:
+                print(f"DEBUG: Setting initial style position: ({self.position_x}, {self.position_y})")
+                self._content_container.style(
+                    f'position: fixed; '
+                    f'left: {self.position_x}px; '
+                    f'top: {self.position_y}px; '
+                    f'margin: 0; '
+                    f'transform: none;'
+                )
+            
             self._popup_element.style('display: flex')
             self._is_open = True
             
-            self._ensure_global_handlers()
-            ui.timer(0.05, self._start_position_enforcement, once=True)
-            
+            # Start enforcement IMMEDIATELY, not with a timer
+            print(f"DEBUG: Calling _start_position_enforcement immediately")
+            self._start_position_enforcement()
+        else:
+            print(f"DEBUG open() skipped - conditions not met")    
+                
     def close(self):
+        print("DEBUG close() called!")
+        import traceback
+        traceback.print_stack(limit=15)
+        
         if self._popup_element and self._is_open:
             self._popup_element.style('display: none')
             self._is_open = False
+            self._unregister_position_listener()
             self._stop_position_enforcement()
             
             if self._on_close_callback:
@@ -398,8 +482,14 @@ class Popup:
             self.open()
                 
     def delete(self):
+        print("DEBUG delete() called!")
+        import traceback
+        traceback.print_stack(limit=15)
+        
         if self._popup_element:
+            self._unregister_position_listener()
             self._stop_position_enforcement()
+            self._cleanup_position()
             
             self._popup_element.delete()
             self._popup_element = None
@@ -412,7 +502,7 @@ class Popup:
     def on_close(self, callback: Callable):
         self._on_close_callback = callback
         return self
-        
+
     @property
     def is_open(self) -> bool:
         return self._is_open

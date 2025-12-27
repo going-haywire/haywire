@@ -152,6 +152,15 @@ class PopupContextMenu:
         
         self._close_current_menu()
     
+    def _inspect_connection_at(self, connection_id: str, x: float, y: float):
+        """Handle connection inspection - show detailed popup."""
+        edge = self._menu_data.get('edge')
+        state = self._menu_data.get('state')
+        
+        if edge and state:
+            self._connection_info_popup.show(x, y, connection_id, edge, state)
+        
+        self._close_current_menu()
 
     ##############################################
     # Drawing Context Menus at Cursor Position 
@@ -277,7 +286,7 @@ class PopupContextMenu:
                 # Actions
                 btn1 = ui.button(
                     '🔍 Inspect Connection',
-                    on_click=lambda: self._inspect_connection(connection_id)
+                    on_click=lambda e, cx=x, cy=y: self._inspect_connection_at(connection_id, cx, cy)
                 )
                 btn1.props('flat align=left')
                 btn1.classes(
