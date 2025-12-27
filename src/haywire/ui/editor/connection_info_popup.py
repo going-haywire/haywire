@@ -44,7 +44,8 @@ class ConnectionInfoPopup:
             "Connection Details",
             x + 10,
             y + 10,
-            width='400px'
+            width='400px',
+            clamp_to_viewport=False
         )
         
         with popup:

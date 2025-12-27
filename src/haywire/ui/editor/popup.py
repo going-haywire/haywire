@@ -62,6 +62,17 @@ class Popup:
             window._popupDragState = null;
             window._popupPositions = window._popupPositions || {};
             window._popupAnimationFrames = window._popupAnimationFrames || {};
+            window._popupClampSettings = window._popupClampSettings || {};
+            
+            function clampPosition(x, y, container) {
+                const width = container ? container.offsetWidth : 300;
+                const height = container ? container.offsetHeight : 200;
+                
+                return {
+                    x: Math.max(0, Math.min(x, window.innerWidth - width)),
+                    y: Math.max(0, Math.min(y, window.innerHeight - height))
+                };
+            }
             
             function enforcePosition(containerId) {
                 const container = document.getElementById(containerId);
@@ -89,13 +100,27 @@ class Popup:
                 window._popupAnimationFrames[containerId] = requestAnimationFrame(() => enforcePosition(containerId));
             }
             
-            window._startPopupPositionEnforcement = function(containerId, initialX, initialY) {
+            window._startPopupPositionEnforcement = function(containerId, initialX, initialY, clampToViewport) {
+                const container = document.getElementById(containerId);
+                
+                // Store clamp setting for this popup
+                window._popupClampSettings[containerId] = clampToViewport;
+                
                 if (!window._popupPositions[containerId]) {
-                    window._popupPositions[containerId] = { x: initialX, y: initialY };
+                    let pos = { x: initialX, y: initialY };
+                    if (clampToViewport && container) {
+                        pos = clampPosition(initialX, initialY, container);
+                    }
+                    window._popupPositions[containerId] = pos;
                 }
                 
-                const pos = window._popupPositions[containerId];
-                const container = document.getElementById(containerId);
+                let pos = window._popupPositions[containerId];
+                
+                if (container && clampToViewport) {
+                    pos = clampPosition(pos.x, pos.y, container);
+                    window._popupPositions[containerId] = pos;
+                }
+                
                 if (container) {
                     container.style.setProperty('position', 'fixed', 'important');
                     container.style.setProperty('left', pos.x + 'px', 'important');
@@ -127,6 +152,7 @@ class Popup:
                     delete window._popupAnimationFrames[containerId];
                 }
                 delete window._popupPositions[containerId];
+                delete window._popupClampSettings[containerId];
             };
             
             document.addEventListener('mousemove', function(e) {
@@ -142,13 +168,20 @@ class Popup:
                 let newX = state.initialX + dx;
                 let newY = state.initialY + dy;
                 
-                newX = Math.max(0, Math.min(newX, window.innerWidth - container.offsetWidth));
-                newY = Math.max(0, Math.min(newY, window.innerHeight - container.offsetHeight));
+                // Check if clamping is enabled for this popup
+                const shouldClamp = window._popupClampSettings[state.containerId];
                 
-                window._popupPositions[state.containerId] = { x: newX, y: newY };
+                let finalPos;
+                if (shouldClamp) {
+                    finalPos = clampPosition(newX, newY, container);
+                } else {
+                    finalPos = { x: newX, y: newY };
+                }
                 
-                container.style.setProperty('left', newX + 'px', 'important');
-                container.style.setProperty('top', newY + 'px', 'important');
+                window._popupPositions[state.containerId] = finalPos;
+                
+                container.style.setProperty('left', finalPos.x + 'px', 'important');
+                container.style.setProperty('top', finalPos.y + 'px', 'important');
                 
                 e.preventDefault();
             }, true);
@@ -189,7 +222,8 @@ class Popup:
                  backdrop_color: str = "rgba(0,0,0,0.5)",
                  position_x: Optional[float] = None,
                  position_y: Optional[float] = None,
-                 draggable: bool = False):
+                 draggable: bool = False,
+                 clamp_to_viewport: bool = False):
         self._ensure_css()
         
         self.title = title
@@ -202,6 +236,7 @@ class Popup:
         self.position_x = position_x
         self.position_y = position_y
         self.draggable = draggable
+        self.clamp_to_viewport = clamp_to_viewport
         self._popup_element = None
         self._content_container = None
         self._content_area = None
@@ -334,8 +369,6 @@ class Popup:
 
     def _unregister_position_listener(self):
         """Unregister the position listener."""
-        # Note: ui.on doesn't provide a way to unregister, but the listener
-        # checks container_id so stale listeners are harmless
         pass
     
     def _start_position_enforcement(self):
@@ -346,9 +379,10 @@ class Popup:
         container_id = f'c{self._content_container.id}'
         initial_x = self.position_x if self.position_x is not None else 100
         initial_y = self.position_y if self.position_y is not None else 100
+        clamp = 'true' if self.clamp_to_viewport else 'false'
         
         ui.run_javascript(f'''
-            window._startPopupPositionEnforcement('{container_id}', {initial_x}, {initial_y});
+            window._startPopupPositionEnforcement('{container_id}', {initial_x}, {initial_y}, {clamp});
         ''')
     
     def _stop_position_enforcement(self):
@@ -448,7 +482,8 @@ class Popup:
             'backdrop_click_close': True,
             'backdrop_color': "transparent",
             'closable': True,
-            'draggable': True
+            'draggable': True,
+            'clamp_to_viewport': True
         }
         config = {**defaults, **kwargs}
         return cls(title=title, position_x=x, position_y=y, **config)
@@ -456,34 +491,46 @@ class Popup:
 
 if __name__ in {"__main__", "__mp_main__"}:
     
-    def show_popup():
+    def show_clamped_popup():
         popup = Popup(
-            title="Drag Me - Check Console!",
+            title="Clamped Popup",
             width="400px",
             closable=True,
             backdrop_click_close=True,
             escape_close=True,
             draggable=True,
             position_x=200,
-            position_y=150
+            position_y=150,
+            clamp_to_viewport=True
         )
         
         with popup:
-            ui.label("Open browser console (F12) to see position logs")
-            ui.label("Drag, then expand sections and watch console")
-            
-            ui.separator()
-            
-            with ui.expansion("Section 1", icon="folder"):
-                ui.label("Content of section 1")
-            
-            with ui.expansion("Section 2", icon="folder"):
-                ui.label("Content of section 2")
-                ui.input("Input field").classes('w-full')
+            ui.label("This popup is clamped to the viewport")
+            ui.label("Try dragging it - it won't go outside the window")
         
         popup.open()
     
-    ui.label("Popup Debug Test").classes('text-2xl font-bold')
-    ui.button("Open Popup", on_click=show_popup).classes('mt-4')
+    def show_unclamped_popup():
+        popup = Popup(
+            title="Unclamped Popup",
+            width="400px",
+            closable=True,
+            backdrop_click_close=True,
+            escape_close=True,
+            draggable=True,
+            position_x=200,
+            position_y=150,
+            clamp_to_viewport=False
+        )
+        
+        with popup:
+            ui.label("This popup is NOT clamped to the viewport")
+            ui.label("You can drag it outside the window boundaries")
+        
+        popup.open()
+    
+    ui.label("Popup Clamp Test").classes('text-2xl font-bold')
+    ui.button("Open Clamped Popup", on_click=show_clamped_popup).classes('mt-4')
+    ui.button("Open Unclamped Popup", on_click=show_unclamped_popup).classes('mt-2')
     
     ui.run()
