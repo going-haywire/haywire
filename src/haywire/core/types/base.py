@@ -221,81 +221,9 @@ class CompoundType(BaseType, ABC, Generic[T]):
             element_type_cls: The type of elements (FLOAT, MeshData, etc.)
         
         Returns:
-            A class-like object that remembers element_type_cls and
-            provides as_inlet/as_outlet/as_config methods
-        
-        Examples:
-            ArrayType[FLOAT]  # Calls ArrayType.__class_getitem__(FLOAT)
-            # Returns _ParameterizedCompound with FLOAT remembered
-            
-            ArrayType[FLOAT].as_inlet('numbers')
-            # Calls _ParameterizedCompound.as_inlet('numbers')
-            # Which calls ArrayType.as_inlet('numbers', element_type_cls=FLOAT)
+            the class itself with element_type_cls set.
         """
+        # Capture element_type_cls in outer scope for class body
+        cls.element_type_cls = element_type_cls
 
-        # Store parent class and element type for use in methods
-        _parent_cls = cls
-        _element_type_cls = element_type_cls
-        
-        class _ParameterizedCompound(cls):  # Inherit from parent CompoundType!
-            """
-            Parameterized version that remembers element_type_cls.
-            
-            CRITICAL: Must inherit from cls (the CompoundType subclass) so that
-            ArrayType(CompoundType[T]) properly inherits the full type hierarchy
-            including IType for decorator validation.
-            
-            Created by __class_getitem__ to enable clean syntax:
-                ArrayType[FLOAT].as_inlet(id='numbers')
-            
-            The element_type_cls is stored as a class attribute and passed
-            to port creation methods automatically.
-            
-            Note: class_identity, class_library, and field_class are inherited
-            from the parent cls automatically through Python's attribute lookup.
-            """
-            
-            @classmethod
-            def as_inlet(cls_inner, id: str, **kwargs):
-                """
-                Create inlet with remembered element_type_cls.
-                
-                Called by: ArrayType[FLOAT].as_inlet('numbers')
-                Injects: element_type_cls=FLOAT
-                
-                Note: We must use __func__ to bypass MRO because _parent_cls itself
-                may inherit from _ParameterizedCompound, which would cause recursion.
-                """
-                # Remove element_type_cls from kwargs if present to avoid conflict
-                kwargs.pop('element_type_cls', None)
-                # Call IType.as_inlet directly, passing parent class explicitly
-                return IType.as_inlet.__func__(_parent_cls, id, element_type_cls=_element_type_cls, **kwargs)
-            
-            @classmethod
-            def as_outlet(cls_inner, id: str, **kwargs):
-                """
-                Create outlet with remembered element_type_cls.
-                
-                Called by: ArrayType[FLOAT].as_outlet('result')
-                Injects: element_type_cls=FLOAT
-                """
-                # Remove element_type_cls from kwargs if present to avoid conflict
-                kwargs.pop('element_type_cls', None)
-                # Call IType.as_outlet directly, passing parent class explicitly
-                return IType.as_outlet.__func__(_parent_cls, id, element_type_cls=_element_type_cls, **kwargs)
-            
-            @classmethod
-            def as_config(cls_inner, id: str, **kwargs):
-                """
-                Create config with remembered element_type_cls.
-                
-                Called by: ArrayType[FLOAT].as_config('params')
-                Injects: element_type_cls=FLOAT
-                """
-                # Remove element_type_cls from kwargs if present to avoid conflict
-                kwargs.pop('element_type_cls', None)
-                # Call IType.as_config directly, passing parent class explicitly
-                return IType.as_config.__func__(_parent_cls, id, element_type_cls=_element_type_cls, **kwargs)
-        
-        return _ParameterizedCompound
-
+        return cls

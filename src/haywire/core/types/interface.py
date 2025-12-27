@@ -258,6 +258,17 @@ class IType(ABC):
         from haywire.core.types.ports import PortInlet
         from haywire.core.types.utils import create_port_from_type
         
+        # Check for element_type_cls as class attribute if not provided as parameter
+        # This supports PooledType[STRING] syntax where element_type_cls is set on the class
+        if element_type_cls is None and hasattr(cls, 'element_type_cls'):
+            # Only use class attribute for CompoundType parameterization
+            # (don't use PrimitiveType.element_type_cls which points to Python primitives)
+            from haywire.core.types.base import CompoundType
+            if issubclass(cls, CompoundType) and cls.element_type_cls is not None:
+                # Check if it's an IType (not a Python primitive like float)
+                if isinstance(cls.element_type_cls, type) and issubclass(cls.element_type_cls, IType):
+                    element_type_cls = cls.element_type_cls
+        
         # Validate port type
         cls._validate_port_type('inlet')
         
@@ -297,6 +308,13 @@ class IType(ABC):
         """
         from haywire.core.types.ports import PortOutlet
         from haywire.core.types.utils import create_port_from_type
+        
+        # Check for element_type_cls as class attribute if not provided as parameter
+        if element_type_cls is None and hasattr(cls, 'element_type_cls'):
+            from haywire.core.types.base import CompoundType
+            if issubclass(cls, CompoundType) and cls.element_type_cls is not None:
+                if isinstance(cls.element_type_cls, type) and issubclass(cls.element_type_cls, IType):
+                    element_type_cls = cls.element_type_cls
         
         # Validate port type
         cls._validate_port_type('outlet')
