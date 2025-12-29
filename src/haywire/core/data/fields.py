@@ -56,32 +56,12 @@ class DataField(ABC, Generic[T]):
     """
     
     type_cls: type[IType]           # Type class (FLOAT, MeshData, ArrayType, etc.)
-    element_type_cls: type[IType]   # For hierarchical type inspection
+    default_kwargs: Dict[str, Any] = field(default_factory=dict)
     
     def __post_init__(self):
         """Initialize event system"""
         self.on_changed: Event[Any] = Event[Any]()
         self.is_dirty: bool = True
-    
-
-    def _unwrap_value(self, value: Any) -> Any:
-        """
-        Unwrap value if it's an IType instance.
-        
-        Used by subclasses when receiving potentially wrapped values.
-        
-        Args:
-            value: Either raw value or IType instance
-            
-        Returns:
-            Unwrapped value (primitive or BaseType instance)
-        """
-        if isinstance(value, PrimitiveType):
-            return value.value
-        elif isinstance(value, BaseType):
-            return value  # BaseType instances are already unwrapped
-        else:
-            return value
         
     # ========================================================================
     # CORE API - Implemented by each subclass
@@ -109,16 +89,6 @@ class DataField(ABC, Generic[T]):
         Args:
             value: Can be IType instance or raw value
             source_id: Required for PooledField, ignored for others
-        """
-        pass
-    
-    @abstractmethod
-    def get_for_transfer(self) -> Any:
-        """
-        Get value for node-to-node transfer.
-        
-        Returns unwrapped values (primitives, instances, containers).
-        Type information tracked via type_cls/element_type_cls.
         """
         pass
     
@@ -189,23 +159,13 @@ class PrimitiveField(DataField[T]):
     _value: T = field(init=False, repr=False)
     _default: T = field(init=False, repr=False)
     
-    def __init__(self, type_cls: type[PrimitiveType], default_kwargs: Dict[str, Any]):
-        """
-        Initialize primitive field.
-        
-        Args:
-            type_cls: PrimitiveType class (FLOAT, INT, etc.)
-            default_kwargs: Constructor kwargs (e.g., {'value': 42.0})
-        """
-        self.type_cls = type_cls
-        # Get element_type_cls from type (e.g., FLOAT.element_type_cls = float)
-        self.element_type_cls = type_cls.element_type_cls
-       
-        # Extract and store unwrapped primitive
-        self._default = default_kwargs.get('value')
-        self._value = self._default
-        
+    def __post_init__(self):
+        """Initialize primitive field with default value"""
         super().__post_init__()
+        
+        # Extract and store unwrapped primitive
+        self._default = self.default_kwargs.get('value')
+        self._value = self._default
     
     def get_value(self) -> T:
         """Get unwrapped primitive - O(1) direct access"""
@@ -221,20 +181,11 @@ class PrimitiveField(DataField[T]):
             field.set_value(42.0)           # From worker - stores 42.0
             field.set_value(FLOAT(42.0))    # From adapter - unwraps to 42.0
         """
-        # Unwrap if it's a PrimitiveType instance (rare case)
-        if isinstance(value, PrimitiveType):
-            self._value = value.value
-        else:
-            # Common case: raw primitive
-            self._value = value
-        
+
+        self._value = value
         self.is_dirty = True
         self.fire(self._value)
-    
-    def get_for_transfer(self) -> T:
-        """Return unwrapped primitive - O(1) direct access"""
-        return self._value
-    
+        
     def reset(self) -> None:
         """Reset to default value"""
         self._value = self._default
@@ -262,25 +213,13 @@ class BaseField(DataField[BaseType]):
     """
     
     _container: BaseType = field(init=False, repr=False)
-    _default_kwargs: Dict[str, Any] = field(default_factory=dict)
     
-    def __init__(self, type_cls: type[BaseType], default_kwargs: Dict[str, Any]):
-        """
-        Initialize complex field.
-        
-        Args:
-            type_cls: BaseType class (MeshData, etc.)
-            default_kwargs: Constructor kwargs
-        """
-        self.type_cls = type_cls
-        # Get element_type_cls from type (e.g., MeshData.element_type_cls = MeshData)
-        self.element_type_cls = type_cls.element_type_cls
-        
-        self._default_kwargs = default_kwargs
-        self._container = type_cls(**default_kwargs)
-        
+    def __post_init__(self):
+        """Initialize complex field with default instance"""
         super().__post_init__()
-    
+        
+        self._container = self.type_cls(**self.default_kwargs)
+ 
     def get_value(self) -> BaseType:
         """Get instance"""
         return self._container
@@ -293,14 +232,10 @@ class BaseField(DataField[BaseType]):
         self._container = value
         self.is_dirty = True
         self.fire(self._container)
-    
-    def get_for_transfer(self) -> BaseType:
-        """Return instance (no wrapping needed)"""
-        return self._container
-    
+       
     def reset(self) -> None:
         """Reset to default value"""
-        self._container = self.type_cls(**self._default_kwargs)
+        self._container = self.type_cls(**self.default_kwargs)
         self.is_dirty = True
     
     def has_data(self) -> bool:
