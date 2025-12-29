@@ -209,13 +209,14 @@ class CompoundType(BaseType, ABC, Generic[T]):
         # Or explicit element_type_cls:
         ArrayType.as_inlet(id='numbers', element_type_cls=FLOAT)
     """
-    
+
     # Subclasses MUST override field_class
     field_class = None
-    
-    # Class-level cache for parameterized types
-    _parameterized_cache: dict = {}
-    
+
+    # Cache for parameterized classes
+    # this cache is cleared in the decorator when a class is recreated by hot-reload
+    _parameterized_cache = {}
+        
     @classmethod
     def __class_getitem__(cls, element_type_cls: type[IType]):
         """
@@ -226,10 +227,9 @@ class CompoundType(BaseType, ABC, Generic[T]):
         
         Each parameterized class has its own element_type_cls.
         """
-        # Initialize cache if needed
         if not hasattr(cls, '_parameterized_cache'):
-            cls._parameterized_cache = {}
-        
+            cls._parameterized_cache = {}    
+
         # Check cache
         cache_key = (cls, element_type_cls)
         if cache_key in cls._parameterized_cache:

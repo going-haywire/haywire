@@ -94,6 +94,10 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                 f"(via BaseType or PrimitiveType)"
             )
 
+        # Initialize _parameterized_cache for CompoundType if needed
+        if hasattr(inner_cls, '_parameterized_cache'):
+            inner_cls._parameterized_cache = {}   
+ 
         # Get library identity and attach (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)
         inner_cls.class_library = library_identity
