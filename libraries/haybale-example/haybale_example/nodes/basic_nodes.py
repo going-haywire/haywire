@@ -5,6 +5,7 @@ Basic core node implementations
 # Import the node system base class
 from haywire.core.node.base import node
 from haywire.core.node.base import BaseNode
+from haywire.libraries.core.types.array_type import ArrayType
 from haywire.libraries.core.types.pooled_type import PooledType
 from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, INT, STRING
 
@@ -35,8 +36,13 @@ class TestNodeOne(BaseNode):
             )) 
 
         self.add(PooledType[STRING].as_inlet(
-                id='pooled_data_inlet',
-                label='Pooled Data Inlet'
+                id='pooled_string_inlet',
+                label='Pooled STRING Inlet'
+            ))
+
+        self.add(PooledType[ArrayType[STRING]].as_inlet(
+                id='pooled_array_string_inlet',
+                label='Pooled ARRAY[STRING]'
             ))
 
         # Add inlets with different widget types
@@ -104,6 +110,22 @@ class TestNodeOne(BaseNode):
                 id='string_output',
                 label='Text Output'
             ))
+
+        self.add(ArrayType[STRING].as_outlet(
+                id='array_string_outlet',
+                label='ARRAY[STRING]'
+            ))
+
+        self.add(ArrayType[INT].as_outlet(
+                id='array_int_outlet',
+                label='ARRAY[INT]'
+            ))
+
+        self.add(ArrayType[BOOL].as_outlet(
+                id='array_bool_outlet',
+                label='ARRAY[BOOL]'
+            ))
+
 
     def worker(self, context: dict) -> dict | None:
         """Execute the node - return the constant value"""

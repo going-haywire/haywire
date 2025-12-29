@@ -13,15 +13,9 @@ from haywire.core.data.enums import FlowType
 from haywire.core.graph.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
-from haywire.core.types.base import PrimitiveType, BaseType, CompoundType
 
 # Import the new DataField classes
-from haywire.core.data.fields import (
-    DataField,
-    PrimitiveField,
-    BaseField,
-    CompoundField
-)
+from haywire.core.data.fields import DataField
 
 @dataclass
 class DataPort(DataTypeIdentity):

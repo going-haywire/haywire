@@ -11,8 +11,8 @@ Key changes:
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, TypeVar
 
-from haywire.core.types.base import CompoundType, PrimitiveType, BaseType
-from haywire.core.data.fields import CompoundField, DataField
+from haywire.core.types.base import CompoundType
+from haywire.core.data.fields import DataField
 from haywire.core.types.decorator import type
 from haywire.core.data.enums import ContainerType, FlowType
 
@@ -98,7 +98,7 @@ class PooledType(CompoundType[T]):
 # ============================================================================
 
 @dataclass
-class PooledField(CompoundField):
+class PooledField(DataField):
     """
     Field implementation for PooledType.
     
@@ -114,16 +114,17 @@ class PooledField(CompoundField):
     _sources: Dict[str, T] = field(default_factory=dict, init=False, repr=False)
     _default_kwargs: Dict[str, Any] = field(default_factory=dict)
     
-    def __init__(self, element_type_cls: type, default_kwargs: Dict[str, Any] = None):
+    def __init__(self, type_cls: type, default_kwargs: Dict[str, Any] = None):
         """
         Initialize pooled field.
         
         Args:
+            type_cls: Type of the pooled (PooledType[T])
             element_type_cls: Type of pooled elements (FLOAT, MeshData, etc.)
             default_kwargs: Constructor kwargs (e.g., {'value': {}}) - optional
         """
-        self.type_cls = PooledType
-        self.element_type_cls = element_type_cls
+        self.type_cls = type_cls
+        self.element_type_cls = self.type_cls.element_type_cls
         
         self._default_kwargs = default_kwargs or {}
         
@@ -135,15 +136,6 @@ class PooledField(CompoundField):
             self._sources = {}
         
         super().__post_init__()
-    
-    def _unwrap_value(self, value: Any) -> Any:
-        """Unwrap single value if it's an IType instance"""
-        if isinstance(value, PrimitiveType):
-            return value.value
-        elif isinstance(value, BaseType):
-            return value  # BaseType instances are already unwrapped
-        else:
-            return value
     
     def get_value(self) -> Dict[str, T]:
         """

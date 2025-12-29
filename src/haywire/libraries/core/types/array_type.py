@@ -10,8 +10,8 @@ Key changes:
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, TypeVar
 
-from haywire.core.types.base import CompoundType, PrimitiveType, BaseType
-from haywire.core.data.fields import CompoundField
+from haywire.core.types.base import CompoundType
+from haywire.core.data.fields import DataField
 from haywire.core.types.decorator import type
 from haywire.core.data.enums import ContainerType, FlowType
 
@@ -71,7 +71,7 @@ class ArrayType(CompoundType[T]):
 # ============================================================================
 
 @dataclass
-class ArrayField(CompoundField):
+class ArrayField(DataField):
     """
     Field implementation for ArrayType.
     
@@ -85,16 +85,17 @@ class ArrayField(CompoundField):
     _items: List[T] = field(default_factory=list, init=False, repr=False)
     _default_kwargs: Dict[str, Any] = field(default_factory=dict)
     
-    def __init__(self, element_type_cls: type, default_kwargs: Dict[str, Any]):
+    def __init__(self, type_cls: type, default_kwargs: Dict[str, Any]):
         """
         Initialize array field.
         
         Args:
+            type_cls: Type of the array (ArrayType[T])
             element_type_cls: Type of array elements (FLOAT, MeshData, etc.)
             default_kwargs: Constructor kwargs (e.g., {'value': [1.0, 2.0]})
         """
-        self.type_cls = ArrayType
-        self.element_type_cls = element_type_cls
+        self.type_cls = type_cls
+        self.element_type_cls = self.type_cls.element_type_cls
         
         self._default_kwargs = default_kwargs
         
@@ -103,15 +104,6 @@ class ArrayField(CompoundField):
         self._items = self._unwrap_items(initial_list)
         
         super().__post_init__()
-    
-    def _unwrap_value(self, value: Any) -> Any:
-        """Unwrap single value if it's an IType instance"""
-        if isinstance(value, PrimitiveType):
-            return value.value
-        elif isinstance(value, BaseType):
-            return value  # BaseType instances are already unwrapped
-        else:
-            return value
     
     def _unwrap_items(self, items: List[Any]) -> List[T]:
         """Unwrap all items in a list"""

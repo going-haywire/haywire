@@ -161,6 +161,7 @@ def create_port_from_type(
     port_kwargs = {
         **asdict(type_cls.class_identity),
         'id': id,
+        'type_cls': type_cls,
         **kwargs  # User overrides
     }
     
@@ -170,7 +171,6 @@ def create_port_from_type(
     
     # Create port
     port = port_cls(**port_kwargs)
-    port.type_cls = type_cls
     
     # Store default override for field creation in __post_init__
     if default_override is not None:

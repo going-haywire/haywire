@@ -161,10 +161,10 @@ class UIEdge:
         )
 
     def calculate_dasharray(self, chain_length: int) -> str:
-        if chain_length < 1:
+        if chain_length == 0:
             return ""
-        return "40,2,2,2" 
-
+        return "40,2" + ",2,2" * (chain_length)
+    
     def _sync_to_ui(self):
         """
         Synchronize current EdgeWrapper state to Vue component.

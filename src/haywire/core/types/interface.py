@@ -125,7 +125,7 @@ class IType(ABC):
             Configured DataField instance
         
         Raises:
-            ValueError: If field_class not declared or invalid parameters
+            ValueError: If field_class not declared
         
         Examples:
             # Simple type
@@ -145,33 +145,11 @@ class IType(ABC):
         if not default_kwargs and hasattr(cls, 'class_identity'):
             default_kwargs = getattr(cls.class_identity, 'default', {})
         
-        # Import here to avoid circular imports
-        from haywire.core.types.base import CompoundType, PrimitiveType, BaseType
-        
-        # Create field based on type category
-        if issubclass(cls, CompoundType):
-            # Compound types require element_type_cls
-            if not element_type_cls:
-                raise ValueError(
-                    f"CompoundType {cls.__name__} requires element_type_cls. "
-                    f"Use: {cls.__name__}[ElementType].as_inlet(...)"
-                )
-            
-            return cls.field_class(
-                element_type_cls=element_type_cls,
-                default_kwargs=default_kwargs
-            )
-        
-        elif issubclass(cls, (PrimitiveType, BaseType)):
-            # Simple types
-            return cls.field_class(
-                type_cls=cls,
-                default_kwargs=default_kwargs
-            )
-        
-        else:
-            raise TypeError(f"Unknown type category for {cls.__name__}")
-    
+        return cls.field_class(
+            type_cls=cls,
+            default_kwargs=default_kwargs
+        )
+                
     # ========================================================================
     # HOOKS - Subclasses override to customize behavior
     # ========================================================================

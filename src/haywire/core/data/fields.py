@@ -63,6 +63,26 @@ class DataField(ABC, Generic[T]):
         self.on_changed: Event[Any] = Event[Any]()
         self.is_dirty: bool = True
     
+
+    def _unwrap_value(self, value: Any) -> Any:
+        """
+        Unwrap value if it's an IType instance.
+        
+        Used by subclasses when receiving potentially wrapped values.
+        
+        Args:
+            value: Either raw value or IType instance
+            
+        Returns:
+            Unwrapped value (primitive or BaseType instance)
+        """
+        if isinstance(value, PrimitiveType):
+            return value.value
+        elif isinstance(value, BaseType):
+            return value  # BaseType instances are already unwrapped
+        else:
+            return value
+        
     # ========================================================================
     # CORE API - Implemented by each subclass
     # ========================================================================
@@ -286,43 +306,6 @@ class BaseField(DataField[BaseType]):
     def has_data(self) -> bool:
         """Check if has data"""
         return self._container is not None
-
-
-# ============================================================================
-# COMPOUNDFIELD - Base for collections (Array, Pooled, etc.)
-# ============================================================================
-
-@dataclass
-class CompoundField(DataField, ABC):
-    """
-    Abstract base for compound/collection fields.
-    
-    All compound fields:
-    - Track element_type_cls for type safety (the IType of elements)
-    - Store unwrapped elements for performance
-    - Implement collection-specific semantics
-    
-    Hierarchical type access:
-        field.element_type_cls → FLOAT (IType)
-        field.element_type_cls.element_type_cls → float (Python type)
-    
-    Subclasses:
-    - ArrayField: List[T] with homogeneous elements
-    - PooledField: Dict[str, T] with source tracking
-    - SetField: Set[T] with unique elements (future)
-    """
-    
-    # Compound fields always have element_type_cls set to IType
-    element_type_cls: type[IType]
-        
-    @abstractmethod
-    def _unwrap_value(self, value: Any) -> Any:
-        """
-        Unwrap a single value if it's an IType instance.
-        
-        Used when receiving values that might be wrapped.
-        """
-        pass
 
 
 # Set field_class attributes after classes are defined

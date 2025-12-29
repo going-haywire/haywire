@@ -54,3 +54,9 @@ class ArrayArrayAdapter(BaseAdapter):
     @override
     def execute(self, value):
         return self.convert(value)
+    
+
+    @override
+    def test(self) -> bool:
+        """Test for this adapter is not applicable"""
+        return True

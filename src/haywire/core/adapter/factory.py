@@ -110,14 +110,15 @@ class AdapterFactory:
             )
             if first_adapter:
                 result = first_adapter.execute(temp_value)
-        """
-        # Direct type match - no adapters needed
-        if source_type == target_type:
-            return (ReturnAdapter(), None)
+        """        
+        # Get base types for compound type detection
+        # (ArrayType[FLOAT] → ArrayType)
+        source_base = self._get_base_type(source_type)
+        target_base = self._get_base_type(target_type)
         
         # Determine if types are compound
-        source_is_compound = issubclass(source_type, CompoundType)
-        target_is_compound = issubclass(target_type, CompoundType)
+        source_is_compound = issubclass(source_base, CompoundType)
+        target_is_compound = issubclass(target_base, CompoundType)
         
         # Create chain without registration (internal=True)
         first_adapter = None
@@ -125,17 +126,21 @@ class AdapterFactory:
         
         # Case 1: Both scalar
         if not source_is_compound and not target_is_compound:
-            first_adapter, error = self._create_scalar_chain(
-                source_type,
-                target_type,
-                max_depth
-            )
+            # Direct type match - no adapters needed
+            if source_type == target_type:
+                return (ReturnAdapter(), None)
+            else:
+                first_adapter, error = self._create_scalar_chain(
+                    source_type,
+                    target_type,
+                    max_depth
+                )
         
         # Case 2: Both compound with same structure (ARRAY→ARRAY, MAP→MAP)
         elif (
             source_is_compound
             and target_is_compound
-            and source_type == target_type
+            and source_base == target_base
         ):
             first_adapter, error = self._create_element_chain(
                 source_type,
@@ -174,6 +179,43 @@ class AdapterFactory:
             )
         
         return (first_adapter, error)
+    
+    def _get_base_type(self, type_cls: type[IType]) -> type[IType]:
+        """
+        Get base type from potentially parameterized compound type.
+        
+        Parameterized compound types are created dynamically via
+        __class_getitem__ (e.g., ArrayType[FLOAT]). This extracts
+        the base class for registry lookups.
+        
+        Examples:
+            ArrayType[FLOAT] → ArrayType
+            PooledType[STRING] → PooledType
+            ArrayType → ArrayType (already base)
+            FLOAT → FLOAT (scalar type)
+        
+        Args:
+            type_cls: Type class (possibly parameterized)
+            
+        Returns:
+            Base type class for registry lookup
+        """
+        # Check if this is a dynamically created parameterized class
+        # These have:
+        # 1. __bases__ with single parent
+        # 2. Parent is a CompoundType
+        # 3. Has element_type_cls attribute
+        if (
+            hasattr(type_cls, '__bases__') 
+            and len(type_cls.__bases__) == 1
+            and issubclass(type_cls.__bases__[0], CompoundType)
+            and hasattr(type_cls, 'element_type_cls')
+        ):
+            # This is ArrayType[X], return ArrayType (the base)
+            return type_cls.__bases__[0]
+        
+        # Already a base type or scalar
+        return type_cls
     
     def _create_scalar_chain(
         self,
@@ -248,12 +290,17 @@ class AdapterFactory:
                 f"Compound types missing element_type_cls"
             )
  
+        # Get base types for registry lookup
+        # (ArrayType[FLOAT] → ArrayType)
+        source_base = self._get_base_type(source_type)
+        target_base = self._get_base_type(target_type)
+        
         # Find container adapter via registry
         # Note: Registry compares base types (ArrayType vs ArrayType)
         # not element types
         container_classes = self.adapter_registry.find_adapter_chain(
-            source_type,
-            target_type,
+            source_base,
+            target_base,
             max_depth=1  # Direct transformation only
         )
         
@@ -350,10 +397,15 @@ class AdapterFactory:
                 f"Compound types missing element_type_cls"
             )
  
-         # Find structural adapter via registry
+        # Get base types for registry lookup
+        # (ArrayType[FLOAT] → ArrayType, PooledType[STRING] → PooledType)
+        source_base = self._get_base_type(source_type)
+        target_base = self._get_base_type(target_type)
+        
+        # Find structural adapter via registry
         structural_classes = self.adapter_registry.find_adapter_chain(
-            source_type,
-            target_type,
+            source_base,
+            target_base,
             max_depth=1  # Direct transformation only
         )
         

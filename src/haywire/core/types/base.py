@@ -145,10 +145,16 @@ class BaseType(IType, ABC):
         Set element_type_cls to self for complex types.
         
         Called automatically when BaseType is subclassed.
+        
+        Skips if element_type_cls is already set (e.g., by 
+        CompoundType.__class_getitem__).
         """
         super().__init_subclass__(**kwargs)
-        # The class IS the element type
-        cls.element_type_cls = cls
+        
+        # Only set if not already defined (prevents overwriting 
+        # parameterized types)
+        if not hasattr(cls, 'element_type_cls'):
+            cls.element_type_cls = cls
     
     @property
     def value(self):
@@ -207,23 +213,55 @@ class CompoundType(BaseType, ABC, Generic[T]):
     # Subclasses MUST override field_class
     field_class = None
     
+    # Class-level cache for parameterized types
+    _parameterized_cache: dict = {}
+    
     @classmethod
     def __class_getitem__(cls, element_type_cls: type[IType]):
         """
-        Enable type parameterization syntax: CompoundType[ElementType]
+        Create parameterized compound type with caching.
         
-        This is the standard Python way to create generic-like syntax
-        (same as typing.List[int], typing.Dict[str, int], etc.)
+        Returns a cached class instance to ensure type identity:
+        ArrayType[FLOAT] is ArrayType[FLOAT] → True
         
-        Python calls when you use square brackets on a class.
-        
-        Args:
-            element_type_cls: The type of elements (FLOAT, MeshData, etc.)
-        
-        Returns:
-            the class itself with element_type_cls set.
+        Each parameterized class has its own element_type_cls.
         """
-        # Capture element_type_cls in outer scope for class body
-        cls.element_type_cls = element_type_cls
-
-        return cls
+        # Initialize cache if needed
+        if not hasattr(cls, '_parameterized_cache'):
+            cls._parameterized_cache = {}
+        
+        # Check cache
+        cache_key = (cls, element_type_cls)
+        if cache_key in cls._parameterized_cache:
+            return cls._parameterized_cache[cache_key]
+        
+        # Create new parameterized class
+        class_name = f"{cls.__name__}[{element_type_cls.__name__}]"
+        
+        # Build attributes dict - only include if they exist on parent
+        attrs = {
+            'element_type_cls': element_type_cls,
+            'field_class': cls.field_class,
+            # Share the cache
+            '_parameterized_cache': cls._parameterized_cache,
+        }
+        
+        # Copy identity attributes if they exist (after decoration)
+        if hasattr(cls, 'class_identity'):
+            attrs['class_identity'] = cls.class_identity
+        if hasattr(cls, 'class_library'):
+            attrs['class_library'] = cls.class_library
+        
+        # Use the parent class's metaclass explicitly
+        # This prevents ABC/metaclass issues
+        metaclass = type(cls)
+        
+        parameterized_cls = metaclass(
+            class_name,
+            (cls,),
+            attrs
+        )
+        
+        # Cache and return
+        cls._parameterized_cache[cache_key] = parameterized_cls
+        return parameterized_cls
