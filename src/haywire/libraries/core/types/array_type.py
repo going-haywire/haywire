@@ -83,32 +83,15 @@ class ArrayField(DataField):
     """
     
     _items: List[T] = field(default_factory=list, init=False, repr=False)
-    _default_kwargs: Dict[str, Any] = field(default_factory=dict)
-    
-    def __init__(self, type_cls: type, default_kwargs: Dict[str, Any]):
-        """
-        Initialize array field.
-        
-        Args:
-            type_cls: Type of the array (ArrayType[T])
-            element_type_cls: Type of array elements (FLOAT, MeshData, etc.)
-            default_kwargs: Constructor kwargs (e.g., {'value': [1.0, 2.0]})
-        """
-        self.type_cls = type_cls
-        self.element_type_cls = self.type_cls.element_type_cls
-        
-        self._default_kwargs = default_kwargs
+ 
+    def __post_init__(self):
+        """Initialize complex field with default instance"""
+        super().__post_init__()
         
         # Initialize from default
-        initial_list = default_kwargs.get('value', [])
-        self._items = self._unwrap_items(initial_list)
-        
-        super().__post_init__()
-    
-    def _unwrap_items(self, items: List[Any]) -> List[T]:
-        """Unwrap all items in a list"""
-        return [self._unwrap_value(item) for item in items]
-    
+        initial_list = self.default_kwargs.get('value', [])
+        self._items = initial_list
+            
     def get_value(self) -> List[T]:
         """
         Get list for worker access.
@@ -136,27 +119,13 @@ class ArrayField(DataField):
         if not isinstance(value, list):
             raise TypeError(f"ArrayField requires list, got {type(value).__name__}")
         
-        self._items = self._unwrap_items(value)
+        self._items = value
         self.is_dirty = True
         self.fire(list(self._items))
     
-    def get_for_transfer(self) -> List[T]:
-        """
-        Get list for transfer.
-        
-        Returns unwrapped list directly.
-        Type information tracked via element_type_cls.
-        
-        Returns:
-            [1.0, 2.0, 3.0]  # Primitives unwrapped
-            or
-            [MeshData(...), MeshData(...)]  # Complex types
-        """
-        return list(self._items)
-    
     def reset(self) -> None:
         """Reset to default array"""
-        initial_list = self._default_kwargs.get('value', [])
+        initial_list = self.default_kwargs.get('value', [])
         self._items = self._unwrap_items(initial_list)
         self.is_dirty = True
     

@@ -114,19 +114,9 @@ class PooledField(DataField):
     _sources: Dict[str, T] = field(default_factory=dict, init=False, repr=False)
     _default_kwargs: Dict[str, Any] = field(default_factory=dict)
     
-    def __init__(self, type_cls: type, default_kwargs: Dict[str, Any] = None):
-        """
-        Initialize pooled field.
-        
-        Args:
-            type_cls: Type of the pooled (PooledType[T])
-            element_type_cls: Type of pooled elements (FLOAT, MeshData, etc.)
-            default_kwargs: Constructor kwargs (e.g., {'value': {}}) - optional
-        """
-        self.type_cls = type_cls
-        self.element_type_cls = self.type_cls.element_type_cls
-        
-        self._default_kwargs = default_kwargs or {}
+    def __post_init__(self):
+        """Initialize pooled field."""
+        super().__post_init__()
         
         # Initialize from default if provided
         initial_dict = self._default_kwargs.get('value', {})
@@ -135,8 +125,6 @@ class PooledField(DataField):
         else:
             self._sources = {}
         
-        super().__post_init__()
-    
     def get_value(self) -> Dict[str, T]:
         """
         Get dict of all source values.
@@ -172,29 +160,19 @@ class PooledField(DataField):
         """
         if source_id is None:
             raise ValueError("PooledField requires source_id")
-        
-        # Unwrap value
-        unwrapped = self._unwrap_value(value)
-        
+                
         # Check if value actually changed
-        if self._sources.get(source_id) == unwrapped:
+        if self._sources.get(source_id) == value:
             return
         
         # Update source
-        self._sources[source_id] = unwrapped
+        self._sources[source_id] = value
         self.is_dirty = True
         self.fire(dict(self._sources))
-    
-    def get_for_transfer(self) -> Any:
-        """Pooled fields cannot be transferred (inlet-only)"""
-        raise RuntimeError(
-            "PooledField cannot be used with outlets. "
-            "Pooled fields are inlet-only."
-        )
-    
+        
     def get_compatible_type(self) -> type:
         # other than all other fields, pooled is only compatible with the element type
-        return self.element_type_cls
+        return self.type_cls.element_type_cls
     
     def reset(self) -> None:
         """Clear all sources"""
