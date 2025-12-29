@@ -3,6 +3,7 @@ Basic core node implementations
 """
 
 # Import the node system base class
+from haybale_test_a.types.maps_string_type import MapsStringType
 from haywire.core.node.base import node
 from haywire.core.node.base import BaseNode
 from haywire.libraries.core.types.array_type import ArrayType
@@ -124,6 +125,11 @@ class TestNodeOne(BaseNode):
         self.add(ArrayType[BOOL].as_outlet(
                 id='array_bool_outlet',
                 label='ARRAY[BOOL]'
+            ))
+
+        self.add(MapsStringType[BOOL].as_outlet(
+                id='mapsString_bool_outlet',
+                label='MAPSSTRING[BOOL]'
             ))
 
 
