@@ -108,7 +108,6 @@ class IType(ABC):
     @classmethod
     def create_field(
         cls,
-        element_type_cls: Optional[type['IType']] = None,
         default_override: Optional[Dict[str, Any]] = None
     ) -> 'DataField':
         """
@@ -118,7 +117,6 @@ class IType(ABC):
         This replaces the DataFieldFactory pattern - types know what they need!
         
         Args:
-            element_type_cls: For compound types, the element type
             default_override: Override default kwargs from @type decorator
         
         Returns:
@@ -132,7 +130,7 @@ class IType(ABC):
             field = FLOAT.create_field()
             
             # Compound type
-            field = ArrayType.create_field(element_type_cls=FLOAT)
+            field = ArrayType.create_field()
         """
         if not cls.field_class:
             raise ValueError(
@@ -204,7 +202,7 @@ class IType(ABC):
     # ========================================================================
     
     @classmethod
-    def as_inlet(cls, id: str, element_type_cls: Optional[type['IType']] = None, **kwargs):
+    def as_inlet(cls, id: str, **kwargs):
         """
         Create an inlet from this type.
         
@@ -216,13 +214,9 @@ class IType(ABC):
         For CompoundType, use parameterized syntax:
             ArrayType[FLOAT].as_inlet('numbers')
             PooledType[MeshData].as_inlet('meshes')
-        
-        Or pass element_type_cls explicitly:
-            ArrayType.as_inlet('numbers', element_type_cls=FLOAT)
-        
+                
         Args:
             id: Port identifier
-            element_type_cls: For compound types, the element type
             **kwargs: Override identity attributes or add port-specific fields
         
         Returns:
@@ -235,18 +229,7 @@ class IType(ABC):
         """
         from haywire.core.types.ports import PortInlet
         from haywire.core.types.utils import create_port_from_type
-        
-        # Check for element_type_cls as class attribute if not provided as parameter
-        # This supports PooledType[STRING] syntax where element_type_cls is set on the class
-        if element_type_cls is None and hasattr(cls, 'element_type_cls'):
-            # Only use class attribute for CompoundType parameterization
-            # (don't use PrimitiveType.element_type_cls which points to Python primitives)
-            from haywire.core.types.base import CompoundType
-            if issubclass(cls, CompoundType) and cls.element_type_cls is not None:
-                # Check if it's an IType (not a Python primitive like float)
-                if isinstance(cls.element_type_cls, type) and issubclass(cls.element_type_cls, IType):
-                    element_type_cls = cls.element_type_cls
-        
+                
         # Validate port type
         cls._validate_port_type('inlet')
         
@@ -255,17 +238,16 @@ class IType(ABC):
             type_cls=cls,
             port_cls=PortInlet,
             id=id,
-            element_type_cls=element_type_cls,
             **kwargs
         )
         
         # Let subclass configure
-        cls._configure_port(port, element_type_cls=element_type_cls)
+        cls._configure_port(port)
         
         return port
     
     @classmethod
-    def as_outlet(cls, id: str, element_type_cls: Optional[type['IType']] = None, **kwargs):
+    def as_outlet(cls, id: str, **kwargs):
         """
         Create an outlet from this type.
         
@@ -274,7 +256,6 @@ class IType(ABC):
         
         Args:
             id: Port identifier
-            element_type_cls: For compound types, the element type
             **kwargs: Override identity attributes
         
         Returns:
@@ -287,13 +268,6 @@ class IType(ABC):
         from haywire.core.types.ports import PortOutlet
         from haywire.core.types.utils import create_port_from_type
         
-        # Check for element_type_cls as class attribute if not provided as parameter
-        if element_type_cls is None and hasattr(cls, 'element_type_cls'):
-            from haywire.core.types.base import CompoundType
-            if issubclass(cls, CompoundType) and cls.element_type_cls is not None:
-                if isinstance(cls.element_type_cls, type) and issubclass(cls.element_type_cls, IType):
-                    element_type_cls = cls.element_type_cls
-        
         # Validate port type
         cls._validate_port_type('outlet')
         
@@ -302,12 +276,11 @@ class IType(ABC):
             type_cls=cls,
             port_cls=PortOutlet,
             id=id,
-            element_type_cls=element_type_cls,
             **kwargs
         )
         
         # Let subclass configure
-        cls._configure_port(port, element_type_cls=element_type_cls)
+        cls._configure_port(port)
         
         return port
     
@@ -332,7 +305,7 @@ class IType(ABC):
         """
         from haywire.core.data.enums import FlowType
         kwargs['flow_type'] = FlowType.NONE
-        return cls.as_inlet(id, element_type_cls=element_type_cls, **kwargs)
+        return cls.as_inlet(id, **kwargs)
     
     # ========================================================================
     # UTILITY METHODS

@@ -16,6 +16,7 @@ from haywire.core.types.interface import IType
 
 # Import the new DataField classes
 from haywire.core.data.fields import DataField
+from haywire.core.types.registry import TypeRegistry
 
 @dataclass
 class DataPort(DataTypeIdentity):
@@ -48,8 +49,6 @@ class DataPort(DataTypeIdentity):
     # Type tracking
     type_cls: type[IType] = field(default=None, metadata={'serialize': False}) 
     """The type class (FLOAT, ArrayType, etc.)"""
-    element_type_cls: Optional[type[IType]] = field(default=None, metadata={'serialize': False})
-    """ For compound types, the element IType"""
     
     # Connection state
     connection_count: int = 0
@@ -114,7 +113,6 @@ class DataPort(DataTypeIdentity):
         if self.data is None and self.type_cls is not None:
             # Type creates its own field!
             self.data = self.type_cls.create_field(
-                element_type_cls=self.element_type_cls,
                 default_override=self._default_override
             )
     
@@ -196,7 +194,11 @@ class DataPort(DataTypeIdentity):
         raise NotImplementedError("Port serialization requires _creation_recipe")
     
     @classmethod
-    def from_dict(cls, data: dict, type_registry) -> 'PortInlet | PortOutlet':
+    def from_dict(
+        cls, 
+        data: dict, 
+        type_registry: TypeRegistry
+    ) -> 'PortInlet | PortOutlet':
         """
         Deserialize port from dict.
         
@@ -207,37 +209,41 @@ class DataPort(DataTypeIdentity):
         Returns:
             Reconstructed PortInlet or PortOutlet
         """
+        from haywire.core.types.utils import _deserialize_type_spec
+        
         if data.get('type') == 'recipe':
-            registry_key = data['registry_key']
             method_name = data['method']
             kwargs = data['kwargs']
             
-            # Get the type class from registry
-            type_cls = type_registry.get_type_class(registry_key)
-            if not type_cls:
-                raise ValueError(f"Type '{registry_key}' not found in registry")
+            # NEW: Deserialize base type
+            type_cls = _deserialize_type_spec(
+                {'registry_key': data['registry_key']},
+                type_registry
+            )
             
-            # Handle compound types with element_type
-            if 'element_type_registry_key' in kwargs:
-                element_type_key = kwargs.pop('element_type_registry_key')
-                element_type_cls = type_registry.get_type_class(element_type_key)
-                
-                # Reconstruct: CompoundType[ElementType].as_inlet(...)
+            # NEW: Recursively deserialize element type if present
+            if 'element_type' in data:
+                element_type_cls = _deserialize_type_spec(
+                    data['element_type'],
+                    type_registry
+                )
+                # Parameterize: CompoundType[ElementType]
                 parameterized = type_cls[element_type_cls]
                 method = getattr(parameterized, method_name)
             else:
-                # Simple type: Type.as_inlet(...)
+                # Simple type
                 method = getattr(type_cls, method_name)
             
             # Extract id
             port_id = kwargs.pop('id')
             
-            # Recreate the port (field created in __post_init__)
+            # Recreate the port
             return method(port_id, **kwargs)
         
         else:
-            raise ValueError(f"Unknown port serialization format: {data.get('type')}")
-
+            raise ValueError(
+                f"Unknown port serialization format: {data.get('type')}"
+            )
 
 @dataclass
 class PortInlet(DataPort):

@@ -1,13 +1,14 @@
 from typing import TYPE_CHECKING, Any, Dict, Optional, Type, TypeVar
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
+from haywire.core.types.registry import TypeRegistry
 from haywire.ui.widget.globals import validate_widget_type_compatibility
+
 
 from .interface import IType
 
 if TYPE_CHECKING:
-    from haywire.core.types.ports import DataPort
-    from haywire.core.types.interface import IType
+    from .ports import DataPort
 
 
 T = TypeVar('T')
@@ -113,16 +114,16 @@ Utility functions for type system.
 
 def create_port_from_type(
     type_cls: type['IType'],
-    port_cls: type['DataPort'],  # PortInlet or PortOutlet
+    port_cls: type['DataPort'],
     id: str,
-    element_type_cls: Optional[type['IType']] = None,
     **kwargs
 ) -> 'DataPort':
     """
     Create a DataPort from a type.
     
-    Handles both simple types (FLOAT, MeshData) and compound types (ArrayType, PooledType).
-    The field is created automatically in port.__post_init__ via type.create_field().
+    Handles both simple types (FLOAT, MeshData) and compound types 
+    (ArrayType, PooledType). The field is created automatically in 
+    port.__post_init__ via type.create_field().
     
     Args:
         type_cls: Type class (FLOAT, ArrayType, etc.)
@@ -136,22 +137,31 @@ def create_port_from_type(
     
     Examples:
         # Simple type
-        port = create_port_from_type(FLOAT, PortInlet, 'value', default=0.0)
-        
-        # Compound type
         port = create_port_from_type(
-            ArrayType, PortInlet, 'numbers',
-            element_type_cls=FLOAT,
-            default=[1.0, 2.0]
+            FLOAT, PortInlet, 'value', default=0.0
+        )
+        
+        # Nested compound type
+        port = create_port_from_type(
+            PooledType, PortInlet, 'data',
+            element_type_cls=ArrayType[STRING],
+            default=[[...], [...]]
         )
     """
     from haywire.core.types.base import CompoundType
+
+    element_type_cls: Optional[Type[IType]] = None
+
     # Validate element_type_cls for compound types
     if issubclass(type_cls, CompoundType):
+        if type_cls.element_type_cls:
+            if issubclass(type_cls.element_type_cls, IType):
+                element_type_cls = type_cls.element_type_cls
         if not element_type_cls:
             raise ValueError(
-                f"CompoundType {type_cls.__name__} requires element_type_cls. "
-                f"Use parameterized syntax: {type_cls.__name__}[ElementType].as_inlet(...)"
+                f"CompoundType {type_cls.__name__} requires "
+                f"element_type_cls. Use parameterized syntax: "
+                f"{type_cls.__name__}[ElementType].as_inlet(...)"
             )
     
     # Extract default for field creation
@@ -164,11 +174,7 @@ def create_port_from_type(
         'type_cls': type_cls,
         **kwargs  # User overrides
     }
-    
-    # Add element_type_cls if provided (must be before port creation)
-    if element_type_cls:
-        port_kwargs['element_type_cls'] = element_type_cls
-    
+        
     # Create port
     port = port_cls(**port_kwargs)
     
@@ -177,14 +183,20 @@ def create_port_from_type(
         if isinstance(default_override, dict):
             port._default_override = default_override
         else:
-            # Convert single value to dict
             port._default_override = {'value': default_override}
     
     # Store creation recipe for serialization
-    if hasattr(type_cls, 'class_identity') and type_cls.class_identity.registry_key:
+    if (
+        hasattr(type_cls, 'class_identity') 
+        and type_cls.class_identity.registry_key
+    ):
         recipe = {
             'registry_key': type_cls.class_identity.registry_key,
-            'method': 'as_inlet' if port_cls.__name__ == 'PortInlet' else 'as_outlet',
+            'method': (
+                'as_inlet' 
+                if port_cls.__name__ == 'PortInlet' 
+                else 'as_outlet'
+            ),
             'kwargs': {
                 'id': id,
                 **{k: v for k, v in kwargs.items()}
@@ -195,12 +207,122 @@ def create_port_from_type(
         if default_override is not None:
             recipe['kwargs']['default'] = default_override
         
-        # Add element type to recipe for compounds
-        if element_type_cls and hasattr(element_type_cls, 'class_identity'):
-            recipe['kwargs']['element_type_registry_key'] = element_type_cls.class_identity.registry_key
+        # NEW: Recursive element type serialization
+        if element_type_cls:
+            recipe['element_type'] = _serialize_type_spec(element_type_cls)
         
         port._creation_recipe = recipe
     
-    # Field will be created in port.__post_init__ via type_cls.create_field()
-    
     return port
+
+
+def _serialize_type_spec(type_cls: type['IType']) -> dict:
+    """
+    Recursively serialize a type specification.
+    
+    Handles nested compound types like PooledType[ArrayType[STRING]].
+    
+    Args:
+        type_cls: Type class to serialize
+    
+    Returns:
+        Dict representing the type hierarchy
+    
+    Examples:
+        _serialize_type_spec(STRING)
+        # → {'registry_key': 'core.string'}
+        
+        _serialize_type_spec(ArrayType[STRING])
+        # → {
+        #     'registry_key': 'core.array',
+        #     'element_type': {'registry_key': 'core.string'}
+        #   }
+        
+        _serialize_type_spec(PooledType[ArrayType[STRING]])
+        # → {
+        #     'registry_key': 'core.pooled',
+        #     'element_type': {
+        #         'registry_key': 'core.array',
+        #         'element_type': {'registry_key': 'core.string'}
+        #     }
+        #   }
+    """
+    from haywire.core.types.base import CompoundType
+    
+    if not hasattr(type_cls, 'class_identity'):
+        raise ValueError(
+            f"Type {type_cls.__name__} has no class_identity. "
+            f"Was it decorated with @type?"
+        )
+    
+    registry_key = type_cls.class_identity.registry_key
+    if not registry_key:
+        raise ValueError(
+            f"Type {type_cls.__name__} has no registry_key"
+        )
+    
+    spec = {'registry_key': registry_key}
+    
+    # Recursively handle compound types
+    if (
+        issubclass(type_cls, CompoundType) 
+        and hasattr(type_cls, 'element_type_cls') 
+        and type_cls.element_type_cls
+    ):
+        spec['element_type'] = _serialize_type_spec(
+            type_cls.element_type_cls
+        )
+    
+    return spec
+
+
+def _deserialize_type_spec(spec: dict, type_registry: TypeRegistry) -> type['IType']:
+    """
+    Recursively deserialize a type specification.
+    
+    Args:
+        spec: Serialized type specification
+        type_registry: TypeRegistry to look up types
+    
+    Returns:
+        Reconstructed type class (possibly parameterized)
+    
+    Examples:
+        _deserialize_type_spec(
+            {'registry_key': 'core.string'}, 
+            registry
+        )
+        # → STRING
+        
+        _deserialize_type_spec(
+            {
+                'registry_key': 'core.pooled',
+                'element_type': {
+                    'registry_key': 'core.array',
+                    'element_type': {'registry_key': 'core.string'}
+                }
+            },
+            registry
+        )
+        # → PooledType[ArrayType[STRING]]
+    """
+    registry_key = spec['registry_key']
+    
+    # Get base type class
+    type_cls = type_registry.get_type_class(registry_key)
+    if not type_cls:
+        raise ValueError(
+            f"Type '{registry_key}' not found in registry"
+        )
+    
+    # Recursively handle element type
+    if 'element_type' in spec:
+        element_type_cls = _deserialize_type_spec(
+            spec['element_type'], 
+            type_registry
+        )
+        # Parameterize: ArrayType[STRING]
+        return type_cls[element_type_cls]
+    
+    # Simple type
+    return type_cls
