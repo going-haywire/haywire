@@ -13,7 +13,7 @@ from typing import Any, Dict, List, TypeVar
 from haywire.core.types.base import CompoundType
 from haywire.core.data.fields import DataField
 from haywire.core.types.decorator import type
-from haywire.core.data.enums import ContainerType, FlowType
+from haywire.core.data.enums import FlowType
 
 T = TypeVar('T')
 
@@ -23,7 +23,6 @@ T = TypeVar('T')
 
 @type(
     registry_id='array',
-    container_type=ContainerType.LIST,
     flow_type=FlowType.DATA,
     label='Array',
     description='Homogeneous typed array',
