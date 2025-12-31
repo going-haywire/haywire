@@ -51,6 +51,7 @@ class CALLBACK(BaseType):
 
 @type(
     registry_id='int',
+    flow_type=FlowType.DATA,
     label='Integer',
     description='Whole number',
     color='#f7b0ff',

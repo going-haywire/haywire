@@ -164,9 +164,13 @@ def create_port_from_type(
                 f"{type_cls.__name__}[ElementType].as_inlet(...)"
             )
     
-    # Extract default for field creation
-    default_override = kwargs.pop('default', None)
-    
+    if 'default' in kwargs:
+        kwargs['default'] = normalize_and_validate_default(
+                kwargs['default'],
+                type_cls,
+                context=f"create_port_from_type for port '{id}'"
+            )
+
     # Merge identity from type
     port_kwargs = {
         **asdict(type_cls.class_identity),
@@ -177,14 +181,7 @@ def create_port_from_type(
         
     # Create port
     port = port_cls(**port_kwargs)
-    
-    # Store default override for field creation in __post_init__
-    if default_override is not None:
-        if isinstance(default_override, dict):
-            port._default_override = default_override
-        else:
-            port._default_override = {'value': default_override}
-    
+        
     # Store creation recipe for serialization
     if (
         hasattr(type_cls, 'class_identity') 
@@ -202,11 +199,7 @@ def create_port_from_type(
                 **{k: v for k, v in kwargs.items()}
             }
         }
-        
-        # Add default to recipe
-        if default_override is not None:
-            recipe['kwargs']['default'] = default_override
-        
+               
         # NEW: Recursive element type serialization
         if element_type_cls:
             recipe['element_type'] = _serialize_type_spec(element_type_cls)

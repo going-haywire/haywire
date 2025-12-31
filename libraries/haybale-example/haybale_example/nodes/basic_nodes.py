@@ -52,7 +52,7 @@ class TestNodeOne(BaseNode):
                 label='Selector',
                 widget='core:widget:select.widget',
                 ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}},
-                default='Option 3'
+                default='Option 1'
             ))
         
         self.add(FLOAT.as_inlet(
@@ -88,7 +88,6 @@ class TestNodeOne(BaseNode):
                 id='int_input',
                 label='Missing Widget',
                 widget='core:widget:number.widget',
-                ui={'properties': {}},
                 default=42
             ))
 

@@ -71,8 +71,23 @@ class DataPort(DataTypeIdentity):
     pipes: list = field(default_factory=list, metadata={'serialize': False})
     
     # Internal: Store default override for field creation
-    _default_override: Optional[Dict[str, Any]] = field(default=None, init=False, repr=False)
-    
+    default: Optional[Dict[str, Any]] = field(default=None, repr=False)
+
+    def __post_init__(self):
+        """
+        Create data field via type.
+        
+        Simplified - no factory! Type creates its own field.
+        """
+        # Skip parent's post_init for runtime ports
+        
+        # Create data field if needed
+        if self.data is None and self.type_cls is not None:
+            # Type creates its own field!
+            self.data = self.type_cls.create_field(
+                default_override=self.default
+            )
+
     def get_value(self) -> Any:
         """
         Get unwrapped value for worker convenience.
@@ -100,22 +115,7 @@ class DataPort(DataTypeIdentity):
             return
         
         self.data.set_value(new_value, source_id=source_id)
-    
-    def __post_init__(self):
-        """
-        Create data field via type.
         
-        Simplified - no factory! Type creates its own field.
-        """
-        # Skip parent's post_init for runtime ports
-        
-        # Create data field if needed
-        if self.data is None and self.type_cls is not None:
-            # Type creates its own field!
-            self.data = self.type_cls.create_field(
-                default_override=self._default_override
-            )
-    
     def is_pin(self) -> bool:
         """Check if this is a visible pin (not a config)"""
         return self.flow_type != FlowType.NONE.value
