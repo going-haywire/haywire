@@ -123,7 +123,11 @@ class DataPort(DataTypeIdentity):
     def is_inlet(self) -> bool:
         """Check if this is an inlet"""
         return False
-    
+
+    def is_outlet(self) -> bool:
+        """Check if this is an outlet"""
+        return False
+
     def _add_link(self, wrapper: EdgeWrapper) -> None:
         """
         Register a linked edge.
@@ -258,6 +262,9 @@ class PortInlet(DataPort):
 @dataclass
 class PortOutlet(DataPort):
     """Outlet port - can send data to connections"""
+    
+    def is_outlet(self) -> bool:
+        return True
     
    # __post_init__ inherited from DataPort
     def __post_init__(self):

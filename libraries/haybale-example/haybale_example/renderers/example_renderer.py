@@ -58,20 +58,22 @@ class ExampleNodeRenderer(NodeRenderer):
             with ui.row().classes('w-full gap-2'):
                 # Inlets
                 with ui.column().classes('flex-1 gap-1'):
-                    if node.inlets:
+                    if node.ports:
                         ui.label('Inputs').classes('font-bold text-sm')
-                        for inlet in node.inlets.values():
-                            with ui.row().classes('w-full items-center gap-1'):
-                                ui.label(inlet.label).classes('text-xs')
-                                if not inlet.is_pooled:
-                                    if inlet.widget:
-                                        self.render_widget(inlet, wrapper.node_id)
+                        for inlet in node.ports.values():
+                            if inlet.is_inlet():
+                                with ui.row().classes('w-full items-center gap-1'):
+                                    ui.label(inlet.label).classes('text-xs')
+                                    if not inlet.is_pooled:
+                                        if inlet.widget:
+                                            self.render_widget(inlet, wrapper.node_id)
                 
                 # Outlets
                 with ui.column().classes('flex-1 gap-1'):
-                    if node.outlets:
+                    if node.ports:
                         ui.label('Outputs').classes('font-bold text-sm')
-                        for outlet in node.outlets.values():
-                            ui.label(outlet.label).classes('text-xs text-right')
+                        for outlet in node.ports.values():
+                            if outlet.is_outlet():
+                                ui.label(outlet.label).classes('text-xs text-right')
         
     

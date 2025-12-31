@@ -304,9 +304,28 @@ class IType(ABC):
             ArrayType[STRING].as_config('tags', default=['a', 'b'])
         """
         from haywire.core.data.enums import FlowType
+        from haywire.core.types.ports import DataPort
+        from haywire.core.types.utils import create_port_from_type
+                
+        # Validate port type
+        cls._validate_port_type('config')
+
         kwargs['flow_type'] = FlowType.NONE
-        return cls.as_inlet(id, **kwargs)
-    
+        
+        # Create port (field created in __post_init__ via type.create_field())
+        port = create_port_from_type(
+            type_cls=cls,
+            port_cls=DataPort,
+            id=id,
+            **kwargs
+        )
+        
+        # Let subclass configure
+        cls._configure_port(port)
+        
+        return port
+
+
     # ========================================================================
     # UTILITY METHODS
     # ========================================================================

@@ -43,20 +43,22 @@ class DefaultNodeRenderer(NodeRenderer):
             with ui.row().classes('w-full gap-2'):
                 # Left column: Inlets
                 with ui.column().classes('flex-1 gap-1'):
-                    if node.inlets:
+                    if node.ports:
                         ui.label('Inputs').classes('font-bold text-sm')
-                        for inlet in node.inlets.values():
-                            self._render_inlet(inlet, wrapper)
+                        for inlet in node.ports.values():
+                            if inlet.is_inlet():
+                                self._render_inlet(inlet, wrapper)
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
-                    if node.outlets:
+                    if node.ports:
                         ui.label('Outputs').classes('font-bold text-sm')
-                        for outlet in node.outlets.values():
-                            self._render_outlet(outlet, wrapper)
+                        for outlet in node.ports.values():
+                            if outlet.is_outlet():
+                                self._render_outlet(outlet, wrapper)
 
             # Footer with port counts
             with ui.row().classes('w-full justify-between mt-2 zoom-pan-lod1'):
-                ui.label(f'↓ {len(node.inlets)}').classes('text-caption')
-                ui.label(f'↑ {len(node.outlets)}').classes('text-caption')
+                ui.label(f'↓ {len([p for p in node.ports.values() if p.is_inlet()])}').classes('text-caption')
+                ui.label(f'↑ {len([p for p in node.ports.values() if p.is_outlet()])}').classes('text-caption')
            

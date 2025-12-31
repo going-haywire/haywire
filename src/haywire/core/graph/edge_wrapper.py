@@ -324,8 +324,8 @@ class EdgeWrapper:
             outlet_node = self._output_wrapper.node
             inlet_node = self._input_wrapper.node
             
-            self._outlet_port = outlet_node.outlets.get(self.outlet_port_id)
-            self._inlet_port = inlet_node.inlets.get(self.inlet_port_id)
+            self._outlet_port = outlet_node.ports.get(self.outlet_port_id)
+            self._inlet_port = inlet_node.ports.get(self.inlet_port_id)
             
             # Determine edge type if not set
             if self._edge_type is None:

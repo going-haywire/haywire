@@ -250,14 +250,10 @@ class BaseGraph:
     def _get_port(
             self,
             node_id: str,
-            port_id: str,
-            is_inlet: bool
+            port_id: str
         ) -> DataPort:  
-        """Get inlet or outlet port from a node."""
-        if is_inlet:          
-            return self.node_wrappers[node_id].node.inlets[port_id]
-        else:
-            return self.node_wrappers[node_id].node.outlets[port_id]
+        """Convenience method to get a port from a node."""
+        return self.node_wrappers[node_id].node.ports[port_id]
 
     def _get_ports(
             self,
@@ -265,10 +261,9 @@ class BaseGraph:
         ) -> List[DataPort]:  
         """Get all current inlet and outlet ports from a node."""
         ports = []
-        for port_id in self.node_wrappers[node_id].node.inlets:
-            ports.append(self.node_wrappers[node_id].node.inlets[port_id])
-        for port_id in self.node_wrappers[node_id].node.outlets:
-            ports.append(self.node_wrappers[node_id].node.outlets[port_id])
+        for port in self.node_wrappers[node_id].node.ports.values():
+            if port.is_inlet() or port.is_outlet(): 
+                ports.append(port)  
         
         return ports
 
@@ -297,7 +292,7 @@ class BaseGraph:
         """
         from .edge_wrapper import EdgeWrapper
         
-        flow_type = self.node_wrappers[output_node_id].node.outlets[outlet_port_id].flow_type
+        flow_type = self.node_wrappers[output_node_id].node.ports[outlet_port_id].flow_type
 
         # Create new wrapper
         wrapper = EdgeWrapper(
@@ -399,27 +394,23 @@ class BaseGraph:
             self._link_edge_to_port(
                 wrapper,
                 wrapper.input_node_id,
-                wrapper.inlet_port_id,
-                is_inlet=True
+                wrapper.inlet_port_id
             )
             self._link_edge_to_port(
                 wrapper,
                 wrapper.output_node_id,
-                wrapper.outlet_port_id,
-                is_inlet=False
+                wrapper.outlet_port_id
             ) 
         else:
             self._unlink_edge_from_port(
                 wrapper,
                 wrapper.input_node_id,
-                wrapper.inlet_port_id,
-                is_inlet=True
+                wrapper.inlet_port_id
             )
             self._unlink_edge_from_port(
                 wrapper,
                 wrapper.output_node_id,
-                wrapper.outlet_port_id,
-                is_inlet=False
+                wrapper.outlet_port_id
             ) 
 
         
@@ -427,22 +418,20 @@ class BaseGraph:
             self,
             wrapper: 'EdgeWrapper',
             node_id: str,
-            port_id: str,
-            is_inlet: bool
+            port_id: str
         ) -> DataPort:
         """
         Links an edge to a port. 
         Update port link state.
         Update link of other connected edges and refresh them.
         """
-        port = self._get_port(node_id, port_id, is_inlet=is_inlet)
+        port = self._get_port(node_id, port_id)
         if port:
             port._add_link(wrapper)
             wrapper.validate_link(port)
             edges_wrps = self._get_edge_wrappers_for_port(
                 node_id,
-                port_id,
-                is_inlet=is_inlet
+                port_id
             )
             if wrapper in edges_wrps:
                 edges_wrps.remove(wrapper)
@@ -455,22 +444,20 @@ class BaseGraph:
             self,
             wrapper: 'EdgeWrapper',
             node_id: str,
-            port_id: str,
-            is_inlet: bool
+            port_id: str
         ) -> DataPort:
         """
         Unlinks the edge from a port. 
         Updates port link state.
         Update link of other connected edges and refresh them.
         """
-        port = self._get_port(node_id, port_id, is_inlet=is_inlet)
+        port = self._get_port(node_id, port_id)
         if port:
             port._clear_all_links()
             wrapper.validate_link(port)
             edges_wrps = self._get_edge_wrappers_for_port(
                 node_id,
-                port_id,
-                is_inlet=is_inlet
+                port_id
             )
             if wrapper in edges_wrps:
                 edges_wrps.remove(wrapper)
@@ -510,16 +497,14 @@ class BaseGraph:
     def _get_edge_wrappers_for_port(
         self,
         node_id: str,
-        port_id: str,
-        is_inlet: bool
+        port_id: str
     ) -> List['EdgeWrapper']:
         """
-        Get all EdgeWrappers connected to a specific inlet or outlet.
+        Get all EdgeWrappers connected to a specific port.
         
         Args:
             node_id: ID of the node containing the port
             port_id: ID of the inlet or outlet
-            is_inlet: True if port is an inlet, False if outlet
             
         Returns:
             List of EdgeWrappers connected to the specified port
@@ -527,15 +512,11 @@ class BaseGraph:
         connected_wrappers = []
         
         for wrapper in self.edge_wrappers.values():
-            if is_inlet:
-                # Check if this edge connects to the specified inlet
                 if (
                     wrapper.input_node_id == node_id 
                     and wrapper.inlet_port_id == port_id
                 ):
                     connected_wrappers.append(wrapper)
-            else:
-                # Check if this edge connects from the specified outlet
                 if (
                     wrapper.output_node_id == node_id 
                     and wrapper.outlet_port_id == port_id

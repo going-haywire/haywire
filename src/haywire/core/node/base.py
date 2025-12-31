@@ -115,7 +115,6 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
     return decorator if cls is None else decorator(cls)
 
 
-
 class NodeMeta(type):
     """Metaclass for nodes"""
     def __new__(cls, name, bases, attrs):
@@ -128,8 +127,6 @@ class NodeData:
     
     def __init__(self):
         """Initialize unified port collection"""
-        self.configs: Dict[str, DataPort] = {}
-        self.properties: Dict[str, DataPort] = {}
         self.ports: Dict[str, DataPort] = {}  # Single source of truth
         self._cache_dirty = True
     
@@ -152,41 +149,11 @@ class NodeData:
         self._cache_dirty = True
         return port
     
-    @property
-    def inlets(self) -> Dict[str, PortInlet]:
+    def value(self, id: str) -> Any:
         """
-        Get all inlet ports.
+        Get the unwrapped value of an port for worker access.
         
-        Backward-compatible property that filters the unified ports dict.
-        
-        Returns:
-            Dict of inlet ports only
-        """
-        return {
-            port_id: port for port_id, port in self.ports.items()
-            if port.is_inlet()
-        }
-    
-    @property
-    def outlets(self) -> Dict[str, PortOutlet]:
-        """
-        Get all outlet ports.
-        
-        Backward-compatible property that filters the unified ports dict.
-        
-        Returns:
-            Dict of outlet ports only
-        """
-        return {
-            port_id: port for port_id, port in self.ports.items()
-            if not port.is_inlet()
-        }
-    
-    def inlet(self, id: str) -> Any:
-        """
-        Get the unwrapped value of an inlet for worker access.
-        
-        This is the primary method workers use to read inlet values.
+        This is the primary method workers use to read port values.
         Returns data in its most convenient form:
         - PrimitiveField: Unwrapped primitive (42.0, "hello")
         - BaseField: BaseType instance (MeshData(...))
@@ -201,46 +168,24 @@ class NodeData:
         
         Examples:
             # Primitive inlet
-            value = self.inlet('float_input')  # Returns: 42.0
+            value = self.value('float_input')  # Returns: 42.0
             
             # Complex inlet
-            mesh = self.inlet('mesh_input')  # Returns: MeshData(...)
+            mesh = self.value('mesh_input')  # Returns: MeshData(...)
             
             # Pooled inlet
-            temps = self.inlet('temperature_pool')  # Returns: {"node1": 20.0, "node2": 25.0}
+            temps = self.value('temperature_pool')  # Returns: {"node1": 20.0, "node2": 25.0}
             
             # Array inlet
-            numbers = self.inlet('number_array')  # Returns: [1.0, 2.0, 3.0]
+            numbers = self.value('number_array')  # Returns: [1.0, 2.0, 3.0]
         """
         port = self.ports.get(id)
         if not port:
             raise KeyError(f"Port '{id}' not found")
-        if not port.is_inlet():
-            raise ValueError(f"Port '{id}' is not an inlet")
         
         return port.get_value()
-    
-    def outlet_value(self, id: str) -> Any:
-        """
-        Get the unwrapped value of an outlet.
-        
-        Useful for debugging or when a node needs to read its own output.
-        
-        Args:
-            id: The ID of the outlet
-        
-        Returns:
-            Unwrapped value
-        """
-        port = self.ports.get(id)
-        if not port:
-            raise KeyError(f"Port '{id}' not found")
-        if port.is_inlet():
-            raise ValueError(f"Port '{id}' is not an outlet")
-        
-        return port.get_value()
-    
-    def set_outlet(self, id: str, value: Any) -> None:
+       
+    def out(self, id: str, value: Any) -> None:
         """
         Set the value of an outlet from worker.
         
@@ -253,13 +198,13 @@ class NodeData:
         
         Examples:
             # Primitive outlet
-            self.set_outlet('result', 42.0)  # Just pass the float!
+            self.out('result', 42.0)  # Just pass the float!
             
             # Complex outlet
-            self.set_outlet('mesh_out', MeshData(...))  # Pass the instance
+            self.out('mesh_out', MeshData(...))  # Pass the instance
             
             # Array outlet
-            self.set_outlet('sorted', [1.0, 2.0, 3.0])  # Pass the list
+            self.out('sorted', [1.0, 2.0, 3.0])  # Pass the list
         """
         port = self.ports.get(id)
         if not port:

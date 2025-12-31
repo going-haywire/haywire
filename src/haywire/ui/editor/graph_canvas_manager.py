@@ -777,28 +777,4 @@ class GraphCanvasManager:
             'max_x': max_x,
             'max_y': max_y
         }
-    
-    def _clone_node_data(self, source_node: BaseNode, target_node: BaseNode):
-        """Clone inlet/outlet data and configuration from source to target node."""
-        try:
-            # Copy behavior, ui_config, and metadata
-            target_node.behavior = source_node.behavior
-            target_node.ui_config = source_node.ui_config
-            target_node.metadata = source_node.metadata
-            
-            # Deep copy inlets and outlets
-            from copy import deepcopy
-            
-            for inlet_id, inlet in source_node.inlets.items():
-                target_node.inlets[inlet_id] = deepcopy(inlet)
-                
-            for outlet_id, outlet in source_node.outlets.items():
-                target_node.outlets[outlet_id] = deepcopy(outlet)
-            
-            # Reset cache
-            target_node._cache_dirty = True
-            
-        except Exception as e:
-            print(f"Warning: Could not fully clone node data: {e}")
-            # Continue with basic copy - at minimum the node factory created the basic structure
                    
