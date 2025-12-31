@@ -245,7 +245,7 @@ class ThemePalette:
             default = cls._current_theme.get_ui_color('port_default', '#757575')
         
         # Try to get color for specific type
-        color = cls._current_theme.get_data_type_color(type_name, None)
+        color = cls._current_theme.get_data_type_color(type_name, default)
         
         # If not found, try 'any' as fallback before using default
         if color is None:

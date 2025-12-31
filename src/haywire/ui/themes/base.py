@@ -66,7 +66,7 @@ class BaseTheme:
         return self._get_with_inheritance(
             self._data_types,
             normalized_key,
-            default or self.get_ui_color('port_default', '#757575'),
+            default,
             lambda k, d: self._parent_theme.get_data_type_color(k, d) if self._parent_theme else d
         )
     
