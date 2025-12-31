@@ -12,7 +12,7 @@ from ....ui.utils import generate_connection_uuid
 from ...node.node_wrapper import NodeWrapper
 from ...node.base import BaseNode
 from ...graph.base import BaseGraph, Edge
-from ...graph.edge_wrapper import EdgeWrapper
+from ...edge.edge_wrapper import EdgeWrapper
 from ..base_action import ActionBase, CompositeAction
 
 class AddNodeAction(ActionBase):

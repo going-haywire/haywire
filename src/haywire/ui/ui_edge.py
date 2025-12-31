@@ -15,7 +15,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Optional, List
 
-from haywire.core.graph.edge_wrapper import EdgeWrapper
+from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.registry.lifecycle_event import (
     LifeCycleEvent,
     LifeCycleEventType

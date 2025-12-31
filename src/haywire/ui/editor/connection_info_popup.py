@@ -13,9 +13,9 @@ This component provides a dedicated popup for inspecting edge/connection details
 from nicegui import ui
 from typing import Optional
 
-from haywire.core.graph.edge import Edge
+from haywire.core.edge.edge import Edge
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.graph.edge_wrapper import EdgeWrapperState
+from haywire.core.edge.edge_wrapper import EdgeWrapperState
 
 from .popup import Popup
 from haywire.ui.errors.error_info import error_render_detail

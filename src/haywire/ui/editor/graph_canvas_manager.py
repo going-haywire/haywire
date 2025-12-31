@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple, Callable, Set
 from nicegui import ui
 
 from haywire.core.graph.base import Edge
-from haywire.core.graph.edge_wrapper import EdgeWrapper
+from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.editor import Editor
 from haywire.core.node.base import BaseNode
 from haywire.core.undo.actions.graph_actions import ClipboardData

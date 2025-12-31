@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from haywire.core.data.enums import FlowType
-from haywire.core.graph.edge_wrapper import EdgeWrapper
+from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
 

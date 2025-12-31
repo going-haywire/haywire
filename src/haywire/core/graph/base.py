@@ -13,10 +13,10 @@ from ..data.enums import FlowType
 if TYPE_CHECKING:
     from ..node.factory import NodeFactory
     from ..adapter.factory import AdapterFactory
-    from .edge_wrapper import EdgeWrapper
+    from ..edge.edge_wrapper import EdgeWrapper
 
 # Re-export Edge and FlowType from new location for backward compatibility
-from .edge import Edge
+from ..edge.edge import Edge
 
 
 @dataclass
@@ -290,7 +290,7 @@ class BaseGraph:
         Returns:
             EdgeWrapper if successful, None if failed
         """
-        from .edge_wrapper import EdgeWrapper
+        from ..edge.edge_wrapper import EdgeWrapper
         
         flow_type = self.node_wrappers[output_node_id].node.ports[outlet_port_id].flow_type
 

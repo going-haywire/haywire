@@ -13,9 +13,9 @@ to avoid zoom/transform inheritance.
 from nicegui import ui
 from typing import List, Optional, Callable
 
-from haywire.core.graph.edge import Edge
+from haywire.core.edge.edge import Edge
 from haywire.core.node.factory import NodeFactory
-from haywire.core.graph.edge_wrapper import EdgeWrapperState
+from haywire.core.edge.edge_wrapper import EdgeWrapperState
 
 from .popup import Popup
 from .event_definitions import (

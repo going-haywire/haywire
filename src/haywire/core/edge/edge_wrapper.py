@@ -17,7 +17,7 @@ from ..types.interface import IType
 from .edge import Edge
 
 if TYPE_CHECKING:
-    from .base import BaseGraph
+    from ..graph.base import BaseGraph
     from ..adapter.factory import AdapterFactory
     from ..node.node_wrapper import NodeWrapper
     from ..types.ports import DataPort
