@@ -64,9 +64,8 @@ class ExampleNodeRenderer(NodeRenderer):
                             if inlet.is_inlet():
                                 with ui.row().classes('w-full items-center gap-1'):
                                     ui.label(inlet.label).classes('text-xs')
-                                    if not inlet.is_pooled:
-                                        if inlet.widget:
-                                            self.render_widget(inlet, wrapper.node_id)
+                                    if inlet.widget:
+                                        self.render_widget(inlet, wrapper.node_id)
                 
                 # Outlets
                 with ui.column().classes('flex-1 gap-1'):
