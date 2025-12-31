@@ -124,14 +124,13 @@ class NodeMeta(type):
 
 
 class NodeData:
-    """Node data management with port collections"""
+    """Node data management with unified port collection"""
     
     def __init__(self):
-        """Initialize port collections"""
+        """Initialize unified port collection"""
         self.configs: Dict[str, DataPort] = {}
         self.properties: Dict[str, DataPort] = {}
-        self.inlets: Dict[str, PortInlet] = {}
-        self.outlets: Dict[str, PortOutlet] = {}
+        self.ports: Dict[str, DataPort] = {}  # Single source of truth
         self._cache_dirty = True
     
     def add(self, port: DataPort) -> DataPort:
@@ -147,20 +146,41 @@ class NodeData:
         Raises:
             ValueError: If port ID already exists
         """
-        if port.is_inlet():
-            inlet = port  # type: PortInlet
-            if inlet.id in self.inlets:
-                raise ValueError(f"Inlet ID already exists: {inlet.id}")
-            self.inlets[inlet.id] = inlet
-            self._cache_dirty = True
-            return inlet
-        else:
-            outlet = port  # type: PortOutlet
-            if outlet.id in self.outlets:
-                raise ValueError(f"Outlet ID already exists: {outlet.id}")
-            self.outlets[outlet.id] = outlet
-            self._cache_dirty = True
-            return outlet
+        if port.id in self.ports:
+            raise ValueError(f"Port ID already exists: {port.id}")
+        self.ports[port.id] = port
+        self._cache_dirty = True
+        return port
+    
+    @property
+    def inlets(self) -> Dict[str, PortInlet]:
+        """
+        Get all inlet ports.
+        
+        Backward-compatible property that filters the unified ports dict.
+        
+        Returns:
+            Dict of inlet ports only
+        """
+        return {
+            port_id: port for port_id, port in self.ports.items()
+            if port.is_inlet()
+        }
+    
+    @property
+    def outlets(self) -> Dict[str, PortOutlet]:
+        """
+        Get all outlet ports.
+        
+        Backward-compatible property that filters the unified ports dict.
+        
+        Returns:
+            Dict of outlet ports only
+        """
+        return {
+            port_id: port for port_id, port in self.ports.items()
+            if not port.is_inlet()
+        }
     
     def inlet(self, id: str) -> Any:
         """
@@ -192,11 +212,13 @@ class NodeData:
             # Array inlet
             numbers = self.inlet('number_array')  # Returns: [1.0, 2.0, 3.0]
         """
-        inlet = self.inlets.get(id)
-        if not inlet:
-            raise KeyError(f"Inlet '{id}' not found")
+        port = self.ports.get(id)
+        if not port:
+            raise KeyError(f"Port '{id}' not found")
+        if not port.is_inlet():
+            raise ValueError(f"Port '{id}' is not an inlet")
         
-        return inlet.get_value()
+        return port.get_value()
     
     def outlet_value(self, id: str) -> Any:
         """
@@ -210,11 +232,13 @@ class NodeData:
         Returns:
             Unwrapped value
         """
-        outlet = self.outlets.get(id)
-        if not outlet:
-            raise KeyError(f"Outlet '{id}' not found")
+        port = self.ports.get(id)
+        if not port:
+            raise KeyError(f"Port '{id}' not found")
+        if port.is_inlet():
+            raise ValueError(f"Port '{id}' is not an outlet")
         
-        return outlet.get_value()
+        return port.get_value()
     
     def set_outlet(self, id: str, value: Any) -> None:
         """
@@ -237,11 +261,13 @@ class NodeData:
             # Array outlet
             self.set_outlet('sorted', [1.0, 2.0, 3.0])  # Pass the list
         """
-        outlet = self.outlets.get(id)
-        if not outlet:
-            raise KeyError(f"Outlet '{id}' not found")
+        port = self.ports.get(id)
+        if not port:
+            raise KeyError(f"Port '{id}' not found")
+        if port.is_inlet():
+            raise ValueError(f"Port '{id}' is not an outlet")
         
-        outlet.set_value(value)
+        port.set_value(value)
 
 
 class BaseNode(NodeData, metaclass=NodeMeta):

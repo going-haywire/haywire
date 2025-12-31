@@ -29,7 +29,7 @@ class TestNodeOne(BaseNode):
         self.behavior.is_control_node = False
 
         # Add control inlet (no type, just execution flow)
-        self.add(EXEC.as_inlet(id='execute'))
+        self.add(EXEC.as_inlet(id='execute_in'))
 
         self.add(Temperature.as_inlet(
                 id='temp_config',
@@ -64,7 +64,7 @@ class TestNodeOne(BaseNode):
             ))
 
         self.add(BOOL.as_inlet(
-                id='bool_switch',
+                id='bool_switch_in',
                 label='Boolean Switch',
                 widget='core:widget:switch.widget',
                 ui={'properties': {'text': 'Enable Feature'}},
@@ -95,7 +95,7 @@ class TestNodeOne(BaseNode):
         self.add(CALLBACK.as_inlet(id='callback'))
 
         # Add outlets
-        self.add(EXEC.as_outlet(id='execute'))
+        self.add(EXEC.as_outlet(id='execute_out'))
 
         self.add(FLOAT.as_outlet(
                 id='float',
@@ -103,7 +103,7 @@ class TestNodeOne(BaseNode):
             ))
 
         self.add(BOOL.as_outlet(
-                id='bool_switch',
+                id='bool_switch_out',
                 label='Boolean Output'
             ))
         
