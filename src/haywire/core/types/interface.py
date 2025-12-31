@@ -329,15 +329,7 @@ class IType(ABC):
     # ========================================================================
     # UTILITY METHODS
     # ========================================================================
-    
-    def has_adapter(self, type_cls: type['IType'], adapter_registry: AdapterRegistry) -> bool:
-        """Check if adapter exists to convert to target type"""
-        return adapter_registry.has_adapter(type(self), type_cls)
-    
-    def get_adapter(self, type_cls: type['IType'], adapter_registry: AdapterRegistry) -> BaseAdapter:
-        """Get adapter to convert to target type"""
-        return adapter_registry.get_adapter(type(self), type_cls)
-    
+        
     def is_value_type(self, compare: type) -> bool:
         """Check if the value is of a specific type"""
         return isinstance(self.value, compare)

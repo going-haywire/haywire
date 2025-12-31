@@ -17,29 +17,29 @@ class AdapterRegistry(BaseRegistry):
     Registry for IType-to-IType conversion adapters.
     
     Design:
-    - Stores adapters by (source_itype, target_itype) tuple
+    - Stores adapters by (source_registry_key, target_registry_key) tuple
     - Supports adapter chains for multi-hop conversions
     - Handles priority when multiple adapters exist
-    - IType-only (no mixing with Python types)
+    - Uses registry keys for hot-reload resilience
     
     Examples:
         # Register adapter
         registry.register_class(TempToFloatAdapter)
         
         # Check direct adapter
-        registry.has_adapter(Temperature, FLOAT)  # True
+        registry.has_adapter('lib.Temperature', 'core.FLOAT')  # True
         
         # Find adapter chain
-        chain = registry.find_adapter_chain(Temperature, INT)
+        chain = registry.find_adapter_chain('lib.Temperature', 'core.INT')
         # Returns: [TempToFloatAdapter, FloatToIntAdapter]
     """
 
     def __init__(self):
         super().__init__()
-        # Key: (source_itype, target_itype)
+        # Key: (source_registry_key, target_registry_key)
         # Value: list of adapter classes (sorted by priority)
         self._adapters: dict[
-            tuple[type[IType], type[IType]],
+            tuple[str, str],
             list[type[BaseAdapter]]
         ] = {}
 
@@ -93,8 +93,12 @@ class AdapterRegistry(BaseRegistry):
                 f"IType subclass, got {target_itype}"
             )
         
-        # Add to type-based lookup (with priority sorting)
-        key = (source_itype, target_itype)
+        # Extract registry keys from types
+        source_key = source_itype.class_identity.registry_key
+        target_key = target_itype.class_identity.registry_key
+        
+        # Add to registry-key-based lookup (with priority sorting)
+        key = (source_key, target_key)
         if key not in self._adapters:
             self._adapters[key] = []
         
@@ -133,9 +137,11 @@ class AdapterRegistry(BaseRegistry):
         if not adapter_class:
             return None
         
-        # Remove from type-based lookup
+        # Remove from registry-key-based lookup
         identity = adapter_class.class_identity
-        key = (identity.converts_from, identity.converts_to)
+        source_key = identity.converts_from.class_identity.registry_key
+        target_key = identity.converts_to.class_identity.registry_key
+        key = (source_key, target_key)
         
         if key in self._adapters:
             try:
@@ -150,60 +156,64 @@ class AdapterRegistry(BaseRegistry):
    
     def has_adapter(
         self,
-        source_itype: type[IType],
-        target_itype: type[IType]
+        source_registry_key: str,
+        target_registry_key: str
     ) -> bool:
         """
         Check if adapter exists for IType conversion.
         
         Args:
-            source_itype: Source IType class (FLOAT, Temperature, etc.)
-            target_itype: Target IType class (INT, MeshData, etc.)
+            source_registry_key: Source type registry key
+            target_registry_key: Target type registry key
             
         Returns:
             bool: True if at least one adapter exists
         """
-        return (source_itype, target_itype) in self._adapters
+        return (source_registry_key, target_registry_key) in self._adapters
 
     def get_adapter(
         self,
-        source_itype: type[IType],
-        target_itype: type[IType]
+        source_registry_key: str,
+        target_registry_key: str
     ) -> type[BaseAdapter] | None:
         """
         Get highest priority adapter for IType conversion.
         
         Args:
-            source_itype: Source IType class
-            target_itype: Target IType class
+            source_registry_key: Source type registry key
+            target_registry_key: Target type registry key
             
         Returns:
             type[BaseAdapter] | None: Highest priority adapter or None
         """
-        adapters = self._adapters.get((source_itype, target_itype))
+        adapters = self._adapters.get(
+            (source_registry_key, target_registry_key)
+        )
         return adapters[0] if adapters else None
     
     def get_all_adapters(
         self,
-        source_itype: type[IType],
-        target_itype: type[IType]
+        source_registry_key: str,
+        target_registry_key: str
     ) -> list[type[BaseAdapter]]:
         """
         Get all adapters for conversion (sorted by priority).
         
         Args:
-            source_itype: Source IType class
-            target_itype: Target IType class
+            source_registry_key: Source type registry key
+            target_registry_key: Target type registry key
             
         Returns:
             list[type[BaseAdapter]]: All adapters, highest priority first
         """
-        return self._adapters.get((source_itype, target_itype), [])
+        return self._adapters.get(
+            (source_registry_key, target_registry_key), []
+        )
 
     def find_adapter_chain(
         self,
-        source_itype: type[IType],
-        target_itype: type[IType],
+        source_registry_key: str,
+        target_registry_key: str,
         max_depth: int = 3
     ) -> list[type[BaseAdapter]] | None:
         """
@@ -212,8 +222,8 @@ class AdapterRegistry(BaseRegistry):
         Uses breadth-first search to find shortest conversion path.
         
         Args:
-            source_itype: Source IType class
-            target_itype: Target IType class
+            source_registry_key: Source type registry key
+            target_registry_key: Target type registry key
             max_depth: Maximum chain length (default 3)
             
         Returns:
@@ -221,91 +231,91 @@ class AdapterRegistry(BaseRegistry):
             
         Examples:
             # Direct adapter exists
-            find_adapter_chain(Temperature, FLOAT)
+            find_adapter_chain('lib.Temperature', 'core.FLOAT')
             # → [TempToFloatAdapter]
             
             # Chain required
-            find_adapter_chain(Temperature, INT)
+            find_adapter_chain('lib.Temperature', 'core.INT')
             # → [TempToFloatAdapter, FloatToIntAdapter]
             
             # No path exists
-            find_adapter_chain(MeshData, INT)
+            find_adapter_chain('lib.MeshData', 'core.INT')
             # → None
         """
         # Direct adapter exists
-        if self.has_adapter(source_itype, target_itype):
-            return [self.get_adapter(source_itype, target_itype)]
+        if self.has_adapter(source_registry_key, target_registry_key):
+            return [self.get_adapter(source_registry_key, target_registry_key)]
         
         # BFS to find shortest chain
-        # Queue: (current_type, chain_so_far)
-        queue = deque([(source_itype, [])])
-        visited = {source_itype}
+        # Queue: (current_registry_key, chain_so_far)
+        queue = deque([(source_registry_key, [])])
+        visited = {source_registry_key}
         
         while queue:
-            current_type, chain = queue.popleft()
+            current_key, chain = queue.popleft()
             
             # Check depth limit
             if len(chain) >= max_depth:
                 continue
             
-            # Try all adapters from current_type
-            for (src, tgt), adapters in self._adapters.items():
-                if src != current_type:
+            # Try all adapters from current_key
+            for (src_key, tgt_key), adapters in self._adapters.items():
+                if src_key != current_key:
                     continue
                 
                 # Found target!
-                if tgt == target_itype:
+                if tgt_key == target_registry_key:
                     return chain + [adapters[0]]
                 
                 # Add to queue if not visited
-                if tgt not in visited:
-                    visited.add(tgt)
-                    queue.append((tgt, chain + [adapters[0]]))
+                if tgt_key not in visited:
+                    visited.add(tgt_key)
+                    queue.append((tgt_key, chain + [adapters[0]]))
         
         # No chain found
         return None
 
-    def list_conversions(self) -> list[tuple[type[IType], type[IType]]]:
+    def list_conversions(self) -> list[tuple[str, str]]:
         """
         List all available IType conversions.
         
         Returns:
-            list[tuple[type[IType], type[IType]]]: List of (source, target)
+            list[tuple[str, str]]: List of (source_key, target_key)
         """
         return list(self._adapters.keys())
     
     def list_conversions_from(
         self,
-        source_itype: type[IType]
-    ) -> list[type[IType]]:
+        source_registry_key: str
+    ) -> list[str]:
         """
         List all target types that source can convert to.
         
         Args:
-            source_itype: Source IType class
+            source_registry_key: Source type registry key
             
         Returns:
-            list[type[IType]]: List of convertible target types
+            list[str]: List of convertible target registry keys
         """
         return [
-            tgt for (src, tgt) in self._adapters.keys()
-            if src == source_itype
+            tgt_key for (src_key, tgt_key) in self._adapters.keys()
+            if src_key == source_registry_key
         ]
     
     def list_conversions_to(
         self,
-        target_itype: type[IType]
-    ) -> list[type[IType]]:
+        target_registry_key: str
+    ) -> list[str]:
         """
         List all source types that can convert to target.
         
         Args:
-            target_itype: Target IType class
+            target_registry_key: Target type registry key
             
         Returns:
-            list[type[IType]]: List of compatible source types
+            list[str]: List of compatible source registry keys
         """
         return [
-            src for (src, tgt) in self._adapters.keys()
-            if tgt == target_itype
+            src_key for (src_key, tgt_key) in self._adapters.keys()
+            if tgt_key == target_registry_key
         ]

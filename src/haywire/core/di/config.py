@@ -232,9 +232,9 @@ class LibrarySystemService:
         # Set up registry subscribers for cross-registry updates
         # this ensures that when new types are added, 
         # nodes, widgets and adapters are updated accordingly
-        type_registry.add_registry_subscriber(adapter_registry)
         type_registry.add_registry_subscriber(widget_registry)
         type_registry.add_registry_subscriber(node_registry)
+        type_registry.add_registry_subscriber(adapter_registry)
 
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()

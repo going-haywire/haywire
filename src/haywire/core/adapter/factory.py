@@ -233,9 +233,13 @@ class AdapterFactory:
         if source_type == target_type:
             return (ReturnAdapter(), None)
         
+        # Extract registry keys from types
+        source_key = source_type.class_identity.registry_key
+        target_key = target_type.class_identity.registry_key
+        
         adapter_classes = self.adapter_registry.find_adapter_chain(
-            source_type,
-            target_type,
+            source_key,
+            target_key,
             max_depth=max_depth
         )
         
@@ -295,12 +299,16 @@ class AdapterFactory:
         source_base = self._get_base_type(source_type)
         target_base = self._get_base_type(target_type)
         
+        # Extract registry keys from base types
+        source_base_key = source_base.class_identity.registry_key
+        target_base_key = target_base.class_identity.registry_key
+        
         # Find container adapter via registry
         # Note: Registry compares base types (ArrayType vs ArrayType)
         # not element types
         container_classes = self.adapter_registry.find_adapter_chain(
-            source_base,
-            target_base,
+            source_base_key,
+            target_base_key,
             max_depth=1  # Direct transformation only
         )
         
@@ -402,10 +410,14 @@ class AdapterFactory:
         source_base = self._get_base_type(source_type)
         target_base = self._get_base_type(target_type)
         
+        # Extract registry keys from base types
+        source_base_key = source_base.class_identity.registry_key
+        target_base_key = target_base.class_identity.registry_key
+        
         # Find structural adapter via registry
         structural_classes = self.adapter_registry.find_adapter_chain(
-            source_base,
-            target_base,
+            source_base_key,
+            target_base_key,
             max_depth=1  # Direct transformation only
         )
         
@@ -533,40 +545,6 @@ class AdapterFactory:
             if connection_uuid in self._edge_callbacks:
                 callback = self._edge_callbacks[connection_uuid]
                 callback(events)
-    
-    def get_available_adapters(
-        self,
-        source_type: Optional[type[IType]] = None,
-        target_type: Optional[type[IType]] = None
-    ) -> List[Dict[str, any]]:
-        """
-        Get available adapters, optionally filtered by type.
-        
-        Useful for UI/debugging to show available conversions.
-        """
-        adapters = []
-        
-        for (src, tgt), adapter_list in self.adapter_registry._adapters.items():
-            # Filter by source type if specified
-            if source_type is not None and src != source_type:
-                continue
-            
-            # Filter by target type if specified
-            if target_type is not None and tgt != target_type:
-                continue
-            
-            for adapter_cls in adapter_list:
-                identity = adapter_cls.class_identity
-                adapters.append({
-                    'registry_key': identity.registry_key,
-                    'label': identity.label,
-                    'description': identity.description,
-                    'source_type': src.__name__ if src else None,
-                    'target_type': tgt.__name__ if tgt else None,
-                    'priority': identity.priority,
-                })
-        
-        return adapters
     
     def cleanup(self):
         """Clean up factory resources"""
