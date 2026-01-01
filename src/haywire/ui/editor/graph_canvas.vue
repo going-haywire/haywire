@@ -1465,6 +1465,10 @@ export default {
             connectionInfo.outletPos = this._getPinPosition(outletPin);
             connectionInfo.inletPos = this._getPinPosition(inletPin);
 
+            // Update colors in connectionInfo
+            connectionInfo.outletColor = document.getElementById(connectionInfo.outletPinUUID).dataset.pinColor;
+            connectionInfo.inletColor = document.getElementById(connectionInfo.inletPinUUID).dataset.pinColor;
+
             const pathData = this._createBezierPathForConnection(connectionUUID);
 
             connectionInfo.path.setAttribute('d', pathData);
