@@ -72,6 +72,10 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         description (str, optional): Type description.
         color (str, optional): UI pin color (hex).
         icon (str, optional): UI pin icon.
+        icon_in (str, optional): Icon for inlet pins.
+        icon_in_multi (str, optional): Icon for multi-connection inlet pins.
+        icon_out (str, optional): Icon for outlet pins.
+        icon_out_multi (str, optional): Icon for multi-connection outlet pins.
         widget (str, optional): Widget for editing values.
         ui (dict, optional): Additional UI properties.
         container_type (ContainerType, optional): SINGLE, LIST, DICT, etc.

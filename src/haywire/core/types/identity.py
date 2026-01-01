@@ -37,6 +37,10 @@ class DataTypeIdentity(BaseIdentity):
         flow_type: DATA, CTRL, or NONE
         color: UI pin color (hex)
         icon: UI pin icon
+        icon_in: Icon for inlet pins
+        icon_in_multi: Icon for multi-connection inlet pins
+        icon_out: Icon for outlet pins
+        icon_out_multi: Icon for multi-connection outlet pins
         widget: Widget for editing values
         default: Default value for this type
         ui: Additional UI properties (dict)
@@ -57,7 +61,12 @@ class DataTypeIdentity(BaseIdentity):
     
     # UI specification:
     color: str = '#757575'
-    icon: str = 'circle'
+    icon: str | None = None
+    icon_in: str | None = None
+    icon_in_multi: str | None = None
+    icon_out: str | None = None
+    icon_out_multi: str | None = None
+
     widget: str | None = None
     ui: dict[str, Any] = field(default_factory=dict)
     help_url: str = ''
@@ -72,4 +81,13 @@ class DataTypeIdentity(BaseIdentity):
         if not self.description and self.label:
             self.description = self.label
         
-
+        if self.icon:
+            # Use same icon for in/out unless specified
+            if not self.icon_in:
+                self.icon_in = self.icon
+            if not self.icon_out:
+                self.icon_out = self.icon
+            if not self.icon_in_multi:
+                self.icon_in_multi = self.icon
+            if not self.icon_out_multi:
+                self.icon_out_multi = self.icon
