@@ -12,7 +12,7 @@ from haywire.ui.renderer.decorator import renderer
 from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes import ThemePalette
 
-from haywire.libraries.core.nodes.node_renderer import NodeRenderer
+from haywire.libraries.core.renderers.node_renderer import NodeRenderer
 
 @renderer(
     description="Default renderer that provides the standard node appearance", 

@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+import logging
 from typing import Any, Optional
 from nicegui import ui
 from haywire.core.types.ports import DataPort
 from haywire.ui.widget.interface import IWidget
-
 
 class SimpleWidget(IWidget, ABC):
     """
@@ -69,7 +69,8 @@ class SimpleWidget(IWidget, ABC):
         # Cleanup callbacks
         self._model_changed_callback: Optional[Callable] = None
         self._ui_changed_callback: Optional[Callable] = None
-    
+        self.logger = logging.getLogger(__name__)
+
     @abstractmethod
     def create_element(self) -> Any:
         """

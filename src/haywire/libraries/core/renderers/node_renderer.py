@@ -3,6 +3,7 @@ from nicegui import ui
 
 from haywire.core.data.enums import FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.types.base import CompoundType, PrimitiveType
 from haywire.core.types.ports import PortInlet, DataPort
 
 from haywire.ui.renderer.base import BaseRenderer
@@ -71,8 +72,9 @@ class NodeRenderer(BaseRenderer, ABC):
         if pin.flow_type == FlowType.CONTROL:
             # Get control flow color from theme
             ctrl_color = ThemePalette.flow_type(FlowType.CONTROL)
+            icon_name = 'join_left' if (pin.is_inlet()) else 'join_right'
             # Pin connector
-            ui.icon('label', color=ctrl_color, size='xs').classes(
+            ui.icon(icon_name, color=ctrl_color, size='xs').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
@@ -85,7 +87,7 @@ class NodeRenderer(BaseRenderer, ABC):
             # Get callback flow color from theme
             callback_color = ThemePalette.flow_type(FlowType.CALLBACK)
             # Pin connector
-            ui.icon('replay_circle_filled', color=callback_color, size='xs').classes(
+            ui.icon('swipe_left_alt', color=callback_color, size='20px').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
@@ -98,6 +100,31 @@ class NodeRenderer(BaseRenderer, ABC):
             pin_data_type = pin.data.type_cls.class_identity.registry_key
             pin_color = ThemePalette.data_type(pin.type_cls, pin.color)
             port_border = ThemePalette.ui(Theme_UI_Color.PORT_BORDER, 'white')
+            icon_name = 'my_location'
+            if pin.is_inlet():
+                if pin.allow_multiple_connections:
+                    if issubclass(pin.type_cls.element_type_cls, PrimitiveType):
+                        icon_name = 'fiber_smart_record'
+                    else:
+                        icon_name = 'web_stories'
+            else:
+                    if issubclass(pin.type_cls, CompoundType):
+                        icon_name = 'view_day'
+                    else:
+                        icon_name = 'circle'
+            with ui.icon(icon_name, color=pin_color, size='15px').classes(
+                    'text-4xl port connection-pin zoom-pan-lod0'
+                ).style(
+                    f'position: absolute; {direction}: -20px; '
+                    f'cursor: crosshair;'
+                ).props(
+                    f'{common_props} '
+                    f'data-pin-data-type="{pin_data_type}" '
+                    f'data-pin-color="{pin_color}"'
+                ):
+                ui.tooltip(f'{pin.description} | {pin.data.get_value()}').classes('bg-green')
+            
+            '''
             ui.element('div').classes(
                 'port output-port connection-pin zoom-pan-lod0'
             ).style(
@@ -112,4 +139,5 @@ class NodeRenderer(BaseRenderer, ABC):
                 f'data-pin-data-type="{pin_data_type}" '
                 f'data-pin-color="{pin_color}"'
             )
+            '''
 
