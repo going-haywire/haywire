@@ -19,7 +19,15 @@ class DefaultTheme(PythonTheme):
     
     # Unified VALUES dict with all theme keys
     VALUES = {
-        
+        ThemeKey.UI_PORT_ICON_IN_MULTI_SINGLE: "fiber_smart_record",
+        ThemeKey.UI_PORT_ICON_IN_MULTI_COMPOUND: "web_stories",
+        ThemeKey.UI_PORT_ICON_IN_COMPOUND: "view_day",
+        ThemeKey.UI_PORT_ICON_IN_SINGLE: "my_location",
+        ThemeKey.UI_PORT_ICON_OUT_MULTI_COMPOUND: "view_day",
+        ThemeKey.UI_PORT_ICON_OUT_MULTI_SINGLE: "circle",
+        ThemeKey.UI_PORT_ICON_OUT_COMPOUND: "view_day",
+        ThemeKey.UI_PORT_ICON_OUT_SINGLE: "circle",
+
         # UI - Semantic colors
         ThemeKey.UI_PRIMARY: "#2196f3",
         ThemeKey.UI_SECONDARY: "#757575",

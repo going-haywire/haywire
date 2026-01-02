@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node Pin Icons Preview</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            background-color: white;
+            border-collapse: collapse;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        thead {
+            position: sticky;
+            top: 90px;
+            z-index: 50;
+        }
+        
+        th {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 20px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            vertical-align: middle;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .icon-cell {
+            text-align: center;
+            width: 80px;
+        }
+        
+        .icon-cell .material-icons {
+            font-size: 32px;
+            color: #2196F3;
+        }
+        
+        .name-cell {
+            font-weight: 500;
+            color: #333;
+            width: 200px;
+        }
+        
+        .node-preview-cell {
+            width: auto;
+        }
+        
+        .node-preview {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .node-box {
+            width: 120px;
+            height: 60px;
+            background: transparent;
+            border: 2px solid #9e9e9e;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .node-box .material-icons {
+            font-size: 24px;
+            color: #2196F3;
+            background: transparent;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+        }
+        
+        .node-box.left .material-icons {
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
+        
+        .node-box.right .material-icons {
+            left: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
+        
+        svg {
+            flex-shrink: 0;
+            position: relative;
+            z-index: 30;
+        }
+    </style>
+</head>
+<body>
+    <h1>Node Pin Icons Preview</h1>
+    
+    <div class="controls">
+        <label for="colorPicker" style="font-weight: 500; margin-right: 10px;">Icon & Path Color:</label>
+        <input type="color" id="colorPicker" value="#2196F3" style="width: 50px; height: 30px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">
+        
+        <div style="margin-top: 15px;">
+            <label for="positionSlider" style="font-weight: 500; margin-right: 10px;">Icon Position:</label>
+            <input type="range" id="positionSlider" min="-20" max="20" value="0" step="1" style="width: 300px; vertical-align: middle; cursor: pointer;">
+            <span id="positionValue" style="margin-left: 10px; font-weight: 500;">0px</span>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Icon</th>
+                <th>Name</th>
+                <th>Node Preview</th>
+            </tr>
+        </thead>
+        <tbody id="iconTableBody">
+            <!-- Rows will be dynamically generated -->
+        </tbody>
+    </table>
+    
+    <script>
+        // List of icons to display
+        const icons = [
+            'my_location',
+            'label_important',
+            'label',
+            'circle',
+            'add_circle',
+            'crop_free',
+            'extension',
+            'support',
+            'add_box',
+            'contrast',
+            'pentagon',
+            'pending',
+            'view_headline',
+            'toc',
+            'view_module',
+            'api',
+            'apps',
+            'view_agenda',
+            'view_sidebar',
+            'vertical_split',
+            'calendar_view_day',
+            'square',
+            'view_day',
+            'view_array',
+            'join_left',
+            'join_right',
+            'web_stories',
+            'view_comfy',
+            'stay_primary_landscape',
+            'local_play',
+            'grid_view',
+            'play_arrow',
+            'videocam',
+            'skip_next',
+            'fast_forward',
+            'subscriptions',
+            'control_camera',
+            'call_to_action',
+            'tornado',
+            'east',
+            'west',
+            'south',
+            'north',
+            'hive',
+            'radio_button_checked',
+            'warning',
+            'error',
+            'border_inner',
+            'border_clear',
+            'keyboard_double_arrow_right',
+            'keyboard_double_arrow_left',
+            'gamepad',
+            'grid_4x4'
+        ];
+        
+        const colorPicker = document.getElementById('colorPicker');
+        const positionSlider = document.getElementById('positionSlider');
+        const positionValue = document.getElementById('positionValue');
+        const tableBody = document.getElementById('iconTableBody');
+        
+        // Generate table rows
+        function generateTable() {
+            tableBody.innerHTML = '';
+            
+            icons.forEach(iconName => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="icon-cell">
+                        <span class="material-icons">${iconName}</span>
+                    </td>
+                    <td class="name-cell">${iconName}</td>
+                    <td class="node-preview-cell">
+                        <div class="node-preview">
+                            <div class="node-box left">
+                                <span class="material-icons">${iconName}</span>
+                            </div>
+                            <svg width="80" height="60" viewBox="0 0 80 60">
+                                <path d="M 0 30 C 20 30, 60 30, 80 30" 
+                                      stroke="#2196F3" 
+                                      stroke-width="3" 
+                                      fill="none"
+                                      stroke-linecap="round"/>
+                            </svg>
+                            <div class="node-box right">
+                                <span class="material-icons">${iconName}</span>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Initialize table
+        generateTable();
+        
+        colorPicker.addEventListener('input', function(e) {
+            const newColor = e.target.value;
+            
+            // Update all icon colors
+            document.querySelectorAll('.node-box .material-icons').forEach(icon => {
+                icon.style.color = newColor;
+            });
+            
+            // Update all SVG path strokes
+            document.querySelectorAll('svg path').forEach(path => {
+                path.setAttribute('stroke', newColor);
+            });
+        });
+        
+        positionSlider.addEventListener('input', function(e) {
+            const offset = parseInt(e.target.value);
+            positionValue.textContent = offset + 'px';
+            
+            // Update left box icons (move further left/right)
+            document.querySelectorAll('.node-box.left .material-icons').forEach(icon => {
+                icon.style.right = (-12 - offset) + 'px';
+            });
+            
+            // Update right box icons (move further right/left)
+            document.querySelectorAll('.node-box.right .material-icons').forEach(icon => {
+                icon.style.left = (-12 - offset) + 'px';
+            });
+            
+            // Update SVG paths to match icon positions
+            // The SVG is 80px wide between the two boxes
+            // Left icon center in SVG coordinates: 0 (at left edge) + offset
+            // Right icon center in SVG coordinates: 80 (at right edge) - offset
+            const startX = 0 + offset;
+            const endX = 80 - offset;
+            document.querySelectorAll('svg path').forEach(path => {
+                path.setAttribute('d', `M ${startX} 30 C ${startX + 20} 30, ${endX - 20} 30, ${endX} 30`);
+            });
+        });
+    </script>
+</body>
+</html>

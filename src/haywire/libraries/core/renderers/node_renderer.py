@@ -100,18 +100,48 @@ class NodeRenderer(BaseRenderer, ABC):
             pin_color = pin.data.get_compatible_type().class_identity.color
             pin_data_type = pin.data.get_compatible_type().class_identity.registry_key
             # Get pin color: try data type specific, use pin.color as preference
-            icon_name = 'my_location'
+            icon_name = 'circle'  # Default icon
             if pin.is_inlet():
                 if pin.allow_multiple_connections:
-                    if issubclass(pin.type_cls.element_type_cls, PrimitiveType):
-                        icon_name = 'fiber_smart_record'
+                    if issubclass(pin.data.get_compatible_type(), CompoundType):
+                        icon_name = ThemePalette.get(
+                            ThemeKey.UI_PORT_ICON_IN_MULTI_COMPOUND,
+                            pin.data.get_compatible_type().class_identity.icon_in_multi,
+                            fallback='web_stories'
+                        )
                     else:
-                        icon_name = 'web_stories'
-            else:
+                        icon_name = ThemePalette.get(
+                            ThemeKey.UI_PORT_ICON_IN_MULTI_SINGLE,
+                            pin.data.get_compatible_type().class_identity.icon_in_multi,
+                            fallback='fiber_smart_record'
+                        )
+                else:
                     if issubclass(pin.type_cls, CompoundType):
-                        icon_name = 'view_day'
+                        icon_name = ThemePalette.get(
+                            ThemeKey.UI_PORT_ICON_IN_COMPOUND,
+                            pin.data.get_compatible_type().class_identity.icon_in,
+                            fallback='view_day'
+                        )
                     else:
-                        icon_name = 'circle'
+                        icon_name = ThemePalette.get(
+                            ThemeKey.UI_PORT_ICON_IN_SINGLE,
+                            pin.data.get_compatible_type().class_identity.icon_in,
+                            fallback='my_location'
+                        )
+            else:
+                if issubclass(pin.type_cls, CompoundType):
+                    icon_name = ThemePalette.get(
+                        ThemeKey.UI_PORT_ICON_OUT_MULTI_COMPOUND,
+                        pin.data.get_compatible_type().class_identity.icon_out_multi,
+                        fallback='view_day'
+                    )
+                    icon_name = 'view_day'
+                else:
+                    icon_name = ThemePalette.get(
+                        ThemeKey.UI_PORT_ICON_OUT_MULTI_SINGLE,
+                        pin.data.get_compatible_type().class_identity.icon_out_multi,
+                        fallback='circle'
+                    )
             with ui.icon(icon_name, color=pin_color, size='15px').classes(
                     'text-4xl port connection-pin zoom-pan-lod0'
                 ).style(
