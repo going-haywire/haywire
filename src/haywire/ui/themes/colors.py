@@ -1,11 +1,7 @@
 """
-Named color constants for Haywire UI.
-
-These are literal color name-to-value mappings only.
-Semantic meanings (primary, error, etc.) belong in themes.
+Named color constants and unified theme keys for Haywire.
 """
 
-from enum import Enum
 from typing import Final
 
 
@@ -60,36 +56,3 @@ class Colors:
         return default
 
 
-class Theme_UI_Color(str, Enum):
-    """UI theme color keys with IDE autocomplete support."""
-
-    # Semantic colors
-    PRIMARY = 'primary'
-    SECONDARY = 'secondary'
-    ACCENT = 'accent'
-
-    # Status colors
-    ERROR = 'error'
-    WARNING = 'warning'
-    SUCCESS = 'success'
-    INFO = 'info'
-
-    # Node/port specific
-    NODE_BACKGROUND = 'node_background'
-    NODE_BORDER = 'node_border'
-    NODE_SELECTED_BORDER = 'node_selected_border'
-    PORT_BORDER = 'port_border'
-    PORT_DEFAULT = 'port_default'
-
-    # Canvas
-    CANVAS_BACKGROUND = 'canvas_background'
-    CANVAS_GRID_LINE = 'canvas_grid_line'
-    CANVAS_GRID_DOT = 'canvas_grid_dot'
-    SELECTION_BOX = 'selection_box'
-    SELECTION_BOX_BORDER = 'selection_box_border'
-
-    # Text colors
-    TEXT_PRIMARY = 'text_primary'
-    TEXT_SECONDARY = 'text_secondary'
-    TEXT_DISABLED = 'text_disabled'
-    TEXT_HINT = 'text_hint'

@@ -3,12 +3,10 @@ Theme palette manager - central access point for theming.
 Implements observer pattern for theme change notifications.
 """
 
-from typing import Optional, Callable, List, Dict, Any, Type
-from haywire.core.data.enums import FlowType
+from typing import Optional, Callable, List, Dict, Any
 from haywire.ui.themes.base import BaseTheme
 from haywire.ui.themes.builtin import BUILTIN_THEMES, DefaultTheme
 from haywire.ui.themes.loader import ThemeLoader
-from haywire.ui.themes.colors import Theme_UI_Color
 
 
 # Type alias for observer callbacks
@@ -218,71 +216,24 @@ class ThemePalette:
         
         return registry
     
-    # Convenience accessors with type safety
+    # Main access method - delegates to current theme
     
     @classmethod
-    def data_type(cls, data_type: Type | str | None, default: Optional[str] = None) -> str:
+    def get(
+        cls,
+        key: str,
+        preference: Optional[str] = None,
+        fallback: Optional[str] = None
+    ) -> str:
         """
-        Get color for data type from current theme.
+        Get theme value with preference and fallback support.
         
         Args:
-            data_type: Python class (int, float, str, etc.), type name string, or None
-            default: Fallback color (uses theme's port_default if None)
+            key: Theme key (any string, e.g., ThemeKey enum value or custom key)
+            preference: User preference value (optional)
+            fallback: Fallback value if key not found (optional)
         
         Returns:
-            Color value
+            Theme value as string, or '' if not found
         """
-        # Convert class to type name string
-        if isinstance(data_type, type):
-            type_name = data_type.__name__
-        elif data_type is None:
-            type_name = 'any'
-        else:
-            type_name = str(data_type)
-        
-        # If default is None, get 'port_default' from UI colors
-        if default is None:
-            default = cls._current_theme.get_ui_color('port_default', '#757575')
-        
-        # Try to get color for specific type
-        color = cls._current_theme.get_data_type_color(type_name, default)
-        
-        # If not found, try 'any' as fallback before using default
-        if color is None:
-            color = cls._current_theme.get_data_type_color('any', default)
-        
-        return color
-    
-    @classmethod
-    def flow_type(cls, flow_type: FlowType | str, default: Optional[str] = None) -> str:
-        """
-        Get flow type color from current theme.
-
-        Args:
-            flow_type: Flow type key (enum or string: 'ctrl', 'data', 'callback')
-            default: Default color if not found
-
-        Returns:
-            Color string in format '#RRGGBB'
-        """
-        # Extract value from enum if needed
-        flow_type_str = flow_type.value if isinstance(flow_type, FlowType) else flow_type
-        return cls._current_theme.get_flow_type_color(flow_type_str, default)
-    
-    @classmethod
-    def ui(cls, element: Theme_UI_Color | str, default: Optional[str] = None) -> str:
-        """
-        Get UI element color from current theme.
-
-        Args:
-            element: UI element key (enum or string: 'primary', 'secondary', etc.)
-            default: Default color if not found
-
-        Returns:
-            Color string in format '#RRGGBB'
-        """
-        # Extract value from enum if needed
-        element_str = element.value if isinstance(element, Theme_UI_Color) else element
-        return cls._current_theme.get_ui_color(element_str, default)
-    
-
+        return cls._current_theme.get(key, preference, fallback)

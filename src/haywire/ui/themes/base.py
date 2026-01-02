@@ -14,13 +14,14 @@ class ThemeMetadata:
     description: str = ""
     version: str = "1.0.0"
     extends: Optional[str] = None  # Base theme to inherit from
+    priority: str = "Preference"  # 'Theme' or 'Preference'
 
 
 class BaseTheme:
     """
     Base class for theme implementations.
     
-    Provides color dictionaries for each category and get methods with fallbacks.
+    Provides unified get() method for all theme values.
     Supports metadata and inheritance from parent theme.
     """
     
@@ -39,122 +40,95 @@ class BaseTheme:
         self.metadata = metadata
         self._parent_theme = parent_theme
         
-        # Initialize empty color dicts
-        self._data_types: Dict[str, str] = {}
-        self._flow_types: Dict[str, str] = {}
-        self._ui_colors: Dict[str, str] = {}
+        # Initialize unified values dict
+        self._values: Dict[str, str] = {}
     
     def set_parent_theme(self, parent: 'BaseTheme') -> None:
         """Set parent theme for inheritance."""
         self._parent_theme = parent
     
-    def get_data_type_color(self, data_type: str, default: Optional[str] = None) -> str:
-        """
-        Get color for data type with inheritance support.
-        
-        Args:
-            data_type: Data type name
-            default: Fallback color
-            
-        Returns:
-            Color value
-        """
-        # Normalize data_type to lowercase
-        normalized_key = data_type.lower()
-        
-        # Use inheritance-aware getter
-        return self._get_with_inheritance(
-            self._data_types,
-            normalized_key,
-            default,
-            lambda k, d: self._parent_theme.get_data_type_color(k, d) if self._parent_theme else d
-        )
-    
-    def get_flow_type_color(self, flow_type: str, default: Optional[str] = None) -> str:
-        """
-        Get color for flow type with inheritance support.
-        
-        Args:
-            flow_type: Flow type name
-            default: Fallback color
-            
-        Returns:
-            Color value
-        """
-        # Normalize flow_type to lowercase
-        normalized_key = flow_type.lower()
-        
-        return self._get_with_inheritance(
-            self._flow_types,
-            normalized_key,
-            default or '#757575',
-            lambda k, d: self._parent_theme.get_flow_type_color(k, d) if self._parent_theme else d
-        )
-    
-    def get_ui_color(self, element: str, default: Optional[str] = None) -> str:
-        """
-        Get color for UI element with inheritance support.
-        
-        Args:
-            element: UI element name
-            default: Fallback color
-            
-        Returns:
-            Color value
-        """
-        normalized_key = element.lower()
-        
-        return self._get_with_inheritance(
-            self._ui_colors,
-            normalized_key,
-            default or '#757575',
-            lambda k, d: self._parent_theme.get_ui_color(k, d) if self._parent_theme else d
-        )
-        
-    def _get_with_inheritance(
-        self,
-        color_dict: Dict[str, str],
-        key: str,
-        default: Optional[str],
-        getter_method: Callable[[str, Optional[str]], str]
+    def get(
+        self, 
+        key: str, 
+        preference: Optional[str] = None, 
+        fallback: Optional[str] = None
     ) -> str:
         """
-        Internal helper for inheritance-aware color lookup.
+        Get theme value with priority-based preference handling.
+        
+        Priority logic:
+        - If preference is None:
+          - Return theme value (or parent's value)
+          - If not found, return fallback or ''
+        
+        - If preference is provided:
+          - Priority='Theme': Return theme value, else preference, else fallback, else ''
+          - Priority='Preference' (default): Return preference (ignore theme)
         
         Args:
-            color_dict: Local color dictionary
-            key: Color key to look up
-            default: Default value if not found
-            getter_method: Method to call on parent theme
-            
+            key: Theme key (any string)
+            preference: User preference value (optional)
+            fallback: Fallback value if key not found (optional)
+        
         Returns:
-            Color value
+            Theme value as string, or '' if not found
         """
-        # Check local color_dict
-        if key in color_dict:
-            return color_dict[key]
+        # Normalize key to lowercase for case-insensitive lookup
+        normalized_key = key.lower()
         
-        # If not found and parent exists, call getter_method on parent
-        if self._parent_theme:
-            return getter_method(key, default)
+        # Get theme value (check this theme first, then parent)
+        theme_value = self._get_theme_value(normalized_key)
         
-        # If still not found, return default
-        return default or '#000000'
+        # If preference is None, use theme value or fallback
+        if preference is None:
+            if theme_value is not None:
+                return theme_value
+            return fallback if fallback is not None else ''
+        
+        # Preference is provided - check priority
+        if self.metadata.priority == 'Theme':
+            # Theme has priority
+            if theme_value is not None:
+                return theme_value
+            # Theme doesn't have this key, use preference
+            return preference
+        else:
+            # Preference has priority (default behavior)
+            return preference
+    
+    def _get_theme_value(self, normalized_key: str) -> Optional[str]:
+        """
+        Get value from this theme or parent theme.
+        
+        Args:
+            normalized_key: Normalized key to look up
+        
+        Returns:
+            Value if found, None otherwise
+        """
+        # Check this theme's values
+        if normalized_key in self._values:
+            return self._values[normalized_key]
+        
+        # Check parent theme
+        if self._parent_theme is not None:
+            parent_value = self._parent_theme._get_theme_value(normalized_key)
+            if parent_value is not None:
+                return parent_value
+        
+        return None
 
 
 class PythonTheme(BaseTheme):
     """
     Theme defined in Python with class attributes.
     
-    Supports Final[str] for IDE preview and uses class attributes
-    for color dictionaries.
+    Supports Final[str] for IDE preview and uses class attribute
+    for unified theme values.
     """
     
-    # Class attributes (to be overridden in subclasses)
-    DATA_TYPES: Dict[str, str] = {}
-    FLOW_TYPES: Dict[str, str] = {}
-    UI_COLORS: Dict[str, str] = {}
-    CANVAS_COLORS: Dict[str, str] = {}  # Deprecated: kept for backward compatibility
+    # Class attribute to be overridden in subclasses
+    VALUES: Dict[str, str] = {}
     
     # Metadata as class attribute
     metadata: ThemeMetadata = ThemeMetadata(name="Base Python Theme")
@@ -169,10 +143,8 @@ class PythonTheme(BaseTheme):
         # Create metadata from class metadata attribute
         super().__init__(self.metadata, parent_theme)
         
-        # Copy class attributes to instance dicts (convert keys to lowercase)
-        self._data_types = {k.lower(): v for k, v in self.DATA_TYPES.items()}
-        self._flow_types = {k.lower(): v for k, v in self.FLOW_TYPES.items()}
-        self._ui_colors = {k.lower(): v for k, v in self.UI_COLORS.items()}
+        # Copy class attribute to instance dict (normalize keys to lowercase)
+        self._values = {k.lower(): v for k, v in self.VALUES.items()}
 
 
 
@@ -180,7 +152,7 @@ class TOMLTheme(BaseTheme):
     """
     Theme loaded from TOML file.
     
-    Accepts parsed TOML data and extracts sections for colors and metadata.
+    Accepts parsed TOML data and extracts values and metadata.
     """
     
     def __init__(self, toml_data: Dict, parent_theme: Optional[BaseTheme] = None):
@@ -198,21 +170,22 @@ class TOMLTheme(BaseTheme):
             author=metadata_dict.get('author', ''),
             description=metadata_dict.get('description', ''),
             version=metadata_dict.get('version', '1.0.0'),
-            extends=metadata_dict.get('extends')
+            extends=metadata_dict.get('extends'),
+            priority=metadata_dict.get('priority', 'Preference')
         )
         
         # Call super().__init__()
         super().__init__(metadata, parent_theme)
         
-        # Extract and populate color sections (normalize keys to lowercase)
-        if 'data_types' in toml_data:
-            self._data_types = {k.lower(): v for k, v in toml_data['data_types'].items()}
-        
-        if 'flow_types' in toml_data:
-            self._flow_types = {k.lower(): v for k, v in toml_data['flow_types'].items()}
-        
-        if 'ui' in toml_data:
-            self._ui_colors = {k.lower(): v for k, v in toml_data['ui'].items()}
+        # Extract and populate all values sections (normalize keys to lowercase)
+        # Support multiple sections for organization but store in unified dict
+        for section_name, section_data in toml_data.items():
+            if section_name != 'metadata' and isinstance(section_data, dict):
+                # Add section prefix to keys for namespacing
+                for key, value in section_data.items():
+                    # Store as "section.key" (already normalized in ThemeKey)
+                    full_key = f"{section_name}.{key}".lower()
+                    self._values[full_key] = value
             
     @classmethod
     def from_file(cls, path: str, theme_registry: Optional[Dict] = None) -> 'TOMLTheme':

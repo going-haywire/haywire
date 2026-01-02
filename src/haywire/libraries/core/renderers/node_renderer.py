@@ -7,7 +7,7 @@ from haywire.core.types.base import CompoundType, PrimitiveType
 from haywire.core.types.ports import PortInlet, DataPort
 
 from haywire.ui.renderer.base import BaseRenderer
-from haywire.ui.themes.colors import Theme_UI_Color
+from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.utils import generate_pin_uuid
 from haywire.ui.themes import ThemePalette
 
@@ -50,7 +50,7 @@ class NodeRenderer(BaseRenderer, ABC):
         # Create unique pin ID and determine port type for connection system
         pin_direction = 'inlet' if pin.is_inlet() else 'outlet'
         pin_uuid = generate_pin_uuid(pin_direction, wrapper.node_id, pin.id)
-        
+
         # Calculate 2D direction vector components based on pin type
         if pin.is_inlet():
             # Inlets point left (negative X)
@@ -71,7 +71,7 @@ class NodeRenderer(BaseRenderer, ABC):
         
         if pin.flow_type == FlowType.CONTROL:
             # Get control flow color from theme
-            ctrl_color = ThemePalette.flow_type(FlowType.CONTROL)
+            ctrl_color = pin.color
             icon_name = 'join_left' if (pin.is_inlet()) else 'join_right'
             # Pin connector
             ui.icon(icon_name, color=ctrl_color, size='xs').classes(
@@ -85,7 +85,7 @@ class NodeRenderer(BaseRenderer, ABC):
             )
         elif pin.flow_type == FlowType.CALLBACK:
             # Get callback flow color from theme
-            callback_color = ThemePalette.flow_type(FlowType.CALLBACK)
+            callback_color = pin.color
             # Pin connector
             ui.icon('swipe_left_alt', color=callback_color, size='20px').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
@@ -97,9 +97,9 @@ class NodeRenderer(BaseRenderer, ABC):
                 f'data-pin-color="{callback_color}"'
             )
         elif pin.flow_type == FlowType.DATA:
-            pin_data_type = pin.data.type_cls.class_identity.registry_key
-            pin_color = ThemePalette.data_type(pin.type_cls, pin.color)
-            port_border = ThemePalette.ui(Theme_UI_Color.PORT_BORDER, 'white')
+            pin_color = pin.data.get_compatible_type().class_identity.color
+            pin_data_type = pin.data.get_compatible_type().class_identity.registry_key
+            # Get pin color: try data type specific, use pin.color as preference
             icon_name = 'my_location'
             if pin.is_inlet():
                 if pin.allow_multiple_connections:
@@ -124,20 +124,4 @@ class NodeRenderer(BaseRenderer, ABC):
                 ):
                 ui.tooltip(f'{pin.description} | {pin.data.get_value()}').classes('bg-green')
             
-            '''
-            ui.element('div').classes(
-                'port output-port connection-pin zoom-pan-lod0'
-            ).style(
-                f'position: absolute; {direction}: -20px; '
-                f'width: 15px; height: 15px; '
-                f'background: {pin_color}; '
-                f'border: 2px solid {port_border}; '
-                f'border-radius: 50%; '
-                f'cursor: crosshair;'
-            ).props(
-                f'{common_props} '
-                f'data-pin-data-type="{pin_data_type}" '
-                f'data-pin-color="{pin_color}"'
-            )
-            '''
 

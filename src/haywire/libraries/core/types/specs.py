@@ -16,8 +16,7 @@ from haywire.core.data.enums import FlowType
     flow_type=FlowType.CONTROL,
     label='Execution Signal',
     description='Signal for controlling execution flow between nodes',
-    color='#ff9800',
-    icon='flash',
+    color="#004cff",
     widget=None,
     default={},
 )
@@ -33,8 +32,7 @@ class EXEC(BaseType):
     flow_type=FlowType.CALLBACK,
     label='Callback Signal',
     description='Signal for callback execution between nodes',
-    color='#ff5722',
-    icon='repeat',
+    color="#ff3c00",
     widget=None,
     default={},
 )
@@ -55,7 +53,6 @@ class CALLBACK(BaseType):
     label='Integer',
     description='Whole number',
     color='#f7b0ff',
-    icon='tag',
     widget='core:widget:number.widget',
     default={'value': 0},
 )
@@ -71,7 +68,6 @@ class INT(PrimitiveType[int]):
     label='Float',
     description='Decimal numbers',
     color='#50b0ff',
-    icon='circle',
     widget='core:widget:number.widget',
     default={'value': 0.0},
 )
@@ -90,7 +86,6 @@ class FLOAT(PrimitiveType[float]):
     label='String',
     description='Text data',
     color='#ffc107',
-    icon='type',
     widget='core:widget:text.widget',
     default={'value': ''},
 )
@@ -109,7 +104,6 @@ class STRING(PrimitiveType[str]):
     label='Boolean',
     description='True or False',
     color='#4caf50',
-    icon='checkbox',
     widget='core:widget:checkbox.widget',
     default={'value': False},
 )
@@ -128,7 +122,6 @@ class BOOL(PrimitiveType[bool]):
     label='Bytes',
     description='Binary data',
     color='#9e9e9e',
-    icon='file',
     widget=None,
     default={'value': b''},
 )
@@ -147,7 +140,6 @@ class BYTES(PrimitiveType[bytes]):
     label='List',
     description='Ordered collection',
     color='#e91e63',
-    icon='list',
     widget=None,
     default={'value': []},
 )
@@ -161,7 +153,6 @@ class LIST(PrimitiveType[list]):
     label='Dictionary',
     description='Key-value pairs',
     color='#9c27b0',
-    icon='map',
     widget=None,
     default={'value': {}},
 )

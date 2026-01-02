@@ -4,18 +4,20 @@ author = "Example User"
 description = "Ocean-inspired color scheme based on the default theme"
 version = "1.0.0"
 extends = "default"
+priority = "Preference"
 
-# Only override data type colors - everything else inherited from default
-[data_types]
+# Data type colors - note: keys use dot notation
+[data]
 float = "#00bcd4"
 int = "#03a9f4"
 str = "#4dd0e1"
 bool = "#26c6da"
-array = "#00acc1"
+list = "#00acc1"
 any = "#b0bec5"
 
-# Override a few UI colors
+# UI colors - note: keys use dot notation
 [ui]
 primary = "#0288d1"
 secondary = "#0097a7"
 accent = "#00acc1"
+

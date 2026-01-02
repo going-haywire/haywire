@@ -27,7 +27,6 @@ T = TypeVar('T')
     label='Array',
     description='Homogeneous typed array',
     color='#e91e63',
-    icon='list',
     widget=None,
     default={'value': []},
 )

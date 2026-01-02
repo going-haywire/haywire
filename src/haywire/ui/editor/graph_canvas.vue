@@ -1994,10 +1994,23 @@ export default {
     pointer-events: all !important;
     position: relative !important;
     z-index: 10000 !important;
+
+    /* Force the element to be exactly the size of the icon */
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    
+    /* Remove any text spacing that extends the box */
+    letter-spacing: 0 !important;
+    word-spacing: 0 !important;
+    
+    /* Clip the hover area to the element bounds */
+    overflow: hidden !important;
 }
 
 .connection-pin:hover {
-    transform: scale(1.3) !important;
+    transform: scale(1.4) !important;  
     filter: brightness(1.2) !important;
     z-index: 10001 !important;
 }
@@ -2005,23 +2018,22 @@ export default {
 .connection-pin.connection-valid {
     box-shadow: 0 0 15px #4CAF50 !important;
     border-color: #4CAF50 !important;
-    transform: scale(1.5) !important;
     z-index: 10002 !important;
 }
 
 .connection-pin.connection-invalid {
+    transform: scale(0.8) !important; 
     box-shadow: 0 0 15px #f44336 !important;
     border-color: #f44336 !important;
-    transform: scale(1.2) !important;
     z-index: 10002 !important;
+    opacity: 0.8 !important;
 }
 
 .connection-pin.connection-compatible {
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6) !important;
+    box-shadow: 0 0 6px rgba(76, 175, 80, 0.6) !important;
     border-color: rgba(76, 175, 80, 0.8) !important;
-    transform: scale(1.2) !important;
+    transform: scale(1.15) !important;
     z-index: 10001 !important;
-    opacity: 0.8 !important;
 }
 
 .connection-selected {

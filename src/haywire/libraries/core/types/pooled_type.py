@@ -28,7 +28,6 @@ T = TypeVar('T')
     label='Pooled',
     description='Multi-source aggregation',
     color='#9c27b0',
-    icon='merge',
     widget=None,
     default={'value': {}},
 )

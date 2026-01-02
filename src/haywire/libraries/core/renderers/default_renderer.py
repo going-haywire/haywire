@@ -9,7 +9,7 @@ from nicegui import ui
 from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.renderer.decorator import renderer
-from haywire.ui.themes.colors import Theme_UI_Color
+from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.themes import ThemePalette
 
 from haywire.libraries.core.renderers.node_renderer import NodeRenderer
@@ -28,7 +28,10 @@ class DefaultNodeRenderer(NodeRenderer):
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
         node = wrapper.node
 
-        node_bg = ThemePalette.ui(Theme_UI_Color.NODE_BACKGROUND, 'rgba(255, 255, 255, 0.3)')
+        node_bg = ThemePalette.get(
+            ThemeKey.UI_NODE_BACKGROUND,
+            fallback='rgba(255, 255, 255, 0.3)'
+        )
         main_card.classes(
             'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
         ).style(

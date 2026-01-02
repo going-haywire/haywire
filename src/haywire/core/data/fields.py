@@ -92,7 +92,7 @@ class DataField(ABC, Generic[T]):
         """
         pass
     
-    def get_compatible_type(self) -> type:
+    def get_compatible_type(self) -> IType:
         """
         Return the type needed for adapter compatibility checking.
         

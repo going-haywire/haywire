@@ -7,18 +7,21 @@ Features:
 - TOML-based user themes
 - Theme inheritance
 - Hot-reload via observer pattern
-- Type-safe color access
+- Unified get() API with preference and fallback support
 - Color utilities
 """
 
+from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.themes.colors import Colors
 from haywire.ui.themes.palette import ThemePalette
 from haywire.ui.themes.base import ThemeMetadata
 from haywire.ui.themes.utils import ColorUtils
-from haywire.ui.themes.colors import Theme_UI_Color
 from haywire.ui.themes.loader import ThemeValidationError
 
 __all__ = [
+    # Keys
+    'ThemeKey',
+
     # Named color constants
     'Colors',
     
@@ -27,7 +30,7 @@ __all__ = [
     
     # Types and enums
     'ThemeMetadata',
-    'Theme_UI_Color',
+    'ThemeKey',
     
     # Utilities
     'ColorUtils',
