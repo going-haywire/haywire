@@ -18,6 +18,7 @@ from haywire.core.types.interface import IType
 from haywire.core.data.fields import DataField
 from haywire.core.types.registry import TypeRegistry
 
+
 @dataclass
 class DataPort(DataTypeIdentity):
     """
@@ -72,6 +73,28 @@ class DataPort(DataTypeIdentity):
     
     # Internal: Store default override for field creation
     default: Optional[Dict[str, Any]] = field(default=None, repr=False)
+
+    # ========================================================================
+    # HIERARCHY & ORGANIZATION
+    # ========================================================================
+    
+    parent_group: Optional[str] = None
+    """ID of parent group port, None if top-level"""
+    
+    section: Optional[str] = None
+    """Section name for property panel grouping"""
+    
+    order: int = 0
+    """Display order within parent"""
+    
+    is_group: bool = False
+    """True if this port is a group container"""
+    
+    is_section: bool = False
+    """True if this is a section marker (not rendered in node)"""
+    
+    is_ghost: bool = False
+    """True if this is a ghost pin for collapsed groups"""
 
     def __post_init__(self):
         """
@@ -182,21 +205,57 @@ class DataPort(DataTypeIdentity):
     
     def to_dict(self) -> dict:
         """
-        Serialize port to dict.
+        Serialize port to dict using recipe format.
         
-        Uses stored creation recipe for compact serialization.
+        The recipe stores the original creation call that can be replayed
+        during deserialization. Hierarchy fields are added to the recipe kwargs.
         
         Returns:
-            Dict with recipe format
+            Dict with recipe format including hierarchy information
         """
-        if hasattr(self, '_creation_recipe'):
-            return {
-                'type': 'recipe',
-                **self._creation_recipe
+        if not hasattr(self, '_creation_recipe'):
+            raise NotImplementedError(
+                f"Port {self.id} has no _creation_recipe. "
+                f"Port must be created via IType.as_inlet/as_outlet methods."
+            )
+        
+        # Start with base recipe
+        recipe = {
+            'type': 'recipe',
+            **self._creation_recipe
+        }
+        
+        # Add hierarchy fields to kwargs (they'll be passed to port constructor)
+        # Only include non-default values to keep serialization compact
+        hierarchy_fields = {}
+        
+        if self.parent_group is not None:
+            hierarchy_fields['parent_group'] = self.parent_group
+        
+        if self.section is not None:
+            hierarchy_fields['section'] = self.section
+        
+        if self.order != 0:
+            hierarchy_fields['order'] = self.order
+        
+        if self.is_group:
+            hierarchy_fields['is_group'] = self.is_group
+        
+        if self.is_section:
+            hierarchy_fields['is_section'] = self.is_section
+        
+        if self.is_ghost:
+            hierarchy_fields['is_ghost'] = self.is_ghost
+        
+        # Merge hierarchy fields into kwargs
+        if hierarchy_fields:
+            recipe['kwargs'] = {
+                **recipe['kwargs'],
+                **hierarchy_fields
             }
         
-        raise NotImplementedError("Port serialization requires _creation_recipe")
-    
+        return recipe
+
     @classmethod
     def from_dict(
         cls, 
@@ -206,49 +265,54 @@ class DataPort(DataTypeIdentity):
         """
         Deserialize port from dict.
         
+        Reconstructs the port by replaying the original creation call,
+        including hierarchy information.
+        
         Args:
             data: Serialized port data (from to_dict())
             type_registry: TypeRegistry to look up registered types
         
         Returns:
-            Reconstructed PortInlet or PortOutlet
+            Reconstructed PortInlet or PortOutlet with hierarchy preserved
         """
         from haywire.core.types.utils import _deserialize_type_spec
         
-        if data.get('type') == 'recipe':
-            method_name = data['method']
-            kwargs = data['kwargs']
-            
-            # NEW: Deserialize base type
-            type_cls = _deserialize_type_spec(
-                {'registry_key': data['registry_key']},
-                type_registry
-            )
-            
-            # NEW: Recursively deserialize element type if present
-            if 'element_type' in data:
-                element_type_cls = _deserialize_type_spec(
-                    data['element_type'],
-                    type_registry
-                )
-                # Parameterize: CompoundType[ElementType]
-                parameterized = type_cls[element_type_cls]
-                method = getattr(parameterized, method_name)
-            else:
-                # Simple type
-                method = getattr(type_cls, method_name)
-            
-            # Extract id
-            port_id = kwargs.pop('id')
-            
-            # Recreate the port
-            return method(port_id, **kwargs)
-        
-        else:
+        if data.get('type') != 'recipe':
             raise ValueError(
                 f"Unknown port serialization format: {data.get('type')}"
             )
-
+        
+        method_name = data['method']
+        kwargs = data['kwargs'].copy()
+        
+        # Deserialize base type
+        type_cls = _deserialize_type_spec(
+            {'registry_key': data['registry_key']},
+            type_registry
+        )
+        
+        # Recursively deserialize element type if present (for compound types)
+        if 'element_type' in data:
+            element_type_cls = _deserialize_type_spec(
+                data['element_type'],
+                type_registry
+            )
+            # Parameterize: CompoundType[ElementType]
+            parameterized = type_cls[element_type_cls]
+            method = getattr(parameterized, method_name)
+        else:
+            # Simple type
+            method = getattr(type_cls, method_name)
+        
+        # Extract id (required positional argument)
+        port_id = kwargs.pop('id')
+        
+        # Recreate the port - hierarchy fields in kwargs are passed through
+        # to the port constructor automatically!
+        port = method(port_id, **kwargs)
+        
+        return port
+    
 @dataclass
 class PortInlet(DataPort):
     """Inlet port - can receive data from connections"""

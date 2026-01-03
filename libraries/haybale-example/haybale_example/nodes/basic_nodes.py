@@ -28,11 +28,11 @@ class TestNodeOne(BaseNode):
 
         # Add control inlet (no type, just execution flow)
         self.add(EXEC.as_inlet(id='execute_in'))
-
-        self.add(Temperature.as_inlet(
-                id='temp_config',
-                default=40.0
-            )) 
+        with self.section('idle_inlets'):
+            self.add(Temperature.as_inlet(
+                    id='temp_config',
+                    default=40.0
+                )) 
 
         self.add(PooledType[STRING].as_inlet(
                 id='pooled_string_inlet',

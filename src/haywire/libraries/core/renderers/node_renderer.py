@@ -20,7 +20,6 @@ class NodeRenderer(BaseRenderer, ABC):
     They are cached and reused by the NodeRenderFactory.
     """
 
-
     def _render_inlet(self, inlet: PortInlet, wrapper: NodeWrapper):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-1'):
@@ -43,10 +42,10 @@ class NodeRenderer(BaseRenderer, ABC):
             # Pin label
             ui.label(outlet.label).classes('text-xs')
 
-            # only render pins for inlets that are actually involved in flows
+            # only render pins for outlets that are actually involved in flows
             self._render_pin(outlet, wrapper, direction='right')
     
-    def _render_pin(self, pin: DataPort,  wrapper: NodeWrapper, direction: str = 'left'):
+    def _render_pin(self, pin: DataPort, wrapper: NodeWrapper, direction: str = 'left'):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
         pin_direction = 'inlet' if pin.is_inlet() else 'outlet'
@@ -175,5 +174,3 @@ class NodeRenderer(BaseRenderer, ABC):
                     f'data-pin-color="{pin_color}"'
                 ):
                 ui.tooltip(f'{pin.description} | {pin.data.get_value()}').classes('bg-green')
-            
-
