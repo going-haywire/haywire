@@ -62,6 +62,9 @@ class ICONS:
     KEYBOARD_DOUBLE_ARROW_LEFT: Final[str] = "keyboard_double_arrow_left"
     GAMEPAD: Final[str] = "gamepad"
     GRID_4X4: Final[str] = "grid_4x4"
+    FIBER_SMART_RECORD: Final[str] = "fiber_smart_record"
+    SWIPE_LEFT_ALT: Final[str] = "swipe_left_alt"
+    SWIPE_RIGHT_ALT: Final[str] = "swipe_right_alt"
 
     @classmethod
     def get(cls, name: str, default: str = "circle") -> str:

@@ -39,11 +39,17 @@ class ThemeKey(str, Enum):
     UI_TEXT_HINT = 'ui.text_hint'
 
     # UI - Port Icons
-    UI_PORT_ICON_IN_MULTI_COMPOUND = 'ui.port_icon_in_multi_compound_'
-    UI_PORT_ICON_IN_MULTI_SINGLE = 'ui.port_icon_in_multi_single'
-    UI_PORT_ICON_IN_COMPOUND = 'ui.port_icon_in_compound'
-    UI_PORT_ICON_IN_SINGLE = 'ui.port_icon_in_single'
-    UI_PORT_ICON_OUT_MULTI_COMPOUND = 'ui.port_icon_out_multi_compound'
-    UI_PORT_ICON_OUT_MULTI_SINGLE = 'ui.port_icon_out_multi_single'
-    UI_PORT_ICON_OUT_COMPOUND = 'ui.port_icon_out_compound'
-    UI_PORT_ICON_OUT_SINGLE = 'ui.port_icon_out_single'
+    UI_PORT_ICON_IN_MULTI_COMPOUND = 'ui_port.icon_in_multi_compound'
+    UI_PORT_ICON_IN_MULTI_SINGLE = 'ui_port.icon_in_multi_single'
+    UI_PORT_ICON_IN_COMPOUND = 'ui_port.icon_in_compound'
+    UI_PORT_ICON_IN_SINGLE = 'ui_port.icon_in_single'
+    UI_PORT_ICON_OUT_MULTI_COMPOUND = 'ui_port.icon_out_multi_compound'
+    UI_PORT_ICON_OUT_MULTI_SINGLE = 'ui_port.icon_out_multi_single'
+    UI_PORT_ICON_OUT_COMPOUND = 'ui_port.icon_out_compound'
+    UI_PORT_ICON_OUT_SINGLE = 'ui_port.icon_out_single'
+
+    UI_PORT_ICON_IN_CALLBACK = 'ui_port.icon_in_callback'    
+    UI_PORT_ICON_OUT_CALLBACK = 'ui_port.icon_in_callback'
+
+    UI_PORT_ICON_IN_CTRL = 'ui_port.icon_in_ctrl'
+    UI_PORT_ICON_OUT_CTRL = 'ui_port.icon_out_ctrl'

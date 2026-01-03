@@ -92,17 +92,18 @@ class DataField(ABC, Generic[T]):
         """
         pass
     
-    def get_compatible_type(self) -> IType:
+    def get_stored_type(self) -> IType:
         """
-        Return the type needed for adapter compatibility checking.
+        Return the type stored in this field.
         
-        This method allows fields to declare what type they need from
-        the outlet for compatibility. EdgeWrapper uses this to evaluate 
-        compatibility and which types to pass to AdapterFactory 
-        for chain creation.
+        This method allows fields to declare what type they store
+        because in some cases this differs from the type the field is
+        created from.
+        EdgeWrapper uses this to evaluate compatibility and 
+        which types to pass to AdapterFactory for chain creation.
                     
         Returns:
-            type: The IType class needed for compatibility
+            type: The IType of the instance(s) that is(are) actually stored
             
         """
         return self.type_cls

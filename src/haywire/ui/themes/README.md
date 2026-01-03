@@ -20,8 +20,6 @@
     - [Custom Sections](#custom-sections)
   - [Available Theme Keys](#available-theme-keys)
     - [UI Keys](#ui-keys)
-    - [Data Type Keys](#data-type-keys)
-    - [Flow Type Keys](#flow-type-keys)
   - [Adding More Keys](#adding-more-keys)
     - [In Code (Add to ThemeKey Enum)](#in-code-add-to-themekey-enum)
     - [Using Custom Keys Without Enum](#using-custom-keys-without-enum)
@@ -315,22 +313,6 @@ Theme keys are organized by category for clarity. You can use either the `ThemeK
 - `ThemeKey.UI_TEXT_DISABLED` → 'ui.text_disabled'
 - `ThemeKey.UI_TEXT_HINT` → 'ui.text_hint'
 
-### Data Type Keys
-
-- `ThemeKey.DATA_FLOAT` → 'data.float'
-- `ThemeKey.DATA_INT` → 'data.int'
-- `ThemeKey.DATA_STR` → 'data.str'
-- `ThemeKey.DATA_BOOL` → 'data.bool'
-- `ThemeKey.DATA_LIST` → 'data.list'
-- `ThemeKey.DATA_DICT` → 'data.dict'
-- `ThemeKey.DATA_BYTES` → 'data.bytes'
-- `ThemeKey.DATA_ANY` → 'data.any'
-
-### Flow Type Keys
-
-- `ThemeKey.FLOW_CONTROL` → 'flow.control'
-- `ThemeKey.FLOW_CALLBACK` → 'flow.callback'
-- `ThemeKey.FLOW_DATA` → 'flow.data'
 
 ---
 

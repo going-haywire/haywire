@@ -1,0 +1,29 @@
+[metadata]
+name = "Modern"
+author = "Example User"
+description = "Override scheme based on the default theme"
+version = "1.0.0"
+extends = "default"
+priority = "Theme"
+
+# UI colors - note: keys use dot notation
+[ui]
+primary = "#0288d1"
+secondary = "#0097a7"
+accent = "#00acc1"
+
+[ui_port]
+icon_in_multi_compound = "fiber_smart_record"
+icon_in_multi_single = "fiber_smart_record"
+icon_in_compound = "circle"
+icon_in_single = "circle"
+icon_out_multi_compound = "circle"
+icon_out_multi_single = "circle"
+icon_out_compound = "circle"
+icon_out_single = "circle"
+
+icon_in_callback = "swipe_left_alt"
+icon_out_callback = "swipe_right_alt"
+
+icon_in_ctrl = "label"
+icon_out_ctrl = "label"

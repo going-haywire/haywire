@@ -61,6 +61,7 @@ class PooledType(CompoundType[T]):
     # HOOKS - Override to customize behavior
     # ========================================================================
     
+
     @classmethod
     def _validate_port_type(cls, port_type: str) -> None:
         """
@@ -168,8 +169,8 @@ class PooledField(DataField):
         self.is_dirty = True
         self.fire(dict(self._sources))
         
-    def get_compatible_type(self) -> type:
-        # other than all other fields, pooled is only compatible with the element type
+    def get_stored_type(self) -> type:
+        # other than most other fields, pooled field actually stores the element type
         return self.type_cls.element_type_cls
     
     def reset(self) -> None:

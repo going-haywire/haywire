@@ -7,6 +7,7 @@ from haywire.core.types.base import CompoundType, PrimitiveType
 from haywire.core.types.ports import PortInlet, DataPort
 
 from haywire.ui.renderer.base import BaseRenderer
+from haywire.ui.themes.icons import ICONS
 from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.utils import generate_pin_uuid
 from haywire.ui.themes import ThemePalette
@@ -72,9 +73,20 @@ class NodeRenderer(BaseRenderer, ABC):
         if pin.flow_type == FlowType.CONTROL:
             # Get control flow color from theme
             ctrl_color = pin.color
-            icon_name = 'join_left' if (pin.is_inlet()) else 'join_right'
             # Pin connector
-            ui.icon(icon_name, color=ctrl_color, size='xs').classes(
+            if pin.is_inlet():
+                ctrl_icon = ThemePalette.get(
+                    ThemeKey.UI_PORT_ICON_IN_CTRL,
+                    pin.icon_in,
+                    ICONS.JOIN_LEFT
+                )
+            else:
+                ctrl_icon = ThemePalette.get(
+                    ThemeKey.UI_PORT_ICON_OUT_CTRL,
+                    pin.icon_out,
+                    ICONS.JOIN_RIGHT
+                )
+            ui.icon(ctrl_icon, color=ctrl_color, size='xs').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
@@ -86,8 +98,20 @@ class NodeRenderer(BaseRenderer, ABC):
         elif pin.flow_type == FlowType.CALLBACK:
             # Get callback flow color from theme
             callback_color = pin.color
+            if pin.is_inlet():
+                callback_icon = ThemePalette.get(
+                    ThemeKey.UI_PORT_ICON_IN_CALLBACK,
+                    pin.icon_in,
+                    ICONS.SWIPE_LEFT_ALT
+                )
+            else:
+                callback_icon = ThemePalette.get(
+                    ThemeKey.UI_PORT_ICON_OUT_CALLBACK,
+                    pin.icon_out,
+                    ICONS.SWIPE_RIGHT_ALT
+                )
             # Pin connector
-            ui.icon('swipe_left_alt', color=callback_color, size='20px').classes(
+            ui.icon(callback_icon, color=callback_color, size='20px').classes(
                 'text-4xl port input-port connection-pin zoom-pan-lod0'
             ).style(
                 f'position: absolute; {direction}: -20px; '
@@ -97,52 +121,50 @@ class NodeRenderer(BaseRenderer, ABC):
                 f'data-pin-color="{callback_color}"'
             )
         elif pin.flow_type == FlowType.DATA:
-            pin_color = pin.data.get_compatible_type().class_identity.color
-            pin_data_type = pin.data.get_compatible_type().class_identity.registry_key
+            pin_color = pin.data.get_stored_type().class_identity.color
+            pin_data_type = pin.data.get_stored_type().class_identity.registry_key
             # Get pin color: try data type specific, use pin.color as preference
-            icon_name = 'circle'  # Default icon
             if pin.is_inlet():
                 if pin.allow_multiple_connections:
-                    if issubclass(pin.data.get_compatible_type(), CompoundType):
-                        icon_name = ThemePalette.get(
+                    if issubclass(pin.data.get_stored_type(), CompoundType):
+                        data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_MULTI_COMPOUND,
-                            pin.data.get_compatible_type().class_identity.icon_in_multi,
-                            fallback='web_stories'
+                            pin.data.get_stored_type().class_identity.icon_in_multi,
+                            fallback=ICONS.WEB_STORIES
                         )
                     else:
-                        icon_name = ThemePalette.get(
+                        data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_MULTI_SINGLE,
-                            pin.data.get_compatible_type().class_identity.icon_in_multi,
-                            fallback='fiber_smart_record'
+                            pin.data.get_stored_type().class_identity.icon_in_multi,
+                            fallback=ICONS.FIBER_SMART_RECORD
                         )
                 else:
                     if issubclass(pin.type_cls, CompoundType):
-                        icon_name = ThemePalette.get(
+                        data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_COMPOUND,
-                            pin.data.get_compatible_type().class_identity.icon_in,
-                            fallback='view_day'
+                            pin.data.get_stored_type().class_identity.icon_in,
+                            fallback=ICONS.VIEW_DAY
                         )
                     else:
-                        icon_name = ThemePalette.get(
+                        data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_SINGLE,
-                            pin.data.get_compatible_type().class_identity.icon_in,
-                            fallback='my_location'
+                            pin.data.get_stored_type().class_identity.icon_in,
+                            fallback=ICONS.MY_LOCATION
                         )
             else:
                 if issubclass(pin.type_cls, CompoundType):
-                    icon_name = ThemePalette.get(
+                    data_icon = ThemePalette.get(
                         ThemeKey.UI_PORT_ICON_OUT_MULTI_COMPOUND,
-                        pin.data.get_compatible_type().class_identity.icon_out_multi,
-                        fallback='view_day'
+                        pin.data.get_stored_type().class_identity.icon_out_multi,
+                        fallback=ICONS.VIEW_DAY
                     )
-                    icon_name = 'view_day'
                 else:
-                    icon_name = ThemePalette.get(
+                    data_icon = ThemePalette.get(
                         ThemeKey.UI_PORT_ICON_OUT_MULTI_SINGLE,
-                        pin.data.get_compatible_type().class_identity.icon_out_multi,
-                        fallback='circle'
+                        pin.data.get_stored_type().class_identity.icon_out_multi,
+                        fallback=ICONS.CIRCLE
                     )
-            with ui.icon(icon_name, color=pin_color, size='15px').classes(
+            with ui.icon(data_icon, color=pin_color, size='15px').classes(
                     'text-4xl port connection-pin zoom-pan-lod0'
                 ).style(
                     f'position: absolute; {direction}: -20px; '
