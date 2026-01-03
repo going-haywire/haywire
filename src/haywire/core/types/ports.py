@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 
 from haywire.core.data.enums import FlowType
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
 
@@ -96,6 +97,26 @@ class DataPort(DataTypeIdentity):
     is_ghost: bool = False
     """True if this is a ghost pin for collapsed groups"""
 
+    # ========================================================================
+    # CALLBACKS
+    # ========================================================================
+
+    on_change: Optional[str] = None
+    """Callback identifier to invoke when port value changes (e.g., 'reconfigure_ports')"""
+    
+    on_connect: Optional[str] = None
+    """Callback identifier to invoke when connection is made"""
+    
+    on_disconnect: Optional[str] = None
+    """Callback identifier to invoke when connection is broken"""
+
+    # Runtime reference (not serialized)
+    _wrapper: Optional['NodeWrapper'] = field(
+        default=None, 
+        repr=False, 
+        metadata={'serialize': False}
+    )
+    
     def __post_init__(self):
         """
         Create data field via type.
@@ -110,6 +131,55 @@ class DataPort(DataTypeIdentity):
             self.data = self.type_cls.create_field(
                 default_override=self.default
             )
+
+    def _trigger_callback(self, callback_type: str, *args):
+        """
+        Trigger a callback by resolving the identifier.
+        
+        Supports two resolution strategies:
+        1. Wrapper callbacks: 'wrapper:method_name' → calls wrapper.method_name()
+        2. Node callbacks: 'method_name' → calls node.method_name()
+        
+        This allows both predefined wrapper functionality and custom node behavior.
+        
+        Examples:
+            on_change='wrapper:on_port_changed'  → wrapper.on_port_changed(port, old, new)
+            on_change='_reconfigure_ports'       → node._reconfigure_ports(port, old, new)
+        """
+        callback_name = getattr(self, callback_type)
+        if not callback_name or not self._wrapper:
+            return
+        
+        # Parse callback identifier
+        if ':' in callback_name:
+            # Format: 'wrapper:method_name' or 'node:method_name'
+            target, method_name = callback_name.split(':', 1)
+            
+            if target == 'wrapper':
+                # Call wrapper method
+                if hasattr(self._wrapper, method_name):
+                    method = getattr(self._wrapper, method_name)
+                    method(self, *args)
+                else:
+                    raise ReferenceError(f"Wrapper callback '{method_name}' not found on wrapper")
+            elif target == 'node':
+                # Explicit node call (same as no prefix)
+                node = self._wrapper.node
+                if hasattr(node, method_name):
+                    method = getattr(node, method_name)
+                    method(self, *args)
+                else:
+                    raise ReferenceError(f"Node callback '{method_name}' not found on node")
+            else:
+                raise ReferenceError(f"Unknown callback target '{target}'. Use 'wrapper:' or 'node:'")
+        else:
+            # Default: Call node method (no prefix = node callback)
+            node = self._wrapper.node
+            if hasattr(node, callback_name):
+                method = getattr(node, callback_name)
+                method(self, *args)
+            else:
+                raise ReferenceError(f"Node callback '{callback_name}' not found on node")
 
     def get_value(self) -> Any:
         """
@@ -134,11 +204,17 @@ class DataPort(DataTypeIdentity):
             new_value: Value to set (can be IType instance or raw value)
             source_id: Source identifier (required for pooled fields)
         """
+        old_value = self.get_value()
+
         if not self.data:
             return
         
         self.data.set_value(new_value, source_id=source_id)
-        
+
+        # Trigger on_change callback if value actually changed
+        if old_value != new_value and self.on_change:
+            self._trigger_callback('on_change', old_value, new_value)
+
     def is_pin(self) -> bool:
         """Check if this is a visible pin (not a config)"""
         return self.flow_type != FlowType.NONE.value
@@ -167,6 +243,9 @@ class DataPort(DataTypeIdentity):
             self._edges = {wrapper.connection_uuid}
             self._edge_wrappers = {wrapper.connection_uuid: wrapper}
 
+        if self.on_connect:
+            self._trigger_callback('on_connect', wrapper)
+
     def _get_linked_edges_uuid(self) -> list[str]:
         """
         Get list of linked edge UUIDs.
@@ -194,7 +273,10 @@ class DataPort(DataTypeIdentity):
             wrapper_uuid: UUID of EdgeWrapper representing the link
         """
         self._edges.discard(wrapper_uuid)
-        self._edge_wrappers.pop(wrapper_uuid, None)
+        wrapper = self._edge_wrappers.pop(wrapper_uuid, None)
+
+        if self.on_disconnect and wrapper:
+            self._trigger_callback('on_disconnect', wrapper)
 
     def _clear_all_links(self) -> None:
         """

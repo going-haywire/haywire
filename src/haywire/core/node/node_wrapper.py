@@ -313,8 +313,6 @@ class NodeWrapper:
 
         return node_instance, event
  
-    
-
     @property  
     def node(self) -> 'BaseNode':
         """
@@ -333,6 +331,22 @@ class NodeWrapper:
         Initializes the node after instantiation to its default setup
         """
         self.node.initialize()
+
+
+    def redraw(self, *args, **kwargs) -> None:
+        """
+        Request a redraw of the node in the UI.
+        """
+        # Notify subscribers of redraw request
+        self._notify_change(
+            LifeCycleEvent(
+                registry_key=self.registry_key,
+                event_type=LifeCycleEventType.CLASS_ADDED,
+                affected_class=type(self.node),
+                module_name="",
+                library_identity="",
+            )
+        )
 
     def validate(self) -> List[str]:
         """

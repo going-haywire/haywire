@@ -8,7 +8,7 @@ from haywire.core.node.base import node
 from haywire.core.node.base import BaseNode
 from haywire.libraries.core.types.array_type import ArrayType
 from haywire.libraries.core.types.pooled_type import PooledType
-from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, INT, STRING
+from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, GROUP, INT, STRING
 
 from ..types.mesh_data import MeshData
 from ..types.specs import Temperature
@@ -28,21 +28,29 @@ class TestNodeOne(BaseNode):
 
         # Add control inlet (no type, just execution flow)
         self.add(EXEC.as_inlet(id='execute_in'))
-        with self.section('idle_inlets'):
-            self.add(Temperature.as_inlet(
-                    id='temp_config',
-                    default=40.0
-                )) 
 
-        self.add(PooledType[STRING].as_inlet(
-                id='pooled_string_inlet',
-                label='Pooled STRING Inlet'
-            ))
+        with self.group(GROUP.as_inlet(
+                id='advanced_settings',
+                label='Advanced Settings',
+                default=False,
+                on_change='wrapper:redraw'
+                )):
+            
+            with self.section('idle_inlets'):
+                self.add(Temperature.as_inlet(
+                        id='temp_config',
+                        default=40.0
+                    )) 
 
-        self.add(PooledType[ArrayType[STRING]].as_inlet(
-                id='pooled_array_string_inlet',
-                label='Pooled ARRAY[STRING]'
-            ))
+            self.add(PooledType[STRING].as_inlet(
+                    id='pooled_string_inlet',
+                    label='Pooled STRING Inlet'
+                ))
+
+            self.add(PooledType[ArrayType[STRING]].as_inlet(
+                    id='pooled_array_string_inlet',
+                    label='Pooled ARRAY[STRING]'
+                ))
 
         # Add inlets with different widget types
         self.add(STRING.as_inlet(

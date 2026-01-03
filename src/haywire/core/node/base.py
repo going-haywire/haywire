@@ -137,8 +137,12 @@ class NodeData:
     - Clean API for port access
     """
     
-    def __init__(self):
+    def __init__(self, node_id: str, wrapper: NodeWrapper):
         """Initialize unified port collection and management state"""
+
+        self.node_id = node_id
+        self.wrapper = wrapper
+
         # Port storage
         self.ports: Dict[str, DataPort] = {}
         """Single source of truth for all ports (inlets and outlets)"""
@@ -211,6 +215,8 @@ class NodeData:
             # If in push context, unflag it (it's being refreshed)
             if self._push_stack and port.id in self._push_stack[-1]:
                 self._push_stack[-1].remove(port.id)
+            else:
+                raise ValueError(f"Port ID already exists: {port.id}")
             
             # Preserve connections from existing port
             port._edges = existing._edges.copy()
@@ -218,16 +224,15 @@ class NodeData:
         
         # Add to ports collection
         self.ports[port.id] = port
+        
+        port._wrapper = self.wrapper
+
         self._cache_dirty = True
         
         return port
     
     @contextmanager
-    def group(self, 
-              id: str, 
-              label: str = None,
-              is_expanded: bool = True,
-              widget: str = 'core:widget:switch.widget'):
+    def group(self, group_port: DataPort):
         """
         Context manager for creating collapsible port groups.
         
@@ -239,10 +244,10 @@ class NodeData:
         preserved and drawn to a ghost pin.
         
         Args:
-            id: Unique ID for the group port
-            label: Display label (defaults to id)
-            is_expanded: Initial expanded state (default: True)
-            widget: Widget to use for group toggle (default: switch)
+            group_port: DataPort as group (PortInlet or PortOutlet)
+
+        Raises:
+            ValueError: If group_port is not an inlet or id already exists
         
         Yields:
             None (context manager)
@@ -265,16 +270,6 @@ class NodeData:
             with self.group('expert', label='Expert Settings', is_expanded=False):
                 self.add(FLOAT.as_inlet('epsilon'))
         """
-        from haywire.libraries.core.types.specs import BOOL
-        
-        # Create group control port (boolean inlet with toggle widget)
-        group_port = BOOL.as_inlet(
-            id=id,
-            label=label or id,
-            widget=widget,
-            default=is_expanded,
-            ui={'properties': {'text': label or id}}
-        )
         
         # Mark as group
         group_port.is_group = True
@@ -283,7 +278,7 @@ class NodeData:
         self.add(group_port)
         
         # Push group context (all ports added in this context become children)
-        self._group_stack.append(id)
+        self._group_stack.append(group_port.id)
         try:
             yield
         finally:
@@ -656,9 +651,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             node_id: Unique identifier for this node instance
             wrapper: NodeWrapper managing this node
         """
-        super().__init__()
-        self.node_id = node_id
-        self.wrapper = wrapper
+        super().__init__(node_id, wrapper)
         self.error_info: NodeErrorInfo | None = None
         
         self.behavior = NodeBehavior()

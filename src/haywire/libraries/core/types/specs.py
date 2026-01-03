@@ -44,6 +44,23 @@ class CALLBACK(BaseType):
         return cls()
 
 # ============================================================================
+# Group Type
+# ============================================================================
+
+@type(
+    registry_id='group',
+    flow_type=FlowType.DATA,
+    label='Group',
+    description='Inlet group',
+    color="#ebff0f",
+    widget='core:widget:checkbox.widget',
+    default={'value': False},
+)
+class GROUP(PrimitiveType[int]):
+    """Group data type"""
+    pass
+
+# ============================================================================
 # Numeric Types
 # ============================================================================
 
