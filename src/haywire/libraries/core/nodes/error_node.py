@@ -16,9 +16,7 @@ from haywire.core.node.base import BaseNode
 class ErrorNode(BaseNode):
     """Special node to represent nodes that couldn't be loaded properly"""
     
-    def __init__(self, node_id, wrapper):
-        super().__init__(node_id, wrapper)
-        
+    def initialize(self):        
         # Configure UI
         self.ui_config.node_renderer = 'core:renderer:error.node.renderer'
     

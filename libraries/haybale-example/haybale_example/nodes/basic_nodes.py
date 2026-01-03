@@ -21,9 +21,7 @@ from ..types.specs import Temperature
 class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
-    def __init__(self, node_id, wrapper):
-        super().__init__(node_id, wrapper)
-        
+    def initialize(self):
         # Configure behavior
         self.behavior.is_data_node = True
         self.behavior.is_control_node = False

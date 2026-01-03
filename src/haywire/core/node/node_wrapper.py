@@ -137,6 +137,7 @@ class NodeWrapper:
                 self.state.history.append(_event)
                 self.state.error = _event.error
                 self.state.is_instantiated = True
+                self._initialize()
                 self._notify_change(_event)
                 return self
             else:
@@ -200,6 +201,8 @@ class NodeWrapper:
                         self.state.is_valid = True
                         self.state.last_hot_reload = time.time()
                         self.state.hot_reload_count += 1
+
+                        self._initialize()
                     else:
                         self.state.is_valid = False
 
@@ -311,6 +314,7 @@ class NodeWrapper:
         return node_instance, event
  
     
+
     @property  
     def node(self) -> 'BaseNode':
         """
@@ -324,6 +328,12 @@ class NodeWrapper:
             return self._node_instance
     
    
+    def _initialize(self):
+        """
+        Initializes the node after instantiation to its default setup
+        """
+        self.node.initialize()
+
     def validate(self) -> List[str]:
         """
         Validate node and return list of issues.

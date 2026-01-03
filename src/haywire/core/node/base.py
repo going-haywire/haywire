@@ -257,6 +257,16 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         return self.__class__.class_library
     
     @abstractmethod
+    def initialize(self):
+        """
+        Initialize Node to its default setup
+
+        This method needs to be overwritten by every node and is
+        called when the node is created or reset.
+        """
+        pass
+
+    @abstractmethod
     def worker(self, context: dict) -> dict | None:
         """
         The main execution logic of the node.
