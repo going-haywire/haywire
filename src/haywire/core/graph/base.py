@@ -145,7 +145,7 @@ class BaseGraph:
         )
         
         # Initialize wrapper (returns self if successful)
-        if wrapper.initialize(self):
+        if wrapper.instantiate(self):
             # Add to graph's collection
             return self.add_node_wrapper(wrapper)
         else:
@@ -304,7 +304,7 @@ class BaseGraph:
         )
         
         # Initialize wrapper (returns self if successful)
-        if wrapper.initialize(self):
+        if wrapper.instantiate(self):
             # Add to graph's collection
             wrapper.rebuild()
             return self.add_edge_wrapper(wrapper)

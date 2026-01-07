@@ -6,7 +6,7 @@ from haywire.libraries.core.types.specs import FLOAT
 @type(
     registry_id='temperature',
     label='Temperature',
-    description='Temperature data type',
+    description='Temperature data types',
     widget='example:widget:temperature.widget',
     ui={'properties': {'unit': '°D'}}
 )

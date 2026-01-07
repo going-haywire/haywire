@@ -53,7 +53,7 @@ class CALLBACK(BaseType):
     label='Group',
     description='Inlet group',
     color="#ebff0f",
-    widget='core:widget:checkbox.widget',
+    widget='core:widget:switch.widget',
     default={'value': False},
 )
 class GROUP(PrimitiveType[int]):
@@ -83,7 +83,7 @@ class INT(PrimitiveType[int]):
     registry_id='float',
     flow_type=FlowType.DATA,
     label='Float',
-    description='Decimal numbers',
+    description='Decimal numberer',
     color='#50b0ff',
     widget='core:widget:number.widget',
     default={'value': 0.0},

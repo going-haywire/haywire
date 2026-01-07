@@ -83,7 +83,7 @@ class SwitchWidget(SimpleWidget):
         if 'text' in self.ui_properties:
             kwargs['text'] = self.ui_properties['text']
         
-        return ui.switch(**kwargs).classes('w-full')
+        return ui.switch(**kwargs).classes('w-full text-xs')
     
     def get_default_value(self) -> bool:
         return False
@@ -104,7 +104,7 @@ class SliderWidget(SimpleWidget):
             'step': self.ui_properties.get('step', 1)
         }
         
-        return ui.slider(**kwargs).classes('w-full').props('label-always')
+        return ui.slider(**kwargs).classes('w-full text-xs').props('label-always')
     
     def get_default_value(self) -> float:
         return float(self.ui_properties.get('min', 0))
@@ -127,7 +127,7 @@ class SelectWidget(SimpleWidget):
             if prop in self.ui_properties:
                 kwargs[prop] = self.ui_properties[prop]
         
-        return ui.select(**kwargs).classes('w-full')
+        return ui.select(**kwargs).classes('w-full text-xs')
 
 
 @widget(
@@ -147,7 +147,7 @@ class KnobWidget(SimpleWidget):
             if prop in self.ui_properties:
                 kwargs[prop] = self.ui_properties[prop]
         
-        with ui.row().classes('w-full justify-center'):
+        with ui.row().classes('w-full justify-center text-xs'):
             knob = ui.knob(**kwargs)
         
         return knob.classes('w-32 h-32')
@@ -169,7 +169,7 @@ class SimpleLabelWidget(SimpleWidget):
     IS_READONLY = True
     
     def create_element(self) -> Any:
-        return ui.label('').classes('text-base')
+        return ui.label('').classes('text-base text-xs')
     
     def get_default_value(self) -> str:
         return ''

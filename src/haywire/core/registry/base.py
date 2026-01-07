@@ -11,6 +11,8 @@ import sys
 from typing import Dict, Any, Optional, Type, List, Tuple
 import logging
 
+from haywire.core.data import event
+
 from ..errors import HaywireException
 from ..library.identity import LibraryIdentity
 from .dependency_graph import DependencyGraph
@@ -33,7 +35,9 @@ class FileChangeEvent:
     library_identity: LibraryIdentity
     timestamp: float
     reloaded_modules: set[str] = None  # Track modules already reloaded in this event chain
-    
+    dependency_event: bool = False  # Whether this event is due to dependency reload
+    """indicates if this event is a result of a dependency change (detected by a different registry)"""
+
     def __post_init__(self):
         if self.reloaded_modules is None:
             self.reloaded_modules = set()
@@ -78,6 +82,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         self._registry_subscribers: List[HotReloadRegistry] = []
         # Direct consumers (factories, etc.)
         self._batch_event_subscribers: List[LiveCycleBatchCallback] = []
+
+        self._dependency_module_errors: Dict[str, HaywireException] = {}
+        """Track errors during dependency module reloads and store them by registry_key"""
 
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:
@@ -349,9 +356,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
                     return None
                         
-            if event.event_type == FileEventType.CREATED:
+            if not event.dependency_event and event.event_type == FileEventType.CREATED:
                 self._on_creation(module_name, event.library_identity)
-            elif event.event_type == FileEventType.MODIFIED:
+            elif event.dependency_event or event.event_type == FileEventType.MODIFIED:
                 if module_name in sys.modules:
                     self._on_change(module_name, event.library_identity, event)
                 else:
@@ -363,15 +370,17 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         f"new module."
                     )
                     self._on_creation(module_name, event.library_identity)
-            elif event.event_type == FileEventType.DELETED:
+            elif not event.dependency_event and event.event_type == FileEventType.DELETED:
                 self._on_delete(module_name, event.library_identity)
 
             logging.info(
                 f"Library '{event.library_identity.label}': "
                 f"...Hot Reloading -> DONE.")
             
-            # Notify registry subscribers after successful reload
             # Event now contains all reloaded_modules
+            # Flag as dependency event if applicable to inform subscribers about its nature
+            event.dependency_event = True
+            # Notify registry subscribers after successful reload
             self._notify_registry_subscribers(event)
 
             self._notify_batch_event_subscribers()
@@ -402,6 +411,11 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                             module_name=module_name,
                             error=error,
                         )
+                        self._queue_lifecycle_event(lc_event)
+                    self._notify_batch_event_subscribers()
+                elif event.dependency_event and len(self._dependency_module_errors) > 0:
+                    # Notify subscribers about dependency reload failure
+                    for lc_event in self._dependency_module_errors.values():
                         self._queue_lifecycle_event(lc_event)
                     self._notify_batch_event_subscribers()
             try:
@@ -499,18 +513,22 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             f"{len(reload_plan.managed_modules)} managed classes"
         )
         
+        # reset dependency errors for this reload
+        self._dependency_module_errors = {}
+
         # Step 1: Reload non-managed helper modules first
         for helper_module in reload_plan.non_managed_modules:
             if helper_module in sys.modules:
-                logging.info(
-                    f"Library '{library_identity.label}': Reloading helper "
-                    f"module '{helper_module}'..."
-                )
-                importlib.reload(sys.modules[helper_module])
-                # Track that we reloaded this module
-                if event:
-                    event.reloaded_modules.add(helper_module)
+                self._reload_unmanaged_module(helper_module, library_identity, event)
         
+        # If any dependency module reloads failed, abort managed module reloads
+        if len(self._dependency_module_errors) > 0:
+            raise Exception(
+                f"Library '{library_identity.label}': "
+                f"Dependency module reload errors detected. "
+                f"Aborting managed module reload."
+            )
+
         # Step 2: Reload managed modules using registry's special handling
         for managed_module in reload_plan.managed_modules:
             logging.info(
@@ -521,6 +539,58 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             # Track that we reloaded this module
             if event:
                 event.reloaded_modules.add(managed_module)
+
+    def _reload_unmanaged_module(self, 
+            module_name: str, 
+            library_identity: LibraryIdentity, 
+            event: Optional[FileChangeEvent] = None
+        ):
+        """
+        Reload a single unmanaged module without registry-specific handling.
+        Catches ModuleNotFoundError to log dependency errors.
+        Called by the _on_change method.
+        """
+        try:
+            logging.info(
+                f"Library '{library_identity.label}': Reloading helper "
+                f"module '{module_name}'..."
+            )
+            importlib.reload(sys.modules[module_name])
+            # Track that we reloaded this module
+            if event:
+                event.reloaded_modules.add(module_name)
+        except Exception as e:
+            managed_modules = self._dependency_graph._find_managed_dependents(module_name)
+            for managed_module in managed_modules:
+                error = HaywireException.create(
+                    category=e.__class__.__name__,
+                    operation="Registry Unmanaged Module Hot-Reload",
+                    message=(
+                        f"Failed reloading dependency module "
+                        f"'{module_name}' required by managed module "
+                        f"'{managed_module}'. {str(e)}"
+                    )
+                ).enrich(
+                    module_name=managed_module,
+                    library_identity=library_identity,
+                    suggestions=(
+                        "Check that the dependency module exists and is "
+                        "correctly installed.",
+                        "Ensure that the dependency module is accessible "
+                        "from the Python environment."
+                    )
+                ).log()
+                reg_keys = self._module_to_registry_keys.get(managed_module, [None])
+                for key in reg_keys:
+                    lc_event = LifeCycleEvent(
+                                registry_key=key,
+                                event_type=LifeCycleEventType.CLASS_RELOAD_FAILED,
+                                affected_class=self.get(key),
+                                library_identity=event.library_identity,
+                                module_name=module_name,
+                                error=error,
+                            )
+                    self._dependency_module_errors[key] = lc_event
 
     def _reload_managed_module(self, module_name: str, library_identity: LibraryIdentity):
         """

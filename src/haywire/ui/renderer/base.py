@@ -94,24 +94,29 @@ class BaseRenderer(IBaseRenderer, ABC):
         """
         pass
 
-    def render_widget(self, inlet: DataPort, node_id: str) -> ui.element | None:
+    def render_widget(self, port: DataPort, node_id: str, classes: str = '') -> ui.element | None:
         """
         Render a widget for the given inlet and node ID.
         
         Args:
-            inlet: The data port inlet to render the widget for
+            port: The data port inlet to render the widget for
             node_id: The unique identifier of the node 
+            classes: Additional CSS classes to apply to the widget ui_element container
         Returns:
-            The rendered widget instance, or None if no widget was rendered
+            The rendered widget ui_element container, or None if no widget was rendered
         """
         widget_instance, ui_element = self._widget_factory.render_widget(
-            inlet.widget,
-            inlet,
-            node_id
+            registry_key=port.widget,
+            port=port,
+            node_id=node_id
         )
 
+        # Apply styling to the UI element if possible
+        if ui_element and hasattr(ui_element, 'classes') and callable(ui_element.classes):
+            ui_element.classes(classes)
+
         if widget_instance:
-            self._nodeids_widget_instances.setdefault(node_id, {inlet.id, widget_instance})
+            self._nodeids_widget_instances.setdefault(node_id, {port.id, widget_instance})
 
         return ui_element
 

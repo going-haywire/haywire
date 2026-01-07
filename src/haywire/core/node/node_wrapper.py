@@ -105,7 +105,7 @@ class NodeWrapper:
         
         self.graph: Optional['BaseGraph' | None] = None
 
-    def initialize(self, graph: 'BaseGraph') -> Optional['NodeWrapper']:
+    def instantiate(self, graph: 'BaseGraph') -> Optional['NodeWrapper']:
         """
         Initialize the wrapper by creating the node instance.
         
@@ -137,7 +137,7 @@ class NodeWrapper:
                 self.state.history.append(_event)
                 self.state.error = _event.error
                 self.state.is_instantiated = True
-                self._initialize()
+                _event = self._initialize(_event)
                 self._notify_change(_event)
                 return self
             else:
@@ -202,7 +202,7 @@ class NodeWrapper:
                         self.state.last_hot_reload = time.time()
                         self.state.hot_reload_count += 1
 
-                        self._initialize()
+                        event = self._initialize(event)
                     else:
                         self.state.is_valid = False
 
@@ -326,11 +326,40 @@ class NodeWrapper:
             return self._node_instance
     
    
-    def _initialize(self):
+    def _initialize(self, _event: LifeCycleEvent = None) -> None:
         """
         Initializes the node after instantiation to its default setup
+        Args:
+            _event: The lifecycle event that led to initialization
+        Returns:
+            The updated lifecycle event after initialization
         """
-        self.node.initialize()
+        try:
+            self.node.initialize()
+            return _event
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="Initialize Node",
+                message=f"Failed to initialize node '{self.registry_key}'"
+            ).enrich(
+                node_id=self.node_id,
+                registry_key=self.registry_key,
+                module_name=_event.module_name,
+                library_identity=_event.library_identity
+            ).log()
+            self.state.is_valid = False
+            self.state.error = error
+            _new_event = LifeCycleEvent(
+                registry_key=self.registry_key,
+                event_type=LifeCycleEventType.CLASS_INSTANTIATION_FAILED,
+                affected_class=type(self._node_instance),
+                module_name=_event.module_name,
+                library_identity=_event.library_identity,
+                error=error
+            )
+            self.state.history.append(_new_event)
+            return _new_event
 
 
     def redraw(self, *args, **kwargs) -> None:

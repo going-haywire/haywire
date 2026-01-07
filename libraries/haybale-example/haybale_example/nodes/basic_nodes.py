@@ -6,12 +6,7 @@ Basic core node implementations
 from haybale_test_a.types.maps_string_type import MapsStringType
 from haywire.core.node.base import node
 from haywire.core.node.base import BaseNode
-from haywire.libraries.core.types.array_type import ArrayType
-from haywire.libraries.core.types.pooled_type import PooledType
-from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, GROUP, INT, STRING
 
-from ..types.mesh_data import MeshData
-from ..types.specs import Temperature
 
 @node(
     label='Test Node Four',
@@ -22,9 +17,18 @@ class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
     def initialize(self):
+        from haywire.libraries.core.types.array_type import ArrayType
+        from haywire.libraries.core.types.pooled_type import PooledType
+        from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, GROUP, INT, STRING
+
+        from ..types.mesh_data import MeshData
+        from ..types.specs import Temperature
+
         # Configure behavior
         self.behavior.is_data_node = True
         self.behavior.is_control_node = False
+
+        self.push()
 
         # Add control inlet (no type, just execution flow)
         self.add(EXEC.as_inlet(id='execute_in'))
@@ -36,8 +40,13 @@ class TestNodeOne(BaseNode):
                 on_change='wrapper:redraw'
                 )):
             
-            with self.section('idle_inlets'):
-                self.add(Temperature.as_inlet(
+            with self.group(GROUP.as_inlet(
+                    id='temperature_config_group',
+                    label='Temperature Configuration',
+                    default=False,
+                    on_change='wrapper:redraw'
+                    )):
+                 self.add(Temperature.as_inlet(
                         id='temp_config',
                         default=40.0
                     )) 
@@ -52,6 +61,7 @@ class TestNodeOne(BaseNode):
                     label='Pooled ARRAY[STRING]'
                 ))
 
+
         # Add inlets with different widget types
         self.add(STRING.as_inlet(
                 id='string_selector',
@@ -61,6 +71,27 @@ class TestNodeOne(BaseNode):
                 default='Option 1'
             ))
         
+        #############
+        # Proposal for widget configuration syntax
+        # combine key and ui dict into single 'widget' parameter
+        #############
+        # 
+        #    self.add(STRING.as_inlet(
+        #            id='string_selector',
+        #            label='Selector',
+        #            widget={key: 'core:widget:select.widget', config: {'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}},
+        #            default='Option 1'
+        #        ))
+
+        #    self.add(STRING.as_inlet(
+        #            id='string_selector',
+        #            label='Selector',
+        #            widget=SelectWidget.config('properties': {'options': ['Option 1', 'Option 2', 'Option 3']}),
+        #            default='Option 1'
+        #        ))
+
+        #############
+
         self.add(FLOAT.as_inlet(
                 id='float_slider',
                 label='Float Sliderio',
@@ -137,6 +168,7 @@ class TestNodeOne(BaseNode):
                 label='MAPSSTRING[BOOL]'
             ))
 
+        self.pop()
 
     def worker(self, context: dict) -> dict | None:
         """Execute the node - return the constant value"""

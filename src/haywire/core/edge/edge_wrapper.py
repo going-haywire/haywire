@@ -154,9 +154,9 @@ class EdgeWrapper:
             connection_uuid=self.connection_uuid
         )
 
-    def initialize(self, graph: 'BaseGraph') -> Optional['EdgeWrapper']:
+    def instantiate(self, graph: 'BaseGraph') -> Optional['EdgeWrapper']:
         """
-        Initialize edge wrapper 
+        Instantiate edge wrapper 
                 
         Does neiter add wrapper to graph nor build the adapter chain - that's the caller's responsibility.
         
@@ -164,7 +164,7 @@ class EdgeWrapper:
             graph: The graph containing this edge
             
         Returns:
-            Self if initialization successful, None otherwise
+            Self if instantiation successful, None otherwise
         """
         self._graph = graph
         self._adapter_factory = graph.adapter_factory

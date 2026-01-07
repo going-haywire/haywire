@@ -65,7 +65,7 @@ class ExampleNodeRenderer(NodeRenderer):
                                 with ui.row().classes('w-full items-center gap-1'):
                                     ui.label(inlet.label).classes('text-xs')
                                     if inlet.widget:
-                                        self.render_widget(inlet, wrapper.node_id)
+                                        self.render_widget(inlet, wrapper.node_id, classes='widget-container zoom-pan-lod2')
                 
                 # Outlets
                 with ui.column().classes('flex-1 gap-1'):

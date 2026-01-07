@@ -54,7 +54,6 @@ class DefaultNodeRenderer(NodeRenderer):
                 # Left column: Inlets
                 with ui.column().classes('flex-1 gap-1'):
                     if node.ports:
-                        ui.label('Inputs').classes('font-bold text-sm')
                         self._render_port_hierarchy(
                             node.get_visible_ports(),
                             wrapper,
@@ -64,7 +63,6 @@ class DefaultNodeRenderer(NodeRenderer):
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):
                     if node.ports:
-                        ui.label('Outputs').classes('font-bold text-sm')
                         self._render_port_hierarchy(
                             node.get_visible_ports(),
                             wrapper,
@@ -75,7 +73,10 @@ class DefaultNodeRenderer(NodeRenderer):
             with ui.row().classes('w-full justify-between mt-2 zoom-pan-lod1'):
                 ui.label(f'↓ {len([p for p in node.ports.values() if p.is_inlet()])}').classes('text-caption')
                 ui.label(f'↑ {len([p for p in node.ports.values() if p.is_outlet()])}').classes('text-caption')
-    
+
+        # Add resize handle in bottom-right corner
+        self._add_resize_handle(main_card, wrapper)
+           
     def _render_port_hierarchy(self, 
                                ports: List[DataPort],
                                wrapper: NodeWrapper,
@@ -105,9 +106,9 @@ class DefaultNodeRenderer(NodeRenderer):
                 self._render_group(port, ports, wrapper, is_inlet)
             else:
                 if is_inlet:
-                    self._render_inlet(port, wrapper)
+                    self._render_inlet(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
                 else:
-                    self._render_outlet(port, wrapper)
+                    self._render_outlet(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
     
     def _render_group(self,
                      group_port: DataPort,
@@ -133,17 +134,16 @@ class DefaultNodeRenderer(NodeRenderer):
         is_expanded = node.value(group_port.id)
         
         # Group container with visual hierarchy
-        with ui.column().classes('w-full border-l-2 border-gray-400 pl-2 ml-1 gap-1'):
+        with ui.column().classes('w-full pl-2 ml-1 gap-1'):
             # Group header with toggle
             with ui.row().classes('w-full items-center gap-1'):
-                # Render group control pin (if group has data flow)
-                if group_port.is_pin():
-                    self._render_pin(group_port, wrapper, 
-                                    direction='left' if is_inlet else 'right')
-                
+                if not is_expanded:
+                    # Group is collapsed - render ghost pin if needed
+                    self._render_ghost_pin(group_port, wrapper, is_inlet)
+
                 # Render group toggle widget
                 if group_port.widget:
-                    self.render_widget(group_port, wrapper.node_id)
+                    self.render_widget(group_port, wrapper.node_id, classes='zoom-pan-lod2')
             
             # Group children (if expanded)
             if is_expanded:
@@ -159,12 +159,10 @@ class DefaultNodeRenderer(NodeRenderer):
                         self._render_group(child_port, all_ports, wrapper, is_inlet)
                     else:
                         if is_inlet:
-                            self._render_inlet(child_port, wrapper)
+                            self._render_inlet(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
                         else:
-                            self._render_outlet(child_port, wrapper)
-            else:
-                # Group is collapsed - render ghost pin if needed
-                self._render_ghost_pin(group_port, wrapper, is_inlet)
+                            self._render_outlet(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+
     
     def _render_ghost_pin(self,
                          group_port: DataPort,

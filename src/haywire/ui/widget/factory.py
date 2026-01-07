@@ -50,7 +50,7 @@ class WidgetFactory(IWidgetFactory):
     def render_widget(
         self,
         registry_key: str,
-        inlet: DataPort,
+        port: DataPort,
         node_id: str
     ) -> tuple[IWidget | None, ui.element]:
         """Render a widget for the given inlet and return the widget instance.
@@ -59,8 +59,8 @@ class WidgetFactory(IWidgetFactory):
         
         Args:
             registry_key: The registry key of the widget to render
-            inlet: The inlet port to render a widget for
-            node_id: ID of the node containing this inlet
+            port: The data port to render a widget for
+            node_id: ID of the node containing this port
             
         Returns:
             IWidget instance or None if widget creation failed
@@ -72,12 +72,8 @@ class WidgetFactory(IWidgetFactory):
         lc_event: LifeCycleEvent | None = None
 
         try:
-            widget_instance, lc_event = self.get_widget(registry_key, inlet)
+            widget_instance, lc_event = self._get_widget(registry_key, port)
             ui_element = widget_instance.render()
-            
-            # Apply styling to the UI element if possible
-            if hasattr(ui_element, 'classes') and callable(ui_element.classes):
-                ui_element.classes('widget-container zoom-pan-lod2')
                 
         except Exception as error:
             library_identity = lc_event.library_identity if lc_event is not None else None
@@ -90,11 +86,11 @@ class WidgetFactory(IWidgetFactory):
                     category="Widget Render Error",
                     operation="widget_lookup",
                     message=(
-                        f"Failed to render widget '{inlet.widget}' "
-                        f"for inlet '{inlet.id}' in node '{node_id}'"
+                        f"Failed to render widget '{port.widget}' "
+                        f"for inlet '{port.id}' in node '{node_id}'"
                     )
                 ).enrich(
-                    registry_key=inlet.widget,
+                    registry_key=port.widget,
                     library_identity=library_identity,
                     module_name=module_name,
                     suggestions=[
@@ -107,19 +103,20 @@ class WidgetFactory(IWidgetFactory):
 
             return None, ui_element
     
-        self._widget_regkey_to_nodeids.setdefault(inlet.widget, set()).add(node_id)
+        self._widget_regkey_to_nodeids.setdefault(port.widget, set()).add(node_id)
     
         return widget_instance, ui_element
 
-    def get_widget(
+    def _get_widget(
         self,
         registry_key: str,
-        element: DataPort
+        port: DataPort
     ) -> tuple[IWidget | None, LifeCycleEvent | None]:
         """
         Get a widget instance for the given element using the widget registry.
         Args:
-            element: The DataPort (inlet or outlet) to get the widget for
+            registry_key: The registry key of the widget to render
+            port: The DataPort (inlet or outlet) to get the widget for
         Returns:
             BaseWidget: The instantiated widget for the element or None
         """
@@ -132,7 +129,7 @@ class WidgetFactory(IWidgetFactory):
 
         if widget_cls is not None:
             try:
-                widget_instance = widget_cls(element)
+                widget_instance = widget_cls(port)
 
             except Exception as e:
                 # Create detailed error with context about the node instantiation
