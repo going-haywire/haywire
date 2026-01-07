@@ -418,6 +418,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                     for lc_event in self._dependency_module_errors.values():
                         self._queue_lifecycle_event(lc_event)
                     self._notify_batch_event_subscribers()
+                    self._dependency_module_errors.clear()
             try:
                 HaywireException.from_exception(
                     exception=e,
@@ -514,7 +515,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         )
         
         # reset dependency errors for this reload
-        self._dependency_module_errors = {}
+        self._dependency_module_errors.clear()
 
         # Step 1: Reload non-managed helper modules first
         for helper_module in reload_plan.non_managed_modules:
