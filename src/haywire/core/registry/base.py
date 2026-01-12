@@ -356,9 +356,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
                     return None
                         
-            if not event.dependency_event and event.event_type == FileEventType.CREATED:
-                self._on_creation(module_name, event.library_identity)
-            elif event.dependency_event or event.event_type == FileEventType.MODIFIED:
+            if event.dependency_event or event.event_type == FileEventType.MODIFIED:
                 if module_name in sys.modules:
                     self._on_change(module_name, event.library_identity, event)
                 else:
@@ -370,8 +368,11 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         f"new module."
                     )
                     self._on_creation(module_name, event.library_identity)
-            elif not event.dependency_event and event.event_type == FileEventType.DELETED:
-                self._on_delete(module_name, event.library_identity)
+            elif not event.dependency_event:
+                if event.event_type == FileEventType.CREATED:
+                    self._on_creation(module_name, event.library_identity)
+                if event.event_type == FileEventType.DELETED:
+                    self._on_delete(module_name, event.library_identity)
 
             logging.info(
                 f"Library '{event.library_identity.label}': "

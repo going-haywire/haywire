@@ -23,6 +23,7 @@ from nicegui import ui, app
 # Haywire imports
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.types import ValidationResult
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
 
 from haywire.ui.editor.graph_canvas_manager import GraphCanvasManager
@@ -69,26 +70,7 @@ class UndoRedoTestAppWithCanvasManager:
             # This prevents it from receiving updates during cleanup
             canvas_manager = session_data.get('canvas_manager')
             if canvas_manager:
-                try:
-                    # Remove the canvas manager's callback from the editor
-                    # This prevents sync attempts on a deleted client
-                    if hasattr(canvas_manager, '_graph_change_callback'):
-                        self.editor.remove_change_callback(
-                            canvas_manager._graph_change_callback
-                        )
-                        print(
-                            f"Removed graph change listener for "
-                            f"session {client_id[:8]}"
-                        )
-                except Exception as e:
-                    print(f"Error removing graph listener: {e}")
-                
-                # Now cleanup the canvas manager
-                try:
-                    if hasattr(canvas_manager, 'cleanup'):
-                        canvas_manager.cleanup()
-                except Exception as e:
-                    print(f"Error cleaning up canvas manager: {e}")
+                canvas_manager.cleanup()
 
             # Clean up UI containers
             containers = session_data.get('ui_containers', {})
@@ -155,12 +137,12 @@ class UndoRedoTestAppWithCanvasManager:
             self.adapter_factory
         )
         
+        # Register global change listener for app-level updates
+        self.graph.subscribe_to_validation(self._on_global_graph_change)
+
         # Create shared Editor instance (graph-managed pattern)
         self.editor = Editor(self.graph, self.history_manager)
-        
-        # Register global change listener for app-level updates
-        self.editor.add_change_callback(self._on_global_graph_change)
-        
+                
         # Global stats (shared across sessions)
         self.global_stats = {
             'nodes_created': 0,
@@ -194,7 +176,7 @@ class UndoRedoTestAppWithCanvasManager:
                 # For now, just update displays
                 pass
     
-    def _on_global_graph_change(self):
+    def _on_global_graph_change(self, result: ValidationResult):
         """Handle global graph changes (affects all sessions)."""
         print("🌍 Global graph change detected")
         

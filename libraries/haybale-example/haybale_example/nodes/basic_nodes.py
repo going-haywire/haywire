@@ -79,10 +79,9 @@ class TestNodeOne(BaseNode):
         #    self.add(STRING.as_inlet(
         #            id='string_selector',
         #            label='Selector',
-        #            widget={key: 'core:widget:select.widget', config: {'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}},
+        #            widget={key: 'core:widget:SelectWidget', config: {'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}},
         #            default='Option 1'
         #        ))
-
         #    self.add(STRING.as_inlet(
         #            id='string_selector',
         #            label='Selector',
@@ -172,7 +171,9 @@ class TestNodeOne(BaseNode):
 
     def worker(self, context: dict) -> dict | None:
         """Execute the node - return the constant value"""
-        # wert = self.inlets['float_slider'].data.value.value
+        wert = self.value('float_slider')
+        self.out('float_slider', 10)
+
         # wert = self.inlets['float_slider'].value.value
         # get_inlet_value("float_slider").value
 

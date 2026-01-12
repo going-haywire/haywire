@@ -6,12 +6,14 @@ CONSOLIDATED VERSION: Simplified drag, selection, and removal events.
 
 import traceback
 import time
+import logging
 from typing import Dict, List, Optional, Tuple, Callable, Set
 from nicegui import ui
 
 from haywire.core.graph.base import Edge
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.editor import Editor
+from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node.base import BaseNode
 from haywire.core.undo.actions.graph_actions import ClipboardData
 
@@ -48,6 +50,7 @@ from .event_definitions import (
     )
 from .event_handlers import handles_event
 
+logger = logging.getLogger(__name__)
 
 class GraphCanvasManager:
     """
@@ -73,18 +76,13 @@ class GraphCanvasManager:
         
         # Access graph for read operations
         self.graph = editor.graph
-        
-        # Store callback reference for later removal during cleanup
-        self._graph_change_callback = self._on_graph_changed
-        
+
+        # Subscribe to validation through graph's public API
+        self.graph.subscribe_to_validation(self._on_validated)
+       
         # Register for simple graph change notifications
-        self.editor.add_change_callback(self._graph_change_callback)
-        
-        # Register for NodeWrapper change notifications
-        # Note: We keep wrapper callback setup to ensure wrappers are properly initialized
-        # UINode now handles its own hot reload, but we still setup the callbacks for new nodes
-        self._setup_wrapper_callbacks()
-                
+        # self.editor.add_change_callback(self._graph_change_callback)
+                       
         # Visual state
         self.node_panels: Dict[str, UINode] = {}  # node_id -> UINode
         self.connection_paths: Dict[str, UIEdge] = {}  # connection_uuid -> UIEdge object
@@ -111,28 +109,7 @@ class GraphCanvasManager:
         }
         
         self._setup_canvas()
-    
-    def _on_graph_changed(self):
-        """Simple callback when anything changes in the graph."""
-        print(f"🔄 GraphCanvasManager[{self.session_id[:8]}]: Graph changed, syncing visuals")
-        self.sync_with_graph()
-        
-        # Update wrapper callbacks for any new wrappers
-        self._setup_wrapper_callbacks()
-    
-    def _setup_wrapper_callbacks(self):
-        """
-        Setup wrapper callbacks for new wrappers.
-        
-        Note: UINode now handles hot reload directly by subscribing to wrapper callbacks.
-        This method just ensures wrappers have their internal callbacks properly set up.
-        The actual hot reload visual updates are handled by UINode._on_wrapper_changed().
-        """
-        for wrapper in self.graph.node_wrappers.values():
-            # Wrappers handle their own internal state management
-            # UINode subscribes directly when created in add_node_visual()
-            pass
-    
+             
     def _auto_register_event_handlers(self):
         """Automatically register event handlers using decorators"""
         print("🔧 Auto-registering event handlers...")
@@ -514,9 +491,121 @@ class GraphCanvasManager:
     # =============================================================================
     # SYNC UI with GRAPH STATE (unchanged from original)
     # =============================================================================
+        
+    def _on_validated(self, result: ValidationResult):
+        """
+        Handle validation results with flexible reason-based dispatch.
+        """
+        
+        logger.debug(
+            f"🔄 Validation: {result.total_changes} changes in "
+            f"{result.validation_time_ms:.2f}ms"
+        )
+
+        node_has_moved = False
+        element_was_selected = False
+
+        # Process nodes by reason
+        for node_id, reason in result.nodes.items():
+            
+            if reason == ChangeReason.NODE_ADDED:
+                # Create new UI node
+                wrapper = self.graph.get_node_wrapper(node_id)
+                if wrapper and node_id not in self.node_panels:
+                    self.add_node_visual(wrapper.node, (
+                        wrapper.node.ui_state.posX,
+                        wrapper.node.ui_state.posY
+                    ))
+                    logger.debug(f"  + Added node UI: {node_id}")
+            
+            elif reason == ChangeReason.NODE_REMOVED:
+                # Remove UI node
+                if node_id in self.node_panels:
+                    self.remove_node_visual(node_id)
+                    logger.debug(f"  - Removed node UI: {node_id}")
+            
+            elif reason in (ChangeReason.NODE_HOT_RELOADED, ChangeReason.NODE_ERROR):
+                # Full redraw needed
+                ui_node = self.node_panels.get(node_id)
+                if ui_node:
+                    ui_node.refresh()  # Full re-render
+                    logger.debug(f"  🔄 Redrawn node: {node_id} ({reason.value})")
+            
+            elif reason == ChangeReason.NODE_MOVED:
+                # Cheap visual update - just position
+                ui_node = self.node_panels.get(node_id)
+                if ui_node:
+                    wrapper = self.graph.get_node_wrapper(node_id)
+                    if wrapper:
+                        node = wrapper.node  # Get node instance from wrapper
+                        new_position = (
+                            node.ui_state.posX,
+                            node.ui_state.posY
+                        )  
+                        self.update_node_position(node_id, new_position)
+                        node_has_moved = True
+                        logger.debug(f"  ↔ Moved node: {node_id}")
+            
+            elif reason in (ChangeReason.NODE_SELECTED, ChangeReason.NODE_DESELECTED):
+                self.selected_nodes.clear()
+                # Cheap visual update - just selection state
+                ui_node = self.node_panels.get(node_id)
+                if ui_node:
+                    is_selected = reason == ChangeReason.NODE_SELECTED
+                    if is_selected:
+                        self.selected_nodes.add(node_id)
+                        element_was_selected = True
+                    logger.debug(f"  ✓ Selection changed: {node_id}")
+        
+        # Process edges by reason
+        for edge_uuid, reason in result.edges.items():
+            
+            if reason == ChangeReason.EDGE_ADDED:
+                # Create new UI edge
+                wrapper = self.graph.get_edge_wrapper(edge_uuid)
+                if wrapper and edge_uuid not in self.connection_paths:
+                    self.add_connection_visual(wrapper)
+                    logger.debug(f"  + Added edge UI: {edge_uuid}")
+            
+            elif reason == ChangeReason.EDGE_REMOVED:
+                # Remove UI edge
+                if edge_uuid in self.connection_paths:
+                    self.remove_connection_visual(edge_uuid)
+                    logger.debug(f"  - Removed edge UI: {edge_uuid}")
+            
+            elif reason in (ChangeReason.EDGE_ADAPTERS_RELOADED, ChangeReason.EDGE_ERROR):
+                # Full redraw needed
+                ui_edge = self.connection_paths.get(edge_uuid)
+                if ui_edge:
+                    ui_edge.refresh()  # Full re-render
+                    logger.debug(f"  🔄 Redrawn edge: {edge_uuid} ({reason.value})")
+            
+            elif reason in (ChangeReason.EDGE_SELECTED, ChangeReason.EDGE_DESELECTED):
+                self.selected_connections.clear()
+                # Cheap visual update - just selection state
+                ui_edge = self.connection_paths.get(edge_uuid)
+                if ui_edge:
+                    is_selected = reason == ChangeReason.EDGE_SELECTED
+                    if is_selected:
+                        self.selected_connections.add(edge_uuid)
+                        element_was_selected = True
+                    logger.debug(f"  ✓ Selection changed: {edge_uuid}")
+
+        # Emit single consolidated sync events
+        if node_has_moved:
+            #self._update_connection_paths()
+            pass
+
+        if element_was_selected:
+            self.sync_selections()
+
+        self.canvas_vue.update() 
 
     def sync_with_graph(self):
         """Synchronize visual representation with the graph state."""
+        print(
+            f"🔄 Synchronizing graph visuals: "
+        )
         try:
             # Sync nodes (using node_wrappers)
             graph_node_ids = set(self.graph.node_wrappers.keys())
@@ -743,7 +832,11 @@ class GraphCanvasManager:
             connections=list(self.selected_connections)
         )
         self.canvas_vue.emit_sync_event(sync_event)
-    
+
+    def cleanup(self):
+        """Cleanup - unsubscribe from graph"""
+        self.graph.unsubscribe_from_validation(self._on_validated)
+
     # =============================================================================
     # CLIPBOARD HELPER METHODS
     # =============================================================================

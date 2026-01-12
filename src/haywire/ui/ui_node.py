@@ -141,7 +141,21 @@ class UINode:
                 f"with error renderer '{_error_renderer_reg_key}'"
             )
             self.render(_error_renderer_reg_key, _is_error_render=True)
-                    
+
+    def refresh(self):
+        """
+        Refresh the UI representation of the node.
+        This forces a re-render using the current renderer.
+        """
+        logging.debug(f"🔄 UINode {self.wrapper.node_id}: Refreshing UI ..")
+        if self.wrapper and self.wrapper.state.error:
+            _error_renderer_reg_key: str | None = (
+                self.factory._renderer_registry.get_error_renderer_registry_key()
+            )
+            self.render(_error_renderer_reg_key, _is_error_render=True)
+        else:   
+            self.render()  # Re-render with current renderer
+
     def _listen_on_factory_lifecycle_event(self, node_id: str) -> None:
         """
         Handle renderer hot reload notifications from NodeRenderFactory.

@@ -11,6 +11,8 @@ from typing import List, Optional, Tuple, Any, TYPE_CHECKING
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
+from haywire.core.graph.types import ChangeReason
+
 from ..errors import HaywireException
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
@@ -138,7 +140,6 @@ class NodeWrapper:
                 self.state.error = _event.error
                 self.state.is_instantiated = True
                 _event = self._initialize(_event)
-                self._notify_change(_event)
                 return self
             else:
                 return None
@@ -208,9 +209,13 @@ class NodeWrapper:
 
                     self.state.error = event.error
                     self.state.history.append(event)                      
-                    # Forward the event to UI components
-                    self._notify_change(event)
-                
+                    # Tell graph we changed (not UI directly!)
+                    if self.graph:
+                        self.graph._validation.mark_node_dirty(
+                            self.node_id,
+                            ChangeReason.NODE_HOT_RELOADED
+                        )
+
                 else:
                     self.state.is_valid = False
                     if lc_event.is_removal():
@@ -237,8 +242,12 @@ class NodeWrapper:
 
                     self.state.error = lc_event.error
                     self.state.history.append(lc_event)                      
-                    # Forward the event to UI components
-                    self._notify_change(lc_event)
+                    # Tell graph about error
+                    if self.graph:
+                        self.graph._validation.mark_node_dirty(
+                            self.node_id,
+                            ChangeReason.NODE_ERROR
+                        )
 
     def _create_node_instance(self) -> tuple['BaseNode', LifeCycleEvent]:
         """
@@ -366,16 +375,12 @@ class NodeWrapper:
         """
         Request a redraw of the node in the UI.
         """
-        # Notify subscribers of redraw request
-        self._notify_change(
-            LifeCycleEvent(
-                registry_key=self.registry_key,
-                event_type=LifeCycleEventType.CLASS_ADDED,
-                affected_class=type(self.node),
-                module_name="",
-                library_identity="",
+        # Notify graph of redraw request
+        if self.graph:
+            self.graph._validation.mark_node_dirty(
+                self.node_id,
+                ChangeReason.NODE_REDRAW_REQUESTED
             )
-        )
 
     def validate(self) -> List[str]:
         """

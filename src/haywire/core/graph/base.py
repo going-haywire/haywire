@@ -1,22 +1,31 @@
+# haywire/core/graph/base.py
+"""
+BaseGraph - Main graph container and coordinator.
+
+Manages collections of nodes, edges, and variables, and coordinates
+with internal managers for validation, etc.
+"""
 from __future__ import annotations
-from typing import Any, TYPE_CHECKING, Optional, List, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
-from enum import Enum
 import uuid
+import logging
 
-from haywire.core.types.ports import DataPort
-
-from ..node.node_wrapper import NodeWrapper
 from ..data.enums import FlowType
-
+from ..types.ports import DataPort
+from .validation import ValidationManager, ValidationCallback
+from .types import ChangeReason, ValidationResult
 
 if TYPE_CHECKING:
     from ..node.factory import NodeFactory
     from ..adapter.factory import AdapterFactory
     from ..edge.edge_wrapper import EdgeWrapper
+    from ..node.node_wrapper import NodeWrapper
 
-# Re-export Edge and FlowType from new location for backward compatibility
+# Re-export for backward compatibility
 from ..edge.edge import Edge
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -41,7 +50,7 @@ class Variable:
         """Reset variable to its default value"""
         self.current_value = self.default_value
     
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Serialize variable to dictionary"""
         return {
             "name": self.name,
@@ -52,23 +61,18 @@ class Variable:
         }
 
 
-# ============================================================================
-# Graph Class
-# ============================================================================
-
 class BaseGraph:
-    """Main Graph class for the Haywire system
+    """
+    Main Graph class for the Haywire system.
     
     A Graph is a container that describes the flow of data and control between nodes.
     It contains:
     - Variables: for statefulness during execution runs
-    - Nodes: instantiations of HaywireNode subclasses
-    - Edges: connections between nodes (control, data, callback)
+    - Nodes: instantiations of HaywireNode subclasses (managed via NodeWrappers)
+    - Edges: connections between nodes (managed via EdgeWrappers)
     
-    Key properties:
-    - A Graph can contain multiple disconnected node-trees (assembled into Flows)
-    - A Graph cannot be executed directly (only Flows can be executed)
-    - A Graph can be treated as a node (Graph-node) within another graph
+    The graph coordinates with internal managers for validation and other concerns.
+    External code should use the graph's public API, not interact with managers directly.
     """
     
     def __init__(
@@ -76,29 +80,32 @@ class BaseGraph:
         graph_id: str, 
         name: str,
         node_factory: 'NodeFactory', 
-        adapter_factory: 'AdapterFactory'
+        adapter_factory: 'AdapterFactory',
+        validation_delay_ms: float = 50.0
     ):
-        """Initialize a new Haywire graph
+        """
+        Initialize a new Haywire graph.
         
         Args:
             graph_id: Unique identifier for this graph
-            node_factory: Factory for creating node wrappers
             name: Human-readable name for the graph
-            adapter_factory: Optional factory for creating adapter chains
+            node_factory: Factory for creating node wrappers
+            adapter_factory: Factory for creating adapter chains
+            validation_delay_ms: Debounce delay for validation (default 50ms)
         """
         self.graph_id: str = graph_id
         self.name: str = name or f"Graph_{graph_id}"
         self.node_factory = node_factory        
         self.adapter_factory = adapter_factory
         
-        # Core containers - NOW USING WRAPPERS
-        self.node_wrappers: dict[str, NodeWrapper] = {}
-        self.edge_wrappers: dict[str, 'EdgeWrapper'] = {}  # NEW
-        self.variables: dict[str, Variable] = {}
+        # Core containers
+        self.node_wrappers: Dict[str, 'NodeWrapper'] = {}
+        self.edge_wrappers: Dict[str, 'EdgeWrapper'] = {}
+        self.variables: Dict[str, Variable] = {}
         
         # Selection state - shared across all sessions
-        self.selected_nodes: set[str] = set()
-        self.selected_connections: set[str] = set()
+        self.selected_nodes: Set[str] = set()
+        self.selected_connections: Set[str] = set()
         
         # Metadata
         self.description: str = ""
@@ -106,13 +113,61 @@ class BaseGraph:
         self.author: str = ""
         self.created_at: str | None = None
         self.modified_at: str | None = None
+        
+        # Internal managers (private - implementation details)
+        self._validation = ValidationManager(
+            graph=self,
+            debounce_ms=validation_delay_ms
+        )
     
-    # ========================================================================
-    # Node Management (NodeWrapper-based)
-    # ========================================================================
+    # =========================================================================
+    # VALIDATION API (delegates to internal manager)
+    # =========================================================================
+    
+    def subscribe_to_validation(self, callback: ValidationCallback) -> None:
+        """
+        Subscribe to validation completion events.
+        
+        The callback will be invoked after each validation batch completes,
+        receiving a ValidationResult with categorized changes.
+        
+        Args:
+            callback: Callable that accepts ValidationResult
+            
+        Example:
+            def on_validated(result: ValidationResult):
+                print(f"Nodes added: {result.nodes_added}")
+                print(f"Edges changed: {result.edges_changed}")
+            
+            graph.subscribe_to_validation(on_validated)
+        """
+        self._validation.subscribe(callback)
+    
+    def unsubscribe_from_validation(self, callback: ValidationCallback) -> None:
+        """
+        Unsubscribe from validation events.
+        
+        Args:
+            callback: The callback to remove
+        """
+        self._validation.unsubscribe(callback)
+    
+    def get_validation_stats(self) -> Dict[str, Any]:
+        """
+        Get validation pipeline statistics.
+        
+        Returns:
+            Dictionary with validation metrics
+        """
+        return self._validation.get_statistics()
+    
+    # =========================================================================
+    # NODE MANAGEMENT
+    # =========================================================================
     
     def generate_unique_node_id(self) -> str:
-        """Generate a unique node ID that doesn't conflict with existing nodes.
+        """
+        Generate a unique node ID that doesn't conflict with existing nodes.
         
         Returns:
             A unique node ID string
@@ -126,9 +181,12 @@ class BaseGraph:
         self,
         registry_key: str,
         position: Tuple[float, float] = (100, 100)
-    ) -> Optional[NodeWrapper]:
+    ) -> Optional['NodeWrapper']:
         """
-        Create and adds NodeWrapper (graph-managed factory pattern).
+        Create and add NodeWrapper (graph-managed factory pattern).
+        
+        This creates a new node, initializes it, and adds it to the graph.
+        Automatically triggers validation pipeline.
         
         Args:
             registry_key: Node type to create
@@ -137,6 +195,8 @@ class BaseGraph:
         Returns:
             NodeWrapper if successful, None if failed
         """
+        from ..node.node_wrapper import NodeWrapper
+        
         # Create new wrapper
         wrapper = NodeWrapper(
             registry_key=registry_key,
@@ -146,17 +206,19 @@ class BaseGraph:
         
         # Initialize wrapper (returns self if successful)
         if wrapper.instantiate(self):
-            # Add to graph's collection
+            # Add to graph's collection (triggers validation automatically)
             return self.add_node_wrapper(wrapper)
         else:
             return None
 
-    def add_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper:
+    def add_node_wrapper(self, wrapper: 'NodeWrapper') -> 'NodeWrapper':
         """
         Add an initialized wrapper to the graph's collection.
         
         Used by create_node_wrapper() for new wrappers and by undo/redo
         operations to re-add existing wrappers.
+        
+        Automatically triggers validation pipeline with NODE_ADDED reason.
         
         Args:
             wrapper: NodeWrapper instance to add (must be initialized)
@@ -173,12 +235,24 @@ class BaseGraph:
                 f"in graph"
             )
         
+        # Add to collection
         self.node_wrappers[wrapper.node_id] = wrapper
+        
+        # Trigger validation (delegates to manager)
+        self._validation.mark_node_dirty(
+            wrapper.node_id, 
+            ChangeReason.NODE_ADDED
+        )
+        
+        logger.debug(f"Added node wrapper: {wrapper.node_id}")
+        
         return wrapper
     
-    def remove_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper | None:
-        """Remove a node wrapper from the graph        
-        Also removes all edges connected to this node.
+    def remove_node_wrapper(self, wrapper: 'NodeWrapper') -> 'NodeWrapper' | None:
+        """
+        Remove a node wrapper from the graph.
+        
+        Also removes all edges connected to this node and triggers validation.
         
         Args:
             wrapper: The node wrapper to remove
@@ -190,13 +264,33 @@ class BaseGraph:
         
         if node_id not in self.node_wrappers:
             return None
-                
-        # Remove wrapper (but don't cleanup - undo system handles that)
+        
+        # Get all connected edges (they'll need to be removed too)
+        connected_edges = self._get_all_edges(node_id)
+        
+        # Remove wrapper from collection
         wrapper = self.node_wrappers.pop(node_id)
+        
+        # Trigger validation for removal
+        self._validation.mark_node_dirty(
+            node_id, 
+            ChangeReason.NODE_REMOVED
+        )
+        
+        # Remove all connected edges
+        for edge_wrapper in connected_edges:
+            self.remove_edge_wrapper(edge_wrapper.connection_uuid)
+        
+        logger.debug(
+            f"Removed node wrapper: {node_id} "
+            f"(removed {len(connected_edges)} connected edges)"
+        )
+        
         return wrapper
     
-    def get_node_wrapper(self, node_id: str) -> NodeWrapper | None:
-        """Get a node wrapper by its ID
+    def get_node_wrapper(self, node_id: str) -> 'NodeWrapper' | None:
+        """
+        Get a node wrapper by its ID.
         
         Args:
             node_id: ID of the node wrapper to retrieve
@@ -207,7 +301,11 @@ class BaseGraph:
         return self.node_wrappers.get(node_id)
     
     def move_node(self, node_id: str, new_x: float, new_y: float) -> bool:
-        """Move a node to a new position
+        """
+        Move a node to a new position.
+        
+        Note: Position changes typically don't require validation unless
+        position affects node behavior. Currently does NOT trigger validation.
         
         Args:
             node_id: ID of the node to move
@@ -223,10 +321,18 @@ class BaseGraph:
         
         wrapper.node.ui_state.posX = new_x
         wrapper.node.ui_state.posY = new_y
+        
+        # Trigger validation with MOVED reason
+        self._validation.mark_node_dirty(
+            node_id, 
+            ChangeReason.NODE_MOVED
+        )
+
         return True
     
-    def get_node_wrappers_by_type(self, registry_key: str) -> list[NodeWrapper]:
-        """Get all node wrappers of a specific type
+    def get_node_wrappers_by_type(self, registry_key: str) -> List['NodeWrapper']:
+        """
+        Get all node wrappers of a specific type.
         
         Args:
             registry_key: The node type to filter by
@@ -239,26 +345,20 @@ class BaseGraph:
             if wrapper.registry_key == registry_key
         ]
     
-    def list_all_wrappers(self) -> list[NodeWrapper]:
-        """Get all node wrappers in the graph
+    def list_all_wrappers(self) -> List['NodeWrapper']:
+        """
+        Get all node wrappers in the graph.
         
         Returns:
             List of all node wrappers
         """
         return list(self.node_wrappers.values())
 
-    def _get_port(
-            self,
-            node_id: str,
-            port_id: str
-        ) -> DataPort:  
+    def _get_port(self, node_id: str, port_id: str) -> DataPort:  
         """Convenience method to get a port from a node."""
         return self.node_wrappers[node_id].node.ports[port_id]
 
-    def _get_ports(
-            self,
-            node_id: str
-        ) -> List[DataPort]:  
+    def _get_ports(self, node_id: str) -> List[DataPort]:  
         """Get all current inlet and outlet ports from a node."""
         ports = []
         for port in self.node_wrappers[node_id].node.ports.values():
@@ -267,9 +367,9 @@ class BaseGraph:
         
         return ports
 
-    # ========================================================================
-    # EdgeWrapper Management
-    # ========================================================================
+    # =========================================================================
+    # EDGE MANAGEMENT
+    # =========================================================================
     
     def create_edge_wrapper(
         self,
@@ -279,13 +379,16 @@ class BaseGraph:
         inlet_port_id: str
     ) -> Optional['EdgeWrapper']:
         """
-        Create and adds EdgeWrapper (graph-managed factory pattern).
+        Create and add EdgeWrapper (graph-managed factory pattern).
+        
+        This creates a new edge, builds its adapter chain, and adds it to the graph.
+        Automatically triggers validation pipeline.
         
         Args:
             output_node_id: Source node ID
-            outlet_pin_id: Source outlet ID
+            outlet_port_id: Source outlet ID
             input_node_id: Target node ID
-            inlet_pin_id: Target inlet ID
+            inlet_port_id: Target inlet ID
             
         Returns:
             EdgeWrapper if successful, None if failed
@@ -305,8 +408,9 @@ class BaseGraph:
         
         # Initialize wrapper (returns self if successful)
         if wrapper.instantiate(self):
-            # Add to graph's collection
+            # Build adapter chain
             wrapper.rebuild()
+            # Add to graph's collection (triggers validation automatically)
             return self.add_edge_wrapper(wrapper)
         else:
             return None
@@ -317,6 +421,9 @@ class BaseGraph:
         
         Used by create_edge_wrapper() for new wrappers and by undo/redo
         operations to re-add existing wrappers.
+        
+        Automatically triggers validation pipeline with EDGE_ADDED reason
+        and updates port links.
         
         Args:
             wrapper: EdgeWrapper instance to add (must be initialized)
@@ -333,25 +440,32 @@ class BaseGraph:
                 f"already exists in graph"
             )
 
-        # Add to collection after updating connections!
+        # Add to collection
         self.edge_wrappers[wrapper.connection_uuid] = wrapper
         wrapper.set_as_registered(True)
 
-        # this needs to be done after registration
+        # Update port links (needs to be done after registration)
         self.update_port_link(wrapper)
 
-        # Need to update states after updating links
+        # Refresh state after updating links
         wrapper.refresh_state()
+        
+        # Trigger validation (delegates to manager)
+        self._validation.mark_edge_dirty(
+            wrapper.connection_uuid, 
+            ChangeReason.EDGE_ADDED
+        )
+        
+        logger.debug(f"Added edge wrapper: {wrapper.connection_uuid}")
        
         return wrapper
 
-    def remove_edge_wrapper(
-        self,
-        connection_uuid: str
-    ) -> Optional['EdgeWrapper']:
+    def remove_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
         """
         Remove EdgeWrapper from graph.
-       
+        
+        Also updates port links and triggers validation.
+        
         Args:
             connection_uuid: Connection UUID to remove
             
@@ -362,35 +476,41 @@ class BaseGraph:
             return None
                 
         wrapper = self.edge_wrappers[connection_uuid]
+        
+        # Remove from collection
         del self.edge_wrappers[connection_uuid]
         wrapper.set_as_registered(False)
         
-        # needs to be done after deregistration
+        # Update port links (needs to be done after deregistration)
         self.update_port_link(wrapper)
 
-        # Need to update states after updating links
+        # Refresh state after updating links
         wrapper.refresh_state()
+        
+        # Trigger validation for removal
+        self._validation.mark_edge_dirty(
+            connection_uuid, 
+            ChangeReason.EDGE_REMOVED
+        )
+        
+        logger.debug(f"Removed edge wrapper: {connection_uuid}")
  
         return wrapper
 
-    # this method is also called by the edge wrapper when its state changes
-    def update_port_link(
-            self,
-            wrapper: 'EdgeWrapper'
-        ):
+    def update_port_link(self, wrapper: 'EdgeWrapper') -> None:
         """
         Updates the link of an EdgeWrapper to the data ports.
-        An edge beeing linked to a port means that the 
-        port knows about the edge and the edge is functional.
-        This causes an update of all the other connected edges on the ports 
-        this edge connects to and might cause other edges to change their 
-        linked state if the port connection rules demands it.
+        
+        An edge being linked to a port means that the port knows about 
+        the edge and the edge is functional. This causes an update of 
+        all the other connected edges on the ports this edge connects to 
+        and might cause other edges to change their linked state if the 
+        port connection rules demand it.
         
         Args:
             wrapper: EdgeWrapper to validate
-
         """
-        if (wrapper.is_functional()):
+        if wrapper.is_functional():
             self._link_edge_to_port(
                 wrapper,
                 wrapper.input_node_id,
@@ -413,13 +533,12 @@ class BaseGraph:
                 wrapper.outlet_port_id
             ) 
 
-        
     def _link_edge_to_port(
-            self,
-            wrapper: 'EdgeWrapper',
-            node_id: str,
-            port_id: str
-        ) -> DataPort:
+        self,
+        wrapper: 'EdgeWrapper',
+        node_id: str,
+        port_id: str
+    ) -> DataPort:
         """
         Links an edge to a port. 
         Update port link state.
@@ -429,10 +548,7 @@ class BaseGraph:
         if port:
             port._add_link(wrapper)
             wrapper.validate_link(port)
-            edges_wrps = self._get_edge_wrappers_for_port(
-                node_id,
-                port_id
-            )
+            edges_wrps = self._get_edge_wrappers_for_port(node_id, port_id)
             if wrapper in edges_wrps:
                 edges_wrps.remove(wrapper)
             for ew in edges_wrps:
@@ -441,11 +557,11 @@ class BaseGraph:
         return port
 
     def _unlink_edge_from_port(
-            self,
-            wrapper: 'EdgeWrapper',
-            node_id: str,
-            port_id: str
-        ) -> DataPort:
+        self,
+        wrapper: 'EdgeWrapper',
+        node_id: str,
+        port_id: str
+    ) -> DataPort:
         """
         Unlinks the edge from a port. 
         Updates port link state.
@@ -455,10 +571,7 @@ class BaseGraph:
         if port:
             port._clear_all_links()
             wrapper.validate_link(port)
-            edges_wrps = self._get_edge_wrappers_for_port(
-                node_id,
-                port_id
-            )
+            edges_wrps = self._get_edge_wrappers_for_port(node_id, port_id)
             if wrapper in edges_wrps:
                 edges_wrps.remove(wrapper)
             for ew in edges_wrps:
@@ -470,10 +583,7 @@ class BaseGraph:
  
         return port
 
-    def get_edge_wrapper(
-        self,
-        connection_uuid: str
-    ) -> Optional['EdgeWrapper']:
+    def get_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
         """
         Get EdgeWrapper by connection UUID.
         
@@ -512,23 +622,16 @@ class BaseGraph:
         connected_wrappers = []
         
         for wrapper in self.edge_wrappers.values():
-                if (
-                    wrapper.input_node_id == node_id 
-                    and wrapper.inlet_port_id == port_id
-                ):
-                    connected_wrappers.append(wrapper)
-                if (
-                    wrapper.output_node_id == node_id 
-                    and wrapper.outlet_port_id == port_id
-                ):
-                    connected_wrappers.append(wrapper)
+            if (wrapper.input_node_id == node_id and 
+                wrapper.inlet_port_id == port_id):
+                connected_wrappers.append(wrapper)
+            if (wrapper.output_node_id == node_id and 
+                wrapper.outlet_port_id == port_id):
+                connected_wrappers.append(wrapper)
         
         return connected_wrappers
 
-    def _get_edge_wrappers_for_node(
-        self,
-        node_id: str
-    ) -> List['EdgeWrapper']:
+    def _get_edge_wrappers_for_node(self, node_id: str) -> List['EdgeWrapper']:
         """
         Get all EdgeWrappers connected to a specific node.
         
@@ -541,24 +644,20 @@ class BaseGraph:
         connected_wrappers = []
         
         for wrapper in self.edge_wrappers.values():
-                # Check if this edge connects to the specified inlet
-                if (
-                    wrapper.input_node_id == node_id 
-                    or wrapper.outlet_port_id == node_id
-                ):
-                    connected_wrappers.append(wrapper)
+            if (wrapper.input_node_id == node_id or 
+                wrapper.output_node_id == node_id):
+                connected_wrappers.append(wrapper)
         
         return connected_wrappers
 
-    def _get_all_edges(
-            self,
-            node_id: str
-        ) -> List[EdgeWrapper]:  
+    def _get_all_edges(self, node_id: str) -> List['EdgeWrapper']:  
         """
         Get **all** edges from and to a node.
         These are the linked and unlinked edges connected to the node.
+        
         Args:
             node_id: ID of the node
+            
         Returns:    
             List of valid EdgeWrappers connected to the node
         """
@@ -568,16 +667,15 @@ class BaseGraph:
                 connected_edges.append(edges)
         return connected_edges
 
-    def _get_linked_edges(
-            self,
-            node_id: str
-        ) -> List[EdgeWrapper]:  
+    def _get_linked_edges(self, node_id: str) -> List['EdgeWrapper']:  
         """
         Get all **linked** edges from and to a node.
-        These are not necessaray all the edges connected to the node,
+        These are not necessarily all the edges connected to the node,
         but only the linked ones.
+        
         Args:
             node_id: ID of the node
+            
         Returns:    
             List of linked EdgeWrappers connected to the node
         """
@@ -587,12 +685,13 @@ class BaseGraph:
                 connected_edges.append(self.edge_wrappers[edge_uuid])
         return connected_edges
  
-    # ========================================================================
-    # Variable Management
-    # ========================================================================
+    # =========================================================================
+    # VARIABLE MANAGEMENT
+    # =========================================================================
     
     def add_variable(self, variable: Variable) -> Variable:
-        """Add a variable to the graph
+        """
+        Add a variable to the graph.
         
         Args:
             variable: Variable instance to add
@@ -604,13 +703,16 @@ class BaseGraph:
             ValueError: If variable name already exists
         """
         if variable.name in self.variables:
-            raise ValueError(f"Variable '{variable.name}' already exists in graph")
+            raise ValueError(
+                f"Variable '{variable.name}' already exists in graph"
+            )
         
         self.variables[variable.name] = variable
         return variable
     
     def remove_variable(self, name: str) -> Variable | None:
-        """Remove a variable from the graph
+        """
+        Remove a variable from the graph.
         
         Args:
             name: Name of the variable to remove
@@ -621,7 +723,8 @@ class BaseGraph:
         return self.variables.pop(name, None)
     
     def get_variable(self, name: str) -> Variable | None:
-        """Get a variable by name
+        """
+        Get a variable by name.
         
         Args:
             name: Name of the variable
@@ -632,7 +735,8 @@ class BaseGraph:
         return self.variables.get(name)
     
     def set_variable_value(self, name: str, value: Any) -> bool:
-        """Set the current value of a variable
+        """
+        Set the current value of a variable.
         
         Args:
             name: Name of the variable
@@ -647,7 +751,8 @@ class BaseGraph:
         return False
     
     def get_variable_value(self, name: str) -> Any:
-        """Get the current value of a variable
+        """
+        Get the current value of a variable.
         
         Args:
             name: Name of the variable
@@ -663,12 +768,13 @@ class BaseGraph:
         for variable in self.variables.values():
             variable.reset_to_default()
     
-    # ========================================================================
-    # Utility Methods
-    # ========================================================================
+    # =========================================================================
+    # UTILITY METHODS
+    # =========================================================================
     
-    def validate(self) -> list[str]:
-        """Validate the graph structure
+    def validate(self) -> List[str]:
+        """
+        Validate the graph structure.
         
         Returns:
             List of validation errors (empty if valid)
@@ -676,7 +782,7 @@ class BaseGraph:
         errors = []
         
         # Check for orphaned edges (edges referencing non-existent nodes)
-        for connection_uuid, edge in self.node_wrappers.items():
+        for connection_uuid, edge in self.edge_wrappers.items():
             if edge.output_node_id not in self.node_wrappers:
                 errors.append(
                     f"Edge {connection_uuid} references non-existent "
@@ -696,8 +802,9 @@ class BaseGraph:
         
         return errors
     
-    def get_disconnected_components(self) -> list[list[str]]:
-        """Find disconnected components in the graph
+    def get_disconnected_components(self) -> List[List[str]]:
+        """
+        Find disconnected components in the graph.
         
         Returns:
             List of components, where each component is a list of node IDs
@@ -705,14 +812,14 @@ class BaseGraph:
         visited = set()
         components = []
         
-        def dfs(node_id: str, component: list[str]):
+        def dfs(node_id: str, component: List[str]):
             if node_id in visited:
                 return
             visited.add(node_id)
             component.append(node_id)
             
             # Follow all edges from this node
-            for edge in self.node_wrappers.values():
+            for edge in self.edge_wrappers.values():
                 if edge.output_node_id == node_id:
                     dfs(edge.input_node_id, component)
                 elif edge.input_node_id == node_id:
@@ -726,29 +833,20 @@ class BaseGraph:
         
         return components
 
-    # ========================================================================
-    # Selection Management
-    # ========================================================================
-    
-    def set_selection(self, selected_nodes: set[str] = None, 
-                     selected_connections: set[str] = None):
-        """Set selection using consistent ID formats
+    # =========================================================================
+    # SELECTION MANAGEMENT
+    # =========================================================================
         
-        Args:
-            selected_nodes: Set of node IDs to select (None keeps current)
-            selected_connections: Set of connection UUIDs to select (None keeps current)
-        """
-        if selected_nodes is not None:
-            self.selected_nodes = selected_nodes.copy()
-        if selected_connections is not None:
-            self.selected_connections = selected_connections.copy()
-    
-    def set_selection_state(self, selected_nodes: set[str], selected_connections: set[str]):
+    def set_selection_state(
+        self, 
+        selected_nodes: Set[str], 
+        selected_connections: Set[str]
+    ):
         """Set the complete selection state (backward compatibility)."""
         self.selected_nodes = selected_nodes.copy()
         self.selected_connections = selected_connections.copy()
     
-    def get_selection_state(self) -> tuple[set[str], set[str]]:
+    def get_selection_state(self) -> Tuple[Set[str], Set[str]]:
         """Get the current selection state."""
         return self.selected_nodes.copy(), self.selected_connections.copy()
     
@@ -790,27 +888,35 @@ class BaseGraph:
         """Check if a connection is selected."""
         return connection_uuid in self.selected_connections
 
-    # ========================================================================
-    # Cleanup
-    # ========================================================================
+    # =========================================================================
+    # CLEANUP
+    # =========================================================================
 
     def clear(self):
         """Clear all nodes, edges, and variables from the graph"""
+        # Clear validation manager state
+        self._validation.clear()
+        
         # Cleanup all wrappers before clearing
         for wrapper in self.node_wrappers.values():
             wrapper.cleanup()
         
+        for wrapper in self.edge_wrappers.values():
+            wrapper.cleanup()
+        
         self.node_wrappers.clear()
+        self.edge_wrappers.clear()
         self.variables.clear()
         self.selected_nodes.clear()
         self.selected_connections.clear()
     
-    # ========================================================================
-    # Serialization
-    # ========================================================================
+    # =========================================================================
+    # SERIALIZATION
+    # =========================================================================
     
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize graph to dictionary
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialize graph to dictionary.
         
         Returns:
             Dictionary representation of the graph
@@ -828,14 +934,18 @@ class BaseGraph:
                 for node_id, wrapper in self.node_wrappers.items()
             },
             "edges": {
-                connection_uuid: self.node_wrappers.to_dict() 
-                for connection_uuid, edge in self.node_wrappers.items()
+                connection_uuid: wrapper.edge.to_dict() 
+                for connection_uuid, wrapper in self.edge_wrappers.items()
             },
-            "variables": {name: var.to_dict() for name, var in self.variables.items()}
+            "variables": {
+                name: var.to_dict() 
+                for name, var in self.variables.items()
+            }
         }
     
-    def load_from_dict(self, data: dict[str, Any]) -> bool:
-        """Deserialize graph from dictionary
+    def load_from_dict(self, data: Dict[str, Any]) -> bool:
+        """
+        Deserialize graph from dictionary.
         
         Args:
             data: Dictionary representation of the graph
@@ -870,47 +980,56 @@ class BaseGraph:
             
             # Load node wrappers
             if "nodes" in data:
+                from ..node.node_wrapper import NodeWrapper
+                
                 for node_id, node_data in data["nodes"].items():
                     # Create wrapper
                     wrapper = NodeWrapper(
-                        node_id=node_id,
                         registry_key=node_data["registry_key"],
                         node_factory=self.node_factory,
-                        position=node_data.get("position")
+                        position=node_data.get("position", (100, 100))
                     )
                     
-                    # Deserialize wrapper data
-                    if wrapper.deserialize(node_data):
-                        self.node_wrappers[node_id] = wrapper
-                        # Set graph reference
-                        if wrapper._node_instance:
-                            wrapper.node.wrapper = self
-                    else:
-                        print(f"⚠️ Warning: Failed to deserialize node {node_id}")
+                    # Initialize and deserialize
+                    if wrapper.initialize(self):
+                        if wrapper.deserialize(node_data):
+                            self.add_node_wrapper(wrapper)
+                        else:
+                            logger.warning(f"Failed to deserialize node {node_id}")
             
             # Load edges
             if "edges" in data:
+                from ..edge.edge_wrapper import EdgeWrapper
+                
                 for connection_uuid, edge_data in data["edges"].items():
-                    edge = EdgeWrapper(
+                    wrapper = EdgeWrapper(
                         output_node_id=edge_data["output_node_id"],
                         outlet_port_id=edge_data["outlet_port_id"],
                         input_node_id=edge_data["input_node_id"],
                         inlet_port_id=edge_data["inlet_port_id"],
                         edge_type=FlowType(edge_data["edge_type"]),
                     )
-                    self.add_edge_wrapper(edge)
+                    
+                    if wrapper.initialize(self):
+                        wrapper.rebuild()
+                        self.add_edge_wrapper(wrapper)
             
             return True
             
         except Exception as e:
-            print(f"❌ Error loading graph from dictionary: {e}")
+            logger.error(
+                f"Error loading graph from dictionary: {e}", 
+                exc_info=True
+            )
             return False
     
     def __str__(self) -> str:
         """String representation of the graph"""
-        return (f"HaywireGraph(id='{self.graph_id}', name='{self.name}', "
-                f"nodes={len(self.node_wrappers)}, edges={len(self.edge_wrappers)}, "
-                f"variables={len(self.variables)})")
+        return (
+            f"HaywireGraph(id='{self.graph_id}', name='{self.name}', "
+            f"nodes={len(self.node_wrappers)}, edges={len(self.edge_wrappers)}, "
+            f"variables={len(self.variables)})"
+        )
     
     def __repr__(self) -> str:
         """Detailed string representation"""

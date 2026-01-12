@@ -57,16 +57,13 @@ class DefaultNodeRenderer(NodeRenderer):
                         self._render_port_hierarchy(
                             node.get_visible_ports(),
                             wrapper,
-                            is_inlet=True
+                            is_inlet=False
                         )
-
-                # Right column: Outlets
-                with ui.column().classes('flex-1 gap-1'):
                     if node.ports:
                         self._render_port_hierarchy(
                             node.get_visible_ports(),
                             wrapper,
-                            is_inlet=False
+                            is_inlet=True
                         )
 
             # Footer with port counts
@@ -76,7 +73,7 @@ class DefaultNodeRenderer(NodeRenderer):
 
         # Add resize handle in bottom-right corner
         self._add_resize_handle(main_card, wrapper)
-           
+
     def _render_port_hierarchy(self, 
                                ports: List[DataPort],
                                wrapper: NodeWrapper,

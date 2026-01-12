@@ -4,6 +4,8 @@ import time
 from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass, field
 
+from haywire.core.graph.types import ChangeReason
+
 from ...ui.utils import generate_connection_uuid
 from ..data.enums import FlowType
 from ..adapter.base import IAdapter
@@ -451,15 +453,24 @@ class EdgeWrapper:
                 self._state.warning_chain_rebuild = ""
 
                 self.refresh_state()
-                self._notify_lifecycle_subscribers()
-
+                # Tell graph about error 
+                if self._graph:
+                    self._graph._validation.mark_edge_dirty(
+                        self.connection_uuid,
+                        ChangeReason.EDGE_ERROR
+                    )
                 return  # abort on first warning/error           
 
         self.rebuild()
 
         self._graph.update_port_link(self)
 
-        self._notify_lifecycle_subscribers()
+        # Tell graph about successful reload 
+        if self._graph:
+            self._graph._validation.mark_edge_dirty(
+                self.connection_uuid,
+                ChangeReason.EDGE_ADAPTERS_RELOADED
+            )
 
     def set_as_registered(self, is_registered: bool):
         """

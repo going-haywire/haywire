@@ -60,23 +60,7 @@ class Editor:
     # CHANGE NOTIFICATION SYSTEM (Simple Callbacks)
     # =============================================================================
     
-    def add_change_callback(self, callback: Callable[[], None]):
-        """
-        Add a simple callback for any graph change.
-        
-        Args:
-            callback: Function to call when graph changes occur
-        """
-        if callback not in self._change_callbacks:
-            self._change_callbacks.append(callback)
-            print(f"📡 Editor: Added change callback (total: {len(self._change_callbacks)})")
-    
-    def remove_change_callback(self, callback: Callable[[], None]):
-        """Remove a change callback."""
-        if callback in self._change_callbacks:
-            self._change_callbacks.remove(callback)
-            print(f"📡 Editor: Removed change callback (total: {len(self._change_callbacks)})")
-    
+   
     def _notify_change(self, operation_type: str = "unknown"):
         """Notify all callbacks of a graph change."""
         print(
