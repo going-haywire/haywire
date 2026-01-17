@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional, List
 
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.graph.types import ChangeReason
 from haywire.core.registry.lifecycle_event import (
     LifeCycleEvent,
     LifeCycleEventType
@@ -91,9 +92,8 @@ class UIEdge:
         # Track current visual state to detect changes
         self._current_visual_state: Optional[EdgeVisualState] = None
         
-        
         # Perform initial sync to UI
-        self.refresh()
+        self.refresh(ChangeReason.EDGE_ADDED)
 
 
     def _calculate_visual_state(self) -> EdgeVisualState:
@@ -149,7 +149,7 @@ class UIEdge:
             return ""
         return "40,2" + ",2,2" * (chain_length)
     
-    def refresh(self):
+    def refresh(self, reason: ChangeReason):
         """
         Synchronize current EdgeWrapper state to Vue component.
         

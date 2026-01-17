@@ -497,7 +497,7 @@ class GraphCanvasManager:
         Handle validation results with flexible reason-based dispatch.
         """
         
-        logger.debug(
+        logger.info(
             f"🔄 Validation: {result.total_changes} changes in "
             f"{result.validation_time_ms:.2f}ms"
         )
@@ -550,11 +550,11 @@ class GraphCanvasManager:
                         element_was_selected = True
                     logger.debug(f"  ✓ Selection changed: {node_id}")
 
-            elif reason in (ChangeReason.NODE_HOT_RELOADED, ChangeReason.NODE_HOT_RELOAD_ERROR):
+            elif reason.requires_redraw():
                 # Full redraw needed
                 ui_node = self.node_panels.get(node_id)
                 if ui_node:
-                    ui_node.refresh()  # Full re-render
+                    ui_node.refresh(reason)  # Full re-render
                     logger.debug(f"  🔄 Redrawn node: {node_id} ({reason.value})")
 
         # Process edges by reason
@@ -588,7 +588,7 @@ class GraphCanvasManager:
                 # Full redraw needed
                 ui_edge = self.connection_paths.get(edge_uuid)
                 if ui_edge:
-                    ui_edge.refresh()  # Full re-render
+                    ui_edge.refresh(reason)  # Full re-render
                     logger.debug(f"  🔄 Redrawn edge: {edge_uuid} ({reason.value})")
 
         # Emit single consolidated sync events

@@ -11,6 +11,7 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 import logging
 from typing import Any, Callable, Optional
 from nicegui import ui
+from haywire.core.graph.types import ChangeReason
 from haywire.core.node.base import BaseNode
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.node_wrapper import NodeWrapper
@@ -142,7 +143,7 @@ class UINode:
             )
             self.render(_error_renderer_reg_key, _is_error_render=True)
 
-    def refresh(self):
+    def refresh(self, reason: ChangeReason):
         """
         Refresh the UI representation of the node.
         This forces a re-render using the current renderer.

@@ -59,12 +59,16 @@ class EdgeWrapperState:
     """When edge was created"""
     execution_count: int = 0
     """Number of times transform() was called"""
-    total_execution_time_ms: float = 0.0
+    total_execution_time_ns: float = 0.0
     """Total time spent in transform() execution"""
-    last_execution_time_ms: float = 0.0
+    last_execution_time_ns: float = 0.0
     """Last transform() execution time"""
-    average_execution_time_ms: float = 0.0
+    average_execution_time_ns: float = 0.0
     """Average transform() execution time"""
+    example_test_value: str = None
+    """Example test value used during test"""
+    example_test_result: str = None
+    """Example test result value used during test"""
 
 
     def has_warning(self) -> bool:
@@ -75,7 +79,8 @@ class EdgeWrapperState:
         """Check if connection is functional (registered, port-type-validated and built)"""
         return (self.is_registered and 
             self.is_formally_validated and 
-            self.is_built
+            self.is_built and
+            self.is_tested
         )
 
     def is_valid(self) -> bool:
@@ -413,10 +418,7 @@ class EdgeWrapper:
     def _test(self) -> bool:
         """
         test adapter chain with test value.
-        
-        This method will be referenced by the outlet DataPort for
-        data transformation during graph execution.
-        
+                
         Returns:
             True if test passes, False otherwise
             
@@ -426,17 +428,23 @@ class EdgeWrapper:
             # Execute adapter chain with performance tracking
             start_time = time.perf_counter()
 
-            result = self._first_adapter.test()
+            if self._first_adapter:
+                self._state.example_test_value = self._first_adapter.test_setup()
+                for i in range(10):
+                    self._state.example_test_result = self._first_adapter.test(self._state.example_test_value)
+                    self._state.execution_count += 1
             
-            # Update metrics
-            execution_time = (time.perf_counter() - start_time) * 1000
-            self._state.execution_count += 1
-            self._state.last_execution_time_ms = execution_time
-            self._state.total_execution_time_ms += execution_time
-            self._state.average_execution_time_ms = (
-                self._state.total_execution_time_ms / 
-                self._state.execution_count
-            )
+                # Update metrics
+                execution_time = (time.perf_counter() - start_time) * 1000000.0
+                self._state.last_execution_time_ns = execution_time
+                self._state.total_execution_time_ns += execution_time
+                self._state.average_execution_time_ns = (
+                    self._state.total_execution_time_ns / 
+                    self._state.execution_count
+                )
+
+            self._state.is_tested = True
+            self._state.error_test = None
             
             return True
         except Exception as e:

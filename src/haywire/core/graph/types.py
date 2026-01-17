@@ -22,6 +22,7 @@ class ChangeReason(Enum):
     NODE_REMOVED = "node_removed"
     NODE_HOT_RELOADED = "node_hot_reloaded"
     NODE_HOT_RELOAD_ERROR = "node_error"
+    NODE_REDRAW_REQUESTED = "node_redraw_requested"
     
     # Node reasons - visual only (no redraw needed)
     NODE_MOVED = "node_moved"
@@ -70,6 +71,7 @@ class ChangeReason(Enum):
             ChangeReason.NODE_MOVED,
             ChangeReason.NODE_SELECTED,
             ChangeReason.NODE_DESELECTED,
+            ChangeReason.NODE_REDRAW_REQUESTED,
             ChangeReason.EDGE_ADAPTERS_RELOADED,
             ChangeReason.EDGE_HOT_RELOAD_ERROR,
             ChangeReason.EDGE_VALIDATION_CHANGE,

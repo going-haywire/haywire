@@ -1,3 +1,4 @@
+from random import random
 from typing import Any, List, Optional, override, TYPE_CHECKING
 
 from haywire.core.adapter.base import adapter, BaseAdapter
@@ -55,8 +56,11 @@ class ArrayArrayAdapter(BaseAdapter):
     def execute(self, value):
         return self.convert(value)
     
+    @override
+    def test_setup(self) -> Any:
+        # Generate list of random values from the element adapter chain
+        return [self._chain.test_setup() for _ in range(10)]
 
     @override
-    def test(self) -> bool:
-        """Test for this adapter is not applicable"""
-        return True
+    def test(self, value: Any) -> any:
+        return self.execute(value)

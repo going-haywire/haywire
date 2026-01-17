@@ -51,9 +51,10 @@ class ConnectionInfoPopup:
         with popup:
             with ui.column().classes('w-full gap-2 p-2'):
                 # Header with connection status
-                with ui.row().classes('w-full items-center justify-between'):
-                    ui.label("Connection Information").classes(
-                        'text-lg font-bold text-gray-800'
+                with ui.row().classes('w-full'):
+ 
+                    ui.label(f"{edge.edge_type}").classes(
+                        'text-xs text-gray-700 ml-2 mt-2'
                     )
                     is_valid = state.is_valid()
                     status_icon = '✓' if is_valid else '✗'
@@ -101,35 +102,31 @@ class ConnectionInfoPopup:
                                 ui.label(f"{i}. {adapter_key}").classes(
                                     'text-xs text-blue-600 ml-2'
                                 )
-                            
-                            # Test adapter chain button
-                            ui.separator().classes('my-2')
-                            btn_test = ui.button(
-                                '▶️ Test Adapter Chain',
-                                on_click=lambda e=edge: self._test_adapter_chain(e)
-                            )
-                            btn_test.props('flat')
-                            btn_test.classes(
-                                'w-full bg-blue-100 text-blue-700 '
-                                'hover:bg-blue-200 text-sm py-2'
-                            )
                 
-                # Execution Statistics Section (expandable, default closed)
-                with ui.expansion('Execution Statistics', value=False).classes('w-full'):
-                    with ui.card().classes('w-full p-3 bg-gray-50'):
-                        exec_count = state.execution_count
-                        ui.label(f"Execution Count: {exec_count}").classes(
-                            'text-xs text-gray-700 ml-2'
-                        )
-                        
-                        avg_time = state.average_execution_time_ms
-                        if avg_time > 0:
-                            ui.label(f"Average Time: {avg_time:.2f} ms").classes(
+                if state.execution_count > 0:
+                    # Execution Statistics Section (expandable, default closed)
+                    with ui.expansion('Execution Statistics', value=False).classes('w-full'):
+                        with ui.card().classes('w-full p-3 bg-gray-50'):
+                            exec_count = state.execution_count
+                            ui.label(f"Execution Count: {exec_count}").classes(
                                 'text-xs text-gray-700 ml-2'
                             )
-                        else:
-                            ui.label("Average Time: Not measured").classes(
-                                'text-xs text-gray-500 ml-2'
+                            
+                            avg_time = state.average_execution_time_ns
+                            if avg_time > 0:
+                                ui.label(f"Average Time: {avg_time:.1f} ns").classes(
+                                    'text-xs text-gray-700 ml-2'
+                                )
+                            else:
+                                ui.label("Average Time: Not measured").classes(
+                                    'text-xs text-gray-500 ml-2'
+                                )
+
+                            ui.label(f"Tested value: {state.example_test_value}").classes(
+                                'text-xs text-gray-700 ml-2'
+                            )
+                            ui.label(f"Tested result: {state.example_test_result}").classes(
+                                'text-xs text-gray-700 ml-2'
                             )
 
                 # Connection Path Section (Expandable, default open)
@@ -146,12 +143,6 @@ class ConnectionInfoPopup:
                         )
                         ui.label(f"Port: {edge.inlet_port_id}").classes(
                             'text-xs text-gray-500 ml-4'
-                        )
-                        ui.label(f"Type: {edge.edge_type}").classes(
-                            'text-xs text-gray-700 ml-2 mt-2'
-                        )
-                        ui.label(f"ID: {connection_id[:8]}...").classes(
-                            'text-xs text-gray-400 ml-2'
                         )
                                         
                 # Close button

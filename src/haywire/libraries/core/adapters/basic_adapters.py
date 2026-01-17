@@ -2,6 +2,7 @@
 Basic type conversion adapters
 """
 
+import random
 from typing import override
 
 from haywire.core.adapter.base import BaseAdapter
@@ -17,12 +18,12 @@ class IntToFloatAdapter(BaseAdapter):
     @override
     def convert(self, value: int) -> float:
         return float(value)
-    
-    def test(self) -> bool:
-        """Test conversion with sample data"""
-        sample_input = 42
-        result = self.execute(sample_input)
-        return True
+
+    def test_setup(self) -> any:
+        return int(random.randrange(0, 100))
+
+    def test(self, value: int) -> any:
+        return self.execute(value)
 
 
 @adapter(
@@ -37,11 +38,11 @@ class FloatToStringAdapter(BaseAdapter):
     def convert(self, value: float) -> str:
         return str(value)
 
-    def test(self) -> bool:
-        """Test conversion with sample data"""
-        sample_input = 3.14
-        result = self.execute(sample_input)
-        return True
+    def test_setup(self) -> any:
+        return float(random.randrange(0, 100))
+    
+    def test(self, value: float) -> any:
+        return self.execute(value)
     
 @adapter(
     description="Convert bool to integer", 
@@ -55,8 +56,9 @@ class BoolToIntAdapter(BaseAdapter):
     def convert(self, value: bool) -> int:
         return int(value)
 
-    def test(self) -> bool:
+    def test_setup(self) -> any:
+        return random.choice([True, False])
+
+    def test(self, value: any) -> any:
         """Test conversion with sample data"""
-        sample_input = True
-        result = self.execute(sample_input)
-        return True
+        return self.execute(value)

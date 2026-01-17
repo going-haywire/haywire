@@ -45,11 +45,23 @@ class IAdapter(ABC):
     def execute(self, value: Any) -> Any:
         """Execute this adapter, then execute the inside chain"""
         pass
-    
+
     @abstractmethod
-    def test(self) -> bool:
-        """Test this adapter with sample data"""
-        pass
+    def test_setup(self) -> Any:
+        """method returns a sample input of the type this adapter expects for testing this adapter"""
+        return None
+
+    @abstractmethod
+    def test(self, value: any) -> any:
+        """
+        Tests this adapter with sample data
+        
+        self.execute.test(value)
+
+        Args:
+            value: Sample input value of the type this adapter expects
+        """
+        return True
 
     @abstractmethod
     def _get_registry_keys(self) -> List[str]:
@@ -172,10 +184,14 @@ class ReturnAdapter(IAdapter):
     def execute(self, value: Any) -> Any:
         """Terminal - just return value"""
         return value
-    
-    def test(self) -> bool:
+
+    def test_setup(self) -> any:
         """Terminal - always succeeds"""
         return True
+
+    def test(self, value: Any) -> any:
+        """Terminal - always succeeds"""
+        return value
 
     def _get_registry_keys(self) -> List[str]:
         """Terminal - no registry keys"""

@@ -48,6 +48,11 @@ class MapsStringArrayAdapter(BaseAdapter):
         return list(values.values())
     
     @override
-    def test(self) -> bool:
-        """Test for this adapter is not applicable"""
-        return True
+    def test_setup(self):
+        # Get list from chain and convert to dictionary with unique keys
+        array_values = self._chain.test_setup()
+        return {f"key_{i}": value for i, value in enumerate(array_values)}
+
+    @override
+    def test(self, value: any) -> any:
+        return self.execute(value)
