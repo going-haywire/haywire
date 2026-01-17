@@ -91,26 +91,10 @@ class UIEdge:
         # Track current visual state to detect changes
         self._current_visual_state: Optional[EdgeVisualState] = None
         
-        # Subscribe to wrapper lifecycle events
-        self.wrapper.add_lifecycle_subscriber(
-            self._on_wrapper_lifecycle_event
-        )
         
         # Perform initial sync to UI
-        self._sync_to_ui()
+        self.refresh()
 
-    def _on_wrapper_lifecycle_event(self):
-        """
-        Handle EdgeWrapper lifecycle events.
-        
-        Called by EdgeWrapper when hot reload or state changes occur.
-        """
-        # Process events and sync if state changed
-        logging.info(
-            f"UIEdge '{self.wrapper.connection_uuid}' needs update"
-        )
-        
-        self._sync_to_ui()
 
     def _calculate_visual_state(self) -> EdgeVisualState:
         """
@@ -165,7 +149,7 @@ class UIEdge:
             return ""
         return "40,2" + ",2,2" * (chain_length)
     
-    def _sync_to_ui(self):
+    def refresh(self):
         """
         Synchronize current EdgeWrapper state to Vue component.
         
@@ -213,13 +197,7 @@ class UIEdge:
         Clean up UIEdge resources.
         
         Similar to UINode.cleanup() pattern.
-        """
-        # Unsubscribe from wrapper events
-        if self.wrapper:
-            self.wrapper.remove_lifecycle_subscriber(
-                self._on_wrapper_lifecycle_event
-            )
-        
+        """        
         # Clear references
         self.wrapper = None
         self.sync_event_emitter = None

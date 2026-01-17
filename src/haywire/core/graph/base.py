@@ -409,7 +409,7 @@ class BaseGraph:
         # Initialize wrapper (returns self if successful)
         if edge_wrapper.instantiate(self):
             # Build adapter chain
-            edge_wrapper.rebuild()
+            edge_wrapper.build()
             # Add to graph's collection (triggers validation automatically)
             return self.add_edge_wrapper(edge_wrapper)
         else:
@@ -546,8 +546,11 @@ class BaseGraph:
             if edge_wrapper in edges_wrps:
                 edges_wrps.remove(edge_wrapper)
             for ew in edges_wrps:
-                ew.validate_link(port)
-                ew.refresh()
+                if ew.validate_link(port):
+                    self._validation.mark_edge_dirty(
+                        ew.connection_uuid,
+                        ChangeReason.EDGE_VALIDATION_CHANGE
+                    )
         return port
 
     def _unlink_edge_from_port(
@@ -572,9 +575,12 @@ class BaseGraph:
                 if ew.is_functional():
                     port._add_link(ew)
             for ew in edges_wrps:   
-                ew.validate_link(port)
-                ew.refresh()
- 
+                if ew.validate_link(port):
+                    self._validation.mark_edge_dirty(
+                        ew.connection_uuid,
+                        ChangeReason.EDGE_VALIDATION_CHANGE
+                    )
+
         return port
 
     def get_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
@@ -996,7 +1002,7 @@ class BaseGraph:
                 from ..edge.edge_wrapper import EdgeWrapper
                 
                 for connection_uuid, edge_data in data["edges"].items():
-                    wrapper = EdgeWrapper(
+                    edge_wrapper = EdgeWrapper(
                         output_node_id=edge_data["output_node_id"],
                         outlet_port_id=edge_data["outlet_port_id"],
                         input_node_id=edge_data["input_node_id"],
@@ -1004,9 +1010,9 @@ class BaseGraph:
                         edge_type=FlowType(edge_data["edge_type"]),
                     )
                     
-                    if wrapper.initialize(self):
-                        wrapper.rebuild()
-                        self.add_edge_wrapper(wrapper)
+                    if edge_wrapper.initialize(self):
+                        edge_wrapper.build()
+                        self.add_edge_wrapper(edge_wrapper)
             
             return True
             

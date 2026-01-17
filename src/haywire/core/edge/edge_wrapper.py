@@ -182,7 +182,7 @@ class EdgeWrapper:
         return self._state.is_valid()
 
     def is_functional(self) -> bool:
-        """Check if connection is functional (registered, port-type-validated and built)"""
+        """Check if connection is functional (registered, formal-validated and built)"""
         return self._state.is_functional()
 
     @property
@@ -196,7 +196,7 @@ class EdgeWrapper:
         return self._first_adapter
 
     @property
-    def state(self) -> Optional[Edge]:
+    def state(self) -> Optional[EdgeWrapperState]:
         """Get the Edge state"""
         return self._state
 
@@ -223,10 +223,9 @@ class EdgeWrapper:
 
         return self
 
-    def rebuild(self):
+    def build(self):
         """
         Build edge wrapper (including rebuild adapter chain).        
-        Does **not** notify lifecycle subscribers.
         """
         logger.debug(
             f"Start edge rebuilding: {self.connection_uuid} ... "
@@ -238,32 +237,19 @@ class EdgeWrapper:
         self._state.error_test = None
         self._state.warnings = []
 
-        self._formal_validation()
-
-        self._build_adapter_chain()
-                  
-        logger.debug(
-            f".. rebuilding edge done."
-        )
-
-
-    def refresh(self):
-        """
-        Refresh edge wrapper state without rebuilding adapter chain.  
-        Does notify lifecycle subscribers.      
-        """
-        logger.debug(
-            f"Start edge refreshing: {self.connection_uuid} ... "
-        )
-        self._formal_validation()
-                
-        self._notify_lifecycle_subscribers()
+        if self._formal_validation():
+            if self._build_adapter_chain():
+                if self._test():                  
+                    logger.debug(
+                        f".. rebuilding edge done."
+                    )
+                    return
 
         logger.debug(
-            f".. refreshing edge done."
+            f".. rebuilding failed with errors."
         )
 
-    def _build_adapter_chain(self):
+    def _build_adapter_chain(self) -> bool:
         """
         Build adapter chain for this edge.
         Args:
@@ -302,18 +288,34 @@ class EdgeWrapper:
                     self._edge.chain_adapter_keys = first_adapter._get_registry_keys()
                     
                 else:
-                    raise Exception(error)
-                                            
+                    # creating the haywire exception in here to avoid missleading stack traces
+                    self._state.error_build = HaywireException.create(
+                        message=f"Edge adapter creation failed for {self.connection_uuid}: {error}",
+                    ).enrich(
+                        operation="Adapter Chain Creation",
+                        category="Adapter Creation Error",
+                        suggestions=[
+                            "Check if libraries with required adapters are registered",
+                            "Create custom adapters if needed for your data types"]
+                    )
+                    self._state.error_build.log()
+                    self._state.is_built = False
+                    self._state.warnings = []
+
+                    return False
+                                                        
             self._state.is_built = True
             self._state.error_build = None
+
+            return True
                                     
         except Exception as e:
             self._state.error_build = HaywireException.from_exception(
                 exception=e,
-                message=f"Edge adapter creation failed for edge {self.connection_uuid}: {e}",
-                operation="Adapter Chain Creation",
-                category="Adapter Creation Error"
+                message=f"Edge adapter creation failed for {self.connection_uuid}: {e}",
             ).enrich(
+                operation="Adapter Chain Creation",
+                category="Adapter Creation Error",
                 suggestions=[
                     "Check if libraries with required adapters are registered",
                     "Create custom adapters if needed for your data types"]
@@ -322,8 +324,10 @@ class EdgeWrapper:
             self._state.is_built = False
             self._state.warnings = []
 
+            return False
 
-    def _formal_validation(self):
+
+    def _formal_validation(self) -> bool:
         """
         Validate connection between ports.
 
@@ -334,6 +338,8 @@ class EdgeWrapper:
 
         Args:
             graph: The graph containing this edge
+        Returns:
+            True if validation successful, False otherwise
         """
 
         try:
@@ -382,6 +388,7 @@ class EdgeWrapper:
             
             self._state.is_formally_validated = True
             self._state.error_formal = None
+            return True
 
         except Exception as e:
             logger.error(
@@ -397,10 +404,13 @@ class EdgeWrapper:
                     "Check port flow types for compatibility"
                 ]
             )
-            self._state.is_formally_validated = False            
+            self._state.error_formal.log()
+            self._state.is_formally_validated = False          
+
+            return False  
             
 
-    def test(self) -> bool:
+    def _test(self) -> bool:
         """
         test adapter chain with test value.
         
@@ -444,7 +454,65 @@ class EdgeWrapper:
             )
             self._state.error_test.log()
             return False
-    
+
+    def validate_link(self, port: 'DataPort') -> bool:
+        """
+        Validate if this edge is linked to the given port.
+        This does not establish the link itself! 
+        To initiate a link is the sole responsibility of the graph.
+        An edge can be 'connected' to a port, but thats not the same as being 'linked'. 
+        Only the port can accept or refuse the link depending on its connection rules.
+
+        Once an edge is linked to both ports, for which it has to be functional, 
+        it is considered valid.
+        
+        Args:
+            port: The DataPort to validate against
+        Returns:
+            True if linked condition changed, False otherwise
+        """
+        is_linked = self._state.is_linked
+
+        if port._is_linked(self.connection_uuid):
+            if port.is_inlet():
+                self._state.is_inlet_linked = True
+            else:
+                self._state.is_outlet_linked = True
+        else:
+            if port.is_inlet():
+                self._state.is_inlet_linked = False
+            else:
+                self._state.is_outlet_linked = False
+
+        if not self._state.is_inlet_linked:
+            self._state.error_link = HaywireException.create(
+                message="Port link refused due to link limit on inlet port.",
+                category="Port Linking Error"
+            ).enrich(
+                operation="Port Linking Validation",
+                suggestions=[
+                    "Check port linking limits",
+                    "Ensure port is not already linked"
+                ]
+            )
+        elif not self._state.is_outlet_linked:
+            self._state.error_link = HaywireException.create(
+                message="Port link refused due to link limit on outlet port.",
+                category="Port Linking Error"
+            ).enrich(
+                operation="Port Linking Validation",
+                suggestions=[
+                    "Check port linking limits",
+                    "Ensure port is not already linked"
+                ]
+            )
+        else:
+            self._state.error_link = None
+
+        self._state.is_linked = (self._state.is_inlet_linked and self._state.is_outlet_linked)
+
+        return self._state.is_linked != is_linked
+
     def _on_adapter_lifecycle_event(self, batch: List[LifeCycleEvent]):
         """
         Handle adapter hot reload events.
@@ -481,13 +549,9 @@ class EdgeWrapper:
                 if self._graph:
                     self._graph._validation.mark_edge_dirty(
                         self.connection_uuid,
-                        ChangeReason.EDGE_ERROR
+                        ChangeReason.EDGE_HOT_RELOAD_ERROR
                     )
                 return  # abort on first warning/error           
-
-        self.rebuild()
-
-        self._graph.update_port_link(self)
 
         # Tell graph about successful reload 
         if self._graph:
@@ -505,83 +569,6 @@ class EdgeWrapper:
         """
         self._state.is_registered = is_registered
 
-    def validate_link(self, port: 'DataPort') -> bool:
-        """
-        Validate if this edge is linked to the given port.
-        This does not establish the link itself! 
-        To initiate a link is the sole responsibility of the graph.
-        An edge can be 'connected' to a port, but thats not the same as being 'linked'. 
-        Only the port can accept or refuse the link depending on its connection rules.
-
-        Once an edge is linked to both ports, for which it has to be functional, 
-        it is considered valid.
-        
-        Args:
-            port: The DataPort to validate against
-        """
-        if port._is_linked(self.connection_uuid):
-            if port.is_inlet():
-                self._state.is_inlet_linked = True
-            else:
-                self._state.is_outlet_linked = True
-        else:
-            if port.is_inlet():
-                self._state.is_inlet_linked = False
-            else:
-                self._state.is_outlet_linked = False
-
-        if not self._state.is_inlet_linked:
-            self._state.error_link = HaywireException.create(
-                message="Port inlet link refused due to link limit.",
-                category="Port Linking Error"
-            ).enrich(
-                operation="Port Linking Validation",
-                suggestions=[
-                    "Check port linking limits",
-                    "Ensure port is not already linked"
-                ]
-            )
-        elif not self._state.is_outlet_linked:
-            self._state.error_link = HaywireException.create(
-                message="Port outlet link refused due to link limit.",
-                category="Port Linking Error"
-            ).enrich(
-                operation="Port Linking Validation",
-                suggestions=[
-                    "Check port linking limits",
-                    "Ensure port is not already linked"
-                ]
-            )
-        else:
-            self._state.error_link = None
-
-        self._state.is_linked = (self._state.is_inlet_linked and self._state.is_outlet_linked)
- 
-
-    def _notify_lifecycle_subscribers(self):
-        """
-        Notify all subscribers of lifecycle event
-        These are most likely UIEdge instances.
-        """
-        for callback in self._lifecycle_subscribers:
-            try:
-                callback()
-            except Exception as e:
-                logger.error(f"Lifecycle subscriber error: {e}")
-
-
-    def add_lifecycle_subscriber(self, callback: LiveCycleBatchCallback):
-        """Add subscriber for lifecycle events (for UIEdge)"""
-        if callback not in self._lifecycle_subscribers:
-            self._lifecycle_subscribers.append(callback)
-    
-    def remove_lifecycle_subscriber(
-            self, 
-            callback: LiveCycleBatchCallback
-        ):
-        """Remove lifecycle subscriber"""
-        if callback in self._lifecycle_subscribers:
-            self._lifecycle_subscribers.remove(callback)
         
     def get_state(self) -> EdgeWrapperState:
         """

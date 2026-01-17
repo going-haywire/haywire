@@ -246,7 +246,7 @@ class NodeWrapper:
                     if self.graph:
                         self.graph._validation.mark_node_dirty(
                             self.node_id,
-                            ChangeReason.NODE_ERROR
+                            ChangeReason.NODE_HOT_RELOAD_ERROR
                         )
 
     def _create_node_instance(self) -> tuple['BaseNode', LifeCycleEvent]:

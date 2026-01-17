@@ -523,14 +523,7 @@ class GraphCanvasManager:
                 if node_id in self.node_panels:
                     self.remove_node_visual(node_id)
                     logger.debug(f"  - Removed node UI: {node_id}")
-            
-            elif reason in (ChangeReason.NODE_HOT_RELOADED, ChangeReason.NODE_ERROR):
-                # Full redraw needed
-                ui_node = self.node_panels.get(node_id)
-                if ui_node:
-                    ui_node.refresh()  # Full re-render
-                    logger.debug(f"  🔄 Redrawn node: {node_id} ({reason.value})")
-            
+                        
             elif reason == ChangeReason.NODE_MOVED:
                 # Cheap visual update - just position
                 ui_node = self.node_panels.get(node_id)
@@ -556,7 +549,14 @@ class GraphCanvasManager:
                         self.selected_nodes.add(node_id)
                         element_was_selected = True
                     logger.debug(f"  ✓ Selection changed: {node_id}")
-        
+
+            elif reason in (ChangeReason.NODE_HOT_RELOADED, ChangeReason.NODE_HOT_RELOAD_ERROR):
+                # Full redraw needed
+                ui_node = self.node_panels.get(node_id)
+                if ui_node:
+                    ui_node.refresh()  # Full re-render
+                    logger.debug(f"  🔄 Redrawn node: {node_id} ({reason.value})")
+
         # Process edges by reason
         for edge_uuid, reason in result.edges.items():
             
@@ -572,14 +572,7 @@ class GraphCanvasManager:
                 if edge_uuid in self.connection_paths:
                     self.remove_connection_visual(edge_uuid)
                     logger.debug(f"  - Removed edge UI: {edge_uuid}")
-            
-            elif reason in (ChangeReason.EDGE_ADAPTERS_RELOADED, ChangeReason.EDGE_ERROR):
-                # Full redraw needed
-                ui_edge = self.connection_paths.get(edge_uuid)
-                if ui_edge:
-                    ui_edge.refresh()  # Full re-render
-                    logger.debug(f"  🔄 Redrawn edge: {edge_uuid} ({reason.value})")
-            
+                        
             elif reason in (ChangeReason.EDGE_SELECTED, ChangeReason.EDGE_DESELECTED):
                 self.selected_connections.clear()
                 # Cheap visual update - just selection state
@@ -590,6 +583,13 @@ class GraphCanvasManager:
                         self.selected_connections.add(edge_uuid)
                         element_was_selected = True
                     logger.debug(f"  ✓ Selection changed: {edge_uuid}")
+
+            elif reason.requires_redraw():
+                # Full redraw needed
+                ui_edge = self.connection_paths.get(edge_uuid)
+                if ui_edge:
+                    ui_edge.refresh()  # Full re-render
+                    logger.debug(f"  🔄 Redrawn edge: {edge_uuid} ({reason.value})")
 
         # Emit single consolidated sync events
         if node_has_moved:
