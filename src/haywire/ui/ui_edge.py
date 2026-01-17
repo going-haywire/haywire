@@ -125,9 +125,9 @@ class UIEdge:
         if self.wrapper.state.has_warning():
             return EdgeVisualState(
                 connection_uuid=self.wrapper.connection_uuid,
-                stroke_color="#F59E0B",  # Orange/Amber
+                stroke_color="auto",  # Orange/Amber
                 stroke_width=2,
-                stroke_dasharray="",  # Solid
+                stroke_dasharray="2,2,2,2,2,5,5,5,5,5,5,5",  # Solid
                 opacity=1.0,
                 is_valid=True,
                 has_warning=True

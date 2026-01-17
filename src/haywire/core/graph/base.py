@@ -546,7 +546,7 @@ class BaseGraph:
             if edge_wrapper in edges_wrps:
                 edges_wrps.remove(edge_wrapper)
             for ew in edges_wrps:
-                if ew.validate_link(port):
+                if ew.validate_link(port) or ew.state.has_warning():
                     self._validation.mark_edge_dirty(
                         ew.connection_uuid,
                         ChangeReason.EDGE_VALIDATION_CHANGE

@@ -279,8 +279,8 @@ class EdgeWrapper:
                 if first_adapter:
                     # Check for chain changes on rebuild
                     if self._edge.chain_adapter_keys:
-                        old_adapter_keys = set(self._edge.chain_adapter_keys)
-                        new_adapter_keys = set(first_adapter._get_registry_keys())
+                        old_adapter_keys = list(self._edge.chain_adapter_keys)[::-1]
+                        new_adapter_keys = list(first_adapter._get_registry_keys())[::-1]
                         if old_adapter_keys != new_adapter_keys:
                             self._state.warnings.append(
                                 f"Adapter chain composition changed during hot reload. "
