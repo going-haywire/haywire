@@ -49,7 +49,7 @@ class NodeRenderer(BaseRenderer, ABC):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
         pin_direction = 'inlet' if pin.is_inlet() else 'outlet'
-        pin_uuid = generate_pin_uuid(pin_direction, wrapper.node_id, pin.id)
+        pin_uuid = generate_pin_uuid(wrapper.node_id, pin.id)
 
         # Calculate 2D direction vector components based on pin type
         if pin.is_inlet():

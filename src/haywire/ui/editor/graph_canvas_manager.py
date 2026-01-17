@@ -17,7 +17,7 @@ from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node.base import BaseNode
 from haywire.core.undo.actions.graph_actions import ClipboardData
 
-from ..utils import generate_connection_uuid, parse_connection_uuid
+from ..utils import parse_connection_uuid
 from ..ui_node import UINode
 from ..ui_edge import UIEdge
 from ..pan_zoom.zoom_pan_vue import ZoomPanContainer

@@ -363,18 +363,15 @@ class ValidationManager:
             True if wrapper state changed, False otherwise
         """
         # Track state before validation
-        old_state = wrapper.is_valid
-        
-        # Refresh edge state (validates without rebuilding)
-        wrapper.refresh_state()
+        old_state = wrapper.is_valid()
         
         # Check if state changed
-        state_changed = wrapper.is_valid != old_state
+        state_changed = wrapper.is_valid() != old_state
         
         if state_changed:
             logger.debug(
                 f"Edge validation changed state: {wrapper.connection_uuid} "
-                f"(valid: {wrapper.is_valid})"
+                f"(valid: {wrapper.is_valid()})"
             )
         
         return state_changed

@@ -274,7 +274,7 @@ class PopupContextMenu:
         with popup:
             with ui.column().classes('w-full gap-1'):
                 # Quick status indicator
-                is_valid = state.is_valid
+                is_valid = state.is_valid()
                 status_icon = '✓' if is_valid else '✗'
                 status_color = 'text-green-600' if is_valid else 'text-red-600'
                 ui.label(f"Status: {status_icon}").classes(

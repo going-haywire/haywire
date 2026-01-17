@@ -8,7 +8,6 @@ including node and edge manipulation, positioning, and selection.
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 
-from ....ui.utils import generate_connection_uuid
 from ...node.node_wrapper import NodeWrapper
 from ...node.base import BaseNode
 from ...graph.base import BaseGraph, Edge

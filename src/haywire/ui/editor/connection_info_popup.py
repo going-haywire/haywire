@@ -55,7 +55,7 @@ class ConnectionInfoPopup:
                     ui.label("Connection Information").classes(
                         'text-lg font-bold text-gray-800'
                     )
-                    is_valid = state.is_valid
+                    is_valid = state.is_valid()
                     status_icon = '✓' if is_valid else '✗'
                     status_color = 'text-green-600' if is_valid else 'text-red-600'
                     status_text = 'Valid' if is_valid else 'Invalid'
@@ -66,7 +66,7 @@ class ConnectionInfoPopup:
                 ui.separator().classes('my-2')
                                 
                 # Error Section (if present, expandable, default open)
-                error = state.error_main
+                error = state.get_error()
                 if error and isinstance(error, HaywireException):
                     with ui.expansion('Error Details', value=True).classes('w-full'):
                         with ui.card().classes(
@@ -79,15 +79,16 @@ class ConnectionInfoPopup:
                             error_render_detail(error)
                 
                 # Warning Section (if present, expandable, default open)
-                warning = state.warning_main
-                if warning:
+                if state.has_warning():
                     with ui.expansion('Warning', value=True).classes('w-full'):
                         with ui.card().classes(
                             'w-full p-3 bg-orange-50 border border-orange-200'
                         ):
-                            ui.label(f"⚠ {warning}").classes(
-                                'text-xs text-orange-600 ml-2'
-                            )
+                            with ui.column():
+                                for warning in state.warnings:
+                                    ui.label(f"⚠ {warning}").classes(
+                                        'text-xs text-orange-600 ml-2'
+                                    )
                 
                 # Adapter Chain Section (if available, expandable, default closed)
                 if edge.chain_adapter_keys:

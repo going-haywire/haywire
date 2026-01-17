@@ -1338,8 +1338,8 @@ export default {
             strokeDasharray = '',
             opacity = 1.0
         ) {
-            const outletPinUUID = this._buildOutletPinUUID(outputNodeId, outletPinId);
-            const inletPinUUID = this._buildInletPinUUID(inputNodeId, inletPinId);
+            const outletPinUUID = this._buildPinUUID(outputNodeId, outletPinId);
+            const inletPinUUID = this._buildPinUUID(inputNodeId, inletPinId);
 
             const outletPin = document.getElementById(outletPinUUID);
             const inletPin = document.getElementById(inletPinUUID);
@@ -1658,39 +1658,61 @@ export default {
         },
 
         _parseconnectionUUID(connectionUUID) {
-            const parts = connectionUUID.split('__');
-            if (parts.length !== 7) {
-                console.error(`Invalid connection ID format: ${connectionUUID}. Expected 7 parts, got ${parts.length}`);
+            // Split by :: to get prefix and the rest
+            if (!connectionUUID.includes('::')) {
+                console.error(`Invalid connection ID format: ${connectionUUID}. Expected format: edge::outlet_pin_id@outlet_node_id>>inlet_pin_id@inlet_node_id`);
                 return null;
             }
 
-            if (parts[0] !== 'connection' || parts[1] !== 'outlet' || parts[4] !== 'inlet') {
-                console.error(`Invalid connection ID structure: ${connectionUUID}`);
+            const [prefix, rest] = connectionUUID.split('::', 2);
+
+            if (prefix !== 'edge') {
+                console.error(`Connection ID must start with 'edge', got: ${prefix}`);
                 return null;
             }
+
+            // Split by >> to get outlet and inlet parts
+            if (!rest.includes('>>')) {
+                console.error(`Invalid connection ID format: ${connectionUUID}. Expected '>>' separator between outlet and inlet`);
+                return null;
+            }
+
+            const [outletPart, inletPart] = rest.split('>>', 2);
+
+            // Parse outlet part (pin_id@node_id)
+            const outletParts = outletPart.split('@');
+            if (outletParts.length !== 2) {
+                console.error(`Invalid outlet format in connection ID: ${outletPart}. Expected pin_id@node_id`);
+                return null;
+            }
+            const [outletPinId, outletNodeId] = outletParts;
+
+            // Parse inlet part (pin_id@node_id)
+            const inletParts = inletPart.split('@');
+            if (inletParts.length !== 2) {
+                console.error(`Invalid inlet format in connection ID: ${inletPart}. Expected pin_id@node_id`);
+                return null;
+            }
+            const [inletPinId, inletNodeId] = inletParts;
 
             return {
-                outletNodeId: parts[2],
-                outletPinId: parts[3],
-                inletNodeId: parts[5],
-                inletPinId: parts[6],
-                outletPinFullId: `${parts[1]}__${parts[2]}__${parts[3]}`,
-                inletPinFullId: `${parts[4]}__${parts[5]}__${parts[6]}`
+                outletNodeId: outletNodeId,
+                outletPinId: outletPinId,
+                inletNodeId: inletNodeId,
+                inletPinId: inletPinId,
+                outletPinFullId: `${outletPinId}@${outletNodeId}`,
+                inletPinFullId: `${inletPinId}@${inletNodeId}`
             };
         },
 
         _buildconnectionUUID(outputNodeId, outletPinId, inputNodeId, inletPinId) {
-            const outletPin = this._buildOutletPinUUID(outputNodeId, outletPinId);
-            const inletPin = this._buildInletPinUUID(inputNodeId, inletPinId);
-            return `connection__${outletPin}__${inletPin}`;
+            const outletPin = this._buildPinUUID(outputNodeId, outletPinId);
+            const inletPin = this._buildPinUUID(inputNodeId, inletPinId);
+            return `edge::${outletPin}>>${inletPin}`;
         },
 
-        _buildOutletPinUUID(nodeId, pinId) {
-            return `outlet__${nodeId}__${pinId}`;
-        },
-
-        _buildInletPinUUID(nodeId, pinId) {
-            return `inlet__${nodeId}__${pinId}`;
+        _buildPinUUID(nodeId, pinId) {
+            return `${pinId}@${nodeId}`;
         },
 
         _getPinPosition(pinElement) {

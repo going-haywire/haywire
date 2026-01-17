@@ -398,7 +398,7 @@ class BaseGraph:
         flow_type = self.node_wrappers[output_node_id].node.ports[outlet_port_id].flow_type
 
         # Create new wrapper
-        wrapper = EdgeWrapper(
+        edge_wrapper = EdgeWrapper(
             output_node_id=output_node_id,
             outlet_port_id=outlet_port_id,
             input_node_id=input_node_id,
@@ -407,15 +407,15 @@ class BaseGraph:
         )
         
         # Initialize wrapper (returns self if successful)
-        if wrapper.instantiate(self):
+        if edge_wrapper.instantiate(self):
             # Build adapter chain
-            wrapper.rebuild()
+            edge_wrapper.rebuild()
             # Add to graph's collection (triggers validation automatically)
-            return self.add_edge_wrapper(wrapper)
+            return self.add_edge_wrapper(edge_wrapper)
         else:
             return None
     
-    def add_edge_wrapper(self, wrapper: 'EdgeWrapper') -> 'EdgeWrapper':
+    def add_edge_wrapper(self, edge_wrapper: 'EdgeWrapper') -> 'EdgeWrapper':
         """
         Add an initialized wrapper to the graph's collection.
         
@@ -434,31 +434,28 @@ class BaseGraph:
         Raises:
             ValueError: If connection_uuid already exists
         """
-        if wrapper.connection_uuid in self.edge_wrappers:
+        if edge_wrapper.connection_uuid in self.edge_wrappers:
             raise ValueError(
-                f"Edge wrapper with UUID '{wrapper.connection_uuid}' "
+                f"Edge wrapper with UUID '{edge_wrapper.connection_uuid}' "
                 f"already exists in graph"
             )
 
         # Add to collection
-        self.edge_wrappers[wrapper.connection_uuid] = wrapper
-        wrapper.set_as_registered(True)
+        self.edge_wrappers[edge_wrapper.connection_uuid] = edge_wrapper
+        edge_wrapper.set_as_registered(True)
 
         # Update port links (needs to be done after registration)
-        self.update_port_link(wrapper)
-
-        # Refresh state after updating links
-        wrapper.refresh_state()
+        self.update_port_link(edge_wrapper)
         
         # Trigger validation (delegates to manager)
         self._validation.mark_edge_dirty(
-            wrapper.connection_uuid, 
+            edge_wrapper.connection_uuid, 
             ChangeReason.EDGE_ADDED
         )
         
-        logger.debug(f"Added edge wrapper: {wrapper.connection_uuid}")
+        logger.debug(f"Added edge wrapper: {edge_wrapper.connection_uuid}")
        
-        return wrapper
+        return edge_wrapper
 
     def remove_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
         """
@@ -475,17 +472,14 @@ class BaseGraph:
         if connection_uuid not in self.edge_wrappers:
             return None
                 
-        wrapper = self.edge_wrappers[connection_uuid]
+        edge_wrapper = self.edge_wrappers[connection_uuid]
         
         # Remove from collection
         del self.edge_wrappers[connection_uuid]
-        wrapper.set_as_registered(False)
+        edge_wrapper.set_as_registered(False)
         
         # Update port links (needs to be done after deregistration)
-        self.update_port_link(wrapper)
-
-        # Refresh state after updating links
-        wrapper.refresh_state()
+        self.update_port_link(edge_wrapper)
         
         # Trigger validation for removal
         self._validation.mark_edge_dirty(
@@ -495,9 +489,9 @@ class BaseGraph:
         
         logger.debug(f"Removed edge wrapper: {connection_uuid}")
  
-        return wrapper
+        return edge_wrapper
 
-    def update_port_link(self, wrapper: 'EdgeWrapper') -> None:
+    def update_port_link(self, edge_wrapper: 'EdgeWrapper') -> None:
         """
         Updates the link of an EdgeWrapper to the data ports.
         
@@ -508,34 +502,34 @@ class BaseGraph:
         port connection rules demand it.
         
         Args:
-            wrapper: EdgeWrapper to validate
+            edge_wrapper: EdgeWrapper to validate
         """
-        if wrapper.is_functional():
+        if edge_wrapper.is_functional():
             self._link_edge_to_port(
-                wrapper,
-                wrapper.input_node_id,
-                wrapper.inlet_port_id
+                edge_wrapper,
+                edge_wrapper.input_node_id,
+                edge_wrapper.inlet_port_id
             )
             self._link_edge_to_port(
-                wrapper,
-                wrapper.output_node_id,
-                wrapper.outlet_port_id
+                edge_wrapper,
+                edge_wrapper.output_node_id,
+                edge_wrapper.outlet_port_id
             ) 
         else:
             self._unlink_edge_from_port(
-                wrapper,
-                wrapper.input_node_id,
-                wrapper.inlet_port_id
+                edge_wrapper,
+                edge_wrapper.input_node_id,
+                edge_wrapper.inlet_port_id
             )
             self._unlink_edge_from_port(
-                wrapper,
-                wrapper.output_node_id,
-                wrapper.outlet_port_id
+                edge_wrapper,
+                edge_wrapper.output_node_id,
+                edge_wrapper.outlet_port_id
             ) 
 
     def _link_edge_to_port(
         self,
-        wrapper: 'EdgeWrapper',
+        edge_wrapper: 'EdgeWrapper',
         node_id: str,
         port_id: str
     ) -> DataPort:
@@ -546,11 +540,11 @@ class BaseGraph:
         """
         port = self._get_port(node_id, port_id)
         if port:
-            port._add_link(wrapper)
-            wrapper.validate_link(port)
+            port._add_link(edge_wrapper)
+            edge_wrapper.validate_link(port)
             edges_wrps = self._get_edge_wrappers_for_port(node_id, port_id)
-            if wrapper in edges_wrps:
-                edges_wrps.remove(wrapper)
+            if edge_wrapper in edges_wrps:
+                edges_wrps.remove(edge_wrapper)
             for ew in edges_wrps:
                 ew.validate_link(port)
                 ew.refresh()
@@ -558,7 +552,7 @@ class BaseGraph:
 
     def _unlink_edge_from_port(
         self,
-        wrapper: 'EdgeWrapper',
+        edge_wrapper: 'EdgeWrapper',
         node_id: str,
         port_id: str
     ) -> DataPort:
@@ -570,10 +564,10 @@ class BaseGraph:
         port = self._get_port(node_id, port_id)
         if port:
             port._clear_all_links()
-            wrapper.validate_link(port)
+            edge_wrapper.validate_link(port)
             edges_wrps = self._get_edge_wrappers_for_port(node_id, port_id)
-            if wrapper in edges_wrps:
-                edges_wrps.remove(wrapper)
+            if edge_wrapper in edges_wrps:
+                edges_wrps.remove(edge_wrapper)
             for ew in edges_wrps:
                 if ew.is_functional():
                     port._add_link(ew)

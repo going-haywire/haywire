@@ -126,7 +126,7 @@ class UIEdge:
         """
         
         # State: INVALID (highest priority)
-        if not self.wrapper.is_valid:
+        if not self.wrapper.is_valid():
             return EdgeVisualState(
                 connection_uuid=self.wrapper.connection_uuid,
                 stroke_color="#EF4444",  # Red
@@ -138,7 +138,7 @@ class UIEdge:
             )
         
         # State: WARNING (adapter chain changed)
-        if self.wrapper.has_warning():
+        if self.wrapper.state.has_warning():
             return EdgeVisualState(
                 connection_uuid=self.wrapper.connection_uuid,
                 stroke_color="#F59E0B",  # Orange/Amber
