@@ -61,10 +61,7 @@ class UINode:
         
         # Generate unique ID for this UINode
         self.ui_node_id = f"ui-node-{id(self)}"
-        
-        # Subscribe to wrapper changes for hot reload support
-        self.wrapper.add_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
-        
+                
         # Subscribe to factory renderer changes for hot reload support
         self.factory.add_factory_lifecycle_subscriber(
             self.wrapper.node_id,
@@ -74,9 +71,6 @@ class UINode:
         self.container.client.on_disconnect(lambda: self.cleanup())
 
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
-
-        self.wrapper.recall_change(self._listen_on_wrapper_livecycle_event)
-
 
     @property
     def position(self) -> Optional[tuple[int, int]]:
@@ -103,45 +97,6 @@ class UINode:
             emitter: Callable that emits sync events
         """
         self.sync_event_emitter = emitter
-
-    def _listen_on_wrapper_livecycle_event(self, event: LifeCycleEvent):
-        """
-        Handle NodeWrapper hot reload event notifications.
-        
-        This is called by the NodeWrapper when hot reload events occur, including:
-        - CLASS_RELOADED: Node class was hot-reloaded with new definition (migration_completed)
-        - CLASS_RELOAD_FAILED: Hot reload failed (initialization or migration errors)
-        - CLASS_ADDED: Initial node creation
-        
-        Args:
-            event: The hot reload event with complete context
-        """
-        logging.debug(
-            f"🔄 UINode {self.wrapper.node_id}: "
-            f"Wrapper event - {event.event_type.value}"
-        )
-
-        if event.event_type == LifeCycleEventType.CLASS_ADDED:
-            # Node was successfully initialized
-            logging.debug(f"✅ Node ready: {self.wrapper.node_id}")
-            self.render()
-
-        # Define the UI update function that needs to run in UI context
-        elif event.event_type == LifeCycleEventType.CLASS_RELOADED:
-            # Node class has been hot-reloaded (migration completed)
-            logging.debug(f"✨ Hot reload: Re-rendering node {self.wrapper.node_id}")
-            self.render()
-            
-        elif event.is_warning_event():
-            # Error occurred during initialization or migration
-            _error_renderer_reg_key: str | None = (
-                self.factory._renderer_registry.get_error_renderer_registry_key()
-            )
-            logging.debug(
-                f"⚠️ Node error: Re-rendering node {self.wrapper.node_id} "
-                f"with error renderer '{_error_renderer_reg_key}'"
-            )
-            self.render(_error_renderer_reg_key, _is_error_render=True)
 
     def refresh(self, reason: ChangeReason):
         """
@@ -328,11 +283,6 @@ class UINode:
         
         # Clear references
         self.current_ui_card = None
-
-        try:
-            self.wrapper.remove_livecycle_subscriber(self._listen_on_wrapper_livecycle_event)
-        except Exception as e:
-            logging.info(f"⚠️ Error unsubscribing from wrapper: {e}")
 
         # Unsubscribe from wrapper changes
 

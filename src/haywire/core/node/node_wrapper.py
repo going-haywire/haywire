@@ -34,12 +34,7 @@ class NodeWrapperState:
     is_valid: bool = True
     """The node instance is safe to use"""
     is_executing: bool = False
-    last_hot_reload: float = 0.0
-    history: List[LifeCycleEvent] = field(default_factory=list)
     error: Optional['HaywireException'] = None
-    creation_time: float = 0.0
-    execution_count: int = 0
-    hot_reload_count: int = 0
 
 
 class NodeMiddleware(ABC):
@@ -93,7 +88,7 @@ class NodeWrapper:
         self._lock = threading.RLock()
         
         # Lifecycle state
-        self.state: NodeWrapperState = NodeWrapperState(creation_time=time.time())
+        self.state: NodeWrapperState = NodeWrapperState()
         self._node_instance: Optional['BaseNode'] = None
         
         # Change notification callbacks
@@ -136,7 +131,6 @@ class NodeWrapper:
                 self._node_instance.ui_state.posX = self._initial_position[0]
                 self._node_instance.ui_state.posY = self._initial_position[1]
                 self.state.is_valid = True
-                self.state.history.append(_event)
                 self.state.error = _event.error
                 self.state.is_instantiated = True
                 _event = self._initialize(_event)
@@ -200,15 +194,12 @@ class NodeWrapper:
                         
                         self.state.is_instantiated = True
                         self.state.is_valid = True
-                        self.state.last_hot_reload = time.time()
-                        self.state.hot_reload_count += 1
 
                         event = self._initialize(event)
                     else:
                         self.state.is_valid = False
 
                     self.state.error = event.error
-                    self.state.history.append(event)                      
                     # Tell graph we changed (not UI directly!)
                     if self.graph:
                         self.graph._validation.mark_node_dirty(
@@ -241,7 +232,6 @@ class NodeWrapper:
                         lc_event.error = error
 
                     self.state.error = lc_event.error
-                    self.state.history.append(lc_event)                      
                     # Tell graph about error
                     if self.graph:
                         self.graph._validation.mark_node_dirty(
@@ -367,7 +357,6 @@ class NodeWrapper:
                 library_identity=_event.library_identity,
                 error=error
             )
-            self.state.history.append(_new_event)
             return _new_event
 
 
@@ -405,19 +394,7 @@ class NodeWrapper:
             # e.g., pin compatibility, data types, etc.
             
             return issues
-    
-    def add_livecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
-        """Add subscriber for wrapper state changes (hot reload events)"""
-        with self._lock:
-            if callback not in self._livecycle_subscribers:
-                self._livecycle_subscribers.append(callback)
-    
-    def remove_livecycle_subscriber(self, callback: LiveCycleBatchCallback) -> None:
-        """Remove subscriber for wrapper state changes (hot reload events)"""
-        with self._lock:
-            if callback in self._livecycle_subscribers:
-                self._livecycle_subscribers.remove(callback)
-    
+            
     def add_middleware(self, middleware: NodeMiddleware) -> None:
         """Add middleware to the wrapper"""
         with self._lock:
@@ -429,27 +406,6 @@ class NodeWrapper:
             if middleware in self._middleware:
                 self._middleware.remove(middleware)
                 
-    def _notify_change(self, event: LifeCycleEvent) -> None:
-        """
-        Notifies all subscribers of wrapper state change.
-        
-        Args:
-            event: The live cycle event to propagate to observers
-        """
-        # Copy to avoid modification during iteration
-        for callback in self._livecycle_subscribers[:]:
-            callback(event)
-    
-    def recall_change(self, callback: LiveCycleBatchCallback) -> None:
-        """
-        Recall all past lifecycle events to a new subscriber.
-        
-        Args:
-            callback: The callback to notify of past events
-        """
-        with self._lock:
-            callback(self.state.history[-1])
-
     def _execute_with_middleware(self, method_name: str, *args) -> Any:
         """Execute a method with middleware hooks"""
         # Before hooks
