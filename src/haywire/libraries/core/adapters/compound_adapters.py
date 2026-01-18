@@ -57,10 +57,6 @@ class ArrayArrayAdapter(BaseAdapter):
         return self.convert(value)
     
     @override
-    def test_setup(self) -> Any:
+    def get_test_value(self) -> Any:
         # Generate list of random values from the element adapter chain
-        return [self._chain.test_setup() for _ in range(10)]
-
-    @override
-    def test(self, value: Any) -> any:
-        return self.execute(value)
+        return [self._chain.get_test_value() for _ in range(5)]

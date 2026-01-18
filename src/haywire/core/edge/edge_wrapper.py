@@ -59,8 +59,6 @@ class EdgeWrapperState:
     """When edge was created"""
     execution_count: int = 0
     """Number of times transform() was called"""
-    total_execution_time_ns: float = 0.0
-    """Total time spent in transform() execution"""
     last_execution_time_ns: float = 0.0
     """Last transform() execution time"""
     average_execution_time_ns: float = 0.0
@@ -426,20 +424,19 @@ class EdgeWrapper:
 
         try:
             # Execute adapter chain with performance tracking
-            start_time = time.perf_counter()
 
             if self._first_adapter:
-                self._state.example_test_value = self._first_adapter.test_setup()
-                for i in range(10):
+                self._state.execution_count = self._first_adapter.get_test_repetitions()
+                self._state.example_test_value = self._first_adapter.get_test_value()
+                start_time = time.perf_counter()
+                for i in range(self._state.execution_count):
                     self._state.example_test_result = self._first_adapter.test(self._state.example_test_value)
-                    self._state.execution_count += 1
             
                 # Update metrics
                 execution_time = (time.perf_counter() - start_time) * 1000000.0
                 self._state.last_execution_time_ns = execution_time
-                self._state.total_execution_time_ns += execution_time
                 self._state.average_execution_time_ns = (
-                    self._state.total_execution_time_ns / 
+                    self._state.last_execution_time_ns / 
                     self._state.execution_count
                 )
 

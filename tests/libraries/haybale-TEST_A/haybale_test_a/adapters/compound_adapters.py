@@ -48,11 +48,11 @@ class MapsStringArrayAdapter(BaseAdapter):
         return list(values.values())
     
     @override
-    def test_setup(self):
+    def get_test_value(self):
         # Get list from chain and convert to dictionary with unique keys
-        array_values = self._chain.test_setup()
+        array_values = self._chain.get_test_value()
         return {f"key_{i}": value for i, value in enumerate(array_values)}
 
     @override
-    def test(self, value: any) -> any:
-        return self.execute(value)
+    def get_test_repetitions(self):
+        return 1

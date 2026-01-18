@@ -47,26 +47,34 @@ class IAdapter(ABC):
         pass
 
     @abstractmethod
-    def test_setup(self) -> Any:
-        """method returns a sample input of the type this adapter expects for testing this adapter"""
-        return None
+    def _get_registry_keys(self) -> List[str]:
+        """Get all registry keys in chain"""
+        pass
+
+    @abstractmethod
+    def get_test_value(self) -> Any:
+        """
+        method returns a sample value of the type this adapter 
+        is converting from for testing this adapter
+        
+        Returns: sample value of the expected input type
+        """
+        return True
+
+    def get_test_repetitions(self) -> int:
+        """method returns the number of repetitions the test needs to run"""
+        return 1
 
     @abstractmethod
     def test(self, value: any) -> any:
         """
         Tests this adapter with sample data
         
-        self.execute.test(value)
-
         Args:
             value: Sample input value of the type this adapter expects
         """
         return True
 
-    @abstractmethod
-    def _get_registry_keys(self) -> List[str]:
-        """Get all registry keys in chain"""
-        pass
 
 
 @dataclass
@@ -185,13 +193,12 @@ class ReturnAdapter(IAdapter):
         """Terminal - just return value"""
         return value
 
-    def test_setup(self) -> any:
+    def get_test_value(self) -> any:
         """Terminal - always succeeds"""
         return True
 
-    def test(self, value: Any) -> any:
-        """Terminal - always succeeds"""
-        return value
+    def test(self, value: int) -> any:
+        return self.execute(value)
 
     def _get_registry_keys(self) -> List[str]:
         """Terminal - no registry keys"""
@@ -271,7 +278,10 @@ class BaseAdapter(IAdapter):
         """
         converted = self.convert(value)
         return self._chain.execute(converted)
-    
+
+    def test(self, value: int) -> any:
+        return self.execute(value)
+        
     def _get_registry_keys(self) -> List[str]:
         """
         Get all registry keys for this adapter and any nested adapters.

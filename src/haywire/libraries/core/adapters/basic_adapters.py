@@ -19,11 +19,9 @@ class IntToFloatAdapter(BaseAdapter):
     def convert(self, value: int) -> float:
         return float(value)
 
-    def test_setup(self) -> any:
+    def get_test_value(self) -> int:
         return int(random.randrange(0, 100))
 
-    def test(self, value: int) -> any:
-        return self.execute(value)
 
 
 @adapter(
@@ -38,11 +36,9 @@ class FloatToStringAdapter(BaseAdapter):
     def convert(self, value: float) -> str:
         return str(value)
 
-    def test_setup(self) -> any:
+    def get_test_value(self) -> float:
         return float(random.randrange(0, 100))
     
-    def test(self, value: float) -> any:
-        return self.execute(value)
     
 @adapter(
     description="Convert bool to integer", 
@@ -56,9 +52,5 @@ class BoolToIntAdapter(BaseAdapter):
     def convert(self, value: bool) -> int:
         return int(value)
 
-    def test_setup(self) -> any:
+    def get_test_value(self) -> bool:
         return random.choice([True, False])
-
-    def test(self, value: any) -> any:
-        """Test conversion with sample data"""
-        return self.execute(value)
