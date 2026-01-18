@@ -251,7 +251,7 @@ class ValidationManager:
                             self._validate_node_internal(
                                 wrapper, 
                                 validated_nodes=validated_nodes, 
-                                validated_edges=validated_edges, 
+                                dirty_edges=dirty_edges, 
                                 reason=reason)
 
                     # For visual-only changes, skip validation
@@ -340,7 +340,7 @@ class ValidationManager:
     def _validate_node_internal(self, 
                 node_wrapper: 'NodeWrapper',
                 validated_nodes: Dict[str, ChangeReason],
-                validated_edges: Dict[str, ChangeReason],
+                dirty_edges: Dict[str, ChangeReason],
                 reason: ChangeReason
             ) -> bool:
         """
@@ -358,7 +358,9 @@ class ValidationManager:
         edge_wrappers = self._graph._get_edge_wrappers_for_node(node_wrapper.node_id)
 
         for edge_wrapper in edge_wrappers:
-            self._validate_edge_internal(edge_wrapper, validated_edges=validated_edges, reason=reason)
+            # we add all the attached edges to this node to 
+            # the list of edges that need to be validated
+            dirty_edges[edge_wrapper.connection_uuid] = reason
 
         # Always include in result with its reason
         validated_nodes[node_wrapper.node_id] = reason    
