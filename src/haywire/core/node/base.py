@@ -136,6 +136,9 @@ class NodeData:
     - Section organization (for property panels)
     - Clean API for port access
     """
+    # IDENTITY ATTRIBUTES (set by @type decorator)
+    class_identity: NodeIdentity
+    class_library: LibraryIdentity
     
     def __init__(self, node_id: str, wrapper: NodeWrapper):
         """Initialize unified port collection and management state"""
@@ -678,6 +681,20 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         called when the node is created or reset.
         """
         pass
+
+    def test(self) -> tuple[bool, str | None]:
+        """
+        Run node test. This test is executed when the node is added
+        to the graph and can be used to verify that the node is set up
+        correctly.
+        
+        Override this method in subclasses to implement node-specific tests.
+        
+        Returns:
+            True if all tests pass, False otherwise
+            Optional string with failure reason if tests fail
+        """
+        return True, None
 
     @abstractmethod
     def worker(self, context: dict) -> dict | None:

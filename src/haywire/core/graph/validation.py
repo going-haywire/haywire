@@ -13,6 +13,8 @@ import time
 import logging
 from typing import Dict, List, Set, Callable, Optional, Any, TYPE_CHECKING
 
+from haywire.core.node import node_wrapper
+
 from .types import ChangeReason, ValidationResult
 
 if TYPE_CHECKING:
@@ -353,8 +355,10 @@ class ValidationManager:
             True if wrapper state changed, False otherwise
         """
         # Track state before validation
-        old_state = node_wrapper.state.is_valid
+        old_state = node_wrapper._state.is_valid()
         
+        node_wrapper.build()
+
         edge_wrappers = self._graph._get_edge_wrappers_for_node(node_wrapper.node_id)
 
         for edge_wrapper in edge_wrappers:
@@ -366,12 +370,12 @@ class ValidationManager:
         validated_nodes[node_wrapper.node_id] = reason    
                 
         # Check if state changed
-        state_changed = node_wrapper.state.is_valid != old_state
+        state_changed = node_wrapper._state.is_valid() != old_state
         
         if state_changed:
             logger.debug(
                 f"Node validation changed state: {node_wrapper.node_id} "
-                f"(valid: {node_wrapper.state.is_valid})"
+                f"(valid: {node_wrapper._state.is_valid()})"
             )
     
         return state_changed

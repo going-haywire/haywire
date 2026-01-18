@@ -166,7 +166,7 @@ class RenderFactory():
                 )
             
 
-            wrapper.state.error = error
+            wrapper._state.error = error
             error_renderer_registry_key = self._renderer_registry.get_error_renderer_registry_key()
 
             if _is_error_render:

@@ -37,14 +37,14 @@ class TestNodeOne(BaseNode):
                 id='advanced_settings',
                 label='Advanced Settings',
                 default=False,
-                on_change='wrapper:redraw'
+                on_change='redraw'
                 )):
             
             with self.group(GROUP.as_inlet(
                     id='temperature_config_group',
                     label='Temperature Configuration',
                     default=False,
-                    on_change='wrapper:redraw'
+                    on_change='redraw'
                     )):
                  self.add(Temperature.as_inlet(
                         id='temp_config',
@@ -168,6 +168,10 @@ class TestNodeOne(BaseNode):
             ))
 
         self.pop()
+
+    def redraw(self, *args, **kwargs) -> None:
+        """Request a redraw of the node in the UI."""
+        self.wrapper.redraw()
 
     def worker(self, context: dict) -> dict | None:
         """Execute the node - return the constant value"""

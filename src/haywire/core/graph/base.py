@@ -165,15 +165,17 @@ class BaseGraph:
     # NODE MANAGEMENT
     # =========================================================================
     
-    def generate_unique_node_id(self) -> str:
+    def generate_unique_node_id(self, prefix: str = "node") -> str:
         """
         Generate a unique node ID that doesn't conflict with existing nodes.
         
+        Args:
+            prefix: Prefix for the node ID
         Returns:
             A unique node ID string
         """
         while True:
-            node_id = f"node_{uuid.uuid4().hex[:8]}"
+            node_id = f"{prefix}_{uuid.uuid4().hex[:8]}"
             if node_id not in self.node_wrappers:
                 return node_id
     
@@ -206,7 +208,8 @@ class BaseGraph:
         
         # Initialize wrapper (returns self if successful)
         if wrapper.instantiate(self):
-            # Add to graph's collection (triggers validation automatically)
+            wrapper.build()
+            # Add to graph's collection (triggers validation)
             return self.add_node_wrapper(wrapper)
         else:
             return None
@@ -319,8 +322,7 @@ class BaseGraph:
         if wrapper is None:
             return False
         
-        wrapper.node.ui_state.posX = new_x
-        wrapper.node.ui_state.posY = new_y
+        wrapper.move(new_x, new_y)
         
         # Trigger validation with MOVED reason
         self._validation.mark_node_dirty(

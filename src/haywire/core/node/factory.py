@@ -7,14 +7,17 @@ lifecycle or undo operations - those are handled by Graph and Actions respective
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import TYPE_CHECKING, Dict, List, Optional, Any
+
+from haywire.core.errors.haywire_exception import HaywireException
+
 
 from .base import BaseNode, node
 from .registry import NodeRegistry
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
-    LiveCycleBatchCallback,
-    LiveCycleEventCallback
+    LifeCycleBatchCallback,
+    LifeCycleEventCallback
 )
 
 
@@ -40,6 +43,10 @@ class __SkeletonNode__(BaseNode):
     IT IS THE MOST BASIC NODE THAT SHOULD RUN WITH THE LEAST DEPENDENCIES
     IT IS USED AS A FALLBACK WHEN NO OTHER NODE CAN BE LOADED
     """
+    
+    def initialize(self) -> None:
+        """No-op initialization"""
+        pass
 
     def worker(self, context: dict) -> dict | None:
         """No-op worker"""
@@ -65,18 +72,18 @@ class NodeFactory:
         self.node_registry = node_registry
                 
         # batch notification callbacks
-        self._livecycle_batch_subscribers: List[LiveCycleBatchCallback] = []
+        self._lifecycle_batch_subscribers: List[LifeCycleBatchCallback] = []
 
         # individual event notification callbacks
         # registry_key -> list of callbacks
-        self._livecycle_event_subscribers: Dict[
-            str, List[LiveCycleEventCallback]
+        self._lifecycle_event_subscribers: Dict[
+            str, List[LifeCycleEventCallback]
         ] = {}
         
-        # Register this factory for livecycle events from node registry hot reloads
-        self.node_registry.add_batch_event_subscriber(self._listen_on_livecycle_event)
+        # Register this factory for lifecycle events from node registry hot reloads
+        self.node_registry.add_batch_event_subscriber(self._listen_on_lifecycle_event)
         
-    def get_node_event(self, registry_key: str) -> LifeCycleEvent:
+    def get_node(self, registry_key: str) -> tuple[type[BaseNode], HaywireException | None]:
         """
         Get the node class for a given registry key.
         
@@ -85,24 +92,36 @@ class NodeFactory:
         Returns:
             LifeCycleEvent: The lifecycle event for the requested node
         """
-        return self.node_registry.get_node_event(registry_key)
+        node_cls = None
+        node_error = None
+        node_event = self.node_registry.get_node_lastevent(registry_key)
+        if node_event:
+            node_cls = node_event.affected_class
+            if not node_event.is_successful_event():
+                node_error = node_event.error
+        else: 
+            node_cls = self.node_registry._get_error_node()
+            if node_cls is None:
+                node_cls = __SkeletonNode__
 
-    def get_error_node(self) -> BaseNode:
-        """
-        Get the registered error node class, or fallback.
-        
-        Returns:
-            The error node class or __SkeletonNode__ if not registered
-        """
-        node_cls = self.node_registry._get_error_node()
-        if node_cls is None:
-            node_cls = __SkeletonNode__
-        return node_cls
+            node_error = HaywireException(
+                message=f"Node with registry key '{registry_key}' not found in registry.",
+                operation="Node Lookup",
+                registry_key=registry_key,
+                category="NodeNotFoundError",
+                suggestions=[
+                    "Ensure the node's library is correctly installed and loaded.",
+                    "Check for typos in the registry key.",
+                    "Verify that the node class is properly decorated with @node."
+                ]
+            )
+
+        return node_cls, node_error
+
     
-    
-    def _listen_on_livecycle_event(self, batch: list[LifeCycleEvent]) -> None:
+    def _listen_on_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
         """
-        listener for node livecycle changes from registry
+        listener for node lifecycle changes from registry
         
         This is called by the NodeRegistry when a node class is reloaded, added, 
         or removed. It forwards the notification to all registered hot reload 
@@ -111,8 +130,8 @@ class NodeFactory:
         Args:
             batch: The batch of events with complete context
         """        
-        # Forward to all livecycle batch listeners (Context Menu, etc.)
-        for listener in self._livecycle_batch_subscribers[:]:
+        # Forward to all lifecycle batch listeners (Context Menu, etc.)
+        for listener in self._lifecycle_batch_subscribers[:]:
             listener(batch)
 
         # Forward to all individual event listeners
@@ -121,37 +140,37 @@ class NodeFactory:
                 f"NodeFactory: Node {event.event_type.value} - {event.registry_key} "
                 f"from library '{event.library_identity.label}'"
             )
-            if event.registry_key in self._livecycle_event_subscribers:
-                callbacks = self._livecycle_event_subscribers[event.registry_key]
+            if event.registry_key in self._lifecycle_event_subscribers:
+                callbacks = self._lifecycle_event_subscribers[event.registry_key]
                 for callback in callbacks:
                     callback(event)
     
     ############################################################
     #
-    #        Public API for livecycle event listeners
+    #        Public API for lifecycle event listeners
     #
     ############################################################
 
-    def add_batch_listener(self, callback: LiveCycleBatchCallback) -> None:
+    def add_batch_listener(self, callback: LifeCycleBatchCallback) -> None:
         """
         Add a callback for batch notifications.
         
         Args:
             callback: Function called with Batches of LifeCycleEvents
         """
-        self._livecycle_batch_subscribers.append(callback)
+        self._lifecycle_batch_subscribers.append(callback)
     
-    def remove_batch_listener(self, callback: LiveCycleBatchCallback) -> None:
+    def remove_batch_listener(self, callback: LifeCycleBatchCallback) -> None:
         """
         Remove a batch notification callback.
         
         Args:
             callback: The callback to remove
         """
-        if callback in self._livecycle_batch_subscribers:
-            self._livecycle_batch_subscribers.remove(callback)
+        if callback in self._lifecycle_batch_subscribers:
+            self._lifecycle_batch_subscribers.remove(callback)
     
-    def add_event_subscriber(self, registry_key: str, callback: LiveCycleEventCallback) -> None:
+    def add_event_subscriber(self, registry_key: str, callback: LifeCycleEventCallback) -> None:
         """
         Add a callback for event of specific registry_key.
         
@@ -159,11 +178,11 @@ class NodeFactory:
             registry_key: The registry key to listen for
             callback: Function called with LiveCycleEvent
         """
-        if registry_key not in self._livecycle_event_subscribers:
-            self._livecycle_event_subscribers[registry_key] = []
-        self._livecycle_event_subscribers[registry_key].append(callback)
+        if registry_key not in self._lifecycle_event_subscribers:
+            self._lifecycle_event_subscribers[registry_key] = []
+        self._lifecycle_event_subscribers[registry_key].append(callback)
 
-    def remove_event_subscriber(self, registry_key: str, callback: LiveCycleEventCallback) -> None:
+    def remove_event_subscriber(self, registry_key: str, callback: LifeCycleEventCallback) -> None:
         """
         Remove a callback for event of specific registry_key.
         
@@ -171,11 +190,11 @@ class NodeFactory:
             registry_key: The registry key to stop listening for
             callback: The callback to remove
         """
-        if registry_key in self._livecycle_event_subscribers:
-            if callback in self._livecycle_event_subscribers[registry_key]:
-                self._livecycle_event_subscribers[registry_key].remove(callback)
-                if not self._livecycle_event_subscribers[registry_key]:
-                    del self._livecycle_event_subscribers[registry_key]
+        if registry_key in self._lifecycle_event_subscribers:
+            if callback in self._lifecycle_event_subscribers[registry_key]:
+                self._lifecycle_event_subscribers[registry_key].remove(callback)
+                if not self._lifecycle_event_subscribers[registry_key]:
+                    del self._lifecycle_event_subscribers[registry_key]
                 
     
     # ============================================================================

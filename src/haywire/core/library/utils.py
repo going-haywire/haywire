@@ -81,6 +81,10 @@ def reg_key(library_registry_id: str, module: str, node_registry_id: str) -> str
     camel_class_name = camel_to_dot_case(node_registry_id)
     return f"{library_registry_id}:{module}:{camel_class_name}"
 
+def get_registry_id_from_key(registry_key: str) -> str:
+    """Extract the registry ID from a full registry key."""
+    return registry_key.split(':')[-1]
+
 def camel_to_dot_case(CamelCaseString: str) -> str:
     """Convert CamelCase to dot.case with handling of consecutive uppercase letters"""
     # Handle transition from lowercase to uppercase

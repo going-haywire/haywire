@@ -89,40 +89,7 @@ class NodeRegistry(BaseRegistry):
         """Get the error node class"""
         return self._error_node
 
-    def get_node_event(self, key: str) -> LifeCycleEvent:
-        """
-        Get last lifecycle node event by registry key 
+    def get_node_lastevent(self, key: str) -> LifeCycleEvent | None:
+        """Get the last lifecycle event for a node by its registry key."""
+        return self._regkey_to_last_lifecycle_event.get(key)
 
-        Args:
-            key: Registry key in format "library_id:node:node_name"
-
-        Returns:
-            LifeCycleEvent: Last lifecycle event for the node
-        """
-        lifecycle_event = None
-
-        if key in self._regkey_to_last_lifecycle_event:
-            lifecycle_event = self._regkey_to_last_lifecycle_event[key]
-        else:
-            error = HaywireException(
-                message=f"Node with registry key '{key}' not found in registry.",
-                operation="Node Lookup",
-                registry_key=key,
-                category="NodeNotFoundError",
-                suggestions=[
-                    "Ensure the node's library is correctly installed and loaded.",
-                    "Check for typos in the registry key.",
-                    "Verify that the node class is properly decorated with @node."
-                ]
-            )
-            lifecycle_event = LifeCycleEvent(
-                registry_key=key,
-                event_type=LifeCycleEvent.LifeCycleEventType.CLASS_NOT_FOUND,
-                affected_class=self._get_error_node(),
-                library_identity=None,
-                error=error,
-                exception=None,
-                module_name=None
-            )
- 
-        return lifecycle_event

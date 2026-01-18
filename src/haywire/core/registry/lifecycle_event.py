@@ -222,6 +222,6 @@ class LifeCycleEvent:
 
 
 # Type alias for the batch callback signature
-LiveCycleBatchCallback = Callable[[list[LifeCycleEvent]], None]
+LifeCycleBatchCallback = Callable[[list[LifeCycleEvent]], None]
 
-LiveCycleEventCallback = Callable[[LifeCycleEvent], None]
+LifeCycleEventCallback = Callable[[LifeCycleEvent], None]

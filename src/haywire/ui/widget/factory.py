@@ -3,7 +3,7 @@ from typing import Callable
 import nicegui.ui as ui
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.registry.lifecycle_event import LifeCycleEvent, LiveCycleBatchCallback
+from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback
 from haywire.core.types.ports import DataPort
 from haywire.ui.widget.interface import IWidget
 from haywire.ui.widget.registry import WidgetRegistry
@@ -22,7 +22,7 @@ class WidgetFactory(IWidgetFactory):
         self.widget_registry: WidgetRegistry = widget_registry
 
         # Customer callbacks for hot reload notifications
-        self._widget_lifecycle_subscribers: set[LiveCycleBatchCallback] = set()
+        self._widget_lifecycle_subscribers: set[LifeCycleBatchCallback] = set()
 
         self.widget_registry.add_batch_event_subscriber(self._on_widget_reloaded)
 

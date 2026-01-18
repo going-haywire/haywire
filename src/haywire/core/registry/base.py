@@ -17,7 +17,7 @@ from ..errors import HaywireException
 from ..library.identity import LibraryIdentity
 from .dependency_graph import DependencyGraph
 from .folder_scan import FolderScanMixin
-from .lifecycle_event import LifeCycleEvent, LifeCycleEventType, LiveCycleBatchCallback
+from .lifecycle_event import LifeCycleEvent, LifeCycleEventType, LifeCycleBatchCallback
 
 
 class FileEventType(Enum):
@@ -81,7 +81,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         # Other registries that depend on this one
         self._registry_subscribers: List[HotReloadRegistry] = []
         # Direct consumers (factories, etc.)
-        self._batch_event_subscribers: List[LiveCycleBatchCallback] = []
+        self._batch_event_subscribers: List[LifeCycleBatchCallback] = []
 
         self._dependency_module_errors: Dict[str, HaywireException] = {}
         """Track errors during dependency module reloads and store them by registry_key"""
@@ -831,7 +831,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
     # Hot Reload Callback Management
     # ============================================================================
     
-    def add_batch_event_subscriber(self, callback: LiveCycleBatchCallback) -> None:
+    def add_batch_event_subscriber(self, callback: LifeCycleBatchCallback) -> None:
         """
         Register a customer callback to be notified of hot reload events.
         
@@ -846,7 +846,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             self._batch_event_subscribers.append(callback)
             logging.debug(f"Registered customer callback: {callback.__name__}")
     
-    def remove_batch_event_subscriber(self, callback: LiveCycleBatchCallback) -> None:
+    def remove_batch_event_subscriber(self, callback: LifeCycleBatchCallback) -> None:
         """
         Unregister a customer callback.
         

@@ -13,7 +13,7 @@ from ..errors import HaywireException
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
     LifeCycleEventType,
-    LiveCycleBatchCallback
+    LifeCycleBatchCallback
 )
 from ..types.interface import IType
 from .edge import Edge
@@ -35,7 +35,7 @@ class EdgeWrapperState:
     """The edge is formally validated (node/port existence and type compatibility)"""
     is_built: bool = False
     """The edge adapter chain has been built (inlets/outlets are compatible)"""
-    is_tested: bool = False
+    has_test_passed: bool = False
     """The edge adapter chain has been successfully tested"""
     is_inlet_linked: bool = False
     """The inlet port has been validated"""
@@ -78,7 +78,7 @@ class EdgeWrapperState:
         return (self.is_registered and 
             self.is_formally_validated and 
             self.is_built and
-            self.is_tested
+            self.has_test_passed
         )
 
     def is_valid(self) -> bool:
@@ -142,7 +142,7 @@ class EdgeWrapper:
         self._edge_type = edge_type
 
         # Generate connection UUID
-        self.connection_uuid = generate_connection_uuid(
+        self._connection_uuid = generate_connection_uuid(
             output_node_id, outlet_port_id, input_node_id, inlet_port_id
         )
         
@@ -167,7 +167,7 @@ class EdgeWrapper:
         self._state = EdgeWrapperState(creation_time=time.time())
         
         # Lifecycle event subscribers (for UIEdge)
-        self._lifecycle_subscribers: List[LiveCycleBatchCallback] = []
+        self._lifecycle_subscribers: List[LifeCycleBatchCallback] = []
         
         # Create Edge instance in any case
         self._edge = Edge(
@@ -177,7 +177,7 @@ class EdgeWrapper:
             inlet_port_id=self.inlet_port_id,
             edge_type=self._edge_type,
             chain_adapter_keys=([]),
-            connection_uuid=self.connection_uuid
+            connection_uuid=self._connection_uuid
         )
 
     def is_valid(self) -> bool:
@@ -192,6 +192,11 @@ class EdgeWrapper:
     def edge(self) -> Optional[Edge]:
         """Get the Edge instance"""
         return self._edge
+
+    @property
+    def connection_uuid(self) -> str:
+        """Get the Edge id"""
+        return self._connection_uuid
 
     @property
     def first_adapter(self) -> Optional[IAdapter]:
@@ -220,7 +225,7 @@ class EdgeWrapper:
 
         # Subscribe to adapter factory for hot reload 
         self._adapter_factory.register_edge_callback(
-            self.connection_uuid,
+            self._connection_uuid,
             self._on_adapter_lifecycle_event
         )
 
@@ -231,7 +236,7 @@ class EdgeWrapper:
         Build edge wrapper (including rebuild adapter chain).        
         """
         logger.debug(
-            f"Start edge rebuilding: {self.connection_uuid} ... "
+            f"Start edge rebuilding: {self._connection_uuid} ... "
         )
 
         self._state.error_formal = None
@@ -271,7 +276,7 @@ class EdgeWrapper:
                 first_adapter, error = self._adapter_factory.create_chain(
                     source_type,
                     target_type,
-                    self.connection_uuid
+                    self._connection_uuid
                 )
                 
                 if first_adapter:
@@ -293,7 +298,7 @@ class EdgeWrapper:
                 else:
                     # creating the haywire exception in here to avoid missleading stack traces
                     self._state.error_build = HaywireException.create(
-                        message=f"Edge adapter creation failed for {self.connection_uuid}: {error}",
+                        message=f"Edge adapter creation failed for {self._connection_uuid}: {error}",
                     ).enrich(
                         operation="Adapter Chain Creation",
                         category="Adapter Creation Error",
@@ -315,7 +320,7 @@ class EdgeWrapper:
         except Exception as e:
             self._state.error_build = HaywireException.from_exception(
                 exception=e,
-                message=f"Edge adapter creation failed for {self.connection_uuid}: {e}",
+                message=f"Edge adapter creation failed for {self._connection_uuid}: {e}",
             ).enrich(
                 operation="Adapter Chain Creation",
                 category="Adapter Creation Error",
@@ -353,7 +358,7 @@ class EdgeWrapper:
             if not self._output_wrapper or not self._input_wrapper:
                 raise Exception(
                     f"Nodes not found for edge: "
-                    f"{self.connection_uuid} | "
+                    f"{self._connection_uuid} | "
                     f" (output_node_id={self.output_node_id}, input_node_id={self.input_node_id})"
                 )
             
@@ -371,7 +376,7 @@ class EdgeWrapper:
             if not self._outlet_port or not self._inlet_port:
                 raise Exception(
                     f"Ports not found for edge: "
-                    f"{self.connection_uuid} | "
+                    f"{self._connection_uuid} | "
                     f"(outlet_pin_id={self.outlet_port_id}, inlet_pin_id={self.inlet_port_id})"
                 )
 
@@ -386,7 +391,7 @@ class EdgeWrapper:
                     f"Flow type mismatch between outlet "
                     f"({self._outlet_port.flow_type}) and inlet "
                     f"({self._inlet_port.flow_type}) on edge "
-                    f"{self.connection_uuid}"
+                    f"{self._connection_uuid}"
                 )
             
             self._state.is_formally_validated = True
@@ -395,7 +400,7 @@ class EdgeWrapper:
 
         except Exception as e:
             logger.error(
-                f"Failed to validate port types on edge {self.connection_uuid}: {e}"
+                f"Failed to validate port types on edge {self._connection_uuid}: {e}"
             )
             self._state.error_formal = HaywireException.create(
                 message=f"Port type validation failed: {e}",
@@ -440,10 +445,11 @@ class EdgeWrapper:
                     self._state.execution_count
                 )
 
-            self._state.is_tested = True
+            self._state.has_test_passed = True
             self._state.error_test = None
             
             return True
+        
         except Exception as e:
 
             self._state.error_test = HaywireException.from_exception(
@@ -458,6 +464,7 @@ class EdgeWrapper:
                 ]
             )
             self._state.error_test.log()
+            self._state.has_test_passed = False
             return False
 
     def validate_link(self, port: 'DataPort') -> bool:
@@ -478,7 +485,7 @@ class EdgeWrapper:
         """
         is_linked = self._state.is_linked
 
-        if port._is_linked(self.connection_uuid):
+        if port._is_linked(self._connection_uuid):
             if port.is_inlet():
                 self._state.is_inlet_linked = True
             else:
@@ -525,7 +532,7 @@ class EdgeWrapper:
         Called by AdapterFactory when adapters in our chain are reloaded.
         """
         logger.debug(
-            f"Edge {self.connection_uuid} received adapter lifecycle "
+            f"Edge {self._connection_uuid} received adapter lifecycle "
             f"events: {len(batch)} events"
         )
 
@@ -537,7 +544,7 @@ class EdgeWrapper:
                 else:
                     self._state.error_build = HaywireException.from_exception(
                         exception=event.error,
-                        message=f"Adapter hot reload error on edge {self.connection_uuid}",
+                        message=f"Adapter hot reload error on edge {self._connection_uuid}",
                         operation="Adapter Hot Reload: {event.event_type}",
                         category="Adapter Hot Reload Error"
                     ).enrich(
@@ -553,7 +560,7 @@ class EdgeWrapper:
                 # Tell graph about error 
                 if self._graph:
                     self._graph._validation.mark_edge_dirty(
-                        self.connection_uuid,
+                        self._connection_uuid,
                         ChangeReason.EDGE_HOT_RELOAD_ERROR
                     )
                 return  # abort on first warning/error           
@@ -561,7 +568,7 @@ class EdgeWrapper:
         # Tell graph about successful reload 
         if self._graph:
             self._graph._validation.mark_edge_dirty(
-                self.connection_uuid,
+                self._connection_uuid,
                 ChangeReason.EDGE_ADAPTERS_RELOADED
             )
 
@@ -589,7 +596,7 @@ class EdgeWrapper:
         """Clean up edge resources"""
         # Unsubscribe from adapter factory
         self._adapter_factory.unregister_edge_callback(
-            self.connection_uuid
+            self._connection_uuid
         )
         
         # Clear references
@@ -621,7 +628,7 @@ class EdgeWrapper:
             chain_desc = "none"
             
         return (
-            f"EdgeWrapper({self.connection_uuid}, "
+            f"EdgeWrapper({self._connection_uuid}, "
             f"type={self._edge_type.value if self._edge_type else 'unknown'}, "
             f"status={status}, chain={chain_desc})"
         )

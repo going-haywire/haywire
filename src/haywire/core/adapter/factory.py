@@ -17,7 +17,7 @@ from .registry import AdapterRegistry
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
     LifeCycleEventType,
-    LiveCycleBatchCallback
+    LifeCycleBatchCallback
 )
 from ..types.interface import IType
 from ..types.base import CompoundType
@@ -56,7 +56,7 @@ class AdapterFactory:
         
         # EdgeWrapper callbacks for lifecycle events
         # Maps connection_uuid → callback function
-        self._edge_callbacks: Dict[str, LiveCycleBatchCallback] = {}
+        self._edge_callbacks: Dict[str, LifeCycleBatchCallback] = {}
         
         # Subscribe to adapter registry hot reload events
         self.adapter_registry.add_batch_event_subscriber(
@@ -467,7 +467,7 @@ class AdapterFactory:
     def register_edge_callback(
         self,
         connection_uuid: str,
-        callback: LiveCycleBatchCallback
+        callback: LifeCycleBatchCallback
     ):
         """Register EdgeWrapper callback for lifecycle notifications"""
         self._edge_callbacks[connection_uuid] = callback
