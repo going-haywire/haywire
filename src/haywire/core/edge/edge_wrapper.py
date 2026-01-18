@@ -433,17 +433,18 @@ class EdgeWrapper:
             if self._first_adapter:
                 self._state.execution_count = self._first_adapter.get_test_repetitions()
                 self._state.example_test_value = self._first_adapter.get_test_value()
-                start_time = time.perf_counter()
-                for i in range(self._state.execution_count):
-                    self._state.example_test_result = self._first_adapter.test(self._state.example_test_value)
-            
-                # Update metrics
-                execution_time = (time.perf_counter() - start_time) * 1000000.0
-                self._state.last_execution_time_ns = execution_time
-                self._state.average_execution_time_ns = (
-                    self._state.last_execution_time_ns / 
-                    self._state.execution_count
-                )
+                if self._state.execution_count > 0:
+                    start_time = time.perf_counter()
+                    for i in range(self._state.execution_count):
+                        self._state.example_test_result = self._first_adapter.test(self._state.example_test_value)
+                
+                    # Update metrics
+                    execution_time = (time.perf_counter() - start_time) * 1000000.0
+                    self._state.last_execution_time_ns = execution_time
+                    self._state.average_execution_time_ns = (
+                        self._state.last_execution_time_ns / 
+                        self._state.execution_count
+                    )
 
             self._state.has_test_passed = True
             self._state.error_test = None
