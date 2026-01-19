@@ -4,7 +4,7 @@ Basic core node implementations
 
 # Import the node system base class
 from haybale_test_a.types.maps_string_type import MapsStringType
-from haywire.core.node.base import node
+from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
 
 
@@ -66,7 +66,7 @@ class TestNodeOne(BaseNode):
         self.add(STRING.as_inlet(
                 id='string_selector',
                 label='Selector',
-                widget='core:widget:select.widget',
+                widget='core:widget:SelectWidget',
                 ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}},
                 default='Option 1'
             ))
@@ -94,7 +94,7 @@ class TestNodeOne(BaseNode):
         self.add(FLOAT.as_inlet(
                 id='float_slider',
                 label='Float Sliderio',
-                widget='core:widget:slider.widget',
+                widget='core:widget:SliderWidget',
                 ui={'properties': {'min': 0.0, 'max': 60.0, 'step': 1}},
                 default=50.0
             ))
@@ -102,7 +102,7 @@ class TestNodeOne(BaseNode):
         self.add(BOOL.as_inlet(
                 id='bool_switch_in',
                 label='Boolean Switch',
-                widget='core:widget:switch.widget',
+                widget='core:widget:SwitchWidget',
                 ui={'properties': {'text': 'Enable Feature'}},
                 default=True
             ))
@@ -111,7 +111,7 @@ class TestNodeOne(BaseNode):
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',
                 default='Hello, Haywire!',
-                widget='core:widget:text.widget',
+                widget='core:widget:TextWidget',
                 ui={'properties': {'placeholder': 'Enter text...'}}
             ))
 
@@ -123,7 +123,7 @@ class TestNodeOne(BaseNode):
         self.add(INT.as_inlet(
                 id='int_input',
                 label='Missing Widget',
-                widget='core:widget:number.widget',
+                widget='core:widget:NumberWidget',
                 default=42
             ))
 

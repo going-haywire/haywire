@@ -53,7 +53,7 @@ class CALLBACK(BaseType):
     label='Group',
     description='Inlet group',
     color="#ebff0f",
-    widget='core:widget:switch.widget',
+    widget='core:widget:SwitchWidget',
     default={'value': False},
 )
 class GROUP(PrimitiveType[int]):

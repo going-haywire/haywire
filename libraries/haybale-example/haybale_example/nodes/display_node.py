@@ -1,4 +1,4 @@
-from haywire.core.node.base import node
+from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
 from haywire.libraries.core.types.specs import FLOAT, STRING
 
@@ -18,18 +18,18 @@ class DisplayNode(BaseNode):
         self.behavior.is_control_node = False
         
         # Configure UI
-        self.ui_config.node_renderer = 'example:renderer:example.node.renderer'
+        self.ui_config.node_renderer = 'example:renderer:ExampleNodeRenderer'
 
         # Using the new .as_inlet() API
         self.add(
-            FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:number.widget')
+            FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:NumberWidget')
         )
         self.add(
-            FLOAT.as_inlet('b', label='Value B', default=3.4, widget='core:widget:number.widget')
+            FLOAT.as_inlet('b', label='Value B', default=3.4, widget='core:widget:NumberWidget')
         )
         self.add(
             STRING.as_inlet(
-                'operation', label='Operation', default='add', widget='core:widget:text.widget'
+                'operation', label='Operation', default='add', widget='core:widget:TextWidget'
             )
         )   
         self.add(FLOAT.as_outlet('result', label='Result'))

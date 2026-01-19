@@ -115,9 +115,9 @@ class RenderFactory():
                         "has been set in the renderer registry."
                     ),
                     suggestions=[
-                        "1. Provide a valid renderer registry key",
-                        "2. Set a default renderer for the registry",
-                        "3. Check if the default renderer has failed to load"
+                        "Provide a valid renderer registry key",
+                        "Set a default renderer for the registry",
+                        "Check if the default renderer has failed to load"
                     ]
                 ).log()
 
@@ -140,33 +140,33 @@ class RenderFactory():
             self._renderer_cache[renderer_registry_key] = renderer_instance
                 
         except Exception as error:
-            logging.error(
-                f"Failed to use renderer '{renderer_registry_key}' "
-                f"for node '{wrapper.node.identity.label}' "
-                f"with node id '{wrapper.node_id}'",
-                exc_info=True
-            )
             if not isinstance(error, HaywireException):
                 error = HaywireException.from_exception(
-                    exception=error,
-                    category="Render Error",
-                    operation="renderer_lookup",
-                    message=(
-                        f"Failed to use renderer '{renderer_registry_key}' "
-                        f"for node '{wrapper.node.identity.label}' "
-                        f"with node id '{wrapper.node_id}'"
-                    )
-                ).enrich(
-                    library_identity=(
-                        renderer_instance.__class__.class_library 
-                        if renderer_instance 
-                        else None
-                    ),
-                    registry_key=renderer_registry_key
+                    exception=error
                 )
-            
+            error.enrich(
+                message=(
+                    f"Failed to use renderer '{renderer_registry_key}' "
+                    f"for node '{wrapper.node.identity.label}' "
+                    f"with node id '{wrapper.node_id}'"
+                ),
+                category="Render Error",
+                operation="renderer_lookup",
+                library_identity=(
+                    renderer_instance.__class__.class_library 
+                    if renderer_instance 
+                    else None
+                ),
+                registry_key=renderer_registry_key,
+                suggestions=[
+                    "Ensure the node's specified renderer is implemented",
+                    "Inside the node definition check for spelling mistakes in the renderer registry key",
+                    "Check the log for errors - the renderer might have failed to load",
+                ]
+            )
 
-            wrapper._state.error = error
+            error.log()
+            wrapper.state.error_custom = error
             error_renderer_registry_key = self._renderer_registry.get_error_renderer_registry_key()
 
             if _is_error_render:

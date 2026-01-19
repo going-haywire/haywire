@@ -44,29 +44,31 @@ class NodeWrapperState:
     """node instantiate error"""
     error_initialize: Optional[HaywireException] = None
     """node initialize error"""
+    error_custom: Optional[HaywireException] = None
+    """node custom error """
     error_test: Optional[HaywireException] = None
     """node test error"""
     test_execution_time_ns: float = 0.0
     """Last transform() execution time"""
 
-            
-    def is_functional(self) -> bool:
-        """Check if connection is functional (registered, port-type-validated and built)"""
-        return (self.is_registered and 
-            self.is_built and
-            self.has_test_passed
-        )
 
     def is_valid(self) -> bool:
-        """Check if connection is in valid state (functional and linked)"""
+        """Check if node is in valid state (initialized and tested)"""
         return (self.is_registered and 
             self.is_imported and
             self.is_instantiated and
             self.is_initialized and
             self.has_test_passed)
 
+    def has_error(self) -> bool:
+        """
+        Check if any error exists in the wrapper state
+        Having an error does not necessarily mean the node is invalid.
+        """
+        return self.get_error() is not None
+
     def get_error(self) -> Optional[HaywireException]:
-        """Get main error"""
+        """Get error. Having an error does not necessarily mean the node is invalid."""
         if self.error_import:
             return self.error_import
         elif self.error_instantiate:
@@ -75,8 +77,18 @@ class NodeWrapperState:
             return self.error_initialize
         elif self.error_test:
             return self.error_test
+        elif self.error_custom:
+            return self.error_custom
         else:
             return None
+        
+    def _clear_errors(self) -> None:
+        """Clear all error states"""
+        self.error_import = None
+        self.error_instantiate = None
+        self.error_initialize = None
+        self.error_test = None
+        self.error_custom = None
 
 class NodeMiddleware(ABC):
     """Abstract base for wrapper middleware/plugins"""
@@ -206,6 +218,9 @@ class NodeWrapper:
         logger.debug(
             f"Start node rebuilding: {self._node_id} ... "
         )
+
+        self._state._clear_errors()
+
         if self._instantiate():
             if self._initialize():
                 if self._test():

@@ -10,9 +10,10 @@ import logging
 from typing import TYPE_CHECKING, Dict, List, Optional, Any
 
 from haywire.core.errors.haywire_exception import HaywireException
+from .decorator import node
 
 
-from .base import BaseNode, node
+from .base import BaseNode
 from .registry import NodeRegistry
 from ..registry.lifecycle_event import (
     LifeCycleEvent,

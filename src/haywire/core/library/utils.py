@@ -78,8 +78,7 @@ def find_repo_root():
 
 def reg_key(library_registry_id: str, module: str, node_registry_id: str) -> str:
     """Generate the registry key from the library and class name."""
-    camel_class_name = camel_to_dot_case(node_registry_id)
-    return f"{library_registry_id}:{module}:{camel_class_name}"
+    return f"{library_registry_id}:{module}:{node_registry_id}"
 
 def get_registry_id_from_key(registry_key: str) -> str:
     """Extract the registry ID from a full registry key."""

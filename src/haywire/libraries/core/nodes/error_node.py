@@ -1,5 +1,5 @@
 
-from haywire.core.node.base import node
+from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
 
 # ============================================================================
@@ -18,7 +18,7 @@ class ErrorNode(BaseNode):
     
     def initialize(self):        
         # Configure UI
-        self.ui_config.node_renderer = 'core:renderer:error.node.renderer'
+        self.ui_config.node_renderer = 'core:renderer:ErrorNodeRenderer'
     
     def worker(self, context: dict) -> dict | None:
         """Error nodes don't execute - they just display error information"""
