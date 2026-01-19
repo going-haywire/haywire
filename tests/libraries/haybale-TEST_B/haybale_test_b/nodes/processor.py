@@ -7,10 +7,6 @@ It uses TestData from test_a library.
 
 from haywire.core.node.base import BaseNode
 from haywire.core.node.decorator import node
-from haywire.libraries.core.types.specs import FLOAT, STRING
-
-# Import the custom type from test_a library
-from haybale_test_a.types.data import TestData
 
 @node(
     label='Test Processor',
@@ -32,6 +28,14 @@ class TestProcessorNode(BaseNode):
         self.behavior.is_data_node = True
         self.behavior.is_control_node = False
         
+    def initialize(self):
+
+        from haybale_core.types.specs import FLOAT, STRING
+        from haybale_core.widgets.basic_widgets import SliderWidget, NumberWidget
+
+        # Import the custom type from test_a library
+        from haybale_test_a.types.data import TestData
+
         # Input: Custom TestData type
         self.add(TestData.as_inlet(    
                 id='test_data_in',
@@ -42,19 +46,17 @@ class TestProcessorNode(BaseNode):
         self.add(FLOAT.as_inlet(
                 id='float_slider',
                 label='Float Slider',
-                widget='core:slider.widget',
-                ui={'properties': {'min': 0.0, 'max': 100.0, 'step': 1}},
+                widget=SliderWidget.config(properties={'min': 0.0, 'max': 100.0, 'step': 1}),
                 default=50.0
             )
         )
-
 
         # Input: Additional value to add
         self.add(FLOAT.as_inlet(
                 id='modifier',
                 label='Modifier',
                 default=1.0,
-                widget='core:number.widget'
+                widget=NumberWidget.config()
             )
         )
         

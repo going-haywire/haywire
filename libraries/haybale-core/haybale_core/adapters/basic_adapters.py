@@ -7,7 +7,8 @@ from typing import override
 
 from haywire.core.adapter.base import BaseAdapter
 from haywire.core.adapter.base import adapter
-from haywire.libraries.core.types.specs import BOOL, FLOAT, INT, STRING
+
+from ..types.specs import BOOL, FLOAT, INT, STRING
 
 @adapter(
     description="Convert integer to float", 

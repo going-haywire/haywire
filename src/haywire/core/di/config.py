@@ -59,7 +59,6 @@ class HaywireModule(Module):
         # Add default library paths if not provided
         if not self.library_paths:
             self.library_paths = [
-                os.path.join(self.project_root, 'src', 'haywire', 'libraries'),
                 os.path.join(self.project_root, 'libraries'),
                 os.path.join(self.project_root, 'tests', 'libraries')
             ]
@@ -73,16 +72,14 @@ class HaywireModule(Module):
         # Set core libraries path (priority 1)
         core_path = os.path.join(self.project_root, 'src', 'haywire', 'libraries')
         library_registry.core_libraries_path = core_path
-        library_registry.load_core_libraries = True
+        library_registry.load_core_libraries = False
         
         # Enable pip package discovery (priority 2 & 3)
         library_registry.load_pip_packages = True
         
         # Add all configured library paths (priority 4)
         for path in self.library_paths:
-            # Skip core libraries path to avoid duplicate scanning
-            if not os.path.samefile(path, core_path):
-                library_registry.add_library_root_path(path)
+            library_registry.add_library_root_path(path)
 
         # Enable file watching if requested
         if self.enable_file_watching:

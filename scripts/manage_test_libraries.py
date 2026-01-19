@@ -14,16 +14,21 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 # Define the libraries
 LIBRARIES = {
     '1': {
+        'name': 'haybale-core',
+        'path': PROJECT_ROOT / 'libraries' / 'haybale-core',
+        'description': 'Core library with essential types, nodes, widgets, and renderers'
+    },
+    '2': {
         'name': 'haybale-example',
         'path': PROJECT_ROOT / 'libraries' / 'haybale-example',
         'description': 'Example library with custom nodes, widgets, and renderers'
     },
-    '2': {
+    '3': {
         'name': 'haybale-TEST_A',
         'path': PROJECT_ROOT / 'tests' / 'libraries' / 'haybale-TEST_A',
         'description': 'Test library A'
     },
-    '3': {
+    '4': {
         'name': 'haybale-TEST_B',
         'path': PROJECT_ROOT / 'tests' / 'libraries' / 'haybale-TEST_B',
         'description': 'Test library B'

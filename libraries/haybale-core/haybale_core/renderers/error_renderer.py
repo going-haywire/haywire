@@ -15,7 +15,7 @@ from haywire.ui.themes.palette import ThemePalette
 from haywire.ui.errors.error_info import error_render_detail
 
 
-from haywire.libraries.core.renderers.node_renderer import NodeRenderer
+from ..renderers.node_renderer import NodeRenderer
 
 @renderer(
     description="Error renderer that provides error styling for nodes", 

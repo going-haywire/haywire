@@ -1,6 +1,6 @@
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
-from haywire.libraries.core.types.specs import FLOAT, STRING
+from haybale_core.types.specs import FLOAT, STRING
 
 @node(
     label='Display',

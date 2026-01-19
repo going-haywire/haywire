@@ -2,7 +2,7 @@ from typing import Any
 from nicegui import ui
 
 
-from haywire.libraries.core.types.specs import FLOAT, INT
+from haybale_core.types.specs import FLOAT, INT
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import BindingConverter, BindingMode, Converters

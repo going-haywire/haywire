@@ -7,7 +7,6 @@ from haybale_test_a.types.maps_string_type import MapsStringType
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
 
-
 @node(
     label='Test Node Four',
     search_tags=['constant', 'value', 'output', 'basic'],
@@ -17,9 +16,9 @@ class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
     def initialize(self):
-        from haywire.libraries.core.types.array_type import ArrayType
-        from haywire.libraries.core.types.pooled_type import PooledType
-        from haywire.libraries.core.types.specs import (
+        from haybale_core.types.array_type import ArrayType
+        from haybale_core.types.pooled_type import PooledType
+        from haybale_core.types.specs import (
             BOOL,
             CALLBACK,
             EXEC,
@@ -28,7 +27,7 @@ class TestNodeOne(BaseNode):
             INT,
             STRING,
         )
-        from haywire.libraries.core.widgets.basic_widgets import (
+        from haybale_core.widgets.basic_widgets import (
             NumberWidget,
             SelectWidget,
             SliderWidget,

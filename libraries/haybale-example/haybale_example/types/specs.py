@@ -1,6 +1,6 @@
 # Custom data type for testing
 from haywire.core.types.decorator import type
-from haywire.libraries.core.types.specs import FLOAT
+from haybale_core.types.specs import FLOAT
 
 
 @type(

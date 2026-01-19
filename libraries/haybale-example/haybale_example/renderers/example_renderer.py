@@ -5,7 +5,7 @@ from haywire.core.node.base import BaseNode
 
 from haywire.ui.renderer.decorator import renderer
 
-from haywire.libraries.core.renderers.node_renderer import NodeRenderer
+from haybale_core.renderers.node_renderer import NodeRenderer
 
 @renderer(
     description="Custom renderer for nodes with special styling"

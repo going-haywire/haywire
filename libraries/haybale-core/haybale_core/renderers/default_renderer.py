@@ -14,7 +14,7 @@ from haywire.ui.renderer.decorator import renderer
 from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.themes import ThemePalette
 
-from haywire.libraries.core.renderers.node_renderer import NodeRenderer
+from ..renderers.node_renderer import NodeRenderer
 
 @renderer(
     description="Default renderer with collapsible group support", 

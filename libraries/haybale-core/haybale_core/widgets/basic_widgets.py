@@ -6,9 +6,9 @@ from typing import Any
 from nicegui import ui
 
 from haywire.ui.widget.decorator import widget
-
-from haywire.libraries.core.types.specs import BOOL, FLOAT, INT, STRING
 from haywire.ui.widget.simple import SimpleWidget
+
+from haybale_core.types.specs import BOOL, FLOAT, INT, STRING
 
 @widget(
     description="Fast number input widget",

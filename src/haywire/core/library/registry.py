@@ -411,8 +411,9 @@ class LibraryRegistry:
         for search_path in self._library_root_paths:
             # Skip core libraries path if it's in the list
             if (
-                self.core_libraries_path 
-                and os.path.samefile(search_path, self.core_libraries_path)
+                self.load_core_libraries and
+                self.core_libraries_path and
+                os.path.samefile(search_path, self.core_libraries_path)
             ):
                 continue
             

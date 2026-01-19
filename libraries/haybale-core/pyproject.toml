@@ -1,30 +1,30 @@
 [project]
-name = "haybale-example"
+name = "haybale-core"
 version = "1.0.0"
-description = "Example library for Haywire node system demonstrating custom types, nodes, widgets, and renderers"
+description = "Core library for Haywire node system with core types, nodes, widgets, and renderers"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "Haywire Team"}
 ]
-keywords = ["haywire", "node-editor", "visual-programming", "example"]
+keywords = ["haywire", "node-editor", "visual-programming", "core"]
 
-dependencies = ["haybale-core>=1.0.0"]
+dependencies = []
 
 # Entry point for Haywire library discovery
 [project.entry-points."haywire.libraries"]
-example = "haybale_example:Library"
+core = "haybale_core:Library"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["haybale_example"]
+packages = ["haybale_core"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "haybale_example/",
+    "haybale_core/",
     "README.md",
 ]

@@ -2,7 +2,7 @@ from typing import override
 
 from haywire.core.adapter.base import BaseAdapter
 from haywire.core.adapter.base import adapter
-from haywire.libraries.core.types.specs import DICT
+from haybale_core.types.specs import DICT
 
 from ..types.mesh_data import MeshData
 
