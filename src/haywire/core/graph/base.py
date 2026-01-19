@@ -551,7 +551,7 @@ class BaseGraph:
                 if ew.validate_link(port) or ew.state.has_warning():
                     self._validation.mark_edge_dirty(
                         ew.connection_uuid,
-                        ChangeReason.EDGE_VALIDATION_CHANGE
+                        ChangeReason.EDGE_REDRAW_REQUESTED
                     )
         return port
 
@@ -580,7 +580,7 @@ class BaseGraph:
                 if ew.validate_link(port):
                     self._validation.mark_edge_dirty(
                         ew.connection_uuid,
-                        ChangeReason.EDGE_VALIDATION_CHANGE
+                        ChangeReason.EDGE_REDRAW_REQUESTED
                     )
 
         return port

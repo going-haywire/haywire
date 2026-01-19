@@ -23,6 +23,7 @@ class ChangeReason(Enum):
     NODE_HOT_RELOADED = "node_hot_reloaded"
     NODE_HOT_RELOAD_ERROR = "node_error"
     NODE_REDRAW_REQUESTED = "node_redraw_requested"
+    NODE_VALIDATION_REQUESTED = "node_validation_requested"
     
     # Node reasons - visual only (no redraw needed)
     NODE_MOVED = "node_moved"
@@ -34,12 +35,13 @@ class ChangeReason(Enum):
     EDGE_REMOVED = "edge_removed"
     EDGE_ADAPTERS_RELOADED = "edge_adapters_reloaded"
     EDGE_HOT_RELOAD_ERROR = "edge_error"
+    EDGE_VALIDATION_REQUESTED = "edge_validation_requested"
     
     # Edge reasons - visual only (no redraw needed)
     EDGE_PORT_CHANGED = "edge_port_changed"
     EDGE_SELECTED = "edge_selected"
     EDGE_DESELECTED = "edge_deselected"
-    EDGE_VALIDATION_CHANGE = "edge_validation_change"
+    EDGE_REDRAW_REQUESTED = "edge_redraw_requested"
 
     def requires_adding(self) -> bool:
         adding_reasons = {
@@ -56,10 +58,17 @@ class ChangeReason(Enum):
         return self in removal_reasons
 
 
-    def requires_validation(self) -> bool:
+    def requires_rebuild(self) -> bool:
         validation_reasons = {
             ChangeReason.NODE_HOT_RELOADED,
             ChangeReason.EDGE_ADAPTERS_RELOADED,
+        }
+        return self in validation_reasons
+
+    def requires_validation(self) -> bool:
+        validation_reasons = {
+            ChangeReason.NODE_VALIDATION_REQUESTED,
+            ChangeReason.EDGE_VALIDATION_REQUESTED,
         }
         return self in validation_reasons
 
@@ -72,11 +81,13 @@ class ChangeReason(Enum):
             ChangeReason.NODE_SELECTED,
             ChangeReason.NODE_DESELECTED,
             ChangeReason.NODE_REDRAW_REQUESTED,
+            ChangeReason.NODE_VALIDATION_REQUESTED,
             ChangeReason.EDGE_ADAPTERS_RELOADED,
             ChangeReason.EDGE_HOT_RELOAD_ERROR,
-            ChangeReason.EDGE_VALIDATION_CHANGE,
             ChangeReason.EDGE_SELECTED,
-            ChangeReason.EDGE_DESELECTED
+            ChangeReason.EDGE_DESELECTED,
+            ChangeReason.EDGE_REDRAW_REQUESTED,
+            ChangeReason.EDGE_VALIDATION_REQUESTED,
         }
         return self in redraw_reasons
         

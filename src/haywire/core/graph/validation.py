@@ -245,28 +245,42 @@ class ValidationManager:
             # Validate nodes
             for node_id, reason in dirty_nodes.items():
                 try:
+                    if reason.requires_rebuild():
+                        # For structural changes, validate
+                        node_wrapper = self._graph.get_node_wrapper(node_id)
+                        if node_wrapper: 
+                            node_wrapper.build()
+                            edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
+                            for edge_wrapper in edge_wrappers:
+                                # we add all the attached edges to this node to 
+                                # the list of edges that need to be validated
+                                dirty_edges[edge_wrapper.connection_uuid] = reason
+                            # Always include in result with its reason
+                            validated_nodes[node_id] = reason
+                            continue                   
+
                     if reason.requires_validation():
                         # For structural changes, validate
-                        wrapper = self._graph.get_node_wrapper(node_id)
-                        if wrapper:                            
-                            # Run validation to update state
-                            self._validate_node_internal(
-                                wrapper, 
-                                validated_nodes=validated_nodes, 
-                                dirty_edges=dirty_edges, 
-                                reason=reason)
+                        node_wrapper = self._graph.get_node_wrapper(node_id)
+                        if node_wrapper: 
+                            edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
+                            for edge_wrapper in edge_wrappers:
+                                # we add all the attached edges to this node to 
+                                # the list of edges that need to be validated
+                                dirty_edges[edge_wrapper.connection_uuid] = reason
+                            continue                   
 
-                    # For visual-only changes, skip validation
-                    if reason.requires_redraw():
-                        validated_nodes[node_id] = reason
-                        continue
-                    
                     if reason.requires_adding():
                         validated_nodes[node_id] = reason
                         continue
 
                     # For removal, just track it
                     if reason.requires_removal():
+                        validated_nodes[node_id] = reason
+                        continue
+
+                    # For visual-only changes, skip validation
+                    if reason.requires_redraw():
                         validated_nodes[node_id] = reason
                         continue
                     
@@ -280,14 +294,21 @@ class ValidationManager:
             # Validate edges
             for connection_uuid, reason in dirty_edges.items():
                 try:
-                    wrapper = self._graph.get_edge_wrapper(connection_uuid)
+                    edge_wrapper = self._graph.get_edge_wrapper(connection_uuid)
+                    if reason.requires_rebuild():
+                        if edge_wrapper:                            
+                            edge_wrapper.build()
+                            self._graph.update_port_link(edge_wrapper)
+                            # Always include in result with its reason
+                            validated_edges[connection_uuid] = reason
+                            continue
+
                     if reason.requires_validation():
-                        if wrapper:                            
-                            # Run validation to update state
-                            self._validate_edge_internal(
-                                wrapper, 
-                                validated_edges=validated_edges, 
-                                reason=reason)
+                        if edge_wrapper: 
+                            self._graph.update_port_link(edge_wrapper)
+                            # Always include in result with its reason
+                            validated_edges[connection_uuid] = reason
+                            continue
 
                     if reason.requires_adding():
                         # Update port links (needs to be done after registration)
@@ -338,82 +359,6 @@ class ValidationManager:
                 self._notify_subscribers(result)
             
             return result
-            
-    def _validate_node_internal(self, 
-                node_wrapper: 'NodeWrapper',
-                validated_nodes: Dict[str, ChangeReason],
-                dirty_edges: Dict[str, ChangeReason],
-                reason: ChangeReason
-            ) -> bool:
-        """
-        Internal node validation logic.
-        
-        Args:
-            wrapper: NodeWrapper to validate
-            
-        Returns:
-            True if wrapper state changed, False otherwise
-        """
-        # Track state before validation
-        old_state = node_wrapper._state.is_valid()
-        
-        node_wrapper.build()
-
-        edge_wrappers = self._graph._get_edge_wrappers_for_node(node_wrapper.node_id)
-
-        for edge_wrapper in edge_wrappers:
-            # we add all the attached edges to this node to 
-            # the list of edges that need to be validated
-            dirty_edges[edge_wrapper.connection_uuid] = reason
-
-        # Always include in result with its reason
-        validated_nodes[node_wrapper.node_id] = reason    
-                
-        # Check if state changed
-        state_changed = node_wrapper._state.is_valid() != old_state
-        
-        if state_changed:
-            logger.debug(
-                f"Node validation changed state: {node_wrapper.node_id} "
-                f"(valid: {node_wrapper._state.is_valid()})"
-            )
-    
-        return state_changed
-    
-    def _validate_edge_internal(self, 
-                edge_wrapper: 'EdgeWrapper', 
-                validated_edges: Dict[str, ChangeReason],
-                reason: ChangeReason
-            ) -> bool:
-        """
-        Internal edge validation logic.
-        
-        Args:
-            wrapper: EdgeWrapper to validate
-        """
-        if validated_edges.get(edge_wrapper.connection_uuid) == reason:
-            return 
-        else:
-            # Track state before validation
-            old_state = edge_wrapper.is_valid()
-            
-            edge_wrapper.build()
-            
-            self._graph.update_port_link(edge_wrapper)
-
-            # Always include in result with its reason
-            validated_edges[edge_wrapper.connection_uuid] = reason
-
-            # Check if state changed
-            state_changed = edge_wrapper.is_valid() != old_state
-            
-            if state_changed:
-                logger.info(
-                    f"Edge validation changed state: {edge_wrapper.connection_uuid} "
-                    f"(valid: {edge_wrapper.is_valid()})"
-                )
-            
-            return
     
     def _notify_subscribers(self, result: ValidationResult) -> None:
         """
