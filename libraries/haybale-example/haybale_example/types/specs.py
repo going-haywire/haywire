@@ -7,8 +7,8 @@ from haywire.libraries.core.types.specs import FLOAT
     registry_id='temperature',
     label='Temperature',
     description='Temperature data types',
-    widget='example:widget:TemperatureWidget',
-    ui={'properties': {'unit': '°D'}}
+    widget_key='example:widget:TemperatureWidget',
+    widget_config={'properties': {'unit': '°D'}}
 )
 class Temperature(FLOAT):
     """
@@ -19,9 +19,9 @@ class Temperature(FLOAT):
     
     **Inherits:** FLOAT: Base float type (value: float, cls=float)
     
-    **widget** = 'example:widget:TemperatureWidget' - Temperature-specific input control
+    **widget_key** = 'example:widget:TemperatureWidget' - Temperature-specific input control
     
-    **ui** = {'properties': {'unit': '°D'}} - Display unit for temperature values
+    **widget_config** = {'properties': {'unit': '°D'}} - Display unit for temperature values
     
     Usage:
         Temperature.as_inlet('temp', default=25.0)

@@ -29,20 +29,16 @@ class BaseWidget(IWidget, ABC):
     eliminating boilerplate for common patterns.
     """
     
-    def __init__(self, element: DataPort):
+    def __init__(self, port: DataPort):
         """
         Initialize widget.
         
         Args:
-            element: DataPort containing the data to bind to
+            port: DataPort containing the data to bind to
         """
-        self.element = element
-        self.element_id: str = element.id
-        self.ui_properties: Dict[str, Any] = (
-            element.ui.get('properties', {}) 
-            if hasattr(element, 'ui') 
-            else {}
-        )
+        self.port = port
+        self.port_id: str = port.id
+        self.ui_properties: Dict[str, Any] = port.widget_config.get('properties', {})
         
         # UI element (created during render)
         self.ui_element: Optional[Any] = None
@@ -116,9 +112,9 @@ class BaseWidget(IWidget, ABC):
         
         # Activate immediately if target element exists
         if target_element and target_element in self._ui_element_refs:
-            binding.activate(self.element, self._ui_element_refs[target_element])
+            binding.activate(self.port, self._ui_element_refs[target_element])
         elif not target_element and self.ui_element is not None:
-            binding.activate(self.element, self.ui_element)
+            binding.activate(self.port, self.ui_element)
     
     def create_default_binding(self,
                               source_property: str = "value",
@@ -180,19 +176,19 @@ class BaseWidget(IWidget, ABC):
         # Activate main bindings
         if '__main__' in self._bindings:
             for binding in self._bindings['__main__']:
-                binding.activate(self.element, self.ui_element)
+                binding.activate(self.port, self.ui_element)
         
         # Activate sub-element bindings
         for element_name, bindings in self._bindings.items():
             if element_name != '__main__' and element_name in self._ui_element_refs:
                 target_element = self._ui_element_refs[element_name]
                 for binding in bindings:
-                    binding.activate(self.element, target_element)
+                    binding.activate(self.port, target_element)
     
     def cleanup(self) -> None:
         """Clean up bindings and resources"""
         print(f"Cleaning up widget: {self.class_identity.registry_key} "
-              f"for element ID: {self.element_id}")
+              f"for element ID: {self.port_id}")
         
         # Deactivate all bindings
         for bindings_list in self._bindings.values():
@@ -203,5 +199,5 @@ class BaseWidget(IWidget, ABC):
         self._ui_element_refs.clear()
         
         # Clear references
-        self.element = None
+        self.port = None
         self.ui_element = None

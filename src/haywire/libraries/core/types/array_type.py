@@ -27,7 +27,6 @@ T = TypeVar('T')
     label='Array',
     description='Homogeneous typed array',
     color='#e91e63',
-    widget=None,
     default={'value': []},
 )
 class ArrayType(CompoundType[T]):

@@ -86,11 +86,11 @@ class WidgetFactory(IWidgetFactory):
                     category="Widget Render Error",
                     operation="widget_lookup",
                     message=(
-                        f"Failed to render widget '{port.widget}' "
+                        f"Failed to render widget '{port.widget_key}' "
                         f"for inlet '{port.id}' in node '{node_id}'"
                     )
                 ).enrich(
-                    registry_key=port.widget,
+                    registry_key=port.widget_key,
                     library_identity=library_identity,
                     module_name=module_name,
                     suggestions=[
@@ -103,7 +103,7 @@ class WidgetFactory(IWidgetFactory):
 
             return None, ui_element
     
-        self._widget_regkey_to_nodeids.setdefault(port.widget, set()).add(node_id)
+        self._widget_regkey_to_nodeids.setdefault(port.widget_key, set()).add(node_id)
     
         return widget_instance, ui_element
 

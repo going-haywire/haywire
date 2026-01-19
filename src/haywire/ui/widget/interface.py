@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Dict
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.types.ports import DataPort
 from haywire.ui.widget.identity import WidgetIdentity
@@ -49,3 +49,37 @@ class IWidget(ABC):
         """
         pass
 
+    @classmethod
+    def config(cls, **kwargs) -> Dict[str, Any]:
+        """
+        Generate widget configuration dictionary for use in port creation.
+        
+        This method simplifies widget configuration by combining the widget key
+        and configuration into a single dictionary.
+        
+        Args:
+            **kwargs: Widget configuration options (e.g., properties, etc.)
+        
+        Returns:
+            Dictionary with 'key' and 'config' for port creation
+            
+        Example:
+            SelectWidget.config(
+                properties={'options': ['A', 'B', 'C']}
+            )
+            # Returns:
+            # {
+            #     'key': 'core:widget:SelectWidget',
+            #     'config': {'properties': {'options': ['A', 'B', 'C']}}
+            # }
+        """
+        if not hasattr(cls, 'class_identity'):
+            raise AttributeError(
+                f"{cls.__name__} has no class_identity. "
+                f"Did you forget to apply @widget decorator?"
+            )
+        
+        return {
+            'key': cls.class_identity.registry_key,
+            'config': kwargs
+        }

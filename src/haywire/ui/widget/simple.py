@@ -53,13 +53,13 @@ class SimpleWidget(IWidget, ABC):
     UI_EVENT: str = 'update:modelValue'
     IS_READONLY: bool = False
     
-    def __init__(self, element: DataPort):
+    def __init__(self, port: DataPort):
         """Initialize simple widget"""
-        self.element = element
-        self.element_id: str = element.id
+        self.port = port
+        self.port_id: str = port.id
         self.ui_properties: dict = (
-            element.ui.get('properties', {}) 
-            if hasattr(element, 'ui') 
+            port.widget_config.get('properties', {}) 
+            if hasattr(port, 'widget_config') 
             else {}
         )
         
@@ -111,7 +111,7 @@ class SimpleWidget(IWidget, ABC):
         """
         # Model → View: Subscribe to data field changes
         self._model_changed_callback = lambda _: self._sync_to_view()
-        self.element.data.on_changed += self._model_changed_callback
+        self.port.data.on_changed += self._model_changed_callback
         
         # View → Model: Subscribe to UI element changes (if writable)
         if not self.IS_READONLY:
@@ -122,7 +122,7 @@ class SimpleWidget(IWidget, ABC):
         """
         Synchronize DataPort → UI element.
         """
-        value = self.element.get_value()
+        value = self.port.get_value()
         if value is None:
             value = self.get_default_value()
         setattr(self.ui_element, self.UI_PROPERTY, value)
@@ -132,7 +132,7 @@ class SimpleWidget(IWidget, ABC):
         Synchronize UI element → DataPort.
         """
         value = getattr(self.ui_element, self.UI_PROPERTY)
-        self.element.set_value(value)
+        self.port.set_value(value)
     
     def get_default_value(self) -> Any:
         """
@@ -148,7 +148,7 @@ class SimpleWidget(IWidget, ABC):
         """Clean up subscriptions"""
         if self._model_changed_callback:
             try:
-                self.element.data.on_changed -= self._model_changed_callback
+                self.port.data.on_changed -= self._model_changed_callback
             except Exception as e:
                 self.logger.warning(f"Failed to clean up model event listener: {e}", exc_info=True)
         
@@ -158,5 +158,5 @@ class SimpleWidget(IWidget, ABC):
             except Exception as e:
                 self.logger.warning(f"Failed to clean up UI event listener: {e}", exc_info=True)
         
-        self.element = None
+        self.port = None
         self.ui_element = None

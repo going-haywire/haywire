@@ -35,7 +35,6 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         @type(
             registry_id='float',
             color='#50b0ff',
-            widget='core:widget:number.widget',
             default={'value': 0.0}
         )
         @dataclass
@@ -45,7 +44,6 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         # Derived variant - can override parent defaults:
         @type(
             registry_id='temperature',
-            widget='example:widget:temp.widget',
             default={'value': 20.0},  # Override default
             ui={'properties': {'unit': '°C'}}
         )
@@ -76,8 +74,8 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         icon_in_multi (str, optional): Icon for multi-connection inlet pins.
         icon_out (str, optional): Icon for outlet pins.
         icon_out_multi (str, optional): Icon for multi-connection outlet pins.
-        widget (str, optional): Widget for editing values.
-        ui (dict, optional): Additional UI properties.
+        widget_key (str, optional): Widget for editing values. NOT RECOMENDED TO USE 
+        widget_config (dict, optional): Additional widget configuration properties. NOT RECOMENDED TO USE
         container_type (ContainerType, optional): SINGLE, LIST, DICT, etc.
         flow_type (FlowType, optional): DATA, CTRL, or NONE.
         default (dict, required): Dict of constructor kwargs for default instance.

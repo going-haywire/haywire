@@ -106,7 +106,7 @@ class BaseRenderer(IBaseRenderer, ABC):
             The rendered widget ui_element container, or None if no widget was rendered
         """
         widget_instance, ui_element = self._widget_factory.render_widget(
-            registry_key=port.widget,
+            registry_key=port.widget_key,
             port=port,
             node_id=node_id
         )

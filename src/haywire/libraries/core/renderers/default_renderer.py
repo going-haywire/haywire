@@ -139,7 +139,7 @@ class DefaultNodeRenderer(NodeRenderer):
                     self._render_ghost_pin(group_port, wrapper, is_inlet)
 
                 # Render group toggle widget
-                if group_port.widget:
+                if group_port.widget_key:
                     self.render_widget(group_port, wrapper.node_id, classes='zoom-pan-lod2')
             
             # Group children (if expanded)

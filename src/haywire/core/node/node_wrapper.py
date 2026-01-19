@@ -286,7 +286,7 @@ class NodeWrapper:
                 _node_id=self._node_id,
                 registry_key=self.registry_key,
                 module_name=self.node_cls.__module__,
-                library_identity=self.node_cls.library_identity
+                library_identity=self.node_cls.class_library
             )
             self._state.error_initialize.log()
             self._state.is_initialized = False

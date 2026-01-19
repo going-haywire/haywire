@@ -19,7 +19,6 @@ T = TypeVar('T')
     description='Map with key type string',
     color="#39f55f",
     icon='list',
-    widget=None,
     default={'value': []},
 )
 class MapsStringType(CompoundType[T]):

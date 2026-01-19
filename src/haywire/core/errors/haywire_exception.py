@@ -94,6 +94,7 @@ def is_framework_code(filepath: str, framework_paths: Optional[List[str]] = None
             '/src/haywire/ui',       # All Haywire UI code
             'site-packages',         # Python packages
             '<frozen',               # Python internals
+            '<string>',              # Dynamically generated code (dataclasses, etc.)
             '/lib/python',           # Python standard library
             '/Library/Frameworks/Python.framework',  # macOS Python framework
             '\\lib\\python',         # Windows Python stdlib

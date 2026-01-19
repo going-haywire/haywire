@@ -67,12 +67,15 @@ class DataTypeIdentity(BaseIdentity):
     icon_out: str | None = None
     icon_out_multi: str | None = None
 
-    widget: str | None = None
-    ui: dict[str, Any] = field(default_factory=dict)
+    widget: dict[str, Any] | None = None
+    widget_key: str | dict | None = None
+    widget_config: dict[str, Any] = field(default_factory=dict)
+
     help_url: str = ''
     
     def __post_init__(self):
-        """Auto-generate defaults for convenience."""        
+        """Auto-generate defaults and parse widget config."""
+                
         # Auto-generate label from registry_id
         if not self.label and self.registry_id:
             self.label = self.registry_id.replace('_', ' ').title()

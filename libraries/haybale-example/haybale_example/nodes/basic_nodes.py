@@ -19,7 +19,22 @@ class TestNodeOne(BaseNode):
     def initialize(self):
         from haywire.libraries.core.types.array_type import ArrayType
         from haywire.libraries.core.types.pooled_type import PooledType
-        from haywire.libraries.core.types.specs import BOOL, CALLBACK, EXEC, FLOAT, GROUP, INT, STRING
+        from haywire.libraries.core.types.specs import (
+            BOOL,
+            CALLBACK,
+            EXEC,
+            FLOAT,
+            GROUP,
+            INT,
+            STRING,
+        )
+        from haywire.libraries.core.widgets.basic_widgets import (
+            NumberWidget,
+            SelectWidget,
+            SliderWidget,
+            SwitchWidget,
+            TextWidget,
+        )
 
         from ..types.mesh_data import MeshData
         from ..types.specs import Temperature
@@ -66,8 +81,7 @@ class TestNodeOne(BaseNode):
         self.add(STRING.as_inlet(
                 id='string_selector',
                 label='Selector',
-                widget='core:widget:SelectWidget',
-                ui={'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}},
+                widget=SelectWidget.config(properties={'options': ['Option 1', 'Option 2', 'Option 3']}),
                 default='Option 1'
             ))
         
@@ -94,16 +108,14 @@ class TestNodeOne(BaseNode):
         self.add(FLOAT.as_inlet(
                 id='float_slider',
                 label='Float Sliderio',
-                widget='core:widget:SliderWidget',
-                ui={'properties': {'min': 0.0, 'max': 60.0, 'step': 1}},
+                widget=SliderWidget.config(properties={'min': 0.0, 'max': 60.0, 'step': 1}),
                 default=50.0
             ))
 
         self.add(BOOL.as_inlet(
                 id='bool_switch_in',
                 label='Boolean Switch',
-                widget='core:widget:SwitchWidget',
-                ui={'properties': {'text': 'Enable Feature'}},
+                widget=SwitchWidget.config(properties={'text': 'Enable Feature'}),
                 default=True
             ))
 
@@ -111,8 +123,7 @@ class TestNodeOne(BaseNode):
                 'string_input',  # element_id as first positional parameter
                 label='Text Input',
                 default='Hello, Haywire!',
-                widget='core:widget:TextWidget',
-                ui={'properties': {'placeholder': 'Enter text...'}}
+                widget=TextWidget.config(properties={'placeholder': 'Enter text...'})
             ))
 
         self.add(MeshData.as_inlet(
@@ -123,7 +134,7 @@ class TestNodeOne(BaseNode):
         self.add(INT.as_inlet(
                 id='int_input',
                 label='Missing Widget',
-                widget='core:widget:NumberWidget',
+                widget=NumberWidget.config(),
                 default=42
             ))
 

@@ -22,6 +22,90 @@ from haywire.core.library.utils import derive_library_identity, reg_key
 if TYPE_CHECKING:
     from haywire.core.types.interface import IType
 
+# ============================================================================
+#    Decorator
+# ============================================================================
+
+T = TypeVar('T')
+
+def adapter(
+    cls: Type[T] = None, /, **kwargs
+) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+    """
+    Decorator to register a class as a type adapter.
+    
+    Accepts any AdapterIdentity field as a keyword argument.
+    
+    Args:
+        registry_id (str, optional): Unique identifier for the adapter.
+            Defaults to class name if not provided.
+        label (str, optional): Human-readable display name.
+            Defaults to class name if not provided.
+        description (str, optional): Human-readable description.
+            Defaults to empty string.
+        converts_from (type[IType], optional): Source IType class.
+            Defaults to None.
+        converts_to (type[IType], optional): Target IType class.
+            Defaults to None.
+        priority (int, optional): Priority (higher = preferred).
+            Defaults to 0.
+    
+    Any other keyword arguments will be passed through to AdapterIdentity.
+    See the AdapterIdentity dataclass for complete list of fields.
+
+    Usage:
+        # Minimal usage
+        @adapter
+        class MyAdapter(BaseAdapter): ...
+
+        # Common customization
+        @adapter(description="Temperature to float conversion")
+        class MyAdapter(BaseAdapter): ...
+
+        # Full customization with IType classes
+        @adapter(
+            registry_id="temp_to_float",
+            description="Convert Temperature (Celsius) to FLOAT",
+            converts_from=Temperature,
+            converts_to=FLOAT,
+            priority=5
+        )
+        class TempToFloatAdapter(BaseAdapter): ...
+
+        # Multi-hop chain example
+        @adapter(
+            converts_from=Temperature,
+            converts_to=Kelvin,
+            priority=10,
+            description="Celsius to Kelvin"
+        )
+        class TempToKelvinAdapter(BaseAdapter): ...
+    """
+    def decorator(inner_cls: Type[T]) -> Type[T]:
+        if not issubclass(inner_cls, BaseAdapter):
+            raise TypeError(
+                f"@adapter can only be applied to BaseAdapter subclasses, "
+                f"got {inner_cls}"
+            )
+
+        # Set defaults from class name if not provided
+        kwargs.setdefault('registry_id', inner_cls.__name__)
+        kwargs.setdefault('label', inner_cls.__name__)
+        
+        # Get library identity (survives hot-reload)
+        library_identity = derive_library_identity(inner_cls)
+        
+        # Auto-derive registry_key
+        library_id = library_identity.id if library_identity else None
+        kwargs['registry_key'] = reg_key(library_id, 'adapter', kwargs['registry_id'])
+        
+        # Create and attach identity and library
+        inner_cls.class_identity = AdapterIdentity(**kwargs)
+        inner_cls.class_library = library_identity
+        return inner_cls
+
+    return decorator if cls is None else decorator(cls)
+
 
 @dataclass
 class AdapterIdentity(BaseIdentity):

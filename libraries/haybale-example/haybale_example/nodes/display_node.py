@@ -22,14 +22,14 @@ class DisplayNode(BaseNode):
 
         # Using the new .as_inlet() API
         self.add(
-            FLOAT.as_inlet('a', label='Value A', default=10.0, widget='core:widget:NumberWidget')
+            FLOAT.as_inlet('a', label='Value A', default=10.0, widget_key='core:widget:NumberWidget')
         )
         self.add(
-            FLOAT.as_inlet('b', label='Value B', default=3.4, widget='core:widget:NumberWidget')
+            FLOAT.as_inlet('b', label='Value B', default=3.4, widget_key='core:widget:NumberWidget')
         )
         self.add(
             STRING.as_inlet(
-                'operation', label='Operation', default='add', widget='core:widget:TextWidget'
+                'operation', label='Operation', default='add', widget_key='core:widget:TextWidget'
             )
         )   
         self.add(FLOAT.as_outlet('result', label='Result'))

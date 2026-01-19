@@ -53,7 +53,7 @@ class CALLBACK(BaseType):
     label='Group',
     description='Inlet group',
     color="#ebff0f",
-    widget='core:widget:SwitchWidget',
+    widget_key='core:widget:SwitchWidget',
     default={'value': False},
 )
 class GROUP(PrimitiveType[int]):
@@ -70,7 +70,6 @@ class GROUP(PrimitiveType[int]):
     label='Integer',
     description='Whole number',
     color='#f7b0ff',
-    widget='core:widget:number.widget',
     default={'value': 0},
 )
 class INT(PrimitiveType[int]):
@@ -85,7 +84,6 @@ class INT(PrimitiveType[int]):
     label='Float',
     description='Decimal numberer',
     color='#50b0ff',
-    widget='core:widget:number.widget',
     default={'value': 0.0},
 )
 class FLOAT(PrimitiveType[float]):
@@ -103,7 +101,6 @@ class FLOAT(PrimitiveType[float]):
     label='String',
     description='Text data',
     color='#ffc107',
-    widget='core:widget:text.widget',
     default={'value': ''},
 )
 class STRING(PrimitiveType[str]):
@@ -121,7 +118,6 @@ class STRING(PrimitiveType[str]):
     label='Boolean',
     description='True or False',
     color='#4caf50',
-    widget='core:widget:checkbox.widget',
     default={'value': False},
 )
 class BOOL(PrimitiveType[bool]):
@@ -139,7 +135,6 @@ class BOOL(PrimitiveType[bool]):
     label='Bytes',
     description='Binary data',
     color='#9e9e9e',
-    widget=None,
     default={'value': b''},
 )
 class BYTES(PrimitiveType[bytes]):
@@ -157,7 +152,6 @@ class BYTES(PrimitiveType[bytes]):
     label='List',
     description='Ordered collection',
     color='#e91e63',
-    widget=None,
     default={'value': []},
 )
 class LIST(PrimitiveType[list]):
@@ -170,7 +164,6 @@ class LIST(PrimitiveType[list]):
     label='Dictionary',
     description='Key-value pairs',
     color='#9c27b0',
-    widget=None,
     default={'value': {}},
 )
 class DICT(PrimitiveType[dict]):

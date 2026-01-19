@@ -120,11 +120,31 @@ class DataPort(DataTypeIdentity):
     def __post_init__(self):
         """
         Create data field via type.
-        
-        Simplified - no factory! Type creates its own field.
         """
         # Skip parent's post_init for runtime ports
-        
+
+        if self.widget:
+            if not isinstance(self.widget, dict):
+                raise ValueError(
+                    f"Attribute 'widget' is of type: {type(self.widget).__name__}, "
+                    f"but must be a dict with 'key' and optional 'config' fields. "
+                    "Use WidgetClass.config(**kwargs) to generate correct format."
+                )
+            # Parse new widget dict format: {'key': '...', 'config': {...}}
+            if 'key' not in self.widget:
+                raise ValueError(
+                    "Attribute 'widget' is a dict and must contain the 'key' field. "
+                    "Use WidgetClass.config(**kwargs) to generate correct format."
+                )
+            
+            # Extract widget key and merge config into widget_config dict
+            widget_key = self.widget['key']
+            widget_config = self.widget.get('config', {})
+            
+            # Merge widget config into widget_config dict (widget config takes precedence)
+            self.widget_config = {**self.widget_config, **widget_config}
+            self.widget_key = widget_key
+
         # Create data field if needed
         if self.data is None and self.type_cls is not None:
             # Type creates its own field!
