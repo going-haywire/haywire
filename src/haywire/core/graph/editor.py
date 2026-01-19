@@ -48,37 +48,12 @@ class Editor:
         """
         self.graph: BaseGraph = graph
         self.history_manager: IHistoryManager = history_manager
-        
-        # Simple callback system for change notifications
-        self._change_callbacks: List[Callable[[], None]] = []
-        
+                
         # Hook into history manager for undo/redo notifications
         if self.history_manager:
             self._setup_history_hooks()
     
-    # =============================================================================
-    # CHANGE NOTIFICATION SYSTEM (Simple Callbacks)
-    # =============================================================================
-    
-   
-    def _notify_change(self, operation_type: str = "unknown"):
-        """Notify all callbacks of a graph change."""
-        print(
-            f"📡 Editor: Notifying {len(self._change_callbacks)} callbacks "
-            f"of change: {operation_type}"
-        )
-        
-        # Notify callbacks (with error handling to prevent one bad callback 
-        # from breaking others)
-        # Copy list to prevent modification during iteration
-        for callback in self._change_callbacks[:]:
-            try:
-                callback()
-            except Exception as e:
-                print(f"❌ Error in change callback: {e}")
-                # Optionally remove bad callbacks
-                self._change_callbacks.remove(callback)
-    
+ 
     def _setup_history_hooks(self):
         """Setup hooks to catch undo/redo operations."""
         original_undo = self.history_manager.undo
@@ -86,14 +61,10 @@ class Editor:
         
         def hooked_undo():
             result = original_undo()
-            if result:
-                self._notify_change("undo")
             return result
             
         def hooked_redo():
             result = original_redo()
-            if result:
-                self._notify_change("redo")
             return result
         
         self.history_manager.undo = hooked_undo
@@ -128,10 +99,7 @@ class Editor:
             self.history_manager.add_action(action)
 
             print(f"✅ Editor: Created node of type {registry_key} at {position}")
-            
-            # Notify callbacks
-            self._notify_change("create_node")
-            
+                       
             return action.wrapper
             
         except Exception as e:
@@ -158,10 +126,7 @@ class Editor:
             # Create and execute delta move action
             action = MoveNodesAction(self.graph, nodes, deltaX, deltaY)
             self.history_manager.add_action(action)
-            
-            # Notify callbacks
-            self._notify_change("move_nodes_delta")
-            
+                        
             print(f"✅ Editor: Moved {len(nodes)} nodes by delta ({deltaX}, {deltaY})")
             return True
             
@@ -205,10 +170,7 @@ class Editor:
             # Create and execute remove elements action
             action = RemoveElementsAction(self.graph, nodes, connections)
             self.history_manager.add_action(action)
-            
-            # Notify callbacks
-            self._notify_change("remove_elements")
-            
+                        
             total_count = len(nodes) + len(connections)
             print(
                 f"✅ Editor: Removed {total_count} elements "
@@ -265,10 +227,7 @@ class Editor:
                 inlet_pin_id=inlet_pin
             )
             self.history_manager.add_action(action)
-            
-            # Notify callbacks
-            self._notify_change("create_connection")
-            
+                       
             print(
                 f"✅ Editor: Created connection {output_node_id}:{outlet_pin} -> "
                 f"{input_node_id}:{inlet_pin}"
@@ -319,10 +278,7 @@ class Editor:
             new_selection = SelectionState(selected_nodes, selected_connection_uuids)
             action = ChangeSelectionAction(self.graph, new_selection)
             self.history_manager.add_action(action)
-            
-            # Notify callbacks
-            self._notify_change("set_selection")
-            
+                        
             print(
                 f"✅ Editor: Set selection to {len(selected_nodes)} nodes, "
                 f"{len(selected_connections)} connections"

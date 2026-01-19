@@ -503,7 +503,7 @@ class GraphCanvasManager:
         )
 
         node_has_moved = False
-        element_was_selected = False
+        selection_changed = False
 
         # Process nodes by reason
         for node_id, reason in result.nodes.items():
@@ -540,15 +540,14 @@ class GraphCanvasManager:
                         logger.debug(f"  ↔ Moved node: {node_id}")
             
             elif reason in (ChangeReason.NODE_SELECTED, ChangeReason.NODE_DESELECTED):
-                self.selected_nodes.clear()
-                # Cheap visual update - just selection state
-                ui_node = self.node_panels.get(node_id)
-                if ui_node:
-                    is_selected = reason == ChangeReason.NODE_SELECTED
-                    if is_selected:
-                        self.selected_nodes.add(node_id)
-                        element_was_selected = True
-                    logger.debug(f"  ✓ Selection changed: {node_id}")
+                # Handle selection/deselection without clearing entire set
+                is_selected = reason == ChangeReason.NODE_SELECTED
+                if is_selected:
+                    self.selected_nodes.add(node_id)
+                else:
+                    self.selected_nodes.discard(node_id)
+                selection_changed = True
+                logger.debug(f"  ✓ Selection changed: {node_id}")
 
             elif reason.requires_redraw():
                 # Full redraw needed
@@ -574,15 +573,14 @@ class GraphCanvasManager:
                     logger.debug(f"  - Removed edge UI: {edge_uuid}")
                         
             elif reason in (ChangeReason.EDGE_SELECTED, ChangeReason.EDGE_DESELECTED):
-                self.selected_connections.clear()
-                # Cheap visual update - just selection state
-                ui_edge = self.connection_paths.get(edge_uuid)
-                if ui_edge:
-                    is_selected = reason == ChangeReason.EDGE_SELECTED
-                    if is_selected:
-                        self.selected_connections.add(edge_uuid)
-                        element_was_selected = True
-                    logger.debug(f"  ✓ Selection changed: {edge_uuid}")
+                # Handle selection/deselection without clearing entire set
+                is_selected = reason == ChangeReason.EDGE_SELECTED
+                if is_selected:
+                    self.selected_connections.add(edge_uuid)
+                else:
+                    self.selected_connections.discard(edge_uuid)
+                selection_changed = True
+                logger.debug(f"  ✓ Selection changed: {edge_uuid}")
 
             elif reason.requires_redraw():
                 # Full redraw needed
@@ -596,91 +594,60 @@ class GraphCanvasManager:
             #self._update_connection_paths()
             pass
 
-        if element_was_selected:
+        if selection_changed:
             self.sync_selections()
 
         self.canvas_vue.update() 
 
     def sync_with_graph(self):
-        """Synchronize visual representation with the graph state."""
+        """
+        Synchronize visual representation with the graph state.
+        
+        This method creates a synthetic ValidationResult marking all existing
+        graph elements as 'added', then processes it through the normal
+        validation pipeline. This ensures initial sync uses the same code
+        path as incremental updates.
+        """
         print(
-            f"🔄 Synchronizing graph visuals: "
+            f"🔄 Initial sync: {len(self.graph.node_wrappers)} nodes, "
+            f"{len(self.graph.edge_wrappers)} edges"
         )
+        
         try:
-            # Sync nodes (using node_wrappers)
-            graph_node_ids = set(self.graph.node_wrappers.keys())
-            visual_node_ids = set(self.node_panels.keys())
-            
-            # Add missing nodes
-            for node_id in graph_node_ids - visual_node_ids:
-                node_wrapper = self.graph.node_wrappers[node_id]
-                node = node_wrapper.node  # Get node instance from wrapper
-                position = (
-                    node.ui_state.posX,
-                    node.ui_state.posY
-                )
-                self.add_node_visual(node, position)
-            
-            # Remove extra nodes
-            for node_id in visual_node_ids - graph_node_ids:
-                self.remove_node_visual(node_id)
-                
-            # Update positions of existing nodes
-            for node_id in graph_node_ids.intersection(visual_node_ids):
-                node_wrapper = self.graph.node_wrappers[node_id]
-                node = node_wrapper.node  # Get node instance from wrapper
-                new_position = (
-                    node.ui_state.posX,
-                    node.ui_state.posY
-                )
-                old_position = self.node_panels[node_id].position
-                
-                if new_position != old_position:
-                    print(f"Updating node {node_id} position: {old_position} -> {new_position}")
-                    self.update_node_position(node_id, new_position)
-            
-            # Sync connections
-            current_connection_uuids = set(self.connection_paths.keys())
-            graph_connection_uuids = set()
-            
-            for connection_uuid, edge_wrapper in self.graph.edge_wrappers.items():
-                graph_connection_uuids.add(connection_uuid)
-                
-                if connection_uuid not in current_connection_uuids:
-                    print(f"🔄 Adding new connection: {connection_uuid}")
-                    self.add_connection_visual(edge_wrapper)
-            
-            connections_to_remove = current_connection_uuids - graph_connection_uuids
-            for connection_uuid in connections_to_remove:
-                print(f"🔄 Removing old connection: {connection_uuid}")
-                self.remove_connection_visual(connection_uuid)
-            
-            print(
-                f"🔄 Incremental connection sync: "
-                f"{len(graph_connection_uuids)} total connections"
+            # Create synthetic validation result marking all elements as added
+            synthetic_result = ValidationResult(
+                nodes={
+                    node_id: ChangeReason.NODE_ADDED 
+                    for node_id in self.graph.node_wrappers.keys()
+                },
+                edges={
+                    edge_uuid: ChangeReason.EDGE_ADDED 
+                    for edge_uuid in self.graph.edge_wrappers.keys()
+                },
+                validation_time_ms=0.0
             )
             
-            # Sync selection state from graph to UI
-            graph_selected_nodes, graph_selected_connections = self.graph.get_selection_state()
+            # Add selection state to the synthetic result
+            selected_nodes, selected_connections = self.graph.get_selection_state()
+            for node_id in selected_nodes:
+                synthetic_result.nodes[node_id] = ChangeReason.NODE_SELECTED
+            for edge_uuid in selected_connections:
+                synthetic_result.edges[edge_uuid] = ChangeReason.EDGE_SELECTED
             
-            # Update selection state without emitting events until the end
-            self.selected_nodes.clear()
-            self.selected_connections.clear()
-            
-            self.selected_nodes.update(graph_selected_nodes)
-            self.selected_connections.update(graph_selected_connections)
-            
-            # Emit single consolidated selection sync event
-            self.sync_selections()
-
-            self.canvas_vue.update() 
-                
             print(
-                f"🔄 Selection sync: {len(graph_selected_nodes)} nodes, "
-                f"{len(graph_selected_connections)} connections"
+                f"🔄 Synthetic validation: {len(synthetic_result.nodes)} nodes, "
+                f"{len(synthetic_result.edges)} edges, "
+                f"{len(selected_nodes)} selected nodes, "
+                f"{len(selected_connections)} selected connections"
             )
+            
+            # Process through normal validation handler
+            self._on_validated(synthetic_result)
+            
+            print("✅ Initial sync completed via validation pipeline")
+            
         except Exception as e:
-            print(f"Error during graph sync: {e}")
+            print(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
     
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
