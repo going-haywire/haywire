@@ -180,6 +180,8 @@ class EdgeWrapper:
             connection_uuid=self._connection_uuid
         )
 
+        self._source_type: Optional[IType] = None
+
     def is_valid(self) -> bool:
         """Check if edge is valid"""
         return self._state.is_valid()
@@ -284,7 +286,9 @@ class EdgeWrapper:
                     if self._edge.chain_adapter_keys:
                         old_adapter_keys = list(self._edge.chain_adapter_keys)[::-1]
                         new_adapter_keys = list(first_adapter._get_registry_keys())[::-1]
-                        if old_adapter_keys != new_adapter_keys:
+                        if self._source_type == source_type and old_adapter_keys != new_adapter_keys:
+                            # we only want to warn about adapter chain changes if 
+                            # the source type is the same, otherwise it's expected that the chain changes
                             self._state.warnings.append(
                                 f"Adapter chain composition changed during hot reload. "
                                 f"From '{' -> '.join(old_adapter_keys)}' "
@@ -294,7 +298,9 @@ class EdgeWrapper:
                     # Set first adapter
                     self._first_adapter = first_adapter
                     self._edge.chain_adapter_keys = first_adapter._get_registry_keys()
-                    
+
+                    self._source_type = source_type
+
                 else:
                     # creating the haywire exception in here to avoid missleading stack traces
                     self._state.error_build = HaywireException.create(
