@@ -30,7 +30,7 @@ from haywire.ui.editor.graph_canvas_manager import GraphCanvasManager
 from haywire.ui.themes import ThemePalette
 
 # DI imports  
-from haywire.core.di.config import create_library_system_service
+from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
 
 # Add project paths
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -132,16 +132,14 @@ class UndoRedoTestAppWithCanvasManager:
         # Create ONE shared graph for all sessions
         self.graph = BaseGraph(
             "shared_graph", 
-            "Shared Graph Across Sessions",
-            self.node_factory, 
-            self.adapter_factory
+            "Shared Graph Across Sessions"
         )
         
         # Register global change listener for app-level updates
         self.graph.subscribe_to_validation(self._on_global_graph_change)
 
         # Create shared Editor instance (graph-managed pattern)
-        self.editor = Editor(self.graph, self.history_manager)
+        self.editor = Editor(self.graph)
                 
         # Global stats (shared across sessions)
         self.global_stats = {
@@ -200,6 +198,10 @@ class UndoRedoTestAppWithCanvasManager:
             undo_config=self.undo_config
         )
         
+        # Set global helpers
+        set_library_system(self.library_service)
+        set_global_injector(self.library_service.injector)
+        
         print("Enhanced DI system initialized successfully.")
             
     def setup_services(self):
@@ -238,6 +240,23 @@ class UndoRedoTestAppWithCanvasManager:
                     ui.label(
                         f'Enhanced Haywire Test App - Session {self.current_client_id[:8]}'
                     ).classes('text-xl font-bold')
+                    
+                    # File operations
+                    ui.button(
+                        'Save Graph', 
+                        icon='save', 
+                        on_click=self.save_graph
+                    ).props('outline').classes('text-white')
+                    ui.button(
+                        'Load Graph', 
+                        icon='folder_open', 
+                        on_click=self.load_graph
+                    ).props('outline').classes('text-white')
+                    ui.button(
+                        'Clear Graph', 
+                        icon='delete_sweep', 
+                        on_click=self.clear_graph
+                    ).props('outline').classes('text-white')
                     
                     # Quick action buttons
                     ui.button(
@@ -540,6 +559,140 @@ class UndoRedoTestAppWithCanvasManager:
             ui.notify("Redo performed")
         else:
             ui.notify("Nothing to redo")
+    
+    # File I/O Methods
+    def save_graph(self):
+        """Save the graph to a JSON file."""
+        import os
+        from datetime import datetime
+        
+        # Create saves directory if it doesn't exist
+        saves_dir = os.path.join(project_root, 'saves')
+        os.makedirs(saves_dir, exist_ok=True)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"graph_{timestamp}.json"
+        filepath = os.path.join(saves_dir, filename)
+        
+        # Save the graph
+        if self.graph.save_to_file(filepath):
+            ui.notify(
+                f"Graph saved successfully: {filename}", 
+                type='positive',
+                position='top'
+            )
+            print(f"Graph saved to: {filepath}")
+        else:
+            ui.notify(
+                "Failed to save graph",
+                type='negative',
+                position='top'
+            )
+    
+    def load_graph(self):
+        """Load a graph from a JSON file."""
+        import os
+        
+        saves_dir = os.path.join(project_root, 'saves')
+        
+        # Check if saves directory exists
+        if not os.path.exists(saves_dir):
+            ui.notify(
+                "No saved graphs found",
+                type='warning',
+                position='top'
+            )
+            return
+        
+        # Get list of saved graphs
+        graph_files = [
+            f for f in os.listdir(saves_dir) 
+            if f.endswith('.json') and f.startswith('graph_')
+        ]
+        
+        if not graph_files:
+            ui.notify(
+                "No saved graphs found",
+                type='warning',
+                position='top'
+            )
+            return
+        
+        # Sort by modification time (newest first)
+        graph_files.sort(
+            key=lambda f: os.path.getmtime(os.path.join(saves_dir, f)),
+            reverse=True
+        )
+        
+        # Show dialog to select file
+        with ui.dialog() as dialog, ui.card():
+            ui.label('Select a graph to load:').classes('text-lg font-bold mb-4')
+            
+            with ui.column().classes('w-96 gap-2'):
+                for filename in graph_files:
+                    filepath = os.path.join(saves_dir, filename)
+                    mtime = os.path.getmtime(filepath)
+                    from datetime import datetime
+                    mtime_str = datetime.fromtimestamp(mtime).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
+                    
+                    with ui.row().classes('w-full items-center gap-2'):
+                        ui.button(
+                            filename,
+                            on_click=lambda f=filepath, d=dialog: (
+                                self._do_load_graph(f), d.close()
+                            )
+                        ).classes('flex-grow')
+                        ui.label(mtime_str).classes('text-xs text-gray-500')
+            
+            with ui.row().classes('w-full justify-end mt-4'):
+                ui.button('Cancel', on_click=dialog.close)
+        
+        dialog.open()
+    
+    def _do_load_graph(self, filepath: str):
+        """Actually load the graph file."""
+        if self.graph.load_from_file(filepath):
+            ui.notify(
+                f"Graph loaded successfully",
+                type='positive',
+                position='top'
+            )
+            print(f"Graph loaded from: {filepath}")
+            # Sync all sessions with the newly loaded graph
+            self.sync_all_sessions()
+        else:
+            ui.notify(
+                "Failed to load graph",
+                type='negative',
+                position='top'
+            )
+    
+    def clear_graph(self):
+        """Clear the entire graph after confirmation."""
+        with ui.dialog() as dialog, ui.card():
+            ui.label('Clear entire graph?').classes('text-lg font-bold')
+            ui.label(
+                'This will remove all nodes and connections. This cannot be undone.'
+            ).classes('text-gray-600 mb-4')
+            
+            with ui.row().classes('w-full justify-end gap-2'):
+                ui.button('Cancel', on_click=dialog.close)
+                ui.button(
+                    'Clear Graph',
+                    on_click=lambda: (self._do_clear_graph(), dialog.close())
+                ).props('color=negative')
+        
+        dialog.open()
+    
+    def _do_clear_graph(self):
+        """Actually clear the graph."""
+        self.graph.clear()
+        ui.notify("Graph cleared", type='info', position='top')
+        # Sync all sessions
+        self.sync_all_sessions()
     
     # Configuration Methods
     def toggle_auto_grouping(self, enabled: bool):

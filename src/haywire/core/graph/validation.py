@@ -183,10 +183,6 @@ class ValidationManager:
             # Clear all tracking
             self._dirty_nodes.clear()
             self._dirty_edges.clear()
-            self._tracked_nodes_added.clear()
-            self._tracked_nodes_removed.clear()
-            self._tracked_edges_added.clear()
-            self._tracked_edges_removed.clear()
             
             logger.debug("ValidationManager cleared")
     
@@ -295,16 +291,11 @@ class ValidationManager:
             for connection_uuid, reason in dirty_edges.items():
                 try:
                     edge_wrapper = self._graph.get_edge_wrapper(connection_uuid)
-                    if reason.requires_rebuild():
+                    if reason.requires_rebuild() or reason.requires_validation():
+                        # we play it safe - in case the node has changed the type of an 
+                        # existing port with the same id the edge is rebuild and validated
                         if edge_wrapper:                            
                             edge_wrapper.build()
-                            self._graph.update_port_link(edge_wrapper)
-                            # Always include in result with its reason
-                            validated_edges[connection_uuid] = reason
-                            continue
-
-                    if reason.requires_validation():
-                        if edge_wrapper: 
                             self._graph.update_port_link(edge_wrapper)
                             # Always include in result with its reason
                             validated_edges[connection_uuid] = reason

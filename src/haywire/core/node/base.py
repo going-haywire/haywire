@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, Dict, TypeVar, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field, asdict
 
+
 from ..registry.identity import BaseIdentity
 from ..library.identity import LibraryIdentity
 from ..types.ports import DataPort, PortInlet, PortOutlet
@@ -547,6 +548,65 @@ class NodeData:
         
         return self.value(group_id)
     
+    # =========================================================================
+    # SERIALIZATION
+    # =========================================================================
+    
+    def _serialize_ports(self) -> Dict[str, Any]:
+        """
+        Serialize all ports to dictionary.
+        
+        Returns:
+            Dictionary mapping port IDs to serialized port data
+        """
+        return {port_id: port.to_dict() for port_id, port in self.ports.items()}
+    
+    def _deserialize_ports(self, ports_data: Dict[str, Any]) -> bool:
+        """
+        Deserialize ports from dictionary and restore them.
+        
+        This recreates ports using their from_dict() method, which replays
+        the original creation call from the recipe format.
+        
+        Args:
+            ports_data: Dictionary of serialized port data
+            
+        Returns:
+            True if deserialization succeeded, False otherwise
+        """
+        from haywire.core.types.ports import DataPort
+        from haywire.core.di.config import get_library_system
+        type_registry = get_library_system().get_type_registry()
+        try:
+            # Clear existing ports
+            self.ports.clear()
+            self._port_order_counter = 0
+            
+            # Recreate each port from serialized data
+            for port_id, port_data in ports_data.items():
+                # Use DataPort.from_dict() to recreate the port
+                port = DataPort.from_dict(port_data, type_registry)
+                
+                # Add to ports collection
+                self.ports[port_id] = port
+                port._wrapper = self.wrapper
+                
+                # Update order counter
+                if port.order >= self._port_order_counter:
+                    self._port_order_counter = port.order + 1
+            
+            self._cache_dirty = True
+            return True
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"Failed to deserialize ports for node {self.node_id}: {e}",
+                exc_info=True
+            )
+            return False
+  
 
 class BaseNode(NodeData, metaclass=NodeMeta):
     """
@@ -640,7 +700,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         pass
     
-    def to_dict(self) -> dict:
+    def _to_dict(self) -> dict:
         """
         Serialize node to dictionary.
         
@@ -656,6 +716,81 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             'ui_config': asdict(self.ui_config),
             'ui_state': asdict(self.ui_state),
             'metadata': asdict(self.metadata),
-            'inlets': {k: v.to_dict() for k, v in self.inlets.items()},
-            'outlets': {k: v.to_dict() for k, v in self.outlets.items()}
+            'ports': self._serialize_ports()  # Delegate to NodeData
         }
+    
+    def _initialize_from_dict(self, data: dict) -> None:
+        """
+        Load node state from dictionary.
+        
+        Restores all node state from the serialized format produced by
+        to_dict(), including dataclass fields and ports. The node instance
+        must already be created with the correct class type.
+        
+        This is typically called by NodeWrapper or Graph after creating
+        the node instance via NodeFactory.
+        
+        Strategy:
+        - Only restores fields that exist in the dataclass definition
+        - Silently ignores unknown fields (forward compatibility)
+        - Missing fields keep their default values (backward compatibility)
+        
+        Note on extensibility:
+        - metadata.custom IS a defined field, so it IS fully preserved!
+        - All user data in metadata.custom dict will be restored correctly
+        - Don't add dynamic attributes to dataclass instances - use custom dict
+        
+        Args:
+            data: Serialized node data (from to_dict())
+        
+        Raises:
+            ValueError: If data is invalid or ports fail to deserialize
+        
+        Example:
+            # Create and load node
+            node_cls, error = node_factory.get_node(registry_key)
+            node = node_cls(node_id, wrapper)
+            node.initialize_from_dict(saved_data)
+            
+            # User-defined data in metadata.custom IS preserved:
+            node.metadata.custom['my_plugin'] = {'version': '1.0', 'data': [...]}
+            # After save/load cycle, this data will be fully restored!
+        """
+        # Helper to restore fields from dict to dataclass
+        def restore_dataclass_fields(target_obj, source_dict):
+            """
+            Restore dataclass fields from dictionary.
+            Only sets fields that exist in the dataclass definition.
+            
+            Important: This DOES restore dict/list fields completely!
+            - metadata.custom dict → Fully restored with all contents
+            - metadata.notes list → Fully restored with all items
+            """
+            for key, value in source_dict.items():
+                if hasattr(target_obj, key):
+                    setattr(target_obj, key, value)
+                # Silently ignore unknown fields for forward compatibility
+        
+        # Restore dataclass fields from serialized data
+        if 'identity' in data:
+            restore_dataclass_fields(self.identity, data['identity'])
+        
+        if 'behavior' in data:
+            restore_dataclass_fields(self.behavior, data['behavior'])
+        
+        if 'ui_config' in data:
+            restore_dataclass_fields(self.ui_config, data['ui_config'])
+        
+        if 'ui_state' in data:
+            restore_dataclass_fields(self.ui_state, data['ui_state'])
+        
+        if 'metadata' in data:
+            restore_dataclass_fields(self.metadata, data['metadata'])
+        
+        # Deserialize ports (uses existing deserialize_ports method)
+        if 'ports' in data:
+            success = self._deserialize_ports(data['ports'])
+            if not success:
+                raise ValueError(
+                    f"Failed to deserialize ports for node '{self.node_id}'"
+                )

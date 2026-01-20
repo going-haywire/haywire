@@ -36,19 +36,20 @@ class Editor:
     
     def __init__(
         self, 
-        graph: BaseGraph, 
-        history_manager: IHistoryManager
+        graph: BaseGraph
     ):
         """
         Initialize the editor with core components.
         
         Args:
             graph: The HaywireGraph instance to manipulate
-            history_manager: History manager for undo/redo operations
         """
         self.graph: BaseGraph = graph
-        self.history_manager: IHistoryManager = history_manager
-                
+
+        from haywire.core.di.config import get_library_system
+        self._node_factory = get_library_system().get_node_factory()
+        self.history_manager = get_library_system().get_history_manager()
+
         # Hook into history manager for undo/redo notifications
         if self.history_manager:
             self._setup_history_hooks()
@@ -192,7 +193,7 @@ class Editor:
     
     def get_available_node_regkeys(self) -> List[str]:
         """Get a list of all available node types from the factory."""
-        return self.graph.node_factory.node_registry.list_names()
+        return self._node_factory.node_registry.list_names()
 
     # =============================================================================
     # CONNECTION OPERATIONS

@@ -1,7 +1,7 @@
 import copy
 import logging
 import time
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from haywire.core.graph.types import ChangeReason
@@ -117,6 +117,7 @@ class EdgeWrapper:
     
     def __init__(
         self,
+        graph: 'BaseGraph',
         output_node_id: str,
         outlet_port_id: str,
         input_node_id: str,
@@ -147,10 +148,11 @@ class EdgeWrapper:
         )
         
         # Reference to parent graph
-        self._graph: Optional['BaseGraph'] = None
+        self._graph: Optional['BaseGraph'] = graph
 
-        # Adapter factory reference
-        self._adapter_factory: Optional['AdapterFactory'] = None
+        # Adapter factory reference from global DI service locator
+        from haywire.core.di.config import get_library_system
+        self._adapter_factory: Optional['AdapterFactory'] = get_library_system().get_adapter_factory()
                
         # Node wrapper references (set during registration)
         self._output_wrapper: Optional['NodeWrapper'] = None
@@ -176,11 +178,16 @@ class EdgeWrapper:
             input_node_id=self.input_node_id,
             inlet_port_id=self.inlet_port_id,
             edge_type=self._edge_type,
-            chain_adapter_keys=([]),
-            connection_uuid=self._connection_uuid
+            chain_adapter_keys=([])
         )
 
         self._source_type: Optional[IType] = None
+
+        # Subscribe to adapter factory for hot reload 
+        self._adapter_factory.register_edge_callback(
+            self._connection_uuid,
+            self._on_adapter_lifecycle_event
+        )
 
     def is_valid(self) -> bool:
         """Check if edge is valid"""
@@ -210,29 +217,6 @@ class EdgeWrapper:
         """Get the Edge state"""
         return self._state
 
-    def instantiate(self, graph: 'BaseGraph') -> Optional['EdgeWrapper']:
-        """
-        Instantiate edge wrapper 
-                
-        Does neiter add wrapper to graph nor build the adapter chain - that's the caller's responsibility.
-        
-        Args:
-            graph: The graph containing this edge
-            
-        Returns:
-            Self if instantiation successful, None otherwise
-        """
-        self._graph = graph
-        self._adapter_factory = graph.adapter_factory
-
-        # Subscribe to adapter factory for hot reload 
-        self._adapter_factory.register_edge_callback(
-            self._connection_uuid,
-            self._on_adapter_lifecycle_event
-        )
-
-        return self
-
     def build(self):
         """
         Build edge wrapper (including rebuild adapter chain).        
@@ -258,6 +242,22 @@ class EdgeWrapper:
         logger.debug(
             f".. rebuilding failed with errors."
         )
+
+    def validate_chain_for_changes(self, chain: List[str]):
+        """
+        Check if adapter chain has changed compared to given chain.
+        Issues a warning to the state if so.
+        
+        Args:
+            chain: List of adapter registry keys to compare against
+        """
+        if self._edge.chain_adapter_keys != chain:
+            self._state.warnings.append(
+                f"Adapter chain composition changed during hot reload. "
+                f"From '{' -> '.join(chain)}' "
+                f"to '{' -> '.join(self._edge.chain_adapter_keys)}'. "
+                f"Graph behavior may differ!"
+            )
 
     def _build_adapter_chain(self) -> bool:
         """
@@ -532,6 +532,7 @@ class EdgeWrapper:
 
         return self._state.is_linked != is_linked
 
+
     def _on_adapter_lifecycle_event(self, batch: List[LifeCycleEvent]):
         """
         Handle adapter hot reload events.
@@ -597,6 +598,38 @@ class EdgeWrapper:
             shallow copy of internal EdgeWrapperState with execution statistics
         """
         return copy.copy(self._state)
+    
+    def serialize(self) -> Dict[str, Any]:
+        """
+        Serialize edge wrapper state.
+        
+        Returns the edge data which includes adapter chain metadata.
+        This can be used directly by BaseGraph serialization.
+        
+        Returns:
+            Dictionary containing edge state
+        """
+        return self._edge.to_dict()
+    
+    def restore_after_load(self) -> bool:
+        """
+        Restore edge state after graph load.
+        
+        Called after both nodes have been loaded and the edge has been
+        instantiated. Rebuilds the adapter chain based on current port
+        types.
+        
+        Returns:
+            True if restoration succeeded, False otherwise
+        """
+        logger.debug(
+            f"Restoring edge {self._connection_uuid} after load"
+        )
+        
+        # Build adapter chain (will auto-detect types from ports)
+        self.build()
+        
+        return self._state.is_valid()
     
     
     def cleanup(self):

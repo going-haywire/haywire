@@ -44,7 +44,7 @@ class LibraryRegistry:
         self._library_install_types: Dict[str, InstallType] = {}  # library_id -> install type
         
         # Loading configuration
-        self.load_core_libraries = True  # Load core libraries from src/haywire/libraries
+        self.load_core_libraries = False  # Load core libraries from src/haywire/libraries
         self.load_pip_packages = True     # Load from pip installed packages
         self.core_libraries_path: Optional[str] = None  # Set during initialization
 

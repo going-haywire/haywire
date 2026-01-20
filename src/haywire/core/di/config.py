@@ -488,6 +488,7 @@ def create_library_system_service(project_root: Optional[str] = None,
 # ============================================================================
 
 _global_injector: Optional[Injector] = None
+_global_library_system: Optional[LibrarySystemService] = None
 
 
 def set_global_injector(injector: Injector) -> None:
@@ -501,6 +502,37 @@ def set_global_injector(injector: Injector) -> None:
     """
     global _global_injector
     _global_injector = injector
+
+
+def set_library_system(service: LibrarySystemService) -> None:
+    """
+    Set the global LibrarySystemService.
+    
+    Should be called during application initialization.
+    
+    Args:
+        service: The initialized LibrarySystemService
+    """
+    global _global_library_system
+    _global_library_system = service
+
+
+def get_library_system() -> LibrarySystemService:
+    """
+    Get the global LibrarySystemService.
+    
+    Returns:
+        LibrarySystemService instance
+        
+    Raises:
+        RuntimeError: If not initialized
+    """
+    if _global_library_system is None:
+        raise RuntimeError(
+            "LibrarySystemService not initialized. "
+            "Call set_library_system() during app startup."
+        )
+    return _global_library_system
 
 
 def get_adapter_factory() -> AdapterFactory:

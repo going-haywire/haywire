@@ -7,7 +7,7 @@ including creation, hot reload, serialization, and cleanup.
 import time
 import threading
 import logging
-from typing import List, Optional, Tuple, Any, TYPE_CHECKING
+from typing import List, Optional, Tuple, Any, Dict, TYPE_CHECKING
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
@@ -120,21 +120,29 @@ class NodeWrapper:
     
     def __init__(self, 
                  registry_key: str,
-                 node_factory: 'NodeFactory',
+                 node_id: str,
+                 graph: 'BaseGraph',
                  position: Tuple[float, float] = (100, 100)):
         """
         Initialize a new NodeWrapper.
         
         Args:
             registry_key: Registry key for the node class
-            node_factory: Factory for creating node instances  
-            initial_position: Optional[Tuple[float, float]] = None):
+            node_id: Unique identifier for the node instance
+            graph: Parent graph instance
+            position: Initial (x, y) position
         """
-        self._node_id = "unregistered"
-        """The node ID of the node instance. DO NOT CHANGE AFTER INITIALIZATION"""
         self.registry_key = registry_key
         """The registry key of the node class. DO NOT CHANGE AFTER INITIALIZATION"""
-        self._node_factory = node_factory
+        self._node_id = node_id
+        """The node ID of the node instance. DO NOT CHANGE AFTER INITIALIZATION"""
+        self._graph = graph
+        """Parent graph instance"""
+
+        # Get factory from global DI service locator
+        from haywire.core.di.config import get_library_system
+        self._node_factory = get_library_system().get_node_factory()
+        
         self._node_factory.add_event_subscriber(self.registry_key, self._on_node_lifecycle_event)
         
         # Thread safety
@@ -151,8 +159,8 @@ class NodeWrapper:
                
         # Store initial position for later initialization
         self._initial_position = position
-        
-        self._graph: Optional['BaseGraph' | None] = None
+
+        self._import_node_cls()        
 
     @property  
     def node(self) -> 'BaseNode':
@@ -177,60 +185,37 @@ class NodeWrapper:
     def node_id(self) -> Optional[NodeWrapperState]:
         """Get the node id"""
         return self._node_id
-
-
-    def instantiate(self, graph: 'BaseGraph') -> bool:
-        """
-        Initialize the wrapper.
-        
-        This is separate from __init__ to allow for deferred instantiation
-        and better error handling during creation. Does NOT add wrapper to
-        graph - that's the caller's responsibility.
-        
-        Args:
-            graph: The graph this wrapper belongs to
-            
-        Returns:
-            True if initialization succeeded, False otherwise
-        """
-        with self._lock:
-            if self._state.is_instantiated:
-                return True  # already instantiated
-
-            self._import_node_cls()
-
-            self._graph = graph
-            self._node_id = graph.generate_unique_node_id(get_registry_id_from_key(self.registry_key))
-
-            return True
         
     def _import_node_cls(self):
         """
         gets the node class and import error, if any
         """
-        self.node_cls, self._state.error_import = self._node_factory.get_node(self.registry_key)
+        self._node_cls, self._state.error_import = self._node_factory.get_node(self.registry_key)
         self._state.is_imported = True
         
-    def build(self):
+    def build(self, node_info: Optional[Dict[str, Any]] = None):
         """
-        Build node wrapper
+        Build node from class.
+        This includes instantiation, initialization, and testing of the node.
+        Args:
+            node_info: Optional serialized node data for deserialization
         """
         logger.debug(
-            f"Start node rebuilding: {self._node_id} ... "
+            f"Start node building: {self._node_id} ... "
         )
 
         self._state._clear_errors()
 
         if self._instantiate():
-            if self._initialize():
+            if self._initialize(node_info):
                 if self._test():
                     logger.debug(
-                        f"Node rebuilding succeeded: {self._node_id}"
+                        f"Node building succeeded: {self._node_id}"
                     )
                     return
         
         logger.debug(
-            f".. rebuilding failed with errors."
+            f".. building failed with errors."
         )
 
     def _instantiate(self) -> bool:
@@ -240,7 +225,7 @@ class NodeWrapper:
             True if instantiation succeeded, False otherwise
         """
         try:
-            self._node_instance = self.node_cls(self._node_id, self)
+            self._node_instance = self._node_cls(self._node_id, self)
             self._node_instance.ui_state.posX = self._initial_position[0]
             self._node_instance.ui_state.posY = self._initial_position[1]
             self._state.is_instantiated = True
@@ -255,25 +240,31 @@ class NodeWrapper:
                 operation="Instantiate Node",
                 message=f"Failed to instantiate node '{self.registry_key}'"
             ).enrich(
-                module_name=self.node_cls.__module__,
+                module_name=self._node_cls.__module__,
                 registry_key=self.registry_key,
-                class_name=self.node_cls.__name__,
-                library_identity=self.node_cls.class_library
+                class_name=self._node_cls.__name__,
+                library_identity=self._node_cls.class_library
             )
             self._state.error_instantiate.log()
             self._state.is_instantiated = False
 
         return False
 
-    def _initialize(self) -> bool:
+    def _initialize(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
         """
         Initializes the node after instantiation to its default setup
-        by calling the nodes initialize() method.
+        by either calling the nodes initialize() method or using the 
+        serialized node_info to restore its state.
+        Args:
+            node_info: Optional serialized node data for deserialization
         Returns:
             True if initialization succeeded, False otherwise
         """
         try:
-            self.node.initialize()
+            if node_info:
+                self._node_instance._initialize_from_dict(node_info)
+            else:   
+                self._node_instance.initialize()
             self._state.is_initialized = True
             self._state.error_initialize = None
             return True
@@ -285,8 +276,8 @@ class NodeWrapper:
             ).enrich(
                 _node_id=self._node_id,
                 registry_key=self.registry_key,
-                module_name=self.node_cls.__module__,
-                library_identity=self.node_cls.class_library
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
             )
             self._state.error_initialize.log()
             self._state.is_initialized = False
@@ -317,7 +308,7 @@ class NodeWrapper:
                     self._state.error_test = HaywireException.create(
                         message=f"Node test execution failed: {error}"
                     ).enrich(
-                        module_name=self.node_cls.__module__,
+                        module_name=self._node_cls.__module__,
                         registry_key=self.registry_key,
                         operation="Node Test Execution",
                         category="Node Execution Error",
@@ -409,7 +400,7 @@ class NodeWrapper:
                 return  # abort further processing
             
             # Successful reload - mark for migration
-            self.node_cls = lc_event.affected_class
+            self._node_cls = lc_event.affected_class
             self._state.error_import = None
 
             # Tell graph about error
@@ -504,6 +495,30 @@ class NodeWrapper:
                 ).log()
         
         return result
+    
+    # =========================================================================
+    # SERIALIZATION
+    # =========================================================================
+    
+    def serialize(self) -> Dict[str, Any]:
+        """
+        Serialize wrapper state for graph save.
+        
+        Returns:
+            Dictionary containing wrapper and node state
+        """
+        with self._lock:
+            result = {
+                'node_id': self._node_id,
+                'registry_key': self.registry_key,
+                'position': list(self._initial_position),
+            }
+            
+            # Serialize node instance if available
+            if self._node_instance:
+                result['node_data'] = self._node_instance._to_dict()
+            
+            return result
     
     def __repr__(self) -> str:
         return (

@@ -11,6 +11,8 @@ from dataclasses import dataclass
 import uuid
 import logging
 
+from haywire.core.library.utils import get_registry_id_from_key
+
 from ..data.enums import FlowType
 from ..types.ports import DataPort
 from .validation import ValidationManager, ValidationCallback
@@ -79,8 +81,6 @@ class BaseGraph:
         self, 
         graph_id: str, 
         name: str,
-        node_factory: 'NodeFactory', 
-        adapter_factory: 'AdapterFactory',
         validation_delay_ms: float = 50.0
     ):
         """
@@ -89,14 +89,10 @@ class BaseGraph:
         Args:
             graph_id: Unique identifier for this graph
             name: Human-readable name for the graph
-            node_factory: Factory for creating node wrappers
-            adapter_factory: Factory for creating adapter chains
             validation_delay_ms: Debounce delay for validation (default 50ms)
         """
         self.graph_id: str = graph_id
         self.name: str = name or f"Graph_{graph_id}"
-        self.node_factory = node_factory        
-        self.adapter_factory = adapter_factory
         
         # Core containers
         self.node_wrappers: Dict[str, 'NodeWrapper'] = {}
@@ -198,22 +194,22 @@ class BaseGraph:
             NodeWrapper if successful, None if failed
         """
         from ..node.node_wrapper import NodeWrapper
-        
+
+        node_id = self.generate_unique_node_id(
+            get_registry_id_from_key(self.registry_key)
+        )        
         # Create new wrapper
         wrapper = NodeWrapper(
             registry_key=registry_key,
-            node_factory=self.node_factory,
+            node_id=node_id,
+            graph=self,
             position=position
         )
         
-        # Initialize wrapper (returns self if successful)
-        if wrapper.instantiate(self):
-            wrapper.build()
-            # Add to graph's collection (triggers validation)
-            return self.add_node_wrapper(wrapper)
-        else:
-            return None
-
+        wrapper.build()
+        # Add to graph's collection (triggers validation)
+        return self.add_node_wrapper(wrapper)
+    
     def add_node_wrapper(self, wrapper: 'NodeWrapper') -> 'NodeWrapper':
         """
         Add an initialized wrapper to the graph's collection.
@@ -401,6 +397,7 @@ class BaseGraph:
 
         # Create new wrapper
         edge_wrapper = EdgeWrapper(
+            graph=self,
             output_node_id=output_node_id,
             outlet_port_id=outlet_port_id,
             input_node_id=input_node_id,
@@ -408,14 +405,10 @@ class BaseGraph:
             edge_type=flow_type,
         )
         
-        # Initialize wrapper (returns self if successful)
-        if edge_wrapper.instantiate(self):
-            # Build adapter chain
-            edge_wrapper.build()
-            # Add to graph's collection (triggers validation automatically)
-            return self.add_edge_wrapper(edge_wrapper)
-        else:
-            return None
+        # Build adapter chain
+        edge_wrapper.build()
+        # Add to graph's collection (triggers validation automatically)
+        return self.add_edge_wrapper(edge_wrapper)
     
     def add_edge_wrapper(self, edge_wrapper: 'EdgeWrapper') -> 'EdgeWrapper':
         """
@@ -534,7 +527,7 @@ class BaseGraph:
         edge_wrapper: 'EdgeWrapper',
         node_id: str,
         port_id: str
-    ) -> DataPort:
+    ):
         """
         Links an edge to a port. 
         Update port link state.
@@ -553,14 +546,14 @@ class BaseGraph:
                         ew.connection_uuid,
                         ChangeReason.EDGE_REDRAW_REQUESTED
                     )
-        return port
+        return
 
     def _unlink_edge_from_port(
         self,
         edge_wrapper: 'EdgeWrapper',
         node_id: str,
         port_id: str
-    ) -> DataPort:
+    ):
         """
         Unlinks the edge from a port. 
         Updates port link state.
@@ -583,7 +576,7 @@ class BaseGraph:
                         ChangeReason.EDGE_REDRAW_REQUESTED
                     )
 
-        return port
+        return
 
     def get_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
         """
@@ -895,22 +888,42 @@ class BaseGraph:
     # =========================================================================
 
     def clear(self):
-        """Clear all nodes, edges, and variables from the graph"""
-        # Clear validation manager state
-        self._validation.clear()
+        """
+        Clear all nodes, edges, and variables from the graph.
         
-        # Cleanup all wrappers before clearing
+        Notifies validation listeners about all removed elements before clearing.
+        """
+        # Mark all edges as removed (must do edges before nodes to maintain refs)
+        for connection_uuid in list(self.edge_wrappers.keys()):
+            self._validation.mark_edge_dirty(
+                connection_uuid, 
+                ChangeReason.EDGE_REMOVED
+            )
+        
+        # Mark all nodes as removed
+        for node_id in list(self.node_wrappers.keys()):
+            self._validation.mark_node_dirty(node_id, ChangeReason.NODE_REMOVED)
+        
+        # Force immediate validation to notify listeners before cleanup
+        self._validation.force_immediate_validation()
+        
+        # Now cleanup all wrappers
         for wrapper in self.node_wrappers.values():
             wrapper.cleanup()
         
         for wrapper in self.edge_wrappers.values():
             wrapper.cleanup()
         
+        # Clear all data structures
         self.node_wrappers.clear()
         self.edge_wrappers.clear()
         self.variables.clear()
         self.selected_nodes.clear()
         self.selected_connections.clear()
+        
+        # Clear validation manager state after notifications
+        self._validation.clear()
+
     
     # =========================================================================
     # SERIALIZATION
@@ -984,27 +997,28 @@ class BaseGraph:
             if "nodes" in data:
                 from ..node.node_wrapper import NodeWrapper
                 
-                for node_id, node_data in data["nodes"].items():
+                for node_id, wrapper_data in data["nodes"].items():
                     # Create wrapper
                     wrapper = NodeWrapper(
-                        registry_key=node_data["registry_key"],
-                        node_factory=self.node_factory,
-                        position=node_data.get("position", (100, 100))
+                        registry_key=wrapper_data["registry_key"],
+                        node_id=node_id,
+                        graph=self,
+                        position=tuple(wrapper_data.get("position", [100, 100]))
                     )
                     
-                    # Initialize and deserialize
-                    if wrapper.initialize(self):
-                        if wrapper.deserialize(node_data):
-                            self.add_node_wrapper(wrapper)
-                        else:
-                            logger.warning(f"Failed to deserialize node {node_id}")
-            
+                    # Instantiate with original node_id and build
+                    wrapper.build(wrapper_data.get("node_data", {}))
+                    
+                    # Add to graph
+                    self.add_node_wrapper(wrapper)
+                                
             # Load edges
             if "edges" in data:
                 from ..edge.edge_wrapper import EdgeWrapper
                 
                 for connection_uuid, edge_data in data["edges"].items():
                     edge_wrapper = EdgeWrapper(
+                        graph=self,
                         output_node_id=edge_data["output_node_id"],
                         outlet_port_id=edge_data["outlet_port_id"],
                         input_node_id=edge_data["input_node_id"],
@@ -1012,9 +1026,13 @@ class BaseGraph:
                         edge_type=FlowType(edge_data["edge_type"]),
                     )
                     
-                    if edge_wrapper.initialize(self):
-                        edge_wrapper.build()
-                        self.add_edge_wrapper(edge_wrapper)
+                    edge_wrapper.build()
+
+                    # Validate adapter chain for changes
+                    chain = edge_data["adapter_registry_keys"]
+                    edge_wrapper.validate_chain_for_changes(chain)
+
+                    self.add_edge_wrapper(edge_wrapper)
             
             return True
             
@@ -1036,3 +1054,79 @@ class BaseGraph:
     def __repr__(self) -> str:
         """Detailed string representation"""
         return self.__str__()
+    
+    # =========================================================================
+    # FILE I/O
+    # =========================================================================
+    
+    def save_to_file(self, filepath: str) -> bool:
+        """
+        Save graph to JSON file.
+        
+        Args:
+            filepath: Path to save the graph file
+            
+        Returns:
+            True if save succeeded, False otherwise
+        """
+        import json
+        from datetime import datetime
+        
+        try:
+            # Update modification timestamp
+            self.modified_at = datetime.now().isoformat()
+            
+            # Serialize graph
+            data = self.to_dict()
+            
+            # Write to file with pretty formatting
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"Successfully saved graph to {filepath}")
+            return True
+            
+        except Exception as e:
+            logger.error(
+                f"Failed to save graph to {filepath}: {e}",
+                exc_info=True
+            )
+            return False
+    
+    def load_from_file(self, filepath: str) -> bool:
+        """
+        Load graph from JSON file.
+        
+        Args:
+            filepath: Path to load the graph file from
+            
+        Returns:
+            True if load succeeded, False otherwise
+        """
+        import json
+        
+        try:
+            # Read from file
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Deserialize graph
+            success = self.load_from_dict(data)
+            
+            if success:
+                logger.info(
+                    f"Successfully loaded graph from {filepath}: "
+                    f"{len(self.node_wrappers)} nodes, "
+                    f"{len(self.edge_wrappers)} edges"
+                )
+            else:
+                logger.error(f"Failed to load graph from {filepath}")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(
+                f"Failed to load graph from {filepath}: {e}",
+                exc_info=True
+            )
+            return False

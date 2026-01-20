@@ -37,11 +37,7 @@ class Edge:
     List of adapter registry keys in execution order.
     Example: ['temp_to_float', 'float_to_int']
     """
-    
-    # Connection ID (generated from components)
-    connection_uuid: str = ""
-    """UUID generated from connection components"""
-    
+        
     def to_dict(self) -> dict[str, Any]:
         """Serialize edge for graph save"""
         return {
@@ -50,8 +46,7 @@ class Edge:
             'input_node_id': self.input_node_id,
             'inlet_port_id': self.inlet_port_id,
             'edge_type': self.edge_type.value,
-            'adapter_registry_keys': self.chain_adapter_keys,
-            'connection_uuid': self.connection_uuid
+            'adapter_registry_keys': self.chain_adapter_keys
         }
     
     @classmethod
@@ -63,6 +58,5 @@ class Edge:
             input_node_id=data['input_node_id'],
             inlet_port_id=data['inlet_port_id'],
             edge_type=FlowType(data['edge_type']),
-            adapter_registry_keys=data.get('adapter_registry_keys', []),
-            connection_uuid=data.get('connection_uuid', '')
+            adapter_registry_keys=data.get('adapter_registry_keys', [])
         )
