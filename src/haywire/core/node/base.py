@@ -573,40 +573,32 @@ class NodeData:
             
         Returns:
             True if deserialization succeeded, False otherwise
+        Raises:
+            ValueError: If deserialization fails
         """
         from haywire.core.types.ports import DataPort
         from haywire.core.di.config import get_library_system
         type_registry = get_library_system().get_type_registry()
-        try:
-            # Clear existing ports
-            self.ports.clear()
-            self._port_order_counter = 0
+        # Clear existing ports
+        self.ports.clear()
+        self._port_order_counter = 0
+        
+        # Recreate each port from serialized data
+        for port_id, port_data in ports_data.items():
+            # Use DataPort.from_dict() to recreate the port
+            port = DataPort.from_dict(port_data, type_registry)
             
-            # Recreate each port from serialized data
-            for port_id, port_data in ports_data.items():
-                # Use DataPort.from_dict() to recreate the port
-                port = DataPort.from_dict(port_data, type_registry)
-                
-                # Add to ports collection
-                self.ports[port_id] = port
-                port._wrapper = self.wrapper
-                
-                # Update order counter
-                if port.order >= self._port_order_counter:
-                    self._port_order_counter = port.order + 1
+            # Add to ports collection
+            self.ports[port_id] = port
+            port._wrapper = self.wrapper
             
-            self._cache_dirty = True
-            return True
-            
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(
-                f"Failed to deserialize ports for node {self.node_id}: {e}",
-                exc_info=True
-            )
-            return False
-  
+            # Update order counter
+            if port.order >= self._port_order_counter:
+                self._port_order_counter = port.order + 1
+        
+        self._cache_dirty = True
+        return True
+        
 
 class BaseNode(NodeData, metaclass=NodeMeta):
     """
@@ -789,8 +781,4 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         
         # Deserialize ports (uses existing deserialize_ports method)
         if 'ports' in data:
-            success = self._deserialize_ports(data['ports'])
-            if not success:
-                raise ValueError(
-                    f"Failed to deserialize ports for node '{self.node_id}'"
-                )
+            self._deserialize_ports(data['ports'])

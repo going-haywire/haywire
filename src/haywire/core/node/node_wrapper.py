@@ -84,7 +84,8 @@ class NodeWrapperState:
         
     def _clear_errors(self) -> None:
         """Clear all error states"""
-        self.error_import = None
+        # self.error_import = None -> we dont clear import errors here, 
+        # this error can only be cleared on hot reload
         self.error_instantiate = None
         self.error_initialize = None
         self.error_test = None
