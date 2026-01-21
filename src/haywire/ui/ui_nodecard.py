@@ -23,7 +23,7 @@ class UINodeCard():
             ui_elements: Mapping of element IDs to UI elements
             widget_instances: Mapping of element IDs to widget instances
         """
-        self.ui_card = ui.card()
+        self.ui_card: ui.card = ui.card()
         self.widget_instances = {}
 
     def get_card(self):

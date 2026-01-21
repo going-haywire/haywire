@@ -86,6 +86,10 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         self._dependency_module_errors: Dict[str, HaywireException] = {}
         """Track errors during dependency module reloads and store them by registry_key"""
 
+        # Setup logging
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:
         """Function that returns True if a class should be included in this registry"""
@@ -308,7 +312,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                     ).enrich(
                         module_name=module_name,
                         library_identity=library_identity
-                    ).log()
+                    ).log(self.logger)
                 except Exception:
                     logging.error(
                         f"Library '{library_identity.label}': "
@@ -351,7 +355,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             # ... before validating the file
             if event.event_type != FileEventType.DELETED: # no need to validate deleted files
                 if not self._validate_python_file(event.file_path):
-                    logging.error(
+                    self.logger.error(
                         f"Library '{event.library_identity.label}': "
                         f"Invalid Python file: {event.file_path}. Skipping Hot Reloading.")
                     return None
@@ -362,7 +366,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 else:
                     # covering an edge case where a module is modified but 
                     # not yet loaded
-                    logging.info(
+                    self.logger.info(
                         f"Library '{event.library_identity.label}': Module "
                         f"'{module_name}' not found in sys.modules. Creating "
                         f"new module."
@@ -374,7 +378,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 if event.event_type == FileEventType.DELETED:
                     self._on_delete(module_name, event.library_identity)
 
-            logging.info(
+            self.logger.info(
                 f"Library '{event.library_identity.label}': "
                 f"...Hot Reloading -> DONE.")
             
@@ -412,6 +416,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                             module_name=module_name,
                             error=error,
                         )
+                        # one might be tempted to unregister the class here,
+                        # but we want to keep the broken class registered so that
+                        # we can report its error state to consumers
                         self._queue_lifecycle_event(lc_event)
                     self._notify_batch_event_subscribers()
                 elif event.dependency_event and len(self._dependency_module_errors) > 0:
@@ -431,14 +438,14 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 ).enrich(
                     module_name=locals().get('module_name', 'unknown'),
                     library_identity=event.library_identity
-                ).log()
+                ).log(self.logger)
             except Exception as logging_error:
-                logging.error(
+                self.logger.error(
                     f"Library '{event.library_identity.label}': "
                     f"Failed notifying registry on file:{event.file_path}' :"
                     f" {logging_error}")
             
-            logging.error(
+            self.logger.error(
                 f"Library '{event.library_identity.label}': "
                 f"...Hot Reloading on file on file: {event.file_path} -> FAILED.")
          
@@ -498,7 +505,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         if module_name is None:
             return  # Skip processing if validation failed
 
-        logging.info(
+        self.logger.info(
             f"Library '{library_identity.label}': Analyzing dependencies for "
             f"changed module '{module_name}'..."
         )
@@ -509,7 +516,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         # Get reload plan from dependency graph, excluding already-reloaded modules
         reload_plan = self._dependency_graph.get_reload_plan(module_name, exclude_modules)
         
-        logging.info(
+        self.logger.info(
             f"Library '{library_identity.label}': Reload plan: "
             f"{len(reload_plan.non_managed_modules)} helpers, "
             f"{len(reload_plan.managed_modules)} managed classes"
@@ -533,7 +540,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
 
         # Step 2: Reload managed modules using registry's special handling
         for managed_module in reload_plan.managed_modules:
-            logging.info(
+            self.logger.info(
                 f"Library '{library_identity.label}': Reloading managed "
                 f"module '{managed_module}'..."
             )
@@ -553,7 +560,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         Called by the _on_change method.
         """
         try:
-            logging.info(
+            self.logger.info(
                 f"Library '{library_identity.label}': Reloading helper "
                 f"module '{module_name}'..."
             )
@@ -581,7 +588,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         "Ensure that the dependency module is accessible "
                         "from the Python environment."
                     )
-                ).log()
+                ).log(self.logger)
                 reg_keys = self._module_to_registry_keys.get(managed_module, [None])
                 for key in reg_keys:
                     lc_event = LifeCycleEvent(
@@ -786,7 +793,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                     self._unregister_class(hw_name.class_identity.registry_key)
                     self._register_class(class_info['class'], library_identity)
             
-            logging.info(
+            self.logger.info(
                 f"Library '{library_identity.label}': "
                 f"Rollback complete for '{module_name}'")
 
@@ -821,7 +828,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 # Convert to module prefix by adding dot
                 scopes.append(dep_lib_id + '.')
                 
-        logging.debug(
+        self.logger.debug(
             f"Library '{library_identity.label}': Tracking scopes: {scopes}"
         )
         
@@ -844,7 +851,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """
         if callback not in self._batch_event_subscribers:
             self._batch_event_subscribers.append(callback)
-            logging.debug(f"Registered customer callback: {callback.__name__}")
+            self.logger.debug(f"Registered customer callback: {callback.__name__}")
     
     def remove_batch_event_subscriber(self, callback: LifeCycleBatchCallback) -> None:
         """
@@ -855,7 +862,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """
         if callback in self._batch_event_subscribers:
             self._batch_event_subscribers.remove(callback)
-            logging.debug(f"Removed customer callback: {callback.__name__}")
+            self.logger.debug(f"Removed customer callback: {callback.__name__}")
     
     def add_registry_subscriber(self, registry: HotReloadRegistry) -> None:
         """
@@ -869,7 +876,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """
         if registry not in self._registry_subscribers:
             self._registry_subscribers.append(registry)
-            logging.debug(f"Registered registry subscriber: {registry.__class__.__name__}")
+            self.logger.debug(f"Registered registry subscriber: {registry.__class__.__name__}")
     
     def remove_registry_subscriber(self, registry: HotReloadRegistry) -> None:
         """
@@ -880,7 +887,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """
         if registry in self._registry_subscribers:
             self._registry_subscribers.remove(registry)
-            logging.debug(f"Removed registry subscriber: {registry.__class__.__name__}")
+            self.logger.debug(f"Removed registry subscriber: {registry.__class__.__name__}")
     
     def _queue_lifecycle_event(self, event: LifeCycleEvent) -> None:
         """
@@ -928,7 +935,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             try:
                 registry.event_dispatcher(event)
             except Exception as e:
-                logging.error(
+                self.logger.error(
                     f"Registry subscriber '{registry.__class__.__name__}' "
                     f"callback failed for {event.file_path}: {e}",
                     exc_info=True

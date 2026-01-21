@@ -151,7 +151,7 @@ class UINode:
 
                     if renderer_name is None:
                         # this can happen if :
-                        # the node has no renderer assigned AND the registry has no default renderer available
+                        # the node has no renderer assigned AND the registry has no default renderer available                        
                         renderer_name = NO_RENDERER_DEFINED  # Fallback if no default renderer is set"
                         logging.debug(
                             f"For node '{self.wrapper.node.identity.label}' - '{self.wrapper.node_id}' "

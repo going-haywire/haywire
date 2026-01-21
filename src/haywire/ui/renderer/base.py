@@ -46,26 +46,27 @@ class BaseRenderer(IBaseRenderer, ABC):
         self._nodeids_widget_instances: Dict[str, Dict[str, BaseWidget]] = {}
 
 
-    def _render(self, wrapper: NodeWrapper, card: UINodeCard) -> UINodeCard:
+    def _render(self, wrapper: NodeWrapper) -> UINodeCard:
+        ui_nodeCard: UINodeCard = UINodeCard()
         try:
             # Initialize node_id storage for widget instances
             self._nodeids_widget_instances[wrapper.node_id] = {}
 
-            self.render(card.get_card(), wrapper)
+            self.render(ui_nodeCard.get_card(), wrapper)
 
-            card.set_widget_instances(self._nodeids_widget_instances[wrapper.node_id])
+            ui_nodeCard.set_widget_instances(self._nodeids_widget_instances[wrapper.node_id])
 
             # Clear widget instances for next render
             self._nodeids_widget_instances[wrapper.node_id] = {}
 
-            return card
+            return ui_nodeCard
         
         except Exception:
             # Clean up any partially created UI elements
-            if card is not None:
+            if ui_nodeCard is not None:
                 try:
                     # Remove all children and delete the main card
-                    ui_card = card.get_card()
+                    ui_card = ui_nodeCard.get_card()
                     ui_card.clear()
                     ui_card.delete()
                 except Exception as cleanup_error:
