@@ -44,6 +44,8 @@ class NodeWrapperState:
     """node instantiate error"""
     error_initialize: Optional[HaywireException] = None
     """node initialize error"""
+    error_renderer: Optional[HaywireException] = None
+    """node renderer error """
     error_custom: Optional[HaywireException] = None
     """node custom error """
     error_test: Optional[HaywireException] = None
@@ -77,6 +79,8 @@ class NodeWrapperState:
             return self.error_initialize
         elif self.error_test:
             return self.error_test
+        elif self.error_renderer:
+            return self.error_renderer
         elif self.error_custom:
             return self.error_custom
         else:
@@ -89,6 +93,7 @@ class NodeWrapperState:
         self.error_instantiate = None
         self.error_initialize = None
         self.error_test = None
+        self.error_renderer = None
         self.error_custom = None
 
 class NodeMiddleware(ABC):
@@ -192,7 +197,10 @@ class NodeWrapper:
         gets the node class and import error, if any
         """
         self._node_cls, self._state.error_import = self._node_factory.get_node(self.registry_key)
-        self._state.is_imported = True
+        if self._state.error_import:
+            self._state.is_imported = False
+        else:
+            self._state.is_imported = True
         
     def build(self, node_info: Optional[Dict[str, Any]] = None):
         """
@@ -403,7 +411,8 @@ class NodeWrapper:
             # Successful reload - mark for migration
             self._node_cls = lc_event.affected_class
             self._state.error_import = None
-
+            self._state.is_imported = True
+            
             # Tell graph about error
             if self._graph:
                 self._graph._validation.mark_node_dirty(

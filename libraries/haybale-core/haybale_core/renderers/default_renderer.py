@@ -5,6 +5,7 @@ This renderer provides the standard node appearance with collapsible groups
 """
 
 from typing import List
+from haywire.ui.widget.factory import error_render_detail
 from nicegui import ui
 
 from haywire.core.node.node_wrapper import NodeWrapper
@@ -48,6 +49,11 @@ class DefaultNodeRenderer(NodeRenderer):
             # Header with node label
             with ui.row().classes('drag-handle'):
                 ui.label(node.identity.label).classes('text-h6')
+           
+                if wrapper.state and wrapper.state.has_error():
+                    error = wrapper.state.get_error()
+                    ui.label(error.message).classes('text-sm text-red-600 mb-2')
+                    error_render_detail(error)
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):

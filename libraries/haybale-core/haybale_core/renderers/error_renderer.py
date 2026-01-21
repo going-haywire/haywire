@@ -80,8 +80,8 @@ class ErrorNodeRenderer(NodeRenderer):
                 with ui.row():
                     ui.label(node.identity.label).classes('text-h6')
             
-                if wrapper._state.get_error():
-                    error = wrapper._state.get_error()
+                if wrapper.state.has_error():
+                    error = wrapper.state.get_error()
                     ui.label(error.message).classes('text-sm text-red-600 mb-2')
                     error_render_detail(error)
 

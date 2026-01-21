@@ -22,7 +22,7 @@ from .base import BaseRenderer
 from .registry import RendererRegistry
 
 
-FactoryEventCallback = Callable[[str], None] # Function signature for factory event callbacks
+FactoryEventCallback = Callable[[], None] # Function signature for factory event callbacks
 
 NO_RENDERER_DEFINED: str = "no.renderer.defined"
 
@@ -58,7 +58,7 @@ class RenderFactory():
             self._listen_on_renderer_lifecycle_event)
         
         # Cache for BaseRenderer instances by registry key
-        self._renderer_cache: Dict[str, BaseRenderer] = {}
+        self._renderer_instance_cache: Dict[str, BaseRenderer] = {}
         
         # Customer callbacks for factory hot reload notifications
         # mapping from node_id key to callback functions of each individual UINode
@@ -102,6 +102,10 @@ class RenderFactory():
         ui_nodeCard: UINodeCard | None = None
 
         renderer_instance: BaseRenderer | None = None
+        
+        if not _is_error_render:
+            # clear previous render error if any
+            wrapper.state.error_renderer = None
 
         try:
             # if the node is undefined, we throw an error that should be caught 
@@ -121,23 +125,19 @@ class RenderFactory():
                     ]
                 ).log()
 
-            if renderer_registry_key in self._renderer_cache:
-                renderer_instance = self._renderer_cache[renderer_registry_key]
-            else:            
-                renderer_instance = self.get_renderer(renderer_registry_key)
+            renderer_instance = self.get_renderer_instance(renderer_registry_key)
 
             logging.debug(
                 f"For node '{wrapper.node.identity.label}' - '{wrapper.node_id}' "
                 f"attempting to render Using '{renderer_registry_key}'"
             )
+
             ui_nodeCard = renderer_instance._render(wrapper=wrapper)
+
             logging.debug(
                 f"For node '{wrapper.node.identity.label}' - '{wrapper.node_id}' "
                 f"successfully rendered Using '{renderer_registry_key}'"
             )
-
-            # once the renderer instance is successfully used, cache it
-            self._renderer_cache[renderer_registry_key] = renderer_instance
                 
         except Exception as error:
             if not isinstance(error, HaywireException):
@@ -166,7 +166,7 @@ class RenderFactory():
             )
 
             error.log()
-            wrapper.state.error_custom = error
+            wrapper.state.error_renderer = error
             error_renderer_registry_key = self._renderer_registry.get_error_renderer_registry_key()
 
             if _is_error_render:
@@ -176,7 +176,7 @@ class RenderFactory():
                 logging.debug(
                     f" -> Emergency Fallback to render error '{error.message}' "
                     f"on '{wrapper.node.identity.label}' - '{wrapper.node_id}' "
-                    "without renderer"
+                    f"without renderer"
                 )
                 error_render_detail(error)
 
@@ -203,6 +203,7 @@ class RenderFactory():
             # if the error renderer also failed, but in is hasn't - we have widgets to track..
         
         if ui_nodeCard:
+            # Everything under this conditional is to track which nodes use which renderers for hot reloads
             logging.debug(
                 f"About to return with ui_nodeCard on "
                 f"'{wrapper.node.identity.label}' - '{wrapper.node_id}'"
@@ -239,26 +240,27 @@ class RenderFactory():
 
         return ui_nodeCard
 
-    def get_renderer(self, registry_key: str) -> BaseRenderer:
+    def get_renderer_instance(self, registry_key: str) -> BaseRenderer | None:
         """
         Get a renderer instance for the given element using the renderer registry.
         Args:
             registry_key: The registry key to get the renderer for
         Returns:
-            BaseRenderer: The instantiated renderer for the registry key
+            BaseRenderer | None: The instantiated renderer for the registry key or None if not found
         """
  
         lc_event = self._renderer_registry.get_renderer_event(registry_key)
 
         renderer_cls: type[BaseRenderer] | None = lc_event.affected_class
 
-        renderer_instance = None
-
         if renderer_cls is not None:
             try:
-                renderer_instance = renderer_cls(self._widget_factory)
-
-                self._renderer_cache[registry_key] = renderer_instance
+                if registry_key in self._renderer_instance_cache:
+                    return self._renderer_instance_cache[registry_key]
+                else:            
+                    renderer_instance = renderer_cls(self._widget_factory)
+                    self._renderer_instance_cache[registry_key] = renderer_instance
+                    return renderer_instance
 
             except Exception as e:
                 # Create detailed error with context about the node instantiation
@@ -274,8 +276,9 @@ class RenderFactory():
                 )
 
                 raise error
-        return renderer_instance
-        
+
+        return None
+
     def add_factory_lifecycle_subscriber(
         self,
         node_id: str,
@@ -323,7 +326,7 @@ class RenderFactory():
         """
         if node_id in self._nodeid_to_factory_subscriber:
             for callback in self._nodeid_to_factory_subscriber[node_id]:
-                callback(node_id)
+                callback()
     
     def _listen_on_renderer_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
         """
@@ -342,8 +345,8 @@ class RenderFactory():
                     f"from library '{event.library_identity.label}'"
                 )
                 # Clear cache for affected renderer
-                if event.registry_key in self._renderer_cache:
-                    del self._renderer_cache[event.registry_key]
+                if event.registry_key in self._renderer_instance_cache:
+                    del self._renderer_instance_cache[event.registry_key]
                 else:
                     # in this case the renderer has never been used/cached before.
                     # if nodes have been rendering with a non existing renderer 
@@ -389,10 +392,6 @@ class RenderFactory():
             del self._nodeid_to_renderer_regkey[node_id]
         self._widget_factory.unregister_widget_for_node(node_id)
 
-    def reset_cache(self):
-        """Clear all cached renderer instances."""
-        self._renderer_cache.clear()
-
     def cleanup(self):
         """Cleanup resources and unregister from registries."""
         self._renderer_registry.remove_batch_event_subscriber(
@@ -403,4 +402,8 @@ class RenderFactory():
         
         self._widget_factory.cleanup()
         self._nodeid_to_factory_subscriber.clear()
-        self._renderer_cache.clear()
+        self.reset_cache()
+
+    def reset_cache(self):
+        """Clear all cached renderer instances."""
+        self._renderer_instance_cache.clear()

@@ -7,7 +7,7 @@ from nicegui import ui
 
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
-from haywire.libraries.core.types.specs import BOOL, FLOAT, INT, STRING
+from ..types.specs import BOOL, FLOAT, INT, STRING
 
 @widget(
         description="Read-only label widget for displaying data",

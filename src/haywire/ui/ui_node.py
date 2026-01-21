@@ -112,21 +112,11 @@ class UINode:
         else:   
             self.render()  # Re-render with current renderer
 
-    def _listen_on_factory_lifecycle_event(self, node_id: str) -> None:
+    def _listen_on_factory_lifecycle_event(self) -> None:
         """
-        Handle renderer hot reload notifications from NodeRenderFactory.
-        
-        This is called when either
-        - a renderer class is reloaded, added, or removed.
-        - a widget class is reloaded, added, or removed.
-        We check if it's the renderer we're currently using and re-render if so.
-                
-        Args:
-            node_id: The ID of the node whose renderer has changed
+        Handle renderer hot reload notifications from NodeRenderFactory.        
         """
-        # this is a safty check, normally the factory should only notify relevant nodes
-        if self.wrapper.node_id == node_id:
-            self.render()
+        self.render()
 
     def render(
         self,

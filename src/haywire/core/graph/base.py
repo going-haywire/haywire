@@ -196,7 +196,7 @@ class BaseGraph:
         from ..node.node_wrapper import NodeWrapper
 
         node_id = self.generate_unique_node_id(
-            get_registry_id_from_key(self.registry_key)
+            get_registry_id_from_key(registry_key)
         )        
         # Create new wrapper
         wrapper = NodeWrapper(
