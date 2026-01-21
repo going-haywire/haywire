@@ -126,6 +126,13 @@ class UINode:
         """
         with self.container:
             renderer_name = self.wrapper.node.ui_config.node_renderer
+
+            if renderer_name is None:
+                renderer_name = (
+                    self.factory._renderer_registry
+                    .get_default_renderer_registry_key()
+                )
+
             try:
                 # Clean up old widgets before clearing UI
                 if self.current_ui_card:
@@ -140,14 +147,7 @@ class UINode:
                 # Render into the container slot
                 with self.container_slot:
                     _is_error_render = False
-                    # reset any previous renderer error
-                    self.wrapper.state.error_renderer = None
-
-                    if renderer_name is None:
-                        renderer_name = (
-                            self.factory._renderer_registry
-                            .get_default_renderer_registry_key()
-                        )
+                    error = None
 
                     if renderer_name is None:
                         # this can happen if :
@@ -181,7 +181,6 @@ class UINode:
                                 "Check if the default renderer has failed to load"
                             ]
                         ).log()
-                        self.wrapper.state.error_renderer = error
                         _is_error_render = True
                         # we fallback to error renderer and hope for the best
                         renderer_name = self.factory._renderer_registry.get_error_renderer_registry_key()
@@ -191,6 +190,9 @@ class UINode:
                         self.wrapper,
                         _is_error_render=_is_error_render
                     )
+
+                    if error:
+                        self.current_ui_card.append(error)  # Append error details if any
 
                     self._emit_sync_event()
                     

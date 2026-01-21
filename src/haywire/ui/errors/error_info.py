@@ -47,11 +47,14 @@ def error_render_detail(error: HaywireException) -> ui.element:
         
         # Create new popup as a centered modal with adaptive width
         popup = Popup(
-            width="fit-content",  # Adapts to content width
+            width="400",  # Adapts to content width
             height="auto",
             backdrop_click_close=True,
             escape_close=True,
-            backdrop_color="rgba(0,0,0,0.5)"
+            backdrop_color="rgba(0,0,0,0.5)",
+            clamp_to_viewport=True,
+            title="Error Details",
+            draggable=True
         )
         
         # Render error details inside the popup

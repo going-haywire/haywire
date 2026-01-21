@@ -90,7 +90,7 @@ class RenderFactory():
         Returns:
             UINodeCard instance or None if rendering failed
         """                
-        ui_nodeCard: UINodeCard | None = None
+        ui_nodeCard: UINodeCard = UINodeCard()
 
         renderer_instance: BaseRenderer | None = None
 
@@ -102,7 +102,7 @@ class RenderFactory():
                 f"attempting to render Using '{renderer_registry_key}'"
             )
 
-            ui_nodeCard = renderer_instance._render(wrapper=wrapper)
+            ui_nodeCard = renderer_instance._render(wrapper=wrapper, card=ui_nodeCard)
 
             logging.debug(
                 f"For node '{wrapper.node.identity.label}' - '{wrapper.node_id}' "
@@ -146,11 +146,10 @@ class RenderFactory():
                     f"on '{wrapper.node.identity.label}' - '{wrapper.node_id}' "
                     f"without renderer"
                 )
-                error_render_detail(error)
+                ui_nodeCard.append(error)
 
-                return None
+                return ui_nodeCard
 
-            wrapper.state.error_renderer = error
             error_renderer_registry_key = self._renderer_registry.get_error_renderer_registry_key()
 
             logging.debug(
@@ -164,6 +163,8 @@ class RenderFactory():
                     _is_error_render=True
                 )
             
+            ui_nodeCard.append(error)
+
             logging.debug(
                 f" -> Successfully rendered node '{wrapper.node.identity.label}' - "
                 f"'{wrapper.node_id}' with '{error_renderer_registry_key}'"

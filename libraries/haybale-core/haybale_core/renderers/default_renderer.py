@@ -20,7 +20,7 @@ from ..renderers.node_renderer import NodeRenderer
 @renderer(
     description="Default renderer with collapsible group support", 
     _is_default=True)
-class DefaultNodeRenderer(NodeRenderer):
+class DefaultNodeRenderer(NodeRenderer)
     """
     Default renderer that provides the standard node appearance with group support.
     
