@@ -19,7 +19,7 @@ from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEvent
 
 from haywire.ui.editor.event_definitions import SyncNodePositionEvent
 from haywire.ui.ui_nodecard import UINodeCard
-from haywire.ui.renderer.factory import RenderFactory
+from haywire.ui.renderer.factory import RenderFactory, NO_RENDERER_DEFINED
 
 class UINode:
     """
@@ -61,12 +61,6 @@ class UINode:
         
         # Generate unique ID for this UINode
         self.ui_node_id = f"ui-node-{id(self)}"
-                
-        # Subscribe to factory renderer changes for hot reload support
-        self.factory.add_factory_lifecycle_subscriber(
-            self.wrapper.node_id,
-            self._listen_on_factory_lifecycle_event
-        )
 
         self.container.client.on_disconnect(lambda: self.cleanup())
 
@@ -103,14 +97,7 @@ class UINode:
         Refresh the UI representation of the node.
         This forces a re-render using the current renderer.
         """
-        logging.debug(f"🔄 UINode {self.wrapper.node_id}: Refreshing UI ..")
-        if self.wrapper and self.wrapper._state.get_error():
-            _error_renderer_reg_key: str | None = (
-                self.factory._renderer_registry.get_error_renderer_registry_key()
-            )
-            self.render(_error_renderer_reg_key, _is_error_render=True)
-        else:   
-            self.render()  # Re-render with current renderer
+        self.render()  # Re-render with current renderer
 
     def _listen_on_factory_lifecycle_event(self) -> None:
         """
@@ -118,23 +105,19 @@ class UINode:
         """
         self.render()
 
-    def render(
-        self,
-        renderer_name: str | None = None,
-        _is_error_render: bool = False
-    ) -> bool:                    
+    def render(self) -> bool:                    
         #IMPORTANT: This may be called from background threads (file watcher).
         # We use ui.context.client to ensure UI updates run in the correct context.
         if self.container_slot and hasattr(self.container_slot, 'client'):
             with self.container_slot.client:
-                if self._render(renderer_name, _is_error_render=_is_error_render):
+                if self._render():
                     ui.notify(f"Node {self.wrapper.node_id} hot-reloaded", type='positive')
                 else:
                     ui.notify(f"Error rendering node {self.wrapper.node_id}", type='negative')
         else:
-            self._render(renderer_name, _is_error_render=_is_error_render)
+            self._render()
 
-    def _render(self, renderer_name: str | None = None, _is_error_render: bool = False) -> bool:
+    def _render(self) -> bool:
         """
         Render the node using the specified renderer.
         
@@ -142,6 +125,7 @@ class UINode:
             renderer_name: Name of the renderer/renderer to use (None for default)
         """
         with self.container:
+            renderer_name = self.wrapper.node.ui_config.node_renderer
             try:
                 # Clean up old widgets before clearing UI
                 if self.current_ui_card:
@@ -155,14 +139,52 @@ class UINode:
                 
                 # Render into the container slot
                 with self.container_slot:
-                    if renderer_name is None:
-                        renderer_name = self.wrapper.node.ui_config.node_renderer
+                    _is_error_render = False
+                    # reset any previous renderer error
+                    self.wrapper.state.error_renderer = None
 
                     if renderer_name is None:
                         renderer_name = (
                             self.factory._renderer_registry
                             .get_default_renderer_registry_key()
                         )
+
+                    if renderer_name is None:
+                        # this can happen if :
+                        # the node has no renderer assigned AND the registry has no default renderer available
+                        renderer_name = NO_RENDERER_DEFINED  # Fallback if no default renderer is set"
+                        logging.debug(
+                            f"For node '{self.wrapper.node.identity.label}' - '{self.wrapper.node_id}' "
+                            f"no render or default defined. Using '{NO_RENDERER_DEFINED}' as renderer key"
+                        )
+
+                    # Subscribe to factory lifecycle events with the resolved renderer key
+                    # This handles re-subscription if renderer changes between renders
+                    self.factory.add_factory_lifecycle_subscriber(
+                        self.wrapper.node_id,
+                        renderer_name,
+                        self._listen_on_factory_lifecycle_event
+                    )
+
+                    if renderer_name == NO_RENDERER_DEFINED:
+                        error =  HaywireException.create(
+                            category="Renderer Lookup Error",
+                            operation="renderer_lookup",
+                            message=(
+                                f"For node '{self.wrapper.node.identity.label}' | '{self.wrapper.node_id}': "
+                                f" No renderer registry key provided and no default renderer "
+                                f"has been set in the renderer registry."
+                            ),
+                            suggestions=[
+                                "Provide a valid renderer registry key",
+                                "Set a default renderer for the registry",
+                                "Check if the default renderer has failed to load"
+                            ]
+                        ).log()
+                        self.wrapper.state.error_renderer = error
+                        _is_error_render = True
+                        # we fallback to error renderer and hope for the best
+                        renderer_name = self.factory._renderer_registry.get_error_renderer_registry_key()
 
                     self.current_ui_card = self.factory.render(
                         renderer_name,

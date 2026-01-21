@@ -52,7 +52,7 @@ class BaseRenderer(IBaseRenderer, ABC):
             # Initialize node_id storage for widget instances
             self._nodeids_widget_instances[wrapper.node_id] = {}
 
-            self.render(main_card,wrapper)
+            self.render(main_card, wrapper)
 
             node_card = UINodeCard(main_card, self._nodeids_widget_instances[wrapper.node_id])
 

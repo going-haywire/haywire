@@ -111,17 +111,71 @@ class RendererRegistry(BaseRegistry):
         """
         removed_class = super()._unregister(registry_key)
         
+        # Check if we removed the current error renderer
         if removed_class == self._error_renderer:
             self._error_renderer = None
-            logging.warning(
-                f"Error renderer '{registry_key}' unregistered, "
-                "no error renderer left in registry"
-            )    
+            self._error_renderer_name = None
+            self._error_priority = -1
+            
+            # Find next error renderer with highest priority
+            self._find_next_error_renderer()
+        
+        # Check if we removed the current default renderer
+        if registry_key == self._default_renderer_name:
+            self._default_renderer_name = None
+            self._default_priority = -1
+            
+            # Find next default renderer with highest priority
+            self._find_next_default_renderer()
         
         return removed_class
+    
+    def _find_next_error_renderer(self) -> None:
+        """Find and set the error renderer with the highest priority from remaining renderers"""
+        for key, renderer_cls in self._classes.items():
+            if (hasattr(renderer_cls, 'class_identity') and 
+                renderer_cls.class_identity._is_error):
+                priority = renderer_cls.class_identity._error_priority
+                if priority > self._error_priority:
+                    self._error_renderer = renderer_cls
+                    self._error_renderer_name = key
+                    self._error_priority = priority
+        
+        if self._error_renderer_name:
+            logging.info(
+                f"Fallback to error renderer '{self._error_renderer_name}' "
+                f"with priority {self._error_priority}"
+            )
+        else:
+            logging.warning("No error renderer left in registry")
+    
+    def _find_next_default_renderer(self) -> None:
+        """Find and set the default renderer with the highest priority from remaining renderers"""
+        for key, renderer_cls in self._classes.items():
+            if (hasattr(renderer_cls, 'class_identity') and 
+                renderer_cls.class_identity._is_default):
+                priority = renderer_cls.class_identity._default_priority
+                if priority > self._default_priority:
+                    self._default_renderer_name = key
+                    self._default_priority = priority
+        
+        if self._default_renderer_name:
+            logging.info(
+                f"Fallback to default renderer '{self._default_renderer_name}' "
+                f"with priority {self._default_priority}"
+            )
+        else:
+            logging.warning("No default renderer left in registry")
    
-    def get_default_renderer_registry_key(self) -> str | None:
-        """Get the default renderer registry key"""
+    def get_default_renderer_registry_key(self, fallback: str | None = None) -> str | None:
+        """Get the default renderer registry key
+        Args:
+            fallback: Fallback value if no default renderer is set
+        Returns:
+            str | None: The registry key of the default renderer or the fallback value
+        """
+        if self._default_renderer_name is None:
+            return fallback
         return self._default_renderer_name
 
     def get_error_renderer_registry_key(self) -> str | None:
