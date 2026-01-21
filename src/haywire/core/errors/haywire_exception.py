@@ -1033,31 +1033,10 @@ class HaywireException(Exception):
 
         # Display the focused user code section
         if self.filename:
-            if self.library_identity and self.library_identity.folder_path and self.filename:
-                try:
-                    rel_path = os.path.relpath(self.filename, self.library_identity.folder_path)
-                    # Only use relative path if it's not escaping the library folder
-                    if not rel_path.startswith(".."):
-                        if frames_before:
-                            lines.append(f"File      :╒═╧═ ./{rel_path}")
-                        else:
-                            lines.append(f"File      :╒══ ./{rel_path}")
-                    else:
-                        if frames_before:
-                            lines.append(f"File      :╒═╧═ {self.filename}")
-                        else:
-                            lines.append(f"File      :╒══ {self.filename}")
-                except ValueError:
-                    # relpath can fail if paths are on different drives (Windows)
-                    if frames_before:
-                        lines.append(f"File      :╒═╧═ {self.filename}")
-                    else:
-                        lines.append(f"File      :╒══ {self.filename}")
+            if frames_before:
+                lines.append(f"File      :╒═╧═ {self.filename}")
             else:
-                if frames_before:
-                    lines.append(f"File      :╒═╧═ {self.filename}")
-                else:
-                    lines.append(f"File      :╒══ {self.filename}")
+                lines.append(f"File      :╒══ {self.filename}")
 
             lines.append("           ┆")
 
