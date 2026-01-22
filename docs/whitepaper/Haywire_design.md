@@ -14,9 +14,9 @@
     - [Variables](#variables)
   - [The Graph-node](#the-graph-node)
   - [Connection Types](#connection-types)
-    - [On Connections, Edges, Links and Pipes](#on-connections-edges-links-and-pipes)
+    - [On Connections, Edges, Hooks and Pipes](#on-connections-edges-hooks-and-pipes)
     - [Edges](#edges)
-    - [Control-edges -\> Links](#control-edges---links)
+    - [Control-edges -\> Hooks](#control-edges---hooks)
     - [Data-edges -\> Pipes](#data-edges---pipes)
     - [Cycles](#cycles)
 - [Node Architecture](#node-architecture)
@@ -31,9 +31,7 @@
     - [Sink-node](#sink-node)
     - [Loopback-node\*\* Flag](#loopback-node-flag)
   - [Node Components](#node-components)
-    - [Configs](#configs)
-    - [Properties](#properties)
-    - [Inlets \& Outlets \& Pins](#inlets--outlets--pins)
+    - [Ports: Inlets \& Outlets \& Pins](#ports-inlets--outlets--pins)
       - [Pins](#pins)
       - [Explanation to connection-types](#explanation-to-connection-types)
       - [Control Inlets](#control-inlets)
@@ -88,6 +86,7 @@
   - [Suggested Enhancements](#suggested-enhancements)
 - [Appendix](#appendix)
   - [Complete Edge Data Structure](#complete-edge-data-structure)
+  - [Complete Port Serialization](#complete-port-serialization)
     - [Complete Node Definition Template](#complete-node-definition-template)
     - [Complete Node Initialization Sequence](#complete-node-initialization-sequence)
   - [Complete Lazy Evaluation Algorithm](#complete-lazy-evaluation-algorithm)
@@ -175,19 +174,19 @@ As with nodes, a Graph-node can be of the type control or data, depending if it 
 
 ## Connection Types
 
-### On Connections, Edges, Links and Pipes
+### On Connections, Edges, Hooks and Pipes
 
-To distinguish clearly between the visual representation of a Graph and the functional representation of a Flow, Haywire makes a clear distinction between the two on the level of connections, too. And in order to keep terms clear, when "connection(s)" is used in this text it is meant in a colloquial manner, while [Edges](#edges), [Links](#control-edges---links), and [Pipes](#data-edges---pipes) are used to describe the effective data representation of the connections. So pay attention to the context in which "connections" are used:
+To distinguish clearly between the visual representation of a Graph and the functional representation of a Flow, Haywire makes a clear distinction between the two on the level of connections, too. And in order to keep terms clear, when "connection(s)" is used in this text it is meant in a colloquial manner, while [Edges](#edges), [Hooks](#control-edges---hooks), and [Pipes](#data-edges---pipes) are used to describe the effective data representation of the connections. So pay attention to the context in which "connections" are used:
 
 - On the Graph level, the connections between the Control- and Data-nodes describe also [Edges](#edges).
 
-- On the Control-Flow level, the connections between the Control-nodes describe also [Links](#control-edges---links).
+- On the Control-Flow level, the connections between the Control-nodes describe also [Hooks](#control-edges---hooks).
 
 - On the Data-Flow level, the connections between the Data-nodes describe also [Pipes](#data-edges---pipes).
 
-[Links](#control-edges---links) and [Pipes](#data-edges---pipes) come only into existence during the [Assembly step](#assembly-process) and are only used in the orchestration of Control- and Data-Flows.
+[Hooks](#control-edges---hooks) and [Pipes](#data-edges---pipes) come only into existence during the [Assembly step](#assembly-process) and are only used in the orchestration of Control- and Data-Flows.
 
-To summarize, for each [Edge](#edges) there is either a corresponding [Link](#control-edges---links) or [Pipe](#data-edges---pipes) and all of them can be called "connections".
+To summarize, for each [Edge](#edges) there is either a corresponding [Hook](#control-edges---hooks) or [Pipe](#data-edges---pipes) and all of them can be called "connections".
 
 ### Edges
 
@@ -203,7 +202,9 @@ An [Edge](#edges) is a simple data structure (see [complete structure in Appendi
 
 Usually, only pins of the same type can be connected. But Haywire allows for connection between [Data-pins](#pin-system) of different types if there are compatible adapters available. For [Control-pins](#pin-system), there are no data-types and such restrictions are not necessary.
 
-### Control-edges -> Links
+Edges are consirdered 'linked' when they are connected between two nodes and both the inlet and the outlet ports have accepted the connection.
+
+### Control-edges -> Hooks
 
 TBD
 
@@ -233,9 +234,7 @@ If an adapter is not available, the Editor should have shown an error when the e
 
 A Haywire node is arguably the most central element of the system. A node consists of
 
-- **[Configs](#configs)** configure the structure / behaviour / functionality of the node
-- **[Properties](#properties)** to configure its behavior.
-- **[Data Inlets](#inlets--outlets--pins)** and **[Data Outlets](#data-outlets)** to store data to and from other nodes.
+- **[Ports](#ports-inlets--outlets--pins)** (Inlets and Outlets) to configure behavior and transfer data to and from other nodes.
 - **[Pins](#pin-system)** to connect to and from other nodes.
 - **[Worker-function](#worker-function-execution)** that contains its main logic.
 
@@ -300,28 +299,20 @@ These are the basic building blocks of a Haywire graph:
 
 ## Node Components
 
-### Configs
+### Ports: Inlets & Outlets & Pins
 
-[Configs](#configs) define the structure / behaviour / functionality of the node.
+All node configurables are unified as **DataPorts** with behavior defined by flags and callbacks.
 
-- [Configs](#configs) can only be of datatypes that makes them editable through the user interface.
-- Change of [configs](#configs) will trigger a reconfiguration of the node and reevaluation of all the Connections.
-  - This can be used to add/remove/enable/disable [Configs](#configs), [Properties](#properties), [Data Inlets](#inlets--outlets--pins), [Data Outlets](#data-outlets).
-  - This can also lead to a removal of Connections that are not compatible with the new [configs](#configs).
-- They have no pins.
-- They are accessible read-only by the internal [Worker-function](#worker-function-execution)
+**Configuration Ports:**
+- Implemented as Inlets with `flow_type = FlowType.NONE`
+- Define the structure/behaviour/functionality of the node
+- Changes trigger callbacks (e.g., `on_change='reconfigure_ports'`) that:
+  - Can add/remove/enable/disable other Inlets and Outlets
+  - May invalidate incompatible Connections
+- Accessible read-only by the internal [Worker-function](#worker-function-execution)
+- Serialized via "recipe" format (creation parameters, not runtime values)
 
-### Properties
-
-[Properties](#properties) are values that can be set or changed only by the user through the user interface. For use cases where control through pin-inlet's are **not** desired.
-
-- [Properties](#properties) can only be of datatypes that makes them editable through the user interface.
-- They have **no** default value
-- They have no pins.
-- They are accessible read-only by the internal [Worker-function](#worker-function-execution)
-- When a [Graph](#graph-structure) is stored to file, the value is stored.
-
-### Inlets & Outlets & Pins
+**Note:** "Properties" as a separate concept have been removed. All configuration is now done through Inlets with appropriate callbacks.
 
 #### Pins
 
@@ -380,28 +371,30 @@ Inlets are used to receive data.
 - [Data Outlets](#data-outlets) are of specified datatypes.
 - [Data Outlets](#data-outlets) are **required** to be set by the internal [Worker-function](#worker-function-execution). This assures a consistent behavior.
 - They are only write accessible by the internal [Worker-function](#worker-function-execution).
+- **Current Implementation:** Outlets can have UI widgets for display/debugging purposes (e.g., to show output values).
 
 #### Overview of Nodes Configurables
 
-| Types      | Function      | Default | Stores  | Inlets | Outlets | Visible | Enable | Required |
-| ---------- | ------------- | ------- | ------- | ------ | ------- | ------- | ------ | -------- |
-| Configs    | Configuration | no      | value   | no     | no      | on/off  | on/off | None     |
-| Properties | Properties    | no      | value   | no     | no      | on/off  | on/off | None     |
-| Inlets     | Input         | yes     | value   | yes    | no      | on/off  | on/off | Maybe    |
-| Outlets    | Output        | no      | none    | no     | yes     | on/off  | on/off | None     |
+**Current Implementation:** Unified DataPort system with behavior flags.
 
-none = can not be set / has no effect
-Default = has default value
-Stores = data that is stored to file and is loaded.
-Visible = can be set by the user to be visible in the node UI.
-Enable = can be set to be on/off by a [Property](#properties).
-Required = can be set to be required.
+| Port Type  | Flow Type | Function      | Default | Callback Support | Has Widget | Required |
+| ---------- | --------- | ------------- | ------- | ---------------- | ---------- | -------- |
+| Config     | NONE      | Configuration | yes     | yes (on_change)  | yes        | no       |
+| Data Inlet | DATA      | Input         | yes     | yes (on_change, on_connect, on_disconnect) | optional | optional |
+| Data Outlet| DATA      | Output        | no      | yes (on_connect, on_disconnect) | yes | no |
+| Control Inlet | CONTROL | Execution | no | yes (on_connect, on_disconnect) | no | no |
+| Control Outlet | CONTROL | Execution | no | yes (on_connect, on_disconnect) | no | no |
+
+**Key Changes:**
+- **Outlets can have widgets:** For display/debugging output values
+- **Callback system:** Ports have `on_change`, `on_connect`, `on_disconnect` callbacks
+- **Serialization:** Ports use "recipe" format (creation parameters) rather than storing runtime values
 
 ### Worker Function
 
 This is where the real work is done. Each node, no matter of type, has one [Worker-function](#worker-function-execution). However, depending of the type of the node, the [Worker-function](#worker-function-execution) is called through different mechanisms.
 
-The [Worker-function](#worker-function-execution) has access to the nodes internal [Properties](#properties), [Variables](#variables), Data Inlets and is able to set the [Data Outlets](#data-outlets).
+The [Worker-function](#worker-function-execution) has access to the nodes internal Data Inlets (including configuration ports), [Variables](#variables) (for Control-nodes), and is able to set the [Data Outlets](#data-outlets).
 
 It returns status information that is interpreted differently depending on the execution/evaluation mechanism.
 
@@ -769,16 +762,68 @@ Before the [Data-node's](#node-types) [Worker-function](#worker-function-executi
 
 ## Complete Edge Data Structure
 
+**Specification:**
+
 An [Edge](#edges) is a simple data structure that contains the:
 
-- **output-node's**
-  - node-id
-  - outlet-pin-id
-  - outlet-pin-data-type
-- **input-node's**
-  - node-id
-  - inlet-pin-id
-  - inlet-pin-data-type
+- **Connection identifiers:**
+  - `output_node_id`: Source node identifier
+  - `outlet_port_id`: Source port identifier
+  - `input_node_id`: Target node identifier
+  - `inlet_port_id`: Target port identifier
+  - `edge_type`: FlowType (CONTROL, DATA, CALLBACK)
+  - `adapter_chain_keys`: List of adapter registry keys
+  - `uuid`: Unique edge identifier
+
+**Implementation:**
+
+Edges are managed by `EdgeWrapper` which stores:
+
+- **Adapter chain:**
+  - `adapter_chain_keys`: List of adapter registry keys for type transformation
+  - Built during edge validation to convert between incompatible types
+  - Example: `['adapter.float_to_int', 'adapter.scale']`
+
+- **State tracking:**
+  - Lifecycle state (registered, validated, built, tested, linked)
+  - Error information for each lifecycle stage
+  - References to source/target port objects
+
+## Complete Port Serialization
+
+**Recipe-Based Serialization**
+
+Ports use a "recipe" format that stores the **creation parameters** rather than runtime values. This allows ports to be reconstructed with their exact configuration:
+
+**Key Features:**
+
+1. **Type Identity Storage:**
+   - `type_cls`: Registry key for the IType class
+   - `element_type_cls`: For compound types (e.g., ArrayType[FLOAT])
+   - Allows reconstruction of exact type hierarchy
+
+2. **Default Values:**
+   - Stored in type-appropriate format via DataField
+   - Only creation defaults, not runtime state
+
+3. **Callbacks:**
+   - `on_change`: Method name to call on value change
+   - `on_connect`: Method name to call on connection
+   - `on_disconnect`: Method name to call on disconnection
+
+4. **Hierarchical Structure:**
+   - `parent_group`: ID of parent group port
+   - `section`: Property panel section name
+   - `is_group`, `is_section`, `is_ghost`: Organizational flags
+
+5. **Widget Configuration:**
+   - `widget_key`: Registry key for UI widget
+   - `widget_config`: Additional widget parameters
+
+This recipe-based approach enables:
+- Hot reload: Ports can be rebuilt from recipes after code changes
+- Version migration: Recipes can be transformed during graph loading
+- Minimal storage: Only essential creation parameters are saved
 
 ### Complete Node Definition Template
 
