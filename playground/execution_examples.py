@@ -2,41 +2,70 @@
 Haywire Assembly and Execution System - Complete Example
 
 This file demonstrates the complete assembly and execution pipeline.
+
+Run this file to see the complete execution flow:
+    python execution_examples.py
 """
 
+from pathlib import Path
 from haywire.core.graph.base import BaseGraph
 from haywire.core.execution import Interpreter
 from haywire.core.execution.event_source import SystemEventType
-from haywire.core.node.base import BaseNode
-from haywire.core.node.decorator import node
 
 
 # ==============================================================================
-# EXAMPLE 1: Simple Flow with Event Node
+# Library System Setup
 # ==============================================================================
 
-@node(
-    registry_id='print_message',
-    label='Print Message',
-    menu='examples/simple'
-)
-class PrintMessageNode(BaseNode):
-    """Simple control node that prints a message"""
+def setup_library_system():
+    """
+    Initialize library system with test libraries.
     
-    def initialize(self):
-        from haybale_core.types.specs import EXEC, STRING
-        
-        # Control flow
-        self.add(EXEC.as_inlet('exec'))
-        self.add(EXEC.as_outlet('done'))
-        
-        # Data input
-        self.add(STRING.as_inlet('message', default='Hello, World!'))
+    This must be called before creating any graphs or nodes.
+    """
+    from haywire.core.di.test_config import create_test_library_system
+    from haywire.core.di.config import set_library_system, set_global_injector
     
-    def worker(self, context):
-        message = self.value('message')
-        print(f"[PrintMessage] {message}")
-        return {'next_outlet': 'done'}
+    # Find project root
+    current = Path(__file__).parent
+    while current != current.parent:
+        if (current / 'pyproject.toml').exists():
+            project_root = current
+            break
+        current = current.parent
+    else:
+        raise RuntimeError("Could not find project root")
+    
+    # Test libraries path
+    test_library_path = project_root / 'tests' / 'libraries'
+    
+    # Create and initialize library system
+    service = create_test_library_system(
+        project_root=str(project_root),
+        library_paths=[str(test_library_path)],
+        load_libraries=True,
+        enable_file_watching=False
+    )
+    
+    # Set global library system (required for graph operations)
+    set_library_system(service)
+    set_global_injector(service.injector)
+    
+    return service
+
+
+def cleanup_library_system(service):
+    """Clean up library system after examples."""
+    from haywire.core.di.config import set_library_system, set_global_injector
+    
+    # Stop file watchers if any
+    lib_registry = service.get_library_registry()
+    if hasattr(lib_registry, 'stop_file_watching'):
+        lib_registry.stop_file_watching()
+    
+    # Clear global references
+    set_library_system(None)
+    set_global_injector(None)
 
 
 def example_simple_flow():
@@ -44,7 +73,8 @@ def example_simple_flow():
     Example of a simple flow: BeginPlay → PrintMessage
     """
     from haybale_core.nodes.begin_play import BeginPlayNode
-    
+    from haybale_test_a.nodes.print_node import PrintMessageNode
+
     # Create graph
     graph = BaseGraph(
         graph_id='simple_example',
@@ -53,12 +83,12 @@ def example_simple_flow():
     
     # Create nodes
     begin_play = graph.create_node_wrapper(
-        BeginPlayNode.__registry_key__,
+        BeginPlayNode.class_identity.registry_key,
         position=(100, 100)
     )
     
     print_msg = graph.create_node_wrapper(
-        PrintMessageNode.__registry_key__,
+        PrintMessageNode.class_identity.registry_key,
         position=(300, 100)
     )
     
@@ -95,91 +125,47 @@ def example_simple_flow():
 
 
 # ==============================================================================
-# EXAMPLE 2: Flow with Data Nodes
+# EXAMPLE 2: Multiple Nodes in Sequence
 # ==============================================================================
 
-@node(
-    registry_id='add_numbers',
-    label='Add Numbers',
-    menu='examples/math'
-)
-class AddNumbersNode(BaseNode):
-    """Data node that adds two numbers"""
-    
-    def initialize(self):
-        from haybale_core.types.specs import FLOAT
-        
-        self.add(FLOAT.as_inlet('a', default=5.0))
-        self.add(FLOAT.as_inlet('b', default=3.0))
-        self.add(FLOAT.as_outlet('result'))
-    
-    def worker(self, context):
-        a = self.value('a')
-        b = self.value('b')
-        result = a + b
-        self.out('result', result)
-
-
-@node(
-    registry_id='print_number',
-    label='Print Number',
-    menu='examples/simple'
-)
-class PrintNumberNode(BaseNode):
-    """Control node that prints a number"""
-    
-    def initialize(self):
-        from haybale_core.types.specs import EXEC, FLOAT
-        
-        self.add(EXEC.as_inlet('exec'))
-        self.add(EXEC.as_outlet('done'))
-        self.add(FLOAT.as_inlet('value', default=0.0))
-    
-    def worker(self, context):
-        value = self.value('value')
-        print(f"[PrintNumber] Value: {value}")
-        return {'next_outlet': 'done'}
-
-
-def example_data_flow():
+def example_sequence_flow():
     """
-    Example with data flow: BeginPlay → PrintNumber
-                            AddNumbers → PrintNumber.value
+    Example with sequence: BeginPlay → PrintMessage → PrintMessage
     """
-    from haywire.core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.begin_play import BeginPlayNode
+    from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph
     graph = BaseGraph(
-        graph_id='data_flow_example',
-        name='Data Flow Example'
+        graph_id='sequence_example',
+        name='Sequence Flow Example'
     )
     
     # Create nodes
     begin_play = graph.create_node_wrapper(
-        BeginPlayNode.__registry_key__,
+        BeginPlayNode.class_identity.registry_key,
         position=(100, 100)
     )
     
-    add_numbers = graph.create_node_wrapper(
-        AddNumbersNode.__registry_key__,
-        position=(100, 200)
-    )
-    
-    print_number = graph.create_node_wrapper(
-        PrintNumberNode.__registry_key__,
+    print_msg1 = graph.create_node_wrapper(
+        PrintMessageNode.class_identity.registry_key,
         position=(300, 100)
     )
     
-    # Connect control flow: BeginPlay → PrintNumber
-    graph.create_edge_wrapper(
-        begin_play.node_id, 'exec',
-        print_number.node_id, 'exec'
+    print_msg2 = graph.create_node_wrapper(
+        PrintMessageNode.class_identity.registry_key,
+        position=(500, 100)
     )
     
-    # Connect data flow: AddNumbers.result → PrintNumber.value
+    # Connect control flow: BeginPlay → PrintMessage1 → PrintMessage2
     graph.create_edge_wrapper(
-        add_numbers.node_id, 'result',
-        print_number.node_id, 'value'
+        begin_play.node_id, 'exec',
+        print_msg1.node_id, 'exec'
+    )
+    
+    graph.create_edge_wrapper(
+        print_msg1.node_id, 'done',
+        print_msg2.node_id, 'exec'
     )
     
     # Execute
@@ -199,34 +185,6 @@ def example_data_flow():
 # EXAMPLE 3: Callback System
 # ==============================================================================
 
-@node(
-    registry_id='emit_callback',
-    label='Emit Callback',
-    menu='examples/callbacks'
-)
-class EmitCallbackNode(BaseNode):
-    """Control node that emits a callback"""
-    
-    def initialize(self):
-        from haybale_core.types.specs import EXEC, STRING
-        
-        self.add(EXEC.as_inlet('exec'))
-        self.add(EXEC.as_outlet('done'))
-        self.add(STRING.as_inlet('callback_name', default='my_callback'))
-        self.add(STRING.as_inlet('message', default='Hello from callback!'))
-    
-    def worker(self, context):
-        callback_name = self.value('callback_name')
-        message = self.value('message')
-        
-        print(f"[EmitCallback] Emitting '{callback_name}'")
-        
-        # Emit callback
-        context['emit_callback'](callback_name, {'message': message})
-        
-        return {'next_outlet': 'done'}
-
-
 def example_callback_flow():
     """
     Example with callbacks:
@@ -235,6 +193,8 @@ def example_callback_flow():
     """
     from haybale_core.nodes.begin_play import BeginPlayNode
     from haybale_core.nodes.custom_callback import CustomCallbackNode
+    from haybale_core.nodes.emit_callback import EmitCallbackNode
+    from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph
     graph = BaseGraph(
@@ -244,40 +204,35 @@ def example_callback_flow():
     
     # Flow 1: Emitter flow
     begin_play = graph.create_node_wrapper(
-        BeginPlayNode.__registry_key__,
+        BeginPlayNode.class_identity.registry_key,
         position=(100, 100)
     )
     
     emit_callback = graph.create_node_wrapper(
-        EmitCallbackNode.__registry_key__,
+        EmitCallbackNode.class_identity.registry_key,
         position=(300, 100)
     )
+
     
     graph.create_edge_wrapper(
         begin_play.node_id, 'exec',
-        emit_callback.node_id, 'exec'
+        emit_callback.node_id, 'execute'
     )
     
     # Flow 2: Listener flow
     callback_listener = graph.create_node_wrapper(
-        CustomCallbackNode.__registry_key__,
+        CustomCallbackNode.class_identity.registry_key,
         position=(100, 300)
     )
     
     print_msg = graph.create_node_wrapper(
-        PrintMessageNode.__registry_key__,
+        PrintMessageNode.class_identity.registry_key,
         position=(300, 300)
     )
     
     graph.create_edge_wrapper(
         callback_listener.node_id, 'triggered',
         print_msg.node_id, 'exec'
-    )
-    
-    # Connect callback payload to message
-    graph.create_edge_wrapper(
-        callback_listener.node_id, 'payload',
-        print_msg.node_id, 'message'
     )
     
     # Execute
@@ -311,7 +266,8 @@ def example_external_events():
     """
     Example with external events (e.g., keyboard input)
     """
-    from haywire.core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.begin_play import BeginPlayNode
+    from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph
     graph = BaseGraph(
@@ -322,12 +278,12 @@ def example_external_events():
     # Create key press listener
     # (This would be a KeyPressedNode in real implementation)
     begin_play = graph.create_node_wrapper(
-        BeginPlayNode.__registry_key__,
+        BeginPlayNode.class_identity.registry_key,
         position=(100, 100)
     )
     
     print_msg = graph.create_node_wrapper(
-        PrintMessageNode.__registry_key__,
+        PrintMessageNode.class_identity.registry_key,
         position=(300, 100)
     )
     
@@ -372,27 +328,39 @@ if __name__ == '__main__':
     print("HAYWIRE ASSEMBLY & EXECUTION EXAMPLES")
     print("=" * 70)
     
-    # Run examples
-    print("\n\n" + "=" * 70)
-    print("EXAMPLE 1: Simple Flow")
-    print("=" * 70)
-    example_simple_flow()
+    # Setup library system (REQUIRED before creating graphs/nodes)
+    print("\nInitializing library system...")
+    library_service = setup_library_system()
+    print("Library system initialized.\n")
     
-    print("\n\n" + "=" * 70)
-    print("EXAMPLE 2: Data Flow")
-    print("=" * 70)
-    example_data_flow()
+    try:
+        # Run examples
+        print("\n" + "=" * 70)
+        print("EXAMPLE 1: Simple Flow")
+        print("=" * 70)
+        example_simple_flow()
+        
+        print("\n\n" + "=" * 70)
+        print("EXAMPLE 2: Sequence Flow")
+        print("=" * 70)
+        example_sequence_flow()
+        
+        print("\n\n" + "=" * 70)
+        print("EXAMPLE 3: Callback System")
+        print("=" * 70)
+        example_callback_flow()
+        
+        print("\n\n" + "=" * 70)
+        print("EXAMPLE 4: External Events")
+        print("=" * 70)
+        example_external_events()
+        
+        print("\n\n" + "=" * 70)
+        print("ALL EXAMPLES COMPLETE")
+        print("=" * 70)
     
-    print("\n\n" + "=" * 70)
-    print("EXAMPLE 3: Callback System")
-    print("=" * 70)
-    example_callback_flow()
-    
-    print("\n\n" + "=" * 70)
-    print("EXAMPLE 4: External Events")
-    print("=" * 70)
-    example_external_events()
-    
-    print("\n\n" + "=" * 70)
-    print("ALL EXAMPLES COMPLETE")
-    print("=" * 70)
+    finally:
+        # Cleanup
+        print("\nCleaning up library system...")
+        cleanup_library_system(library_service)
+        print("Done.")
