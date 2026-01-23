@@ -21,10 +21,30 @@ class NodeBehavior:
     """Behavioral configuration of a node"""
     is_control_node: bool = False
     is_data_node: bool = True
-    is_loopback_node: bool = False
     is_mutable: bool = False
     allows_variables: bool = False
     mute_connection: list[str] = field(default_factory=lambda: ['control_in_ID', 'control_out_ID'])
+
+    ###################################
+    # Behavioral flags for node execution.
+    # These flags control how the node is treated during execution.
+    ###################################
+
+    is_loopback: bool = False
+    """If True, control flow can return to this node (for loops, sequences)"""
+    
+    is_pure: bool = True
+    """If True, node has no side effects and output depends only on inputs"""
+    
+    is_stateful: bool = False
+    """If True, node maintains state between executions"""
+    
+    can_execute_async: bool = False
+    """If True, node supports asynchronous execution"""
+    
+    # NEW: Event node flag
+    is_event_node: bool = False
+    """If True, this is an event node (entry point for flows)"""
 
 
 @dataclass

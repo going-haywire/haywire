@@ -4,15 +4,14 @@ import time
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass, field
 
-from haywire.core.graph.types import ChangeReason
-
 from ...ui.utils import generate_connection_uuid
+from ..graph.types import ChangeReason
+from ..validation.interface import IStructuralValidator
 from ..data.enums import FlowType
 from ..adapter.base import IAdapter
 from ..errors import HaywireException
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
-    LifeCycleEventType,
     LifeCycleBatchCallback
 )
 from ..types.interface import IType
@@ -35,6 +34,8 @@ class EdgeWrapperState:
     """The edge is formally validated (node/port existence and type compatibility)"""
     is_built: bool = False
     """The edge adapter chain has been built (inlets/outlets are compatible)"""
+    is_structural: bool = False
+    """The edge has passed structural validation"""
     has_test_passed: bool = False
     """The edge adapter chain has been successfully tested"""
     is_inlet_linked: bool = False
@@ -53,6 +54,8 @@ class EdgeWrapperState:
     """port type error"""
     error_build: Optional[HaywireException] = None
     """build error"""
+    error_structural: Optional[HaywireException] = None
+    """structural validation error"""
     error_test: Optional[HaywireException] = None
     """test error message"""
     creation_time: float = 0.0
@@ -84,6 +87,7 @@ class EdgeWrapperState:
     def is_valid(self) -> bool:
         """Check if connection is in valid state (functional and linked)"""
         return (self.is_functional() 
+            and self.is_structural
             and self.is_linked)
 
     def get_error(self) -> Optional[HaywireException]:
@@ -92,6 +96,8 @@ class EdgeWrapperState:
             return self.error_formal
         elif self.error_build:
             return self.error_build
+        elif self.error_structural:
+            return self.error_structural
         elif self.error_link:
             return self.error_link
         elif self.error_test:
@@ -189,6 +195,8 @@ class EdgeWrapper:
             self._on_adapter_lifecycle_event
         )
 
+        self._structural_validator: Optional['IStructuralValidator'] = self._graph._structural
+
     def is_valid(self) -> bool:
         """Check if edge is valid"""
         return self._state.is_valid()
@@ -196,6 +204,18 @@ class EdgeWrapper:
     def is_functional(self) -> bool:
         """Check if connection is functional (registered, formal-validated and built)"""
         return self._state.is_functional()
+
+    def is_callback_edge(self) -> bool:
+        """Check if this is a callback edge"""
+        return self.edge_type == FlowType.CALLBACK
+    
+    def is_control_edge(self) -> bool:
+        """Check if this is a control edge"""
+        return self.edge_type == FlowType.CONTROL
+    
+    def is_data_edge(self) -> bool:
+        """Check if this is a data edge"""
+        return self.edge_type == FlowType.DATA
 
     @property
     def edge(self) -> Optional[Edge]:
@@ -232,12 +252,13 @@ class EdgeWrapper:
         self._state.warnings = []
 
         if self._formal_validation():
-            if self._build_adapter_chain():
-                if self._test():                  
-                    logger.debug(
-                        f".. rebuilding edge done."
-                    )
-                    return
+            if self._structural_validation():
+                if self._build_adapter_chain():
+                    if self._test():                  
+                        logger.debug(
+                            f".. rebuilding edge done."
+                        )
+                        return
 
         logger.debug(
             f".. rebuilding failed with errors."
@@ -423,6 +444,41 @@ class EdgeWrapper:
 
             return False  
             
+    def _structural_validation(self) -> bool:
+        """
+        Validate structural constraints for this edge.
+        
+        Uses the graph's structural validator to check domain-specific rules
+        such as callback edge constraints, control flow topology, etc.
+        
+        Returns:
+            True if validation passed, False otherwise
+        """
+        try:
+            # Call structural validator
+            is_valid, error = self._structural_validator.validate_edge(self)
+            
+            # Update state
+            self._state.is_structural = is_valid
+            self._state.error_structural = error
+            
+            return is_valid
+            
+        except Exception as e:
+            self._state.error_structural = HaywireException.from_exception(
+                exception=e,
+                message=f"Structural validation failed: {e}"
+            ).enrich(
+                operation="Structural Validation",
+                category="Structural Validation Error",
+                suggestions=[
+                    "Check edge type and node constraints",
+                    "Verify callback edge rules if applicable"
+                ]
+            )
+            self._state.error_structural.log()
+            self._state.is_structural = False
+            return False
 
     def _test(self) -> bool:
         """
@@ -473,6 +529,45 @@ class EdgeWrapper:
             self._state.error_test.log()
             self._state.has_test_passed = False
             return False
+
+
+    def validate_callback_edge(self) -> tuple[bool, str | None]:
+        """
+        Validate callback edge constraints.
+        
+        Callback edges have special rules:
+        - Can only connect to event nodes
+        - Outlet must have event_filter set
+        
+        Returns:
+            (is_valid, error_message) tuple
+        """
+        if not self.is_callback_edge():
+            return True, None
+        
+        # Get source and target nodes
+        source_wrapper = self._graph.get_node_wrapper(self.output_node_id)
+        target_wrapper = self._graph.get_node_wrapper(self.input_node_id)
+        
+        if not source_wrapper or not target_wrapper:
+            return False, "Callback edge references non-existent nodes"
+        
+        # Target must be an event node
+        if not target_wrapper.node.is_event_node():
+            return False, (
+                f"Callback edge target must be an event node. "
+                f"Node '{self.input_node_id}' is not an event node."
+            )
+        
+        # Source outlet must have event_filter
+        source_port = source_wrapper.node.ports.get(self.outlet_port_id)
+        if not source_port or not source_port.event_filter:
+            return False, (
+                f"Callback outlet must have event_filter set. "
+                f"Port '{self.outlet_port_id}' has no filter."
+            )
+        
+        return True, None
 
     def validate_link(self, port: 'DataPort') -> bool:
         """

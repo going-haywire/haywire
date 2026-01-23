@@ -414,7 +414,24 @@ class DataPort(DataTypeIdentity):
         port = method(port_id, **kwargs)
         
         return port
+
+    def is_callback_pin(self) -> bool:
+        """Check if this is a callback pin"""
+        return self.flow_type == FlowType.CALLBACK.value
     
+    def is_control_pin(self) -> bool:
+        """Check if this is a control pin"""
+        return self.flow_type == FlowType.CONTROL.value
+    
+    def is_data_pin(self) -> bool:
+        """Check if this is a data pin"""
+        return self.flow_type == FlowType.DATA.value
+    
+    def get_control_outlets(self) -> bool:
+        """Check if this port is a control outlet"""
+        return (self.flow_type == FlowType.CONTROL.value and 
+                self.is_outlet())
+     
 @dataclass
 class PortInlet(DataPort):
     """Inlet port - can receive data from connections"""

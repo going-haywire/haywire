@@ -12,6 +12,7 @@
   - [The Graph as Container](#the-graph-as-container)
     - [The Graph](#the-graph)
     - [Variables](#variables)
+    - [Validation Pipeline](#validation-pipeline)
   - [The Graph-node](#the-graph-node)
   - [Connection Types](#connection-types)
     - [On Connections, Edges, Hooks and Pipes](#on-connections-edges-hooks-and-pipes)
@@ -148,9 +149,25 @@ Only [Graphs](#graph-structure) have [Variables](#variables). [Variables](#varia
 - [Variables](#variables) can be of specified datatypes.
 - [Variables](#variables) have a default value that can be set on creation or by the user via the user interface.
 - They are read/write accessible by the internal [Worker-function](#worker-function-execution) of [Control-nodes](#node-types)
-- When a [Graph](#graph-structure) is stored to file, only its [configs](#configs) and the default value are stored.
+- When a [Graph](#graph-structure) is stored to file, the default value is stored.
 
 The reason nodes have no [Variables](#variables) is because they are not meant to be stateful. Nodes are meant to be stateless and their output should only depend on their input. There are exception though, like the [Loopback-nodes](#node-types) that need to be stateful to function properly.
+
+### Validation Pipeline
+
+**Current Implementation Enhancement:** The graph includes a sophisticated validation system that ensures structural integrity and type compatibility:
+
+- **Debounced Validation:** Changes trigger validation after a configurable delay (default 50ms) to batch rapid changes
+- **Lifecycle Tracking:** Each node and edge tracks its lifecycle state (registered → validated → built → tested → linked)
+- **Change Reasons:** Validation distinguishes between different change types:
+  - `NODE_ADDED`, `NODE_REMOVED`: Node creation/deletion
+  - `EDGE_ADDED`, `EDGE_REMOVED`: Connection changes
+  - `PORT_RECONFIGURED`: Dynamic port structure changes
+  - `EXTERNAL_TRIGGER`: User-initiated revalidation
+- **Error Enrichment:** Validation failures include context (node ID, port ID, lifecycle stage) for precise debugging
+- **Callbacks:** External systems can register callbacks to react to validation events
+
+This validation pipeline prevents invalid graphs from reaching the Assembly stage and provides immediate feedback during graph editing.
 
 ## The Graph-node
 
@@ -204,6 +221,25 @@ Usually, only pins of the same type can be connected. But Haywire allows for con
 
 Edges are consirdered 'linked' when they are connected between two nodes and both the inlet and the outlet ports have accepted the connection.
 
+**Current Implementation: EdgeWrapper Lifecycle**
+
+Edges are managed through `EdgeWrapper` which handles their complete lifecycle:
+
+1. **Registration:** Edge created with connection identifiers
+2. **Validation:** Port existence and type compatibility checked
+3. **Build:** Adapter chain constructed if types differ
+4. **Test:** Adapter chain validated with sample data to catch runtime errors early
+5. **Link:** Ports notified and connection finalized
+
+**Adapter Chain Testing:** When connecting ports of different types, the system:
+- Searches for adapter chain (e.g., `FLOAT → INT` might use `FloatToIntAdapter`)
+- Creates sample data matching source port type
+- Executes full adapter chain to verify no runtime errors
+- Only accepts connection if chain succeeds
+- Stores adapter chain keys for serialization
+
+This proactive testing prevents type errors during execution by validating transformations at connection time rather than runtime. The adapter chain is rebuilt during hot reload if adapter code changes.
+
 ### Control-edges -> Hooks
 
 TBD
@@ -237,6 +273,32 @@ A Haywire node is arguably the most central element of the system. A node consis
 - **[Ports](#ports-inlets--outlets--pins)** (Inlets and Outlets) to configure behavior and transfer data to and from other nodes.
 - **[Pins](#pin-system)** to connect to and from other nodes.
 - **[Worker-function](#worker-function-execution)** that contains its main logic.
+
+**Current Implementation: Node Lifecycle Management**
+
+Nodes are managed through `NodeWrapper` which provides:
+
+**Hot Reload System:** Automatic detection and migration when node code changes:
+- File watchers detect modifications to node class files
+- Node class is reimported with fresh module
+- Port recipes are serialized from old instance
+- New instance created and ports reconstructed from recipes
+- Incompatible connections removed automatically
+- Graph revalidated with new node structure
+
+**Lifecycle States:**
+1. **Registered:** Node wrapper created with registry key and ID
+2. **Built:** Node instance created and ports configured
+3. **Validated:** Ports checked, connections verified
+4. **Ready:** Node ready for execution
+
+**Middleware System:** NodeWrapper supports middleware plugins for:
+- Custom validation rules
+- Execution preprocessing/postprocessing
+- Resource management
+- Profiling and debugging
+
+This wrapper architecture separates node business logic from lifecycle concerns, enabling hot reload without graph disruption.
 
 These are the basic building blocks of a Haywire graph:
 
@@ -314,6 +376,27 @@ All node configurables are unified as **DataPorts** with behavior defined by fla
 
 **Note:** "Properties" as a separate concept have been removed. All configuration is now done through Inlets with appropriate callbacks.
 
+**Hierarchical Port Organization (Implementation Enhancement):**
+
+Ports support nested organization for complex nodes:
+
+- **Groups:** Container ports that organize related ports
+  - Can be collapsed/expanded in UI
+  - Support nested groups for hierarchical organization
+  - Context manager API: `with self.group('advanced'):`
+- **Sections:** Organize ports in property panels
+  - Used for UI layout (e.g., 'inputs', 'outputs', 'settings')
+  - Multiple sections per node
+- **Ghost Pins:** Visual indicators when groups are collapsed
+  - Show connection state without revealing group contents
+  - One ghost pin per collapsed group
+- **Dynamic Reconfiguration:** Push/pop pattern for port changes
+  - `push()`: Save current port configuration
+  - Modify ports (add/remove based on config changes)
+  - `pop()`: Returns list of removed port IDs for cleanup
+
+This hierarchical system keeps complex nodes manageable while maintaining clean serialization (groups/sections are metadata, not separate node types).
+
 #### Pins
 
 [Pins](#pin-system) are the visual icon to connect to and from a node. [Pins](#pin-system) have a selection of different [configs](#configs) that define their behaviour:
@@ -342,6 +425,30 @@ The following table shows the only admissible pin configurations:
 - **Data-pin-inlet** there are two mate-types possible, depending on the needed data. in case of many the provided data is in form of a list of values in the specified data-type.
 - **Callback-pin-inlet** can have many mates, since multiple [Event-nodes](#node-types) can require the same callback.
 - **Callback-pin-outlet** can have many mates, since the [Event-node](#node-types) might be interested in multiple callbacks.
+
+**Port Callbacks (Implementation Enhancement):**
+
+Ports support lifecycle callbacks for dynamic behavior:
+
+- **`on_change`**: Triggered when port value changes
+  - Common use: Configuration ports that reconfigure node structure
+  - Example: `on_change='reconfigure_ports'` calls `self.reconfigure_ports()`
+  - Enables dynamic port addition/removal based on settings
+  
+- **`on_connect`**: Triggered when connection is established
+  - Called with edge information (source/target ports)
+  - Can reject connection by raising exception
+  - Enables connection-dependent behavior (e.g., inferring types)
+  
+- **`on_disconnect`**: Triggered when connection is removed
+  - Cleanup of connection-dependent state
+  - Can trigger port reconfiguration
+
+These callbacks enable sophisticated node behavior patterns:
+- Type inference from connected ports
+- Dynamic port count (e.g., variadic nodes)
+- Conditional port availability
+- Configuration cascades
 
 #### Control Inlets
 

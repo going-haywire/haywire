@@ -10,8 +10,8 @@ from dataclasses import dataclass
 
 from ...node.node_wrapper import NodeWrapper
 from ...node.base import BaseNode
-from ...graph.base import BaseGraph, Edge
-from ...edge.edge_wrapper import EdgeWrapper
+from ...graph.base import BaseGraph
+from ...edge.edge_wrapper import EdgeWrapper, Edge
 from ..base_action import ActionBase, CompositeAction
 
 class AddNodeAction(ActionBase):

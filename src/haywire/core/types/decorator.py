@@ -40,7 +40,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         @dataclass
         class FLOAT(PrimitiveType[float]):
             pass
-        
+     
         # Derived variant - can override parent defaults:
         @type(
             registry_id='temperature',
@@ -77,6 +77,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         widget_key (str, optional): Widget for editing values. NOT RECOMENDED TO USE 
         widget_config (dict, optional): Additional widget configuration properties. NOT RECOMENDED TO USE
         container_type (ContainerType, optional): SINGLE, LIST, DICT, etc.
+        event_filter (str, optional): For callback ports, event name pattern to filter (e.g., 'data_ready').
         flow_type (FlowType, optional): DATA, CTRL, or NONE.
         default (dict, required): Dict of constructor kwargs for default instance.
         help_url (str, optional): Documentation URL.

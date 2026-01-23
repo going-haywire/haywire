@@ -12,7 +12,7 @@ Design Philosophy:
 """
 
 from typing import Dict, List, Optional, Tuple, Set, Any, Callable
-from haywire.core.graph.base import BaseGraph, Edge, FlowType
+from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.undo.interfaces import IHistoryManager
@@ -48,7 +48,7 @@ class Editor:
 
         from haywire.core.di.config import get_library_system
         self._node_factory = get_library_system().get_node_factory()
-        self.history_manager = get_library_system().get_history_manager()
+        self.history_manager: IHistoryManager = get_library_system().get_history_manager()
 
         # Hook into history manager for undo/redo notifications
         if self.history_manager:

@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING, Any, Dict, TypeVar, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field, asdict
 
+from haywire.core.data.enums import FlowType
+
 
 from ..registry.identity import BaseIdentity
 from ..library.identity import LibraryIdentity
@@ -547,7 +549,43 @@ class NodeData:
             raise ValueError(f"Port '{group_id}' is not a group")
         
         return self.value(group_id)
+
+    def get_control_outlets(self) -> list[DataPort]:
+        """
+        Get all control outlet ports (EXEC type outlets).
+        
+        Returns:
+            List of control outlet ports
+        """
+        return [
+            port for port in self.ports.values()
+            if port.flow_type == FlowType.CONTROL and port.is_outlet()
+        ]
     
+    def get_control_inlets(self) -> list[DataPort]:
+        """
+        Get all control inlet ports (EXEC type inlets).
+        
+        Returns:
+            List of control inlet ports
+        """
+        return [
+            port for port in self.ports.values()
+            if port.flow_type == FlowType.CONTROL and port.is_inlet()
+        ]
+    
+    def get_callback_outlets(self) -> list[DataPort]:
+        """
+        Get all callback outlet ports (CALLBACK type outlets).
+        
+        Returns:
+            List of callback outlet ports with event_filter
+        """
+        return [
+            port for port in self.ports.values()
+            if port.flow_type == FlowType.CALLBACK.value and port.is_outlet()
+        ]
+        
     # =========================================================================
     # SERIALIZATION
     # =========================================================================

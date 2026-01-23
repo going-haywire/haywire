@@ -1,0 +1,325 @@
+# haywire/core/graph/structural_validator.py
+"""
+Structural validation for Haywire graphs.
+
+Validates domain-specific structural rules that go beyond formal validity:
+- Event node constraints
+- Control flow topology
+- Data flow cycles
+- Callback edge rules
+"""
+from __future__ import annotations
+from typing import TYPE_CHECKING, List, Optional
+import logging
+
+from haywire.core.errors import HaywireException
+from haywire.core.data.enums import FlowType
+from haywire.core.validation.interface import IStructuralValidator
+
+if TYPE_CHECKING:
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.edge.edge_wrapper import EdgeWrapper
+
+logger = logging.getLogger(__name__)
+
+class StructuralValidator(IStructuralValidator):
+    """
+    Validates structural constraints for Haywire graphs.
+    
+    This validator enforces domain-specific rules that define
+    valid graph structures for execution. It can be subclassed
+    to implement different structural requirements for different
+    execution models.
+    
+    Responsibilities:
+    - Event node constraint validation
+    - Control flow topology validation
+    - Data flow cycle detection
+    - Callback edge constraint validation
+    - Graph-wide consistency checks
+    """
+    
+    def __init__(self, graph: 'BaseGraph'):
+        """
+        Initialize structural validator.
+        
+        Args:
+            graph: The graph to validate
+        """
+        self.graph = graph
+    
+    # ========================================================================
+    # NODE VALIDATION
+    # ========================================================================
+    
+    def validate_node(
+        self, wrapper: 'NodeWrapper'
+    ) -> tuple[bool, HaywireException | None]:
+        """
+        Validate structural constraints for a single node.
+        
+        This is called after node initialization but before adding to graph.
+        
+        Args:
+            wrapper: NodeWrapper to validate
+            
+        Returns:
+            Tuple of (is_valid, error). Error is None if valid.
+        """
+        node = wrapper.node
+
+        # Check if this is an event node
+        if node.behavior.is_event_node:
+            return self._validate_event_node(wrapper)
+        
+        # Regular nodes pass by default
+        # (future: add other node-level structural checks here)
+        return (True, None)
+    
+    def _validate_event_node(
+        self, wrapper: 'NodeWrapper'
+    ) -> tuple[bool, HaywireException | None]:
+        """
+        Validate event node structural constraints.
+        
+        Rules:
+        - No control inlets allowed (events are entry points)
+        - Must have event_subscription set
+        - Must have at least one control outlet
+        
+        Args:
+            wrapper: Event node wrapper to validate
+            
+        Returns:
+            Tuple of (is_valid, error). Error is None if valid.
+        """
+        node = wrapper.node
+        
+        # Check for control inlets (not allowed)        
+        if len(node.get_control_inlets()) > 0:
+            error = HaywireException.create(
+                message=(
+                    f"Event nodes cannot have control inlets. "
+                    f"Found: {[p.id for p in control_inlets]}"
+                )
+            ).enrich(
+                node_id=wrapper.node_id,
+                registry_key=wrapper.registry_key,
+                operation="Structural Validation",
+                category="Event Node Constraint Violation",
+                suggestions=[
+                    "Remove control inlets from event node",
+                    "Event nodes are entry points and cannot be triggered by other nodes"
+                ]
+            )
+            error.log()
+            return (False, error)
+        
+        # Check event subscription
+        if node.event_subscription is None:
+            error = HaywireException.create(
+                message="Event node must have event_subscription set"
+            ).enrich(
+                node_id=wrapper.node_id,
+                registry_key=wrapper.registry_key,
+                operation="Structural Validation",
+                category="Event Node Constraint Violation",
+                suggestions=[
+                    "Set EVENT_SOURCE at class level",
+                    "Or set self.event_subscription in initialize()"
+                ]
+            )
+            error.log()
+            return (False, error)
+        
+        # Check for at least one control outlet  
+        if len(node.get_control_outlets()) == 0:
+            error = HaywireException.create(
+                message="Event node must have at least one control outlet"
+            ).enrich(
+                node_id=wrapper.node_id,
+                registry_key=wrapper.registry_key,
+                library_identity=wrapper.node.class_library,
+                operation="Structural Validation",
+                category="Event Node Constraint Violation",
+                suggestions=[
+                    "Add at least one EXEC.as_outlet(...) to the node"
+                ]
+            )
+            error.log()
+            return (False, error)
+        
+        # All checks passed
+        return (True, None)
+    
+    def _validate_event_nodes_graph_wide(self) -> List[str]:
+        """
+        Validate event node constraints across the entire graph.
+        
+        Rules:
+        - No duplicate event subscriptions (only one node per event)
+        - All event nodes individually valid
+        
+        Returns:
+            List of error messages (empty if valid)
+        """
+        errors = []
+        event_subscriptions = {}  # subscription_key -> list of node_ids
+        
+        for node_wrapper in self.graph.node_wrappers.values():
+            node = node_wrapper.node
+            
+            # Check if this is an event node
+            if node.is_event_node():
+                # Check individual validity
+                if not node_wrapper._state.is_structural:
+                    errors.append(
+                        f"Event node {node_wrapper.node_id} failed structural validation: "
+                        f"{node_wrapper._state.error_structural}"
+                    )
+                
+                # Track subscription for duplicate detection
+                if node.event_subscription:
+                    sub_key = node.event_subscription.get_subscription_key()
+                    if sub_key not in event_subscriptions:
+                        event_subscriptions[sub_key] = []
+                    event_subscriptions[sub_key].append(node_wrapper.node_id)
+        
+        # Check for duplicate subscriptions
+        for sub_key, node_ids in event_subscriptions.items():
+            if len(node_ids) > 1:
+                errors.append(
+                    f"Multiple event nodes subscribe to '{sub_key}': "
+                    f"{', '.join(node_ids)}. Only one event node per "
+                    f"event type is allowed."
+                )
+        
+        return errors
+    
+    # ========================================================================
+    # EDGE VALIDATION
+    # ========================================================================
+    
+    def validate_edge(
+        self, wrapper: 'EdgeWrapper'
+    ) -> tuple[bool, HaywireException | None]:
+        """
+        Validate structural constraints for a single edge.
+        
+        This is called after edge build but before adding to graph.
+        
+        Args:
+            wrapper: EdgeWrapper to validate
+            
+        Returns:
+            Tuple of (is_valid, error). Error is None if valid.
+        """
+        # Check edge type-specific rules
+        if wrapper._edge_type == FlowType.CALLBACK:
+            return self._validate_callback_edge(wrapper)
+        elif wrapper._edge_type == FlowType.DATA:
+            # Note: Data cycle validation happens graph-wide
+            # Individual edges are valid by default
+            pass
+        
+        # Edge passes validation
+        return (True, None)
+    
+    def _validate_callback_edge(
+        self, wrapper: 'EdgeWrapper'
+    ) -> tuple[bool, HaywireException | None]:
+        """
+        Validate callback edge structural constraints.
+        
+        Rules:
+        - Target node must be an event node
+        - Source port must have event_filter set
+        
+        Args:
+            wrapper: Callback edge wrapper to validate
+            
+        Returns:
+            Tuple of (is_valid, error). Error is None if valid.
+        """
+        # Get source and target nodes
+        source_wrapper = self.graph.get_node_wrapper(wrapper.output_node_id)
+        target_wrapper = self.graph.get_node_wrapper(wrapper.input_node_id)
+        
+        if not source_wrapper or not target_wrapper:
+            error = HaywireException.create(
+                message="Callback edge references non-existent nodes"
+            ).enrich(
+                connection_uuid=wrapper.connection_uuid,
+                source_node=wrapper.output_node_id,
+                target_node=wrapper.input_node_id,
+                operation="Structural Validation",
+                category="Callback Edge Constraint Violation"
+            )
+            error.log()
+            return (False, error)
+        
+        # Source must be an event node
+        if not source_wrapper.node.behavior.is_event_node:
+            error = HaywireException.create(
+                message=(
+                    f"Callback edge source must be an event node. "
+                    f"Node '{wrapper.output_node_id}' is not an event node."
+                )
+            ).enrich(
+                operation="Structural Validation",
+                category="Callback Edge Constraint Violation",
+                suggestions=[
+                    "Connect callback to an event node (EventNode subclass)",
+                    "Or change edge type to DATA if passing data"
+                ]
+            )
+            error.log()
+            return (False, error)
+        
+        # Source outlet must have event_filter
+        source_port = source_wrapper.node.ports.get(wrapper.outlet_port_id)
+        if not source_port or not source_port.event_filter:
+            error = HaywireException.create(
+                message=(
+                    f"Callback outlet must have event_filter set. "
+                    f"Port '{wrapper.outlet_port_id}' has no filter."
+                )
+            ).enrich(
+                operation="Structural Validation",
+                category="Callback Edge Constraint Violation",
+                suggestions=[
+                    "Set event_filter when creating callback port",
+                    "Example: CALLBACK.as_outlet('callback', event_filter='my_event')"
+                ]
+            )
+            error.log()
+            return (False, error)
+        
+        # All checks passed
+        return (True, None)
+    
+    # ========================================================================
+    # GRAPH-WIDE VALIDATION
+    # ========================================================================
+    
+    def validate_graph(self) -> List[str]:
+        """
+        Validate all structural constraints across the graph.
+        
+        Returns:
+            List of error messages (empty if valid)
+        """
+        errors = []
+        
+        # Validate event nodes
+        event_errors = self._validate_event_nodes_graph_wide()
+        errors.extend(event_errors)
+        
+        # Validate data flow cycles
+        # (future: implement cycle detection)
+        
+        # Validate control flow topology
+        # (future: implement unreachable node detection, etc.)
+        
+        return errors

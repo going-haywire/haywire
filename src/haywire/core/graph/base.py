@@ -11,6 +11,8 @@ from dataclasses import dataclass
 import uuid
 import logging
 
+from haywire.core.validation.interface import IStructuralValidator
+from haywire.core.validation.structural_validator import StructuralValidator
 from haywire.core.library.utils import get_registry_id_from_key
 
 from ..data.enums import FlowType
@@ -19,16 +21,10 @@ from .validation import ValidationManager, ValidationCallback
 from .types import ChangeReason, ValidationResult
 
 if TYPE_CHECKING:
-    from ..node.factory import NodeFactory
-    from ..adapter.factory import AdapterFactory
     from ..edge.edge_wrapper import EdgeWrapper
     from ..node.node_wrapper import NodeWrapper
 
-# Re-export for backward compatibility
-from ..edge.edge import Edge
-
 logger = logging.getLogger(__name__)
-
 
 @dataclass
 class Variable:
@@ -115,6 +111,8 @@ class BaseGraph:
             graph=self,
             debounce_ms=validation_delay_ms
         )
+
+        self._structural: IStructuralValidator = StructuralValidator(graph=self)
     
     # =========================================================================
     # VALIDATION API (delegates to internal manager)
@@ -207,6 +205,7 @@ class BaseGraph:
         )
         
         wrapper.build()
+
         # Add to graph's collection (triggers validation)
         return self.add_node_wrapper(wrapper)
     
@@ -407,6 +406,7 @@ class BaseGraph:
         
         # Build adapter chain
         edge_wrapper.build()
+
         # Add to graph's collection (triggers validation automatically)
         return self.add_edge_wrapper(edge_wrapper)
     
@@ -769,14 +769,14 @@ class BaseGraph:
     
     def validate(self) -> List[str]:
         """
-        Validate the graph structure.
+        Validate the graph structure (both formal and structural).
         
         Returns:
             List of validation errors (empty if valid)
         """
         errors = []
         
-        # Check for orphaned edges (edges referencing non-existent nodes)
+        # Existing formal validation (orphaned edges, etc.)
         for connection_uuid, edge in self.edge_wrappers.items():
             if edge.output_node_id not in self.node_wrappers:
                 errors.append(
@@ -789,11 +789,15 @@ class BaseGraph:
                     f"input node: {edge.input_node_id}"
                 )
         
-        # Check wrapper validation
+        # Wrapper-level validation
         for wrapper in self.node_wrappers.values():
             wrapper_errors = wrapper.validate()
             for error in wrapper_errors:
                 errors.append(f"Node {wrapper.node_id}: {error}")
+        
+        # NEW: Graph-wide structural validation
+        structural_errors = self._structural.validate_graph()
+        errors.extend(structural_errors)
         
         return errors
     

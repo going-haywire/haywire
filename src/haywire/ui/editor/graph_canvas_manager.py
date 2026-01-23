@@ -10,7 +10,6 @@ import logging
 from typing import Dict, List, Optional, Tuple, Callable, Set
 from nicegui import ui
 
-from haywire.core.graph.base import Edge
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.types import ChangeReason, ValidationResult

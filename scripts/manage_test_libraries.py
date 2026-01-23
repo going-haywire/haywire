@@ -24,13 +24,18 @@ LIBRARIES = {
         'description': 'Example library with custom nodes, widgets, and renderers'
     },
     '3': {
-        'name': 'haybale-TEST_A',
-        'path': PROJECT_ROOT / 'tests' / 'libraries' / 'haybale-TEST_A',
-        'description': 'Test library A'
+        'name': 'haybale-visiongraph',
+        'path': PROJECT_ROOT / 'libraries' / 'haybale-visiongraph',
+        'description': 'Visiongraph library for Haywire'
     },
     '4': {
+        'name': 'haybale-TEST_A',
+        'path': PROJECT_ROOT / 'libraries' / 'haybale-TEST_A',
+        'description': 'Test library A'
+    },
+    '5': {
         'name': 'haybale-TEST_B',
-        'path': PROJECT_ROOT / 'tests' / 'libraries' / 'haybale-TEST_B',
+        'path': PROJECT_ROOT / 'libraries' / 'haybale-TEST_B',
         'description': 'Test library B'
     }
 }

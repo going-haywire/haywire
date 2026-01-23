@@ -15,6 +15,7 @@ from ..graph.types import ChangeReason
 from ..library.utils import get_registry_id_from_key
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
+from ..validation.interface import IStructuralValidator
 
 if TYPE_CHECKING:
     from .base import BaseNode
@@ -34,6 +35,8 @@ class NodeWrapperState:
     """The node instance has been created"""
     is_initialized: bool = False
     """The node is initialized"""
+    is_structural: bool = False 
+    """The node has passed structural validation"""
     has_test_passed: bool = False
     """The node has been successfully tested"""
     is_executing: bool = False
@@ -44,6 +47,8 @@ class NodeWrapperState:
     """node instantiate error"""
     error_initialize: Optional[HaywireException] = None
     """node initialize error"""
+    error_structural: Optional[HaywireException] = None
+    """node structural validation error"""
     error_custom: Optional[HaywireException] = None
     """node custom error """
     error_test: Optional[HaywireException] = None
@@ -58,6 +63,7 @@ class NodeWrapperState:
             self.is_imported and
             self.is_instantiated and
             self.is_initialized and
+            self.is_structural and
             self.has_test_passed)
 
     def has_error(self) -> bool:
@@ -75,6 +81,8 @@ class NodeWrapperState:
             return self.error_instantiate
         elif self.error_initialize:
             return self.error_initialize
+        elif self.error_structural:
+            return self.error_structural
         elif self.error_test:
             return self.error_test
         elif self.error_custom:
@@ -88,6 +96,7 @@ class NodeWrapperState:
         # this error can only be cleared on hot reload
         self.error_instantiate = None
         self.error_initialize = None
+        self.error_structural = None
         self.error_test = None
         self.error_custom = None
 
@@ -161,6 +170,11 @@ class NodeWrapper:
         # Store initial position for later initialization
         self._initial_position = position
 
+        # Reference to structural validator from graph
+        self._structural_validator: Optional['IStructuralValidator'] = (
+            self._graph._structural
+        )
+
         self._import_node_cls()        
 
     @property  
@@ -212,11 +226,12 @@ class NodeWrapper:
 
         if self._instantiate():
             if self._initialize(node_info):
-                if self._test():
-                    logger.debug(
-                        f"Node building succeeded: {self._node_id}"
-                    )
-                    return
+                if self._structural_validation():
+                    if self._test():
+                        logger.debug(
+                            f"Node building succeeded: {self._node_id}"
+                        )
+                        return
         
         logger.debug(
             f".. building failed with errors."
@@ -288,6 +303,43 @@ class NodeWrapper:
 
         return False
 
+    def _structural_validation(self) -> bool:
+        """
+        Validate structural constraints for this node.
+        
+        Uses the graph's structural validator to check domain-specific rules
+        such as event node constraints, control flow topology, etc.
+        
+        Returns:
+            True if validation passed, False otherwise
+        """
+        try:
+            # Call structural validator
+            is_valid, error = self._structural_validator.validate_node(self)
+            
+            # Update state
+            self._state.is_structural = is_valid
+            self._state.error_structural = error
+            
+            return is_valid
+            
+        except Exception as e:
+            self._state.error_structural = HaywireException.from_exception(
+                exception=e,
+                message=f"Structural validation failed: {e}"
+            ).enrich(
+                node_id=self._node_id,
+                registry_key=self.registry_key,
+                operation="Structural Validation",
+                category="Structural Validation Error",
+                suggestions=[
+                    "Check node type and event node constraints",
+                    "Verify control flow requirements if applicable"
+                ]
+            )
+            self._state.error_structural.log()
+            self._state.is_structural = False
+            return False
 
     def _test(self) -> bool:
         """
