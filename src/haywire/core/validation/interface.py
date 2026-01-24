@@ -6,8 +6,6 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List
 
-from haywire.core.errors.haywire_exception import HaywireException
-
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -31,13 +29,31 @@ class IStructuralValidator(ABC):
         self.graph = graph
 
     @abstractmethod
-    def validate_node(self, wrapper: 'NodeWrapper') -> tuple[bool, HaywireException | None]:
-        """Validate structural constraints for a single node"""
+    def validate_node(
+        self, wrapper: 'NodeWrapper'
+    ) -> tuple[bool, str | None, list[str]]:
+        """
+        Validate structural constraints for a single node.
+        
+        Returns:
+            Tuple of (is_valid, error_message, suggestions).
+            Error message is None if valid.
+            Suggestions is a list of actionable fixes.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_edge(self, wrapper: 'EdgeWrapper') -> tuple[bool, HaywireException | None]:
-        """Validate structural constraints for a single edge"""
+    def validate_edge(
+        self, wrapper: 'EdgeWrapper'
+    ) -> tuple[bool, str | None, list[str]]:
+        """
+        Validate structural constraints for a single edge.
+        
+        Returns:
+            Tuple of (is_valid, error_message, suggestions).
+            Error message is None if valid.
+            Suggestions is a list of actionable fixes.
+        """
         raise NotImplementedError()
 
     @abstractmethod

@@ -315,11 +315,31 @@ class NodeWrapper:
         """
         try:
             # Call structural validator
-            is_valid, error = self._structural_validator.validate_node(self)
+            (
+                is_valid,
+                error_message,
+                suggestions
+            ) = self._structural_validator.validate_node(self)
             
             # Update state
             self._state.is_structural = is_valid
-            self._state.error_structural = error
+            
+            # Create exception from error message if validation failed
+            if not is_valid and error_message:
+                self._state.error_structural = HaywireException.create(
+                    message=error_message
+                ).enrich(
+                    node_id=self._node_id,
+                    registry_key=self.registry_key,
+                    module_name=self._node_cls.__module__,
+                    library_identity=self._node_cls.class_library,
+                    operation="Structural Validation",
+                    category="Structural Validation Error",
+                    suggestions=suggestions
+                )
+                self._state.error_structural.log()
+            else:
+                self._state.error_structural = None
             
             return is_valid
             
@@ -330,6 +350,8 @@ class NodeWrapper:
             ).enrich(
                 node_id=self._node_id,
                 registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library,
                 operation="Structural Validation",
                 category="Structural Validation Error",
                 suggestions=[

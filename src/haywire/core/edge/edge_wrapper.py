@@ -456,11 +456,28 @@ class EdgeWrapper:
         """
         try:
             # Call structural validator
-            is_valid, error = self._structural_validator.validate_edge(self)
+            (
+                is_valid,
+                error_message,
+                suggestions
+            ) = self._structural_validator.validate_edge(self)
             
             # Update state
             self._state.is_structural = is_valid
-            self._state.error_structural = error
+            
+            # Create exception from error message if validation failed
+            if not is_valid and error_message:
+                self._state.error_structural = HaywireException.create(
+                    message=error_message
+                ).enrich(
+                    connection_uuid=self._connection_uuid,
+                    operation="Structural Validation",
+                    category="Structural Validation Error",
+                    suggestions=suggestions
+                )
+                self._state.error_structural.log()
+            else:
+                self._state.error_structural = None
             
             return is_valid
             
