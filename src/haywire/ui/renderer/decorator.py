@@ -27,6 +27,8 @@ def renderer(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[
             Defaults to False.
         is_error (bool, optional): Whether this renderer should handle error cases.
             Defaults to False.
+        deprecation_warning (str, optional): Deprecation warning message for the renderer.
+            Defaults to empty string.
 
     Any other keyword arguments will be passed through to the RendererIdentity constructor.
     See the RendererIdentity dataclass for the complete list of available fields.

@@ -11,3 +11,4 @@ class BaseIdentity:
     registry_key: str = ''  # Full unique key including library ID - set by decorator
     label: str = ''  # Human-readable display name
     description: str = ''  # Human-readable description
+    deprecation_warning: str = ''  # Optional deprecation warning message

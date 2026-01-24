@@ -81,6 +81,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         flow_type (FlowType, optional): DATA, CTRL, or NONE.
         default (dict, required): Dict of constructor kwargs for default instance.
         help_url (str, optional): Documentation URL.
+        deprecation_warning (str, optional): Deprecation warning message.
     
     Returns:
         Decorated class with class_identity attribute

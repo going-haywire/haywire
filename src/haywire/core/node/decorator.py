@@ -31,6 +31,8 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
             Defaults to None.
         help_url (str, optional): URL to external help documentation.
             Defaults to 'https://haywire.io/docs/node-help'.
+        deprecation_warning (str, optional): Deprecation warning message for the node.
+            Defaults to empty string.
         _is_error (bool, optional): Whether this node handles error cases.
             Defaults to False. Only one error node can be registered. 
         _error_priority (int, optional): Priority of this error node when multiple are registered.

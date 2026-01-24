@@ -26,6 +26,8 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the widget.
             Defaults to empty string.
+        deprecation_warning (str, optional): Deprecation warning message for the widget.
+            Defaults to empty string.
 
     Any other keyword arguments will be passed through to the WidgetIdentity constructor.
     See the WidgetIdentity dataclass for the complete list of available fields.

@@ -49,6 +49,8 @@ def adapter(
             Defaults to None.
         priority (int, optional): Priority (higher = preferred).
             Defaults to 0.
+        deprecation_warning (str, optional): Deprecation warning message.
+            Defaults to empty string.
     
     Any other keyword arguments will be passed through to AdapterIdentity.
     See the AdapterIdentity dataclass for complete list of fields.
