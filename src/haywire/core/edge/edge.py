@@ -46,14 +46,3 @@ class Edge:
             'chain_adapter_keys': self.chain_adapter_keys
         }
     
-    @classmethod
-    def from_dict(cls, data: dict) -> 'Edge':
-        """Deserialize edge from graph load"""
-        return cls(
-            source_node_id=data['source_node_id'],
-            outlet_port_id=data['outlet_port_id'],
-            sink_node_id=data['sink_node_id'],
-            inlet_port_id=data['inlet_port_id'],
-            edge_type=FlowType(data['edge_type']),
-            chain_adapter_keys=data.get('chain_adapter_keys', [])
-        )

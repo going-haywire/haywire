@@ -101,9 +101,9 @@ class PropertyBinding:
         def on_model_changed(_):
             self._sync_to_view()
         
-        self._element.data.on_changed += on_model_changed
+        self._element._data.on_changed += on_model_changed
         self._cleanup_callbacks.append(
-            lambda: self._element.data.on_changed.remove(on_model_changed)
+            lambda: self._element._data.on_changed.remove(on_model_changed)
         )
         
         # Initial sync
@@ -118,7 +118,7 @@ class PropertyBinding:
             else:
                 # For complex properties, navigate the path
                 # This only works for BaseField (not Primitive/Pooled/Array)
-                field = self._element.data
+                field = self._element._data
                 if isinstance(field, BaseField):
                     container = field._container
                     model_value = self._navigate_path(container, self.source_property)
@@ -254,7 +254,7 @@ class PropertyBinding:
         Raises:
             ValueError: If field type doesn't support property updates
         """
-        field = self._element.data
+        field = self._element._data
         
         # Only works for BaseField
         if not isinstance(field, BaseField):

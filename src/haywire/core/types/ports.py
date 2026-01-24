@@ -17,6 +17,7 @@ from haywire.core.types.interface import IType
 
 # Import the new DataField classes
 from haywire.core.data.fields import DataField
+from haywire.core.types.pipe import Pipes
 from haywire.core.types.registry import TypeRegistry
 
 
@@ -46,22 +47,19 @@ class DataPort(DataTypeIdentity):
     id: str = ''
     
     # Runtime data field (created by type in __post_init__)
-    data: Optional[DataField] = None
+    _data: Optional[DataField] = None
+    """DataField instance storing port data"""
     
     # Type tracking
     type_cls: type[IType] = field(default=None, metadata={'serialize': False}) 
     """The type class (FLOAT, ArrayType, etc.)"""
     
     # Connection state
-    connection_count: int = 0
-    """deprecated: Use len(_edges) instead"""
-    _edges: set[str] = field(default_factory=set)
-    """Set of EdgeWrapper UUIDs connected to this port"""
     _edge_wrappers: dict[str, EdgeWrapper] = field(
         default_factory=dict, 
         repr=False, 
         metadata={'serialize': False})
-    """Set of EdgeWrapper instances connected to this port"""
+    """Dict of EdgeWrapper instances connected to this port, keyed by UUID"""
     allow_multiple_connections: bool = False  
     """Whether multiple connections are allowed"""
     
@@ -70,7 +68,11 @@ class DataPort(DataTypeIdentity):
     is_lazy: bool = False
     
     # Outlet-specific
-    pipes: list = field(default_factory=list, metadata={'serialize': False})
+    _pipes: Optional[Pipes] = field(
+        default=None, 
+        repr=False, 
+        metadata={'serialize': False}
+    )
     
     # Internal: Store default override for field creation
     default: Optional[Dict[str, Any]] = field(default=None, repr=False)
@@ -96,6 +98,12 @@ class DataPort(DataTypeIdentity):
     
     is_ghost: bool = False
     """True if this is a ghost pin for collapsed groups"""
+
+    needs_loopback: bool = False
+    """Set to True if the control flow from this outlet needs to loop back to the node"""
+
+    _is_dirty_structural: bool = False
+    """Internal flag to track if port link has structurally changed"""
 
     # ========================================================================
     # CALLBACKS
@@ -146,9 +154,9 @@ class DataPort(DataTypeIdentity):
             self.widget_key = widget_key
 
         # Create data field if needed
-        if self.data is None and self.type_cls is not None:
+        if self._data is None and self.type_cls is not None:
             # Type creates its own field!
-            self.data = self.type_cls.create_field(
+            self._data = self.type_cls.create_field(
                 default_override=self.default
             )
 
@@ -180,12 +188,12 @@ class DataPort(DataTypeIdentity):
             - For CompoundField: Container (dict, list, etc.)
             - None if no data
         """
-        if not self.data:
+        if not self._data:
             return None
         
-        return self.data.get_value()
+        return self._data.get_value()
     
-    def set_value(self, new_value: Any, source_id: str | None = None) -> None:
+    def set_value(self, new_value: Any, connection_uuid: str | None = None) -> None:
         """
         Set value from connection or programmatic update.
         
@@ -193,19 +201,24 @@ class DataPort(DataTypeIdentity):
             new_value: Value to set (can be IType instance or raw value)
             source_id: Source identifier (required for pooled fields)
         """
-        old_value = self.get_value()
-
-        if not self.data:
+        if not self._data:
             return
         
-        self.data.set_value(new_value, source_id=source_id)
+        self._data.set_value(new_value, source_id=connection_uuid)
 
         # Trigger on_change callback if value actually changed
-        if old_value != new_value and self.on_change:
-            self._trigger_callback('on_change', old_value, new_value)
+        if self.on_change:
+            self._trigger_callback('on_change', new_value)
+        if self._pipes:
+            self._pipes.propagate(new_value)
+        if self.is_inlet():
+            self._mark_as_data_dirty()
 
     def is_pin(self) -> bool:
-        """Check if this is a visible pin (not a config)"""
+        """
+        Check if this is a visible pin (not a config)
+        TODO: Not shure if this approach is correct
+        """
         return self.flow_type != FlowType.NONE.value
     
     def is_inlet(self) -> bool:
@@ -215,25 +228,33 @@ class DataPort(DataTypeIdentity):
     def is_outlet(self) -> bool:
         """Check if this is an outlet"""
         return False
+    
+    def is_linked(self) -> bool:
+        """Check if port has any linked edges"""
+        return len(self._edge_wrappers) > 0
 
     def _add_link(self, wrapper: EdgeWrapper) -> None:
         """
         Register a linked edge.
-
         If multiple links are not allowed, replaces existing.
+        In addition, marks node as structurally dirty
+        It triggers the on_connect callback.
 
         Args:
             wrapper:  EdgeWrapper representing the link
         """
-        if self.allow_multiple_connections:
-            self._edges.add(wrapper.connection_uuid)
-            self._edge_wrappers[wrapper.connection_uuid] = wrapper
-        else:
-            self._edges = {wrapper.connection_uuid}
-            self._edge_wrappers = {wrapper.connection_uuid: wrapper}
+        if not wrapper.connection_uuid in self._edge_wrappers:
+            if not self.allow_multiple_connections:
+                old_wrapper_uuid = next(iter(self._edge_wrappers), None)
+                if old_wrapper_uuid:
+                    self._clear_link(old_wrapper_uuid)
+                self._edge_wrappers = {wrapper.connection_uuid: wrapper}
+            else:
+                self._edge_wrappers[wrapper.connection_uuid] = wrapper
 
-        if self.on_connect:
-            self._trigger_callback('on_connect', wrapper)
+            self._mark_as_structuraly_dirty()
+            if self.on_connect:
+                self._trigger_callback('on_connect', wrapper)
 
     def _get_linked_edges_uuid(self) -> list[str]:
         """
@@ -242,9 +263,9 @@ class DataPort(DataTypeIdentity):
         Returns:
             List of EdgeWrapper UUIDs linked to this port
         """
-        return list(self._edges)
+        return list(self._edge_wrappers.keys())
 
-    def _is_linked(self, wrapper_uuid: str) -> bool:
+    def _is_linked_to(self, wrapper_uuid: str) -> bool:
         """
         Check if linked to given edge.
         Args:
@@ -252,28 +273,89 @@ class DataPort(DataTypeIdentity):
         Returns:
             True if linked, False otherwise
         """
-        return wrapper_uuid in self._edges
+        return wrapper_uuid in self._edge_wrappers
     
     def _clear_link(self, wrapper_uuid: str) -> None:
         """
-        Remove a linked edge.
+        Remove a linked edge. 
+        It clears the source from the data field.
+        It also marks the node as structurally dirty.
+        It triggers the on_disconnect callback.
 
         Args:
             wrapper_uuid: UUID of EdgeWrapper representing the link
         """
-        self._edges.discard(wrapper_uuid)
-        wrapper = self._edge_wrappers.pop(wrapper_uuid, None)
+        if wrapper_uuid in self._edge_wrappers:
+            wrapper = self._edge_wrappers.pop(wrapper_uuid, None)
+            self._data.remove_source(wrapper_uuid)
+            self._mark_as_structuraly_dirty()
 
-        if self.on_disconnect and wrapper:
-            self._trigger_callback('on_disconnect', wrapper)
+            if self.on_disconnect and wrapper:
+                self._trigger_callback('on_disconnect', wrapper)
 
     def _clear_all_links(self) -> None:
         """
-        Clear all linked edges.
+        Clear all linked edges. 
+        Should only be called on cleanup operations.
         """
-        self._edges.clear()
         self._edge_wrappers.clear()
-    
+
+    def get_valid_edges(self) -> list[EdgeWrapper]:
+        """
+        Get list of valid linked EdgeWrappers.
+
+        Returns:
+            List of valid EdgeWrapper instances linked to this port
+        """
+        return [
+            wrapper for wrapper in self._edge_wrappers.values()
+            if wrapper.is_valid()
+        ]
+
+    def _mark_as_structuraly_dirty(self) -> None:
+        """Mark the port's node as structurally dirty."""
+        if self._wrapper:
+            self._wrapper.mark_as_structuraly_dirty()
+        self._is_dirty_structural = True
+
+    def _housekeeping(self) -> None:
+        """
+        Called during graph housekeeping phase.
+        Rebuild connection pipes after structural changes (like reconnecting edges).
+        This cannot be done immediately upon link changes since
+        at the time of a link change, the edges are not yet validated.
+        """
+        if self._is_dirty_structural:
+            self._refresh_pipes()
+            # as soon as we refresh pipes, propagate current value
+            if self._pipes:
+                self._pipes.propagate(self.get_value())
+        self._is_dirty_structural = False
+
+    def _refresh_pipes(self) -> None:
+        """
+        Refresh pipes based on current link state.
+        If outlet and linked, ensure pipes exist and are up-to-date.
+        If outlet and unlinked, clear pipes.
+        Called during graph housekeeping phase.
+        """
+        if self.is_outlet():
+            if self.is_linked():
+                if self._pipes is None:
+                    self._pipes = Pipes()
+                self._pipes.clear()
+                for wrapper in self.get_valid_edges():
+                    self._pipes.add_pipe(wrapper)
+            else:
+                if self._pipes:
+                    self._pipes.clear()
+                    self._pipes = None
+
+    def _mark_as_data_dirty(self) -> None:
+        """Mark the port's node as data dirty."""
+        if self._wrapper:
+            self._wrapper.mark_as_data_dirty()
+
     def to_dict(self) -> dict:
         """
         Serialize port to dict using recipe format.

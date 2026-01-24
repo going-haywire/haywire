@@ -561,7 +561,7 @@ class BaseGraph:
         """
         port = self._get_port(node_id, port_id)
         if port:
-            port._clear_all_links()
+            port._clear_link(edge_wrapper.connection_uuid)
             edge_wrapper.validate_link(port)
             edges_wrps = self._get_edge_wrappers_for_port(node_id, port_id)
             if edge_wrapper in edges_wrps:
@@ -906,7 +906,10 @@ class BaseGraph:
         
         # Mark all nodes as removed
         for node_id in list(self.node_wrappers.keys()):
-            self._validation.mark_node_dirty(node_id, ChangeReason.NODE_REMOVED)
+            self._validation.mark_node_dirty(
+                node_id, 
+                ChangeReason.NODE_REMOVED
+            )   
         
         # Force immediate validation to notify listeners before cleanup
         self._validation.force_immediate_validation()
@@ -1033,11 +1036,14 @@ class BaseGraph:
                     edge_wrapper.build()
 
                     # Validate adapter chain for changes
-                    chain = edge_data["adapter_registry_keys"]
-                    edge_wrapper.validate_chain_for_changes(chain)
+                    chain = edge_data["chain_adapter_keys"]
+                    edge_wrapper._check_chain_for_changes(chain)
 
                     self.add_edge_wrapper(edge_wrapper)
             
+            for wrapper in self.node_wrappers.values():
+                wrapper._housekeeping()
+
             return True
             
         except Exception as e:

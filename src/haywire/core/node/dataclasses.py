@@ -21,6 +21,7 @@ class NodeBehavior:
     """Behavioral configuration of a node"""
     is_control_node: bool = False
     is_data_node: bool = True
+    is_output_node: bool = False
     is_mutable: bool = False
     allows_variables: bool = False
     mute_connection: list[str] = field(default_factory=lambda: ['control_in_ID', 'control_out_ID'])

@@ -111,7 +111,7 @@ class SimpleWidget(IWidget, ABC):
         """
         # Model → View: Subscribe to data field changes
         self._model_changed_callback = lambda _: self._sync_to_view()
-        self.port.data.on_changed += self._model_changed_callback
+        self.port._data.on_changed += self._model_changed_callback
         
         # View → Model: Subscribe to UI element changes (if writable)
         if not self.IS_READONLY:
@@ -148,7 +148,7 @@ class SimpleWidget(IWidget, ABC):
         """Clean up subscriptions"""
         if self._model_changed_callback:
             try:
-                self.port.data.on_changed -= self._model_changed_callback
+                self.port._data.on_changed -= self._model_changed_callback
             except Exception as e:
                 self.logger.warning(f"Failed to clean up model event listener: {e}", exc_info=True)
         

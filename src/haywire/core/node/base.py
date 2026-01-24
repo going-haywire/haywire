@@ -85,6 +85,17 @@ class NodeData:
         self._port_order_counter: int = 0
         """Counter for assigning display order to ports"""
     
+    def _housekeeping(self) -> None:
+        """
+        Perform housekeeping tasks for the node.
+        
+        This method is called during the graph housekeeping phase
+        to allow the node to refresh its internal state, such as
+        rebuilding connection pipes after structural changes.
+        """
+        for port in self.ports.values():
+            port._housekeeping()
+
     def add(self, port: DataPort) -> DataPort:
         """
         Add a port (inlet or outlet) to the node with automatic hierarchy tracking.
@@ -149,7 +160,9 @@ class NodeData:
         port._wrapper = self.wrapper
 
         self._cache_dirty = True
-        
+
+        self.wrapper.mark_as_structuraly_dirty()
+
         return port
     
     @contextmanager
@@ -326,6 +339,8 @@ class NodeData:
                 # Remove port
                 del self.ports[port_id]
                 removed.append(port_id)
+
+                self.wrapper.mark_as_structuraly_dirty()
         
         self._cache_dirty = True
         return removed
@@ -683,11 +698,11 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         Initialize Node to its default setup
 
         This method needs to be overwritten by every node and is
-        called when the node is created or reset.
+        called when the node is created or rebuilt.
         """
         pass
 
-    def test(self) -> tuple[bool, str | None]:
+    def test_run(self) -> tuple[bool, str | None]:
         """
         Run node test. This test is executed when the node is added
         to the graph and can be used to verify that the node is set up
@@ -700,6 +715,15 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             Optional string with failure reason if tests fail
         """
         return True, None
+
+    def startup(self) -> None:
+        """
+        Perform any startup logic when the node is executing for the first time.
+        It is called once before the first execution of the worker.
+        
+        Override this method in subclasses to implement custom startup logic.
+        """
+        pass
 
     @abstractmethod
     def worker(self, context: dict) -> dict | None:
@@ -729,7 +753,25 @@ class BaseNode(NodeData, metaclass=NodeMeta):
                 return None
         """
         pass
-    
+
+    def shutdown(self) -> None:
+        """
+        Perform any shutdown logic when the graph stops executing.
+        
+        Override this method in subclasses to implement custom shutdown logic.
+        """
+        pass
+
+    def destroy(self) -> None:
+        """
+        Clean up resources when node is destroyed.
+        
+        Override this method in subclasses to implement custom cleanup logic.
+        This is called when the node is removed from the graph and should
+        release any resources held by the node.
+        """
+        pass
+
     def _to_dict(self) -> dict:
         """
         Serialize node to dictionary.

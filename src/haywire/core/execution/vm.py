@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from dataclasses import dataclass
 import logging
 
+from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow
+
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow, LoopbackFrame
     from haywire.core.execution.event_source import Trigger
@@ -173,12 +175,15 @@ class HaywireVM:
             # Update stacks
             done_stack.append(current_node_id)
             
-            if node_info.is_loopback:
-                from haywire.core.execution.flow import LoopbackFrame
-                loopback_stack.append(LoopbackFrame(
-                    node_id=current_node_id,
-                    done_index=len(done_stack) - 1
-                ))
+            # Only push to loopback stack if taking a loopback outlet
+            if node_info.is_loopback and next_outlet_id:
+                outlet_port = node_info.node_wrapper.node.ports[next_outlet_id]
+                if outlet_port and outlet_port.needs_loopback:
+                    from haywire.core.execution.flow import LoopbackFrame
+                    loopback_stack.append(LoopbackFrame(
+                        node_id=current_node_id,
+                        done_index=len(done_stack) - 1
+                    ))
             
             # Navigate to next node
             current_node_id = self._navigate_next(
@@ -210,7 +215,7 @@ class HaywireVM:
     
     def _execute_control_node(
         self,
-        node_info,
+        node_info: 'ControlNodeInfo',
         flow: 'Flow',
         exec_ctx: ExecutionContext
     ) -> Optional[str]:
@@ -247,42 +252,8 @@ class HaywireVM:
                 lazy_mask=None  # TODO: Implement lazy evaluation
             )
         
-        # 2. ON_CHANGED_ASYNC hook (optional)
-        if hasattr(node, 'on_changed_async'):
-            try:
-                node.on_changed_async(exec_ctx.to_dict())
-            except Exception as e:
-                logger.error(
-                    f"Error in on_changed_async for {node_wrapper.node_id}: {e}",
-                    exc_info=True
-                )
-        
-        # 3. ON_VALIDATION_INPUT hook (optional)
-        if hasattr(node, 'on_validation_input'):
-            try:
-                if not node.on_validation_input(exec_ctx.to_dict()):
-                    raise RuntimeError(
-                        f"Input validation failed for {node_wrapper.node_id}"
-                    )
-            except Exception as e:
-                logger.error(
-                    f"Error in on_validation_input for {node_wrapper.node_id}: {e}",
-                    exc_info=True
-                )
-                raise
-        
-        # 4. Execute worker function
-        try:
-            result = node.worker(exec_ctx.to_dict())
-        except Exception as e:
-            logger.error(
-                f"Error executing worker for {node_wrapper.node_id}: {e}",
-                exc_info=True
-            )
-            raise
-        
-        # 5. Parse result for next outlet
-        next_outlet_id = self._parse_worker_result(result)
+        # 2 Execute control node
+        next_outlet_id = node_wrapper._execute_method(exec_ctx)
         
         logger.debug(
             f"Control node {node_wrapper.node_id} completed, "
@@ -291,38 +262,12 @@ class HaywireVM:
         
         return next_outlet_id
     
-    def _parse_worker_result(self, result: Any) -> Optional[str]:
-        """
-        Parse worker function result to extract next outlet ID.
-        
-        Worker can return:
-        - None: No specific outlet (use loopback or end)
-        - {'next_outlet': 'outlet_id'}: Specific outlet to follow
-        - 'outlet_id': Direct outlet ID string
-        
-        Args:
-            result: Worker function return value
-            
-        Returns:
-            Outlet ID to follow, or None
-        """
-        if result is None:
-            return None
-        
-        if isinstance(result, dict):
-            return result.get('next_outlet')
-        
-        if isinstance(result, str):
-            return result
-        
-        logger.warning(f"Unexpected worker result format: {result}")
-        return None
     
     def _navigate_next(
         self,
         next_outlet_id: Optional[str],
-        node_info,
-        loopback_stack: List,
+        node_info: 'ControlNodeInfo',
+        loopback_stack: List['LoopbackFrame'],
         done_stack: List[str]
     ) -> Optional[str]:
         """
@@ -363,7 +308,7 @@ class HaywireVM:
     
     def _handle_loopback(
         self,
-        loopback_stack: List,
+        loopback_stack: List['LoopbackFrame'],
         done_stack: List[str]
     ) -> Optional[str]:
         """
@@ -395,7 +340,7 @@ class HaywireVM:
     
     def _evaluate_data_flow(
         self,
-        data_flow,
+        data_flow: 'LocalizedDataFlow',
         exec_ctx: ExecutionContext,
         lazy_mask: Optional[int]
     ):
@@ -416,99 +361,17 @@ class HaywireVM:
         )
         
         for data_node_wrapper in data_flow.execution_sequence:
-            node = data_node_wrapper.node
             
             # TODO: Implement lazy evaluation check
             # if lazy_mask and data_flow.requires_lazy:
             #     eval_mask = data_flow.eval_masks.get(data_node_wrapper.node_id, 0)
             #     if (lazy_mask & eval_mask) == 0:
             #         continue  # Skip this node
-            
-            # Check if any inlets are dirty
-            if not self._any_inlet_dirty(node):
-                logger.debug(f"Skipping {data_node_wrapper.node_id} (not dirty)")
-                continue
-            
+                        
             # Execute data node
-            self._execute_data_node(data_node_wrapper, exec_ctx)
+            logger.debug(f"Executing data node: {data_node_wrapper.node_id}")            
+            data_node_wrapper._execute_method(exec_ctx)            
             
-            # Mark inlets as clean
-            self._mark_inlets_clean(node)
-    
-    def _execute_data_node(
-        self,
-        node_wrapper: 'NodeWrapper',
-        exec_ctx: ExecutionContext
-    ):
-        """
-        Execute a data node.
-        
-        Args:
-            node_wrapper: Data node wrapper to execute
-            exec_ctx: Execution context
-        """
-        node = node_wrapper.node
-        
-        logger.debug(f"Executing data node: {node_wrapper.node_id}")
-        
-        # ON_CHANGED_ASYNC hook (optional)
-        if hasattr(node, 'on_changed_async'):
-            try:
-                node.on_changed_async(exec_ctx.to_dict())
-            except Exception as e:
-                logger.error(
-                    f"Error in on_changed_async for {node_wrapper.node_id}: {e}",
-                    exc_info=True
-                )
-        
-        # ON_VALIDATION_INPUT hook (optional)
-        if hasattr(node, 'on_validation_input'):
-            try:
-                if not node.on_validation_input(exec_ctx.to_dict()):
-                    raise RuntimeError(
-                        f"Input validation failed for {node_wrapper.node_id}"
-                    )
-            except Exception as e:
-                logger.error(
-                    f"Error in on_validation_input for {node_wrapper.node_id}: {e}",
-                    exc_info=True
-                )
-                raise
-        
-        # Execute worker
-        try:
-            node.worker(exec_ctx.to_dict())
-        except Exception as e:
-            logger.error(
-                f"Error executing data node {node_wrapper.node_id}: {e}",
-                exc_info=True
-            )
-            raise
-    
-    def _any_inlet_dirty(self, node) -> bool:
-        """
-        Check if any data inlets are dirty.
-        
-        Args:
-            node: Node to check
-            
-        Returns:
-            True if any inlet is dirty
-        """
-        # TODO: Implement dirty tracking on ports
-        # For now, always evaluate
-        return True
-    
-    def _mark_inlets_clean(self, node):
-        """
-        Mark all data inlets as clean.
-        
-        Args:
-            node: Node whose inlets to mark clean
-        """
-        # TODO: Implement dirty tracking on ports
-        pass
-    
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
         """
         Emit a callback to trigger other flows.

@@ -118,6 +118,10 @@ class DataField(ABC, Generic[T]):
         """Check if field has any data"""
         pass
     
+    def remove_source(self, source_id: str) -> None:
+        """Remove a disconnected source."""
+        pass
+
     # ========================================================================
     # EVENT SYSTEM
     # ========================================================================

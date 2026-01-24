@@ -218,6 +218,12 @@ class IType(ABC):
         Args:
             id: Port identifier
             **kwargs: Override identity attributes or add port-specific fields
+                - default: Default value for the inlet
+                - flow_type: FlowType enum value
+                - widget: widget configuration
+                - on_change: callback for value changes
+                - on_connect: callback for connections
+                - on_disconnect: callback for disconnections
         
         Returns:
             PortInlet configured with this type's identity and data field
@@ -257,6 +263,13 @@ class IType(ABC):
         Args:
             id: Port identifier
             **kwargs: Override identity attributes
+                - default: Default value for the inlet
+                - flow_type: FlowType enum value
+                - is_loopback: bool for control flow outlets
+                - widget: widget configuration
+                - on_change: callback for value changes
+                - on_connect: callback for connections
+                - on_disconnect: callback for disconnections
         
         Returns:
             PortOutlet configured with this type's identity and data field

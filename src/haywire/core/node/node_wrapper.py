@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from .base import BaseNode
     from ..graph.base import BaseGraph
     from .factory import NodeFactory
+    from ..execution.vm import ExecutionContext
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,8 @@ class NodeWrapperState:
     """node custom error """
     error_test: Optional[HaywireException] = None
     """node test error"""
+    error_runtime: Optional[HaywireException] = None
+    """node runtime error"""
     test_execution_time_ns: float = 0.0
     """Last transform() execution time"""
 
@@ -87,6 +90,8 @@ class NodeWrapperState:
             return self.error_test
         elif self.error_custom:
             return self.error_custom
+        elif self.error_runtime:
+            return self.error_runtime
         else:
             return None
         
@@ -175,6 +180,9 @@ class NodeWrapper:
             self._graph._structural
         )
 
+        self._is_dirty_structural: bool = False
+        self._is_dirty_data: bool = False
+
         self._import_node_cls()        
 
     @property  
@@ -201,6 +209,10 @@ class NodeWrapper:
         """Get the node id"""
         return self._node_id
         
+    # ========================================================================= 
+    # House Keeping & Validation
+    # =========================================================================
+    
     def _import_node_cls(self):
         """
         gets the node class and import error, if any
@@ -375,7 +387,7 @@ class NodeWrapper:
 
             if self._node_instance:
                 start_time = time.perf_counter()
-                success, error =self._node_instance.test()
+                success, error =self._node_instance.test_run()
             
                 # Update metrics
                 execution_time = (time.perf_counter() - start_time) * 1000000.0
@@ -413,22 +425,6 @@ class NodeWrapper:
             self._state.has_test_passed = False
             
         return False
-
-
-    def cleanup(self) -> None:
-        """Full cleanup when wrapper is being destroyed"""
-        with self._lock:
-            # Remove event subscription
-            self._node_factory.remove_event_subscriber(
-                self.registry_key, self._on_node_lifecycle_event
-            )
-                        
-            self._middleware.clear()
-            self._state = None
-            self._node_cls = None
-            self._node_factory = None
-            self._node_instance = None
-            self._graph = None
 
     def _on_node_lifecycle_event(self, lc_event: LifeCycleEvent) -> None:
         """
@@ -489,16 +485,21 @@ class NodeWrapper:
                     ChangeReason.NODE_HOT_RELOADED
                 )
 
-    def redraw(self) -> None:
-        """
-        Request a redraw of the node in the UI.
-        """
-        # Notify graph of redraw request
-        if self._graph:
-            self._graph._validation.mark_node_dirty(
-                self._node_id,
-                ChangeReason.NODE_REDRAW_REQUESTED
+    def cleanup(self) -> None:
+        """Full cleanup when wrapper is being destroyed"""
+        with self._lock:
+            # Remove event subscription
+            self._node_factory.remove_event_subscriber(
+                self.registry_key, self._on_node_lifecycle_event
             )
+                        
+            self._middleware.clear()
+            self._state = None
+            self._node_cls = None
+            self._node_factory = None
+            self._node_instance.destroy()
+            self._node_instance = None
+            self._graph = None
 
     def validate(self) -> List[str]:
         """
@@ -524,6 +525,10 @@ class NodeWrapper:
             
             return issues
 
+    # =========================================================================
+    # RUNTIME OPERATIONS
+    # =========================================================================
+ 
     def move(self, new_x: float, new_y: float):
         """
         Move internal node instance and set the default position
@@ -548,6 +553,74 @@ class NodeWrapper:
             if middleware in self._middleware:
                 self._middleware.remove(middleware)
                 
+    def _execute_method(self, exec_ctx: 'ExecutionContext') -> str | None:
+        """
+        Execute the node's transform method within the given execution context.
+        
+        Args:
+            exec_ctx: The execution context for this run
+            
+        Returns:
+            Outlet ID to follow, or None
+        """
+        try:
+            if self._node_instance.behavior.is_data_node:
+                if not self._is_dirty_data:
+                    logger.debug(f"Skipping {self._node_id} (not dirty)")
+                    return None  # No execution needed
+                self._is_dirty_data = False  # Reset dirty flag
+
+            self._node_instance.on_changed_async()
+            self._node_instance.on_validation_input()
+
+            result =self._node_instance.worker(exec_ctx.to_dict())
+
+            outlet_id = self._parse_worker_result(result)
+            return outlet_id
+        
+        except Exception as e:
+            self._state.error_runtime = HaywireException.from_exception(
+                exception=e,
+                operation="Node Execution",
+                message=f"Error executing node '{self.node.identity.label}'"
+            ).enrich(
+                _node_id=self._node_id,
+                registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
+            )
+            self._state.error_runtime.log()
+            return None
+ 
+        #return self._execute_with_middleware('transform', exec_ctx)
+
+    def _parse_worker_result(self, result: Any) -> Optional[str]:
+        """
+        Parse worker function result to extract next outlet ID.
+        
+        Worker can return:
+        - None: No specific outlet (use loopback or end)
+        - {'next_outlet': 'outlet_id'}: Specific outlet to follow
+        - 'outlet_id': Direct outlet ID string
+        
+        Args:
+            result: Worker function return value
+            
+        Returns:
+            Outlet ID to follow, or None
+        """
+        if result is None:
+            return None
+        
+        if isinstance(result, dict):
+            return result.get('next_outlet')
+        
+        if isinstance(result, str):
+            return result
+        
+        logger.warning(f"Unexpected worker result format: {result}")
+        return None
+
     def _execute_with_middleware(self, method_name: str, *args) -> Any:
         """Execute a method with middleware hooks"""
         # Before hooks
@@ -574,7 +647,45 @@ class NodeWrapper:
                 ).log()
         
         return result
-    
+
+    def mark_as_data_dirty(self) -> None:
+        self._is_dirty_data = True
+
+    def mark_as_structuraly_dirty(self) -> None:
+        """
+        Mark the node as structurally dirty, requiring re-validation.
+        """
+        # Notify graph of redraw request
+        if self._graph and not self._is_dirty_structural:
+            self._graph._validation.mark_node_dirty(
+                self._node_id,
+                ChangeReason.NODE_VALIDATION_REQUESTED
+            )
+            self._is_dirty_structural = True
+
+    def _housekeeping(self) -> None:
+        """
+        Perform housekeeping of the node and its ports.
+        Should be called after graph validation phase or deserialization.
+        This includes the rebuild of the port pipelines
+        """
+        with self._lock:
+            if self._node_instance:
+                self._node_instance._housekeeping()
+                self._is_dirty_structural = False
+
+
+    def redraw(self) -> None:
+        """
+        Request a redraw of the node in the UI.
+        """
+        # Notify graph of redraw request
+        if self._graph:
+            self._graph._validation.mark_node_dirty(
+                self._node_id,
+                ChangeReason.NODE_REDRAW_REQUESTED
+            )
+
     # =========================================================================
     # SERIALIZATION
     # =========================================================================

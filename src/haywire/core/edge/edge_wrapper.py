@@ -8,7 +8,7 @@ from ...ui.utils import generate_connection_uuid
 from ..graph.types import ChangeReason
 from ..validation.interface import IStructuralValidator
 from ..data.enums import FlowType
-from ..adapter.base import IAdapter
+from ..adapter.base import IAdapter, ReturnAdapter
 from ..errors import HaywireException
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
@@ -169,7 +169,7 @@ class EdgeWrapper:
         self._inlet_port: Optional['DataPort'] = None
 
         # First adapter in chain (created during registration)
-        self._first_adapter: Optional[IAdapter] = None
+        self._first_adapter: Optional[IAdapter] = ReturnAdapter()
 
         # State management
         self._state = EdgeWrapperState(creation_time=time.time())
@@ -264,7 +264,7 @@ class EdgeWrapper:
             f".. rebuilding failed with errors."
         )
 
-    def validate_chain_for_changes(self, chain: List[str]):
+    def _check_chain_for_changes(self, chain: List[str]):
         """
         Check if adapter chain has changed compared to given chain.
         Issues a warning to the state if so.
@@ -290,9 +290,9 @@ class EdgeWrapper:
             # create adapter chain (only for DATA edges)
             if self._edge_type == FlowType.DATA:
                 # Inlet determines what type it needs from outlet
-                sink_type = self._inlet_port.data.get_stored_type()
+                sink_type = self._inlet_port._data.get_stored_type()
                 
-                outlet_field = self._outlet_port.data
+                outlet_field = self._outlet_port._data
                 source_type = outlet_field.type_cls
                                                
                 # Create new chain
@@ -565,7 +565,7 @@ class EdgeWrapper:
         """
         is_linked = self._state.is_linked
 
-        if port._is_linked(self._connection_uuid):
+        if port._is_linked_to(self._connection_uuid):
             if port.is_inlet():
                 self._state.is_inlet_linked = True
             else:

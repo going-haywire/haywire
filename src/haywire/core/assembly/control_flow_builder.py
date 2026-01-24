@@ -78,18 +78,12 @@ class ControlFlowBuilder:
                 logger.debug(f"Node {current.node_id} is loopback")
             
             # Get all control outlet ports
-            control_outlets = [
-                port for port in current.node.ports.values()
-                if port.flow_type == FlowType.CONTROL and port.is_outlet()
-            ]
+            control_outlets = current.node.get_control_outlets()
             
             # Map each outlet to its connected node
             for outlet in control_outlets:
                 # Get edges connected to this outlet
-                edge_wrappers = graph._get_edge_wrappers_for_port(
-                    current.node_id,
-                    outlet.id
-                )
+                edge_wrappers = outlet.get_valid_edges()
                 
                 # Control outlets should have at most one connection
                 if edge_wrappers:

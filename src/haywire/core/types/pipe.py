@@ -1,32 +1,38 @@
 
-from typing import Any
-from .ports import PortOutlet, PortInlet
+from typing import TYPE_CHECKING, Any
+
+from haywire.core.adapter.base import IAdapter
+from haywire.core.edge.edge_wrapper import EdgeWrapper
+
+if TYPE_CHECKING:
+    from .ports import DataPort
 
 # Example showing how pipes would work with multi-value inlets
-class Pipe:
+class Pipes:
     """Example pipe class for data propagation"""
-    def __init__(self, source_outlet: PortOutlet, target_inlet: PortInlet, pipe_id: str):
-        self.source_outlet = source_outlet
-        self.target_inlet = target_inlet
-        self.pipe_id = pipe_id
-        
-        # Add this pipe to outlet's pipe list
-        source_outlet.pipes.append(self)
+    def __init__(self):
+        self.sinks: dict[str, 'DataPort'] = {}
+        self.chains: dict[str, IAdapter] = {}
     
+    def add_pipe(self, edge_wrapper: EdgeWrapper):
+        """Add a pipe connection"""
+        self.sinks[edge_wrapper.connection_uuid] = edge_wrapper._inlet_port
+        self.chains[edge_wrapper.connection_uuid] = edge_wrapper.first_adapter()
+    
+    def remove_pipe(self, edge_wrapper: EdgeWrapper):
+        """Remove a pipe connection"""
+        if edge_wrapper.connection_uuid in self.sinks:
+            del self.sinks[edge_wrapper.connection_uuid]
+            del self.chains[edge_wrapper.connection_uuid]
+
     def propagate(self, value: Any):
-        """Propagate value through pipe using polymorphic DataField interface"""
-        # The DataField subclass will handle the logic based on its type
-        # ScalarField ignores source_id, MultiField uses it
-        self.target_inlet.set_value_from_source(self.pipe_id, value)    
+        """Propagate value through pipe using adapter chains"""
+        for connection_uuid, sink in self.sinks.items():
+            chain = self.chains[connection_uuid]
+            converted_value = chain.execute(value)
+            sink.set_value(converted_value, connection_uuid=connection_uuid)
 
+    def clear(self):
+        self.sinks.clear()
+        self.chains.clear()
 
-    def disconnect(self):
-        """Disconnect the pipe using polymorphic DataField interface"""
-        # Remove from outlet's pipes
-        self.source_outlet.pipes.remove(self)
-        
-        # Remove source using polymorphic interface
-        # ScalarField will clear its value, MultiField will remove the specific source
-        self.target_inlet.remove_source(self.pipe_id)
-        
-        # Update connection status based on remaining sources

@@ -141,12 +141,26 @@ class IAdapter(ABC):
         
     @abstractmethod
     def convert(self, value: Any) -> Any:
-        """Transform value"""
+        """
+        Method to convert value.
+        This method ONLY performs conversion.
+        Use execute() to run the full adapter chain.
+        Args:
+            value: Input value to convert
+        Returns:
+            Converted value by this adapter only
+        """
         pass
     
     @abstractmethod
     def execute(self, value: Any) -> Any:
-        """Execute this adapter, then execute the inside chain"""
+        """
+        Main method to execute adapter-chain
+        Args:
+            value: Input value to convert
+        Returns:
+            Converted value after executing entire chain
+        """
         pass
 
     @abstractmethod
@@ -243,6 +257,7 @@ class BaseAdapter(IAdapter):
     def convert(self, value: Any) -> Any:
         """
         Value-level conversion: Convert UNWRAPPED value.
+        DO NOT USE THIS METHOD FOR CONVERSION. USE execute() INSTEAD.
         
         This is where actual data transformation happens.
         Operates on unwrapped primitives or instances, not IType wrappers.
@@ -256,19 +271,6 @@ class BaseAdapter(IAdapter):
             Unwrapped value for target field
             - For primitives: 77.0 (not FLOAT(77.0))
             - For complex: PointCloud(...) instance
-        
-        Examples:
-            # Primitive to primitive
-            def convert(self, celsius: float) -> float:
-                return (celsius * 9/5) + 32
-            
-            # Complex to complex
-            def convert(self, mesh: MeshData) -> PointCloud:
-                return PointCloud(points=mesh.vertices)
-            
-            # Primitive to string
-            def convert(self, value: float) -> str:
-                return f\"{value:.2f}\"
         """
         pass
     

@@ -60,7 +60,7 @@ class CustomCallbackNode(EventNode):
         # Data output
         self.add(FLOAT.as_outlet('payload', label='Payload'))
     
-    def _update_subscription(self, port, old_value, new_value):
+    def _update_subscription(self, port, new_value):
         """Update event subscription when callback name changes"""
         self.event_subscription = CallbackEvent(event_name=new_value)
         

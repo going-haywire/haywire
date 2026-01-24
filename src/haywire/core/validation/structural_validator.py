@@ -75,6 +75,10 @@ class StructuralValidator(IStructuralValidator):
         if node.behavior.is_event_node:
             return self._validate_event_node(wrapper)
         
+        # Check if this is a loopback node
+        if node.behavior.is_loopback:
+            return self._validate_loopback_node(wrapper)
+        
         # Regular nodes pass by default
         # (future: add other node-level structural checks here)
         return (True, None, [])
@@ -130,6 +134,70 @@ class StructuralValidator(IStructuralValidator):
                 False,
                 "Event node must have at least one control outlet",
                 ["Add at least one EXEC.as_outlet(...) to the node"]
+            )
+        
+        # All checks passed
+        return (True, None, [])
+    
+    def _validate_loopback_node(
+        self, wrapper: 'NodeWrapper'
+    ) -> tuple[bool, str | None, list[str]]:
+        """
+        Validate loopback node structural constraints.
+        
+        Loopback nodes (ForLoop, WhileLoop, Sequence, etc.) must have:
+        - At least one control outlet with is_loopback_outlet=True (loop body)
+        - At least one control outlet with is_loopback_outlet=False (exit path)
+        
+        This ensures the loop can both iterate and terminate.
+        
+        Args:
+            wrapper: Loopback node wrapper to validate
+            
+        Returns:
+            Tuple of (is_valid, error_message, suggestions).
+            Error message is None if valid.
+            Suggestions is a list of actionable fixes.
+        """
+        node = wrapper.node
+        control_outlets = node.get_control_outlets()
+        
+        # Must have at least 2 control outlets (one for loop, one for exit)
+        if len(control_outlets) < 2:
+            return (
+                False,
+                f"Loopback node must have at least 2 control outlets "
+                f"(loop body and exit). Found: {len(control_outlets)}",
+                [
+                    "Add a control outlet for the loop body with is_loopback_outlet=True",
+                    "Add a control outlet for exit/completion with is_loopback_outlet=False"
+                ]
+            )
+        
+        # Check for loopback outlet (is_loopback_outlet=True)
+        loopback_outlets = [p for p in control_outlets if p.needs_loopback]
+        if len(loopback_outlets) == 0:
+            return (
+                False,
+                "Loopback node must have at least one control outlet with "
+                "is_loopback_outlet=True (the loop body outlet)",
+                [
+                    "Set is_loopback_outlet=True on the loop body outlet",
+                    "Example: EXEC.as_outlet('loop_body', is_loopback_outlet=True)"
+                ]
+            )
+        
+        # Check for exit outlet (is_loopback_outlet=False)
+        exit_outlets = [p for p in control_outlets if not p.needs_loopback]
+        if len(exit_outlets) == 0:
+            return (
+                False,
+                "Loopback node must have at least one control outlet with "
+                "is_loopback_outlet=False (the exit/completed outlet)",
+                [
+                    "Add a control outlet for loop exit without is_loopback_outlet flag",
+                    "Example: EXEC.as_outlet('completed')  # is_loopback_outlet defaults to False"
+                ]
             )
         
         # All checks passed

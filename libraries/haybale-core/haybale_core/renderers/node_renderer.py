@@ -120,47 +120,47 @@ class NodeRenderer(BaseRenderer, ABC):
                 f'data-pin-color="{callback_color}"'
             )
         elif pin.flow_type == FlowType.DATA:
-            pin_color = pin.data.get_stored_type().class_identity.color
-            pin_data_type = pin.data.get_stored_type().class_identity.registry_key
+            pin_color = pin._data.get_stored_type().class_identity.color
+            pin_data_type = pin._data.get_stored_type().class_identity.registry_key
             # Get pin color: try data type specific, use pin.color as preference
             if pin.is_inlet():
                 if pin.allow_multiple_connections:
-                    if issubclass(pin.data.get_stored_type(), CompoundType):
+                    if issubclass(pin._data.get_stored_type(), CompoundType):
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_MULTI_COMPOUND,
-                            pin.data.get_stored_type().class_identity.icon_in_multi,
+                            pin._data.get_stored_type().class_identity.icon_in_multi,
                             fallback=ICONS.WEB_STORIES
                         )
                     else:
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_MULTI_SINGLE,
-                            pin.data.get_stored_type().class_identity.icon_in_multi,
+                            pin._data.get_stored_type().class_identity.icon_in_multi,
                             fallback=ICONS.FIBER_SMART_RECORD
                         )
                 else:
                     if issubclass(pin.type_cls, CompoundType):
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_COMPOUND,
-                            pin.data.get_stored_type().class_identity.icon_in,
+                            pin._data.get_stored_type().class_identity.icon_in,
                             fallback=ICONS.VIEW_DAY
                         )
                     else:
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_SINGLE,
-                            pin.data.get_stored_type().class_identity.icon_in,
+                            pin._data.get_stored_type().class_identity.icon_in,
                             fallback=ICONS.MY_LOCATION
                         )
             else:
                 if issubclass(pin.type_cls, CompoundType):
                     data_icon = ThemePalette.get(
                         ThemeKey.UI_PORT_ICON_OUT_MULTI_COMPOUND,
-                        pin.data.get_stored_type().class_identity.icon_out_multi,
+                        pin._data.get_stored_type().class_identity.icon_out_multi,
                         fallback=ICONS.VIEW_DAY
                     )
                 else:
                     data_icon = ThemePalette.get(
                         ThemeKey.UI_PORT_ICON_OUT_MULTI_SINGLE,
-                        pin.data.get_stored_type().class_identity.icon_out_multi,
+                        pin._data.get_stored_type().class_identity.icon_out_multi,
                         fallback=ICONS.CIRCLE
                     )
             with ui.icon(data_icon, color=pin_color, size='15px').classes(
@@ -173,7 +173,7 @@ class NodeRenderer(BaseRenderer, ABC):
                     f'data-pin-data-type="{pin_data_type}" '
                     f'data-pin-color="{pin_color}"'
                 ):
-                ui.tooltip(f'{pin.description} | {pin.data.get_value()}').classes('bg-green')
+                ui.tooltip(f'{pin.description} | {pin._data.get_value()}').classes('bg-green')
 
     def _add_resize_handle(self, main_card: ui.card, wrapper: NodeWrapper):
         """Add a draggable resize handle to the bottom-right corner."""
