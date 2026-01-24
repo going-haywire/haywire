@@ -81,9 +81,9 @@ class AddEdgeAction(ActionBase):
     def __init__(
         self, 
         graph: BaseGraph,
-        output_node_id: str,
+        source_node_id: str,
         outlet_pin_id: str,
-        input_node_id: str,
+        sink_node_id: str,
         inlet_pin_id: str,
         description: Optional[str] = None
     ):
@@ -92,20 +92,20 @@ class AddEdgeAction(ActionBase):
         
         Args:
             graph: The graph to add the edge to
-            output_node_id: Source node ID
+            source_node_id: Source node ID
             outlet_pin_id: Source outlet ID
-            input_node_id: Target node ID
-            inlet_pin_id: Target inlet ID
+            sink_node_id: Sink node ID
+            inlet_pin_id: Sink inlet ID
             description: Optional description override
         """
         super().__init__(
             description or 
-            f"Connect {output_node_id} to {input_node_id}"
+            f"Connect {source_node_id} to {sink_node_id}"
         )
         self.graph = graph
-        self.output_node_id = output_node_id
+        self.source_node_id = source_node_id
         self.outlet_port_id = outlet_pin_id
-        self.input_node_id = input_node_id
+        self.sink_node_id = sink_node_id
         self.inlet_port_id = inlet_pin_id
         
         # Wrapper created during execute
@@ -118,9 +118,9 @@ class AddEdgeAction(ActionBase):
         if self.wrapper is None:
             # First execution: Create new wrapper via graph
             self.wrapper = self.graph.create_edge_wrapper(
-                self.output_node_id,
+                self.source_node_id,
                 self.outlet_port_id,
-                self.input_node_id,
+                self.sink_node_id,
                 self.inlet_port_id
             )
         else:
@@ -132,8 +132,8 @@ class AddEdgeAction(ActionBase):
         if not self.wrapper:
             raise RuntimeError(
                 f"Failed to create edge wrapper for connection "
-                f"{self.output_node_id}:{self.outlet_port_id} -> "
-                f"{self.input_node_id}:{self.inlet_port_id}"
+                f"{self.source_node_id}:{self.outlet_port_id} -> "
+                f"{self.sink_node_id}:{self.inlet_port_id}"
             )
     
     def _undo_impl(self) -> None:

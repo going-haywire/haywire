@@ -108,9 +108,9 @@ class NodeCreateRequestEvent(BaseGraphEvent):
 @graph_event("connectionCreated", category="user", description="New connection created")
 @dataclass
 class ConnectionCreatedEvent(BaseGraphEvent):
-    outputNodeId: str
+    sourceNodeId: str
     outletPinId: str
-    inputNodeId: str
+    sinkNodeId: str
     inletPinId: str
 
 @graph_event("connectionClicked", category="user", description="Connection clicked")

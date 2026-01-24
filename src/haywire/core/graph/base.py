@@ -370,9 +370,9 @@ class BaseGraph:
     
     def create_edge_wrapper(
         self,
-        output_node_id: str,
+        source_node_id: str,
         outlet_port_id: str,
-        input_node_id: str,
+        sink_node_id: str,
         inlet_port_id: str
     ) -> Optional['EdgeWrapper']:
         """
@@ -382,9 +382,9 @@ class BaseGraph:
         Automatically triggers validation pipeline.
         
         Args:
-            output_node_id: Source node ID
+            source_node_id: Source node ID
             outlet_port_id: Source outlet ID
-            input_node_id: Target node ID
+            sink_node_id: Target node ID
             inlet_port_id: Target inlet ID
             
         Returns:
@@ -392,14 +392,14 @@ class BaseGraph:
         """
         from ..edge.edge_wrapper import EdgeWrapper
         
-        flow_type = self.node_wrappers[output_node_id].node.ports[outlet_port_id].flow_type
+        flow_type = self.node_wrappers[source_node_id].node.ports[outlet_port_id].flow_type
 
         # Create new wrapper
         edge_wrapper = EdgeWrapper(
             graph=self,
-            output_node_id=output_node_id,
+            source_node_id=source_node_id,
             outlet_port_id=outlet_port_id,
-            input_node_id=input_node_id,
+            sink_node_id=sink_node_id,
             inlet_port_id=inlet_port_id,
             edge_type=flow_type,
         )
@@ -502,23 +502,23 @@ class BaseGraph:
         if edge_wrapper.is_functional():
             self._link_edge_to_port(
                 edge_wrapper,
-                edge_wrapper.input_node_id,
+                edge_wrapper.sink_node_id,
                 edge_wrapper.inlet_port_id
             )
             self._link_edge_to_port(
                 edge_wrapper,
-                edge_wrapper.output_node_id,
+                edge_wrapper.source_node_id,
                 edge_wrapper.outlet_port_id
             ) 
         else:
             self._unlink_edge_from_port(
                 edge_wrapper,
-                edge_wrapper.input_node_id,
+                edge_wrapper.sink_node_id,
                 edge_wrapper.inlet_port_id
             )
             self._unlink_edge_from_port(
                 edge_wrapper,
-                edge_wrapper.output_node_id,
+                edge_wrapper.source_node_id,
                 edge_wrapper.outlet_port_id
             ) 
 
@@ -617,10 +617,10 @@ class BaseGraph:
         connected_wrappers = []
         
         for wrapper in self.edge_wrappers.values():
-            if (wrapper.input_node_id == node_id and 
+            if (wrapper.sink_node_id == node_id and 
                 wrapper.inlet_port_id == port_id):
                 connected_wrappers.append(wrapper)
-            if (wrapper.output_node_id == node_id and 
+            if (wrapper.source_node_id == node_id and 
                 wrapper.outlet_port_id == port_id):
                 connected_wrappers.append(wrapper)
         
@@ -639,8 +639,8 @@ class BaseGraph:
         connected_wrappers = []
         
         for wrapper in self.edge_wrappers.values():
-            if (wrapper.input_node_id == node_id or 
-                wrapper.output_node_id == node_id):
+            if (wrapper.sink_node_id == node_id or 
+                wrapper.source_node_id == node_id):
                 connected_wrappers.append(wrapper)
         
         return connected_wrappers
@@ -658,7 +658,7 @@ class BaseGraph:
         """
         connected_edges = []
         for edges in self.edge_wrappers.values():
-            if edges.input_node_id == node_id or edges.output_node_id == node_id:
+            if edges.sink_node_id == node_id or edges.source_node_id == node_id:
                 connected_edges.append(edges)
         return connected_edges
 
@@ -778,15 +778,15 @@ class BaseGraph:
         
         # Existing formal validation (orphaned edges, etc.)
         for connection_uuid, edge in self.edge_wrappers.items():
-            if edge.output_node_id not in self.node_wrappers:
+            if edge.source_node_id not in self.node_wrappers:
                 errors.append(
                     f"Edge {connection_uuid} references non-existent "
-                    f"output node: {edge.output_node_id}"
+                    f"output node: {edge.source_node_id}"
                 )
-            if edge.input_node_id not in self.node_wrappers:
+            if edge.sink_node_id not in self.node_wrappers:
                 errors.append(
                     f"Edge {connection_uuid} references non-existent "
-                    f"input node: {edge.input_node_id}"
+                    f"input node: {edge.sink_node_id}"
                 )
         
         # Wrapper-level validation
@@ -819,10 +819,10 @@ class BaseGraph:
             
             # Follow all edges from this node
             for edge in self.edge_wrappers.values():
-                if edge.output_node_id == node_id:
-                    dfs(edge.input_node_id, component)
-                elif edge.input_node_id == node_id:
-                    dfs(edge.output_node_id, component)
+                if edge.source_node_id == node_id:
+                    dfs(edge.sink_node_id, component)
+                elif edge.sink_node_id == node_id:
+                    dfs(edge.source_node_id, component)
         
         for node_id in self.node_wrappers.keys():
             if node_id not in visited:
@@ -1023,9 +1023,9 @@ class BaseGraph:
                 for connection_uuid, edge_data in data["edges"].items():
                     edge_wrapper = EdgeWrapper(
                         graph=self,
-                        output_node_id=edge_data["output_node_id"],
+                        source_node_id=edge_data["output_node_id"],
                         outlet_port_id=edge_data["outlet_port_id"],
-                        input_node_id=edge_data["input_node_id"],
+                        sink_node_id=edge_data["input_node_id"],
                         inlet_port_id=edge_data["inlet_port_id"],
                         edge_type=FlowType(edge_data["edge_type"]),
                     )

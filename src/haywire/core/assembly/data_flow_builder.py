@@ -159,7 +159,7 @@ class DataFlowBuilder:
             
             for edge in edge_wrappers:
                 # Follow data edge backwards to source
-                source_node_id = edge.output_node_id
+                source_node_id = edge.source_node_id
                 source_port_id = edge.outlet_port_id
                 
                 # Check if source is a control node
@@ -226,7 +226,7 @@ class DataFlowBuilder:
                 edges = graph._get_edge_wrappers_for_port(node_id, outlet.id)
                 
                 for edge in edges:
-                    target_id = edge.input_node_id
+                    target_id = edge.sink_node_id
                     
                     # Only consider edges within our data flow
                     if target_id in node_ids:
@@ -293,7 +293,7 @@ class DataFlowBuilder:
                 edges = graph._get_edge_wrappers_for_port(node_id, outlet.id)
                 
                 for edge in edges:
-                    target_id = edge.input_node_id
+                    target_id = edge.sink_node_id
                     
                     if target_id in node_ids:
                         adj[node_id].append(target_id)

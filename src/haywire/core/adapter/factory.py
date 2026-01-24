@@ -66,7 +66,7 @@ class AdapterFactory:
     def create_chain(
         self,
         source_type: type[IType],
-        target_type: type[IType],
+        sink_type: type[IType],
         connection_uuid: str,
         max_depth: int = 3
     ) -> tuple[Optional[IAdapter], Optional[str]]:
@@ -95,7 +95,7 @@ class AdapterFactory:
         
         Args:
             source_type: Source IType (from outlet)
-            target_type: Target IType (from inlet)
+            sink_type: Sink IType (from inlet)
             connection_uuid: Connection identifier for dependency tracking
             max_depth: Maximum chain length (default 3)
             
@@ -114,47 +114,47 @@ class AdapterFactory:
         # Get base types for compound type detection
         # (ArrayType[FLOAT] → ArrayType)
         source_base = self._get_base_type(source_type)
-        target_base = self._get_base_type(target_type)
+        sink_base = self._get_base_type(sink_type)
         
         # Determine if types are compound
         source_is_compound = issubclass(source_base, CompoundType)
-        target_is_compound = issubclass(target_base, CompoundType)
+        sink_is_compound = issubclass(sink_base, CompoundType)
         
         # Create chain without registration (internal=True)
         first_adapter = None
         error = None
         
         # Case 1: Both scalar
-        if not source_is_compound and not target_is_compound:
+        if not source_is_compound and not sink_is_compound:
             # Direct type match - no adapters needed
-            if source_type == target_type:
+            if source_type == sink_type:
                 return (ReturnAdapter(), None)
             else:
                 first_adapter, error = self._create_scalar_chain(
                     source_type,
-                    target_type,
+                    sink_type,
                     max_depth
                 )
         
         # Case 2: Both compound with same structure (ARRAY→ARRAY, MAP→MAP)
         elif (
             source_is_compound
-            and target_is_compound
-            and source_base == target_base
+            and sink_is_compound
+            and source_base == sink_base
         ):
             first_adapter, error = self._create_element_chain(
                 source_type,
                 getattr(source_type, 'element_type_cls', None),
-                target_type,
-                getattr(target_type, 'element_type_cls', None),
+                sink_type,
+                getattr(sink_type, 'element_type_cls', None),
                 max_depth
             )
         
         # Case 3: Structural transformation (MAP→ARRAY, etc.)
-        elif source_is_compound and target_is_compound:
+        elif source_is_compound and sink_is_compound:
             first_adapter, error = self._create_structural_chain(
                 source_type,
-                target_type,
+                sink_type,
                 max_depth
             )
         
@@ -164,7 +164,7 @@ class AdapterFactory:
                 None,
                 (
                     f"Cannot convert between scalar and compound types: "
-                    f"{source_type.__name__} → {target_type.__name__}"
+                    f"{source_type.__name__} → {sink_type.__name__}"
                 )
             )
         
@@ -220,7 +220,7 @@ class AdapterFactory:
     def _create_scalar_chain(
         self,
         source_type: type[IType],
-        target_type: type[IType],
+        sink_type: type[IType],
         max_depth: int
     ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
@@ -230,16 +230,16 @@ class AdapterFactory:
         Result: FloatToStringAdapter (linked to ReturnAdapter)
         """
         # Direct match - no adapters needed
-        if source_type == target_type:
+        if source_type == sink_type:
             return (ReturnAdapter(), None)
         
         # Extract registry keys from types
         source_key = source_type.class_identity.registry_key
-        target_key = target_type.class_identity.registry_key
+        sink_key = sink_type.class_identity.registry_key
         
         adapter_classes = self.adapter_registry.find_adapter_chain(
             source_key,
-            target_key,
+            sink_key,
             max_depth=max_depth
         )
         
@@ -248,7 +248,7 @@ class AdapterFactory:
                 None,
                 (
                     f"No adapter chain found: "
-                    f"{source_type.__name__} → {target_type.__name__}"
+                    f"{source_type.__name__} → {sink_type.__name__}"
                 )
             )
         
@@ -271,8 +271,8 @@ class AdapterFactory:
         self,
         source_type: type[CompoundType],
         source_element: type[IType],
-        target_type: type[CompoundType],
-        target_element: type[IType],
+        sink_type: type[CompoundType],
+        sink_element: type[IType],
         max_depth: int
     ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
@@ -288,7 +288,7 @@ class AdapterFactory:
         Result: ArrayArrayAdapter(FloatToStringAdapter)
         """
         
-        if source_element is None or target_element is None:
+        if source_element is None or sink_element is None:
             return (
                 None,
                 f"Compound types missing element_type_cls"
@@ -297,18 +297,18 @@ class AdapterFactory:
         # Get base types for registry lookup
         # (ArrayType[FLOAT] → ArrayType)
         source_base = self._get_base_type(source_type)
-        target_base = self._get_base_type(target_type)
+        sink_base = self._get_base_type(sink_type)
         
         # Extract registry keys from base types
         source_base_key = source_base.class_identity.registry_key
-        target_base_key = target_base.class_identity.registry_key
+        sink_base_key = sink_base.class_identity.registry_key
         
         # Find container adapter via registry
         # Note: Registry compares base types (ArrayType vs ArrayType)
         # not element types
         container_classes = self.adapter_registry.find_adapter_chain(
             source_base_key,
-            target_base_key,
+            sink_base_key,
             max_depth=1  # Direct transformation only
         )
         
@@ -317,7 +317,7 @@ class AdapterFactory:
                 None,
                 (
                     f"No container adapter found: "
-                    f"{source_type.__name__} → {target_type.__name__}"
+                    f"{source_type.__name__} → {sink_type.__name__}"
                 )
             )
 
@@ -333,7 +333,7 @@ class AdapterFactory:
 
        
         # Same element type - no transformation needed
-        if source_element == target_element:
+        if source_element == sink_element:
             try:
                 # Instantiate PassThrough adapter - no transformation needed
                 return (ReturnAdapter(), None)
@@ -347,7 +347,7 @@ class AdapterFactory:
         # Different element types - find element chain
         element_adapter, error = self._create_scalar_chain(
             source_element,
-            target_element,
+            sink_element,
             max_depth
         )
         
@@ -370,7 +370,7 @@ class AdapterFactory:
     def _create_structural_chain(
         self,
         source_type: type[CompoundType],
-        target_type: type[CompoundType],
+        sink_type: type[CompoundType],
         max_depth: int
     ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
@@ -397,9 +397,9 @@ class AdapterFactory:
         """
         # Get element types
         source_element = getattr(source_type, 'element_type_cls', None)
-        target_element = getattr(target_type, 'element_type_cls', None)
+        sink_element = getattr(sink_type, 'element_type_cls', None)
         
-        if source_element is None or target_element is None:
+        if source_element is None or sink_element is None:
             return (
                 None,
                 f"Compound types missing element_type_cls"
@@ -408,16 +408,16 @@ class AdapterFactory:
         # Get base types for registry lookup
         # (ArrayType[FLOAT] → ArrayType, PooledType[STRING] → PooledType)
         source_base = self._get_base_type(source_type)
-        target_base = self._get_base_type(target_type)
+        sink_base = self._get_base_type(sink_type)
         
         # Extract registry keys from base types
         source_base_key = source_base.class_identity.registry_key
-        target_base_key = target_base.class_identity.registry_key
+        sink_base_key = sink_base.class_identity.registry_key
         
         # Find structural adapter via registry
         structural_classes = self.adapter_registry.find_adapter_chain(
             source_base_key,
-            target_base_key,
+            sink_base_key,
             max_depth=1  # Direct transformation only
         )
         
@@ -426,7 +426,7 @@ class AdapterFactory:
                 None,
                 (
                     f"No structural adapter found: "
-                    f"{source_type.__name__} → {target_type.__name__}"
+                    f"{source_type.__name__} → {sink_type.__name__}"
                 )
             )
         
@@ -443,10 +443,10 @@ class AdapterFactory:
         # This handles the transformation AFTER structural change
         # e.g., ArrayList[FLOAT] → ArrayList[STRING] after Map[FLOAT] → ArrayList[FLOAT]
         element_adapter, error = self._create_element_chain(
-            target_type,  # Use target structure (e.g., ArrayList)
+            sink_type,  # Use sink structure (e.g., ArrayList)
             source_element,  # But source element type (e.g., FLOAT)
-            target_type,  # Target structure (e.g., ArrayList)
-            target_element,  # Target element type (e.g., STRING)
+            sink_type,  # Sink structure (e.g., ArrayList)
+            sink_element,  # Sink element type (e.g., STRING)
             max_depth
         )
         

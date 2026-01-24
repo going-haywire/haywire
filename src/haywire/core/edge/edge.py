@@ -23,9 +23,9 @@ class Edge:
     """
     
     # Connection endpoints
-    output_node_id: str
+    source_node_id: str
     outlet_port_id: str
-    input_node_id: str
+    sink_node_id: str
     inlet_port_id: str
     
     # Edge classification
@@ -33,30 +33,27 @@ class Edge:
     
     # Adapter chain metadata (for serialization/deserialization)
     chain_adapter_keys: List[str] = field(default_factory=list)
-    """
-    List of adapter registry keys in execution order.
-    Example: ['temp_to_float', 'float_to_int']
-    """
+    """List of adapter registry keys in execution order."""
         
     def to_dict(self) -> dict[str, Any]:
         """Serialize edge for graph save"""
         return {
-            'output_node_id': self.output_node_id,
+            'source_node_id': self.source_node_id,
             'outlet_port_id': self.outlet_port_id,
-            'input_node_id': self.input_node_id,
+            'sink_node_id': self.sink_node_id,
             'inlet_port_id': self.inlet_port_id,
             'edge_type': self.edge_type.value,
-            'adapter_registry_keys': self.chain_adapter_keys
+            'chain_adapter_keys': self.chain_adapter_keys
         }
     
     @classmethod
     def from_dict(cls, data: dict) -> 'Edge':
         """Deserialize edge from graph load"""
         return cls(
-            output_node_id=data['output_node_id'],
+            source_node_id=data['source_node_id'],
             outlet_port_id=data['outlet_port_id'],
-            input_node_id=data['input_node_id'],
+            sink_node_id=data['sink_node_id'],
             inlet_port_id=data['inlet_port_id'],
             edge_type=FlowType(data['edge_type']),
-            adapter_registry_keys=data.get('adapter_registry_keys', [])
+            chain_adapter_keys=data.get('chain_adapter_keys', [])
         )

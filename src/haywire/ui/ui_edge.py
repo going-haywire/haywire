@@ -170,9 +170,9 @@ class UIEdge:
         # Emit sync event to Vue (handles both add and update)
         event = SyncConnectionAdditionEvent(
             connectionUUID=new_state.connection_uuid,
-            outputNodeId=edge.output_node_id,
+            outputNodeId=edge.source_node_id,
             outletPinId=edge.outlet_port_id,
-            inputNodeId=edge.input_node_id,
+            inputNodeId=edge.sink_node_id,
             inletPinId=edge.inlet_port_id,
             isValid=new_state.is_valid,
             hasWarning=new_state.has_warning,

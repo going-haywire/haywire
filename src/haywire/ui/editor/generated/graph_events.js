@@ -87,12 +87,12 @@ window.EventCreators = {
     };
   },
 
-  createConnectionCreated(outputNodeId, outletPinId, inputNodeId, inletPinId, sessionId = 'default') {
+  createConnectionCreated(sourceNodeId, outletPinId, sinkNodeId, inletPinId, sessionId = 'default') {
     return {
       event_type: 'connectionCreated',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { outputNodeId, outletPinId, inputNodeId, inletPinId },
+      data: { sourceNodeId, outletPinId, sinkNodeId, inletPinId },
       requires_broadcast: true
     };
   },

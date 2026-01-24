@@ -230,11 +230,11 @@ class StructuralValidator(IStructuralValidator):
         """
         
         # Source must be an event node
-        if not wrapper._output_wrapper.node.behavior.is_event_node:
+        if not wrapper._source_wrapper.node.behavior.is_event_node:
             return (
                 False,
                 f"Callback edge source must be an event node. "
-                f"Node '{wrapper.output_node_id}' is not an event node.",
+                f"Node '{wrapper.source_node_id}' is not an event node.",
                 [
                     "Connect callback to an event node (EventNode subclass)",
                     "Or change edge type to DATA if passing data"
@@ -242,7 +242,7 @@ class StructuralValidator(IStructuralValidator):
             )
         
         # Source outlet must have event_filter
-        source_port = wrapper._output_wrapper.node.ports.get(wrapper.outlet_port_id)
+        source_port = wrapper._source_wrapper.node.ports.get(wrapper.outlet_port_id)
         if not source_port or not source_port.event_filter:
             return (
                 False,

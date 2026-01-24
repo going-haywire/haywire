@@ -1269,17 +1269,17 @@ export default {
             });
 
             if (endPin && this._isValidConnection(this.connectionState.startPin, endPin)) {
-                let startData = this.connectionState.startPin.dataset;
-                let endData = endPin.dataset;
+                let sourceData = this.connectionState.startPin.dataset;
+                let sinkData = endPin.dataset;
 
                 if (endPin.dataset.pinDir === 'outlet') {
-                    endData = this.connectionState.startPin.dataset;
-                    startData = endPin.dataset;
+                    sinkData = this.connectionState.startPin.dataset;
+                    sourceData = endPin.dataset;
                 }
 
-                if (!this._connectionExists(startData.nodeId, startData.pinId, endData.nodeId, endData.pinId)) {
+                if (!this._connectionExists(sourceData.nodeId, sourceData.pinId, sinkData.nodeId, sinkData.pinId)) {
                     this.emitCanvasEvent(EventCreators.createConnectionCreated(
-                        startData.nodeId, startData.pinId, endData.nodeId, endData.pinId
+                        sourceData.nodeId, sourceData.pinId, sinkData.nodeId, sinkData.pinId
                     ));
                 }
             }

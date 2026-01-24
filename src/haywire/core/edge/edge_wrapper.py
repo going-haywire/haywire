@@ -124,9 +124,9 @@ class EdgeWrapper:
     def __init__(
         self,
         graph: 'BaseGraph',
-        output_node_id: str,
+        source_node_id: str,
         outlet_port_id: str,
-        input_node_id: str,
+        sink_node_id: str,
         inlet_port_id: str,
         edge_type: FlowType
     ):
@@ -134,15 +134,15 @@ class EdgeWrapper:
         Initialize EdgeWrapper (similar to NodeWrapper.__init__).
         
         Args:
-            output_node_id: Source node ID
-            outlet_pin_id: Source outlet ID
-            input_node_id: Target node ID
-            inlet_pin_id: Target inlet ID
+            source_node_id: Source node ID
+            outlet_port_id: Source outlet ID
+            sink_node_id: Sink node ID
+            inlet_port_id: Sink inlet ID
             edge_type: edge type
         """
-        self.output_node_id = output_node_id
+        self.source_node_id = source_node_id
         self.outlet_port_id = outlet_port_id
-        self.input_node_id = input_node_id
+        self.sink_node_id = sink_node_id
         self.inlet_port_id = inlet_port_id
 
         # Edge type (may be overridden during registration)
@@ -150,7 +150,7 @@ class EdgeWrapper:
 
         # Generate connection UUID
         self._connection_uuid = generate_connection_uuid(
-            output_node_id, outlet_port_id, input_node_id, inlet_port_id
+            source_node_id, outlet_port_id, sink_node_id, inlet_port_id
         )
         
         # Reference to parent graph
@@ -161,8 +161,8 @@ class EdgeWrapper:
         self._adapter_factory: Optional['AdapterFactory'] = get_library_system().get_adapter_factory()
                
         # Node wrapper references (set during registration)
-        self._output_wrapper: Optional['NodeWrapper'] = None
-        self._input_wrapper: Optional['NodeWrapper'] = None
+        self._source_wrapper: Optional['NodeWrapper'] = None
+        self._sink_wrapper: Optional['NodeWrapper'] = None
         
         # DataPort references (set during registration)
         self._outlet_port: Optional['DataPort'] = None
@@ -179,9 +179,9 @@ class EdgeWrapper:
         
         # Create Edge instance in any case
         self._edge = Edge(
-            output_node_id=self.output_node_id,
+            source_node_id=self.source_node_id,
             outlet_port_id=self.outlet_port_id,
-            input_node_id=self.input_node_id,
+            sink_node_id=self.sink_node_id,
             inlet_port_id=self.inlet_port_id,
             edge_type=self._edge_type,
             chain_adapter_keys=([])
@@ -290,7 +290,7 @@ class EdgeWrapper:
             # create adapter chain (only for DATA edges)
             if self._edge_type == FlowType.DATA:
                 # Inlet determines what type it needs from outlet
-                target_type = self._inlet_port.data.get_stored_type()
+                sink_type = self._inlet_port.data.get_stored_type()
                 
                 outlet_field = self._outlet_port.data
                 source_type = outlet_field.type_cls
@@ -298,7 +298,7 @@ class EdgeWrapper:
                 # Create new chain
                 first_adapter, error = self._adapter_factory.create_chain(
                     source_type,
-                    target_type,
+                    sink_type,
                     self._connection_uuid
                 )
                 
@@ -379,19 +379,19 @@ class EdgeWrapper:
 
         try:
             # Get node wrapper references
-            self._output_wrapper = self._graph.get_node_wrapper(self.output_node_id)
-            self._input_wrapper = self._graph.get_node_wrapper(self.input_node_id)
+            self._source_wrapper = self._graph.get_node_wrapper(self.source_node_id)
+            self._sink_wrapper = self._graph.get_node_wrapper(self.sink_node_id)
             
-            if not self._output_wrapper or not self._input_wrapper:
+            if not self._source_wrapper or not self._sink_wrapper:
                 raise Exception(
                     f"Nodes not found for edge: "
                     f"{self._connection_uuid} | "
-                    f" (output_node_id={self.output_node_id}, input_node_id={self.input_node_id})"
+                    f" (source_node_id={self.source_node_id}, sink_node_id={self.sink_node_id})"
                 )
             
             # Get DataPort references
-            outlet_node = self._output_wrapper.node
-            inlet_node = self._input_wrapper.node
+            outlet_node = self._source_wrapper.node
+            inlet_node = self._sink_wrapper.node
             
             self._outlet_port = outlet_node.ports.get(self.outlet_port_id)
             self._inlet_port = inlet_node.ports.get(self.inlet_port_id)
@@ -404,7 +404,7 @@ class EdgeWrapper:
                 raise Exception(
                     f"Ports not found for edge: "
                     f"{self._connection_uuid} | "
-                    f"(outlet_pin_id={self.outlet_port_id}, inlet_pin_id={self.inlet_port_id})"
+                    f"(outlet_port_id={self.outlet_port_id}, inlet_port_id={self.inlet_port_id})"
                 )
 
             # Check if this is an inlet (sanity check)
@@ -431,7 +431,7 @@ class EdgeWrapper:
             )
             self._state.error_formal = HaywireException.create(
                 message=f"Port type validation failed: {e}",
-                category="Port type validation Error"
+                category="Port type Validation Error"
             ).enrich(
                 operation="Port Type Validation",
                 suggestions=[
@@ -546,45 +546,6 @@ class EdgeWrapper:
             self._state.error_test.log()
             self._state.has_test_passed = False
             return False
-
-
-    def validate_callback_edge(self) -> tuple[bool, str | None]:
-        """
-        Validate callback edge constraints.
-        
-        Callback edges have special rules:
-        - Can only connect to event nodes
-        - Outlet must have event_filter set
-        
-        Returns:
-            (is_valid, error_message) tuple
-        """
-        if not self.is_callback_edge():
-            return True, None
-        
-        # Get source and target nodes
-        source_wrapper = self._graph.get_node_wrapper(self.output_node_id)
-        target_wrapper = self._graph.get_node_wrapper(self.input_node_id)
-        
-        if not source_wrapper or not target_wrapper:
-            return False, "Callback edge references non-existent nodes"
-        
-        # Target must be an event node
-        if not target_wrapper.node.is_event_node():
-            return False, (
-                f"Callback edge target must be an event node. "
-                f"Node '{self.input_node_id}' is not an event node."
-            )
-        
-        # Source outlet must have event_filter
-        source_port = source_wrapper.node.ports.get(self.outlet_port_id)
-        if not source_port or not source_port.event_filter:
-            return False, (
-                f"Callback outlet must have event_filter set. "
-                f"Port '{self.outlet_port_id}' has no filter."
-            )
-        
-        return True, None
 
     def validate_link(self, port: 'DataPort') -> bool:
         """
@@ -753,8 +714,8 @@ class EdgeWrapper:
         
         # Clear references
         self._first_adapter = None
-        self._output_wrapper = None
-        self._input_wrapper = None
+        self._source_wrapper = None
+        self._sink_wrapper = None
         self._outlet_port = None
         self._inlet_port = None
         self._edge = None

@@ -132,13 +132,13 @@ class ConnectionInfoPopup:
                 # Connection Path Section (Expandable, default open)
                 with ui.expansion('Connection Path', value=False).classes('w-full'):
                     with ui.card().classes('w-full p-3 bg-gray-50'):
-                        ui.label(f"From: {edge.output_node_id}").classes(
+                        ui.label(f"From: {edge.source_node_id}").classes(
                             'text-xs text-gray-700 ml-2'
                         )
                         ui.label(f"Port: {edge.outlet_port_id}").classes(
                             'text-xs text-gray-500 ml-4'
                         )
-                        ui.label(f"To: {edge.input_node_id}").classes(
+                        ui.label(f"To: {edge.sink_node_id}").classes(
                             'text-xs text-gray-700 ml-2 mt-1'
                         )
                         ui.label(f"Port: {edge.inlet_port_id}").classes(

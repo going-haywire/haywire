@@ -219,14 +219,14 @@ class GraphCanvasManager:
     def process_connection_creation(self, event: ConnectionCreatedEvent):
         """Handle connection creation"""
         print(
-            f"Creating connection: {event.outputNodeId}:{event.outletPinId} -> "
-            f"{event.inputNodeId}:{event.inletPinId}"
+            f"Creating connection: {event.sourceNodeId}:{event.outletPinId} -> "
+            f"{event.sinkNodeId}:{event.inletPinId}"
         )
 
         if self.editor.create_connection(
-            event.outputNodeId,
+            event.sourceNodeId,
             event.outletPinId,
-            event.inputNodeId,
+            event.sinkNodeId,
             event.inletPinId
         ):
             ui.notify("Connection created")
@@ -703,7 +703,7 @@ class GraphCanvasManager:
         # Remove all connected edges visually first
         edges_to_remove = []
         for connection_uuid, edge_wrapper in self.graph.edge_wrappers.items():
-            if edge_wrapper.input_node_id == node_id or edge_wrapper.output_node_id == node_id:
+            if edge_wrapper.sink_node_id == node_id or edge_wrapper.source_node_id == node_id:
                 edges_to_remove.append(connection_uuid)
         
         for connection_uuid in edges_to_remove:
@@ -747,8 +747,8 @@ class GraphCanvasManager:
         
         print(
             f"🔗 Creating connection visual: "
-            f"{edge_wrapper.output_node_id}:{edge_wrapper.outlet_port_id} -> "
-            f"{edge_wrapper.input_node_id}:{edge_wrapper.inlet_port_id}"
+            f"{edge_wrapper.source_node_id}:{edge_wrapper.outlet_port_id} -> "
+            f"{edge_wrapper.sink_node_id}:{edge_wrapper.inlet_port_id}"
         )
         
         # Create UIEdge instance

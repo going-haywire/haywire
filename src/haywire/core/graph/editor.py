@@ -201,18 +201,18 @@ class Editor:
     
     def create_connection(
         self, 
-        output_node_id: str, 
+        source_node_id: str, 
         outlet_pin: str, 
-        input_node_id: str, 
+        sink_node_id: str, 
         inlet_pin: str
     ) -> bool:
         """
         Create a connection between two nodes.
         
         Args:
-            output_node_id: ID of the output node
+            source_node_id: ID of the source node
             outlet_pin: Name of the output pin
-            input_node_id: ID of the input node  
+            sink_node_id: ID of the sink node  
             inlet_pin: Name of the input pin
             
         Returns:
@@ -222,16 +222,16 @@ class Editor:
             # Create and execute action using graph-managed pattern
             action = AddEdgeAction(
                 graph=self.graph,
-                output_node_id=output_node_id,
+                source_node_id=source_node_id,
                 outlet_pin_id=outlet_pin,
-                input_node_id=input_node_id,
+                sink_node_id=sink_node_id,
                 inlet_pin_id=inlet_pin
             )
             self.history_manager.add_action(action)
                        
             print(
-                f"✅ Editor: Created connection {output_node_id}:{outlet_pin} -> "
-                f"{input_node_id}:{inlet_pin}"
+                f"✅ Editor: Created connection {source_node_id}:{outlet_pin} -> "
+                f"{sink_node_id}:{inlet_pin}"
             )
             return True
             

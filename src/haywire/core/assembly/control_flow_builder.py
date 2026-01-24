@@ -94,7 +94,7 @@ class ControlFlowBuilder:
                 # Control outlets should have at most one connection
                 if edge_wrappers:
                     edge = edge_wrappers[0]  # Take first (should be only one)
-                    next_node_id = edge.input_node_id
+                    next_node_id = edge.sink_node_id
                     
                     # Record in outlet map
                     info.outlet_map[outlet.id] = next_node_id
