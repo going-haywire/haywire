@@ -156,50 +156,19 @@ class DataPort(DataTypeIdentity):
         """
         Trigger a callback by resolving the identifier.
         
-        Supports two resolution strategies:
-        1. Wrapper callbacks: 'wrapper:method_name' → calls wrapper.method_name()
-        2. Node callbacks: 'method_name' → calls node.method_name()
-        
-        This allows both predefined wrapper functionality and custom node behavior.
-        
         Examples:
-            on_change='wrapper:on_port_changed'  → wrapper.on_port_changed(port, old, new)
-            on_change='_reconfigure_ports'       → node._reconfigure_ports(port, old, new)
+            on_change='on_port_changed'  → nodeon_port_changed(port, old, new)
         """
         callback_name = getattr(self, callback_type)
         if not callback_name or not self._wrapper:
             return
         
-        # Parse callback identifier
-        if ':' in callback_name:
-            # Format: 'wrapper:method_name' or 'node:method_name'
-            target, method_name = callback_name.split(':', 1)
-            
-            if target == 'wrapper':
-                # Call wrapper method
-                if hasattr(self._wrapper, method_name):
-                    method = getattr(self._wrapper, method_name)
-                    method(self, *args)
-                else:
-                    raise ReferenceError(f"Wrapper callback '{method_name}' not found on wrapper")
-            elif target == 'node':
-                # Explicit node call (same as no prefix)
-                node = self._wrapper.node
-                if hasattr(node, method_name):
-                    method = getattr(node, method_name)
-                    method(self, *args)
-                else:
-                    raise ReferenceError(f"Node callback '{method_name}' not found on node")
-            else:
-                raise ReferenceError(f"Unknown callback target '{target}'. Use 'wrapper:' or 'node:'")
+        node = self._wrapper.node
+        if hasattr(node, callback_name):
+            method = getattr(node, callback_name)
+            method(self, *args)
         else:
-            # Default: Call node method (no prefix = node callback)
-            node = self._wrapper.node
-            if hasattr(node, callback_name):
-                method = getattr(node, callback_name)
-                method(self, *args)
-            else:
-                raise ReferenceError(f"Node callback '{callback_name}' not found on node")
+            raise ReferenceError(f"Node callback '{callback_name}' not found on node")
 
     def get_value(self) -> Any:
         """
@@ -417,19 +386,19 @@ class DataPort(DataTypeIdentity):
 
     def is_callback_pin(self) -> bool:
         """Check if this is a callback pin"""
-        return self.flow_type == FlowType.CALLBACK.value
+        return self.flow_type == FlowType.CALLBACK
     
     def is_control_pin(self) -> bool:
         """Check if this is a control pin"""
-        return self.flow_type == FlowType.CONTROL.value
+        return self.flow_type == FlowType.CONTROL
     
     def is_data_pin(self) -> bool:
         """Check if this is a data pin"""
-        return self.flow_type == FlowType.DATA.value
+        return self.flow_type == FlowType.DATA
     
     def get_control_outlets(self) -> bool:
         """Check if this port is a control outlet"""
-        return (self.flow_type == FlowType.CONTROL.value and 
+        return (self.flow_type == FlowType.CONTROL and 
                 self.is_outlet())
      
 @dataclass

@@ -583,7 +583,7 @@ class NodeData:
         """
         return [
             port for port in self.ports.values()
-            if port.flow_type == FlowType.CALLBACK.value and port.is_outlet()
+            if port.flow_type == FlowType.CALLBACK and port.is_outlet()
         ]
         
     # =========================================================================
