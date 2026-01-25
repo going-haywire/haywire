@@ -16,7 +16,7 @@ import logging
 from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow
 
 if TYPE_CHECKING:
-    from haywire.core.execution.flow import Flow, LoopbackFrame
+    from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
     from haywire.core.node.node_wrapper import NodeWrapper
 
@@ -128,9 +128,9 @@ class HaywireVM:
             f"(trigger: {trigger.source_key})"
         )
         
-        # Initialize stacks
-        done_stack: List[str] = []
-        loopback_stack: List[LoopbackFrame] = []
+        # Initialize execution tracking
+        execution_count: int = 0
+        loopback_stack: List[str] = []
         
         # Create local context from graph variables
         local_context = self._create_local_context(flow)
@@ -149,11 +149,12 @@ class HaywireVM:
         # Main execution loop
         while current_node_id is not None:
             
-            # Stack overflow protection
-            if len(done_stack) > self.max_stack_depth:
+            # Infinite loop protection
+            execution_count += 1
+            if execution_count > self.max_stack_depth:
                 raise RuntimeError(
-                    f"Stack overflow in flow {flow.flow_id}: "
-                    f"exceeded {self.max_stack_depth} depth. "
+                    f"Exceeded max iterations in flow {flow.flow_id}: "
+                    f"{self.max_stack_depth} iterations. "
                     f"Possible infinite loop."
                 )
             
@@ -172,25 +173,17 @@ class HaywireVM:
                 exec_ctx
             )
             
-            # Update stacks
-            done_stack.append(current_node_id)
-            
             # Only push to loopback stack if taking a loopback outlet
             if node_info.is_loopback and next_outlet_id:
                 outlet_port = node_info.node_wrapper.node.ports[next_outlet_id]
                 if outlet_port and outlet_port.needs_loopback:
-                    from haywire.core.execution.flow import LoopbackFrame
-                    loopback_stack.append(LoopbackFrame(
-                        node_id=current_node_id,
-                        done_index=len(done_stack) - 1
-                    ))
+                    loopback_stack.append(current_node_id)
             
             # Navigate to next node
             current_node_id = self._navigate_next(
                 next_outlet_id,
                 node_info,
-                loopback_stack,
-                done_stack
+                loopback_stack
             )
         
         logger.debug(f"Control flow execution completed: {flow.flow_id}")
@@ -267,8 +260,7 @@ class HaywireVM:
         self,
         next_outlet_id: Optional[str],
         node_info: 'ControlNodeInfo',
-        loopback_stack: List['LoopbackFrame'],
-        done_stack: List[str]
+        loopback_stack: List[str]
     ) -> Optional[str]:
         """
         Determine next node to execute based on worker result.
@@ -276,8 +268,7 @@ class HaywireVM:
         Args:
             next_outlet_id: Outlet ID from worker, or None
             node_info: Current node info
-            loopback_stack: Stack of loopback frames
-            done_stack: Stack of executed nodes
+            loopback_stack: Stack of loopback node IDs
             
         Returns:
             ID of next node to execute, or None to end
@@ -292,7 +283,7 @@ class HaywireVM:
                 return None  # End flow
             else:
                 # Branch ended without output - try loopback
-                return self._handle_loopback(loopback_stack, done_stack)
+                return loopback_stack.pop() if loopback_stack else None
         
         # Case 2: Outlet specified - look it up
         next_node_id = node_info.outlet_map.get(next_outlet_id)
@@ -302,41 +293,20 @@ class HaywireVM:
             logger.debug(
                 f"Outlet {next_outlet_id} not connected, trying loopback"
             )
-            return self._handle_loopback(loopback_stack, done_stack)
+            return loopback_stack.pop() if loopback_stack else None
+        
+        # Check if next node is already on the loopback stack.
+        # If so, unwind the stack back to that point to avoid duplicate frames.
+        if next_node_id in loopback_stack:
+            loopback_index = loopback_stack.index(next_node_id)
+            logger.debug(
+                f"Navigating back to loopback node {next_node_id} "
+                f"already on stack at index {loopback_index}, unwinding"
+            )
+            # Truncate stack to remove this node and everything after
+            del loopback_stack[loopback_index:]
         
         return next_node_id
-    
-    def _handle_loopback(
-        self,
-        loopback_stack: List['LoopbackFrame'],
-        done_stack: List[str]
-    ) -> Optional[str]:
-        """
-        Handle loopback when branch ends.
-        
-        Pops loopback stack and rolls back done stack.
-        
-        Args:
-            loopback_stack: Stack of loopback frames
-            done_stack: Stack of executed nodes
-            
-        Returns:
-            ID of loopback node to return to, or None if no loopback
-        """
-        if not loopback_stack:
-            logger.debug("No loopback available, flow complete")
-            return None  # Flow complete
-        
-        # Pop loopback frame
-        frame = loopback_stack.pop()
-        
-        # Rollback done stack to loopback point
-        while len(done_stack) > frame.done_index + 1:
-            done_stack.pop()
-        
-        logger.debug(f"Looping back to {frame.node_id}")
-        
-        return frame.node_id
     
     def _evaluate_data_flow(
         self,

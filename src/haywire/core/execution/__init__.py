@@ -35,8 +35,7 @@ from haywire.core.execution.flow import (
     Flow,
     ControlFlowGraph,
     ControlNodeInfo,
-    LocalizedDataFlow,
-    LoopbackFrame
+    LocalizedDataFlow
 )
 from haywire.core.execution.scheduler import FlowScheduler, QueueMode
 from haywire.core.execution.event_source import (
@@ -65,7 +64,6 @@ __all__ = [
     'ControlFlowGraph',
     'ControlNodeInfo',
     'LocalizedDataFlow',
-    'LoopbackFrame',
     
     # Event sources
     'EventSource',

@@ -93,21 +93,6 @@ class ControlFlowGraph:
         )
 
 
-@dataclass
-class LoopbackFrame:
-    """
-    Stack frame for loopback node tracking.
-    
-    When a loopback node is encountered, we push a frame onto the
-    loopback stack. If a branch ends without an output node, we
-    pop frames until we find a loopback node to return to.
-    """
-    node_id: str
-    """ID of the loopback node"""
-    done_index: int
-    """Index in done_stack where this node was executed"""
-
-
 class Flow:
     """
     Assembled, executable flow.
