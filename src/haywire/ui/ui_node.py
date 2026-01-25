@@ -62,6 +62,9 @@ class UINode:
         # Generate unique ID for this UINode
         self.ui_node_id = f"ui-node-{id(self)}"
 
+        self._node_id = self.wrapper.node_id
+        """Store the id for cleanup purposes"""
+
         self.container.client.on_disconnect(lambda: self.cleanup())
 
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
@@ -111,9 +114,9 @@ class UINode:
         if self.container_slot and hasattr(self.container_slot, 'client'):
             with self.container_slot.client:
                 if self._render():
-                    ui.notify(f"Node {self.wrapper.node_id} hot-reloaded", type='positive')
+                    ui.notify(f"Node {self._node_id} hot-reloaded", type='positive')
                 else:
-                    ui.notify(f"Error rendering node {self.wrapper.node_id}", type='negative')
+                    ui.notify(f"Error rendering node {self._node_id}", type='negative')
         else:
             self._render()
 
@@ -265,7 +268,7 @@ class UINode:
         Delete the UINode and clean up resources.
         """
         # Unregister from factory tracking
-        self.factory._unregister_node(self.wrapper.node_id)
+        self.factory._unregister_node(self._node_id)
         # Clean up this session resources
         self.cleanup()
 
@@ -274,9 +277,9 @@ class UINode:
         Clean up resources and remove UI elements.
         Enhanced to unsubscribe from wrapper and factory callbacks.
         """
-        logging.info(f"🔌 Cleaning up UINode {self.wrapper.node_id} ..")
+        logging.info(f"🔌 Cleaning up UINode {self._node_id} ..")
         self.factory.remove_factory_lifecycle_subscriber(
-            self.wrapper.node_id,
+            self._node_id,
             self._listen_on_factory_lifecycle_event
         )
 
@@ -300,7 +303,7 @@ class UINode:
 
         # Unsubscribe from wrapper changes
 
-        logging.info(f".. Done 🔌 Cleaning up UINode {self.wrapper.node_id}.")
+        logging.info(f".. Done 🔌 Cleaning up UINode {self._node_id}.")
 
         self.wrapper = None
 

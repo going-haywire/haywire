@@ -1026,9 +1026,9 @@ class BaseGraph:
                 for connection_uuid, edge_data in data["edges"].items():
                     edge_wrapper = EdgeWrapper(
                         graph=self,
-                        source_node_id=edge_data["output_node_id"],
+                        source_node_id=edge_data["source_node_id"],
                         outlet_port_id=edge_data["outlet_port_id"],
-                        sink_node_id=edge_data["input_node_id"],
+                        sink_node_id=edge_data["sink_node_id"],
                         inlet_port_id=edge_data["inlet_port_id"],
                         edge_type=FlowType(edge_data["edge_type"]),
                     )

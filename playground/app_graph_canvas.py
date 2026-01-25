@@ -18,6 +18,7 @@ Key improvements:
 
 import os
 import sys
+import traceback
 from nicegui import ui, app
 
 # Haywire imports
@@ -25,6 +26,7 @@ from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.types import ValidationResult
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
+from haywire.core.graph.utils.graph_to_python import graph_to_python_script
 
 from haywire.ui.editor.graph_canvas_manager import GraphCanvasManager
 from haywire.ui.themes import ThemePalette
@@ -236,35 +238,23 @@ class UndoRedoTestAppWithCanvasManager:
         """Create the application header with main controls."""
         with ui.header().classes('bg-blue-600 text-white px-4 py-2'):
             with ui.row().classes('w-full justify-between items-center'):
-                with ui.row().classes('items-center gap-4'):
-                    ui.label(
-                        f'Enhanced Haywire Test App - Session {self.current_client_id[:8]}'
-                    ).classes('text-xl font-bold')
+                ui.label('Enhanced Haywire Test App').classes('text-xl font-bold')
+                
+                with ui.row().classes('gap-2'):
+                    ui.button('Save', on_click=self.save_graph, icon='save')
+                    ui.button(
+                        'Export to Python',
+                        on_click=self.export_to_python,
+                        icon='code'
+                    )
+                    ui.button('Load', on_click=self.load_graph, icon='folder_open')
+                    ui.button('Clear', on_click=self.clear_graph, icon='delete')
                     
-                    # File operations
-                    ui.button(
-                        'Save Graph', 
-                        icon='save', 
-                        on_click=self.save_graph
-                    ).props('outline').classes('text-white')
-                    ui.button(
-                        'Load Graph', 
-                        icon='folder_open', 
-                        on_click=self.load_graph
-                    ).props('outline').classes('text-white')
-                    ui.button(
-                        'Clear Graph', 
-                        icon='delete_sweep', 
-                        on_click=self.clear_graph
-                    ).props('outline').classes('text-white')
+                    ui.separator().props('vertical')
                     
-                    # Quick action buttons
-                    ui.button(
-                        'Undo', icon='undo', on_click=self.undo_action
-                    ).props('outline').classes('text-white')
-                    ui.button(
-                        'Redo', icon='redo', on_click=self.redo_action
-                    ).props('outline').classes('text-white')
+                    ui.button('Undo', on_click=self.undo_action, icon='undo')
+                    ui.button('Redo', on_click=self.redo_action, icon='redo')
+
     
     def create_left_panel(self):
         """Create the left control panel with all information sections."""
@@ -589,6 +579,44 @@ class UndoRedoTestAppWithCanvasManager:
                 type='negative',
                 position='top'
             )
+    
+    def export_to_python(self):
+        """Export the graph to a Python script."""
+        import os
+        from datetime import datetime
+        
+        # Create saves directory if it doesn't exist
+        saves_dir = os.path.join(project_root, 'saves')
+        os.makedirs(saves_dir, exist_ok=True)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"graph_{timestamp}.py"
+        filepath = os.path.join(saves_dir, filename)
+        
+        try:
+            # Generate Python script from graph
+            python_code = graph_to_python_script(self.graph)
+            
+            # Write to file
+            with open(filepath, 'w') as f:
+                f.write(python_code)
+            
+            ui.notify(
+                f"Graph exported to {filename}",
+                type='positive',
+                position='top'
+            )
+            print(f"Graph exported to {filepath}")
+        except Exception as e:
+            ui.notify(
+                f"Failed to export graph: {str(e)}",
+                type='negative',
+                position='top'
+            )
+            print(f"Export error: {e}")
+            traceback.print_exc()
+            
     
     def load_graph(self):
         """Load a graph from a JSON file."""

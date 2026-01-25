@@ -15,6 +15,9 @@ class ChangeReason(Enum):
     - Some reasons require full UI redraw (ADDED, HOT_RELOADED)
     - Some only need visual updates (MOVED, SELECTED)
     - Some need removal (REMOVED)
+    
+    Priority order (highest to lowest):
+    REMOVED > ADDED > HOT_RELOADED/ADAPTERS_RELOADED > VALIDATION_REQUESTED > REDRAW
     """
     
     # Node reasons - structural changes (require redraw)
@@ -90,7 +93,47 @@ class ChangeReason(Enum):
             ChangeReason.EDGE_VALIDATION_REQUESTED,
         }
         return self in redraw_reasons
+    
+    def get_priority(self) -> int:
+        """
+        Get the priority level of this reason.
+        Higher numbers = higher priority (processed first, not overridden).
         
+        Priority levels:
+        100: REMOVED (highest - always wins)
+        90:  ADDED
+        80:  HOT_RELOADED/ADAPTERS_RELOADED (rebuild)
+        70:  VALIDATION_REQUESTED
+        60:  REDRAW_REQUESTED
+        50:  Visual changes (MOVED, SELECTED, etc.) - lowest
+        """
+        # Removal has highest priority
+        if self.requires_removal():
+            return 100
+        
+        # Adding has second highest
+        if self.requires_adding():
+            return 90
+        
+        # Rebuild has third
+        if self.requires_rebuild():
+            return 80
+        
+        # Validation has fourth
+        if self.requires_validation():
+            return 70
+        
+        # Redraw has fifth
+        if self.requires_redraw():
+            return 60
+        
+        # Everything else (visual changes)
+        return 50
+
+    def has_higher_priority_than(self, other: 'ChangeReason') -> bool:
+        """Check if this reason has higher priority than another."""
+        return self.get_priority() > other.get_priority()
+
 
 @dataclass
 class ValidationResult:

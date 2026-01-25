@@ -65,32 +65,50 @@ class ValidationManager:
         self._validation_count = 0
         self._last_validation_time = 0.0
         self._total_validation_time_ms = 0.0
-    
-    def mark_node_dirty(self, node_id: str, reason: ChangeReason) -> None:
+
+    def _set_reason(self, id: str, reason: ChangeReason, store: dict) -> None:
+        """Set the reason according to priority"""
+        if id in store:
+            existing_reason = store[id]
+            if existing_reason.has_higher_priority_than(reason):
+                return  
+        store[id] = reason
+
+    def mark_node_dirty(
+        self,
+        node_id: str,
+        reason: ChangeReason
+    ) -> None:
         """
         Mark a node as needing validation.
         
-        If the node is already dirty, the reason is updated to the new one
-        (later reasons override earlier ones within the same batch).
+        Uses priority system - higher priority reasons override lower ones.
         """
         with self._validation_lock:
-            self._dirty_nodes[node_id] = reason
-            self._schedule_validation()
-            
-            logger.debug(f"Marked node dirty: {node_id} (reason: {reason.value})")
-    
-    def mark_edge_dirty(self, connection_uuid: str, reason: ChangeReason) -> None:
-        """
-        Mark an edge as needing validation.
-        
-        If the edge is already dirty, the reason is updated to the new one.
-        """
-        with self._validation_lock:
-            self._dirty_edges[connection_uuid] = reason
+            self._set_reason(node_id, reason=reason, store=self._dirty_nodes)
             self._schedule_validation()
             
             logger.debug(
-                f"Marked edge dirty: {connection_uuid} (reason: {reason.value})"
+                f"Marked node dirty: {node_id} (reason: {reason.value})"
+            )
+    
+    def mark_edge_dirty(
+        self,
+        connection_uuid: str,
+        reason: ChangeReason
+    ) -> None:
+        """
+        Mark an edge as needing validation.
+        
+        Uses priority system - higher priority reasons override lower ones.
+        """
+        with self._validation_lock:
+            self._set_reason(id=connection_uuid, reason=reason, store=self._dirty_edges)
+            self._schedule_validation()
+            
+            logger.debug(
+                f"Marked edge dirty: {connection_uuid} "
+                f"(reason: {reason.value})"
             )
 
     def subscribe(self, callback: ValidationCallback) -> None:
@@ -241,6 +259,15 @@ class ValidationManager:
             # Validate nodes
             for node_id, reason in dirty_nodes.items():
                 try:
+                    # For removal, just track it
+                    if reason.requires_removal():
+                        validated_nodes[node_id] = reason
+                        continue
+
+                    if reason.requires_adding():
+                        validated_nodes[node_id] = reason
+                        continue
+
                     if reason.requires_rebuild():
                         # For structural changes, validate
                         node_wrapper = self._graph.get_node_wrapper(node_id)
@@ -250,7 +277,12 @@ class ValidationManager:
                             for edge_wrapper in edge_wrappers:
                                 # we add all the attached edges to this node to 
                                 # the list of edges that need to be validated
-                                dirty_edges[edge_wrapper.connection_uuid] = reason
+                                # we need to be carefull and 
+                                # adhere to the reason priorities
+                                self._set_reason(
+                                    id=edge_wrapper.connection_uuid,
+                                    reason=reason,
+                                    store=dirty_edges)
                             # Always include in result with its reason
                             validated_nodes[node_id] = reason
                             continue                   
@@ -263,17 +295,13 @@ class ValidationManager:
                             for edge_wrapper in edge_wrappers:
                                 # we add all the attached edges to this node to 
                                 # the list of edges that need to be validated
-                                dirty_edges[edge_wrapper.connection_uuid] = reason
+                                # we need to be carefull and 
+                                # adhere to the reason priorities
+                                self._set_reason(
+                                    id=edge_wrapper.connection_uuid,
+                                    reason=reason,
+                                    store=dirty_edges)
                             continue                   
-
-                    if reason.requires_adding():
-                        validated_nodes[node_id] = reason
-                        continue
-
-                    # For removal, just track it
-                    if reason.requires_removal():
-                        validated_nodes[node_id] = reason
-                        continue
 
                     # For visual-only changes, skip validation
                     if reason.requires_redraw():
@@ -290,6 +318,16 @@ class ValidationManager:
             # Validate edges
             for connection_uuid, reason in dirty_edges.items():
                 try:
+                    # For removal, just track it
+                    if reason.requires_removal():
+                        validated_edges[connection_uuid] = reason
+                        continue
+
+                    if reason.requires_adding():
+                        # Update port links (needs to be done after registration)
+                        validated_edges[connection_uuid] = reason
+                        continue
+
                     edge_wrapper = self._graph.get_edge_wrapper(connection_uuid)
                     if reason.requires_rebuild() or \
                         reason.requires_validation():
@@ -301,16 +339,6 @@ class ValidationManager:
                             # Always include in result with its reason
                             validated_edges[connection_uuid] = reason
                             continue
-
-                    if reason.requires_adding():
-                        # Update port links (needs to be done after registration)
-                        validated_edges[connection_uuid] = reason
-                        continue
-
-                    # For removal, just track it
-                    if reason.requires_removal():
-                        validated_edges[connection_uuid] = reason
-                        continue
                     
                     # For visual-only changes, skip validation
                     if reason.requires_redraw():
