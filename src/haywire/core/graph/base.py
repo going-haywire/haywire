@@ -521,6 +521,9 @@ class BaseGraph:
                 edge_wrapper.source_node_id,
                 edge_wrapper.outlet_port_id
             ) 
+        # when both ports have been updated, do housekeeping on them
+        edge_wrapper._source_wrapper.node.ports[edge_wrapper.outlet_port_id]._housekeeping()
+        edge_wrapper._sink_wrapper.node.ports[edge_wrapper.inlet_port_id]._housekeeping()
 
     def _link_edge_to_port(
         self,

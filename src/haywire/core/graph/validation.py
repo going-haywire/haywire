@@ -352,11 +352,12 @@ class ValidationManager:
                     )
             
             # Now that all nodes and edges are validated, we can
-            # Do the housekeeping on nodes that required rebuild or validation
+            # Do the housekeeping on nodes that require rebuild or validation
             for node_id, reason in validated_nodes.items():
-                node_wrapper = self._graph.get_node_wrapper(node_id)
-                if node_wrapper:
-                    node_wrapper._housekeeping()
+                if reason.requires_rebuild() or reason.requires_validation():
+                    node_wrapper = self._graph.get_node_wrapper(node_id)
+                    if node_wrapper:
+                        node_wrapper._housekeeping()
 
             # Build simplified result
             validation_time_ms = (time.perf_counter() - start_time) * 1000.0

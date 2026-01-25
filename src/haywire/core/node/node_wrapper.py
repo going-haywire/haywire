@@ -641,8 +641,9 @@ class NodeWrapper:
         """
         with self._lock:
             if self._node_instance:
-                self._node_instance._housekeeping()
-                self._is_dirty_structural = False
+                if self._is_dirty_structural:
+                    self._node_instance._housekeeping()
+                    self._is_dirty_structural = False
 
 
     def redraw(self) -> None:

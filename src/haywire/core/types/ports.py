@@ -314,8 +314,6 @@ class DataPort(DataTypeIdentity):
 
     def _mark_as_structuraly_dirty(self) -> None:
         """Mark the port's node as structurally dirty."""
-        if self._wrapper:
-            self._wrapper.mark_as_structuraly_dirty()
         self._is_dirty_structural = True
 
     def _housekeeping(self) -> None:
