@@ -29,8 +29,9 @@ Usage:
     interpreter.shutdown()
 """
 
+from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.execution.interpreter import Interpreter
-from haywire.core.execution.vm import HaywireVM, ExecutionContext
+from haywire.core.execution.vm import HaywireVM
 from haywire.core.execution.flow import (
     Flow,
     ControlFlowGraph,

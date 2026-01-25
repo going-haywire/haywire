@@ -12,6 +12,50 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.execution import Interpreter
 from haywire.core.execution.event_source import SystemEventType
 
+def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
+    """
+    Create graph: BeginPlay → PrintMessage with MathOP data flow
+    
+    Args:
+        graph: The graph to populate
+        
+    Returns:
+        The populated graph
+    """
+    from haybale_core.nodes.begin_play import BeginPlayNode
+    from haybale_test_a.nodes.print_node import PrintMessageNode
+    from haybale_example.nodes.math_op import MathOP
+
+    begin_play = graph.create_node_wrapper(
+        BeginPlayNode.class_identity.registry_key,
+        position=(100, 100)
+    )
+    
+    print_msg = graph.create_node_wrapper(
+        PrintMessageNode.class_identity.registry_key,
+        position=(300, 100)
+    )
+    
+    math_op = graph.create_node_wrapper(
+        MathOP.class_identity.registry_key,
+        position=(200, 100)
+    )
+    
+    graph.create_edge_wrapper(
+        begin_play.node_id, 'exec',
+        print_msg.node_id, 'exec'
+    )
+    graph.create_edge_wrapper(
+        begin_play.node_id, 'timestamp',
+        math_op.node_id, 'value_a'
+    )
+    graph.create_edge_wrapper(
+        math_op.node_id, 'result',
+        print_msg.node_id, 'message'
+    )
+    
+    return graph
+
 
 # ==============================================================================
 # Library System Setup
@@ -81,22 +125,7 @@ def example_simple_flow():
         name='Simple Flow Example'
     )
     
-    # Create nodes
-    begin_play = graph.create_node_wrapper(
-        BeginPlayNode.class_identity.registry_key,
-        position=(100, 100)
-    )
-    
-    print_msg = graph.create_node_wrapper(
-        PrintMessageNode.class_identity.registry_key,
-        position=(300, 100)
-    )
-    
-    # Connect: BeginPlay.exec → PrintMessage.exec
-    graph.create_edge_wrapper(
-        begin_play.node_id, 'exec',
-        print_msg.node_id, 'exec'
-    )
+    _create_graph_with_math(graph)
     
     # Create interpreter
     interpreter = Interpreter()

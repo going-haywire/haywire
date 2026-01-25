@@ -191,7 +191,7 @@ class DefaultNodeRenderer(NodeRenderer):
         has_connections = False
         for port in node.ports.values():
             if port.parent_group == group_port.id:
-                if port._edges:
+                if port.is_linked():
                     has_connections = True
                     break
         

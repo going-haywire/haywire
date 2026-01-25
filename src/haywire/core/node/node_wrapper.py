@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from .base import BaseNode
     from ..graph.base import BaseGraph
     from .factory import NodeFactory
-    from ..execution.vm import ExecutionContext
+    from ..execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 
@@ -552,7 +552,7 @@ class NodeWrapper:
         with self._lock:
             if middleware in self._middleware:
                 self._middleware.remove(middleware)
-                
+    
     def _execute_method(self, exec_ctx: 'ExecutionContext') -> str | None:
         """
         Execute the node's transform method within the given execution context.
@@ -573,10 +573,7 @@ class NodeWrapper:
             self._node_instance.on_changed_async()
             self._node_instance.on_validation_input()
 
-            result =self._node_instance.worker(exec_ctx.to_dict())
-
-            outlet_id = self._parse_worker_result(result)
-            return outlet_id
+            return self._node_instance.execute(exec_ctx)
         
         except Exception as e:
             self._state.error_runtime = HaywireException.from_exception(
@@ -593,33 +590,6 @@ class NodeWrapper:
             return None
  
         #return self._execute_with_middleware('transform', exec_ctx)
-
-    def _parse_worker_result(self, result: Any) -> Optional[str]:
-        """
-        Parse worker function result to extract next outlet ID.
-        
-        Worker can return:
-        - None: No specific outlet (use loopback or end)
-        - {'next_outlet': 'outlet_id'}: Specific outlet to follow
-        - 'outlet_id': Direct outlet ID string
-        
-        Args:
-            result: Worker function return value
-            
-        Returns:
-            Outlet ID to follow, or None
-        """
-        if result is None:
-            return None
-        
-        if isinstance(result, dict):
-            return result.get('next_outlet')
-        
-        if isinstance(result, str):
-            return result
-        
-        logger.warning(f"Unexpected worker result format: {result}")
-        return None
 
     def _execute_with_middleware(self, method_name: str, *args) -> Any:
         """Execute a method with middleware hooks"""

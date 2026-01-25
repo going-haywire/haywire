@@ -1,14 +1,14 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Dict, TypeVar, Union
+import inspect
+from typing import TYPE_CHECKING, Any, Callable, Dict, TypeVar, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field, asdict
 
-from haywire.core.data.enums import FlowType
-
-
+from ..data.enums import FlowType
+from ..execution.execution_context import ExecutionContext
 from ..registry.identity import BaseIdentity
 from ..library.identity import LibraryIdentity
-from ..types.ports import DataPort, PortInlet, PortOutlet
+from ..types.ports import DataPort
 from .dataclasses import (
     NodeBehavior, 
     NodeErrorInfo, 
@@ -21,6 +21,11 @@ if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
 
 T = TypeVar('T')
+
+# Worker return type: None | str | (str | None, tuple of (outlet_id, value) pairs)
+WorkerResult = (
+    None | str | tuple[str | None, tuple[tuple[str, Any], ...]]
+)
 
 @dataclass
 class NodeIdentity(BaseIdentity):
@@ -84,7 +89,11 @@ class NodeData:
         
         self._port_order_counter: int = 0
         """Counter for assigning display order to ports"""
-    
+
+        # Worker execution cache
+        self._executor: Optional[Callable] = None
+        """Optimized execution callable (combines extraction + worker call)"""
+
     def _housekeeping(self) -> None:
         """
         Perform housekeeping tasks for the node.
@@ -95,6 +104,10 @@ class NodeData:
         """
         for port in self.ports.values():
             port._housekeeping()
+
+   # =========================================================================
+    # Port Addition and Management
+    # =========================================================================
 
     def add(self, port: DataPort) -> DataPort:
         """
@@ -162,6 +175,7 @@ class NodeData:
         self._cache_dirty = True
 
         self.wrapper.mark_as_structuraly_dirty()
+        self._executor = None
 
         return port
     
@@ -342,9 +356,14 @@ class NodeData:
 
                 self.wrapper.mark_as_structuraly_dirty()
         
+        self._executor = None
         self._cache_dirty = True
         return removed
-    
+
+   # =========================================================================
+    # Port Value Access
+    # =========================================================================
+
     def value(self, id: str) -> Any:
         """
         Get the unwrapped value of a port for worker access.
@@ -419,7 +438,11 @@ class NodeData:
             raise ValueError(f"Port '{id}' is not an outlet")
         
         port.set_value(value)
-    
+
+    # =========================================================================
+    # Port Querying and Organization
+    # =========================================================================
+
     def get_visible_ports(self, 
                           include_sections: bool = False) -> List[DataPort]:
         """
@@ -600,7 +623,242 @@ class NodeData:
             port for port in self.ports.values()
             if port.flow_type == FlowType.CALLBACK and port.is_outlet()
         ]
+
+    # =========================================================================
+    # Worker Signature Analysis and Execution
+    # =========================================================================
+
+    def _analyze_worker_signature(self) -> None:
+        """
+        Analyze worker signature and create optimized extractor.
+        Called after ports are configured (end of initialize or after port changes).
+        """
+        worker_method = getattr(self, 'worker', None)
+        if not worker_method:
+            return
         
+        sig = inspect.signature(worker_method)
+        params = dict(sig.parameters)
+        params.pop('self', None)
+        params.pop('context', None)
+        
+        if not params:
+            # Legacy: no params, call worker(context) directly
+            self._executor = lambda ctx: self.worker(ctx)
+            return
+        
+        # Collect params that have matching ports (in signature order)
+        param_names_with_ports = []
+        
+        for name, param in params.items():
+            has_port = name in self.ports
+            is_required = param.default is inspect.Parameter.empty
+            
+            if is_required and not has_port:
+                raise ValueError(
+                    f"Required worker parameter '{name}' has no matching port."
+                )
+            
+            if has_port:
+                param_names_with_ports.append(name)
+        
+        self._executor = self._create_executor(param_names_with_ports)
+    
+    def _create_executor(self, param_names: List[str]) -> Callable:
+        """
+        Create optimized executor based on port count.
+        
+        Returns:
+            Executor callable that combines extraction + worker call
+        """
+        ports = [self.ports[name] for name in param_names]
+        n = len(ports)
+        
+        if n == 0:
+            return lambda ctx: self.worker(ctx)
+        elif n == 1:
+            p0 = ports[0]
+            return lambda ctx: self.worker(ctx, p0.get_value())
+        elif n == 2:
+            p0, p1 = ports
+            return lambda ctx: self.worker(
+                ctx, p0.get_value(), p1.get_value()
+            )
+        elif n == 3:
+            p0, p1, p2 = ports
+            return lambda ctx: self.worker(
+                ctx, p0.get_value(), p1.get_value(), p2.get_value()
+            )
+        elif n == 4:
+            p0, p1, p2, p3 = ports
+            return lambda ctx: self.worker(
+                ctx,
+                p0.get_value(),
+                p1.get_value(),
+                p2.get_value(),
+                p3.get_value(),
+            )
+        elif n == 5:
+            p0, p1, p2, p3, p4 = ports
+            return lambda ctx: self.worker(
+                ctx,
+                p0.get_value(),
+                p1.get_value(),
+                p2.get_value(),
+                p3.get_value(),
+                p4.get_value(),
+            )
+        else:
+            # Reusable dict fallback for 6+ ports
+            cache = {name: None for name in param_names}
+            port_refs = list(zip(param_names, ports))
+            
+            def extract_dict():
+                for name, port in port_refs:
+                    cache[name] = port.get_value()
+                return cache
+            
+            return lambda ctx: self.worker(ctx, **extract_dict())
+    
+    def execute(self, context: 'ExecutionContext') -> Optional[str]:
+        """
+        Execute the worker with optimized value extraction.
+        
+        This is the single entry point
+
+        Args:
+            context: Execution context
+        
+        Returns:
+            Outlet ID to follow, or None
+        """
+        if self._executor is None:
+            self._analyze_worker_signature()
+
+        result = self._executor(context)
+        return self._parse_worker_result(result)
+
+    def _parse_worker_result(self, result: Any) -> Optional[str]:
+        """
+        Parse worker function result to extract next outlet ID.
+        
+        Strict pattern - exceptions on invalid format:
+        - None: No continuation, no outputs
+        - str: Control flow to outlet_id, no outputs
+        - (str | None, tuple): Control flow + outputs
+            - First element: outlet_id for control flow (or None)
+            - Second element: tuple of (outlet_id, value) pairs (can be empty)
+        
+        Args:
+            result: Worker function return value
+            
+        Returns:
+            Outlet ID to follow, or None
+            
+        Raises:
+            ValueError: If result doesn't match expected pattern
+            
+        Examples:
+            return None  # No flow, no outputs
+            return 'next'  # Flow only
+            return ('next', ())  # Flow, no outputs (explicit)
+            return (None, (('out1', 10), ('out2', 20)))  # Outputs, no flow
+            return ('next', (('out1', 10), ('out2', 20)))  # Flow + outputs
+        """
+        if result is None:
+            return None
+                
+        if isinstance(result, str):
+            return result
+        
+        try:
+            next_outlet, outputs = result
+                       
+            # Set all outputs
+            for item in outputs:
+                outlet_id, value = item
+                self.out(outlet_id, value)
+            
+            return next_outlet
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"Worker result must be None, str, or (str|None, tuple), "
+                f"got {type(result)}"
+            ) from e
+
+    @abstractmethod
+    def worker(self, context: ExecutionContext, *args, **kwargs) -> WorkerResult:
+        """
+        The main execution logic of the node.
+        
+        Override this method in subclasses to implement node behavior.
+        
+        Worker signature design:
+        - Parameter names must match inlet port IDs
+        - Parameters are automatically extracted and passed as unwrapped values
+        - Use type hints to document expected types
+        - Use default values for optional ports (if port doesn't exist, default used)
+        - Required parameters (no default) must have matching ports or ValueError raised
+        
+        Args:
+            context: Execution context (always first parameter)
+            *args: Named parameters matching inlet port IDs (auto-extracted)
+            **kwargs: Named parameters matching inlet port IDs (auto-extracted)
+        
+        Returns:
+            WorkerResult:
+            - None  # No flow, no outputs
+            - 'next'  # Flow only
+            - ('next', ())  # Flow, no outputs (explicit)
+            - (None, (('out1', 10), ('out2', 20)))  # Outputs, no flow
+            - ('next', (('out1', 10), ('out2', 20)))  # Flow + outputs
+        
+        Examples:
+            Simple node with required inputs:
+            
+            .. code-block:: python
+            
+                def worker(self, context, value: float, multiplier: float):
+                    result = value * multiplier
+                    return (None, (('result', result),))
+            
+            Node with optional inputs (default if port missing):
+            
+            .. code-block:: python
+            
+                def worker(self, context, value: float, offset: float = 0.0):
+                    result = value + offset
+                    return (None, (('result', result),))
+            
+            Control flow node:
+            
+            .. code-block:: python
+            
+                def worker(self, context, condition: bool):
+                    return 'true_branch' if condition else 'false_branch'
+            
+            Multi-output with control flow:
+            
+            .. code-block:: python
+            
+                def worker(self, context, x: float, y: float):
+                    return ('next', (
+                        ('sum', x + y),
+                        ('product', x * y),
+                        ('difference', x - y),
+                    ))
+            
+            No parameters (slower, access via self.value()):
+            
+            .. code-block:: python
+            
+                def worker(self, context):
+                    value = self.value('input')
+                    self.out('output', value * 2)
+                    return None
+            """
+        pass
+
     # =========================================================================
     # SERIALIZATION
     # =========================================================================
@@ -650,6 +908,7 @@ class NodeData:
                 self._port_order_counter = port.order + 1
         
         self._cache_dirty = True
+        self._executor = None
         return True
         
 
@@ -725,34 +984,6 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         pass
 
-    @abstractmethod
-    def worker(self, context: dict) -> dict | None:
-        """
-        The main execution logic of the node.
-        
-        Override this method in subclasses to implement node behavior.
-        
-        Args:
-            context: Execution context dictionary
-        
-        Returns:
-            Optional dict with execution results
-        
-        Example:
-            def worker(self, context: dict) -> dict | None:
-                # Read inlet values (already unwrapped!)
-                a = self.inlet('input_a')  # 5.0
-                b = self.inlet('input_b')  # 3.0
-                
-                # Compute result
-                result = a + b  # 8.0
-                
-                # Set outlet (no wrapping needed!)
-                self.set_outlet('result', result)
-                
-                return None
-        """
-        pass
 
     def shutdown(self) -> None:
         """

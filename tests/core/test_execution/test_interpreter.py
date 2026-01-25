@@ -16,38 +16,90 @@ from haywire.core.di.config import LibrarySystemService
 class TestInterpreter:
     """Test Interpreter with real nodes from libraries."""
 
+    def _create_simple_graph(self, graph: BaseGraph) -> BaseGraph:
+        """
+        Create a simple graph: BeginPlay → PrintMessage
+        
+        Args:
+            graph: The graph to populate
+            
+        Returns:
+            The populated graph
+        """
+        from haybale_core.nodes.begin_play import BeginPlayNode
+        from haybale_test_a.nodes.print_node import PrintMessageNode
+
+        begin_play = graph.create_node_wrapper(
+            BeginPlayNode.class_identity.registry_key,
+            position=(100, 100)
+        )
+        
+        print_msg = graph.create_node_wrapper(
+            PrintMessageNode.class_identity.registry_key,
+            position=(300, 100)
+        )
+
+        graph.create_edge_wrapper(
+            begin_play.node_id, 'exec',
+            print_msg.node_id, 'exec'
+        )
+        
+        return graph
+
+    def _create_graph_with_math(self, graph: BaseGraph) -> BaseGraph:
+        """
+        Create graph: BeginPlay → PrintMessage with MathOP data flow
+        
+        Args:
+            graph: The graph to populate
+            
+        Returns:
+            The populated graph
+        """
+        from haybale_core.nodes.begin_play import BeginPlayNode
+        from haybale_test_a.nodes.print_node import PrintMessageNode
+        from haybale_example.nodes.math_op import MathOP
+
+        begin_play = graph.create_node_wrapper(
+            BeginPlayNode.class_identity.registry_key,
+            position=(100, 100)
+        )
+        
+        print_msg = graph.create_node_wrapper(
+            PrintMessageNode.class_identity.registry_key,
+            position=(300, 100)
+        )
+        
+        math_op = graph.create_node_wrapper(
+            MathOP.class_identity.registry_key,
+            position=(200, 100)
+        )
+        
+        graph.create_edge_wrapper(
+            begin_play.node_id, 'exec',
+            print_msg.node_id, 'exec'
+        )
+        graph.create_edge_wrapper(
+            begin_play.node_id, 'timestamp',
+            math_op.node_id, 'value_a'
+        )
+        graph.create_edge_wrapper(
+            math_op.node_id, 'result',
+            print_msg.node_id, 'message'
+        )
+        
+        return graph
+
     def test_simple_flow_execution(
         self,
         graph_with_library_system: BaseGraph,
         library_system: LibrarySystemService
     ):
         """Test simple flow: BeginPlay → PrintMessage"""
-        from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_test_a.nodes.print_node import PrintMessageNode
+        graph = self._create_simple_graph(graph_with_library_system)
 
-        graph = graph_with_library_system
-
-        # Test: Create nodes
-        begin_play = graph.create_node_wrapper(
-            BeginPlayNode.class_identity.registry_key,
-            position=(100, 100)
-        )
-        assert begin_play is not None
-        assert begin_play.node_id in graph.node_wrappers
-
-        print_msg = graph.create_node_wrapper(
-            PrintMessageNode.class_identity.registry_key,
-            position=(300, 100)
-        )
-        assert print_msg is not None
-        assert print_msg.node_id in graph.node_wrappers
-
-        # Test: Create edge
-        edge = graph.create_edge_wrapper(
-            begin_play.node_id, 'exec',
-            print_msg.node_id, 'exec'
-        )
-        assert edge is not None
+        # Test: Verify graph structure
+        assert len(graph.node_wrappers) == 2
         assert len(graph.list_edge_wrappers()) == 1
 
         # Test: Create and load interpreter
@@ -178,25 +230,7 @@ class TestInterpreter:
         library_system: LibrarySystemService
     ):
         """Test multiple event dispatches to the same flow"""
-        from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_test_a.nodes.print_node import PrintMessageNode
-
-        graph = graph_with_library_system
-
-        begin_play = graph.create_node_wrapper(
-            BeginPlayNode.class_identity.registry_key,
-            position=(100, 100)
-        )
-        
-        print_msg = graph.create_node_wrapper(
-            PrintMessageNode.class_identity.registry_key,
-            position=(300, 100)
-        )
-
-        graph.create_edge_wrapper(
-            begin_play.node_id, 'exec',
-            print_msg.node_id, 'exec'
-        )
+        graph = self._create_simple_graph(graph_with_library_system)
 
         interpreter = Interpreter()
         interpreter.load_graph(graph)
@@ -230,33 +264,14 @@ class TestInterpreter:
         from haybale_test_a.nodes.print_node import PrintMessageNode
 
         # Create first graph
-        graph1 = graph_with_library_system
-        
-        begin1 = graph1.create_node_wrapper(
-            BeginPlayNode.class_identity.registry_key,
-            position=(100, 100)
-        )
-        print1 = graph1.create_node_wrapper(
-            PrintMessageNode.class_identity.registry_key,
-            position=(300, 100)
-        )
-        graph1.create_edge_wrapper(begin1.node_id, 'exec', print1.node_id, 'exec')
+        graph1 = self._create_simple_graph(graph_with_library_system)
 
         # Create second graph
         graph2 = BaseGraph(
             graph_id='test_graph_2',
             name='Test Graph 2'
         )
-        
-        begin2 = graph2.create_node_wrapper(
-            BeginPlayNode.class_identity.registry_key,
-            position=(100, 100)
-        )
-        print2 = graph2.create_node_wrapper(
-            PrintMessageNode.class_identity.registry_key,
-            position=(300, 100)
-        )
-        graph2.create_edge_wrapper(begin2.node_id, 'exec', print2.node_id, 'exec')
+        graph2 = self._create_simple_graph(graph2)
 
         # Test: Load first graph
         interpreter = Interpreter()
@@ -309,23 +324,8 @@ class TestInterpreter:
         library_system: LibrarySystemService
     ):
         """Test interpreter statistics reporting"""
-        from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_test_a.nodes.print_node import PrintMessageNode
 
-        graph = graph_with_library_system
-
-        begin_play = graph.create_node_wrapper(
-            BeginPlayNode.class_identity.registry_key,
-            position=(100, 100)
-        )
-        print_msg = graph.create_node_wrapper(
-            PrintMessageNode.class_identity.registry_key,
-            position=(300, 100)
-        )
-        graph.create_edge_wrapper(
-            begin_play.node_id, 'exec',
-            print_msg.node_id, 'exec'
-        )
+        graph = self._create_graph_with_math(graph_with_library_system)
 
         interpreter = Interpreter()
         interpreter.load_graph(graph)
