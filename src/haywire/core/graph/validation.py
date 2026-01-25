@@ -291,7 +291,8 @@ class ValidationManager:
             for connection_uuid, reason in dirty_edges.items():
                 try:
                     edge_wrapper = self._graph.get_edge_wrapper(connection_uuid)
-                    if reason.requires_rebuild() or reason.requires_validation():
+                    if reason.requires_rebuild() or \
+                        reason.requires_validation():
                         # we play it safe - in case the node has changed the type of an 
                         # existing port with the same id the edge is rebuild and validated
                         if edge_wrapper:                            
@@ -325,10 +326,9 @@ class ValidationManager:
             # Now that all nodes and edges are validated, we can
             # Do the housekeeping on nodes that required rebuild or validation
             for node_id, reason in validated_nodes.items():
-                if reason.requires_rebuild() or reason.requires_validation():
-                    node_wrapper = self._graph.get_node_wrapper(node_id)
-                    if node_wrapper:
-                        node_wrapper._housekeeping()
+                node_wrapper = self._graph.get_node_wrapper(node_id)
+                if node_wrapper:
+                    node_wrapper._housekeeping()
 
             # Build simplified result
             validation_time_ms = (time.perf_counter() - start_time) * 1000.0

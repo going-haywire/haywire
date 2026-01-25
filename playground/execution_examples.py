@@ -126,6 +126,8 @@ def example_simple_flow():
     )
     
     _create_graph_with_math(graph)
+
+    graph._validation.force_immediate_validation()
     
     # Create interpreter
     interpreter = Interpreter()

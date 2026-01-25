@@ -7,7 +7,7 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
 
-from haybale_example.types.math import MathOP
+from haybale_example.types.math import MathOPs
 
 @node(
     label='Math Operation',
@@ -18,7 +18,7 @@ class MathOP(BaseNode):
     """Node that outputs a constant value"""
     
     def initialize(self):
-        from haybale_example.types.math import MathOPSelector, MATHOP
+        from haybale_example.types.math import MathOPSelector
         from haybale_core.types.specs import (
             FLOAT,
         )
@@ -56,20 +56,20 @@ class MathOP(BaseNode):
             ))
 
     def worker(self, context: ExecutionContext, value_a: float, value_b: float, operator: str) -> dict | None:
-        if operator == MathOP.ADD.value:
+        if operator == MathOPs.ADD.value:
             result = value_a + value_b
-            return None, ('result', result)
-        elif operator == MathOP.SUBTRACT.value:
+            return (None, (('result', result),))
+        elif operator == MathOPs.SUBTRACT.value:
             result = value_a - value_b
-            return None, ('result', result)
-        elif operator == MathOP.MULTIPLY.value:
+            return (None, (('result', result),))
+        elif operator == MathOPs.MULTIPLY.value:
             result = value_a * value_b
-            return None, ('result', result)
-        elif operator == MathOP.DIVIDE.value:
+            return (None, (('result', result),))
+        elif operator == MathOPs.DIVIDE.value:
             if value_b != 0:
                 result = value_a / value_b
-                return None, ('result', result)
+                return (None, (('result', result),))
             else:
-                return None, ('result', 0.0)
+                return (None, (('result', 0.0),))
         return None
     

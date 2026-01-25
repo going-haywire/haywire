@@ -3,14 +3,8 @@ from enum import Enum
 from haywire.core.types.decorator import type
 from haybale_core.types.specs import STRING
 
-MATHOP: list[str] = [
-    'add',
-    'subtract',
-    'multiply',
-    'divide'
-]
 
-class MathOP(Enum):
+class MathOPs(Enum):
     ADD = 'add'
     SUBTRACT = 'subtract'
     MULTIPLY = 'multiply'
@@ -28,8 +22,8 @@ class MathOP(Enum):
     label='Simple Operations',
     description='Simple mathematical operations for one or two float values',
     widget_key='core:widget:SelectWidget',
-    widget_config={'properties': {'options': MathOP.values()}},
-    default=MathOP.ADD.value
+    widget_config={'properties': {'options': MathOPs.values()}},
+    default=MathOPs.ADD.value
 )
 class MathOPSelector(STRING):
     """

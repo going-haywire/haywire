@@ -17,7 +17,7 @@ class Pipes:
     def add_pipe(self, edge_wrapper: EdgeWrapper):
         """Add a pipe connection"""
         self.sinks[edge_wrapper.connection_uuid] = edge_wrapper._inlet_port
-        self.chains[edge_wrapper.connection_uuid] = edge_wrapper.first_adapter()
+        self.chains[edge_wrapper.connection_uuid] = edge_wrapper.first_adapter
     
     def remove_pipe(self, edge_wrapper: EdgeWrapper):
         """Remove a pipe connection"""

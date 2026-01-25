@@ -38,4 +38,4 @@ class BeginPlayNode(EventNode):
         self.out('timestamp', time.time())
         
         # Continue execution
-        return {'next_outlet': 'exec'}
+        return 'exec', ()

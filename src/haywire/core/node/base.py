@@ -975,6 +975,32 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         return True, None
 
+    def on_changed_async(self) -> None:
+        """
+        Handle asynchronous changes to the node.
+        
+        This method needs to be overridden when the node's configuration changes
+        in a way that requires asynchronous handling, such as updating
+        external resources or performing long-running tasks.
+        
+        Override this method in subclasses to implement custom async change handling.
+        """
+        pass
+
+    def on_validation_input(self) -> None:
+        """
+        Handle validation of inputs before execution.
+        
+        This method is called to validate input values before the node
+        executes. It can be used to check for valid ranges, types,
+        or other constraints on input data.
+        
+        Override this method in subclasses to implement custom input validation.
+
+        TODO: what shall we do on validation failure? Raise exception?
+        """
+        pass
+
     def startup(self) -> None:
         """
         Perform any startup logic when the node is executing for the first time.

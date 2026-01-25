@@ -74,3 +74,6 @@ class EventNode(BaseNode):
             self.event_subscription = self.__class__.EVENT_SOURCE
 
         self.behavior.is_event_node = True
+        self.behavior.is_control_node = True
+        self.behavior.is_data_node = False
+        self.behavior.is_loopback = False

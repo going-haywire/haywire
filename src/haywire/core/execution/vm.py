@@ -76,7 +76,7 @@ class HaywireVM:
             f"Starting control flow execution: {flow.flow_id} "
             f"(trigger: {trigger.source_key})"
         )
-        
+       
         # Initialize execution tracking
         execution_count: int = 0
         loopback_stack: List[str] = []
