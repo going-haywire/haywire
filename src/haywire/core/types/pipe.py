@@ -26,11 +26,19 @@ class Pipes:
             del self.chains[edge_wrapper.connection_uuid]
 
     def propagate(self, value: Any):
-        """Propagate value through pipe using adapter chains"""
+        """
+        Propagate value through pipe using adapter chains
+        
+        Args:
+            value: Value to propagate 
+        """
         for connection_uuid, sink in self.sinks.items():
-            chain = self.chains[connection_uuid]
-            converted_value = chain.execute(value)
-            sink.set_value(converted_value, connection_uuid=connection_uuid)
+            if value:
+                chain = self.chains[connection_uuid]
+                converted_value = chain.execute(value)
+                sink.set_value(converted_value, connection_uuid=connection_uuid)
+            else:
+                sink.set_value(None, connection_uuid=connection_uuid)
 
     def clear(self):
         self.sinks.clear()
