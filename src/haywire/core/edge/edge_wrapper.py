@@ -62,9 +62,9 @@ class EdgeWrapperState:
     """When edge was created"""
     execution_count: int = 0
     """Number of times transform() was called"""
-    last_execution_time_ns: float = 0.0
+    last_execution_time_us: float = 0.0
     """Last transform() execution time"""
-    average_execution_time_ns: float = 0.0
+    average_execution_time_us: float = 0.0
     """Average transform() execution time"""
     example_test_value: str = None
     """Example test value used during test"""
@@ -519,9 +519,9 @@ class EdgeWrapper:
                 
                     # Update metrics
                     execution_time = (time.perf_counter() - start_time) * 1000000.0
-                    self._state.last_execution_time_ns = execution_time
-                    self._state.average_execution_time_ns = (
-                        self._state.last_execution_time_ns / 
+                    self._state.last_execution_time_us = execution_time
+                    self._state.average_execution_time_us = (
+                        self._state.last_execution_time_us / 
                         self._state.execution_count
                     )
 

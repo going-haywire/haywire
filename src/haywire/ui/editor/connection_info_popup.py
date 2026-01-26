@@ -112,9 +112,9 @@ class ConnectionInfoPopup:
                                 'text-xs text-gray-700 ml-2'
                             )
                             
-                            avg_time = state.average_execution_time_ns
+                            avg_time = state.average_execution_time_us
                             if avg_time > 0:
-                                ui.label(f"Average Time: {avg_time:.1f} ns").classes(
+                                ui.label(f"Average Time: {avg_time:.1f} μs").classes(
                                     'text-xs text-gray-700 ml-2'
                                 )
                             else:
