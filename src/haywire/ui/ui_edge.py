@@ -174,6 +174,8 @@ class UIEdge:
             outletPinId=edge.outlet_port_id,
             sinkNodeId=edge.sink_node_id,
             inletPinId=edge.inlet_port_id,
+            outletPinFallback=edge.outletPinFallback,
+            inletPinFallback=edge.inletPinFallback,
             isValid=new_state.is_valid,
             hasWarning=new_state.has_warning,
             strokeColor=new_state.stroke_color,

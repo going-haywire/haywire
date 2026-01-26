@@ -59,6 +59,9 @@ class DefaultNodeRenderer(NodeRenderer):
             with ui.row().classes('w-full gap-2'):
                 # Left column: Inlets
                 with ui.column().classes('flex-1 gap-1'):
+                    # Root ghost pin for inlet (fallback when all ports hidden)
+                    self._render_root_ghost_pin(wrapper, is_inlet=True)
+                    
                     if node.ports:
                         self._render_port_hierarchy(
                             node.get_visible_ports(),
@@ -71,6 +74,11 @@ class DefaultNodeRenderer(NodeRenderer):
                             wrapper,
                             is_inlet=True
                         )
+                        
+                # Right column: Outlets
+                with ui.column().classes('flex-1 gap-1'):
+                    # Root ghost pin for outlet (fallback when all ports hidden)
+                    self._render_root_ghost_pin(wrapper, is_inlet=False)
 
             # Footer with port counts
             with ui.row().classes('w-full justify-between mt-2 zoom-pan-lod1'):
@@ -199,14 +207,15 @@ class DefaultNodeRenderer(NodeRenderer):
             return
         
         # Render semi-transparent ghost pin
+        # UUID format MUST match Vue: {port_id}@{node_id}
         direction = 'left' if is_inlet else 'right'
-        pin_uuid = f"ghost-{group_port.id}-{wrapper.node_id}"
+        pin_uuid = f"{group_port.id}@{wrapper.node_id}"
         
         # Ghost pin with connection data for graph renderer
         ui.icon('radio_button_unchecked', 
                 color='gray', 
                 size='15px').classes(
-            'port ghost-pin opacity-50'
+            'connection-pin ghost-pin opacity-50'
         ).style(
             f'position: absolute; {direction}: -20px; '
             f'pointer-events: none;'  # Not interactive!
@@ -214,7 +223,10 @@ class DefaultNodeRenderer(NodeRenderer):
             f'id="{pin_uuid}" '
             f'data-ghost-group="{group_port.id}" '
             f'data-node-id="{wrapper.node_id}" '
-            f'data-pin-dir="{"inlet" if is_inlet else "outlet"}"'
+            f'data-pin-id="{group_port.id}" '
+            f'data-pin-dir="{"inlet" if is_inlet else "outlet"}" '
+            f'data-pin-flow-type="{group_port.flow_type.value}" '
+            f'data-pin-color="#888888"'
         )
         
         # Optional: Add tooltip indicating this is a ghost pin
@@ -222,3 +234,42 @@ class DefaultNodeRenderer(NodeRenderer):
             ui.tooltip(
                 f'Collapsed group "{group_port.label}" has connections'
             ).classes('text-xs')
+    
+    def _render_root_ghost_pin(self, wrapper: NodeWrapper, is_inlet: bool):
+        """
+        Render root-level ghost pin for the node.
+        
+        Root ghost pins are the ultimate fallback for connections when
+        all ports are hidden/removed. Each node has:
+        - One root inlet ghost pin (left side)
+        - One root outlet ghost pin (right side)
+        
+        These pins use the special port ID 'root' and are always rendered,
+        though typically invisible unless needed.
+        
+        Args:
+            wrapper: NodeWrapper containing the node
+            is_inlet: True for inlet ghost pin, False for outlet
+        """
+        # UUID format MUST match Vue: root@{node_id}
+        direction = 'left' if is_inlet else 'right'
+        pin_uuid = f"root@{wrapper.node_id}"
+        flow_type = 'data'  # Root pins handle data connections
+        
+        # Root ghost pin - always present as ultimate fallback
+        ui.icon('radio_button_unchecked',
+                color='gray',
+                size='12px').classes(
+            'connection-pin root-ghost-pin opacity-30'
+        ).style(
+            f'position: absolute; {direction}: -20px; top: 50%; '
+            f'transform: translateY(-50%); '
+            f'pointer-events: auto;'  # Root pins ARE interactive
+        ).props(
+            f'id="{pin_uuid}" '
+            f'data-node-id="{wrapper.node_id}" '
+            f'data-pin-id="root" '
+            f'data-pin-dir="{"inlet" if is_inlet else "outlet"}" '
+            f'data-pin-flow-type="{flow_type}" '
+            f'data-pin-color="#666666"'
+        )

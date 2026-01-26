@@ -227,6 +227,8 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
     outletPinId: str
     sinkNodeId: str
     inletPinId: str
+    outletPinFallback: str
+    inletPinFallback: str
     isValid: bool = True
     hasWarning: bool = False
     strokeColor: str = 'auto'  # 'auto' = use gradient, else solid color

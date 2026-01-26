@@ -298,6 +298,8 @@ export default {
                 outletPinId,
                 sinkNodeId,
                 inletPinId,
+                outletPinFallback,
+                inletPinFallback,
                 isValid = true,
                 hasWarning = false,
                 strokeColor = 'auto',
@@ -335,6 +337,8 @@ export default {
                 outletPinId,
                 sinkNodeId,
                 inletPinId,
+                outletPinFallback,
+                inletPinFallback,
                 isValid,
                 hasWarning,
                 strokeColor,
@@ -1331,6 +1335,8 @@ export default {
             outletPinId,
             sinkNodeId,
             inletPinId,
+            outletPinFallback,
+            inletPinFallback,
             isValid = true,
             hasWarning = false,
             strokeColor = 'auto',
@@ -1377,12 +1383,14 @@ export default {
                 outletPos: outletPos,
                 outletColor: outletColor,
                 outletConnectDir: outletConnectDir,
+                outletPinFallback: outletPinFallback,
                 inletNodeId: sinkNodeId,
                 inletPinUUID: inletPinUUID,
                 inletPinId: inletPinId,
                 inletPos: inletPos,
                 inletColor: inletColor,
                 inletConnectDir: inletConnectDir,
+                inletPinFallback: inletPinFallback,
                 // Visual state properties
                 isValid: isValid,
                 hasWarning: hasWarning,
@@ -1446,6 +1454,56 @@ export default {
             }
         },
 
+        _findPinInHierarchy(nodeId, hierarchyString) {
+            /**
+             * Iterate through port hierarchy to find an existing pin element.
+             * 
+             * @param {string} nodeId - The node ID
+             * @param {string} hierarchyString - Hierarchy string (e.g., 
+             *     "port_id>>parent_id>>root")
+             * @returns {HTMLElement|null} - First found pin element or null
+             * 
+             * Iterates through hierarchy levels from specific to general:
+             * - First tries the leaf port (most specific)
+             * - Then tries parent groups moving up the hierarchy
+             * - Finally tries 'root' which is the node's ghost pin
+             * 
+             * Ghost pins are fallback connection points when ports are hidden
+             * (e.g., when a group is collapsed). Each node has inlet and outlet
+             * ghost pins to maintain connection continuity.
+             */
+            if (!hierarchyString) {
+                return null;
+            }
+
+            // Split the hierarchy string by >>
+            const portIds = hierarchyString.split('>>');
+            
+            // Iterate through each level in the hierarchy (including 'root')
+            for (let i = 0; i < portIds.length; i++) {
+                const portId = portIds[i];
+                
+                // Build the pin UUID and try to find the element
+                const pinUUID = this._buildPinUUID(nodeId, portId);
+                const pinElement = document.getElementById(pinUUID);
+                
+                if (pinElement) {
+                    const isGhost = portId === 'root';
+                    console.log(
+                        `🔍 Found ${isGhost ? 'ghost' : 'fallback'} pin: ` +
+                        `${pinUUID} (hierarchy level ${i})`
+                    );
+                    return pinElement;
+                }
+            }
+            
+            console.warn(
+                `⚠️ No pins found in hierarchy for node ${nodeId}: ` +
+                `${hierarchyString}`
+            );
+            return null;
+        },
+
         _updateConnection(connectionUUID) {
             const connectionInfo = this.connectionPaths.get(connectionUUID);
             if (!connectionInfo) {
@@ -1453,8 +1511,23 @@ export default {
                 return;
             }
 
-            const outletPin = document.getElementById(connectionInfo.outletPinUUID);
-            const inletPin = document.getElementById(connectionInfo.inletPinUUID);
+            let outletPin = document.getElementById(connectionInfo.outletPinUUID);
+            let inletPin = document.getElementById(connectionInfo.inletPinUUID);
+
+            // If pins are missing, try to find them using fallback hierarchy
+            if (!outletPin && connectionInfo.outletPinFallback) {
+                outletPin = this._findPinInHierarchy(
+                    connectionInfo.outletNodeId,
+                    connectionInfo.outletPinFallback
+                );
+            }
+
+            if (!inletPin && connectionInfo.inletPinFallback) {
+                inletPin = this._findPinInHierarchy(
+                    connectionInfo.inletNodeId,
+                    connectionInfo.inletPinFallback
+                );
+            }
 
             if (!outletPin || !inletPin) {
                 console.error(`Failed to find pins for connection: ${connectionUUID}`);
@@ -1466,8 +1539,8 @@ export default {
             connectionInfo.inletPos = this._getPinPosition(inletPin);
 
             // Update colors in connectionInfo
-            connectionInfo.outletColor = document.getElementById(connectionInfo.outletPinUUID).dataset.pinColor;
-            connectionInfo.inletColor = document.getElementById(connectionInfo.inletPinUUID).dataset.pinColor;
+            connectionInfo.outletColor = outletPin.dataset.pinColor;
+            connectionInfo.inletColor = inletPin.dataset.pinColor;
 
             const pathData = this._createBezierPathForConnection(connectionUUID);
 

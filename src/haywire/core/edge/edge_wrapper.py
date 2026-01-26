@@ -152,6 +152,11 @@ class EdgeWrapper:
         self._connection_uuid = generate_connection_uuid(
             source_node_id, outlet_port_id, sink_node_id, inlet_port_id
         )
+
+        # the fallback port hierarchies for edge reconnection in case
+        # the ports are hidden inside groups
+        self.outletPinFallback: str = 'outlet_port_id>>root'
+        self.inletPinFallback: str = 'inlet_port_id>>root'
         
         # Reference to parent graph
         self._graph: Optional['BaseGraph'] = graph
@@ -420,7 +425,10 @@ class EdgeWrapper:
                     f"({self._inlet_port.flow_type}) on edge "
                     f"{self._connection_uuid}"
                 )
-            
+
+            self.outletPinFallback = self._source_wrapper.node.get_port_hierarchy(self.outlet_port_id)
+            self.inletPinFallback = self._sink_wrapper.node.get_port_hierarchy(self.inlet_port_id)
+
             self._state.is_formally_validated = True
             self._state.error_formal = None
             return True

@@ -641,6 +641,60 @@ class NodeData:
             if port.flow_type == FlowType.CALLBACK and port.is_outlet
         ]
 
+    def get_port_hierarchy(self, port_id: str) -> str:
+        """
+        Get the hierarchical path of a port from bottom to root.
+        
+        Returns a string showing the port hierarchy delineated with '>>'
+        and ending with 'root' when there is no parent group.
+        
+        Args:
+            port_id: ID of the port to get hierarchy for
+        
+        Returns:
+            Hierarchy string in format 'port_id>>parent_id>>root'
+        
+        Raises:
+            KeyError: If port_id not found
+        
+        Examples:
+            # Top-level port
+            path = self.get_port_hierarchy('value')
+            # Returns: 'value>>root'
+            
+            # Port in a group
+            path = self.get_port_hierarchy('tolerance')
+            # Returns: 'tolerance>>advanced>>root'
+            
+            # Port in nested groups
+            path = self.get_port_hierarchy('epsilon')
+            # Returns: 'epsilon>>validation>>advanced>>root'
+        """
+        port = self.ports.get(port_id)
+        if not port:
+            raise KeyError(f"Port '{port_id}' not found")
+        
+        # Build hierarchy from bottom up
+        hierarchy_parts = [port_id]
+        current_port = port
+        
+        # Traverse up the parent chain
+        while current_port.parent_group is not None:
+            parent_id = current_port.parent_group
+            parent_port = self.ports.get(parent_id)
+            
+            if not parent_port:
+                # Parent group not found - broken hierarchy
+                break
+            
+            hierarchy_parts.append(parent_id)
+            current_port = parent_port
+        
+        # Add 'root' at the end
+        hierarchy_parts.append('root')
+        
+        return '>>'.join(hierarchy_parts)
+
     # =========================================================================
     # Worker Signature Analysis and Execution
     # =========================================================================
