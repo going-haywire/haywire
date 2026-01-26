@@ -9,6 +9,7 @@ from ..execution.execution_context import ExecutionContext
 from ..registry.identity import BaseIdentity
 from ..library.identity import LibraryIdentity
 from ..types.ports import DataPort
+from ..types.utils import PortSpec
 from .dataclasses import (
     NodeBehavior, 
     NodeErrorInfo, 
@@ -19,6 +20,7 @@ from .dataclasses import (
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.types.registry import TypeRegistry
 
 T = TypeVar('T')
 
@@ -65,9 +67,15 @@ class NodeData:
     
     def __init__(self, node_id: str, wrapper: NodeWrapper):
         """Initialize unified port collection and management state"""
+        from haywire.core.di.config import get_library_system
 
         self.node_id = node_id
         self.wrapper = wrapper
+        
+        # Cache type registry once for efficient port instantiation
+        self._type_registry: TypeRegistry = (
+            get_library_system().get_type_registry()
+        )
 
         # Port storage
         self.ports: Dict[str, DataPort] = {}
@@ -109,11 +117,18 @@ class NodeData:
     # Port Addition and Management
     # =========================================================================
 
-    def add(self, port: DataPort) -> DataPort:
+    def add(self, spec: dict) -> DataPort:
         """
         Add a port (inlet or outlet) to the node with automatic hierarchy tracking.
         
-        This is the primary method for adding ports. It automatically:
+        Accepts either:
+        - PortSpec dict (from FLOAT.as_inlet(), etc.) - instantiates port
+        - DataPort instance (backward compatibility)
+        
+        When given a PortSpec, instantiates the port with wrapper reference
+        available immediately - no race condition!
+        
+        This method automatically:
         - Assigns the port to the current group (if in a group context)
         - Assigns the port to the current section (if in a section context)
         - Assigns a display order
@@ -121,16 +136,16 @@ class NodeData:
         - Unflags the port if in a push/pop context
         
         Args:
-            port: DataPort to add (PortInlet or PortOutlet)
+            spec: specification dict
         
         Returns:
-            The added port
+            The added DataPort
         
         Raises:
             ValueError: If port ID already exists (unless in push/pop context)
         
         Examples:
-            # Simple port
+            # Recommended: pass spec (returns PortSpec dict)
             self.add(FLOAT.as_inlet('value'))
             
             # Port in group
@@ -139,8 +154,15 @@ class NodeData:
             
             # Port with section
             with self.section('validation'):
-                self.add(FLOAT.as_inlet('tolerance'))  # Auto-assigned to 'validation' section
+                self.add(FLOAT.as_inlet('tolerance'))  # Auto-assigned to section
         """
+        # Resolve spec to port instance if needed
+        port = DataPort.from_spec(
+            spec, 
+            self._type_registry, 
+            self.wrapper
+        )
+
         # Set parent from current group stack
         if self._group_stack:
             port.parent_group = self._group_stack[-1]
@@ -164,23 +186,19 @@ class NodeData:
                 raise ValueError(f"Port ID already exists: {port.id}")
             
             # Preserve connections from existing port
-            port._edges = existing._edges.copy()
             port._edge_wrappers = existing._edge_wrappers.copy()
         
         # Add to ports collection
         self.ports[port.id] = port
-        
-        port._wrapper = self.wrapper
 
         self._cache_dirty = True
-
         self.wrapper.mark_as_structuraly_dirty()
         self._executor = None
 
         return port
     
     @contextmanager
-    def group(self, group_port: DataPort):
+    def group(self, spec: dict):
         """
         Context manager for creating collapsible port groups.
         
@@ -192,7 +210,7 @@ class NodeData:
         preserved and drawn to a ghost pin.
         
         Args:
-            group_port: DataPort as group (PortInlet or PortOutlet)
+            spec: specification dict for group port
 
         Raises:
             ValueError: If group_port is not an inlet or id already exists
@@ -202,28 +220,27 @@ class NodeData:
         
         Examples:
             # Simple group
-            with self.group('advanced', label='Advanced Options'):
+            with self.group(GROUP.as_inlet('advanced', label='Advanced Options')):
                 self.add(FLOAT.as_inlet('param1'))
                 self.add(FLOAT.as_inlet('param2'))
             
             # Nested groups
-            with self.group('input', label='Input Configuration'):
+            with self.group(GROUP.as_inlet('input', label='Input Configuration')):
                 self.add(FLOAT.as_inlet('value'))
                 
-                with self.group('validation', label='Validation'):
+                with self.group(GROUP.as_inlet('validation', label='Validation')):
                     self.add(BOOL.as_inlet('validate'))
                     self.add(FLOAT.as_inlet('tolerance'))
             
             # Initially collapsed
-            with self.group('expert', label='Expert Settings', is_expanded=False):
+            with self.group(GROUP.as_inlet('expert', label='Expert Settings', is_expanded=False)):
                 self.add(FLOAT.as_inlet('epsilon'))
         """
-        
+        # Add group port
+        group_port = self.add(spec)
+
         # Mark as group
         group_port.is_group = True
-        
-        # Add group port
-        self.add(group_port)
         
         # Push group context (all ports added in this context become children)
         self._group_stack.append(group_port.id)
@@ -434,7 +451,7 @@ class NodeData:
         port = self.ports.get(id)
         if not port:
             raise KeyError(f"Port '{id}' not found")
-        if port.is_inlet():
+        if port.is_inlet:
             raise ValueError(f"Port '{id}' is not an outlet")
         
         port.set_value(value)
@@ -597,7 +614,7 @@ class NodeData:
         """
         return [
             port for port in self.ports.values()
-            if port.flow_type == FlowType.CONTROL and port.is_outlet()
+            if port.flow_type == FlowType.CONTROL and port.is_outlet
         ]
     
     def get_control_inlets(self) -> list[DataPort]:
@@ -609,7 +626,7 @@ class NodeData:
         """
         return [
             port for port in self.ports.values()
-            if port.flow_type == FlowType.CONTROL and port.is_inlet()
+            if port.flow_type == FlowType.CONTROL and port.is_inlet
         ]
     
     def get_callback_outlets(self) -> list[DataPort]:
@@ -621,7 +638,7 @@ class NodeData:
         """
         return [
             port for port in self.ports.values()
-            if port.flow_type == FlowType.CALLBACK and port.is_outlet()
+            if port.flow_type == FlowType.CALLBACK and port.is_outlet
         ]
 
     # =========================================================================
@@ -868,40 +885,34 @@ class NodeData:
         Serialize all ports to dictionary.
         
         Returns:
-            Dictionary mapping port IDs to serialized port data
+            Dictionary mapping port IDs to PortSpec-format dicts
         """
         return {port_id: port.to_dict() for port_id, port in self.ports.items()}
     
     def _deserialize_ports(self, ports_data: Dict[str, Any]) -> bool:
         """
-        Deserialize ports from dictionary and restore them.
+        Deserialize ports from PortSpec-format dictionaries.
         
-        This recreates ports using their from_dict() method, which replays
-        the original creation call from the recipe format.
+        Uses the same _instantiate_port_from_spec() path as add(),
+        ensuring consistent port creation.
         
         Args:
-            ports_data: Dictionary of serialized port data
+            ports_data: Dictionary of PortSpec-format port data
             
         Returns:
-            True if deserialization succeeded, False otherwise
-        Raises:
-            ValueError: If deserialization fails
+            True if deserialization succeeded
         """
-        from haywire.core.types.ports import DataPort
-        from haywire.core.di.config import get_library_system
-        type_registry = get_library_system().get_type_registry()
         # Clear existing ports
         self.ports.clear()
         self._port_order_counter = 0
         
-        # Recreate each port from serialized data
-        for port_id, port_data in ports_data.items():
-            # Use DataPort.from_dict() to recreate the port
-            port = DataPort.from_dict(port_data, type_registry)
+        # Recreate each port from PortSpec
+        for port_id, spec in ports_data.items():
+            # Use same instantiation path as add()
+            port = DataPort.from_spec(spec, self._type_registry, self.wrapper)
             
-            # Add to ports collection
-            self.ports[port_id] = port
-            port._wrapper = self.wrapper
+            # Add directly to collection (skip add() to preserve order from spec)
+            self.ports[port.id] = port
             
             # Update order counter
             if port.order >= self._port_order_counter:

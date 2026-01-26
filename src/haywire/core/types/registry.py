@@ -152,3 +152,49 @@ class TypeRegistry(BaseRegistry):
         # For custom compound types, check direct isinstance
         return isinstance(instance, type_cls)
 
+    def resolve_type_from_spec(self, spec: dict) -> Type['IType']:
+        """
+        Resolve a type spec to a fully parameterized type class.
+        
+        Handles nested compound types like PooledType[ArrayType[STRING]].
+        
+        Args:
+            spec: Dict with 'registry_key' and optional 'element_type'
+        
+        Returns:
+            Resolved type class, parameterized if compound
+        
+        Examples:
+            registry.resolve_type_from_spec({'registry_key': 'core.float'})
+            # → FLOAT
+            
+            registry.resolve_type_from_spec({
+                'registry_key': 'core.array',
+                'element_type': {'registry_key': 'core.string'}
+            })
+            # → ArrayType[STRING]
+            
+            registry.resolve_type_from_spec({
+                'registry_key': 'core.pooled',
+                'element_type': {
+                    'registry_key': 'core.array',
+                    'element_type': {'registry_key': 'core.string'}
+                }
+            })
+            # → PooledType[ArrayType[STRING]]
+        """
+        registry_key = spec.get('registry_key')
+        if not registry_key:
+            raise ValueError("Spec missing 'registry_key'")
+        
+        type_cls = self.get_type_class(registry_key)
+        if not type_cls:
+            raise ValueError(f"Type '{registry_key}' not found in registry")
+        
+        # Recursively resolve element type for compounds
+        if 'element_type' in spec:
+            element_type_cls = self.resolve_type_from_spec(spec['element_type'])
+            return type_cls[element_type_cls]
+        
+        return type_cls
+

@@ -4,7 +4,7 @@ from nicegui import ui
 from haywire.core.data.enums import FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.base import CompoundType, PrimitiveType
-from haywire.core.types.ports import PortInlet, DataPort
+from haywire.core.types.ports import DataPort
 
 from haywire.ui.renderer.base import BaseRenderer
 from haywire.ui.themes.icons import ICONS
@@ -20,7 +20,7 @@ class NodeRenderer(BaseRenderer, ABC):
     They are cached and reused by the NodeRenderFactory.
     """
 
-    def _render_inlet(self, inlet: PortInlet, wrapper: NodeWrapper, widget_classes: str = ''):
+    def _render_inlet(self, inlet: DataPort, wrapper: NodeWrapper, widget_classes: str = ''):
         """Render an inlet with its port and optional widget."""
         with ui.row().classes('w-full items-center justify-start gap-0'):
             # only render pins for inlets that are actually involved in flows
@@ -48,11 +48,11 @@ class NodeRenderer(BaseRenderer, ABC):
     def _render_pin(self, pin: DataPort, wrapper: NodeWrapper, direction: str = 'left'):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
-        pin_direction = 'inlet' if pin.is_inlet() else 'outlet'
+        pin_direction = 'inlet' if pin.is_inlet else 'outlet'
         pin_uuid = generate_pin_uuid(wrapper.node_id, pin.id)
 
         # Calculate 2D direction vector components based on pin type
-        if pin.is_inlet():
+        if pin.is_inlet:
             # Inlets point left (negative X)
             dir_x, dir_y = "-1", "0"
         else:
@@ -73,7 +73,7 @@ class NodeRenderer(BaseRenderer, ABC):
             # Get control flow color from theme
             ctrl_color = pin.color
             # Pin connector
-            if pin.is_inlet():
+            if pin.is_inlet:
                 ctrl_icon = ThemePalette.get(
                     ThemeKey.UI_PORT_ICON_IN_CTRL,
                     pin.icon_in,
@@ -97,7 +97,7 @@ class NodeRenderer(BaseRenderer, ABC):
         elif pin.flow_type == FlowType.CALLBACK:
             # Get callback flow color from theme
             callback_color = pin.color
-            if pin.is_inlet():
+            if pin.is_inlet:
                 callback_icon = ThemePalette.get(
                     ThemeKey.UI_PORT_ICON_IN_CALLBACK,
                     pin.icon_in,
@@ -123,7 +123,7 @@ class NodeRenderer(BaseRenderer, ABC):
             pin_color = pin._data.get_stored_type().class_identity.color
             pin_data_type = pin._data.get_stored_type().class_identity.registry_key
             # Get pin color: try data type specific, use pin.color as preference
-            if pin.is_inlet():
+            if pin.is_inlet:
                 if pin.allow_multiple_connections:
                     if issubclass(pin._data.get_stored_type(), CompoundType):
                         data_icon = ThemePalette.get(

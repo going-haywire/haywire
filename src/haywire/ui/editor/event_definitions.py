@@ -223,9 +223,9 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
     - hasWarning: Warning indicator
     """
     connectionUUID: str
-    outputNodeId: str
+    sourceNodeId: str
     outletPinId: str
-    inputNodeId: str
+    sinkNodeId: str
     inletPinId: str
     isValid: bool = True
     hasWarning: bool = False

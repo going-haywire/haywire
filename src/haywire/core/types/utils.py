@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, Any, Dict, Optional, Type, TypeVar
+from typing_extensions import NotRequired, TypedDict
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
 from haywire.core.types.registry import TypeRegistry
@@ -12,6 +13,124 @@ if TYPE_CHECKING:
 
 
 T = TypeVar('T')
+
+
+# ============================================================================
+# PORT SPECIFICATION - Declarative port creation
+# ============================================================================
+
+class ElementTypeSpec(TypedDict):
+    """Recursive element type specification for compound types."""
+    registry_key: str
+    element_type: NotRequired['ElementTypeSpec']
+
+
+class PortSpec(TypedDict):
+    """
+    Specification for creating a port.
+    
+    This is what as_inlet/as_outlet return - a recipe dict, not an instance.
+    The node's add() method uses this spec to instantiate the actual DataPort.
+    """    
+    # For compound types: nested type spec
+    element_type: NotRequired[ElementTypeSpec]
+    
+    # Port direction
+    is_inlet: bool
+    
+    # Port constructor kwargs (id, default, label, widget, etc.)
+    kwargs: Dict[str, Any]
+
+
+def create_port_spec(
+    type_cls: type['IType'],
+    is_inlet: bool,
+    id: str,
+    **kwargs
+) -> dict:
+    """
+    Create a port specification dict.
+    
+    Args:
+        type_cls: The IType class (FLOAT, ArrayType[STRING], etc.)
+        is_inlet: True for inlet, False for outlet
+        id: Port identifier
+        **kwargs: Port configuration (label, default, widget, etc.)
+    
+    Returns:
+        dict ready for node.add()
+    
+    """
+    from dataclasses import asdict
+       
+    # Normalize default if provided
+    if 'default' in kwargs:
+        kwargs['default'] = normalize_and_validate_default(
+            kwargs['default'],
+            type_cls,
+            context=f"{'as_inlet' if is_inlet else 'as_outlet'} for port '{id}'"
+        )
+        
+    # Build spec: identity as defaults, kwargs override
+    # The spec becomes the self-contained truth
+    merged_kwargs = {
+        **asdict(type_cls.class_identity),  # Identity defaults
+        'id': id,
+        'is_inlet': is_inlet,
+        **kwargs                             # User overrides
+    }
+    
+    spec: Dict[str, Any] = {
+        'kwargs': merged_kwargs,
+        'recipe': serialize_element_type(type_cls)
+    }
+
+    return spec
+   
+
+def serialize_element_type(type_cls: type['IType']) -> dict:
+    """
+    Recursively serialize element type for compound types.
+    
+    Args:
+        type_cls: Element type class to serialize
+    
+    Returns:
+        dict
+    
+    Examples:
+        serialize_element_type(STRING)
+        # → {'registry_key': 'core:type:string'}
+        
+        serialize_element_type(ArrayType[STRING])
+        # → {
+        #     'registry_key': 'core:type:array',
+        #     'element_type': {'registry_key': 'core:type:string'}
+        #   }
+    """
+    from haywire.core.types.base import CompoundType
+    
+    if not hasattr(type_cls, 'class_identity'):
+        raise ValueError(
+            f"Type {type_cls.__name__} has no class_identity. "
+            f"Was it decorated with @type?"
+        )
+    
+    registry_key = type_cls.class_identity.registry_key
+    if not registry_key:
+        raise ValueError(f"Type {type_cls.__name__} has no registry_key")
+    
+    result: dict[str, Any] = {'registry_key': registry_key}
+    
+    # Recurse for nested compound types
+    if (
+        issubclass(type_cls, CompoundType) 
+        and hasattr(type_cls, 'element_type_cls') 
+        and type_cls.element_type_cls
+    ):
+        result['element_type'] = serialize_element_type(type_cls.element_type_cls)
+    
+    return result
 
 # Create a reusable JSON-compatible converter
 _json_converter = make_converter()
@@ -106,216 +225,3 @@ def normalize_and_validate_default(
         )
     
     return normalized
-
-
-"""
-Utility functions for type system.
-"""
-
-def create_port_from_type(
-    type_cls: type['IType'],
-    port_cls: type['DataPort'],
-    id: str,
-    **kwargs
-) -> 'DataPort':
-    """
-    Create a DataPort from a type.
-    
-    Handles both simple types (FLOAT, MeshData) and compound types 
-    (ArrayType, PooledType). The field is created automatically in 
-    port.__post_init__ via type.create_field().
-    
-    Args:
-        type_cls: Type class (FLOAT, ArrayType, etc.)
-        port_cls: Port class (PortInlet or PortOutlet)
-        id: Port identifier
-        element_type_cls: For compound types, the element type
-        **kwargs: Additional port attributes
-    
-    Returns:
-        Configured DataPort (PortInlet or PortOutlet)
-    
-    Examples:
-        # Simple type
-        port = create_port_from_type(
-            FLOAT, PortInlet, 'value', default=0.0
-        )
-        
-        # Nested compound type
-        port = create_port_from_type(
-            PooledType, PortInlet, 'data',
-            element_type_cls=ArrayType[STRING],
-            default=[[...], [...]]
-        )
-    """
-    from haywire.core.types.base import CompoundType
-
-    element_type_cls: Optional[Type[IType]] = None
-
-    # Validate element_type_cls for compound types
-    if issubclass(type_cls, CompoundType):
-        if type_cls.element_type_cls:
-            if issubclass(type_cls.element_type_cls, IType):
-                element_type_cls = type_cls.element_type_cls
-        if not element_type_cls:
-            raise ValueError(
-                f"CompoundType {type_cls.__name__} requires "
-                f"element_type_cls. Use parameterized syntax: "
-                f"{type_cls.__name__}[ElementType].as_inlet(...)"
-            )
-    
-    if 'default' in kwargs:
-        kwargs['default'] = normalize_and_validate_default(
-                kwargs['default'],
-                type_cls,
-                context=f"create_port_from_type for port '{id}'"
-            )
-
-    # Merge identity from type
-    port_kwargs = {
-        **asdict(type_cls.class_identity),
-        'id': id,
-        'type_cls': type_cls,
-        **kwargs  # User overrides
-    }
-        
-    # Create port
-    port = port_cls(**port_kwargs)
-        
-    # Store creation recipe for serialization
-    if (
-        hasattr(type_cls, 'class_identity') 
-        and type_cls.class_identity.registry_key
-    ):
-        recipe = {
-            'registry_key': type_cls.class_identity.registry_key,
-            'method': (
-                'as_inlet' 
-                if port_cls.__name__ == 'PortInlet' 
-                else 'as_outlet'
-            ),
-            'kwargs': {
-                'id': id,
-                **{k: v for k, v in kwargs.items()}
-            }
-        }
-               
-        # NEW: Recursive element type serialization
-        if element_type_cls:
-            recipe['element_type'] = _serialize_type_spec(element_type_cls)
-        
-        port._creation_recipe = recipe
-    
-    return port
-
-
-def _serialize_type_spec(type_cls: type['IType']) -> dict:
-    """
-    Recursively serialize a type specification.
-    
-    Handles nested compound types like PooledType[ArrayType[STRING]].
-    
-    Args:
-        type_cls: Type class to serialize
-    
-    Returns:
-        Dict representing the type hierarchy
-    
-    Examples:
-        _serialize_type_spec(STRING)
-        # → {'registry_key': 'core.string'}
-        
-        _serialize_type_spec(ArrayType[STRING])
-        # → {
-        #     'registry_key': 'core.array',
-        #     'element_type': {'registry_key': 'core.string'}
-        #   }
-        
-        _serialize_type_spec(PooledType[ArrayType[STRING]])
-        # → {
-        #     'registry_key': 'core.pooled',
-        #     'element_type': {
-        #         'registry_key': 'core.array',
-        #         'element_type': {'registry_key': 'core.string'}
-        #     }
-        #   }
-    """
-    from haywire.core.types.base import CompoundType
-    
-    if not hasattr(type_cls, 'class_identity'):
-        raise ValueError(
-            f"Type {type_cls.__name__} has no class_identity. "
-            f"Was it decorated with @type?"
-        )
-    
-    registry_key = type_cls.class_identity.registry_key
-    if not registry_key:
-        raise ValueError(
-            f"Type {type_cls.__name__} has no registry_key"
-        )
-    
-    spec = {'registry_key': registry_key}
-    
-    # Recursively handle compound types
-    if (
-        issubclass(type_cls, CompoundType) 
-        and hasattr(type_cls, 'element_type_cls') 
-        and type_cls.element_type_cls
-    ):
-        spec['element_type'] = _serialize_type_spec(
-            type_cls.element_type_cls
-        )
-    
-    return spec
-
-
-def _deserialize_type_spec(spec: dict, type_registry: TypeRegistry) -> type['IType']:
-    """
-    Recursively deserialize a type specification.
-    
-    Args:
-        spec: Serialized type specification
-        type_registry: TypeRegistry to look up types
-    
-    Returns:
-        Reconstructed type class (possibly parameterized)
-    
-    Examples:
-        _deserialize_type_spec(
-            {'registry_key': 'core.string'}, 
-            registry
-        )
-        # → STRING
-        
-        _deserialize_type_spec(
-            {
-                'registry_key': 'core.pooled',
-                'element_type': {
-                    'registry_key': 'core.array',
-                    'element_type': {'registry_key': 'core.string'}
-                }
-            },
-            registry
-        )
-        # → PooledType[ArrayType[STRING]]
-    """
-    registry_key = spec['registry_key']
-    
-    # Get base type class
-    type_cls = type_registry.get_type_class(registry_key)
-    if not type_cls:
-        raise ValueError(
-            f"Type '{registry_key}' not found in registry"
-        )
-    
-    # Recursively handle element type
-    if 'element_type' in spec:
-        element_type_cls = _deserialize_type_spec(
-            spec['element_type'], 
-            type_registry
-        )
-        # Parameterize: ArrayType[STRING]
-        return type_cls[element_type_cls]
-    
-    # Simple type
-    return type_cls

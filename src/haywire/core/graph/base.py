@@ -359,7 +359,7 @@ class BaseGraph:
         """Get all current inlet and outlet ports from a node."""
         ports = []
         for port in self.node_wrappers[node_id].node.ports.values():
-            if port.is_inlet() or port.is_outlet(): 
+            if port.is_inlet or port.is_outlet: 
                 ports.append(port)  
         
         return ports

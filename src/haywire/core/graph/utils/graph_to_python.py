@@ -98,7 +98,7 @@ def graph_to_python_script(graph: 'BaseGraph') -> str:
         
         for port_id, port in wrapper.node.ports.items():
             # Only process inlets with primitive fields
-            if not port.is_inlet() or not isinstance(port.type_cls, PrimitiveField):
+            if not port.is_inlet or not isinstance(port.type_cls, PrimitiveField):
                 continue
             
             current_value = port.get_value()

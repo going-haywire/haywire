@@ -74,6 +74,8 @@ class UndoRedoTestAppWithCanvasManager:
             if canvas_manager:
                 canvas_manager.cleanup()
 
+            self.graph.unsubscribe_from_validation(self._on_global_graph_change)
+
             # Clean up UI containers
             containers = session_data.get('ui_containers', {})
             for container in containers.values():

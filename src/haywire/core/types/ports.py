@@ -1,30 +1,37 @@
 """
-DataPort Classes - Updated to work with new DataField system
+DataPort Class - Unified port for inlets and outlets.
 
-This module provides the DataPort, PortInlet, and PortOutlet classes
-that integrate with the new DataField hierarchy.
+This module provides the DataPort class that integrates with the DataField hierarchy.
+Direction is determined by the is_inlet field (True for inlet, False for outlet).
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from dataclasses import MISSING, dataclass, field, fields
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from haywire.core.data.enums import FlowType
 from haywire.core.edge.edge_wrapper import EdgeWrapper
-from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
+from haywire.core.types.utils import PortSpec, serialize_element_type
 
 # Import the new DataField classes
 from haywire.core.data.fields import DataField
 from haywire.core.types.pipe import Pipes
-from haywire.core.types.registry import TypeRegistry
+
+if TYPE_CHECKING:
+    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.types.registry import TypeRegistry
 
 
 @dataclass
 class DataPort(DataTypeIdentity):
     """
-    Extended DataTypeIdentity with runtime port information.
+    Unified port class for both inlets and outlets.
+    
+    Direction is determined by the `is_inlet` field:
+    - is_inlet=True: Port receives data from connections (inlet)
+    - is_inlet=False: Port sends data to connections (outlet)
     
     Adds runtime-specific fields on top of the identity:
     - id: Port identifier within the node
@@ -45,13 +52,17 @@ class DataPort(DataTypeIdentity):
     
     # Port identifier within node (different from registry_id!)
     id: str = ''
-    
+        
     # Runtime data field (created by type in __post_init__)
-    _data: Optional[DataField] = None
+    _data: Optional[DataField] = field(
+        default=None, 
+        metadata={'serialize': False})
     """DataField instance storing port data"""
     
     # Type tracking
-    type_cls: type[IType] = field(default=None, metadata={'serialize': False}) 
+    type_cls: type[IType] = field(
+        default=None, 
+        metadata={'serialize': False}) 
     """The type class (FLOAT, ArrayType, etc.)"""
     
     # Connection state
@@ -60,20 +71,25 @@ class DataPort(DataTypeIdentity):
         repr=False, 
         metadata={'serialize': False})
     """Dict of EdgeWrapper instances connected to this port, keyed by UUID"""
-    allow_multiple_connections: bool = False  
-    """Whether multiple connections are allowed"""
-    
-    # Inlet-specific
-    use_mode: str = 'optional'
-    is_lazy: bool = False
-    
+
     # Outlet-specific
     _pipes: Optional[Pipes] = field(
         default=None, 
         repr=False, 
         metadata={'serialize': False}
     )
-    
+
+    allow_multiple_connections: bool = False  
+    """Whether multiple connections are allowed"""
+
+    # Direction flag
+    is_inlet: bool = False
+    """True for inlet, False for outlet"""
+
+    # Inlet-specific
+    use_mode: str = 'optional'
+    is_lazy: bool = False
+        
     # Internal: Store default override for field creation
     default: Optional[Dict[str, Any]] = field(default=None, repr=False)
 
@@ -101,7 +117,7 @@ class DataPort(DataTypeIdentity):
 
     needs_loopback: bool = False
     """Set to True if the control flow from this outlet needs to loop back to the node"""
-
+    
     _is_dirty_structural: bool = False
     """Internal flag to track if port link has structurally changed"""
 
@@ -159,6 +175,10 @@ class DataPort(DataTypeIdentity):
             self._data = self.type_cls.create_field(
                 default_override=self.default
             )
+        
+        # Outlets allow multiple connections by default for data flow
+        if self.is_outlet and self.flow_type == FlowType.DATA:
+            self.allow_multiple_connections = True
 
     def _trigger_callback(self, callback_type: str, *args):
         """
@@ -211,7 +231,7 @@ class DataPort(DataTypeIdentity):
             self._trigger_callback('on_change', new_value)
         if self._pipes:
             self._pipes.propagate(new_value)
-        if self.is_inlet():
+        if self.is_inlet:
             self._mark_as_data_dirty()
 
     def is_pin(self) -> bool:
@@ -221,19 +241,16 @@ class DataPort(DataTypeIdentity):
         """
         return self.flow_type != FlowType.NONE.value
     
-    def is_inlet(self) -> bool:
-        """Check if this is an inlet"""
-        return False
-
+    @property
     def is_outlet(self) -> bool:
         """Check if this is an outlet"""
-        return False
+        return not self.is_inlet
     
     def is_linked(self) -> bool:
         """Check if port has any linked edges"""
         return len(self._edge_wrappers) > 0
 
-    def _add_link(self, wrapper: EdgeWrapper) -> None:
+    def _add_link(self, edge_wrapper: EdgeWrapper) -> None:
         """
         Register a linked edge.
         If multiple links are not allowed, replaces existing.
@@ -241,20 +258,20 @@ class DataPort(DataTypeIdentity):
         It triggers the on_connect callback.
 
         Args:
-            wrapper:  EdgeWrapper representing the link
+            edge_wrapper:  EdgeWrapper representing the link
         """
-        if not wrapper.connection_uuid in self._edge_wrappers:
+        if not edge_wrapper.connection_uuid in self._edge_wrappers:
             if not self.allow_multiple_connections:
                 old_wrapper_uuid = next(iter(self._edge_wrappers), None)
                 if old_wrapper_uuid:
                     self._clear_link(old_wrapper_uuid)
-                self._edge_wrappers = {wrapper.connection_uuid: wrapper}
+                self._edge_wrappers = {edge_wrapper.connection_uuid: edge_wrapper}
             else:
-                self._edge_wrappers[wrapper.connection_uuid] = wrapper
+                self._edge_wrappers[edge_wrapper.connection_uuid] = edge_wrapper
 
             self._mark_as_structuraly_dirty()
             if self.on_connect:
-                self._trigger_callback('on_connect', wrapper)
+                self._trigger_callback('on_connect', edge_wrapper)
 
     def _get_linked_edges_uuid(self) -> list[str]:
         """
@@ -286,12 +303,12 @@ class DataPort(DataTypeIdentity):
             wrapper_uuid: UUID of EdgeWrapper representing the link
         """
         if wrapper_uuid in self._edge_wrappers:
-            wrapper = self._edge_wrappers.pop(wrapper_uuid, None)
+            edge_wrapper = self._edge_wrappers.pop(wrapper_uuid, None)
             self._data.remove_source(wrapper_uuid)
             self._mark_as_structuraly_dirty()
 
-            if self.on_disconnect and wrapper:
-                self._trigger_callback('on_disconnect', wrapper)
+            if self.on_disconnect and edge_wrapper:
+                self._trigger_callback('on_disconnect', edge_wrapper)
 
     def _clear_all_links(self) -> None:
         """
@@ -308,8 +325,8 @@ class DataPort(DataTypeIdentity):
             List of valid EdgeWrapper instances linked to this port
         """
         return [
-            wrapper for wrapper in self._edge_wrappers.values()
-            if wrapper.is_valid()
+            edge_wrapper for edge_wrapper in self._edge_wrappers.values()
+            if edge_wrapper.is_valid()
         ]
 
     def _mark_as_structuraly_dirty(self) -> None:
@@ -337,7 +354,7 @@ class DataPort(DataTypeIdentity):
         If outlet and unlinked, clear pipes.
         Called during graph housekeeping phase.
         """
-        if self.is_outlet():
+        if self.is_outlet:
             if self.is_linked():
                 if self._pipes is None:
                     self._pipes = Pipes()
@@ -354,116 +371,6 @@ class DataPort(DataTypeIdentity):
         if self._wrapper:
             self._wrapper.mark_as_data_dirty()
 
-    def to_dict(self) -> dict:
-        """
-        Serialize port to dict using recipe format.
-        
-        The recipe stores the original creation call that can be replayed
-        during deserialization. Hierarchy fields are added to the recipe kwargs.
-        
-        Returns:
-            Dict with recipe format including hierarchy information
-        """
-        if not hasattr(self, '_creation_recipe'):
-            raise NotImplementedError(
-                f"Port {self.id} has no _creation_recipe. "
-                f"Port must be created via IType.as_inlet/as_outlet methods."
-            )
-        
-        # Start with base recipe
-        recipe = {
-            'type': 'recipe',
-            **self._creation_recipe
-        }
-        
-        # Add hierarchy fields to kwargs (they'll be passed to port constructor)
-        # Only include non-default values to keep serialization compact
-        hierarchy_fields = {}
-        
-        if self.parent_group is not None:
-            hierarchy_fields['parent_group'] = self.parent_group
-        
-        if self.section is not None:
-            hierarchy_fields['section'] = self.section
-        
-        if self.order != 0:
-            hierarchy_fields['order'] = self.order
-        
-        if self.is_group:
-            hierarchy_fields['is_group'] = self.is_group
-        
-        if self.is_section:
-            hierarchy_fields['is_section'] = self.is_section
-        
-        if self.is_ghost:
-            hierarchy_fields['is_ghost'] = self.is_ghost
-        
-        # Merge hierarchy fields into kwargs
-        if hierarchy_fields:
-            recipe['kwargs'] = {
-                **recipe['kwargs'],
-                **hierarchy_fields
-            }
-        
-        return recipe
-
-    @classmethod
-    def from_dict(
-        cls, 
-        data: dict, 
-        type_registry: TypeRegistry
-    ) -> 'PortInlet | PortOutlet':
-        """
-        Deserialize port from dict.
-        
-        Reconstructs the port by replaying the original creation call,
-        including hierarchy information.
-        
-        Args:
-            data: Serialized port data (from to_dict())
-            type_registry: TypeRegistry to look up registered types
-        
-        Returns:
-            Reconstructed PortInlet or PortOutlet with hierarchy preserved
-        """
-        from haywire.core.types.utils import _deserialize_type_spec
-        
-        if data.get('type') != 'recipe':
-            raise ValueError(
-                f"Unknown port serialization format: {data.get('type')}"
-            )
-        
-        method_name = data['method']
-        kwargs = data['kwargs'].copy()
-        
-        # Deserialize base type
-        type_cls = _deserialize_type_spec(
-            {'registry_key': data['registry_key']},
-            type_registry
-        )
-        
-        # Recursively deserialize element type if present (for compound types)
-        if 'element_type' in data:
-            element_type_cls = _deserialize_type_spec(
-                data['element_type'],
-                type_registry
-            )
-            # Parameterize: CompoundType[ElementType]
-            parameterized = type_cls[element_type_cls]
-            method = getattr(parameterized, method_name)
-        else:
-            # Simple type
-            method = getattr(type_cls, method_name)
-        
-        # Extract id (required positional argument)
-        port_id = kwargs.pop('id')
-        
-        # Recreate the port - hierarchy fields in kwargs are passed through
-        # to the port constructor automatically!
-        port = method(port_id, **kwargs)
-        
-        return port
-
     def is_callback_pin(self) -> bool:
         """Check if this is a callback pin"""
         return self.flow_type == FlowType.CALLBACK
@@ -478,28 +385,85 @@ class DataPort(DataTypeIdentity):
     
     def get_control_outlets(self) -> bool:
         """Check if this port is a control outlet"""
-        return (self.flow_type == FlowType.CONTROL and 
-                self.is_outlet())
-     
-@dataclass
-class PortInlet(DataPort):
-    """Inlet port - can receive data from connections"""
-    
-    def is_inlet(self) -> bool:
-        return True
-    
-    # __post_init__ inherited from DataPort
+        return self.flow_type == FlowType.CONTROL and self.is_outlet
 
+    # ========================================================================
+    # FACTORY
+    # ========================================================================
+    
+    @classmethod
+    def from_spec(
+        cls, 
+        spec: dict, 
+        type_registry: 'TypeRegistry', 
+        wrapper: 'NodeWrapper'
+    ) -> 'DataPort':
+        """
+        Create a DataPort from a PortSpec dict.
+        
+        Resolves the type from the spec and creates a DataPort instance
+        with wrapper reference available immediately.
+        
+        Note: CompoundType validation is done at spec creation time (as_inlet/as_outlet),
+        so we trust the spec here.
+        
+        Args:
+            spec: PortSpec from as_inlet/as_outlet/as_config or to_dict
+            type_registry: Registry to resolve type classes
+            wrapper: NodeWrapper to attach to the port
+        
+        Returns:
+            Instantiated DataPort
+        """
+        kwargs = spec['kwargs'].copy()
+        recipe = spec['recipe']
 
-@dataclass
-class PortOutlet(DataPort):
-    """Outlet port - can send data to connections"""
+        # Resolve type class (handles compound types via element_type)
+        type_cls = type_registry.resolve_type_from_spec(recipe)
+        
+        # Build port kwargs - spec already contains merged identity + user values
+        flow_type = FlowType(kwargs.pop('flow_type', FlowType.DATA.value))
+        
+        port_kwargs = {
+            **kwargs,                # Spec already has identity + user overrides
+            'flow_type': flow_type,
+            'type_cls': type_cls,
+            '_wrapper': wrapper, 
+        }
+        
+        # Create port
+        port = cls(**port_kwargs)
+        
+        # Let type configure port (for compound types, etc.)
+        type_cls._configure_port(port)
+        
+        return port
     
-    def is_outlet(self) -> bool:
-        return True
-    
-   # __post_init__ inherited from DataPort
-    def __post_init__(self):
-        super().__post_init__()
-        if self.flow_type == FlowType.DATA:
-            self.allow_multiple_connections = True
+    def to_dict(self) -> dict:
+        """Serialize port using field metadata for control"""
+        result = {
+            'kwargs': {},
+            'recipe': serialize_element_type(self.type_cls)
+        }
+        
+        # Iterate over dataclass fields
+        for f in fields(self):
+            # Skip fields marked as non-serializable
+            if not f.metadata.get('serialize', True):
+                continue
+                
+            value = getattr(self, f.name)
+            
+            # Skip if default value
+            if f.default is not MISSING and value == f.default:
+                continue
+            if f.default_factory is not MISSING and value == f.default_factory():
+                continue
+            
+            # Transform enums
+            if isinstance(value, FlowType):
+                value = value.value
+                
+            result['kwargs'][f.name] = value
+        
+        return result

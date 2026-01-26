@@ -294,9 +294,9 @@ export default {
         _syncConnectionAddition(data) {
             const {
                 connectionUUID,
-                outputNodeId,
+                sourceNodeId,
                 outletPinId,
-                inputNodeId,
+                sinkNodeId,
                 inletPinId,
                 isValid = true,
                 hasWarning = false,
@@ -331,9 +331,9 @@ export default {
             // Create new connection with visual properties
             const result = this._createConnection(
                 connectionUUID,
-                outputNodeId,
+                sourceNodeId,
                 outletPinId,
-                inputNodeId,
+                sinkNodeId,
                 inletPinId,
                 isValid,
                 hasWarning,
@@ -1327,9 +1327,9 @@ export default {
 
         _createConnection(
             connectionUUID,
-            outputNodeId,
+            sourceNodeId,
             outletPinId,
-            inputNodeId,
+            sinkNodeId,
             inletPinId,
             isValid = true,
             hasWarning = false,
@@ -1338,8 +1338,8 @@ export default {
             strokeDasharray = '',
             opacity = 1.0
         ) {
-            const outletPinUUID = this._buildPinUUID(outputNodeId, outletPinId);
-            const inletPinUUID = this._buildPinUUID(inputNodeId, inletPinId);
+            const outletPinUUID = this._buildPinUUID(sourceNodeId, outletPinId);
+            const inletPinUUID = this._buildPinUUID(sinkNodeId, inletPinId);
 
             const outletPin = document.getElementById(outletPinUUID);
             const inletPin = document.getElementById(inletPinUUID);
@@ -1371,13 +1371,13 @@ export default {
             // Store comprehensive connection info with visual properties
             const connectionInfo = {
                 path: path,
-                outletNodeId: outputNodeId,
+                outletNodeId: sourceNodeId,
                 outletPinUUID: outletPinUUID,
                 outletPinId: outletPinId,
                 outletPos: outletPos,
                 outletColor: outletColor,
                 outletConnectDir: outletConnectDir,
-                inletNodeId: inputNodeId,
+                inletNodeId: sinkNodeId,
                 inletPinUUID: inletPinUUID,
                 inletPinId: inletPinId,
                 inletPos: inletPos,
@@ -1705,9 +1705,9 @@ export default {
             };
         },
 
-        _buildconnectionUUID(outputNodeId, outletPinId, inputNodeId, inletPinId) {
-            const outletPin = this._buildPinUUID(outputNodeId, outletPinId);
-            const inletPin = this._buildPinUUID(inputNodeId, inletPinId);
+        _buildconnectionUUID(sourceNodeId, outletPinId, sinkNodeId, inletPinId) {
+            const outletPin = this._buildPinUUID(sourceNodeId, outletPinId);
+            const inletPin = this._buildPinUUID(sinkNodeId, inletPinId);
             return `edge::${outletPin}>>${inletPin}`;
         },
 
@@ -1889,8 +1889,8 @@ export default {
             }
         },
 
-        _connectionExists(outputNodeId, outletPinId, inputNodeId, inletPinId) {
-            const connectionUUID = this._buildconnectionUUID(outputNodeId, outletPinId, inputNodeId, inletPinId);
+        _connectionExists(sourceNodeId, outletPinId, sinkNodeId, inletPinId) {
+            const connectionUUID = this._buildconnectionUUID(sourceNodeId, outletPinId, sinkNodeId, inletPinId);
             return this.connectionPaths.has(connectionUUID);
         },
 

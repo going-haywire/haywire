@@ -74,8 +74,8 @@ class DefaultNodeRenderer(NodeRenderer):
 
             # Footer with port counts
             with ui.row().classes('w-full justify-between mt-2 zoom-pan-lod1'):
-                ui.label(f'↓ {len([p for p in node.ports.values() if p.is_inlet()])}').classes('text-caption')
-                ui.label(f'↑ {len([p for p in node.ports.values() if p.is_outlet()])}').classes('text-caption')
+                ui.label(f'↓ {len([p for p in node.ports.values() if p.is_inlet])}').classes('text-caption')
+                ui.label(f'↑ {len([p for p in node.ports.values() if p.is_outlet])}').classes('text-caption')
 
         # Add resize handle in bottom-right corner
         self._add_resize_handle(main_card, wrapper)
@@ -97,7 +97,7 @@ class DefaultNodeRenderer(NodeRenderer):
         """
         for port in ports:
             # Skip ports of wrong direction
-            if port.is_inlet() != is_inlet:
+            if port.is_inlet != is_inlet:
                 continue
             
             # Skip child ports (they're rendered inside their parent group)
@@ -153,7 +153,7 @@ class DefaultNodeRenderer(NodeRenderer):
                 # Find and render direct children
                 children = [
                     port for port in all_ports
-                    if port.parent_group == group_port.id and port.is_inlet() == is_inlet
+                    if port.parent_group == group_port.id and port.is_inlet == is_inlet
                 ]
                 
                 for child_port in sorted(children, key=lambda p: p.order):

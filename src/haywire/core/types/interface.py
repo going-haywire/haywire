@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from ..types.identity import DataTypeIdentity
     from ..data.fields import DataField
     from ..types.ports import DataPort
+    from ..types.utils import PortSpec
 
 
 
@@ -198,13 +199,16 @@ class IType(ABC):
         pass  # Default: no extra configuration
     
     # ========================================================================
-    # PORT CREATION - Universal implementation for all types
+    # PORT CREATION - Returns PortSpec for node.add() to instantiate
     # ========================================================================
     
     @classmethod
-    def as_inlet(cls, id: str, **kwargs):
+    def as_inlet(cls, id: str, **kwargs) -> 'PortSpec':
         """
-        Create an inlet from this type.
+        Create an inlet specification from this type.
+        
+        Returns a PortSpec dict, not a port instance. The node's add()
+        method uses this spec to instantiate the actual DataPort.
         
         Universal implementation that works for all type categories:
         - PrimitiveType: FLOAT.as_inlet('value', default=0.0)
@@ -226,39 +230,28 @@ class IType(ABC):
                 - on_disconnect: callback for disconnections
         
         Returns:
-            PortInlet configured with this type's identity and data field
+            PortSpec dict for node.add()
         
         Examples:
-            FLOAT.as_inlet('value', default=1.0)
-            ArrayType[FLOAT].as_inlet('numbers', default=[1.0, 2.0])
-            PooledType[FLOAT].as_inlet('values')
+            self.add(FLOAT.as_inlet('value', default=1.0))
+            self.add(ArrayType[FLOAT].as_inlet('numbers', default=[1.0, 2.0]))
+            self.add(PooledType[FLOAT].as_inlet('values'))
         """
-        from haywire.core.types.ports import PortInlet
-        from haywire.core.types.utils import create_port_from_type
+        from haywire.core.types.utils import create_port_spec
                 
         # Validate port type
         cls._validate_port_type('inlet')
         
-        # Create port (field created in __post_init__ via type.create_field())
-        port = create_port_from_type(
-            type_cls=cls,
-            port_cls=PortInlet,
-            id=id,
-            **kwargs
-        )
-        
-        # Let subclass configure
-        cls._configure_port(port)
-        
-        return port
+        return create_port_spec(cls, is_inlet=True, id=id, **kwargs)
     
     @classmethod
-    def as_outlet(cls, id: str, **kwargs):
+    def as_outlet(cls, id: str, **kwargs) -> 'PortSpec':
         """
-        Create an outlet from this type.
+        Create an outlet specification from this type.
         
-        Universal implementation that works for all type categories.
-        See as_inlet() for usage examples.
+        Returns a PortSpec dict, not a port instance. The node's add()
+        method uses this spec to instantiate the actual DataPort.
+        See as_inlet() for more usage examples.
         
         Args:
             id: Port identifier
@@ -272,71 +265,47 @@ class IType(ABC):
                 - on_disconnect: callback for disconnections
         
         Returns:
-            PortOutlet configured with this type's identity and data field
+            PortSpec dict for node.add()
         
         Examples:
-            FLOAT.as_outlet('result')
-            ArrayType[FLOAT].as_outlet('sorted')
+            self.add(FLOAT.as_outlet('result'))
+            self.add(ArrayType[FLOAT].as_outlet('sorted'))
         """
-        from haywire.core.types.ports import PortOutlet
-        from haywire.core.types.utils import create_port_from_type
+        from haywire.core.types.utils import create_port_spec
         
         # Validate port type
         cls._validate_port_type('outlet')
         
-        # Create port
-        port = create_port_from_type(
-            type_cls=cls,
-            port_cls=PortOutlet,
-            id=id,
-            **kwargs
-        )
-        
-        # Let subclass configure
-        cls._configure_port(port)
-        
-        return port
+        return create_port_spec(cls, is_inlet=False, id=id, **kwargs)
     
     @classmethod
-    def as_config(cls, id: str, element_type_cls: Optional[type['IType']] = None, **kwargs):
+    def as_config(cls, id: str, **kwargs) -> 'PortSpec':
         """
-        Create a config inlet (no visible pin) from this type.
+        Create a config inlet specification (no visible pin) from this type.
         
         Config inlets are internal parameters that don't show as connection pins.
+        Returns a PortSpec dict, not a port instance.
         
         Args:
             id: Config identifier
-            element_type_cls: For compound types, the element type
             **kwargs: Override identity attributes
         
         Returns:
-            PortInlet with flow_type=NONE (no visible pin)
+            PortSpec dict for node.add() with flow_type=NONE
         
         Examples:
-            FLOAT.as_config('threshold', default=0.5)
-            ArrayType[STRING].as_config('tags', default=['a', 'b'])
+            self.add(FLOAT.as_config('threshold', default=0.5))
+            self.add(ArrayType[STRING].as_config('tags', default=['a', 'b']))
         """
         from haywire.core.data.enums import FlowType
-        from haywire.core.types.ports import DataPort
-        from haywire.core.types.utils import create_port_from_type
+        from haywire.core.types.utils import create_port_spec
                 
         # Validate port type
         cls._validate_port_type('config')
 
         kwargs['flow_type'] = FlowType.NONE
         
-        # Create port (field created in __post_init__ via type.create_field())
-        port = create_port_from_type(
-            type_cls=cls,
-            port_cls=DataPort,
-            id=id,
-            **kwargs
-        )
-        
-        # Let subclass configure
-        cls._configure_port(port)
-        
-        return port
+        return create_port_spec(cls, is_inlet=True, id=id, **kwargs)
 
 
     # ========================================================================
