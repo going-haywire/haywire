@@ -257,8 +257,8 @@ class NodeWrapper:
         """
         try:
             self._node_instance = self._node_cls(self._node_id, self)
-            self._node_instance.ui_state.posX = self._initial_position[0]
-            self._node_instance.ui_state.posY = self._initial_position[1]
+            self._node_instance.ui.state.posX = self._initial_position[0]
+            self._node_instance.ui.state.posY = self._initial_position[1]
             self._state.is_instantiated = True
             self._state.error_instantiate = None
 
@@ -539,8 +539,8 @@ class NodeWrapper:
         """
         self._initial_position = (new_x, new_y)
         if self._node_instance:
-            self._node_instance.ui_state.posX = new_x
-            self._node_instance.ui_state.posY = new_y
+            self._node_instance.ui.state.posX = new_x
+            self._node_instance.ui.state.posY = new_y
 
     def add_middleware(self, middleware: NodeMiddleware) -> None:
         """Add middleware to the wrapper"""
@@ -656,6 +656,19 @@ class NodeWrapper:
                 self._node_id,
                 ChangeReason.NODE_REDRAW_REQUESTED
             )
+
+    def request_graph_reassembly(self) -> None:
+        """
+        Request a reassembly of the graph.
+        This will notify the graph assembler to regenerate the flow structure.
+        It will not trigger any rebuild or redraw of the graph.
+        """
+        # Notify graph of reassembly request
+        if self._graph:
+            self._graph._validation.mark_graph_dirty(
+                ChangeReason.GRAPH_REQUIRE_REASSEMBLY
+            )
+
 
     # =========================================================================
     # SERIALIZATION

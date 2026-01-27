@@ -128,7 +128,7 @@ class UINode:
             renderer_name: Name of the renderer/renderer to use (None for default)
         """
         with self.container:
-            renderer_name = self.wrapper.node.ui_config.node_renderer
+            renderer_name = self.wrapper.node.ui.config.node_renderer
 
             if renderer_name is None:
                 renderer_name = (
@@ -231,7 +231,7 @@ class UINode:
             node = self.wrapper.node
             sync_event = SyncNodePositionEvent(
                 nodeId=node.node_id,
-                position={'x': node.ui_state.posX, 'y': node.ui_state.posY}
+                position={'x': node.ui.state.posX, 'y': node.ui.state.posY}
             )
             self.sync_event_emitter(sync_event)
 

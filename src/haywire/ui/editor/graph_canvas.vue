@@ -1511,23 +1511,8 @@ export default {
                 return;
             }
 
-            let outletPin = document.getElementById(connectionInfo.outletPinUUID);
-            let inletPin = document.getElementById(connectionInfo.inletPinUUID);
-
-            // If pins are missing, try to find them using fallback hierarchy
-            if (!outletPin && connectionInfo.outletPinFallback) {
-                outletPin = this._findPinInHierarchy(
-                    connectionInfo.outletNodeId,
-                    connectionInfo.outletPinFallback
-                );
-            }
-
-            if (!inletPin && connectionInfo.inletPinFallback) {
-                inletPin = this._findPinInHierarchy(
-                    connectionInfo.inletNodeId,
-                    connectionInfo.inletPinFallback
-                );
-            }
+            const outletPin = document.getElementById(connectionInfo.outletPinUUID);
+            const inletPin = document.getElementById(connectionInfo.inletPinUUID);
 
             if (!outletPin || !inletPin) {
                 console.error(`Failed to find pins for connection: ${connectionUUID}`);
@@ -1899,6 +1884,12 @@ export default {
                 gradient.appendChild(stop2);
                 defs.appendChild(gradient);
             } else {
+                // Update gradient position to match current connection endpoints
+                gradient.setAttribute('x1', startPos.x);
+                gradient.setAttribute('y1', startPos.y);
+                gradient.setAttribute('x2', endPos.x);
+                gradient.setAttribute('y2', endPos.y);
+                
                 const stops = gradient.querySelectorAll('stop');
                 if (stops.length >= 2) {
                     stops[0].setAttribute('stop-color', startColor);

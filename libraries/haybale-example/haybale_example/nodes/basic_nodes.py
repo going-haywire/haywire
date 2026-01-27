@@ -35,7 +35,6 @@ class TestNodeOne(BaseNode):
             TextWidget,
         )
 
-        from ..types.mesh_data import MeshData
         from ..types.specs import Temperature
 
         # Configure behavior
@@ -53,28 +52,21 @@ class TestNodeOne(BaseNode):
                 default=False,
                 on_change='redraw'
                 )):
-            
+            self.add(PooledType[STRING].as_inlet(
+                    id='pooled_string_inlet',
+                    label='Pooled STRING Inlet'
+                ))
+       
             with self.group(GROUP.as_inlet(
                     id='temperature_config_group',
                     label='Temperature Configuration',
                     default=False,
                     on_change='redraw'
                     )):
-                 self.add(Temperature.as_inlet(
-                        id='temp_config',
-                        default=40.0
-                    )) 
-
-            self.add(PooledType[STRING].as_inlet(
-                    id='pooled_string_inlet',
-                    label='Pooled STRING Inlet'
-                ))
-
-            self.add(PooledType[ArrayType[STRING]].as_inlet(
-                    id='pooled_array_string_inlet',
-                    label='Pooled ARRAY[STRING]'
-                ))
-
+                self.add(PooledType[ArrayType[STRING]].as_inlet(
+                        id='pooled_array_string_inlet',
+                        label='Pooled ARRAY[STRING]'
+                    ))
 
         # Add inlets with different widget types
         self.add(STRING.as_inlet(
@@ -84,26 +76,6 @@ class TestNodeOne(BaseNode):
                 default='Option 1'
             ))
         
-        #############
-        # Proposal for widget configuration syntax
-        # combine key and ui dict into single 'widget' parameter
-        #############
-        # 
-        #    self.add(STRING.as_inlet(
-        #            id='string_selector',
-        #            label='Selector',
-        #            widget={key: 'core:widget:SelectWidget', config: {'properties': {'options': ['Option 1', 'Option 2', 'Option 3']}}},
-        #            default='Option 1'
-        #        ))
-        #    self.add(STRING.as_inlet(
-        #            id='string_selector',
-        #            label='Selector',
-        #            widget=SelectWidget.config('properties': {'options': ['Option 1', 'Option 2', 'Option 3']}),
-        #            default='Option 1'
-        #        ))
-
-        #############
-
         self.add(FLOAT.as_inlet(
                 id='float_slider',
                 label='Float Sliderio',
@@ -123,11 +95,6 @@ class TestNodeOne(BaseNode):
                 label='Text Input',
                 default='Hello, Haywire!',
                 widget=TextWidget.config(properties={'placeholder': 'Enter text...'})
-            ))
-
-        self.add(MeshData.as_inlet(
-                id='mesh_data_inlet', 
-                label='Mesh Data Inlet'
             ))
 
         self.add(INT.as_inlet(
@@ -167,15 +134,21 @@ class TestNodeOne(BaseNode):
                 label='ARRAY[INT]'
             ))
 
-        self.add(ArrayType[BOOL].as_outlet(
-                id='array_bool_outlet',
-                label='ARRAY[BOOL]'
-            ))
+        with self.group(GROUP.as_outlet(
+                id='out_group',
+                label='Advanced Settings',
+                default=False,
+                on_change='redraw'
+                )):
+            self.add(ArrayType[BOOL].as_outlet(
+                    id='array_bool_outlet',
+                    label='ARRAY[BOOL]'
+                ))
 
-        self.add(MapsStringType[BOOL].as_outlet(
-                id='mapsString_bool_outlet',
-                label='MAPSSTRING[BOOL]'
-            ))
+            self.add(MapsStringType[BOOL].as_outlet(
+                    id='mapsString_bool_outlet',
+                    label='MAPSSTRING[BOOL]'
+                ))
 
         self.pop()
 

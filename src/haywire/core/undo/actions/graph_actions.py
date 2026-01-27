@@ -185,16 +185,16 @@ class MoveNodesAction(ActionBase):
         for node_id in self.nodes:
             node = self.graph.get_node_wrapper(node_id).node
             if node:
-                node.ui_state.posX += self.deltaX
-                node.ui_state.posY += self.deltaY
+                node.ui.state.posX += self.deltaX
+                node.ui.state.posY += self.deltaY
     
     def _undo_impl(self) -> None:
         """Move all nodes back by subtracting the delta amounts."""
         for node_id in self.nodes:
             node = self.graph.get_node_wrapper(node_id).node
             if node:
-                node.ui_state.posX -= self.deltaX
-                node.ui_state.posY -= self.deltaY
+                node.ui.state.posX -= self.deltaX
+                node.ui.state.posY -= self.deltaY
     
     def can_merge(self, other) -> bool:
         """Check if this move can be merged with another delta move of the same nodes."""
@@ -420,8 +420,8 @@ class DuplicateNodeAction(CompositeAction):
         # Create the duplicated node (this would need proper cloning logic)
         # For now, we'll assume there's a clone method
         new_node = self._clone_node(source_node, new_node_id)
-        new_node.ui_state.posX = source_node.ui_state.posX + offset_x
-        new_node.ui_state.posY = source_node.ui_state.posY + offset_y
+        new_node.ui.state.posX = source_node.ui.state.posX + offset_x
+        new_node.ui.state.posY = source_node.ui.state.posY + offset_y
         
         # Create the sub-actions
         actions = [
@@ -488,8 +488,8 @@ class PasteClipboardAction(CompositeAction):
         # Add node actions
         for node_id, node in clipboard_data.nodes.items():
             # Apply position offset
-            node.ui_state.posX += offset_x
-            node.ui_state.posY += offset_y
+            node.ui.state.posX += offset_x
+            node.ui.state.posY += offset_y
             
             # Set graph reference
             node.graph = graph

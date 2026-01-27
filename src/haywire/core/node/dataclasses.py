@@ -76,6 +76,37 @@ class NodeUIState:
     height_min: float = -1
 
 
+class NodeUI:
+    """
+    Container for all node UI-related state and configuration.
+    
+    Groups UI concerns under a single namespace for cleaner API:
+    - node.ui.config - Static UI configuration (set during node design)
+    - node.ui.state - Runtime UI state (changes during use)
+    """
+    
+    def __init__(self):
+        self.config = NodeUIConfig()
+        self.state = NodeUIState()
+    
+    def collapse(self) -> None:
+        """Collapse the node in the editor."""
+        self.state.is_collapsed = True
+    
+    def expand(self) -> None:
+        """Expand the node in the editor."""
+        self.state.is_collapsed = False
+    
+    def set_position(self, x: float, y: float) -> None:
+        """Set node position."""
+        self.state.posX = x
+        self.state.posY = y
+    
+    def get_position(self) -> tuple[float, float]:
+        """Get node position."""
+        return (self.state.posX, self.state.posY)
+
+
 @dataclass
 class NodeUserMetadata:
     """User-defined metadata"""

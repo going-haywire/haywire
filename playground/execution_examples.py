@@ -243,7 +243,6 @@ def example_callback_flow():
         EmitCallbackNode.class_identity.registry_key,
         position=(300, 100)
     )
-
     
     graph.create_edge_wrapper(
         begin_play.node_id, 'exec',

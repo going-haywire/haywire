@@ -47,6 +47,9 @@ class ValidationManager:
         self._graph = graph
         self._debounce_ms = debounce_ms
         
+        self._dirty_graph: ChangeReason = None
+        """If the whole graph is dirty, reason for it"""
+
         # Simplified tracking - just map elements to reasons
         self._dirty_nodes: Dict[str, ChangeReason] = {}
         """node_id -> reason for being dirty"""
@@ -73,6 +76,25 @@ class ValidationManager:
             if existing_reason.has_higher_priority_than(reason):
                 return  
         store[id] = reason
+
+
+    def mark_graph_dirty(
+        self,
+        reason: ChangeReason
+    ) -> None:
+        """
+        Mark a graph as needing validation.
+        
+        Uses priority system - higher priority reasons override lower ones.
+        """
+        with self._validation_lock:
+            self._dirty_graph = reason
+            self._schedule_validation()
+            
+            logger.debug(
+                f"Marked graph dirty (reason: {reason.value})"
+            )
+
 
     def mark_node_dirty(
         self,
@@ -201,6 +223,7 @@ class ValidationManager:
             # Clear all tracking
             self._dirty_nodes.clear()
             self._dirty_edges.clear()
+            self._dirty_graph = None
             
             logger.debug("ValidationManager cleared")
     
@@ -246,6 +269,7 @@ class ValidationManager:
             # Snapshot dirty elements with their reasons
             dirty_nodes = dict(self._dirty_nodes)
             dirty_edges = dict(self._dirty_edges)
+            dirty_graph = self._dirty_graph
             
             logger.info(
                 f"Starting validation batch: "
@@ -255,7 +279,11 @@ class ValidationManager:
             # Result will contain all changed elements with their reasons
             validated_nodes: Dict[str, ChangeReason] = {}
             validated_edges: Dict[str, ChangeReason] = {}
+            validated_graph: Optional[ChangeReason] = None
             
+            if dirty_graph is not None:
+                if dirty_graph.requires_graph_reassembly():
+                    validated_graph = dirty_graph
             # Validate nodes
             for node_id, reason in dirty_nodes.items():
                 try:
@@ -365,12 +393,14 @@ class ValidationManager:
             result = ValidationResult(
                 nodes=validated_nodes,
                 edges=validated_edges,
+                graph=validated_graph,
                 validation_time_ms=validation_time_ms
             )
             
             # Clear dirty tracking
             self._dirty_nodes.clear()
             self._dirty_edges.clear()
+            self._dirty_graph = None
             
             # Update statistics
             self._validation_count += 1

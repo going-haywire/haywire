@@ -13,6 +13,7 @@ from queue import Queue, Empty
 from threading import Thread, Lock
 from enum import Enum
 import logging
+import time
 
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
@@ -182,9 +183,15 @@ class FlowScheduler:
                 f"with trigger {trigger.source_key}"
             )
             
-            # Execute via VM
+            # Execute via VM with timing
+            start_ns = time.perf_counter_ns()
             self.vm.execute_control_flow(self.flow, trigger)
+            elapsed_ns = time.perf_counter_ns() - start_ns
             
+            logger.info(
+                f"Flow {self.flow.flow_id} completed in "
+                f"{elapsed_ns / 1_000:.2f} μs"
+            )
             logger.debug(f"Flow {self.flow.flow_id} execution completed")
             
         except Exception as e:

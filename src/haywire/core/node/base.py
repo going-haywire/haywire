@@ -1,6 +1,6 @@
 from __future__ import annotations
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, Dict, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Set, TypeVar, Union
 from abc import abstractmethod
 from dataclasses import dataclass, field, asdict
 
@@ -13,6 +13,7 @@ from ..types.utils import PortSpec
 from .dataclasses import (
     NodeBehavior, 
     NodeErrorInfo, 
+    NodeUI,
     NodeUIConfig, 
     NodeUIState, 
     NodeUserMetadata
@@ -641,6 +642,82 @@ class NodeData:
             if port.flow_type == FlowType.CALLBACK and port.is_outlet
         ]
 
+    def get_hidden_connected_ports(self, is_inlet: bool) -> List[DataPort]:
+        """
+        Get ports that are hidden but have active connections.
+        
+        These ports need ghost pins rendered near the title to maintain
+        visual connection endpoints. A port is considered hidden if:
+        - It's not in the visible ports list, OR
+        - Any ancestor group in its hierarchy is collapsed
+        
+        Args:
+            is_inlet: True to get hidden inlets, False for outlets
+            
+        Returns:
+            List of hidden ports with connections, sorted by order
+        """
+        visible_ports = self.get_visible_ports()
+        visible_port_ids: Set[str] = {port.id for port in visible_ports}
+        
+        hidden_connected: List[DataPort] = []
+        
+        for port in self.ports.values():
+            # Skip if wrong direction
+            if port.is_inlet != is_inlet:
+                continue
+            
+            # Skip section markers and group ports
+            if port.section or port.is_group:
+                continue
+            
+            # Check if port is truly hidden (not visible OR any ancestor collapsed)
+            is_hidden = port.id not in visible_port_ids
+            
+            # Also check full ancestor chain for collapsed groups
+            if not is_hidden:
+                is_hidden = self._is_any_ancestor_collapsed(port)
+            
+            # Include if port is hidden and has connections
+            if is_hidden and port.is_linked():
+                hidden_connected.append(port)
+        
+        return sorted(hidden_connected, key=lambda p: p.order)
+    
+    def _is_any_ancestor_collapsed(self, port: DataPort) -> bool:
+        """
+        Check if any ancestor group in the port's hierarchy is collapsed.
+        
+        Traverses the parent chain from the port up to the root,
+        checking if any group along the way is collapsed.
+        
+        Args:
+            port: The port to check
+            
+        Returns:
+            True if any ancestor group is collapsed, False otherwise
+        """
+        current_group_id = port.parent_group
+        
+        while current_group_id is not None:
+            group_port = self.ports.get(current_group_id)
+            if not group_port:
+                # Broken hierarchy - assume visible
+                break
+            
+            # Check if this group is collapsed
+            try:
+                if not self.value(current_group_id):
+                    return True
+            except (KeyError, Exception):
+                # If we can't get state, assume expanded
+                pass
+            
+            # Move up to parent group
+            current_group_id = group_port.parent_group
+        
+        return False
+
     def get_port_hierarchy(self, port_id: str) -> str:
         """
         Get the hierarchical path of a port from bottom to root.
@@ -854,7 +931,7 @@ class NodeData:
         except (TypeError, ValueError) as e:
             raise ValueError(
                 f"Worker result must be None, str, or (str|None, tuple), "
-                f"got {type(result)}"
+                f"got {type(result).__name__}: {result!r}"
             ) from e
 
     @abstractmethod
@@ -1002,8 +1079,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         self.error_info: NodeErrorInfo | None = None
         
         self.behavior = NodeBehavior()
-        self.ui_config = NodeUIConfig()
-        self.ui_state = NodeUIState()
+        self.ui = NodeUI()
         self.metadata = NodeUserMetadata()
     
     @property
@@ -1107,8 +1183,8 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             'library': asdict(self.library) if self.library else None,
             'identity': asdict(self.identity),
             'behavior': asdict(self.behavior),
-            'ui_config': asdict(self.ui_config),
-            'ui_state': asdict(self.ui_state),
+            'ui_config': asdict(self.ui.config),
+            'ui_state': asdict(self.ui.state),
             'metadata': asdict(self.metadata),
             'ports': self._serialize_ports()  # Delegate to NodeData
         }
@@ -1173,10 +1249,10 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             restore_dataclass_fields(self.behavior, data['behavior'])
         
         if 'ui_config' in data:
-            restore_dataclass_fields(self.ui_config, data['ui_config'])
+            restore_dataclass_fields(self.ui.config, data['ui_config'])
         
         if 'ui_state' in data:
-            restore_dataclass_fields(self.ui_state, data['ui_state'])
+            restore_dataclass_fields(self.ui.state, data['ui_state'])
         
         if 'metadata' in data:
             restore_dataclass_fields(self.metadata, data['metadata'])

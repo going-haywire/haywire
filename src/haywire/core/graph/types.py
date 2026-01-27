@@ -17,9 +17,13 @@ class ChangeReason(Enum):
     - Some need removal (REMOVED)
     
     Priority order (highest to lowest):
-    REMOVED > ADDED > HOT_RELOADED/ADAPTERS_RELOADED > VALIDATION_REQUESTED > REDRAW
+    REMOVED > ADDED > HOT_RELOADED/ADAPTERS_RELOADED > VALIDATION_REQUESTED > REDRAW > GRAPH_REQUIRE_REASSEMBLY
     """
     
+    # Graph reasons
+    GRAPH_REQUIRE_REASSEMBLY = "graph_require_assembly"
+    """Aspects of the graph have changed that require it to be reassembled."""
+
     # Node reasons - structural changes (require redraw)
     NODE_ADDED = "node_added"
     NODE_REMOVED = "node_removed"
@@ -94,6 +98,10 @@ class ChangeReason(Enum):
         }
         return self in redraw_reasons
     
+    def requires_graph_reassembly(self) -> bool:
+        """Check if this reason requires graph reassembly"""
+        return self == ChangeReason.GRAPH_REQUIRE_REASSEMBLY
+    
     def get_priority(self) -> int:
         """
         Get the priority level of this reason.
@@ -127,8 +135,11 @@ class ChangeReason(Enum):
         if self.requires_redraw():
             return 60
         
+        if self.requires_graph_reassembly():
+            return 50
+        
         # Everything else (visual changes)
-        return 50
+        return 40
 
     def has_higher_priority_than(self, other: 'ChangeReason') -> bool:
         """Check if this reason has higher priority than another."""
@@ -143,6 +154,9 @@ class ValidationResult:
     Subscribers receive dictionaries mapping element IDs to their change reasons,
     allowing flexible handling based on the type of change.
     """
+
+    graph: ChangeReason | None = None
+    """Reason for whole graph change, if applicable"""
     
     nodes: Dict[str, ChangeReason] = field(default_factory=dict)
     """Map of node_id -> reason for change"""
@@ -157,11 +171,11 @@ class ValidationResult:
     @property
     def total_changes(self) -> int:
         """Total number of changes in this batch"""
-        return len(self.nodes) + len(self.edges)
+        return len(self.nodes) + len(self.edges) + (1 if self.graph is not None else 0)
     
     def has_changes(self) -> bool:
         """Check if this validation found any changes"""
-        return bool(self.nodes or self.edges)
+        return bool(self.nodes or self.edges or self.graph is not None)
     
     def get_nodes_by_reason(self, reason: ChangeReason) -> list[str]:
         """Get all node IDs that changed for a specific reason"""

@@ -18,7 +18,7 @@ class DisplayNode(BaseNode):
         self.behavior.is_control_node = False
         
         # Configure UI
-        self.ui_config.node_renderer = 'example:renderer:ExampleNodeRenderer'
+        self.ui.config.node_renderer = 'example:renderer:ExampleNodeRenderer'
 
         # Using the new .as_inlet() API
         self.add(

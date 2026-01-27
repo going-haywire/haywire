@@ -426,8 +426,8 @@ class GraphCanvasManager:
                 self._clone_node_data(original_node, new_node)
                 
                 # Copy position
-                new_node.ui_state.posX = original_node.ui_state.posX
-                new_node.ui_state.posY = original_node.ui_state.posY
+                new_node.ui.state.posX = original_node.ui.state.posX
+                new_node.ui.state.posY = original_node.ui.state.posY
                 
                 new_nodes[new_node_id] = new_node
                 id_mapping[original_node_id] = new_node_id
@@ -512,8 +512,8 @@ class GraphCanvasManager:
                 wrapper = self.graph.get_node_wrapper(node_id)
                 if wrapper and node_id not in self.node_panels:
                     self.add_node_visual(wrapper.node, (
-                        wrapper.node.ui_state.posX,
-                        wrapper.node.ui_state.posY
+                        wrapper.node.ui.state.posX,
+                        wrapper.node.ui.state.posY
                     ))
                     logger.debug(f"  + Added node UI: {node_id}")
             
@@ -531,8 +531,8 @@ class GraphCanvasManager:
                     if wrapper:
                         node = wrapper.node  # Get node instance from wrapper
                         new_position = (
-                            node.ui_state.posX,
-                            node.ui_state.posY
+                            node.ui.state.posX,
+                            node.ui.state.posY
                         )  
                         self.update_node_position(node_id, new_position)
                         node_has_moved = True
@@ -821,7 +821,7 @@ class GraphCanvasManager:
         for node_id in node_ids:
             node = self.graph.get_node_wrapper(node_id).node
             if node:
-                positions.append((node.ui_state.posX, node.ui_state.posY))
+                positions.append((node.ui.state.posX, node.ui.state.posY))
         
         if not positions:
             return {'min_x': 0, 'min_y': 0, 'max_x': 0, 'max_y': 0}

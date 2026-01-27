@@ -1,4 +1,5 @@
 from haywire.core.execution.event_source import CallbackEvent, SystemEvent, SystemEventType
+from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.node_wrapper import NodeWrapper
 
@@ -70,12 +71,10 @@ class CustomCallbackNode(EventNode):
         
         # Trigger flow reassembly via wrapper
         if self.wrapper:
-            self.wrapper.redraw()
+            self.wrapper.request_graph_reassembly()
     
-    def worker(self, context):
+    def worker(self, context: ExecutionContext):
         # Extract payload from trigger
-        payload = context['trigger'].payload
+        payload = context.trigger.payload
         
-        self.out('payload', payload)
-        
-        return {'next_outlet': 'triggered'}
+        return 'triggered', (('payload', payload),)
