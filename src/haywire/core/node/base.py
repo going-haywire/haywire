@@ -1098,7 +1098,29 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         Initialize Node to its default setup
 
         This method needs to be overwritten by every node and is
-        called when the node is created or rebuilt.
+        called when the node is created or rebuilt. It should be only used to
+        add ports and set default values. 
+        
+        For any setup that depends on the current port configuration, 
+        use the setup() method.
+        """
+        pass
+
+    def setup(self) -> None:
+        """
+        Perform any setup logic after ports are configured.
+        
+        This method is called right after 
+            - initialize() or
+            - the deserialization of ports after a load operation.
+        
+        It should be used to perform any additional setup that
+        depends on the current port configuration.
+
+        Do not use it for performative operations or as a preparation for the
+        worker execution - the startup() method should be used for that purpose.
+
+        Override this method in subclasses to implement custom setup logic.
         """
         pass
 

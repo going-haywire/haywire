@@ -25,37 +25,69 @@ class EmitCallbackNode(BaseNode):
     
     def initialize(self):
         from ..types.specs import EXEC, STRING, FLOAT, CALLBACK
+        from ..types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT
+        from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
         
         # Control input
         self.add(EXEC.as_inlet('execute', label='Execute'))
 
-        self.add(CALLBACK.as_inlet(
-            'callback',
-            label='Trigger',
-            event_filter='*'  # Can trigger any callback event
-        ))
-    
-        # Data inputs
-        self.add(STRING.as_inlet(
-            'callback_name',
-            default='my_callback',
-            label='Callback Name'
-        ))
+        # Config for callback name
+        with self.group(GROUP.as_config(
+                'mode_switch',
+                default=False,
+                label='Use Custom Name',
+                on_change='redraw'
+            )):
 
+            # Config for callback name
+            self.add(STRING.as_config(
+                'custom_callback_name',
+                default='my_callback',
+                label='Callback Name',
+                widget=TextWidget.config()
+            ))
+    
         self.add(FLOAT.as_inlet(
             'payload',
             use_mode='optional',
             label='Payload'
         ))
-        
+
+        self.add(CALLBACK.as_inlet(
+            'edge_callback',
+            label='Trigger',
+            default=None,
+            event_filter='*',
+            on_change='printout'
+        ))
+
         # Control output
         self.add(EXEC.as_outlet('exec', label='Then'))
-    
-    def worker(self, context: ExecutionContext, callback_name: str, payload: float) -> dict | None:
+
+    def redraw(self, *args, **kwargs) -> None:
+        """Request a redraw of the node in the UI."""
+        self.wrapper.redraw()
+
+    def printout(self, port, new_value):
+        print(f"Edge Callback changed to: {new_value}")
+
+    def worker(self, 
+               context: ExecutionContext, 
+               mode_switch: bool, 
+               edge_callback: str, 
+               custom_callback_name: str, 
+               payload: float) -> dict | None:
+        
         # Emit callback (VM provides this in context)
-        context.emit_callback( 
-            event_name=callback_name,
-            payload=payload
-        )
+        if mode_switch:
+            context.emit_callback( 
+                event_name=custom_callback_name,
+                payload=payload
+            )
+        else: 
+            context.emit_callback( 
+                event_name=edge_callback,
+                payload=payload
+            )
         
         return 'exec'

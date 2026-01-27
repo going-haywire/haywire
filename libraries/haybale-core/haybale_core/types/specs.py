@@ -7,41 +7,6 @@ from haywire.core.types.decorator import type
 from haywire.core.types.base import BaseType
 from haywire.core.data.enums import FlowType
 
-# ============================================================================
-# Exec Types
-# ============================================================================
-
-@type(
-    registry_id='exec',
-    flow_type=FlowType.CONTROL,
-    label='Execution Signal',
-    description='Signal for controlling execution flow between nodes',
-    color="#004cff",
-    widget=None,
-    default={},
-)
-class EXEC(BaseType):
-    """Execution signal type - represents execution flow, not data"""
-    
-    @classmethod
-    def create_default(cls) -> 'EXEC':
-        return cls()
-
-@type(
-    registry_id='callback',
-    flow_type=FlowType.CALLBACK,
-    label='Callback Signal',
-    description='Signal for callback execution between nodes',
-    color="#ff3c00",
-    widget=None,
-    default={},
-)
-class CALLBACK(BaseType):
-    """callback signal type - represents callback flow, not data"""
-    
-    @classmethod
-    def create_default(cls) -> 'CALLBACK':
-        return cls()
 
 # ============================================================================
 # Group Type
@@ -169,3 +134,43 @@ class LIST(PrimitiveType[list]):
 class DICT(PrimitiveType[dict]):
     """Dictionary data type"""
     pass
+
+# ============================================================================
+# Exec Types
+# ============================================================================
+
+@type(
+    registry_id='exec',
+    flow_type=FlowType.CONTROL,
+    label='Execution Signal',
+    description='Signal for controlling execution flow between nodes',
+    color="#004cff",
+    widget=None,
+    default={},
+)
+class EXEC(BaseType):
+    """Execution signal type - represents execution flow, not data"""
+    
+    @classmethod
+    def create_default(cls) -> 'EXEC':
+        return cls()
+
+# ============================================================================
+# Callback Types
+# ============================================================================
+
+
+@type(
+    registry_id='callback',
+    flow_type=FlowType.CALLBACK,
+    label='Callback Signal',
+    description='Signal for callback execution between nodes',
+    color="#ff3c00",
+    widget=None,
+    default={},
+)
+class CALLBACK(STRING):
+    """
+    callback signal type - represents callback flow, not data
+    Inherits from STRING for payload compatibility.
+    """

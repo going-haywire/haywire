@@ -296,6 +296,7 @@ class NodeWrapper:
                 self._node_instance._initialize_from_dict(node_info)
             else:   
                 self._node_instance.initialize()
+            self._node_instance.setup()
             self._state.is_initialized = True
             self._state.error_initialize = None
             return True
