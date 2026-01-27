@@ -29,13 +29,13 @@ class ControlNodeInfo:
     
     Contains:
     - Node wrapper reference
-    - Outlet mapping (outlet_pin_id → next_node_id)
+    - Outlet mapping (outlet_pin_id → (next_node_id, inlet_port_id))
     - Loopback flag
     - Localized data flow for this node
     """
     node_wrapper: 'NodeWrapper'
-    outlet_map: Dict[str, str] = field(default_factory=dict)
-    """Maps outlet port IDs to next node IDs"""
+    outlet_map: Dict[str, tuple[str, str]] = field(default_factory=dict)
+    """Maps outlet port IDs to (next_node_id, inlet_port_id) tuples"""
     is_loopback: bool = False
     """If True, this node expects branches to return to it"""
     localized_data_flow: Optional['LocalizedDataFlow'] = None

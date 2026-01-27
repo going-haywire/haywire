@@ -13,9 +13,6 @@ from typing import Dict, List, Optional, Any, TYPE_CHECKING
 import time
 import logging
 
-from haywire.core import graph
-from haywire.core.graph.types import ValidationResult
-
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.execution.flow import Flow
@@ -113,25 +110,11 @@ class Interpreter:
         logger.info(f"Loading graph: {graph.graph_id}")
         
         # Clear previous state
-        self._cleanup_current_graph(graph)
+        self._cleanup_current_graph()
         
-        # Assemble flows
-        self._assemble_flows(graph)
+        # Store graph reference
+        self.current_graph = graph
         
-        logger.info(f"Graph {graph.graph_id} loaded and ready")
-
-    def _on_graph_changed(self, result: ValidationResult):
-        """Handle graph changes requiring reassembly"""
-        
-        # Handle event subscription changes
-        if result.has_changes():
-            # Clear previous state
-            self._cleanup_current_graph(self.current_graph)
-            # Assemble flows
-            self._assemble_flows(self.current_graph)
-            logger.info(f"Graph {self.current_graph.graph_id} reloaded and ready.")
-
-    def _assemble_flows(self, graph: 'BaseGraph'):
         # Assemble flows
         flows = self.assembly_manager.assemble_graph(graph)
         
@@ -140,8 +123,9 @@ class Interpreter:
         # Register flows
         for flow in flows:
             self._register_flow(flow)
- 
-
+        
+        logger.info(f"Graph {graph.graph_id} loaded and ready")
+    
     def _register_flow(self, flow: 'Flow'):
         """
         Register a flow with event subscriptions and setup scheduler.
@@ -175,38 +159,30 @@ class Interpreter:
                 flow
             )
     
-    def _cleanup_current_graph(self, graph: Optional['BaseGraph'] = None):
+    def _cleanup_current_graph(self):
         """Cleanup current graph state"""
-        # Capture reference before any cleanup (prevents race conditions)
-        old_graph = self.current_graph
+        if not self.current_graph:
+            return
         
-        if old_graph:
-            logger.debug("Cleaning up current graph")
-            
-            # Stop all schedulers (copy dict to prevent modification during iteration)
-            for flows in list(self.event_subscriptions.values()):
-                for flow in flows:
-                    if flow.scheduler:
-                        flow.scheduler.stop()
-            
-            # Clear subscriptions
-            self.event_subscriptions.clear()
-            
-            # Clear callbacks
-            self.callback_manager.clear_callbacks()
-            
-            # Clear assembly cache
-            self.assembly_manager.assembled_flows.clear()
-            self.assembly_manager.assembly_cache.clear()
-            
-            # Unsubscribe from validation events
-            old_graph.unsubscribe_from_validation(self._on_graph_changed)
-
-        self.current_graph = graph
-
-        if self.current_graph:
-            self.current_graph.subscribe_to_validation(self._on_graph_changed)
-       
+        logger.debug("Cleaning up current graph")
+        
+        # Stop all schedulers
+        for flows in self.event_subscriptions.values():
+            for flow in flows:
+                if flow.scheduler:
+                    flow.scheduler.stop()
+        
+        # Clear subscriptions
+        self.event_subscriptions.clear()
+        
+        # Clear callbacks
+        self.callback_manager.clear_callbacks()
+        
+        # Clear assembly cache
+        self.assembly_manager.assembled_flows.clear()
+        self.assembly_manager.assembly_cache.clear()
+        
+        self.current_graph = None
     
     def dispatch_system_event(
         self,
@@ -322,13 +298,16 @@ class Interpreter:
         Get execution statistics.
         
         Returns:
-            Dictionary with statistics from all components
+            Dictionary with statistics from all components including callback topology
         """
+        assembly_stats = self.assembly_manager.get_statistics()
+        
         return {
             'current_graph': self.current_graph.graph_id if self.current_graph else None,
             'total_subscriptions': len(self.event_subscriptions),
-            'assembly': self.assembly_manager.get_statistics(),
+            'assembly': assembly_stats,
             'callbacks': self.callback_manager.get_statistics(),
+            'callback_topology': assembly_stats.get('callback_topology', {}),
             'schedulers': [
                 {
                     'flow_id': flow.flow_id,

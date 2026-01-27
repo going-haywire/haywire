@@ -89,12 +89,14 @@ class ControlFlowBuilder:
                 if edge_wrappers:
                     edge = edge_wrappers[0]  # Take first (should be only one)
                     next_node_id = edge.sink_node_id
+                    inlet_port_id = edge.edge.inlet_port_id
                     
-                    # Record in outlet map
-                    info.outlet_map[outlet.id] = next_node_id
+                    # Record in outlet map: (next_node_id, inlet_port_id)
+                    info.outlet_map[outlet.id] = (next_node_id, inlet_port_id)
                     
                     logger.debug(
-                        f"Outlet {current.node_id}.{outlet.id} → {next_node_id}"
+                        f"Outlet {current.node_id}.{outlet.id} → "
+                        f"{next_node_id}.{inlet_port_id}"
                     )
                     
                     # Add next node to queue
@@ -142,7 +144,7 @@ class ControlFlowBuilder:
                 in_degree[node_id] = 0
             
             # Add edges from this node
-            for target_id in info.outlet_map.values():
+            for target_id, _inlet_id in info.outlet_map.values():
                 if target_id not in adj:
                     adj[target_id] = []
                 if target_id not in in_degree:

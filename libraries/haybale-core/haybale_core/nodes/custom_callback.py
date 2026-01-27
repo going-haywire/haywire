@@ -70,6 +70,7 @@ class CustomCallbackNode(EventNode):
     def redraw(self, *args, **kwargs) -> None:
         """Request a redraw of the node in the UI."""
         self.wrapper.redraw()
+        self._update_subscription(None, None)
 
     def _update_subscription(self, port, new_value):
         """Update event subscription when callback name changes"""

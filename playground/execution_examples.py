@@ -1,7 +1,8 @@
 """
 Haywire Assembly and Execution System - Complete Example
 
-This file demonstrates the complete assembly and execution pipeline.
+This file demonstrates the complete assembly and execution pipeline,
+including both string-based and edge-based callback approaches.
 
 Run this file to see the complete execution flow:
     python execution_examples.py
@@ -213,14 +214,17 @@ def example_sequence_flow():
 
 
 # ==============================================================================
-# EXAMPLE 3: Callback System
+# EXAMPLE 3: Callback System - String-Based (Dynamic)
 # ==============================================================================
 
-def example_callback_flow():
+def example_callback_string_based():
     """
-    Example with callbacks:
-    Flow 1: BeginPlay → EmitCallback
-    Flow 2: CustomCallback → PrintMessage
+    Example with string-based callbacks (no visual connection):
+    Flow 1: BeginPlay → EmitCallback (emits 'my_callback')
+    Flow 2: CustomCallback (listens for 'my_callback') → PrintMessage
+    
+    Both nodes configured with matching callback name strings.
+    No callback edge - connection happens via string matching.
     """
     from haybale_core.nodes.begin_play import BeginPlayNode
     from haybale_core.nodes.custom_callback import CustomCallbackNode
@@ -229,8 +233,8 @@ def example_callback_flow():
     
     # Create graph
     graph = BaseGraph(
-        graph_id='callback_example',
-        name='Callback Example'
+        graph_id='callback_string_example',
+        name='Callback String-Based Example'
     )
     
     # Flow 1: Emitter flow
@@ -244,6 +248,10 @@ def example_callback_flow():
         position=(300, 100)
     )
     
+    # Configure emitter to use custom name mode
+    emit_callback.node.ports['mode_switch'].set_value(True)  # Enable custom name
+    emit_callback.node.ports['custom_callback_name'].set_value('my_callback')
+    
     graph.create_edge_wrapper(
         begin_play.node_id, 'exec',
         emit_callback.node_id, 'execute'
@@ -255,6 +263,10 @@ def example_callback_flow():
         position=(100, 300)
     )
     
+    # Configure listener to use custom name mode
+    callback_listener.node.ports['mode_switch'].set_value(True)  # Enable custom name
+    callback_listener.node.ports['custom_callback_name'].set_value('my_callback')
+    
     print_msg = graph.create_node_wrapper(
         PrintMessageNode.class_identity.registry_key,
         position=(300, 300)
@@ -265,15 +277,22 @@ def example_callback_flow():
         print_msg.node_id, 'exec'
     )
     
+    graph._validation.force_immediate_validation()
+
+    # NO callback edge between flows - connection via string matching
+    print("\nString-based mode: No callback edge needed")
+    print("Emitter and listener both configured with callback name 'my_callback'")
+    
     # Execute
     interpreter = Interpreter()
     
-    print("\n=== Loading Graph ===")
+    print("\n=== Loading Graph (String-Based Callbacks) ===")
     interpreter.load_graph(graph)
     
     # Show callback registrations
     stats = interpreter.get_statistics()
     print(f"\nCallback Statistics:")
+    print(f"  Total callback edges: {stats['assembly']['callback_edges']}")
     for cb_info in stats['callbacks']['callbacks']:
         print(f"  '{cb_info['event_name']}': {cb_info['listener_count']} listeners")
     
@@ -289,7 +308,119 @@ def example_callback_flow():
 
 
 # ==============================================================================
-# EXAMPLE 4: External Events
+# EXAMPLE 4: Callback System - Edge-Based (Visual)
+# ==============================================================================
+
+def example_callback_edge_based():
+    """
+    Example with edge-based callbacks (visual connection):
+    Flow 1: BeginPlay → EmitCallback
+    Flow 2: CustomCallback → PrintMessage
+    
+    Callback edge connects:
+      CustomCallback.listen_callback (outlet) → EmitCallback.edge_callback (inlet)
+    
+    Event name (CustomCallback's node_id) propagates through the edge automatically
+    via the pipe mechanism.
+    """
+    from haybale_core.nodes.begin_play import BeginPlayNode
+    from haybale_core.nodes.custom_callback import CustomCallbackNode
+    from haybale_core.nodes.emit_callback import EmitCallbackNode
+    from haybale_test_a.nodes.print_node import PrintMessageNode
+    
+    # Create graph
+    graph = BaseGraph(
+        graph_id='callback_edge_example',
+        name='Callback Edge-Based Example'
+    )
+    
+    # Flow 1: Emitter flow
+    begin_play = graph.create_node_wrapper(
+        BeginPlayNode.class_identity.registry_key,
+        position=(100, 100)
+    )
+    
+    emit_callback = graph.create_node_wrapper(
+        EmitCallbackNode.class_identity.registry_key,
+        position=(300, 100)
+    )
+    
+    # Leave mode_switch=False (default) for edge-based mode
+    
+    graph.create_edge_wrapper(
+        begin_play.node_id, 'exec',
+        emit_callback.node_id, 'execute'
+    )
+    
+    # Flow 2: Listener flow
+    callback_listener = graph.create_node_wrapper(
+        CustomCallbackNode.class_identity.registry_key,
+        position=(100, 300)
+    )
+    
+    # Leave mode_switch=False (default) for edge-based mode
+    
+    print_msg = graph.create_node_wrapper(
+        PrintMessageNode.class_identity.registry_key,
+        position=(300, 300)
+    )
+    
+    graph.create_edge_wrapper(
+        callback_listener.node_id, 'triggered',
+        print_msg.node_id, 'exec'
+    )
+    
+    # KEY: Create callback edge!
+    # This connects the flows visually and propagates event name automatically
+    print("\nEdge-based mode: Creating callback edge...")
+    callback_edge = graph.create_edge_wrapper(
+        callback_listener.node_id, 'listen_callback',  # Source: listener's outlet
+        emit_callback.node_id, 'edge_callback'  # Target: emitter's inlet
+    )
+    
+    graph._validation.force_immediate_validation()
+    
+    print(f"Created callback edge: {callback_edge.connection_uuid}")
+    print(f"  Event name will propagate: {callback_listener.node_id}")
+    print(f"  From: CustomCallback.listen_callback → EmitCallback.edge_callback")
+    
+    # Execute
+    interpreter = Interpreter()
+    
+    print("\n=== Loading Graph (Edge-Based Callbacks) ===")
+    interpreter.load_graph(graph)
+    
+    # Show callback topology
+    stats = interpreter.get_statistics()
+    print(f"\nCallback Topology:")
+    print(f"  Total callback edges: {stats['assembly']['callback_edges']}")
+    
+    topology = stats.get('callback_topology', {})
+    print(f"  Emitters: {topology.get('emitters', 0)}")
+    print(f"  Listeners: {topology.get('listeners', 0)}")
+    
+    if topology.get('connections'):
+        print(f"\n  Connections (listener → emitter):")
+        for source, targets in topology['connections'].items():
+            print(f"    {source} → {targets}")
+    
+    print(f"\nCallback Manager Statistics:")
+    for cb_info in stats['callbacks']['callbacks']:
+        print(f"  '{cb_info['event_name']}': {cb_info['listener_count']} listeners")
+    
+    print("\n=== Dispatching BEGIN_PLAY Event ===")
+    interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
+    
+    # Wait a bit for callback to trigger
+    import time
+    time.sleep(0.5)
+    
+    interpreter.wait_all()
+    interpreter.shutdown()
+
+
+# ==============================================================================
+# EXAMPLE 5: External Events
 # ==============================================================================
 
 def example_external_events():
@@ -366,7 +497,7 @@ if __name__ == '__main__':
     try:
         # Run examples
         print("\n" + "=" * 70)
-        print("EXAMPLE 1: Simple Flow")
+        print("EXAMPLE 1: Simple Flow with Data Flow")
         print("=" * 70)
         example_simple_flow()
         
@@ -376,12 +507,17 @@ if __name__ == '__main__':
         example_sequence_flow()
         
         print("\n\n" + "=" * 70)
-        print("EXAMPLE 3: Callback System")
+        print("EXAMPLE 3: Callback System - String-Based (Dynamic)")
         print("=" * 70)
-        example_callback_flow()
+        example_callback_string_based()
         
         print("\n\n" + "=" * 70)
-        print("EXAMPLE 4: External Events")
+        print("EXAMPLE 4: Callback System - Edge-Based (Visual)")
+        print("=" * 70)
+        example_callback_edge_based()
+        
+        print("\n\n" + "=" * 70)
+        print("EXAMPLE 5: External Events")
         print("=" * 70)
         example_external_events()
         

@@ -94,6 +94,7 @@ class HaywireVM:
         
         # Start from event node
         current_node_id = flow.get_entry_node_id()
+        current_inlet_id: Optional[str] = None  # Entry has no inlet
         
         # Main execution loop
         while current_node_id is not None:
@@ -114,6 +115,12 @@ class HaywireVM:
                     f"Node {current_node_id} not found in control graph"
                 )
                 break
+
+            # Set which control inlet we entered through
+            exec_ctx.control_pin = current_inlet_id
+            logger.debug(
+                f"Executing node {current_node_id} via inlet: {current_inlet_id}"
+            )
             
             # Execute this control node
             next_outlet_id = self._execute_control_node(
@@ -129,7 +136,7 @@ class HaywireVM:
                     loopback_stack.append(current_node_id)
             
             # Navigate to next node
-            current_node_id = self._navigate_next(
+            current_node_id, current_inlet_id = self._navigate_next(
                 next_outlet_id,
                 node_info,
                 loopback_stack
@@ -210,7 +217,7 @@ class HaywireVM:
         next_outlet_id: Optional[str],
         node_info: 'ControlNodeInfo',
         loopback_stack: List[str]
-    ) -> Optional[str]:
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Determine next node to execute based on worker result.
         
@@ -220,7 +227,7 @@ class HaywireVM:
             loopback_stack: Stack of loopback node IDs
             
         Returns:
-            ID of next node to execute, or None to end
+            Tuple of (next_node_id, inlet_port_id), or (None, None) to end
         """
         node = node_info.node_wrapper.node
         
@@ -229,23 +236,32 @@ class HaywireVM:
             # Check if this is an output node
             if node.behavior.is_output_node:
                 logger.debug("Reached output node, ending flow")
-                return None  # End flow
+                return (None, None)  # End flow
             else:
                 # Branch ended without output - try loopback
-                return loopback_stack.pop() if loopback_stack else None
+                if loopback_stack:
+                    # Loopback re-enters the node (no specific inlet)
+                    return (loopback_stack.pop(), None)
+                return (None, None)
         
         # Case 2: Outlet specified - look it up
-        next_node_id = node_info.outlet_map.get(next_outlet_id)
+        outlet_target = node_info.outlet_map.get(next_outlet_id)
         
-        if next_node_id is None:
+        if outlet_target is None:
             # Outlet exists but not connected - try loopback
             logger.debug(
                 f"Outlet {next_outlet_id} not connected, trying loopback"
             )
-            return loopback_stack.pop() if loopback_stack else None
+            if loopback_stack:
+                return (loopback_stack.pop(), None)
+            return (None, None)
+        
+        next_node_id, inlet_port_id = outlet_target
         
         # Check if next node is already on the loopback stack.
         # If so, unwind the stack back to that point to avoid duplicate frames.
+        # Return None for inlet_id to indicate this is a loopback return,
+        # not a fresh entry through an inlet.
         if next_node_id in loopback_stack:
             loopback_index = loopback_stack.index(next_node_id)
             logger.debug(
@@ -254,8 +270,9 @@ class HaywireVM:
             )
             # Truncate stack to remove this node and everything after
             del loopback_stack[loopback_index:]
+            return (next_node_id, None)  # Loopback return, no specific inlet
         
-        return next_node_id
+        return (next_node_id, inlet_port_id)
     
     def _evaluate_data_flow(
         self,
