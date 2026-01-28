@@ -96,11 +96,6 @@ CompoundType[T]  ←→  CompoundField[T]        [1.0, 2.0] (unwrapped)
 ### Type Parameterization
 
 ```python
-# Old (helpers)
-Pooled.as_inlet(element_type_cls=FLOAT, id='pool')
-ArrayList.as_inlet(element_type_cls=FLOAT, id='array')
-
-# New (type parameterization)
 PooledType[FLOAT].as_inlet(id='pool')
 ArrayType[FLOAT].as_inlet(id='array')
 ```
@@ -108,10 +103,9 @@ ArrayType[FLOAT].as_inlet(id='array')
 ### Worker API
 
 ```python
-# New (automatic)
-a = self.inlet('a')
+a = self.value('a')
 result = a + b
-self.set_outlet('result', result)
+self.out('result', result)
 ```
 
 ---

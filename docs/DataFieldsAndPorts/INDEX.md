@@ -7,8 +7,8 @@
 **Worker code:**
 ```python
 # New
-a = self.inlet('a')
-self.set_outlet('result', a + b)
+a = self.value('a')
+self.out('result', a + b)
 ```
 
 **Port creation:**
@@ -35,7 +35,6 @@ ArrayType[FLOAT].as_inlet(id='numbers')
 |------|---------|-------------------------|
 | `README.md` ⭐ | Complete package guide | **New** |
 | `ARCHITECTURE_SUMMARY.md` ⭐ | Architecture deep-dive | **New** |
-| `DEVELOPER_MANUAL.md` ⭐ | Node creation guide | **New** |
 | `WIDGET_ADAPTER_GUIDE.md` | Future features | Both |
 
 ---
@@ -44,39 +43,9 @@ ArrayType[FLOAT].as_inlet(id='numbers')
 
 ### 1. Read Documentation
 
-Start with `README_NEW.md` for overview, then:
-- Architecture details: `ARCHITECTURE_SUMMARY_NEW.md`
-- Node creation: `DEVELOPER_MANUAL_NEW.md`
+Start with `README.md` for overview, then:
+- Architecture details: `ARCHITECTURE_SUMMARY.md`
 
-### 2. Review Implementation
-
-Study these files in order:
-1. `types_base_new.py` - Understand type hierarchy
-2. `datafields_new.py` - Understand field storage
-3. `array_type.py` - See type-field co-location pattern
-4. `base_node_new.py` - See clean worker API
-
-### 3. Try an Example
-
-```python
-from haywire.core.node.base import BaseNode
-from haywire.libraries.core.types.specs import FLOAT
-from haywire.libraries.core.types.array import ArrayType
-
-@node(label='Array Sum')
-class SumNode(BaseNode):
-    def __init__(self, node_id, wrapper):
-        super().__init__(node_id, wrapper)
-        
-        self.add(ArrayType[FLOAT].as_inlet(id='numbers'))
-        self.add(FLOAT.as_outlet(id='sum'))
-    
-    def worker(self, context):
-        numbers = self.inlet('numbers')  # Already unwrapped!
-        self.set_outlet('sum', sum(numbers))  # No wrapping needed!
-```
-
----
 
 ## 📊 Architecture Comparison
 
@@ -111,42 +80,18 @@ class SumNode(BaseNode):
 
 ### For Node Developers
 
-1. Read `README_NEW.md` Quick Start
-2. Study `DEVELOPER_MANUAL_NEW.md` examples
-3. Create a test node
-4. Reference examples in manual
+1. Read `README.md` Quick Start
+2. Create a test node
+3. Reference examples in manual
 
 
 ### For Core Developers
 
-1. Read `ARCHITECTURE_SUMMARY_NEW.md` completely
+1. Read `ARCHITECTURE_SUMMARY.md` completely
 2. Understand the three-category pattern
 3. Study unwrapped storage benefits
 4. Review CompoundType metaclass
 5. Implement following the checklist
 
 ---
-
-## 📈 Performance Benefits 
-
-### Memory Reduction
-
-```
-1000 primitive fields:
-New:      ~8 KB
-```
-
-### Speed Improvement
-
-```
-Worker output operation:
-New:      5ns (assignment)
-```
-
-### Large Graph Impact
-
-```
-100 nodes @ 60 FPS = 6000 updates/sec:
-New overhead:      0.03ms/sec
-```
 

@@ -113,3 +113,149 @@ when the flow stops executing:
 
 when the node is being unloaded:
 8. **Teardown**: `teardown()` is called to clean up resources.
+
+---
+
+## The Worker Method
+
+The `worker()` method is the main execution logic of your node. It's called by the VM when the node is executed.
+
+### Method Signature
+
+```python
+def worker(self, context: ExecutionContext, *args, **kwargs) -> WorkerResult:
+```
+
+**Key Design Principle:** Parameter names must match inlet port IDs. The system automatically extracts and passes inlet values as unwrapped arguments.
+
+### Parameter Mapping
+
+```python
+def initialize(self):
+    self.add(FLOAT.as_inlet(id='value', default=0.0))
+    self.add(FLOAT.as_inlet(id='multiplier', default=1.0))
+    self.add(FLOAT.as_outlet(id='result'))
+
+# Parameters 'value' and 'multiplier' match the inlet IDs above
+def worker(self, context: ExecutionContext, value: float, multiplier: float):
+    return (None, (('result', value * multiplier),))
+```
+
+**Rules:**
+- Use type hints to document expected types
+- Use default values for optional ports (if port doesn't exist, default is used)
+- Required parameters (no default) must have matching ports or `ValueError` is raised
+
+### Return Types (WorkerResult)
+
+The worker method returns a `WorkerResult` which can take several forms:
+
+| Return Value | Meaning |
+|--------------|---------|
+| `None` | No control flow, no outputs |
+| `'outlet_id'` | Trigger control flow through outlet, no data outputs |
+| `('outlet_id', ())` | Trigger control flow, no outputs (explicit) |
+| `(None, (('out1', 10), ('out2', 20)))` | Set data outputs, no control flow |
+| `('outlet_id', (('out1', 10), ('out2', 20)))` | Trigger control flow AND set outputs |
+
+### Examples
+
+**Simple data node:**
+```python
+def worker(self, context: ExecutionContext, value: float, multiplier: float):
+    result = value * multiplier
+    return (None, (('result', result),))
+```
+
+**Node with optional inputs:**
+```python
+def worker(self, context: ExecutionContext, value: float, offset: float = 0.0):
+    result = value + offset
+    return (None, (('result', result),))
+```
+
+**Control flow node (branching):**
+```python
+def worker(self, context: ExecutionContext, condition: bool):
+    return 'true_branch' if condition else 'false_branch'
+```
+
+**Multi-output with control flow:**
+```python
+def worker(self, context: ExecutionContext, x: float, y: float):
+    return ('next', (
+        ('sum', x + y),
+        ('product', x * y),
+        ('difference', x - y),
+    ))
+```
+
+---
+
+## Alternative Access Methods
+
+If you prefer not to use parameter mapping, or need dynamic access to ports, you can use the `self.value()` and `self.out()` methods directly.
+
+### Reading Inlet Values: `self.value()`
+
+```python
+def worker(self, context: ExecutionContext):
+    # Access inlet values by ID
+    value = self.value('input')
+    threshold = self.value('threshold')
+    
+    result = value if value > threshold else 0.0
+    return (None, (('result', result),))
+```
+
+### Setting Outlet Values: `self.out()`
+
+```python
+def worker(self, context: ExecutionContext):
+    value = self.value('input')
+    
+    # Set outlet values by ID
+    self.out('doubled', value * 2)
+    self.out('halved', value / 2)
+    self.out('squared', value ** 2)
+    
+    return 'next'  # Only return control flow, outputs already set
+```
+
+### Comparison
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| **Parameter mapping** | Faster, cleaner, type-hinted | Less flexible |
+| **`self.value()` / `self.out()`** | Dynamic, flexible | Slower, no type hints |
+
+### Mixed Approach
+
+You can combine both methods:
+
+```python
+def worker(self, context: ExecutionContext, value: float, multiplier: float):
+    # Use parameters for main inputs
+    result = value * multiplier
+    
+    # Use self.out() for setting outputs
+    self.out('result', result)
+    self.out('debug_info', f"Computed {value} * {multiplier}")
+    
+    return 'next'
+```
+
+### Checking Port Connection Status
+
+```python
+def worker(self, context: ExecutionContext):
+    # Check if an inlet is connected before accessing
+    if self.ports['optional_input'].is_connected:
+        value = self.value('optional_input')
+        result = process_with(value)
+    else:
+        result = process_default()
+    
+    return (None, (('result', result),))
+```
+

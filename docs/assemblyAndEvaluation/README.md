@@ -100,6 +100,59 @@ A **Flow** contains:
 4. Register with Interpreter
 ```
 
+#### Detailed Assembly Pipeline Steps
+
+```
+Assembly Pipeline:
+
+1. GraphValidator.validate()
+   ├── Check node type constraints
+   ├── Validate Event/Output node placement
+   ├── Check for required Source/Sink in Graph-nodes
+   └── Return validation_errors: List[str]
+
+2. FlowIdentifier.identify_flows()
+   ├── Find all Event-nodes
+   ├── Traverse from each Event-node
+   ├── Group connected node-trees
+   ├── Handle callback-connections specially
+   └── Return flows: List[FlowDescriptor]
+
+3. For each FlowDescriptor:
+   
+   a. ControlFlowBuilder.build()
+      ├── Start from Event-node
+      ├── Follow Control-pin-outlets
+      ├── Build ControlStep chain:
+      │   ├── node_wrapper: NodeWrapper
+      │   ├── next_steps: Dict[str, ControlStep]
+      │   └── is_loopback: bool
+      ├── Identify branch points
+      └── Detect cycles (allowed for control)
+   
+   b. For each Control-node in sequence:
+      
+      DataFlowBuilder.build_localized(control_node)
+      ├── Backpropagate from Data-inlets
+      ├── Build dependency DAG
+      ├── Check for cycles (error unless through Control-node)
+      ├── Topological sort for execution order
+      ├── Handle lazy evaluation flags:
+      │   ├── Call node.ON_VALIDATION_LAZY()
+      │   ├── Generate EVAL_MASK per inlet
+      │   └── Optimize prunable branches
+      └── Return LocalizedDataFlow:
+          ├── execution_sequence: List[NodeWrapper]
+          ├── eval_masks: Dict[str, int]  # bitfield
+          └── requires_lazy: bool
+
+4. Flow.assemble()
+   ├── Package ControlFlow + LocalizedDataFlows
+   ├── Register with scheduler
+   └── Return assembled Flow
+```
+
+
 ### Execution Process
 
 ```

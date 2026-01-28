@@ -966,7 +966,7 @@ class NodeData:
             
             .. code-block:: python
             
-                def worker(self, context, value: float, multiplier: float):
+                def worker(self, context: ExecutionContext, value: float, multiplier: float):
                     result = value * multiplier
                     return (None, (('result', result),))
             
@@ -974,7 +974,7 @@ class NodeData:
             
             .. code-block:: python
             
-                def worker(self, context, value: float, offset: float = 0.0):
+                def worker(self, context: ExecutionContext, value: float, offset: float = 0.0):
                     result = value + offset
                     return (None, (('result', result),))
             
@@ -982,14 +982,14 @@ class NodeData:
             
             .. code-block:: python
             
-                def worker(self, context, condition: bool):
+                def worker(self, context: ExecutionContext, condition: bool):
                     return 'true_branch' if condition else 'false_branch'
             
             Multi-output with control flow:
             
             .. code-block:: python
             
-                def worker(self, context, x: float, y: float):
+                def worker(self, context: ExecutionContext, x: float, y: float):
                     return ('next', (
                         ('sum', x + y),
                         ('product', x * y),
@@ -1000,7 +1000,7 @@ class NodeData:
             
             .. code-block:: python
             
-                def worker(self, context):
+                def worker(self, context: ExecutionContext):
                     value = self.value('input')
                     self.out('output', value * 2)
                     return None
