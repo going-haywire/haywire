@@ -24,8 +24,8 @@ class EmitCallbackNode(BaseNode):
     """
     
     def initialize(self):
-        from ..types.specs import EXEC, STRING, FLOAT, CALLBACK
-        from ..types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT
+        from ..types.specs import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
+        from ..types.pooled_type import PooledType
         from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
         
         # Control input
@@ -46,37 +46,48 @@ class EmitCallbackNode(BaseNode):
                 label='Callback Name',
                 widget=TextWidget.config()
             ))
-    
+
+        self.add(BOOL.as_inlet(
+            'sequential_mode',
+            label='Sequential',
+            description='Sequential Mode - if multiple callbacks, emit in sequence',
+            default=False,
+            widget=SwitchWidget.config()
+        ))
+
         self.add(FLOAT.as_inlet(
             'payload',
             use_mode='optional',
             label='Payload'
         ))
 
-        self.add(CALLBACK.as_inlet(
+        self.add(PooledType[CALLBACK].as_inlet(
             'edge_callback',
             label='Trigger',
-            default=None,
-            event_filter='*',
             on_change='printout'
         ))
 
         # Control output
         self.add(EXEC.as_outlet('exec', label='Then'))
 
+    def setup(self):
+        self.callback_index = 0
+
     def redraw(self, *args, **kwargs) -> None:
         """Request a redraw of the node in the UI."""
         self.wrapper.redraw()
 
     def printout(self, port, new_value):
+        self.callback_index = 0
         print(f"Edge Callback changed to: {new_value}")
 
     def worker(self, 
-               context: ExecutionContext, 
-               mode_switch: bool, 
-               edge_callback: str, 
-               custom_callback_name: str, 
-               payload: float) -> dict | None:
+                context: ExecutionContext, 
+                mode_switch: bool, 
+                sequential_mode: bool,
+                edge_callbacks: dict, 
+                custom_callback_name: str, 
+                payload: float) -> dict | None:
         
         # Emit callback (VM provides this in context)
         if mode_switch:
@@ -85,9 +96,20 @@ class EmitCallbackNode(BaseNode):
                 payload=payload
             )
         else: 
-            context.emit_callback( 
-                event_name=edge_callback,
-                payload=payload
-            )
+            if sequential_mode:
+                # Sequential: emit to one callback, rotating through them
+                edge_callback = list(edge_callbacks.values())[self.callback_index]
+                self.callback_index = (self.callback_index + 1) % len(edge_callbacks)
+                context.emit_callback( 
+                    event_name=edge_callback,
+                    payload=payload
+                )
+            else:
+                # Non-sequential: emit to all callbacks
+                for edge_callback in edge_callbacks.values():
+                    context.emit_callback( 
+                        event_name=edge_callback,
+                        payload=payload
+                    )
         
         return 'exec'

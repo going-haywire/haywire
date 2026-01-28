@@ -53,7 +53,8 @@ class CustomCallbackNode(EventNode):
             'listen_callback',
             label='Listen',
             default=self.node_id,
-            event_filter='*'
+            event_filter='*',
+            allow_multiple_connections=True
         ))
 
         # Control output
@@ -85,8 +86,9 @@ class CustomCallbackNode(EventNode):
             self.event_subscription = CallbackEvent(event_name=callback_name)
                
 
-    def worker(self, context: ExecutionContext):
+    def worker(self, context: ExecutionContext) -> str | None:
         # Extract payload from trigger
         payload = context.trigger.payload
         
-        return 'triggered', (('payload', payload),)
+        self.out('payload', payload)
+        return 'triggered'

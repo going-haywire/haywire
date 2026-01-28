@@ -25,11 +25,6 @@ if TYPE_CHECKING:
 
 T = TypeVar('T')
 
-# Worker return type: None | str | (str | None, tuple of (outlet_id, value) pairs)
-WorkerResult = (
-    None | str | tuple[str | None, tuple[tuple[str, Any], ...]]
-)
-
 @dataclass
 class NodeIdentity(BaseIdentity):
     """Core identifying attributes of a node"""
@@ -886,56 +881,17 @@ class NodeData:
         result = self._executor(context)
         return self._parse_worker_result(result)
 
-    def _parse_worker_result(self, result: Any) -> Optional[str]:
-        """
-        Parse worker function result to extract next outlet ID.
-        
-        Strict pattern - exceptions on invalid format:
-        - None: No continuation, no outputs
-        - str: Control flow to outlet_id, no outputs
-        - (str | None, tuple): Control flow + outputs
-            - First element: outlet_id for control flow (or None)
-            - Second element: tuple of (outlet_id, value) pairs (can be empty)
-        
-        Args:
-            result: Worker function return value
-            
-        Returns:
-            Outlet ID to follow, or None
-            
-        Raises:
-            ValueError: If result doesn't match expected pattern
-            
-        Examples:
-            return None  # No flow, no outputs
-            return 'next'  # Flow only
-            return ('next', ())  # Flow, no outputs (explicit)
-            return (None, (('out1', 10), ('out2', 20)))  # Outputs, no flow
-            return ('next', (('out1', 10), ('out2', 20)))  # Flow + outputs
-        """
-        if result is None:
-            return None
-                
-        if isinstance(result, str):
-            return result
-        
-        try:
-            next_outlet, outputs = result
-                       
-            # Set all outputs
-            for item in outputs:
-                outlet_id, value = item
-                self.out(outlet_id, value)
-            
-            return next_outlet
-        except (TypeError, ValueError) as e:
+    def _parse_worker_result(self, result: str | None) -> str | None:
+        """Parse worker result - just flow control."""
+        if result is not None and not isinstance(result, str):
             raise ValueError(
-                f"Worker result must be None, str, or (str|None, tuple), "
+                f"Worker must return str (outlet ID) or None, "
                 f"got {type(result).__name__}: {result!r}"
-            ) from e
+            )
+        return result
 
     @abstractmethod
-    def worker(self, context: ExecutionContext, *args, **kwargs) -> WorkerResult:
+    def worker(self, context: ExecutionContext, *args, **kwargs) -> str | None:
         """
         The main execution logic of the node.
         
@@ -954,12 +910,8 @@ class NodeData:
             **kwargs: Named parameters matching inlet port IDs (auto-extracted)
         
         Returns:
-            WorkerResult:
-            - None  # No flow, no outputs
-            - 'next'  # Flow only
-            - ('next', ())  # Flow, no outputs (explicit)
-            - (None, (('out1', 10), ('out2', 20)))  # Outputs, no flow
-            - ('next', (('out1', 10), ('out2', 20)))  # Flow + outputs
+            - None  # for data flow nodes
+            - 'next'  # for control flow nodes
         
         Examples:
             Simple node with required inputs:
@@ -967,16 +919,14 @@ class NodeData:
             .. code-block:: python
             
                 def worker(self, context: ExecutionContext, value: float, multiplier: float):
-                    result = value * multiplier
-                    return (None, (('result', result),))
+                    self.out('result', value * multiplier)
             
             Node with optional inputs (default if port missing):
             
             .. code-block:: python
             
                 def worker(self, context: ExecutionContext, value: float, offset: float = 0.0):
-                    result = value + offset
-                    return (None, (('result', result),))
+                    self.out('result', value + offset)
             
             Control flow node:
             
@@ -990,20 +940,10 @@ class NodeData:
             .. code-block:: python
             
                 def worker(self, context: ExecutionContext, x: float, y: float):
-                    return ('next', (
-                        ('sum', x + y),
-                        ('product', x * y),
-                        ('difference', x - y),
-                    ))
-            
-            No parameters (slower, access via self.value()):
-            
-            .. code-block:: python
-            
-                def worker(self, context: ExecutionContext):
-                    value = self.value('input')
-                    self.out('output', value * 2)
-                    return None
+                    self.out('sum', x + y)
+                    self.out('product', x * y)
+                    self.out('difference', x - y)
+                    return 'next'
             """
         pass
 

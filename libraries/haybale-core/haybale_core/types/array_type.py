@@ -23,7 +23,6 @@ T = TypeVar('T')
 
 @type(
     registry_id='array',
-    flow_type=FlowType.DATA,
     label='Array',
     description='Homogeneous typed array',
     color='#e91e63',
@@ -45,18 +44,46 @@ class ArrayType(CompoundType[T]):
     
     Storage: ArrayField stores List[T] with unwrapped elements
     Transfer: List of unwrapped values (primitives or instances)
+
+    IMPORTANT:
+    It inherits the element type's flow type (if it is set). 
+    !!Setting the flow type in the decorator or as_inlet/as_outlet has no effect!!
     
     Hooks: Uses default implementations from IType
     - _validate_port_type: Allows all port types (inlet, outlet, config)
-    - _configure_port: No special configuration needed
+    - _configure_port: Sets flow type based on element type
     """
     
     field_class = None  # Will be set to ArrayField after it's defined
     
-    # No hook overrides needed - uses defaults from IType!
     # Allows inlets, outlets, and configs
-    # No special port configuration
-    
+
+    @classmethod
+    def _configure_port(cls, port, **context) -> None:
+        """
+        array type's flow type is determined by its element type
+        """
+        # array type's flow type is determined by its element type
+        if not port.type_cls.element_type_cls:
+            return
+        
+        # Start with the immediate element type
+        current_type = port.type_cls.element_type_cls
+        
+        # Drill down until we find a non-NONE flow type
+        while current_type is not None:
+            # Check if this type has a non-NONE flow type
+            if hasattr(current_type, 'class_identity'):
+                if current_type.class_identity.flow_type != FlowType.NONE:
+                    port.flow_type = current_type.class_identity.flow_type
+                    return
+                        
+                # Move to next level if available
+                if hasattr(current_type, 'element_type_cls'):
+                    current_type = current_type.element_type_cls
+                else:
+                    break
+
     @property
     def value(self):
         """Arrays don't have instances - this is for type checking only"""

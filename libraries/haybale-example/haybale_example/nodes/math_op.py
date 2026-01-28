@@ -56,20 +56,18 @@ class MathOP(BaseNode):
             ))
 
     def worker(self, context: ExecutionContext, value_a: float, value_b: float, operator: str) -> dict | None:
+        result = 0.0
         if operator == MathOPs.ADD.value:
             result = value_a + value_b
-            return (None, (('result', result),))
         elif operator == MathOPs.SUBTRACT.value:
             result = value_a - value_b
-            return (None, (('result', result),))
         elif operator == MathOPs.MULTIPLY.value:
             result = value_a * value_b
-            return (None, (('result', result),))
         elif operator == MathOPs.DIVIDE.value:
             if value_b != 0:
                 result = value_a / value_b
-                return (None, (('result', result),))
             else:
-                return (None, (('result', 0.0),))
+                result = 0.0
+        self.out('result', result)
         return None
     

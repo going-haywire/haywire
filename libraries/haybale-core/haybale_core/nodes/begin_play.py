@@ -31,8 +31,9 @@ class BeginPlayNode(EventNode):
         # Data output
         self.add(FLOAT.as_outlet('timestamp', label='Start Time'))
     
-    def worker(self, context: ExecutionContext):
+    def worker(self, context: ExecutionContext) -> str | None:
         import time
-                
+        
+        self.out('timestamp', time.time())
         # Continue execution
-        return 'exec', (('timestamp', time.time()),)
+        return 'exec'

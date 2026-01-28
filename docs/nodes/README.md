@@ -1,6 +1,6 @@
 # Nodes Documentation
 
-```python:
+```python
 """
 ForLoop Node - Standard loop construct for iteration.
 
@@ -18,22 +18,22 @@ from haywire.core.execution.execution_context import ExecutionContext
     search_tags=['simple', 'task'],
 )
 class SimpleNode(BaseNode):
-    
+
     def initialize(self):
         from ..types.specs import EXEC, INT
         from haybale_core.widgets.basic_widgets import NumberWidget
 
-        
+
         # Mark as control node (not data node)
         self.behavior.is_control_node = True
         self.behavior.is_data_node = False
-                
+
         # Control input - starts the loop
         self.add(EXEC.as_inlet(
             'trigger',
             label='Execute'
         ))
-        
+
         # value inputs
         self.add(INT.as_inlet(
             'value',
@@ -41,21 +41,21 @@ class SimpleNode(BaseNode):
             default=0,
             widget=NumberNumberWidget.config()
         ))
-        
+
         # OUTLETS
-        
+
         # Loop body outlet - executes on each iteration
         self.add(EXEC.as_outlet(
             'execute',
             label='Execute next node',
         ))
-        
+
         # simple outlet
         self.add(INT.as_outlet(
             'result',
             label='result'
         ))
-        
+
     # Method that is called right after initialize() to set up any additional state
     # that cannot be serialized.
     def setup(self):
@@ -70,7 +70,7 @@ class SimpleNode(BaseNode):
 
     # Handle validation of inputs before execution. Called before worker execution.
     def on_validation_input(self, context: ExecutionContext) -> None:
- 
+
     # Main workhorese method. This is called by the VM when this node is executed.
     # It receives the execution context. All method inputs after context are optional and
     # correspond to the node's inlets. 'value' inlet is passed as an argument here.
@@ -78,11 +78,12 @@ class SimpleNode(BaseNode):
         self,
         context: ExecutionContext,
         value: int = 0
-    ) -> dict | tuple:
+    ) -> str | None:
 
         # simply passes the value to the output
+        self.out('result', value)
         # and triggers the next node through 'execute' outlet.       
-        return 'execute', (('result', value),)
+        return 'execute',
 
     # Method that is called once when the node is being shut down in the VM.
     def shutdown(self, context: ExecutionContext):
@@ -92,7 +93,6 @@ class SimpleNode(BaseNode):
     # place to clean up any resources or references.
     def teardown(self):
         pass
-
 ```
 
 ## Lifecyle of a Node
@@ -102,7 +102,7 @@ class SimpleNode(BaseNode):
 
 when the flow starts executing:
 3. **Startup**: `startup(context)` is called once when the node starts executing.
-   
+
 inside the execution loop:
 4. **On Changed Async**: `on_changed_async(context)` is called to handle async changes.
 5. **On Validation Input**: `on_validation_input(context)` is called to validate inputs.
@@ -123,7 +123,7 @@ The `worker()` method is the main execution logic of your node. It's called by t
 ### Method Signature
 
 ```python
-def worker(self, context: ExecutionContext, *args, **kwargs) -> WorkerResult:
+def worker(self, context: ExecutionContext, *args, **kwargs) -> str | None:
 ```
 
 **Key Design Principle:** Parameter names must match inlet port IDs. The system automatically extracts and passes inlet values as unwrapped arguments.
@@ -137,125 +137,77 @@ def initialize(self):
     self.add(FLOAT.as_outlet(id='result'))
 
 # Parameters 'value' and 'multiplier' match the inlet IDs above
-def worker(self, context: ExecutionContext, value: float, multiplier: float):
-    return (None, (('result', value * multiplier),))
+def worker(self, 
+    context: ExecutionContext, 
+    value: float, 
+    multiplier: float
+    ) -> str | None:
+
+    self.out('result', value * multiplier)
 ```
 
 **Rules:**
+
 - Use type hints to document expected types
 - Use default values for optional ports (if port doesn't exist, default is used)
 - Required parameters (no default) must have matching ports or `ValueError` is raised
 
-### Return Types (WorkerResult)
+### Return Types
 
-The worker method returns a `WorkerResult` which can take several forms:
+The worker method return can take two forms:
 
-| Return Value | Meaning |
-|--------------|---------|
-| `None` | No control flow, no outputs |
-| `'outlet_id'` | Trigger control flow through outlet, no data outputs |
-| `('outlet_id', ())` | Trigger control flow, no outputs (explicit) |
-| `(None, (('out1', 10), ('out2', 20)))` | Set data outputs, no control flow |
-| `('outlet_id', (('out1', 10), ('out2', 20)))` | Trigger control flow AND set outputs |
+| Return Value           | Meaning                                        |
+| ---------------------- | ---------------------------------------------- |
+| `None`                 | No control flow continuation                   |
+| `'outlet_id'`          | Trigger control flow through specified outlet  |
+
 
 ### Examples
 
 **Simple data node:**
+
 ```python
 def worker(self, context: ExecutionContext, value: float, multiplier: float):
-    result = value * multiplier
-    return (None, (('result', result),))
+    self.out('result', value * multiplier)
 ```
 
 **Node with optional inputs:**
+
 ```python
 def worker(self, context: ExecutionContext, value: float, offset: float = 0.0):
-    result = value + offset
-    return (None, (('result', result),))
+    self.out('result', value + offset)
 ```
 
 **Control flow node (branching):**
+
 ```python
 def worker(self, context: ExecutionContext, condition: bool):
     return 'true_branch' if condition else 'false_branch'
 ```
 
 **Multi-output with control flow:**
+
 ```python
 def worker(self, context: ExecutionContext, x: float, y: float):
-    return ('next', (
-        ('sum', x + y),
-        ('product', x * y),
-        ('difference', x - y),
-    ))
+    self.out('sum', x + y)
+    self.out('product', x * y)
+    self.out('difference', x - y)
+    return 'next'
 ```
 
 ---
 
 ## Alternative Access Methods
 
-If you prefer not to use parameter mapping, or need dynamic access to ports, you can use the `self.value()` and `self.out()` methods directly.
+If you prefer not to use parameter mapping, or need dynamic access to ports, you can use the `self.value()` methods directly.
 
-### Reading Inlet Values: `self.value()`
+### Reading Inlet (and Outlet) Values: `self.value()`
 
 ```python
 def worker(self, context: ExecutionContext):
     # Access inlet values by ID
     value = self.value('input')
     threshold = self.value('threshold')
-    
-    result = value if value > threshold else 0.0
-    return (None, (('result', result),))
+
+    self.out('result', value if value > threshold else 0.0)
 ```
-
-### Setting Outlet Values: `self.out()`
-
-```python
-def worker(self, context: ExecutionContext):
-    value = self.value('input')
-    
-    # Set outlet values by ID
-    self.out('doubled', value * 2)
-    self.out('halved', value / 2)
-    self.out('squared', value ** 2)
-    
-    return 'next'  # Only return control flow, outputs already set
-```
-
-### Comparison
-
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Parameter mapping** | Faster, cleaner, type-hinted | Less flexible |
-| **`self.value()` / `self.out()`** | Dynamic, flexible | Slower, no type hints |
-
-### Mixed Approach
-
-You can combine both methods:
-
-```python
-def worker(self, context: ExecutionContext, value: float, multiplier: float):
-    # Use parameters for main inputs
-    result = value * multiplier
-    
-    # Use self.out() for setting outputs
-    self.out('result', result)
-    self.out('debug_info', f"Computed {value} * {multiplier}")
-    
-    return 'next'
-```
-
-### Checking Port Connection Status
-
-```python
-def worker(self, context: ExecutionContext):
-    # Check if an inlet is connected before accessing
-    if self.ports['optional_input'].is_connected:
-        value = self.value('optional_input')
-        result = process_with(value)
-    else:
-        result = process_default()
-    
-    return (None, (('result', result),))
-```
-

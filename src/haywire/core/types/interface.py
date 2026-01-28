@@ -84,7 +84,7 @@ class IType(ABC):
     
     # STRUCTURAL ATTRIBUTES (type system mechanics)
     field_class: type['DataField'] = None
-    element_type_cls: type = None  # What this type wraps/contains
+    element_type_cls: type['IType'] = None  # What this type wraps/contains
     
     # IDENTITY ATTRIBUTES (set by @type decorator)
     class_identity: 'DataTypeIdentity'

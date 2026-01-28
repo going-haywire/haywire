@@ -21,6 +21,6 @@ class ErrorNode(BaseNode):
         # Configure UI
         self.ui.config.node_renderer = 'core:renderer:ErrorNodeRenderer'
     
-    def worker(self, context: ExecutionContext) -> dict | None:
+    def worker(self, context: ExecutionContext) -> str | None:
         """Error nodes don't execute - they just display error information"""
         return None

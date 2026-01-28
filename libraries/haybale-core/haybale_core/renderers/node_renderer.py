@@ -85,15 +85,18 @@ class NodeRenderer(BaseRenderer, ABC):
                     pin.icon_out,
                     ICONS.JOIN_RIGHT
                 )
-            ui.icon(ctrl_icon, color=ctrl_color, size='xs').classes(
-                'text-4xl port input-port connection-pin zoom-pan-lod0'
-            ).style(
-                f'position: absolute; {direction}: -20px; '
-                f'cursor: crosshair;'
-            ).props(
-                f'{common_props} '
-                f'data-pin-color="{ctrl_color}"'
-            )
+            with ui.icon(ctrl_icon, color=ctrl_color, size='xs').classes(
+                    'text-4xl port input-port connection-pin zoom-pan-lod0'
+                ).style(
+                    f'position: absolute; {direction}: -20px; '
+                    f'cursor: crosshair;'
+                ).props(
+                    f'{common_props} '
+                    f'data-pin-color="{ctrl_color}"'
+                ):
+                with ui.tooltip().classes(ctrl_color):
+                    self._tooltip_for_port(pin)
+
         elif pin.flow_type == FlowType.CALLBACK:
             # Get callback flow color from theme
             callback_color = pin.color
@@ -110,15 +113,18 @@ class NodeRenderer(BaseRenderer, ABC):
                     ICONS.SWIPE_RIGHT_ALT
                 )
             # Pin connector
-            ui.icon(callback_icon, color=callback_color, size='20px').classes(
-                'text-4xl port input-port connection-pin zoom-pan-lod0'
-            ).style(
-                f'position: absolute; {direction}: -20px; '
-                f'cursor: crosshair;'
-            ).props(
-                f'{common_props} '
-                f'data-pin-color="{callback_color}"'
-            )
+            with ui.icon(callback_icon, color=callback_color, size='20px').classes(
+                    'text-4xl port input-port connection-pin zoom-pan-lod0'
+                ).style(
+                    f'position: absolute; {direction}: -20px; '
+                    f'cursor: crosshair;'
+                ).props(
+                    f'{common_props} '
+                    f'data-pin-color="{callback_color}"'
+                ):
+                with ui.tooltip().classes(callback_color):
+                    self._tooltip_for_port(pin)
+
         elif pin.flow_type == FlowType.DATA:
             pin_color = pin._data.get_stored_type().class_identity.color
             pin_data_type = pin._data.get_stored_type().class_identity.registry_key
@@ -173,7 +179,13 @@ class NodeRenderer(BaseRenderer, ABC):
                     f'data-pin-data-type="{pin_data_type}" '
                     f'data-pin-color="{pin_color}"'
                 ):
-                ui.tooltip(f'{pin.description} | {pin._data.get_value()}').classes('bg-green')
+                with ui.tooltip().classes(pin_color):
+                    self._tooltip_for_port(pin)
+
+    def _tooltip_for_port(self, port: DataPort):
+        ui.label(f'Desc: {port.description}')
+        ui.label(f'Flow: {port.flow_type.value}')
+        ui.label(f'Type: {port._data.get_stored_type().class_identity.registry_key}')
 
     def _add_resize_handle(self, main_card: ui.card, wrapper: NodeWrapper):
         """Add a draggable resize handle to the bottom-right corner."""

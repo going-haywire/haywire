@@ -161,6 +161,6 @@ class TestNodeOne(BaseNode):
         """Execute the node - return the constant value"""
         wert = self.value('float_slider')
 
-        return None, (('float', wert),)
+        self.out('float', wert)
     
 

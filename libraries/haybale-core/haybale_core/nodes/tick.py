@@ -43,8 +43,10 @@ class TickNode(EventNode):
         # Data output
         self.add(FLOAT.as_outlet('delta_time', label='Delta Time'))
     
-    def worker(self, context: ExecutionContext):
+    def worker(self, context: ExecutionContext) -> str | None:
         # Extract delta time from trigger
         delta = context.trigger.payload.get('delta_time', 0.016)
-                
-        return 'exec', (('delta_time', delta),)
+
+        self.out('delta_time', delta)  
+
+        return 'exec'

@@ -24,7 +24,6 @@ T = TypeVar('T')
 
 @type(
     registry_id='pooled',
-    flow_type=FlowType.DATA,
     label='Pooled',
     description='Multi-source aggregation',
     color='#9c27b0',
@@ -45,6 +44,12 @@ class PooledType(CompoundType[T]):
         PooledType[MeshData].as_inlet(id='mesh_collection')
     
     Note: Pooled is INLET-ONLY - cannot be used with outlets!
+
+    It sets the pin to allow multiple connections automatically. 
+
+    IMPORTANT:
+    It inherits the element type's flow type (if it is set). 
+    !!Setting the flow type in the decorator or as_inlet/as_outlet has no effect!!
     
     Storage: PooledField stores Dict[str, T] with unwrapped values
     Worker Access: Dict[str, T] or List[T]
@@ -84,7 +89,28 @@ class PooledType(CompoundType[T]):
         multiple sources into one inlet.
         """
         port.allow_multiple_connections = True
-    
+
+        # pooled type's flow type is determined by its element type
+        if not port.type_cls.element_type_cls:
+            return
+        
+        # Start with the immediate element type
+        current_type = port.type_cls.element_type_cls
+        
+        # Drill down until we find a non-NONE flow type
+        while current_type is not None:
+            # Check if this type has a non-NONE flow type
+            if hasattr(current_type, 'class_identity'):
+                if current_type.class_identity.flow_type != FlowType.NONE:
+                    port.flow_type = current_type.class_identity.flow_type
+                    return
+                        
+                # Move to next level if available
+                if hasattr(current_type, 'element_type_cls'):
+                    current_type = current_type.element_type_cls
+                else:
+                    break
+
     @property
     def value(self):
         """Pooled types don't have instances - this is for type checking only"""

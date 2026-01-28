@@ -571,8 +571,8 @@ class NodeWrapper:
                     return None  # No execution needed
                 self._is_dirty_data = False  # Reset dirty flag
 
-            self._node_instance.on_changed_async()
-            self._node_instance.on_validation_input()
+            self._node_instance.on_changed_async(exec_ctx)
+            self._node_instance.on_validation_input(exec_ctx)
 
             return self._node_instance.execute(exec_ctx)
         

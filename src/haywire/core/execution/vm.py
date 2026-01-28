@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 import logging
 
+from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow
 
@@ -49,7 +50,7 @@ class HaywireVM:
         self.max_stack_depth = max_stack_depth
         
         # Callback manager reference (set by interpreter)
-        self.callback_manager = None
+        self.callback_manager: Optional[CallbackManager] = None
         
         logger.debug("HaywireVM initialized")
     

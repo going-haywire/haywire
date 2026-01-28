@@ -110,7 +110,7 @@ class ForLoopNode(BaseNode):
         start: int = 0,
         end: int = 10,
         step: int = 1
-    ) -> dict | tuple:
+    ) -> str | None:
         """
         Execute loop iteration.
         
@@ -173,4 +173,5 @@ class ForLoopNode(BaseNode):
             return 'completed'
         
         # Continue loop - output current index        
-        return 'loop_body', (('index', current_index),)
+        self.out('index', current_index)
+        return 'loop_body'
