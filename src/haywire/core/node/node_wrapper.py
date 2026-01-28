@@ -498,7 +498,7 @@ class NodeWrapper:
             self._state = None
             self._node_cls = None
             self._node_factory = None
-            self._node_instance.destroy()
+            self._node_instance.teardown()
             self._node_instance = None
             self._graph = None
 

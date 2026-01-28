@@ -1,4 +1,5 @@
 from haywire.core.execution.event_source import SystemEvent, SystemEventType
+from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 
 from .event_node import EventNode
@@ -42,10 +43,8 @@ class TickNode(EventNode):
         # Data output
         self.add(FLOAT.as_outlet('delta_time', label='Delta Time'))
     
-    def worker(self, context):
+    def worker(self, context: ExecutionContext):
         # Extract delta time from trigger
-        delta = context['trigger'].payload.get('delta_time', 0.016)
-        
-        self.out('delta_time', delta)
-        
-        return {'next_outlet': 'exec'}
+        delta = context.trigger.payload.get('delta_time', 0.016)
+                
+        return 'exec', (('delta_time', delta),)

@@ -4,6 +4,7 @@ Basic core node implementations
 
 # Import the node system base class
 from haybale_test_a.types.maps_string_type import MapsStringType
+from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
 
@@ -156,14 +157,10 @@ class TestNodeOne(BaseNode):
         """Request a redraw of the node in the UI."""
         self.wrapper.redraw()
 
-    def worker(self, context: dict) -> dict | None:
+    def worker(self, context: ExecutionContext) -> dict | None:
         """Execute the node - return the constant value"""
         wert = self.value('float_slider')
-        self.out('float_slider', 10)
 
-        # wert = self.inlets['float_slider'].value.value
-        # get_inlet_value("float_slider").value
-
-        return None
+        return None, (('float', wert),)
     
 

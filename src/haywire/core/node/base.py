@@ -1138,7 +1138,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         return True, None
 
-    def on_changed_async(self) -> None:
+    def on_changed_async(self, context: ExecutionContext) -> None:
         """
         Handle asynchronous changes to the node.
         
@@ -1150,7 +1150,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         pass
 
-    def on_validation_input(self) -> None:
+    def on_validation_input(self, context: ExecutionContext) -> None:
         """
         Handle validation of inputs before execution.
         
@@ -1164,7 +1164,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         pass
 
-    def startup(self) -> None:
+    def startup(self, context: ExecutionContext) -> None:
         """
         Perform any startup logic when the node is executing for the first time.
         It is called once before the first execution of the worker.
@@ -1174,7 +1174,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         pass
 
 
-    def shutdown(self) -> None:
+    def shutdown(self, context: ExecutionContext) -> None:
         """
         Perform any shutdown logic when the graph stops executing.
         
@@ -1182,7 +1182,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         pass
 
-    def destroy(self) -> None:
+    def teardown(self) -> None:
         """
         Clean up resources when node is destroyed.
         

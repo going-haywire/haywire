@@ -1,4 +1,5 @@
 from haywire.core.execution.event_source import SystemEvent, SystemEventType
+from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 
 from .event_node import EventNode
@@ -23,7 +24,6 @@ class BeginPlayNode(EventNode):
     EVENT_SOURCE = SystemEvent(SystemEventType.BEGIN_PLAY)
     
     def initialize(self):
-        super().initialize()
         
         # Control output
         self.add(EXEC.as_outlet('exec', label='Execute'))
@@ -31,11 +31,8 @@ class BeginPlayNode(EventNode):
         # Data output
         self.add(FLOAT.as_outlet('timestamp', label='Start Time'))
     
-    def worker(self, context):
+    def worker(self, context: ExecutionContext):
         import time
-        
-        # Set timestamp
-        self.out('timestamp', time.time())
-        
+                
         # Continue execution
-        return 'exec', ()
+        return 'exec', (('timestamp', time.time()),)
