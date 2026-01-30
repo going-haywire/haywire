@@ -37,6 +37,39 @@ class LibraryFileHandler(FileSystemEventHandler):
         if not event.is_directory and event.src_path.endswith('.py'):
             self._handle_file_change(event.src_path, FileEventType.DELETED)
     
+    def on_moved(self, event):
+        """
+        Handle file moves within the watched directory.
+        
+        A move is treated as a deletion of the source file followed by
+        creation of the destination file. This ensures the registry
+        properly updates module paths and class registrations.
+        
+        Args:
+            event: FileMovedEvent with src_path and dest_path
+        """
+        if not event.is_directory:
+            # Log the move operation
+            if event.src_path.endswith('.py') or event.dest_path.endswith('.py'):
+                logging.info(
+                    f"[{self.library_identity.label}] File moved: "
+                    f"{event.src_path} → {event.dest_path}"
+                )
+            
+            # Handle source file deletion (if it's a Python file)
+            if event.src_path.endswith('.py'):
+                self._handle_file_change(
+                    event.src_path, 
+                    FileEventType.DELETED
+                )
+            
+            # Handle destination file creation (if it's a Python file)
+            if event.dest_path.endswith('.py'):
+                self._handle_file_change(
+                    event.dest_path, 
+                    FileEventType.CREATED
+                )
+    
     def _handle_file_change(self, file_path: str, event_type: FileEventType):
         """Handle file change with debouncing"""
         with self._lock:
