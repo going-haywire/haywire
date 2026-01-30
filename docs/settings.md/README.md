@@ -156,7 +156,45 @@ class ConditionalNode(BaseNode):
             context.log(f"Condition: {condition}")
         
         return 'true_branch' if condition else 'false_branch'
+
+    @node(
+        label="Accumulator",
+        menu="math/statistics",
+        is_stateful=True,
+        is_pure=False
+    )
+    class AccumulatorNode(BaseNode):
+        
+        def initialize(self):
+            # Ports
+            self.add(FLOAT.as_inlet('value'))
+            self.add(FLOAT.as_outlet('sum'))
+            self.add(FLOAT.as_outlet('count'))
+            
+            # Persistent state (survives save/load)
+            self.store.total = 0.0
+            self.store.count = 0
+            
+            # Transient cache (lost on reload)
+            self.cache.last_value = None
+        
+        def worker(self, context, value: float):
+            # Use store for persistent state
+            self.store.total += value
+            self.store.count += 1
+            
+            # Use cache for transient data
+            self.cache.last_value = value
+            
+            # Check settings
+            if self.settings['debug.verbose_logging']:
+                context.log(f"Accumulated: {self.store.total}")
+            
+            self.out('sum', self.store.total)
+            self.out('count', self.store.count)
+
 ```
+
 
 # examples/settings_from_ui.py
 """
@@ -329,21 +367,29 @@ def on_library_load():
     register(get_settings_registry())
 ```
 
-## Directory Structure
+## Summary
+
+The architecture provides:
 ```
-haywire/core/settings/
-├── __init__.py
-├── enums.py
-├── value.py
-├── definition.py
-├── registry.py
-├── holder.py
-└── builtins/
-    ├── __init__.py
-    ├── ui_node.py
-    ├── ui_edge.py
-    ├── ui_canvas.py
-    ├── ui_minimap.py
-    ├── execution.py
-    ├── debug.py
-    └── editor.py
+Class-Level (immutable, set by @node decorator):
+├── class_identity: NodeIdentity
+│   ├── registry_id, label, description
+│   ├── search_tags, menu
+│   ├── help_md, help_url
+│   └── _is_error, _error_priority
+│
+└── class_behavior: NodeBehaviorFlags
+    ├── is_control_node, is_data_node, is_event_node
+    ├── is_output_node, is_pure, is_stateful
+    ├── is_loopback, can_execute_async, is_mutable
+
+Instance-Level:
+├── identity → class_identity (read-only property)
+├── behavior → class_behavior (read-only property)
+├── settings: SettingsHolder -> GUI-accessible settings
+│   ├── Global-aware: ui.node.*, execution.*, etc.
+│   └── Local-only: node.muted, node.collapsed, etc.
+├── cache: NodeCache (transient, NOT serialized)
+├── store: NodeStore (persistent, serialized, NOT GUI)
+├── ui: NodeUI (position, dimensions, convenience methods)
+└── ports: dict[str, DataPort]
