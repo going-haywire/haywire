@@ -29,15 +29,15 @@ LIBRARIES = {
         'description': 'Visiongraph library for Haywire'
     },
     '4': {
+        'name': 'haybale-testing',
+        'path': PROJECT_ROOT / 'libraries' / 'haybale-testing',
+        'description': 'Testing library for Haywire'
+    },
+    '5': {
         'name': 'haybale-TEST_A',
         'path': PROJECT_ROOT / 'libraries' / 'haybale-TEST_A',
         'description': 'Test library A'
     },
-    '5': {
-        'name': 'haybale-TEST_B',
-        'path': PROJECT_ROOT / 'libraries' / 'haybale-TEST_B',
-        'description': 'Test library B'
-    }
 }
 
 

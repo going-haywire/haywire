@@ -1006,44 +1006,58 @@ class BaseGraph:
             # Load node wrappers
             if "nodes" in data:
                 from ..node.node_wrapper import NodeWrapper
-                
-                for node_id, wrapper_data in data["nodes"].items():
-                    # Create wrapper
-                    wrapper = NodeWrapper(
-                        registry_key=wrapper_data["registry_key"],
-                        node_id=node_id,
-                        graph=self,
-                        position=tuple(wrapper_data.get("position", [100, 100]))
+
+                try:
+                    for node_id, wrapper_data in data["nodes"].items():
+                        # Create wrapper
+                        wrapper = NodeWrapper(
+                            registry_key=wrapper_data["registry_key"],
+                            node_id=node_id,
+                            graph=self,
+                            position=tuple(wrapper_data.get("position", [100, 100]))
+                        )
+                        
+                        # Instantiate with original node_id and build
+                        wrapper.build(wrapper_data.get("node_data", {}))
+                        
+                        # Add to graph
+                        self.add_node_wrapper(wrapper)
+
+                except Exception as e:
+                    logger.error(
+                        f"Error loading node {node_id} from dictionary: {e}", 
+                        exc_info=True
                     )
-                    
-                    # Instantiate with original node_id and build
-                    wrapper.build(wrapper_data.get("node_data", {}))
-                    
-                    # Add to graph
-                    self.add_node_wrapper(wrapper)
-                                
+
             # Load edges
             if "edges" in data:
                 from ..edge.edge_wrapper import EdgeWrapper
-                
-                for connection_uuid, edge_data in data["edges"].items():
-                    edge_wrapper = EdgeWrapper(
-                        graph=self,
-                        source_node_id=edge_data["source_node_id"],
-                        outlet_port_id=edge_data["outlet_port_id"],
-                        sink_node_id=edge_data["sink_node_id"],
-                        inlet_port_id=edge_data["inlet_port_id"],
-                        edge_type=FlowType(edge_data["edge_type"]),
-                    )
+                try:
                     
-                    edge_wrapper.build()
+                    for connection_uuid, edge_data in data["edges"].items():
+                        edge_wrapper = EdgeWrapper(
+                            graph=self,
+                            source_node_id=edge_data["source_node_id"],
+                            outlet_port_id=edge_data["outlet_port_id"],
+                            sink_node_id=edge_data["sink_node_id"],
+                            inlet_port_id=edge_data["inlet_port_id"],
+                            edge_type=FlowType(edge_data["edge_type"]),
+                        )
+                        
+                        edge_wrapper.build()
 
-                    # Validate adapter chain for changes
-                    chain = edge_data["chain_adapter_keys"]
-                    edge_wrapper._check_chain_for_changes(chain)
+                        # Validate adapter chain for changes
+                        chain = edge_data["chain_adapter_keys"]
+                        edge_wrapper._check_chain_for_changes(chain)
 
-                    self.add_edge_wrapper(edge_wrapper)
-            
+                        self.add_edge_wrapper(edge_wrapper)
+
+                except Exception as e:
+                    logger.error(
+                        f"Error loading edge {connection_uuid} from dictionary: {e}", 
+                        exc_info=True
+                    )           
+
             for wrapper in self.node_wrappers.values():
                 wrapper._housekeeping()
 

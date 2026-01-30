@@ -1,7 +1,7 @@
 [project]
-name = "haybale-TEST_B"
+name = "haybale-testing"
 version = "1.0.0"
-description = "Test library B for Haywire node system"
+description = "Testing library for Haywire node system"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -14,17 +14,17 @@ dependencies = []
 
 # Entry point for Haywire library discovery
 [project.entry-points."haywire.libraries"]
-test_b = "haybale_test_b:Library"
+testing = "haybale_testing:Library"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["haybale_test_b"]
+packages = ["haybale_testing"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "haybale_test_b/",
+    "haybale_testing/",
     "README.md",
 ]

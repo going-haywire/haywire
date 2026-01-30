@@ -23,15 +23,14 @@ class MergeCallbackNode(EventNode):
         triggered: Control flow when callback received
         payload: Data from callback
     """
-        
+
     def initialize(self):
-        pass
+        self.reconfigure(number_of_callbacks=1)
 
     def setup(self):
         # Set initial subscription
-        self.event_subscription = CallbackEvent(event_name=self.node_id)
         self.store: dict[str, float] = {}
-        self.reconfigure(number_of_callbacks=1)
+        self.event_subscription = CallbackEvent(event_name=self.node_id)
 
     def rebuild(self, *args, **kwargs) -> None:
         """Request a redraw of the node in the UI."""

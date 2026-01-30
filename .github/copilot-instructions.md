@@ -257,3 +257,183 @@ self.ui_properties: dict = (
 ````
 
 **Never sacrifice readability for line length compliance.**
+
+# Python Docstring Instructions
+
+For Python docstrings follow these best practices:
+
+## Structure
+
+1. **One-line summary**: Brief description ending with period
+2. **Blank line**
+3. **Detailed description**: Explain behavior, design decisions, context
+4. **Blank line**
+5. **Args section**: Document parameters (if any)
+6. **Returns section**: Document return value (if any)
+7. **Raises section**: Document exceptions (if any)
+8. **Note/Warning sections**: Important caveats (if needed)
+9. **Examples section**: Show usage patterns (always include)
+
+## Details
+
+Only add details / examples / notes
+* if the information is not obvious from the signature or context.  
+* if the function has non-trivial behavior.
+* if the function has important side effects or design considerations. 
+
+## Formatting Rules
+
+### Summary Line
+- One sentence, ending with period
+- Imperative mood ("Get the value" not "Gets the value")
+- No type information (use type hints in signature instead)
+
+### Args Section
+```
+Args:
+    param_name (type, optional): Description of parameter.
+        Defaults to default_value if not provided.
+    another_param: Description without type (if hint in signature).
+```
+
+- Indent param descriptions 4 spaces
+- Continuation lines indent 8 spaces
+- Use "optional" in type for optional params
+- Mention defaults when relevant
+
+### Returns Section
+```
+Returns:
+    Description of return value
+    
+    OR
+    
+Returns:
+    - None  # for no return
+    - str  # outlet ID
+    - List[DataPort]  # sorted ports
+```
+
+- Use bullet format for multiple possible return types
+- Include inline comments for clarity
+
+### Raises Section
+```
+Raises:
+    ValueError: When this specific error occurs.
+    KeyError: When that specific error occurs.
+```
+
+### Examples Section
+- Always include at least one example
+- Use `.. code-block:: python` directive
+- Show common use cases first, then advanced
+- Include inline comments for clarity
+- Show both simple and complex usage
+
+```
+Examples:
+    Simple usage:
+    
+    .. code-block:: python
+    
+        result = node.value('input')  # Returns: 42.0
+    
+    Advanced usage with options:
+    
+    .. code-block:: python
+    
+        with self.group(GROUP.as_inlet('advanced')):
+            self.add(FLOAT.as_inlet('param'))
+```
+
+## Style Guidelines
+
+1. **Blank lines**: Always separate sections with blank line
+2. **Indentation**: Use 4-space indentation consistently
+3. **Line length**: Keep under 99 characters, break naturally
+4. **Type hints**: In function signature, not docstring (except optional note)
+5. **Active voice**: Prefer active voice in descriptions
+6. **Present tense**: Use present tense for current behavior
+7. **Specificity**: Be specific about behavior, edge cases, defaults
+
+## Common Patterns
+
+### For Methods
+```python
+def method_name(self, param: str, optional: int = 0) -> Result:
+    """
+    One-line summary of what method does.
+    
+    Detailed explanation of behavior, design decisions,
+    and how the method fits into the larger system.
+    
+    Args:
+        param: Description of required parameter.
+        optional: Description of optional parameter.
+            Defaults to 0.
+    
+    Returns:
+        Description of what is returned
+    
+    Raises:
+        ValueError: When validation fails.
+    
+    Examples:
+        Basic usage:
+        
+        .. code-block:: python
+        
+            result = obj.method_name('value')
+        
+        With optional parameter:
+        
+        .. code-block:: python
+        
+            result = obj.method_name('value', optional=5)
+    """
+```
+
+### For Classes
+```python
+class ClassName:
+    """
+    One-line summary of class purpose.
+    
+    Detailed description of what the class represents,
+    its responsibilities, and how it fits into the system.
+    
+    Key design decisions or architectural notes should
+    be mentioned here.
+    
+    Attributes:
+        attr1: Description of attribute.
+        attr2: Description of attribute.
+    
+    Examples:
+        Creating and using the class:
+        
+        .. code-block:: python
+        
+            obj = ClassName(param1, param2)
+            obj.method()
+    """
+```
+
+## What to Avoid
+
+- ❌ Don't repeat type information (it's in type hints)
+- ❌ Don't write "This method..." (implied by context)
+- ❌ Don't use past tense ("This method created..." → "Create...")
+- ❌ Don't omit examples (always include at least one)
+- ❌ Don't forget blank lines between sections
+- ❌ Don't write multi-paragraph Args descriptions (extract to main description)
+- ❌ Don't include implementation details unless architecturally relevant
+
+## IDE Rendering
+
+Ensure docstrings render properly in IDEs:
+- Use proper ReStructuredText directives (`.. code-block::`)
+- Include blank lines before code blocks
+- Keep consistent indentation
+- Test that examples display correctly in hover tooltips

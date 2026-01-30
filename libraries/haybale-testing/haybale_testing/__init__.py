@@ -16,10 +16,10 @@ from haywire.ui.renderer.registry import RendererRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 @library(
-    label='Test B',
-    id='test_b',
+    label='Testing',
+    id='testing',
     version='1.0.0',
-    description='Test library B for demonstrating multi-library support',
+    description='Test library for test support',
     url='https://github.com/maybites/haywire',
     help_url='https://github.com/maybites/haywire',
     author='Haywire Team',
@@ -28,7 +28,7 @@ from haywire.ui.widget.registry import WidgetRegistry
     file_watcher=True
 )
 class Library(BaseLibrary):
-    """Test B library implementation"""
+    """Test library implementation"""
        
     def register_components(self):
         """Register all test components with the global registries"""

@@ -83,7 +83,20 @@ class NodeFactory:
         
         # Register this factory for lifecycle events from node registry hot reloads
         self.node_registry.add_batch_event_subscriber(self._listen_on_lifecycle_event)
+    
+
+    def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
+        """
+        Get alternate node registry keys for a given registry key.
         
+        Args:
+            registry_key: The registry key of the node to find alternates for
+        Returns:
+            List of alternate registry keys
+        """
+        alternates = self.node_registry.get_alternate_node_registry_keys(registry_key)
+        return alternates
+
     def get_node(self, registry_key: str) -> tuple[type[BaseNode], HaywireException | None]:
         """
         Get the node class for a given registry key.

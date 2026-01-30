@@ -180,6 +180,9 @@ class NodeWrapper:
             self._graph._structural
         )
 
+        self._alternate_registry_keys: List[str] = []
+        """Alternate registry keys for this node if the specific version is not available"""
+
         self._is_dirty_structural: bool = False
         self._is_dirty_data: bool = False
 
@@ -220,6 +223,8 @@ class NodeWrapper:
         self._node_cls, self._state.error_import = self._node_factory.get_node(self.registry_key)
         if self._state.error_import:
             self._state.is_imported = False
+            self._alternate_registry_keys = self._node_factory.get_alternate_node_registry_keys(
+                self.registry_key)
         else:
             self._state.is_imported = True
         

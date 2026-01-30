@@ -73,6 +73,12 @@ class DefaultNodeRenderer(NodeRenderer):
                     ui.label(error.message).classes('text-sm text-red-600 mb-2')
                     error_render_detail(error)
 
+                    if wrapper._alternate_registry_keys:
+                        ui.label(
+                            f"Alternate versions available: "
+                            f"{', '.join(wrapper._alternate_registry_keys)}"
+                        ).classes('text-sm text-yellow-600 mb-2')
+
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
                 # Left column: Inlets

@@ -3,6 +3,8 @@
 import inspect
 import logging
 
+from haywire.core.library.utils import get_registry_id_from_key
+
 from ...core.registry.lifecycle_event import LifeCycleEvent
 from ..errors.haywire_exception import HaywireException
 from ..registry.base import BaseRegistry
@@ -92,4 +94,22 @@ class NodeRegistry(BaseRegistry):
     def get_node_lastevent(self, key: str) -> LifeCycleEvent | None:
         """Get the last lifecycle event for a node by its registry key."""
         return self._regkey_to_last_lifecycle_event.get(key)
+    
+    def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
+        """
+        Get alternate node registry keys for a given node registry key.
+        It takes the regitry_id from the registry_key and finds all nodes
+        with the same registry_id but from differtent libraries.
+
+        Args:
+            registry_key (str): The registry key of the node to find alternates for.    
+        Returns:
+            list[str]: A list of alternate node registry keys.
+        """
+        registry_id = get_registry_id_from_key(registry_key)
+        alternates = []
+        for key in self._classes.keys():
+            if get_registry_id_from_key(key) == registry_id and key != registry_key:
+                alternates.append(key)
+        return alternates
 
