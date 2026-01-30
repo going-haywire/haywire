@@ -643,18 +643,18 @@ def set_global_injector(injector: Injector) -> None:
     _global_injector = injector
 
 
-def set_library_system(service: LibrarySystemService) -> None:
+def set_library_system(service: LibrarySystemService | None) -> None:
     """
     Set the global LibrarySystemService.
     
     Should be called during application initialization.
     
     Args:
-        service: The initialized LibrarySystemService
+        service: The initialized LibrarySystemService (or None to clear)
     """
     global _global_library_system, _global_injector
     _global_library_system = service
-    _global_injector = service.injector
+    _global_injector = service.injector if service is not None else None
 
 
 def get_library_system() -> LibrarySystemService:

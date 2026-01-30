@@ -75,7 +75,7 @@ def project_root() -> Path:
 @pytest.fixture(scope='session')
 def test_library_path(project_root: Path) -> Path:
     """Get path to test libraries."""
-    return project_root / 'tests' / 'libraries'
+    return project_root / 'libraries'
 
 
 # ==============================================================================

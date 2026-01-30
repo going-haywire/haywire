@@ -1,5 +1,10 @@
 # Unit test for settings-dependent code
-from haywire.core.di.test_config import create_test_library_system, create_test_settings_holder, create_test_settings_registry
+from haywire.core.di.test_config import (
+    create_test_library_system,
+    create_test_settings_holder,
+    create_test_settings_registry,
+    SettingsTestContext
+)
 
 
 def test_node_uses_setting():

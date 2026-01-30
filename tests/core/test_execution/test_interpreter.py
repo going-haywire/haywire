@@ -27,7 +27,7 @@ class TestInterpreter:
             The populated graph
         """
         from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_test_a.nodes.print_node import PrintMessageNode
+        from haybale_testing.nodes.testbed.print_node import PrintMessageNode
 
         begin_play = graph.create_node_wrapper(
             BeginPlayNode.class_identity.registry_key,
@@ -57,7 +57,7 @@ class TestInterpreter:
             The populated graph
         """
         from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_test_a.nodes.print_node import PrintMessageNode
+        from haybale_testing.nodes.testbed.print_node import PrintMessageNode
         from haybale_example.nodes.math_op import MathOP
 
         begin_play = graph.create_node_wrapper(
@@ -154,7 +154,7 @@ class TestInterpreter:
         from haybale_core.nodes.begin_play import BeginPlayNode
         from haybale_core.nodes.emit_callback import EmitCallbackNode
         from haybale_core.nodes.custom_callback import CustomCallbackNode
-        from haybale_test_a.nodes.print_node import PrintMessageNode
+        from haybale_testing.nodes.testbed.print_node import PrintMessageNode
 
         graph = graph_with_library_system
 
@@ -169,8 +169,9 @@ class TestInterpreter:
             position=(300, 100)
         )
         
-        # Set callback name
-        emit_callback.node.ports['callback_name'].set_value('test_callback')
+        # Set mode to use custom callback name and set the callback name
+        emit_callback.node.ports['mode_switch'].set_value(True)
+        emit_callback.node.ports['custom_callback_name'].set_value('test_callback')
 
         graph.create_edge_wrapper(
             begin_play.node_id, 'exec',
@@ -183,8 +184,9 @@ class TestInterpreter:
             position=(100, 300)
         )
         
-        # Set callback listener name
-        custom_callback.node.ports['callback_name'].set_value('test_callback')
+        # Set mode to use custom callback name and set the listener name
+        custom_callback.node.ports['mode_switch'].set_value(True)
+        custom_callback.node.ports['custom_callback_name'].set_value('test_callback')
         
         print_msg = graph.create_node_wrapper(
             PrintMessageNode.class_identity.registry_key,
@@ -261,7 +263,7 @@ class TestInterpreter:
     ):
         """Test reloading a different graph into the interpreter"""
         from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_test_a.nodes.print_node import PrintMessageNode
+        from haybale_testing.nodes.testbed.print_node import PrintMessageNode
 
         # Create first graph
         graph1 = self._create_simple_graph(graph_with_library_system)
