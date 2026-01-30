@@ -31,7 +31,7 @@ class FolderScanMixin:
         file_paths = []
         library_dir = Path(library_path)
 
-        for py_file in library_dir.glob('*.py'):
+        for py_file in library_dir.glob('**/*.py'):
             # Skip __init__.py and excluded patterns
             if py_file.name == '__init__.py':
                 continue
@@ -70,7 +70,7 @@ class FolderScanMixin:
             )
             return []
 
-        for py_file in library_dir.glob('*.py'):
+        for py_file in library_dir.glob('**/*.py'):
             # Skip __init__.py and excluded patterns
             if py_file.name == '__init__.py':
                 continue
@@ -81,8 +81,12 @@ class FolderScanMixin:
             if not self._validate_python_file(py_file):
                 logging.warning(f"Invalid Python file: {py_file}. Skip Registering.")
                 continue
-                
-            module_name = f"{module_prefix}.{py_file.stem}"
+            
+            # Calculate module name based on relative path from library_dir
+            relative_path = py_file.relative_to(library_dir)
+            module_parts = list(relative_path.parent.parts) + [py_file.stem]
+            module_suffix = '.'.join(module_parts) if relative_path.parent.parts else py_file.stem
+            module_name = f"{module_prefix}.{module_suffix}"
             module_names.append(module_name)
 
         return module_names
