@@ -630,7 +630,7 @@ class NodeData:
         Get all callback outlet ports (CALLBACK type outlets).
         
         Returns:
-            List of callback outlet ports with event_filter
+            List of callback outlet ports
         """
         return [
             port for port in self.ports.values()
@@ -1141,9 +1141,6 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         return {
             'node_id': self.node_id,
-            'registry_key': self.identity.registry_key,
-            'library': asdict(self.library) if self.library else None,
-            'identity': asdict(self.identity),
             'behavior': asdict(self.behavior),
             'ui_config': asdict(self.ui.config),
             'ui_state': asdict(self.ui.state),
@@ -1203,10 +1200,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
                     setattr(target_obj, key, value)
                 # Silently ignore unknown fields for forward compatibility
         
-        # Restore dataclass fields from serialized data
-        if 'identity' in data:
-            restore_dataclass_fields(self.identity, data['identity'])
-        
+        # Restore dataclass fields from serialized data         
         if 'behavior' in data:
             restore_dataclass_fields(self.behavior, data['behavior'])
         

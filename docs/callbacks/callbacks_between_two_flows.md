@@ -289,7 +289,6 @@ class EmitCallbackNode(BaseNode):
         self.add(CALLBACK.as_inlet(
             'callback',
             label='Trigger',
-            event_filter='*'  # Can trigger any callback event
         ))
     
         # Data inputs
@@ -358,7 +357,6 @@ class CustomCallbackNode(EventNode):
         # Declare callback interest
         self.add(CALLBACK.as_outlet(
             'listen_callback',
-            event_filter=callback_name,
             label='Listen'
         ))
         
@@ -374,7 +372,6 @@ class CustomCallbackNode(EventNode):
         
         # Update callback port event filter
         callback_port = self.ports['listen_callback']
-        callback_port.event_filter = new_value
         
         # Trigger flow reassembly via wrapper
         if self.wrapper:

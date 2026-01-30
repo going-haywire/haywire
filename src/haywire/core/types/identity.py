@@ -35,7 +35,6 @@ class DataTypeIdentity(BaseIdentity):
         cls: Python type (int, float, str, MeshData, etc.)
         container_type: SINGLE, LIST, DICT, SET, TUPLE
         flow_type: DATA, CTRL, or NONE
-        event_filter: For callback ports, event name pattern to filter (e.g., 'data_ready')
         color: UI pin color (hex)
         icon: UI pin icon
         icon_in: Icon for inlet pins
@@ -71,9 +70,6 @@ class DataTypeIdentity(BaseIdentity):
     widget: dict[str, Any] | None = None
     widget_key: str | dict | None = None
     widget_config: dict[str, Any] = field(default_factory=dict)
-
-    event_filter: str | None = None
-    """For callback ports: event name pattern to filter (e.g., 'data_ready')"""
 
     help_url: str = ''
     

@@ -1,4 +1,5 @@
 from haybale_core.types.specs import BOOL
+from haybale_core.widgets.basic_widgets import SelectWidget
 from haywire.core.execution.event_source import CallbackEvent, SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
@@ -47,13 +48,20 @@ class CustomCallbackNode(EventNode):
                 label='Callback Name',
                 widget=TextWidget.config()
             ))
-                
+
+            # Config for callback name
+        self.add(STRING.as_config(
+            'thread_mode',
+            default='single',
+            label='Thread Mode',
+            widget=SelectWidget.config(properties={'options': ['single', 'multi']})
+        ))
+               
         # Declare callback interest
         self.add(CALLBACK.as_outlet(
             'listen_callback',
             label='Listen',
             default=self.node_id,
-            event_filter='*',
             allow_multiple_connections=True
         ))
 

@@ -28,7 +28,7 @@ graph TB
     
     subgraph "Flow 2: Listener Flow (Event: callback:my_callback)"
         CC[CustomCallbackNode<br/>EventNode]
-        CC_listen_out["listen_callback (outlet)<br/>callback type<br/>event_filter: 'my_callback'"]
+        CC_listen_out["listen_callback (outlet)<br/>callback type: 'my_callback'"]
         CC_triggered_out["triggered (outlet)"]
         CC_payload_out["payload (outlet)"]
         

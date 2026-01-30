@@ -47,7 +47,6 @@ class EventNode(BaseNode):
                 # Declare interest in callback
                 self.add(CALLBACK.as_outlet(
                     'listen_callback',
-                    event_filter='data_ready'
                 ))
                 
                 # Control flow when triggered

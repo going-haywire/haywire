@@ -286,7 +286,6 @@ class StructuralValidator(IStructuralValidator):
         
         Rules:
         - Target node must be an event node
-        - Source port must have event_filter set
         
         Args:
             wrapper: Callback edge wrapper to validate
@@ -308,19 +307,7 @@ class StructuralValidator(IStructuralValidator):
                     "Or change edge type to DATA if passing data"
                 ]
             )
-        
-        # Source outlet must have event_filter
-        source_port = wrapper._source_wrapper.node.ports.get(wrapper.outlet_port_id)
-        if not source_port or not source_port.event_filter:
-            return (
-                False,
-                f"Callback outlet must have event_filter set. "
-                f"Port '{wrapper.outlet_port_id}' has no filter.",
-                [
-                    "Set event_filter when creating callback port",
-                    "Example: CALLBACK.as_outlet('callback', event_filter='my_event')"
-                ]
-            )
+
         
         # All checks passed
         return (True, None, [])

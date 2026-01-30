@@ -115,6 +115,11 @@ class SimpleWidget(IWidget, ABC):
         
         # View → Model: Subscribe to UI element changes (if writable)
         if not self.IS_READONLY:
+            # TODO: CATCH_ERROR_IN_WIDGET: capture exceptions here? or close. Reasoning: 
+            # If a changein the UI triggers 
+            # a callback to the node that fails, this is the last spot before the UI update.
+            # this way we can give the user feedback in the UI if needed. otherwise the error
+            # will show only in the backend logs.
             self._ui_changed_callback = lambda e: self._sync_to_model()
             self.ui_element.on(self.UI_EVENT, self._ui_changed_callback)
     

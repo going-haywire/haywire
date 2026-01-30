@@ -13,9 +13,10 @@ T = TypeVar('T')
 def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a Haywire node.
-
-    Accepts any NodeIdentity field as a keyword argument. Common arguments include:
-
+    
+    Accepts any NodeIdentity field as a keyword argument to customize the node's
+    metadata and behavior. Common arguments are listed below.
+    
     Args:
         registry_id (str, optional): Unique identifier for the node within its library.
             Defaults to class name if not provided.
@@ -34,38 +35,53 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         deprecation_warning (str, optional): Deprecation warning message for the node.
             Defaults to empty string.
         _is_error (bool, optional): Whether this node handles error cases.
-            Defaults to False. Only one error node can be registered. 
-        _error_priority (int, optional): Priority of this error node when multiple are registered.
-            If multiple error nodes are registered, 
-            the one with the higher _error_priority will override the previous ones.
-
-    Any other keyword arguments will be passed through to the NodeIdentity constructor.
-    See the NodeIdentity dataclass for the complete list of available fields.
-
-    Usage:
-        # Minimal usage - uses class name for registry_id and label
-        @node
-        class MyNode(BaseNode): ...
-
-        # Common customization
-        @node(label="Custom Node", description="Does custom things")
-        class MyNode(BaseNode): ...
-
-        # Full customization
-        @node(
-            registry_id="my_custom_node",
-            label="My Custom Node", 
-            description="Performs custom calculations",
-            search_tags=["custom", "math", "utility"],
-            menu="custom/math",
-            help_md="## Custom Node\n\nThis node does...",
-            _is_error=False
-        )
-        class CustomNode(BaseNode): ...
-
-        # Error handling node
-        @node(_is_error=True, label="Error Handler", menu="system/errors")
-        class ErrorNode(BaseNode): ...
+            Defaults to False. Only one error node can be registered.
+        _error_priority (int, optional): Priority of this error node when multiple 
+            are registered. Higher priority overrides previous ones.
+    
+    Note:
+        Any other keyword arguments will be passed through to the NodeIdentity 
+        constructor. See the NodeIdentity dataclass for the complete list of 
+        available fields.
+    
+    Examples:
+        Minimal usage - uses class name for registry_id and label:
+        
+        .. code-block:: python
+        
+            @node
+            class MyNode(BaseNode):
+                pass
+        
+        Common customization:
+        
+        .. code-block:: python
+        
+            @node(label="Custom Node", description="Does custom things")
+            class MyNode(BaseNode):
+                pass
+        
+        Full customization:
+        
+        .. code-block:: python
+        
+            @node(
+                registry_id="my_custom_node",
+                label="My Custom Node",
+                description="Performs custom calculations",
+                search_tags=["custom", "math", "utility"],
+                menu="custom/math",
+                help_md="## Custom Node\n\nThis node does...",
+                _is_error=False
+            )
+            class CustomNode(BaseNode):
+                pass
+                
+        .. code-block:: python
+        
+            @node(_is_error=True, label="Error Handler", menu="system/errors")
+            class ErrorNode(BaseNode):
+                pass
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseNode):

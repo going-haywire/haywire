@@ -261,23 +261,6 @@ print(f"Event: {callback_listener.node_id}")
 # Shows in topology statistics
 ```
 
-## About event_filter
-
-The `event_filter` attribute in your callback ports is currently **not used** by the implementation. It can be:
-
-**Option A**: Removed (not needed for current functionality)
-**Option B**: Kept as placeholder for future filtering features
-**Option C**: Used for documentation purposes
-
-### Potential Future Use
-Could enable wildcard matching:
-```python
-# Listener accepts any event starting with 'data_'
-CALLBACK.as_outlet('listen', event_filter='data_*')
-
-# Would match: 'data_ready', 'data_update', 'data_complete'
-```
-
 ## No Functional Changes
 
 **Important**: This implementation is **purely observability**. The callback mechanism was already working correctly through your pipe propagation system. These changes just make it:
@@ -300,13 +283,7 @@ Both callback approaches work correctly with your node implementations!
 
 ## Next Steps (Optional)
 
-### Enhanced Filtering
-Implement wildcard event filtering:
-```python
-if event_filter and not matches_filter(event_name, event_filter):
-    continue  # Skip this callback
-```
-
+`
 ### Topology Visualization
 Use connection maps to generate visual graph:
 ```python

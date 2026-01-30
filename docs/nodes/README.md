@@ -188,7 +188,7 @@ def worker(self, context: ExecutionContext, condition: bool):
 **Multi-output with control flow:**
 
 ```python
-def worker(self, context: ExecutionContext, x: float, y: float):
+def worker(self, context: ExecutionContext, x: float, y: float) -> str| None:
     self.out('sum', x + y)
     self.out('product', x * y)
     self.out('difference', x - y)

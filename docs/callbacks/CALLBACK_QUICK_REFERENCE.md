@@ -279,18 +279,6 @@ for emitter in [emitter1, emitter2, emitter3]:
 3. Review pipe propagation (edge-based)
 4. Examine assembly logs for event propagation
 
-## event_filter Attribute
-
-Currently **not used** by the implementation. Can be:
-- Removed (not needed)
-- Kept for future wildcard filtering
-- Used for documentation
-
-Future use could enable:
-```python
-# Listener accepts any 'data_*' event
-CALLBACK.as_outlet('listen', event_filter='data_*')
-```
 
 ## Summary
 
