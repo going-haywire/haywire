@@ -37,6 +37,11 @@ Notable open source projects that realize something similar but with different u
    uv sync --dev
    ```
 
+3. **Just update dependencies after editing toml:**
+   ```sh
+   uv sync
+   ```
+
 ### Development
 
 Using Visual Studio Code as the developement IDE, Haywire allows to jump directly to the source and correct line number, if VS Code is added to your PATH:

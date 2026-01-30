@@ -18,6 +18,7 @@ from .dataclasses import (
     NodeUIState, 
     NodeUserMetadata
 )
+from haywire.core.settings import SettingsHolder, GlobalSettingsRegistry
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -98,6 +99,41 @@ class NodeData:
         self._executor: Optional[Callable] = None
         """Optimized execution callable (combines extraction + worker call)"""
 
+        # Initialize settings holder
+        self._settings: SettingsHolder = SettingsHolder(
+            registry=get_library_system().get_settings_registry(),
+            owner=wrapper,
+            owner_name=f"Node:{node_id}"
+        )
+
+    @property
+    def settings(self) -> SettingsHolder:
+        """
+        Access node settings with dynaconf-style API.
+        
+        Examples:
+            # Read resolved value
+            color = self.settings.ui.node.bg_color
+            color = self.settings['ui.node.bg_color']
+            
+            # Write local override
+            self.settings.ui.node.bg_color = '#ff0000'
+            self.settings['ui.node.bg_color'] = '#ff0000'
+            
+            # Check if globally overridden
+            info = self.settings.get_info('ui.node.bg_color')
+            if info.is_overridden:
+                # Cannot change locally
+                pass
+            
+            # Reset to inherit from global
+            self.settings.reset('ui.node.bg_color')
+            
+            # Define local-only setting
+            self.settings.define('my_cache_size', 100, scope=SettingScope.LOCAL_ONLY)
+        """
+        return self._settings
+    
     def _housekeeping(self) -> None:
         """
         Perform housekeeping tasks for the node.
@@ -1132,6 +1168,17 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         pass
 
+
+    def _cleanup(self) -> None:
+        """Clean up resources when node is destroyed."""
+        self.teardown()
+        # Clean up settings
+        self._settings.cleanup()        
+
+    # =========================================================================
+    # SERIALIZATION (updated)
+    # =========================================================================
+
     def _to_dict(self) -> dict:
         """
         Serialize node to dictionary.
@@ -1145,7 +1192,8 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             'ui_config': asdict(self.ui.config),
             'ui_state': asdict(self.ui.state),
             'metadata': asdict(self.metadata),
-            'ports': self._serialize_ports()  # Delegate to NodeData
+            'settings': self._settings.to_dict(),
+            'ports': self._serialize_ports(),  # Delegate to NodeData
         }
     
     def _initialize_from_dict(self, data: dict) -> None:
@@ -1212,7 +1260,11 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         
         if 'metadata' in data:
             restore_dataclass_fields(self.metadata, data['metadata'])
-        
+
+        # Restore settings
+        if 'settings' in data:
+            self._settings.from_dict(data['settings'])
+
         # Deserialize ports (uses existing deserialize_ports method)
         if 'ports' in data:
             self._deserialize_ports(data['ports'])

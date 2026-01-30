@@ -227,7 +227,22 @@ class NodeWrapper:
                 self.registry_key)
         else:
             self._state.is_imported = True
-        
+    
+    def _rebuild(self, registry_key: str) -> None:
+        """
+        Rebuild the node wrapper for a new registry key."""
+        with self._lock:
+            self.registry_key = registry_key
+            self._import_node_cls()
+            node_info = self._node_instance._to_dict()
+            self.build(node_info)
+            # Tell graph about need for hot reload
+            if self._graph:
+                self._graph._validation.mark_node_dirty(
+                    self._node_id,
+                    ChangeReason.NODE_HOT_RELOADED
+                )
+
     def build(self, node_info: Optional[Dict[str, Any]] = None):
         """
         Build node from class.
@@ -484,7 +499,7 @@ class NodeWrapper:
             self._state.error_import = None
             self._state.is_imported = True
             
-            # Tell graph about error
+            # Tell graph about need for hot reload
             if self._graph:
                 self._graph._validation.mark_node_dirty(
                     self._node_id,
@@ -503,8 +518,9 @@ class NodeWrapper:
             self._state = None
             self._node_cls = None
             self._node_factory = None
-            self._node_instance.teardown()
-            self._node_instance = None
+            if self._node_instance:
+                self._node_instance._cleanup()
+                self._node_instance = None
             self._graph = None
 
     def validate(self) -> List[str]:

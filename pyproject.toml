@@ -17,6 +17,7 @@ dependencies = [
     "injector>=0.22.0",
     "attrs==25.4.0",
     "cattrs==25.3.0",
+    "toml>=0.10.2",
 ]
 
 [tool.setuptools.packages.find]

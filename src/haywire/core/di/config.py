@@ -1,3 +1,4 @@
+# haywire/core/di/config.py
 """
 Dependency Injection configuration for Haywire.
 
@@ -26,6 +27,9 @@ from ..undo.interfaces import IHistoryManager
 from ..undo.history_manager import HistoryManager
 from ..undo.config import UndoConfig
 from ..undo.no_op_history_manager import NoOpHistoryManager
+from ..settings import GlobalSettingsRegistry
+from ..settings.builtins import register_all as register_builtin_settings
+
 
 class HaywireModule(Module):
     """
@@ -35,11 +39,16 @@ class HaywireModule(Module):
     factories, and services used throughout the Haywire system.
     """
     
-    def __init__(self, project_root: Optional[str] = None, 
-                 library_paths: Optional[List[str]] = None,
-                 enable_file_watching: bool = True,
-                 undo_config: Optional[UndoConfig] = None,
-                 default_theme: str = 'default'):
+    def __init__(
+        self, 
+        project_root: Optional[str] = None, 
+        library_paths: Optional[List[str]] = None,
+        enable_file_watching: bool = True,
+        undo_config: Optional[UndoConfig] = None,
+        default_theme: str = 'default',
+        settings_path: Optional[str] = None,
+        watch_settings: bool = True
+    ):
         """
         Initialize the DI module.
         
@@ -49,12 +58,21 @@ class HaywireModule(Module):
             enable_file_watching: Whether to enable file watching for hot reload
             undo_config: Optional undo configuration (uses default if None)
             default_theme: Default theme to set on initialization
+            settings_path: Path to settings TOML file (default: ~/.haywire/settings.toml)
+            watch_settings: Whether to watch settings file for hot reload
         """
         self.project_root = project_root or self._detect_project_root()
         self.library_paths = library_paths or []
         self.enable_file_watching = enable_file_watching
         self.undo_config = undo_config
         self.default_theme = default_theme
+        self.watch_settings = watch_settings
+        
+        # Settings path
+        if settings_path:
+            self.settings_path = Path(settings_path).expanduser().resolve()
+        else:
+            self.settings_path = Path.home() / '.haywire' / 'settings.toml'
         
         # Add default library paths if not provided
         if not self.library_paths:
@@ -62,6 +80,27 @@ class HaywireModule(Module):
                 os.path.join(self.project_root, 'libraries'),
                 os.path.join(self.project_root, 'tests', 'libraries')
             ]
+    
+    @provider
+    @singleton
+    def provide_settings_registry(self) -> GlobalSettingsRegistry:
+        """
+        Provide singleton GlobalSettingsRegistry.
+        
+        The registry is initialized with:
+        1. Built-in setting definitions (from modular builtin files)
+        2. User values loaded from TOML file
+        3. Optional file watching for hot-reload
+        """
+        registry = GlobalSettingsRegistry()
+        
+        # Register built-in settings from modular files
+        register_builtin_settings(registry)
+        
+        # Load user values from TOML (with optional hot-reload)
+        registry.load_from_toml(self.settings_path, watch=self.watch_settings)
+        
+        return registry
     
     @provider
     @singleton
@@ -218,6 +257,7 @@ class LibrarySystemService:
         renderer_registry = self.injector.get(RendererRegistry)
         node_registry = self.injector.get(NodeRegistry)
         type_registry = self.injector.get(TypeRegistry)
+        settings_registry = self.injector.get(GlobalSettingsRegistry)
         
         # Link registries to library registry for management
         library_registry.add_class_registry(WidgetRegistry, widget_registry)
@@ -246,6 +286,11 @@ class LibrarySystemService:
         print("\n📋 Registry Status:")
         print("-" * 70)
         self.print_registry_status()
+        
+        # Print settings status
+        print("\n⚙️  Settings Status:")
+        print("-" * 70)
+        self._print_settings_status(settings_registry)
 
         self._initialized = True
         print("\n" + "=" * 70)
@@ -253,6 +298,35 @@ class LibrarySystemService:
         print("=" * 70 + "\n")
         
         return self
+    
+    def _print_settings_status(self, registry: GlobalSettingsRegistry) -> None:
+        """Print settings registry status."""
+        from ..settings import SettingMode
+        
+        definitions = registry.all_definitions()
+        categories = registry.definitions_by_category()
+        
+        # Count overrides and custom values
+        overrides = 0
+        custom_values = 0
+        for name in definitions:
+            sv = registry.get_global(name)
+            if sv.mode == SettingMode.OVERRIDE:
+                overrides += 1
+            elif sv.mode == SettingMode.SET:
+                custom_values += 1
+        
+        print(f"   Total settings:     {len(definitions)}")
+        print(f"   Categories:         {len(categories)}")
+        print(f"   Custom values:      {custom_values}")
+        print(f"   Global overrides:   {overrides}")
+        print(f"   Config file:        {registry._config_path}")
+        print(f"   File watching:      {'enabled' if registry._file_watch_enabled else 'disabled'}")
+        
+        # List categories
+        print("\n   Categories:")
+        for cat_name, defns in sorted(categories.items()):
+            print(f"      • {cat_name}: {len(defns)} settings")
     
     def _print_library_discovery_results(self) -> None:
         """Print detailed information about discovered libraries."""
@@ -371,7 +445,10 @@ class LibrarySystemService:
               f"{len(all_widgets)} widgets, {len(all_adapters)} adapters, "
               f"{len(all_types)} types\n")
     
+    # =========================================================================
     # Convenience methods for getting common services
+    # =========================================================================
+    
     def get_node_registry(self) -> NodeRegistry:
         """Get the node registry."""
         return self.injector.get(NodeRegistry)
@@ -392,9 +469,8 @@ class LibrarySystemService:
         """Get the type registry."""
         return self.injector.get(TypeRegistry)
     
-    def get_library_registry(self) -> 'LibraryRegistry':
+    def get_library_registry(self) -> LibraryRegistry:
         """Get the library registry."""
-        from haywire.core.library.registry import LibraryRegistry
         return self.injector.get(LibraryRegistry)
     
     def get_node_factory(self) -> NodeFactory:
@@ -417,13 +493,64 @@ class LibrarySystemService:
     def get_theme_palette(self) -> ThemePalette:
         """Get the theme palette."""
         return self.injector.get(ThemePalette)
+    
+    def get_settings_registry(self) -> GlobalSettingsRegistry:
+        """Get the global settings registry."""
+        return self.injector.get(GlobalSettingsRegistry)
+    
+    # =========================================================================
+    # Settings convenience methods
+    # =========================================================================
+    
+    def get_setting(self, name: str) -> any:
+        """
+        Get a resolved setting value.
+        
+        Args:
+            name: Setting name (e.g., 'ui.node.bg_color')
+            
+        Returns:
+            Resolved value
+        """
+        registry = self.get_settings_registry()
+        value, _ = registry.resolve(name)
+        return value
+    
+    def set_setting(self, name: str, value: any, override: bool = False) -> None:
+        """
+        Set a global setting value.
+        
+        Args:
+            name: Setting name
+            value: Value to set
+            override: If True, force this value on all nodes
+        """
+        from ..settings import SettingMode
+        registry = self.get_settings_registry()
+        mode = SettingMode.OVERRIDE if override else SettingMode.SET
+        registry.set_global(name, value, mode)
+    
+    def save_settings(self) -> None:
+        """Save current settings to TOML file."""
+        registry = self.get_settings_registry()
+        registry.save_to_toml()
+    
+    def reload_settings(self) -> None:
+        """Reload settings from TOML file."""
+        registry = self.get_settings_registry()
+        if registry._config_path:
+            registry._reload_from_file(registry._config_path)
 
 
-def create_haywire_injector(project_root: Optional[str] = None,
-                           library_paths: Optional[List[str]] = None,
-                           enable_file_watching: bool = True,
-                           undo_config: Optional[UndoConfig] = None,
-                           default_theme: str = 'default') -> Injector:
+def create_haywire_injector(
+    project_root: Optional[str] = None,
+    library_paths: Optional[List[str]] = None,
+    enable_file_watching: bool = True,
+    undo_config: Optional[UndoConfig] = None,
+    default_theme: str = 'default',
+    settings_path: Optional[str] = None,
+    watch_settings: bool = True
+) -> Injector:
     """
     Create and configure a Haywire DI injector.
     
@@ -433,6 +560,8 @@ def create_haywire_injector(project_root: Optional[str] = None,
         enable_file_watching: Whether to enable file watching for hot reload
         undo_config: Optional undo configuration for history manager
         default_theme: Default theme to set on initialization
+        settings_path: Path to settings TOML file (default: ~/.haywire/settings.toml)
+        watch_settings: Whether to watch settings file for hot reload
         
     Returns:
         Configured DI injector
@@ -442,17 +571,23 @@ def create_haywire_injector(project_root: Optional[str] = None,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         undo_config=undo_config,
-        default_theme=default_theme
+        default_theme=default_theme,
+        settings_path=settings_path,
+        watch_settings=watch_settings
     )
     
     return Injector([module])
 
 
-def create_library_system_service(project_root: Optional[str] = None,
-                                 library_paths: Optional[List[str]] = None,
-                                 enable_file_watching: bool = True,
-                                 undo_config: Optional[UndoConfig] = None,
-                                 default_theme: str = 'default') -> LibrarySystemService:
+def create_library_system_service(
+    project_root: Optional[str] = None,
+    library_paths: Optional[List[str]] = None,
+    enable_file_watching: bool = True,
+    undo_config: Optional[UndoConfig] = None,
+    default_theme: str = 'default',
+    settings_path: Optional[str] = None,
+    watch_settings: bool = True
+) -> LibrarySystemService:
     """
     Create and initialize a complete library system service.
     
@@ -465,6 +600,8 @@ def create_library_system_service(project_root: Optional[str] = None,
         enable_file_watching: Whether to enable file watching for hot reload
         undo_config: Optional undo configuration for history manager
         default_theme: Default theme to set on initialization
+        settings_path: Path to settings TOML file (default: ~/.haywire/settings.toml)
+        watch_settings: Whether to watch settings file for hot reload
         
     Returns:
         Initialized LibrarySystemService
@@ -474,7 +611,9 @@ def create_library_system_service(project_root: Optional[str] = None,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         undo_config=undo_config,
-        default_theme=default_theme
+        default_theme=default_theme,
+        settings_path=settings_path,
+        watch_settings=watch_settings
     )
     
     service = LibrarySystemService(injector)
@@ -513,8 +652,9 @@ def set_library_system(service: LibrarySystemService) -> None:
     Args:
         service: The initialized LibrarySystemService
     """
-    global _global_library_system
+    global _global_library_system, _global_injector
     _global_library_system = service
+    _global_injector = service.injector
 
 
 def get_library_system() -> LibrarySystemService:
@@ -533,6 +673,40 @@ def get_library_system() -> LibrarySystemService:
             "Call set_library_system() during app startup."
         )
     return _global_library_system
+
+
+def get_settings_registry() -> GlobalSettingsRegistry:
+    """
+    Get the GlobalSettingsRegistry from the global library system.
+    
+    Convenience function for quick access to settings.
+    
+    Returns:
+        GlobalSettingsRegistry instance
+        
+    Raises:
+        RuntimeError: If library system not initialized
+    """
+    return get_library_system().get_settings_registry()
+
+
+def get_setting(name: str) -> any:
+    """
+    Get a resolved setting value.
+    
+    Convenience function for quick access to settings.
+    
+    Args:
+        name: Setting name (e.g., 'ui.node.bg_color')
+        
+    Returns:
+        Resolved value
+        
+    Raises:
+        RuntimeError: If library system not initialized
+        KeyError: If setting not found
+    """
+    return get_library_system().get_setting(name)
 
 
 def get_adapter_factory() -> AdapterFactory:

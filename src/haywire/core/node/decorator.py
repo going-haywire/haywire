@@ -1,106 +1,135 @@
+# haywire/core/node/decorators.py
+"""
+Node decorator for registering node classes.
+"""
+
 from haywire.core.library.utils import derive_library_identity, reg_key
 from haywire.core.node.base import BaseNode, NodeIdentity
-
+from haywire.core.node.behavior import NodeBehaviorFlags, BEHAVIOR_FIELDS
 
 from typing import Callable, Type, TypeVar, Union
 
-# ============================================================================
-#    Decorator
-# ============================================================================
-
 T = TypeVar('T')
+
 
 def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a Haywire node.
     
-    Accepts any NodeIdentity field as a keyword argument to customize the node's
-    metadata and behavior. Common arguments are listed below.
+    Accepts NodeIdentity fields and NodeBehaviorFlags fields as keyword arguments.
     
-    Args:
-        registry_id (str, optional): Unique identifier for the node within its library.
-            Defaults to class name if not provided.
-        label (str, optional): Human-readable display name for the node.
-            Defaults to class name if not provided.
-        description (str, optional): Detailed description of what the node does.
-            Defaults to empty string.
-        search_tags (list[str], optional): Tags for searching/filtering nodes in UI.
-            Defaults to empty list.
-        menu (str, optional): Menu category path (e.g., 'math/arithmetic', 'io/files').
-            Defaults to 'misc/custom'.
-        help_md (str, optional): Markdown help content displayed in node help panel.
-            Defaults to None.
-        help_url (str, optional): URL to external help documentation.
-            Defaults to 'https://haywire.io/docs/node-help'.
-        deprecation_warning (str, optional): Deprecation warning message for the node.
-            Defaults to empty string.
-        _is_error (bool, optional): Whether this node handles error cases.
-            Defaults to False. Only one error node can be registered.
-        _error_priority (int, optional): Priority of this error node when multiple 
-            are registered. Higher priority overrides previous ones.
+    Identity Fields (metadata):
+        registry_id (str): Unique identifier within library. Default: class name
+        label (str): Human-readable display name. Default: class name
+        description (str): Detailed description. Default: ""
+        search_tags (list[str]): Tags for searching/filtering. Default: []
+        menu (str): Menu category path (e.g., 'math/arithmetic'). Default: 'misc/custom'
+        help_md (str): Markdown help content. Default: None
+        help_url (str): URL to documentation. Default: 'https://haywire.io/docs/node-help'
+        _is_error (bool): Whether this is an error handler node. Default: False
+        _error_priority (int): Priority for error handling. Default: 0
     
-    Note:
-        Any other keyword arguments will be passed through to the NodeIdentity 
-        constructor. See the NodeIdentity dataclass for the complete list of 
-        available fields.
+    Behavior Fields (execution characteristics):
+        is_control_node (bool): Participates in control flow. Default: False
+        is_data_node (bool): Processes data. Default: True
+        is_event_node (bool): Entry point for flows. Default: False
+        is_output_node (bool): Terminal output node. Default: False
+        is_pure (bool): No side effects, cacheable. Default: True
+        is_stateful (bool): Maintains state between executions. Default: False
+        is_loopback (bool): Control flow can return here. Default: False
+        can_execute_async (bool): Supports async execution. Default: False
+        is_mutable (bool): Configuration can change at runtime. Default: False
     
     Examples:
-        Minimal usage - uses class name for registry_id and label:
+        Basic data node:
         
         .. code-block:: python
         
             @node
-            class MyNode(BaseNode):
-                pass
+            class AddNode(BaseNode):
+                def initialize(self):
+                    self.add(FLOAT.as_inlet('a'))
+                    self.add(FLOAT.as_inlet('b'))
+                    self.add(FLOAT.as_outlet('result'))
+                
+                def worker(self, context, a: float, b: float):
+                    self.out('result', a + b)
         
-        Common customization:
-        
-        .. code-block:: python
-        
-            @node(label="Custom Node", description="Does custom things")
-            class MyNode(BaseNode):
-                pass
-        
-        Full customization:
+        Control flow node:
         
         .. code-block:: python
         
             @node(
-                registry_id="my_custom_node",
-                label="My Custom Node",
-                description="Performs custom calculations",
-                search_tags=["custom", "math", "utility"],
-                menu="custom/math",
-                help_md="## Custom Node\n\nThis node does...",
-                _is_error=False
+                label="For Loop",
+                menu="control/loops",
+                is_control_node=True,
+                is_loopback=True,
+                is_pure=False
             )
-            class CustomNode(BaseNode):
-                pass
-                
+            class ForLoopNode(BaseNode):
+                ...
+        
+        Event node:
+        
         .. code-block:: python
         
-            @node(_is_error=True, label="Error Handler", menu="system/errors")
-            class ErrorNode(BaseNode):
-                pass
+            @node(
+                label="On Start",
+                menu="events",
+                is_event_node=True,
+                is_control_node=True,
+                is_data_node=False
+            )
+            class OnStartNode(BaseNode):
+                ...
+        
+        Stateful node:
+        
+        .. code-block:: python
+        
+            @node(
+                label="Counter",
+                is_stateful=True,
+                is_pure=False
+            )
+            class CounterNode(BaseNode):
+                def initialize(self):
+                    self.store.count = 0
+                
+                def worker(self, context):
+                    self.store.count += 1
+                    self.out('count', self.store.count)
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseNode):
             raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
-
+        
+        # Split kwargs into identity and behavior
+        behavior_kwargs = {}
+        identity_kwargs = {}
+        
+        for key, value in kwargs.items():
+            if key in BEHAVIOR_FIELDS:
+                behavior_kwargs[key] = value
+            else:
+                identity_kwargs[key] = value
+        
         # Set defaults from class name if not provided
-        kwargs.setdefault('registry_id', inner_cls.__name__)
-        kwargs.setdefault('label', inner_cls.__name__)
+        identity_kwargs.setdefault('registry_id', inner_cls.__name__)
+        identity_kwargs.setdefault('label', inner_cls.__name__)
 
         # Get library identity (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
         library_id = library_identity.id if library_identity else None
-        kwargs['registry_key'] = reg_key(library_id, 'node', kwargs['registry_id'])
+        identity_kwargs['registry_key'] = reg_key(library_id, 'node', identity_kwargs['registry_id'])
 
-        # Create and attach identity and library
-        inner_cls.class_identity = NodeIdentity(**kwargs)
+        # Create and attach identity, behavior, and library
+        inner_cls.class_identity = NodeIdentity(**identity_kwargs)
+        inner_cls.class_behavior = NodeBehaviorFlags(**behavior_kwargs)
         inner_cls.class_library = library_identity
+        
         return inner_cls
 
     return decorator if cls is None else decorator(cls)
