@@ -8,7 +8,7 @@ Each flow has its own scheduler that:
 - Handles trigger queue modes (block/drop)
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List
 from queue import Queue, Empty
 from threading import Thread, Lock
 from enum import Enum
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
     from haywire.core.execution.vm import HaywireVM
+    from haywire.core.node.node_wrapper import NodeWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +127,55 @@ class FlowScheduler:
                 self.execution_thread.start()
                 logger.debug(f"Started execution thread for {self.flow.flow_id}")
     
+    def _call_startup(self):
+        """
+        Call startup() on all nodes in the flow.
+        
+        Creates a minimal execution context for startup calls.
+        Errors in individual nodes are logged but don't stop other nodes.
+        """
+        from haywire.core.execution.execution_context import ExecutionContext
+        
+        # Create minimal execution context for startup
+        local_context = self.vm._create_local_context(self.flow)
+        exec_ctx = ExecutionContext(
+            global_ctx=self.vm.global_context,
+            local_ctx=local_context,
+            trigger=None,
+            vm=self.vm
+        )
+        
+        logger.debug(f"Calling startup() on all nodes in flow {self.flow.flow_id}")
+        
+        for wrapper in self.flow.get_all_node_wrappers():
+            wrapper._startup(exec_ctx)
+    
+    def _call_shutdown(self):
+        """
+        Call shutdown() on all nodes in the flow.
+        
+        Creates a minimal execution context for shutdown calls.
+        Errors in individual nodes are logged but don't stop other nodes.
+        """
+        from haywire.core.execution.execution_context import ExecutionContext
+        
+        # Create minimal execution context for shutdown
+        local_context = self.vm._create_local_context(self.flow)
+        exec_ctx = ExecutionContext(
+            global_ctx=self.vm.global_context,
+            local_ctx=local_context,
+            trigger=None,
+            vm=self.vm
+        )
+        
+        logger.debug(
+            f"Calling shutdown() on all nodes in flow {self.flow.flow_id}"
+        )
+        
+        for wrapper in self.flow.get_all_node_wrappers():
+            wrapper._shutdown(exec_ctx)
+            logger.debug(f"Called shutdown on {wrapper.node_id}")
+    
     def _execution_loop(self):
         """
         Main execution loop (runs in separate thread).
@@ -133,6 +183,15 @@ class FlowScheduler:
         Continuously processes triggers from queue until stopped.
         """
         logger.debug(f"Execution loop started for {self.flow.flow_id}")
+        
+        # Call startup() on all nodes before processing any triggers
+        try:
+            self._call_startup()
+        except Exception as e:
+            logger.error(
+                f"Error during startup phase for {self.flow.flow_id}: {e}",
+                exc_info=True
+            )
         
         while not self.should_stop:
             try:
@@ -157,6 +216,15 @@ class FlowScheduler:
                     f"Error in execution loop for {self.flow.flow_id}: {e}",
                     exc_info=True
                 )
+        
+        # Call shutdown() on all nodes after processing is complete
+        try:
+            self._call_shutdown()
+        except Exception as e:
+            logger.error(
+                f"Error during shutdown phase for {self.flow.flow_id}: {e}",
+                exc_info=True
+            )
         
         logger.debug(f"Execution loop ended for {self.flow.flow_id}")
     
@@ -223,6 +291,12 @@ class FlowScheduler:
         
         if self.execution_thread and self.execution_thread.is_alive():
             self.execution_thread.join(timeout=2.0)
+            
+            # If thread didn't exit cleanly, ensure shutdown is called
+            if self.execution_thread.is_alive():
+                logger.warning(
+                    f"Execution thread for {self.flow.flow_id} did not exit cleanly"
+                )
         
         logger.debug(f"Scheduler stopped for {self.flow.flow_id}")
     
