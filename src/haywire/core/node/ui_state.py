@@ -21,8 +21,8 @@ class NodeUIState:
     """
     
     # Position
-    pos_x: float = 0.0
-    pos_y: float = 0.0
+    posX: float = 0.0
+    posY: float = 0.0
     
     # Dimensions (0 = auto-calculated)
     width: float = 0.0
@@ -32,14 +32,14 @@ class NodeUIState:
     width_min: float = -1.0
     height_min: float = -1.0
     
-    def set_position(self, x: float, y: float) -> None:
+    def set_position(self, pos: tuple[float, float]) -> None:
         """Set node position."""
-        self.pos_x = x
-        self.pos_y = y
+        self.posX = pos[0]
+        self.posY = pos[1]
     
     def get_position(self) -> tuple[float, float]:
         """Get node position."""
-        return (self.pos_x, self.pos_y)
+        return (self.posX, self.posY)
     
     def set_size(self, width: float, height: float) -> None:
         """Set node dimensions."""
@@ -80,9 +80,9 @@ class NodeUI:
     # Position & Dimensions
     # =========================================================================
     
-    def set_position(self, x: float, y: float) -> None:
+    def set_position(self, pos: tuple[float, float]) -> None:
         """Set node position."""
-        self.state.set_position(x, y)
+        self.state.set_position(pos)
     
     def get_position(self) -> tuple[float, float]:
         """Get node position."""
@@ -95,7 +95,7 @@ class NodeUI:
     
     @position.setter
     def position(self, value: tuple[float, float]) -> None:
-        self.state.set_position(value[0], value[1])
+        self.state.set_position(value)
     
     # =========================================================================
     # Collapse / Expand (delegates to settings)

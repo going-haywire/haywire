@@ -1,28 +1,29 @@
 from __future__ import annotations
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Set, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
+from dataclasses import asdict, dataclass, field
 from abc import abstractmethod
-from dataclasses import dataclass, field, asdict
+from contextlib import contextmanager
+
+from haywire.core.execution.event_source import EventSource
+from haywire.core.settings.builtins import register_node_instance_settings
 
 from ..data.enums import FlowType
 from ..execution.execution_context import ExecutionContext
 from ..registry.identity import BaseIdentity
 from ..library.identity import LibraryIdentity
 from ..types.ports import DataPort
-from ..types.utils import PortSpec
-from .dataclasses import (
-    NodeBehavior, 
-    NodeErrorInfo, 
-    NodeUI,
-    NodeUIConfig, 
-    NodeUIState, 
-    NodeUserMetadata
-)
-from haywire.core.settings import SettingsHolder, GlobalSettingsRegistry
+from .behavior import NodeBehaviorFlags
+from .user_data import NodeCache, NodeStore
+from .ui_state import NodeUI, NodeUIState
+from haywire.core.settings import SettingsHolder
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
+
+T = TypeVar('T')
+
 
 T = TypeVar('T')
 
@@ -58,8 +59,9 @@ class NodeData:
     - Section organization (for property panels)
     - Clean API for port access
     """
-    # IDENTITY ATTRIBUTES (set by @type decorator)
+    # Class-level attributes (set by @node decorator)
     class_identity: NodeIdentity
+    class_behavior: NodeBehaviorFlags
     class_library: LibraryIdentity
     
     def __init__(self, node_id: str, wrapper: NodeWrapper):
@@ -68,43 +70,76 @@ class NodeData:
 
         self.node_id = node_id
         self.wrapper = wrapper
+
+        self.event_subscription: EventSource | None = None 
+        # TODO: CallbackSystem
+        """event nodes store here the event subscription"""
         
-        # Cache type registry once for efficient port instantiation
-        self._type_registry: TypeRegistry = (
+        # Cache type registry for port instantiation
+        self._type_registry: 'TypeRegistry' = (
             get_library_system().get_type_registry()
         )
-
-        # Port storage
+        
+        # ---------------------------------------------------------------------
+        # Core containers
+        # ---------------------------------------------------------------------
+        
+        # Ports
         self.ports: Dict[str, DataPort] = {}
-        """Single source of truth for all ports (inlets and outlets)"""
+        """Single source of truth for all ports (inlets and outlets)."""
         
-        self._cache_dirty = True
-        """Flag indicating port cache needs rebuilding"""
-        
-        # Dynamic reconfiguration state (transient - not serialized)
-        self._push_stack: List[Set[str]] = []
-        """Stack of port ID sets for push/pop operations"""
-        
-        # Grouping state (transient - not serialized)
-        self._group_stack: List[str] = []
-        """Stack of active group IDs for nested groups"""
-        
-        self._section_stack: List[str] = []
-        """Stack of active section names for property organization"""
-        
-        self._port_order_counter: int = 0
-        """Counter for assigning display order to ports"""
-
-        # Worker execution cache
-        self._executor: Optional[Callable] = None
-        """Optimized execution callable (combines extraction + worker call)"""
-
-        # Initialize settings holder
+        # Settings (GUI-facing, serialized)
         self._settings: SettingsHolder = SettingsHolder(
             registry=get_library_system().get_settings_registry(),
             owner=wrapper,
             owner_name=f"Node:{node_id}"
         )
+        # Register node-instance-specific local settings
+        register_node_instance_settings(self._settings)
+        
+        # Cache (transient, NOT serialized)
+        self._cache: NodeCache = NodeCache()
+        
+        # Store (persistent, serialized, NOT GUI-facing)
+        self._store: NodeStore = NodeStore()
+        
+        # UI state (position, dimensions)
+        self._ui: NodeUI = NodeUI(self)
+        
+
+        # ---------------------------------------------------------------------
+        # Internal state
+        # ---------------------------------------------------------------------
+               
+        self._push_stack: List[set[str]] = []
+        """Stack of port ID sets for push/pop operations."""
+        
+        self._group_stack: List[str] = []
+        """Stack of active group IDs for nested groups."""
+        
+        self._section_stack: List[str] = []
+        """Stack of active section names for property organization."""
+        
+        self._port_order_counter: int = 0
+        """Counter for assigning display order to ports."""
+
+        self._executor: Optional[Callable] = None
+        """Optimized execution callable."""
+
+    @property
+    def identity(self) -> NodeIdentity:
+        """Node identity (read-only, from class)."""
+        return self.__class__.class_identity
+
+    @property
+    def behavior(self) -> NodeBehaviorFlags:
+        """Node behavior flags (read-only, from class)."""
+        return self.__class__.class_behavior
+    
+    @property
+    def library(self) -> LibraryIdentity:
+        """Library identity (read-only, from class)."""
+        return self.__class__.class_library
 
     @property
     def settings(self) -> SettingsHolder:
@@ -133,7 +168,58 @@ class NodeData:
             self.settings.define('my_cache_size', 100, scope=SettingScope.LOCAL_ONLY)
         """
         return self._settings
+
+    @property
+    def cache(self) -> NodeCache:
+        """
+        Transient cache (NOT serialized).
+        
+        Use for temporary data that can be safely lost:
+        - Computation caches
+        - Temporary buffers
+        - Runtime-only state
+        
+        Example:
+            self.cache.lookup = {}
+            self.cache.last_input = None
+        """
+        return self._cache
     
+    @property
+    def store(self) -> NodeStore:
+        """
+        Persistent store (serialized, NOT GUI-facing).
+        
+        Use for internal state that must persist but users
+        don't need to see or edit:
+        - Counters
+        - Accumulated results
+        - Internal state machines
+        
+        Example:
+            self.store.execution_count = 0
+            self.store.history = []
+        """
+        return self._store
+    
+    @property
+    def ui(self) -> NodeUI:
+        """
+        UI state container.
+        
+        Contains position, dimensions, and convenience methods
+        for collapse/expand/mute operations.
+        
+        Example:
+            self.ui.set_position(100, 200)
+            self.ui.collapse()
+        """
+        return self._ui
+    
+    # =========================================================================
+    # Housekeeping
+    # =========================================================================
+     
     def _housekeeping(self) -> None:
         """
         Perform housekeeping tasks for the node.
@@ -223,7 +309,6 @@ class NodeData:
         # Add to ports collection
         self.ports[port.id] = port
 
-        self._cache_dirty = True
         self.wrapper.mark_as_structuraly_dirty()
         self._executor = None
 
@@ -315,6 +400,7 @@ class NodeData:
             self._section_stack.pop()
     
     def push(self, filter_ids: Optional[List[str]] = None) -> None:
+        # TODO: More sophisticated filtering...
         """
         Mark existing ports for potential removal (start of reconfiguration).
         
@@ -406,7 +492,6 @@ class NodeData:
                 self.wrapper.mark_as_structuraly_dirty()
         
         self._executor = None
-        self._cache_dirty = True
         return removed
 
    # =========================================================================
@@ -1025,7 +1110,6 @@ class NodeData:
             if port.order >= self._port_order_counter:
                 self._port_order_counter = port.order + 1
         
-        self._cache_dirty = True
         self._executor = None
         return True
         
@@ -1052,21 +1136,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             wrapper: NodeWrapper managing this node
         """
         super().__init__(node_id, wrapper)
-        self.error_info: NodeErrorInfo | None = None
-        
-        self.behavior = NodeBehavior()
-        self.ui = NodeUI()
-        self.metadata = NodeUserMetadata()
-    
-    @property
-    def identity(self) -> NodeIdentity:
-        """Get node identity from class"""
-        return self.__class__.class_identity
-    
-    @property
-    def library(self) -> LibraryIdentity:
-        """Get library identity from class"""
-        return self.__class__.class_library
+
     
     @abstractmethod
     def initialize(self):
@@ -1181,19 +1251,20 @@ class BaseNode(NodeData, metaclass=NodeMeta):
 
     def _to_dict(self) -> dict:
         """
-        Serialize node to dictionary.
+        Serialize node to dictionary. 
+        This also includes identity and library info.
         
         Returns:
             Dict representation of the node
         """
         return {
             'node_id': self.node_id,
-            'behavior': asdict(self.behavior),
-            'ui_config': asdict(self.ui.config),
-            'ui_state': asdict(self.ui.state),
-            'metadata': asdict(self.metadata),
+            'ports': self._serialize_ports(),
             'settings': self._settings.to_dict(),
-            'ports': self._serialize_ports(),  # Delegate to NodeData
+            'store': self._store.to_dict(),
+            'ui': self._ui.to_dict(),
+            'identity': self.identity.to_dict(),
+            'library': self.library.to_dict(),
         }
     
     def _initialize_from_dict(self, data: dict) -> None:
@@ -1213,8 +1284,6 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         - Missing fields keep their default values (backward compatibility)
         
         Note on extensibility:
-        - metadata.custom IS a defined field, so it IS fully preserved!
-        - All user data in metadata.custom dict will be restored correctly
         - Don't add dynamic attributes to dataclass instances - use custom dict
         
         Args:
@@ -1232,39 +1301,18 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             # User-defined data in metadata.custom IS preserved:
             node.metadata.custom['my_plugin'] = {'version': '1.0', 'data': [...]}
             # After save/load cycle, this data will be fully restored!
-        """
-        # Helper to restore fields from dict to dataclass
-        def restore_dataclass_fields(target_obj, source_dict):
-            """
-            Restore dataclass fields from dictionary.
-            Only sets fields that exist in the dataclass definition.
-            
-            Important: This DOES restore dict/list fields completely!
-            - metadata.custom dict → Fully restored with all contents
-            - metadata.notes list → Fully restored with all items
-            """
-            for key, value in source_dict.items():
-                if hasattr(target_obj, key):
-                    setattr(target_obj, key, value)
-                # Silently ignore unknown fields for forward compatibility
-        
-        # Restore dataclass fields from serialized data         
-        if 'behavior' in data:
-            restore_dataclass_fields(self.behavior, data['behavior'])
-        
-        if 'ui_config' in data:
-            restore_dataclass_fields(self.ui.config, data['ui_config'])
-        
-        if 'ui_state' in data:
-            restore_dataclass_fields(self.ui.state, data['ui_state'])
-        
-        if 'metadata' in data:
-            restore_dataclass_fields(self.metadata, data['metadata'])
+        """         
+        # Deserialize ports (uses existing deserialize_ports method)
+        if 'ports' in data:
+            self._deserialize_ports(data['ports'])
 
         # Restore settings
         if 'settings' in data:
             self._settings.from_dict(data['settings'])
 
-        # Deserialize ports (uses existing deserialize_ports method)
-        if 'ports' in data:
-            self._deserialize_ports(data['ports'])
+        if 'store' in data:
+            self._store.from_dict(data['store'])
+        
+        if 'ui' in data:
+            self._ui.from_dict(data['ui'])
+        

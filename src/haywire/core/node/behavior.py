@@ -37,7 +37,7 @@ class NodeBehaviorFlags:
     the order of execution in the graph.
     """
     
-    is_data_node: bool = True
+    is_data_node: bool = False
     """
     If True, this node processes data.
     Data nodes have data ports and transform inputs to outputs.
@@ -58,7 +58,7 @@ class NodeBehaviorFlags:
     Used by the execution engine to determine execution targets.
     """
     
-    is_pure: bool = True
+    is_pure: bool = False
     """
     If True, this node has no side effects.
     Pure nodes always produce the same output for the same inputs.
@@ -79,13 +79,19 @@ class NodeBehaviorFlags:
     Affects cycle detection in the execution engine.
     """
     
-    can_execute_async: bool = False
+    has_execute_async: bool = False
     """
     If True, this node supports asynchronous execution.
     Async nodes can yield control while waiting for I/O
     or long-running operations.
     """
-    
+
+    is_thread_safe: bool = False
+    """
+    If True, this node can safely run within a multithreaded
+    flow execution.
+    """
+
     is_mutable: bool = False
     """
     If True, this node's configuration can change at runtime.
@@ -102,6 +108,7 @@ BEHAVIOR_FIELDS = frozenset({
     'is_pure',
     'is_stateful',
     'is_loopback',
-    'can_execute_async',
+    'has_execute_async',
     'is_mutable',
+    'is_thread_safe'
 })

@@ -1,8 +1,8 @@
 from haywire.core.execution.event_source import SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
+from haywire.core.node.base import BaseNode
 
-from .event_node import EventNode
 from ..types.specs import EXEC, FLOAT
 
 
@@ -12,8 +12,10 @@ from ..types.specs import EXEC, FLOAT
     description='Triggered periodically (every frame/interval)',
     menu='events/system',
     search_tags=['frame', 'update', 'loop', 'event'],
+    is_control_node=True,
+    is_event_node=True,
 )
-class TickNode(EventNode):
+class TickNode(BaseNode):
     """
     Triggered periodically (every frame/interval).
     
@@ -24,9 +26,7 @@ class TickNode(EventNode):
         exec: Control flow
         delta_time: Time since last tick
     """
-    
-    EVENT_SOURCE = SystemEvent(SystemEventType.TICK)
-    
+        
     def initialize(self):
         super().initialize()
         
@@ -43,6 +43,9 @@ class TickNode(EventNode):
         # Data output
         self.add(FLOAT.as_outlet('delta_time', label='Delta Time'))
     
+    def setup(self):
+        self.event_subscription = SystemEvent(SystemEventType.TICK)
+
     def worker(self, context: ExecutionContext) -> str | None:
         # Extract delta time from trigger
         delta = context.trigger.payload.get('delta_time', 0.016)

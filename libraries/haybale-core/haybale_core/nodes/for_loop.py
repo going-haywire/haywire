@@ -14,6 +14,9 @@ from haywire.core.execution.execution_context import ExecutionContext
     description='Iterate with start, end, and step control',
     menu='control/loops',
     search_tags=['loop', 'for', 'iterate', 'index', 'range'],
+    is_control_node=True,
+    is_loopback=True,
+
 )
 class ForLoopNode(BaseNode):
     """
@@ -36,11 +39,6 @@ class ForLoopNode(BaseNode):
     
     def initialize(self):
         from ..types.specs import EXEC, INT
-        
-        # Mark as loopback node and control node (not data node)
-        self.behavior.is_loopback = True
-        self.behavior.is_control_node = True
-        self.behavior.is_data_node = False
                 
         # Control input - starts the loop
         self.add(EXEC.as_inlet(

@@ -1,8 +1,8 @@
 from haywire.core.execution.event_source import SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
+from haywire.core.node.base import BaseNode
 
-from .event_node import EventNode
 from ..types.specs import EXEC, FLOAT
 
 @node(
@@ -11,8 +11,10 @@ from ..types.specs import EXEC, FLOAT
     description='Triggered once when execution starts',
     menu='events/system',
     search_tags=['start', 'init', 'begin', 'event'],
+    is_control_node=True,
+    is_event_node=True,
 )
-class BeginPlayNode(EventNode):
+class BeginPlayNode(BaseNode):
     """
     Triggered once when execution starts.
     
@@ -20,16 +22,16 @@ class BeginPlayNode(EventNode):
         exec: Control flow
         timestamp: Time when execution began
     """
-    
-    EVENT_SOURCE = SystemEvent(SystemEventType.BEGIN_PLAY)
-    
-    def initialize(self):
         
+    def initialize(self):
         # Control output
         self.add(EXEC.as_outlet('exec', label='Execute'))
         
         # Data output
         self.add(FLOAT.as_outlet('timestamp', label='Start Time'))
+    
+    def setup(self):
+        self.event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)
     
     def worker(self, context: ExecutionContext) -> str | None:
         import time

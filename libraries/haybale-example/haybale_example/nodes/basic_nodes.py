@@ -11,7 +11,8 @@ from haywire.core.node.base import BaseNode
 @node(
     label='Test Node Four',
     search_tags=['constant', 'value', 'output', 'basic'],
-    menu='core/basic'
+    menu='core/basic',
+    is_control_node = True
 )
 class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
@@ -37,10 +38,6 @@ class TestNodeOne(BaseNode):
         )
 
         from ..types.specs import Temperature
-
-        # Configure behavior
-        self.behavior.is_data_node = True
-        self.behavior.is_control_node = False
 
         self.push()
 

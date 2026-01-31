@@ -205,10 +205,11 @@ class FlowAssemblyManager:
         logger.debug(f"Assembling flow from event node {event_node.node_id}")
         
         # Get event subscription
-        if not hasattr(event_node.node, 'event_subscription'):
-            raise RuntimeError(
-                f"Event node {event_node.node_id} has no event_subscription"
-            )
+        if event_node.node and event_node.node.event_subscription:
+            if event_node.node.event_subscription == None:
+                raise RuntimeError(
+                    f"Event node {event_node.node_id} has no event_subscription"
+                )
         
         event_subscription = event_node.node.event_subscription
         

@@ -381,7 +381,7 @@ Class-Level (immutable, set by @node decorator):
 └── class_behavior: NodeBehaviorFlags
     ├── is_control_node, is_data_node, is_event_node
     ├── is_output_node, is_pure, is_stateful
-    ├── is_loopback, can_execute_async, is_mutable
+    ├── is_loopback, has_execute_async, is_mutable
 
 Instance-Level:
 ├── identity → class_identity (read-only property)

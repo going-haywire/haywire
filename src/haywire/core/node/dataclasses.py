@@ -40,7 +40,7 @@ class NodeBehavior:
     is_stateful: bool = False
     """If True, node maintains state between executions"""
     
-    can_execute_async: bool = False
+    has_execute_async: bool = False
     """If True, node supports asynchronous execution"""
     
     # NEW: Event node flag

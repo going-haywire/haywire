@@ -1,18 +1,17 @@
 from haywire.core.execution.event_source import CallbackEvent, SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
-from haywire.core.node.node_wrapper import NodeWrapper
-
-from .event_node import EventNode
-
+from haywire.core.node.base import BaseNode
 
 @node(
     label='Merge Callback',
     description='Listens for a specified number of callbacks from other flows',
     menu='events/callback',
     search_tags=['callback', 'listen', 'event', 'custom'],
+    is_control_node=True,
+    is_event_node=True,
 )
-class MergeCallbackNode(EventNode):
+class MergeCallbackNode(BaseNode):
     """
     Listens for a specified number of callbacks from other flows.
     

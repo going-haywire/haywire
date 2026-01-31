@@ -277,8 +277,7 @@ class NodeWrapper:
         """
         try:
             self._node_instance = self._node_cls(self._node_id, self)
-            self._node_instance.ui.state.posX = self._initial_position[0]
-            self._node_instance.ui.state.posY = self._initial_position[1]
+            self._node_instance.ui.state.set_position(self._initial_position)
             self._state.is_instantiated = True
             self._state.error_instantiate = None
 
@@ -561,8 +560,7 @@ class NodeWrapper:
         """
         self._initial_position = (new_x, new_y)
         if self._node_instance:
-            self._node_instance.ui.state.posX = new_x
-            self._node_instance.ui.state.posY = new_y
+            self._node_instance.ui.state.set_position(self._initial_position)
 
     def add_middleware(self, middleware: NodeMiddleware) -> None:
         """Add middleware to the wrapper"""
@@ -641,11 +639,18 @@ class NodeWrapper:
         return result
 
     def mark_as_data_dirty(self) -> None:
+        """
+        Called by ports when their value changes to indicate 
+        the requirement for executing the worker method
+        """
         self._is_dirty_data = True
 
     def mark_as_structuraly_dirty(self) -> None:
         """
         Mark the node as structurally dirty, requiring re-validation.
+
+        This is required to be called when the node 
+        changes its inlets or outlets.
         """
         # Notify graph of redraw request
         if self._graph and not self._is_dirty_structural:
@@ -658,7 +663,9 @@ class NodeWrapper:
     def _housekeeping(self) -> None:
         """
         Perform housekeeping of the node and its ports.
-        Should be called after graph validation phase or deserialization.
+        Should only be called by the graph validation or 
+        after deserialization, but not from inside a node.
+
         This includes the rebuild of the port pipelines
         """
         with self._lock:
@@ -681,9 +688,15 @@ class NodeWrapper:
 
     def request_graph_reassembly(self) -> None:
         """
-        Request a reassembly of the graph.
-        This will notify the graph assembler to regenerate the flow structure.
-        It will not trigger any rebuild or redraw of the graph.
+        Request a reassembly of the flow from the graph.
+        This will notify the flow assembler to regenerate the flow structure.
+        It will not trigger any rebuild or redraw of the graph. 
+
+        This is needed when a setting inside the node was changed and the flow
+        assembler needs this information to build the flow.
+
+        if the node has changed its inlet or outlet structure, use 
+        mark_as_structuraly_dirty() instead.
         """
         # Notify graph of reassembly request
         if self._graph:

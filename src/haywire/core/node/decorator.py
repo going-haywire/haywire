@@ -37,7 +37,7 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         is_pure (bool): No side effects, cacheable. Default: True
         is_stateful (bool): Maintains state between executions. Default: False
         is_loopback (bool): Control flow can return here. Default: False
-        can_execute_async (bool): Supports async execution. Default: False
+        has_execute_async (bool): Supports async execution. Default: False
         is_mutable (bool): Configuration can change at runtime. Default: False
     
     Examples:

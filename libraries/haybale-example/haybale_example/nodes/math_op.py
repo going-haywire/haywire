@@ -12,7 +12,8 @@ from haybale_example.types.math import MathOPs
 @node(
     label='Math Operation',
     search_tags=['math', 'value', 'single', 'basic', 'operation'],
-    menu='math/basic'
+    menu='math/basic',
+    is_data_node=True
 )
 class MathOP(BaseNode):
     """Node that outputs a constant value"""
@@ -25,11 +26,6 @@ class MathOP(BaseNode):
         from haybale_core.widgets.basic_widgets import (
             NumberWidget,
         )
-
-        # Configure behavior
-        self.behavior.is_data_node = True
-        self.behavior.is_control_node = False
-
         # Add inlets with different widget types
         self.add(MathOPSelector.as_inlet(
                 id='operator',

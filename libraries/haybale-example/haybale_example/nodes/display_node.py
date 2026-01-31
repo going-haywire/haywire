@@ -6,7 +6,8 @@ from haybale_core.types.specs import FLOAT, STRING
     label='Display',
     description='Displays input values for debugging',
     search_tags=['display', 'debug', 'output', 'basic'],
-    menu='example/basic'
+    menu='example/basic',
+    is_data_node=True
 )
 class DisplayNode(BaseNode):
     """Node that displays input values"""

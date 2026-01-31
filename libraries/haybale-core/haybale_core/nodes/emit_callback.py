@@ -9,6 +9,7 @@ from haywire.core.node.base import BaseNode
     description='Emits a callback to trigger event nodes in other flows',
     menu='control/callback',
     search_tags=['callback', 'emit', 'trigger', 'event'],
+    is_control_node = True,
 )
 class EmitCallbackNode(BaseNode):
     """

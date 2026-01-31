@@ -3,10 +3,7 @@ from haybale_core.widgets.basic_widgets import SelectWidget
 from haywire.core.execution.event_source import CallbackEvent, SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
-from haywire.core.node.node_wrapper import NodeWrapper
-
-from .event_node import EventNode
-
+from haywire.core.node.base import BaseNode
 
 @node(
     registry_id='custom_callback',
@@ -14,8 +11,10 @@ from .event_node import EventNode
     description='Listens for custom callbacks from other flows',
     menu='events/callback',
     search_tags=['callback', 'listen', 'event', 'custom'],
+    is_control_node=True,
+    is_event_node=True,
 )
-class CustomCallbackNode(EventNode):
+class CustomCallbackNode(BaseNode):
     """
     Listens for custom callbacks from other flows.
     
@@ -26,9 +25,7 @@ class CustomCallbackNode(EventNode):
         triggered: Control flow when callback received
         payload: Data from callback
     """
-    
-    EVENT_SOURCE = None  # Dynamic, set in _update_subscription()
-    
+        
     def initialize(self):
         from ..types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT
         from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
@@ -71,7 +68,6 @@ class CustomCallbackNode(EventNode):
         # Data output
         self.add(FLOAT.as_outlet('payload', label='Payload'))
     
-
     def setup(self):
         # Set initial subscription
         self._update_subscription(None, None)
