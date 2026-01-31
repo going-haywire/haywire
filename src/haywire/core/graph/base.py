@@ -16,11 +16,11 @@ from haywire.core.validation.structural_validator import StructuralValidator
 from haywire.core.library.utils import get_registry_id_from_key
 
 from ..data.enums import FlowType
-from ..types.ports import DataPort
 from .validation import ValidationManager, ValidationCallback
 from .types import ChangeReason, ValidationResult
 
 if TYPE_CHECKING:
+    from ..types.ports import DataPort
     from ..edge.edge_wrapper import EdgeWrapper
     from ..node.node_wrapper import NodeWrapper
 
@@ -351,11 +351,11 @@ class BaseGraph:
         """
         return list(self.node_wrappers.values())
 
-    def _get_port(self, node_id: str, port_id: str) -> DataPort:  
+    def _get_port(self, node_id: str, port_id: str) -> 'DataPort':  
         """Convenience method to get a port from a node."""
         return self.node_wrappers[node_id].node.ports[port_id]
 
-    def _get_ports(self, node_id: str) -> List[DataPort]:  
+    def _get_ports(self, node_id: str) -> List['DataPort']:  
         """Get all current inlet and outlet ports from a node."""
         ports = []
         for port in self.node_wrappers[node_id].node.ports.values():

@@ -18,6 +18,7 @@ from haywire.core.types.base import BaseType
     description='Simple test data structure for cross-library testing',
     color='#FF5722',
     icon='database',
+    default={'value': None},
     help_url='https://haywire.io/docs/types/test-data'
 )
 @dataclass

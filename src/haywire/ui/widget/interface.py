@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.types.ports import DataPort
 from haywire.ui.widget.identity import WidgetIdentity
+
+if TYPE_CHECKING:
+    from haywire.core.types.ports import DataPort
+
 
 # ============================================================================
 # Core Interface - Minimal Contract
@@ -23,7 +26,7 @@ class IWidget(ABC):
     class_library: LibraryIdentity
     
     @abstractmethod
-    def __init__(self, element: DataPort):
+    def __init__(self, element: 'DataPort'):
         """
         Initialize widget with a DataPort.
         
