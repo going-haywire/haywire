@@ -37,7 +37,6 @@ def test_node_decorator_inheritance_no_override():
         menu="test/parent",
         search_tags=["parent", "test"],
         is_control_node=True,
-        is_pure=False,
         is_stateful=True
     )
     class ParentNode(BaseNode):

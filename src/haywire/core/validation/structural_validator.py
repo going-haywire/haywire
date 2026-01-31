@@ -75,6 +75,9 @@ class StructuralValidator(IStructuralValidator):
         if node.behavior.is_event_node:
             return self._validate_event_node(wrapper)
         
+        if node.behavior.is_data_node:
+            return self._validate_data_node(wrapper)
+        
         # Check if this is a loopback node
         if node.behavior.is_loopback:
             return self._validate_loopback_node(wrapper)
@@ -104,16 +107,16 @@ class StructuralValidator(IStructuralValidator):
         """
         node = wrapper.node
         
-        # Check for control inlets (not allowed)
-        control_inlets = node.get_control_inlets()
-        if len(control_inlets) > 0:
+        # Check for inlets with pins (not allowed)
+        inlets = node.get_ports(is_inlet=True, has_pin=True)
+        if len(inlets) > 0:
             return (
                 False,
-                f"Event nodes cannot have control inlets. "
-                f"Found: {[p.id for p in control_inlets]}",
+                f"Event nodes cannot have inlets with pins. "
+                f"Found: {[p.id for p in inlets]}",
                 [
-                    "Remove control inlets from event node",
-                    "Event nodes are entry points and cannot be triggered by other nodes"
+                    "Remove all inlets with pins from event node",
+                    "Event nodes are entry points and cannot be triggered or modified by other nodes"
                 ]
             )
         
@@ -138,7 +141,51 @@ class StructuralValidator(IStructuralValidator):
         
         # All checks passed
         return (True, None, [])
-    
+
+    def _validate_data_node(
+        self, wrapper: 'NodeWrapper'
+    ) -> tuple[bool, str | None, list[str]]:
+        """
+        Validate data node structural constraints.
+        
+        Rules:
+        - No control inlets and outlets allowed 
+        - Must have at least one data outlet
+        
+        Args:
+            wrapper: Event node wrapper to validate
+            
+        Returns:
+            Tuple of (is_valid, error_message, suggestions).
+            Error message is None if valid.
+            Suggestions is a list of actionable fixes.
+        """
+        node = wrapper.node
+        
+        # Check for non-DATA ports with pins (not allowed)
+        ports = node.get_ports(is_not_flow_type=FlowType.DATA, has_pin=True)
+        if len(ports) > 0:
+            return (
+                False,
+                f"Data nodes cannot have pins on non-DATA ports. "
+                f"Found: {[p.id for p in ports]}",
+                [
+                    "Remove all inlets and outlets with pins that are not DATA ports",
+                    "Data nodes are cannot be triggered by events or control flow"
+                ]
+            )
+        
+        # Check for at least one data outlet  
+        if len(node.get_ports(is_outlet=True, is_flow_type=FlowType.DATA)) == 0:
+            return (
+                False,
+                "Data nodes must have at least one data outlet",
+                ["Add at least one outlet with FlowType.DATA to the node"]
+            )
+        
+        # All checks passed
+        return (True, None, [])
+
     def _validate_loopback_node(
         self, wrapper: 'NodeWrapper'
     ) -> tuple[bool, str | None, list[str]]:
@@ -160,7 +207,7 @@ class StructuralValidator(IStructuralValidator):
             Suggestions is a list of actionable fixes.
         """
         node = wrapper.node
-        control_outlets = node.get_control_outlets()
+        control_outlets = node.get_ports(is_outlet=True, is_flow_type=FlowType.CONTROL)
         
         # Must have at least 2 control outlets (one for loop, one for exit)
         if len(control_outlets) < 2:
@@ -169,34 +216,34 @@ class StructuralValidator(IStructuralValidator):
                 f"Loopback node must have at least 2 control outlets "
                 f"(loop body and exit). Found: {len(control_outlets)}",
                 [
-                    "Add a control outlet for the loop body with is_loopback_outlet=True",
-                    "Add a control outlet for exit/completion with is_loopback_outlet=False"
+                    "Add a control outlet for the loop body with needs_loopback=True",
+                    "Add a control outlet for exit/completion with needs_loopback=False"
                 ]
             )
         
-        # Check for loopback outlet (is_loopback_outlet=True)
+        # Check for loopback outlet (needs_loopback=True)
         loopback_outlets = [p for p in control_outlets if p.needs_loopback]
         if len(loopback_outlets) == 0:
             return (
                 False,
                 "Loopback node must have at least one control outlet with "
-                "is_loopback_outlet=True (the loop body outlet)",
+                "needs_loopback=True (the loop body outlet)",
                 [
-                    "Set is_loopback_outlet=True on the loop body outlet",
-                    "Example: EXEC.as_outlet('loop_body', is_loopback_outlet=True)"
+                    "Set needs_loopback=True on the loop body outlet",
+                    "Example: EXEC.as_outlet('loop_body', needs_loopback=True)"
                 ]
             )
         
-        # Check for exit outlet (is_loopback_outlet=False)
+        # Check for exit outlet (needs_loopback=False)
         exit_outlets = [p for p in control_outlets if not p.needs_loopback]
         if len(exit_outlets) == 0:
             return (
                 False,
                 "Loopback node must have at least one control outlet with "
-                "is_loopback_outlet=False (the exit/completed outlet)",
+                "needs_loopback=False (the exit/completed outlet)",
                 [
-                    "Add a control outlet for loop exit without is_loopback_outlet flag",
-                    "Example: EXEC.as_outlet('completed')  # is_loopback_outlet defaults to False"
+                    "Add a control outlet for loop exit without needs_loopback flag",
+                    "Example: EXEC.as_outlet('completed')  # needs_loopback defaults to False"
                 ]
             )
         

@@ -112,9 +112,6 @@ class DataPort(DataTypeIdentity):
     is_section: bool = False
     """True if this is a section marker (not rendered in node)"""
     
-    is_ghost: bool = False
-    """True if this is a ghost pin for collapsed groups"""
-
     needs_loopback: bool = False
     """Set to True if the control flow from this outlet needs to loop back to the node"""
     
@@ -234,12 +231,12 @@ class DataPort(DataTypeIdentity):
         if self.is_inlet:
             self._mark_as_data_dirty()
 
-    def is_pin(self) -> bool:
+    def has_pin(self) -> bool:
         """
         Check if this is a visible pin (not a config)
         TODO: Not shure if this approach is correct
         """
-        return self.flow_type != FlowType.NONE.value
+        return self.flow_type != FlowType.NONE
     
     @property
     def is_outlet(self) -> bool:

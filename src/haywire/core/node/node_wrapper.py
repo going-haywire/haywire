@@ -276,6 +276,10 @@ class NodeWrapper:
             True if instantiation succeeded, False otherwise
         """
         try:
+            if self._node_instance:
+                self._node_instance._cleanup()
+                self._node_instance = None
+
             self._node_instance = self._node_cls(self._node_id, self)
             self._node_instance.ui.state.set_position(self._initial_position)
             self._state.is_instantiated = True
