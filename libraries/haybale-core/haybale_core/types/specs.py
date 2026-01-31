@@ -2,6 +2,7 @@
 Built-in data type specifications for Haywire core library.
 """
 
+from haywire.core.data.fields import PrimitiveField
 from haywire.core.types.base import PrimitiveType
 from haywire.core.types.decorator import type
 from haywire.core.types.base import BaseType
@@ -41,7 +42,15 @@ class INT(PrimitiveType[int]):
     """Integer data type"""
     pass
 
+# define INTField for INT type to guarantee integer storage
+class INTField(PrimitiveField):
+    """DataField for INT type storing integer values"""
+    def set_value(self, value, source_id = None):
+        value = int(value)
+        return super().set_value(value, source_id)
 
+# Set field_class attributes after classes are defined
+INT.field_class = INTField
 
 @type(
     registry_id='float',
@@ -55,6 +64,15 @@ class FLOAT(PrimitiveType[float]):
     """Float data type"""
     pass
 
+# define FLOATField for FLOAT type to guarantee float storage
+class FLOATField(PrimitiveField):
+    """DataField for FLOAT type storing float values"""
+    def set_value(self, value, source_id = None):
+        value = float(value)
+        return super().set_value(value, source_id)
+
+# Set field_class attributes after classes are defined
+FLOAT.field_class = FLOATField
 
 # ============================================================================
 # Text Types
