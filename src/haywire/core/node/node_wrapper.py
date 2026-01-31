@@ -317,8 +317,8 @@ class NodeWrapper:
             if node_info:
                 self._node_instance._initialize_from_dict(node_info)
             else:   
-                self._node_instance.initialize()
-            self._node_instance.setup()
+                self._node_instance.init()
+            self._node_instance.on_init()
             self._state.is_initialized = True
             self._state.error_initialize = None
             return True
@@ -410,7 +410,7 @@ class NodeWrapper:
 
             if self._node_instance:
                 start_time = time.perf_counter()
-                success, error =self._node_instance.test_run()
+                success, error =self._node_instance.on_testrun()
             
                 # Update metrics
                 execution_time = (time.perf_counter() - start_time) * 1000000.0
@@ -606,7 +606,7 @@ class NodeWrapper:
         self._clear_runtime_errors()
 
         try:
-            self._node_instance.startup(exec_ctx)
+            self._node_instance.on_startup(exec_ctx)
         except Exception as e:
             error = HaywireException.from_exception(
                 exception=e,
@@ -628,7 +628,7 @@ class NodeWrapper:
         This method catches any exceptions during shutdown
         """
         try:
-            self._node_instance.shutdown(exec_ctx)
+            self._node_instance.on_shutdown(exec_ctx)
         except Exception as e:
             error = HaywireException.from_exception(
                 exception=e,
@@ -643,7 +643,7 @@ class NodeWrapper:
             error.log()
             self._add_runtime_error(error)
 
-    def _execute_method(self, exec_ctx: 'ExecutionContext') -> str | None:
+    def _execute(self, exec_ctx: 'ExecutionContext') -> str | None:
         """
         Execute the node's transform method within the given execution context.
         
@@ -660,10 +660,9 @@ class NodeWrapper:
                     return None  # No execution needed
                 self._is_dirty_data = False  # Reset dirty flag
 
-            self._node_instance.on_changed_async(exec_ctx)
-            self._node_instance.on_validation_input(exec_ctx)
+            self._node_instance.on_validate(exec_ctx)
 
-            return self._node_instance.execute(exec_ctx)
+            return self._node_instance._execute(exec_ctx)
         
         except Exception as e:
             error = HaywireException.from_exception(
@@ -788,6 +787,9 @@ class NodeWrapper:
             Dictionary containing wrapper and node state
         """
         with self._lock:
+            if self._node_instance:
+                self._node_instance.on_saved()
+
             result = {
                 'node_id': self._node_id,
                 'registry_key': self.registry_key,
