@@ -15,7 +15,7 @@ def test_basic_node_decorator():
         description="A test node",
         menu="test/basic",
         is_data_node=True,
-        is_pure=True
+        is_thread_safe=True
     )
     class TestNode(BaseNode):
         pass
@@ -24,7 +24,7 @@ def test_basic_node_decorator():
     assert TestNode.class_identity.description == "A test node"
     assert TestNode.class_identity.menu == "test/basic"
     assert TestNode.class_behavior.is_data_node is True
-    assert TestNode.class_behavior.is_pure is True
+    assert TestNode.class_behavior.is_thread_safe is True
     assert TestNode.class_behavior.is_control_node is False
 
 
@@ -56,7 +56,7 @@ def test_node_decorator_inheritance_no_override():
     
     # Check behavior inheritance
     assert ChildNode.class_behavior.is_control_node is True
-    assert ChildNode.class_behavior.is_pure is False
+    assert ChildNode.class_behavior.is_loopback is False
     assert ChildNode.class_behavior.is_stateful is True
 
 
@@ -69,7 +69,7 @@ def test_node_decorator_inheritance_with_override():
         menu="test/parent",
         search_tags=["parent"],
         is_control_node=True,
-        is_pure=False,
+        is_thread_safe=False,
         is_stateful=True
     )
     class ParentNode(BaseNode):
@@ -79,7 +79,7 @@ def test_node_decorator_inheritance_with_override():
     @node(
         label="Child Node",
         menu="test/child",
-        is_pure=True  # Override behavior
+        is_thread_safe=True  # Override behavior
     )
     class ChildNode(ParentNode):
         pass
@@ -93,7 +93,7 @@ def test_node_decorator_inheritance_with_override():
     assert ChildNode.class_identity.search_tags == ["parent"]
     
     # Check overridden behavior
-    assert ChildNode.class_behavior.is_pure is True
+    assert ChildNode.class_behavior.is_thread_safe is True
     
     # Check inherited behavior (not overridden)
     assert ChildNode.class_behavior.is_control_node is True
@@ -124,7 +124,7 @@ def test_node_decorator_multilevel_inheritance():
         label="Grandparent",
         menu="test/gp",
         is_control_node=True,
-        is_pure=False
+        is_thread_safe=True
     )
     class GrandparentNode(BaseNode):
         pass
@@ -147,7 +147,7 @@ def test_node_decorator_multilevel_inheritance():
     assert ChildNode.class_identity.menu == "test/gp"
     assert ChildNode.class_behavior.is_control_node is True
     assert ChildNode.class_behavior.is_stateful is True
-    assert ChildNode.class_behavior.is_pure is False
+    assert ChildNode.class_behavior.is_thread_safe is True
 
 
 def test_node_decorator_defaults_when_no_parent():
@@ -164,7 +164,7 @@ def test_node_decorator_defaults_when_no_parent():
     # Should have default behavior values
     assert TestNode.class_behavior.is_control_node is False
     assert TestNode.class_behavior.is_data_node is False
-    assert TestNode.class_behavior.is_pure is False
+    assert TestNode.class_behavior.is_loopback is False
 
 
 def test_node_decorator_partial_override():

@@ -58,15 +58,9 @@ class NodeBehaviorFlags:
     Used by the execution engine to determine execution targets.
     """
     
-    is_pure: bool = False
-    """
-    If True, this node has no side effects.
-    Pure nodes always produce the same output for the same inputs.
-    The execution engine can cache results of pure nodes.
-    """
-    
     is_stateful: bool = False
     """
+    TODO: Do we need this?
     If True, this node maintains state between executions.
     Stateful nodes may produce different outputs even with
     identical inputs (e.g., counters, accumulators).
@@ -94,6 +88,7 @@ class NodeBehaviorFlags:
 
     is_mutable: bool = False
     """
+    TODO: Do we need this?
     If True, this node's configuration can change at runtime.
     Mutable nodes may add/remove ports dynamically.
     """
@@ -105,7 +100,6 @@ BEHAVIOR_FIELDS = frozenset({
     'is_data_node', 
     'is_event_node',
     'is_output_node',
-    'is_pure',
     'is_stateful',
     'is_loopback',
     'has_execute_async',
