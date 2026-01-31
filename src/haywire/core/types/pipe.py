@@ -33,7 +33,7 @@ class Pipes:
             value: Value to propagate 
         """
         for connection_uuid, sink in self.sinks.items():
-            if value:
+            if value is not None:
                 chain = self.chains[connection_uuid]
                 converted_value = chain.execute(value)
                 sink.set_value(converted_value, connection_uuid=connection_uuid)
