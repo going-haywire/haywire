@@ -24,7 +24,7 @@ class EmitCallbackNode(BaseNode):
         exec: Control flow out
     """
     
-    def initialize(self):
+    def init(self):
         from ..types.specs import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
         from ..types.pooled_type import PooledType
         from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
@@ -71,7 +71,7 @@ class EmitCallbackNode(BaseNode):
         # Control output
         self.add(EXEC.as_outlet('exec', label='Then'))
 
-    def setup(self):
+    def on_init(self):
         self.callback_index = 0
 
     def redraw(self, *args, **kwargs) -> None:

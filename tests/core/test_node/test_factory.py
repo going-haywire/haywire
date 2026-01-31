@@ -40,7 +40,7 @@ class TestNodeFactory:
             label='Test Node'
         )
         class TestNode(BaseNode):
-            def initialize(self):
+            def init(self):
                 pass
         
         # Register in the SAME registry NodeWrapper will use

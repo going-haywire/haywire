@@ -203,7 +203,7 @@ class HaywireVM:
             )
         
         # 2 Execute control node
-        next_outlet_id = node_wrapper._execute_method(exec_ctx)
+        next_outlet_id = node_wrapper._execute(exec_ctx)
         
         logger.debug(
             f"Control node {node_wrapper.node_id} completed, "
@@ -307,7 +307,7 @@ class HaywireVM:
                         
             # Execute data node
             logger.debug(f"Executing data node: {data_node_wrapper.node_id}")            
-            data_node_wrapper._execute_method(exec_ctx)            
+            data_node_wrapper._execute(exec_ctx)            
             
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
         """

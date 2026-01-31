@@ -26,7 +26,7 @@ class CustomCallbackNode(BaseNode):
         payload: Data from callback
     """
         
-    def initialize(self):
+    def init(self):
         from ..types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT
         from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
 
@@ -68,7 +68,7 @@ class CustomCallbackNode(BaseNode):
         # Data output
         self.add(FLOAT.as_outlet('payload', label='Payload'))
     
-    def setup(self):
+    def on_init(self):
         # Set initial subscription
         self._update_subscription(None, None)
 

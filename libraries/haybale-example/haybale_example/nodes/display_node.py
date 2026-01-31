@@ -12,7 +12,7 @@ from haybale_core.types.specs import FLOAT, STRING
 class DisplayNode(BaseNode):
     """Node that displays input values"""
     
-    def initialize(self):
+    def init(self):
         
         # Configure behavior
         self.behavior.is_data_node = True

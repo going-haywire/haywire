@@ -17,7 +17,7 @@ from haywire.core.node.base import BaseNode
 class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""
     
-    def initialize(self):
+    def init(self):
         from haybale_core.types.array_type import ArrayType
         from haybale_core.types.pooled_type import PooledType
         from haybale_core.types.specs import (

@@ -37,7 +37,7 @@ class ForLoopNode(BaseNode):
         completed: Execute when loop finishes
     """
     
-    def initialize(self):
+    def init(self):
         from ..types.specs import EXEC, INT
                 
         # Control input - starts the loop
@@ -85,7 +85,8 @@ class ForLoopNode(BaseNode):
         # Current index outlet
         self.add(INT.as_outlet(
             'index',
-            label='Index'
+            label='Index',
+            default=0
         ))
         
         # Completed outlet - executes when loop finishes
@@ -94,7 +95,7 @@ class ForLoopNode(BaseNode):
             label='Completed'
         ))
 
-    def setup(self):
+    def on_init(self):
         # Initialize loop state
         # Loop state variables
         self._current_index = 0

@@ -24,7 +24,7 @@ class TestBaseNode:
             label='Test Node'
         )
         class TestNode(BaseNode):
-            def initialize(self):
+            def init(self):
                 pass
         
         assert hasattr(TestNode, 'class_identity')
@@ -40,7 +40,7 @@ class TestBaseNode:
             search_tags=['test', 'example']
         )
         class MetadataNode(BaseNode):
-            def initialize(self):
+            def init(self):
                 pass
         
         assert MetadataNode.class_identity.registry_id == 'metadata_test'

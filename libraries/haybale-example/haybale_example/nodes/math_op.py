@@ -18,7 +18,7 @@ from haybale_example.types.math import MathOPs
 class MathOP(BaseNode):
     """Node that outputs a constant value"""
     
-    def initialize(self):
+    def init(self):
         from haybale_example.types.math import MathOPSelector
         from haybale_core.types.specs import (
             FLOAT,

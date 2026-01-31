@@ -23,14 +23,14 @@ class BeginPlayNode(BaseNode):
         timestamp: Time when execution began
     """
         
-    def initialize(self):
+    def init(self):
         # Control output
         self.add(EXEC.as_outlet('exec', label='Execute'))
         
         # Data output
         self.add(FLOAT.as_outlet('timestamp', label='Start Time'))
     
-    def setup(self):
+    def on_init(self):
         self.event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)
     
     def worker(self, context: ExecutionContext) -> str | None:

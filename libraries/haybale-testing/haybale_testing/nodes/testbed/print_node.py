@@ -9,7 +9,7 @@ from haywire.core.node.base import BaseNode
 class PrintMessageNode(BaseNode):
     """Simple control node that prints a message"""
     
-    def initialize(self):
+    def init(self):
         from haybale_core.types.specs import EXEC, STRING
         
         # Control flow

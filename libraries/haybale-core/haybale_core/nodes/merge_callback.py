@@ -23,39 +23,41 @@ class MergeCallbackNode(BaseNode):
         payload: Data from callback
     """
 
-    def initialize(self):
-        self.reconfigure(number_of_callbacks=1)
+    def init(self):
+        # Config for callback name
+        from ..types.specs import  INT
+        from haybale_core.widgets.basic_widgets import  NumberWidget
 
-    def setup(self):
+        self.add(INT.as_config(
+            'custom_callback_count',
+            default=1,
+            label='Callback Count',
+            widget=NumberWidget.config(properties={'min': 1, 'step': 1}),
+            on_change='hb_rebuild'
+        ))     
+        
+        self.hb_reconfigure(number_of_callbacks=1)
+
+    def on_init(self):
         # Set initial subscription
-        self.store: dict[str, float] = {}
+        self.cache.store = {}
         self.event_subscription = CallbackEvent(event_name=self.node_id)
 
-    def rebuild(self, *args, **kwargs) -> None:
+    def hb_rebuild(self, *args, **kwargs) -> None:
         """Request a redraw of the node in the UI."""
         number_of_callbacks = self.value('custom_callback_count')
         if number_of_callbacks and number_of_callbacks > 0:
-            number_of_callbacks = int(number_of_callbacks)
-            self.reconfigure(number_of_callbacks=number_of_callbacks)
+            self.hb_reconfigure(number_of_callbacks=number_of_callbacks)
             self.wrapper.redraw()
 
-    def reconfigure(self, number_of_callbacks: int = 1):
+    def hb_reconfigure(self, number_of_callbacks: int = 1):
         """Reconfigure the node based on current settings."""
         from ..types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT, INT, BOOL
         from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget, NumberWidget, SelectWidget
 
-        self.store = {}
+        self.cache.store = {}
 
-        self.push()
-
-        # Config for callback name
-        self.add(INT.as_config(
-            'custom_callback_count',
-            default=number_of_callbacks,
-            label='Callback Count',
-            widget=NumberWidget.config(),
-            on_change='rebuild'
-        ))        
+        self.push(exclude=['custom_callback_count'])
 
         for i in range(number_of_callbacks):
             # Declare callback interest
@@ -77,6 +79,6 @@ class MergeCallbackNode(BaseNode):
 
     def worker(self, context: ExecutionContext) -> str | None:
         # Extract payload from trigger
-        self.store[context.trigger.source_key] = context.trigger.payload
+        self.cache.store[context.trigger.source_key] = context.trigger.payload
 
         return 'triggered'

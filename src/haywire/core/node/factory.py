@@ -45,7 +45,7 @@ class __SkeletonNode__(BaseNode):
     IT IS USED AS A FALLBACK WHEN NO OTHER NODE CAN BE LOADED
     """
     
-    def initialize(self) -> None:
+    def init(self) -> None:
         """No-op initialization"""
         pass
 
