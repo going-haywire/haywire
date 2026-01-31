@@ -1,5 +1,6 @@
 from __future__ import annotations
 import inspect
+import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
 from dataclasses import asdict, dataclass, field
 from abc import abstractmethod
@@ -399,55 +400,103 @@ class NodeData:
         finally:
             self._section_stack.pop()
     
-    def push(self, filter_ids: Optional[List[str]] = None) -> None:
-        # TODO: More sophisticated filtering...
+    def push(
+        self,
+        include: Optional[List[str] | str] = None,
+        exclude: Optional[List[str] | str] = None
+    ) -> None:
         """
         Mark existing ports for potential removal (start of reconfiguration).
         
-        Flags all ports (or a filtered subset) as candidates for removal.
+        Flags ports as candidates for removal based on include/exclude filters.
         Ports that are re-added via add() before pop() is called will be
         preserved with their connections intact. Ports not re-added will
         be removed by pop().
         
-        This enables dynamic port reconfiguration based on user input while
-        preserving connections to ports that remain.
-        
         Args:
-            filter_ids: Optional list of port IDs to flag. If None, flags all ports.
+            include: Ports to flag (applied first):
+                - None: Start with all ports
+                - List[str]: Start with these specific port IDs
+                - str: Regex pattern to match port IDs
+            exclude: Ports to exclude from flagging (applied second):
+                - None: No exclusions
+                - List[str]: Exclude these specific port IDs
+                - str: Regex pattern to exclude matching port IDs
+
+
+        Quick reference:
         
+        =================================================   ===========================
+        Call                                                Effect
+        =================================================   ===========================
+        ``push()``                                          All ports
+        ``push(include=['a', 'b'])``                        Only 'a' and 'b'
+        ``push(exclude=['ctrl'])``                          All except 'ctrl'
+        ``push(include=r'^input_')``                        All starting with 'input\_'
+        ``push(exclude=r'^ctrl_')``                         All except control ports
+        ``push(include=r'^param_', exclude=['param_0'])``   Params except param_0
+        =================================================   ===========================
+
         Examples:
-            # Flag all ports
-            self.push()
-            self.add(FLOAT.as_inlet('value'))  # Refreshed, not removed
-            removed = self.pop()  # Removes all other ports
+            Flag all ports:
             
-            # Flag specific ports
-            self.push(['old_param1', 'old_param2'])
-            self.add(FLOAT.as_inlet('new_param'))
-            removed = self.pop()  # Only removes old_param1 and old_param2
+            .. code-block:: python
             
-            # Preserve static ports
-            mode = self.value('mode_selector')
-            self.push()  # Flags all ports
-            
-            # Re-add static ports (won't be removed)
-            self.add(STRING.as_inlet('mode_selector', ...))
-            
-            # Add dynamic ports based on mode
-            if mode == 'simple':
+                self.push()
                 self.add(FLOAT.as_inlet('value'))
-            elif mode == 'advanced':
-                self.add(FLOAT.as_inlet('min'))
-                self.add(FLOAT.as_inlet('max'))
+                removed = self.pop()
             
-            removed = self.pop()  # Removes only ports not re-added
-        """
-        if filter_ids is None:
-            # Flag all current ports
+            Flag specific ports by ID list:
+            
+            .. code-block:: python
+            
+                self.push(include=['old_param1', 'old_param2'])
+                removed = self.pop()
+            
+            Flag all except certain ports:
+            
+            .. code-block:: python
+            
+                # Flag all ports except 'ctrl_in' and 'ctrl_out'
+                self.push(exclude=['ctrl_in', 'ctrl_out'])
+            
+            Use regex patterns:
+            
+            .. code-block:: python
+            
+                # Flag all 'input_*' ports except 'input_0'
+                self.push(include=r'^input_', exclude=['input_0'])
+                
+                # Flag all ports except control ports
+                self.push(exclude=r'^ctrl_')
+                
+                # Flag numbered params, exclude even numbers
+                self.push(include=r'^param_\d+$', exclude=r'^param_[02468]$')
+                        
+            """
+        
+        # Step 1: Build include set
+        if include is None:
             flagged = set(self.ports.keys())
+        elif isinstance(include, str):
+            pattern = re.compile(include)
+            flagged = {
+                port_id for port_id in self.ports.keys()
+                if pattern.search(port_id)
+            }
         else:
-            # Flag only specified ports that exist
-            flagged = set(filter_ids) & set(self.ports.keys())
+            flagged = set(include) & set(self.ports.keys())
+        
+        # Step 2: Apply exclusions
+        if exclude is not None:
+            if isinstance(exclude, str):
+                pattern = re.compile(exclude)
+                flagged = {
+                    port_id for port_id in flagged
+                    if not pattern.search(port_id)
+                }
+            else:
+                flagged -= set(exclude)
         
         self._push_stack.append(flagged)
     
@@ -994,7 +1043,7 @@ class NodeData:
             
             return lambda ctx: self.worker(ctx, **extract_dict())
     
-    def execute(self, context: 'ExecutionContext') -> Optional[str]:
+    def _execute(self, context: 'ExecutionContext') -> Optional[str]:
         """
         Execute the worker with optimized value extraction.
         
@@ -1149,38 +1198,40 @@ class BaseNode(NodeData, metaclass=NodeMeta):
 
     
     @abstractmethod
-    def initialize(self):
+    def init(self):
         """
+        Override this method in subclasses to 
         Initialize Node to its default setup
 
         This method needs to be overwritten by every node and is
         called when the node is created or rebuilt. It should be only used to
         add ports and set default values. 
         
-        For any setup that depends on the current port configuration, 
-        use the setup() method.
+        Only do operations in here that can also be deserialized from file. For
+        any additional setup that cannot be done through deserialization, 
+        use the on_init() method.
         """
         pass
 
-    def setup(self) -> None:
+    def on_init(self) -> None:
         """
-        Perform any setup logic after ports are configured.
-        
-        This method is called right after 
-            - initialize() or
-            - the deserialization of ports after a load operation.
-        
-        It should be used to perform any additional setup that
-        depends on the current port configuration.
+        Override this method in subclasses to implement custom 
+        setup logic right after initialization.
+                
+        It should be used to perform any additional setup that cannot be done
+        through deserialization, such as instantiating classes.
 
         Do not use it for performative operations or as a preparation for the
-        worker execution - the startup() method should be used for that purpose.
+        worker execution - the on_startup() method should be used for that purpose.
 
-        Override this method in subclasses to implement custom setup logic.
+        This method is called right after 
+            - init() or
+            - loading from file (_initialize_from_dict()).
+
         """
         pass
 
-    def test_run(self) -> tuple[bool, str | None]:
+    def on_testrun(self) -> tuple[bool, str | None]:
         """
         Run node test. This test is executed when the node is added
         to the graph and can be used to verify that the node is set up
@@ -1194,33 +1245,20 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         return True, None
 
-    def on_changed_async(self, context: ExecutionContext) -> None:
+    def on_validate(self, context: ExecutionContext) -> None:
         """
-        Handle asynchronous changes to the node.
-        
-        This method needs to be overridden when the node's configuration changes
-        in a way that requires asynchronous handling, such as updating
-        external resources or performing long-running tasks.
-        
-        Override this method in subclasses to implement custom async change handling.
-        """
-        pass
-
-    def on_validation_input(self, context: ExecutionContext) -> None:
-        """
+        Override this method in subclasses to implement custom input validation.
         Handle validation of inputs before execution.
         
-        This method is called to validate input values before the node
-        executes. It can be used to check for valid ranges, types,
+        This method is called right before the worker is executed and 
+        can be used to validate input values: to check for valid ranges, types,
         or other constraints on input data.
         
-        Override this method in subclasses to implement custom input validation.
-
         TODO: what shall we do on validation failure? Raise exception?
         """
         pass
 
-    def startup(self, context: ExecutionContext) -> None:
+    def on_startup(self, context: ExecutionContext) -> None:
         """
         Perform any startup logic when the node is executing for the first time.
         It is called once before the first execution of the worker.
@@ -1230,7 +1268,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         pass
 
 
-    def shutdown(self, context: ExecutionContext) -> None:
+    def on_shutdown(self, context: ExecutionContext) -> None:
         """
         Perform any shutdown logic when the graph stops executing.
         
@@ -1238,7 +1276,19 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         pass
 
-    def teardown(self) -> None:
+    def on_saved(self) -> None:
+        """
+        Handle any logic needed when the graph is saved.
+        
+        This method is called whenever the graph is saved to disk.
+        It can be used to perform any necessary cleanup or state updates
+        before serialization.
+        
+        Override this method in subclasses to implement custom save handling.
+        """
+        pass
+
+    def on_teardown(self) -> None:
         """
         Clean up resources when node is destroyed.
         
@@ -1251,8 +1301,9 @@ class BaseNode(NodeData, metaclass=NodeMeta):
 
     def _cleanup(self) -> None:
         """Clean up resources when node is destroyed."""
-        self.teardown()
+        self.on_teardown()
         # Clean up settings
+        self._store.clear()
         self._settings.cleanup()        
 
     # =========================================================================
@@ -1325,4 +1376,4 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         
         if 'ui' in data:
             self._ui.from_dict(data['ui'])
-        
+
