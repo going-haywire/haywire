@@ -19,6 +19,7 @@ from ..renderers.node_renderer import NodeRenderer
 
 if TYPE_CHECKING:
     from haywire.core.node.base import BaseNode
+    from haywire.core.errors import HaywireException
 
 @renderer(
     description="Default renderer with collapsible group support", 
@@ -78,6 +79,11 @@ class DefaultNodeRenderer(NodeRenderer):
                             f"Alternate versions available: "
                             f"{', '.join(wrapper._alternate_registry_keys)}"
                         ).classes('text-sm text-yellow-600 mb-2')
+                
+                # Runtime errors indicator with popup
+                runtime_errors = wrapper._get_all_runtime_errors()
+                if runtime_errors:
+                    self._render_runtime_errors_button(runtime_errors)
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
@@ -185,4 +191,35 @@ class DefaultNodeRenderer(NodeRenderer):
                             self._render_inlet(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
                         else:
                             self._render_outlet(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+
+    def _render_runtime_errors_button(self, errors: List['HaywireException']):
+        """
+        Render a button that shows runtime errors count and opens a popup with details.
+        
+        Args:
+            errors: List of runtime errors to display
+        """
+        error_count = len(errors)
+        
+        with ui.button(
+            icon='warning',
+            color='red'
+        ).classes('text-xs px-2 py-1').props('dense flat') as btn:
+            ui.badge(str(error_count), color='red').props('floating')
+            
+            with ui.menu().props('anchor="bottom left" self="top left"'):
+                with ui.card().classes('p-2 max-w-md max-h-96 overflow-auto'):
+                    ui.label(
+                        f'Runtime Errors ({error_count})'
+                    ).classes('text-subtitle2 font-bold mb-2')
+                    
+                    for idx, error in enumerate(errors):
+                        with ui.expansion(
+                            f'{idx + 1}. {error.operation or "Error"}',
+                            icon='error'
+                        ).classes('w-full text-red-600'):
+                            ui.label(error.message).classes(
+                                'text-sm text-red-600 mb-2'
+                            )
+                            error_render_detail(error)
 

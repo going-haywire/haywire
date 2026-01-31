@@ -54,11 +54,10 @@ class NodeWrapperState:
     """node custom error """
     error_test: Optional[HaywireException] = None
     """node test error"""
-    error_runtime: Optional[HaywireException] = None
-    """node runtime error"""
+    error_runtime: List[HaywireException] = field(default_factory=list)
+    """node runtime errors (startup, execution, shutdown)"""
     test_execution_time_ns: float = 0.0
     """Last transform() execution time"""
-
 
     def is_valid(self) -> bool:
         """Check if node is in valid state (initialized and tested)"""
@@ -91,7 +90,7 @@ class NodeWrapperState:
         elif self.error_custom:
             return self.error_custom
         elif self.error_runtime:
-            return self.error_runtime
+            return self.error_runtime[-1]  # Return most recent
         else:
             return None
         
@@ -577,6 +576,73 @@ class NodeWrapper:
             if middleware in self._middleware:
                 self._middleware.remove(middleware)
     
+    def _add_runtime_error(self, error: HaywireException) -> None:
+        """Add a runtime error to the list and trigger redraw"""
+        with self._lock:
+            self._state.error_runtime.append(error)
+            if len(self._state.error_runtime) == 1:
+                # First error - trigger redraw
+                self.redraw()
+
+    def _get_all_runtime_errors(self) -> List[HaywireException]:
+        """Get all runtime errors"""
+        with self._lock:
+            return list(self._state.error_runtime)
+
+    def _clear_runtime_errors(self) -> None:
+        """Clear all runtime errors and trigger redraw if any existed"""
+        with self._lock:
+            if self._state.error_runtime:
+                # Errors cleared - trigger redraw
+                self.redraw()
+            self._state.error_runtime.clear()
+    
+    def _startup(self, exec_ctx: 'ExecutionContext') -> None:
+        """
+        wrapper startup logic before execution
+
+        this method catches any exceptions during startup
+        """
+        self._clear_runtime_errors()
+
+        try:
+            self._node_instance.startup(exec_ctx)
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="Node Startup",
+                message=f"Error during startup of node '{self.node.identity.label}'"
+            ).enrich(
+                _node_id=self._node_id,
+                registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
+            )
+            error.log()
+            self._add_runtime_error(error)
+
+    def _shutdown(self, exec_ctx: 'ExecutionContext') -> None:
+        """
+        wrapper shutdown logic before execution
+
+        This method catches any exceptions during shutdown
+        """
+        try:
+            self._node_instance.shutdown(exec_ctx)
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="Node Shutdown",
+                message=f"Error during shutdown of node '{self.node.identity.label}'"
+            ).enrich(
+                _node_id=self._node_id,
+                registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
+            )
+            error.log()
+            self._add_runtime_error(error)
+
     def _execute_method(self, exec_ctx: 'ExecutionContext') -> str | None:
         """
         Execute the node's transform method within the given execution context.
@@ -600,7 +666,7 @@ class NodeWrapper:
             return self._node_instance.execute(exec_ctx)
         
         except Exception as e:
-            self._state.error_runtime = HaywireException.from_exception(
+            error = HaywireException.from_exception(
                 exception=e,
                 operation="Node Execution",
                 message=f"Error executing node '{self.node.identity.label}'"
@@ -610,7 +676,8 @@ class NodeWrapper:
                 module_name=self._node_cls.__module__,
                 library_identity=self._node_cls.class_library
             )
-            self._state.error_runtime.log()
+            error.log()
+            self._add_runtime_error(error)
             return None
  
         #return self._execute_with_middleware('transform', exec_ctx)
