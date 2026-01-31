@@ -733,31 +733,41 @@ class NodeData:
             port for port in self.ports.values()
             if port.flow_type == FlowType.CONTROL and port.is_outlet
         ]
-    
-    def get_control_inlets(self) -> list[DataPort]:
-        """
-        Get all control inlet ports (EXEC type inlets).
-        
-        Returns:
-            List of control inlet ports
-        """
-        return [
-            port for port in self.ports.values()
-            if port.flow_type == FlowType.CONTROL and port.is_inlet
-        ]
-    
-    def get_callback_outlets(self) -> list[DataPort]:
-        """
-        Get all callback outlet ports (CALLBACK type outlets).
-        
-        Returns:
-            List of callback outlet ports
-        """
-        return [
-            port for port in self.ports.values()
-            if port.flow_type == FlowType.CALLBACK and port.is_outlet
-        ]
 
+    def get_ports(self, 
+                    is_inlet: Optional[bool] = None,
+                    is_outlet: Optional[bool] = None,
+                    has_pin: Optional[bool] = None,
+                    is_flow_type: Optional[FlowType] = None,
+                    is_not_flow_type: Optional[FlowType] = None,
+                    has_widget: Optional[bool] = None) -> list[DataPort]:
+        """
+        Get ports matching optional filter criteria.
+        
+        Only filters by criteria that are explicitly provided (not None).
+        If all parameters are None, returns all ports.
+        
+        Args:
+            is_inlet: Filter by inlet (True) or outlet (False). None = no filter.
+            is_outlet: Filter by outlet (True) or inlet (False). None = no filter.
+            is_flow_type: Filter by flow type (CONTROL, DATA, CALLBACK, NONE). None = no filter.
+            is_not_flow_type: Exclude this flow type. None = no filter.
+            has_widget: Filter by presence of widget. None = no filter.
+            has_pin: Filter by presence of visual pin. None = no filter. 
+        Returns:
+            List of ports matching all specified criteria
+        
+        """
+        return [
+            port for port in self.ports.values()
+            if (is_inlet is None or is_inlet == port.is_inlet)
+            and (is_outlet is None or is_outlet == port.is_outlet)
+            and (has_pin is None or has_pin == port.has_pin())
+            and (is_flow_type is None or is_flow_type == port.flow_type)
+            and (is_not_flow_type is None or is_not_flow_type != port.flow_type)
+            and (has_widget is None or has_widget == port.widget_key is not None)
+        ]
+      
     def get_hidden_connected_ports(self, is_inlet: bool) -> List[DataPort]:
         """
         Get ports that are hidden but have active connections.
