@@ -16,17 +16,13 @@ from haywire.core.execution.execution_context import ExecutionContext
     description='Doing something simple',
     menu='simple/nodes',
     search_tags=['simple', 'task'],
+    is_control_node=True, # indicates that this node controls execution flow
 )
 class SimpleNode(BaseNode):
 
-    def initialize(self):
+    def init(self):
         from ..types.specs import EXEC, INT
         from haybale_core.widgets.basic_widgets import NumberWidget
-
-
-        # Mark as control node (not data node)
-        self.behavior.is_control_node = True
-        self.behavior.is_data_node = False
 
         # Control input - starts the loop
         self.add(EXEC.as_inlet(
@@ -58,18 +54,15 @@ class SimpleNode(BaseNode):
 
     # Method that is called right after initialize() to set up any additional state
     # that cannot be serialized.
-    def setup(self):
+    def on_init(self):
         pass
 
     # Method that is called once when the node is started up in the VM.
-    def startup(self, context: ExecutionContext):
+    def on_startup(self, context: ExecutionContext):
         pass
 
-    # Handle asynchronous changes to the node. Called before worker execution.
-    def on_changed_async(self, context: ExecutionContext) -> None:
-
     # Handle validation of inputs before execution. Called before worker execution.
-    def on_validation_input(self, context: ExecutionContext) -> None:
+    def on_validate(self, context: ExecutionContext) -> None:
 
     # Main workhorese method. This is called by the VM when this node is executed.
     # It receives the execution context. All method inputs after context are optional and
@@ -86,33 +79,36 @@ class SimpleNode(BaseNode):
         return 'execute',
 
     # Method that is called once when the node is being shut down in the VM.
-    def shutdown(self, context: ExecutionContext):
+    def on_shutdown(self, context: ExecutionContext):
+        pass
+
+    # Method that is called when the node is being saved.
+    # last moment to save any valuable data that should persist.
+    def on_saved(self):
         pass
 
     # Method that is called when the node is being destroyed/unloaded.
     # place to clean up any resources or references.
-    def teardown(self):
+    def on_teardown(self):
         pass
 ```
 
 ## Lifecyle of a Node
 
-1. **Initialization**: `initialize()` method is called to set up inlets and outlets.
-2. **Setup**: `setup()` method is called for additional setup.
+1. **Initialization**: `init()` method is called to set up inlets and outlets.
+2. **Setup**: `on_init()` method is called for additional setup.
 
 when the flow starts executing:
-3. **Startup**: `startup(context)` is called once when the node starts executing.
-
+3. **Startup**: `on_startup(context)` is called once when the node starts executing.
 inside the execution loop:
-4. **On Changed Async**: `on_changed_async(context)` is called to handle async changes.
-5. **On Validation Input**: `on_validation_input(context)` is called to validate inputs.
-6. **Worker Execution**: `worker(context, ...)` is called to perform the node's main function.
+4. **On Validate**: `on_validate(context)` is called to validate inputs.
+5. **Worker Execution**: `worker(context, ...)` is called to perform the node's main function.
 
 when the flow stops executing:
-7. **Shutdown**: `shutdown(context)` is called once when the node stops executing.
-
+6. **Shutdown**: `on_shutdown(context)` is called once when the node stops executing.
 when the node is being unloaded:
-8. **Teardown**: `teardown()` is called to clean up resources.
+7. **Saved**: `on_saved()` is called just before the node is being saved.
+8. **Teardown**: `on_teardown()` is called to clean up resources.
 
 ---
 
@@ -211,3 +207,9 @@ def worker(self, context: ExecutionContext):
 
     self.out('result', value if value > threshold else 0.0)
 ```
+
+## Custom instance attributes
+
+You can define your own instance attributes within your node class to encapsulate reusable logic. To make sure your custom methods work even when the haywire framework is adding new functionality in the future, use the following guidelines:
+
+start the method name with **hb_**, **my_**, **custom_** or **ext_**. 
