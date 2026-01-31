@@ -130,6 +130,9 @@ class Flow:
         self.scheduler: Optional['FlowScheduler'] = None
         self.is_locked = False
         
+        # Cache for node wrappers (populated on first access after assembly)
+        self._all_node_wrappers_cache: Optional[List['NodeWrapper']] = None
+        
         # Metadata
         self.assembly_timestamp = datetime.now()
         
@@ -154,6 +157,57 @@ class Flow:
     def get_subscription_key(self) -> str:
         """Get subscription key for event registration"""
         return self.event_subscription.get_subscription_key()
+    
+    def get_all_node_wrappers(self) -> List['NodeWrapper']:
+        """
+        Get all node wrappers (control + data) in this flow.
+        
+        Returns:
+            List of all NodeWrapper instances, including:
+            - Entry event node
+            - All control nodes
+            - All data nodes from localized data flows
+            
+        Note:
+            Returns empty list if flow is not assembled.
+            Result is cached after first call for performance.
+            Ensures no duplicates in the returned list.
+        """
+        # Return empty list if not assembled
+        if not self.is_assembled() or not self.control_graph:
+            return []
+        
+        # Return cached result if available
+        if self._all_node_wrappers_cache is not None:
+            return self._all_node_wrappers_cache
+        
+        # Build the list
+        wrappers = []
+        seen_wrappers: Set[str] = set()
+        
+        # Add entry event node
+        wrappers.append(self.entry_event_node)
+        seen_wrappers.add(self.entry_event_node.node_id)
+        
+        # Add all control nodes and their data flows
+        for node_info in self.control_graph.control_nodes.values():
+            # Add control node
+            if node_info.node_wrapper.node_id not in seen_wrappers:
+                wrappers.append(node_info.node_wrapper)
+                seen_wrappers.add(node_info.node_wrapper.node_id)
+            
+            # Add data nodes from localized data flow
+            if node_info.localized_data_flow:
+                for data_wrapper in (
+                    node_info.localized_data_flow.execution_sequence
+                ):
+                    if data_wrapper.node_id not in seen_wrappers:
+                        wrappers.append(data_wrapper)
+                        seen_wrappers.add(data_wrapper.node_id)
+        
+        # Cache and return
+        self._all_node_wrappers_cache = wrappers
+        return wrappers
     
     def __str__(self) -> str:
         return (
