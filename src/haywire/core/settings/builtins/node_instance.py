@@ -17,6 +17,12 @@ if TYPE_CHECKING:
 # This module provides the canonical list and helper for registration.
 
 NODE_INSTANCE_SETTINGS = {
+    'node.renderer': {
+        'default': None,
+        'label': 'Renderer',
+        'description': 'Renderer used for this node',
+        'category': 'node.state',
+    },
     'node.muted': {
         'default': False,
         'label': 'Muted',
