@@ -128,7 +128,7 @@ class UINode:
             renderer_name: Name of the renderer/renderer to use (None for default)
         """
         with self.container:
-            renderer_name = self.wrapper.node.ui.config.node_renderer
+            renderer_name = self.wrapper.node.settings.node.renderer
 
             if renderer_name is None:
                 renderer_name = (
