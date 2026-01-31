@@ -7,6 +7,7 @@ from haywire.core.library.utils import derive_library_identity, reg_key
 from haywire.core.node.base import BaseNode, NodeIdentity
 from haywire.core.node.behavior import NodeBehaviorFlags, BEHAVIOR_FIELDS
 
+from dataclasses import asdict
 from typing import Callable, Type, TypeVar, Union
 
 T = TypeVar('T')
@@ -17,6 +18,8 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
     Decorator to register a class as a Haywire node.
     
     Accepts NodeIdentity fields and NodeBehaviorFlags fields as keyword arguments.
+    Supports inheritance: child classes inherit parent's identity and behavior,
+    with child decorator arguments overriding parent values.
     
     Identity Fields (metadata):
         registry_id (str): Unique identifier within library. Default: class name
@@ -99,10 +102,41 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
                 def worker(self, context):
                     self.store.count += 1
                     self.out('count', self.store.count)
+        
+        Inheritance example (child overrides parent):
+        
+        .. code-block:: python
+        
+            @node(
+                label="Base Math",
+                menu="math",
+                is_data_node=True,
+                is_pure=True
+            )
+            class BaseMathNode(BaseNode):
+                ...
+            
+            # Inherits menu="math", is_data_node=True, is_pure=True
+            # Overrides label
+            @node(label="Advanced Math")
+            class AdvancedMathNode(BaseMathNode):
+                ...  # Still in "math" menu, still pure data node
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseNode):
             raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
+        
+        # Check for parent class attributes to inherit
+        parent_identity = None
+        parent_behavior = None
+        
+        for base in inner_cls.__bases__:
+            if hasattr(base, 'class_identity'):
+                parent_identity = base.class_identity
+            if hasattr(base, 'class_behavior'):
+                parent_behavior = base.class_behavior
+            if parent_identity and parent_behavior:
+                break
         
         # Split kwargs into identity and behavior
         behavior_kwargs = {}
@@ -114,7 +148,22 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
             else:
                 identity_kwargs[key] = value
         
-        # Set defaults from class name if not provided
+        # Inherit from parent, then override with kwargs
+        if parent_identity:
+            # Start with parent's identity values (as dict)
+            parent_dict = asdict(parent_identity)
+            # Remove registry_key as it will be auto-derived for child
+            parent_dict.pop('registry_key', None)
+            # Merge: parent values first, then child overrides
+            identity_kwargs = {**parent_dict, **identity_kwargs}
+        
+        if parent_behavior:
+            # Start with parent's behavior values (as dict)
+            parent_dict = asdict(parent_behavior)
+            # Merge: parent values first, then child overrides
+            behavior_kwargs = {**parent_dict, **behavior_kwargs}
+        
+        # Set defaults from class name if not provided (and no parent)
         identity_kwargs.setdefault('registry_id', inner_cls.__name__)
         identity_kwargs.setdefault('label', inner_cls.__name__)
 
