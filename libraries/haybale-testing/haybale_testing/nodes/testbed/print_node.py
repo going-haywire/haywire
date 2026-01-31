@@ -21,5 +21,5 @@ class PrintMessageNode(BaseNode):
     
     def worker(self, context):
         message = self.value('message')
-        # print(f"[PrintMessage] {message}")
+        print(f"[PrintMessage] {message}")
         return 'done'
