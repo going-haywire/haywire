@@ -23,6 +23,18 @@ class IntToFloatAdapter(BaseAdapter):
     def get_test_value(self) -> int:
         return int(random.randrange(0, 100))
 
+@adapter(
+    description="Convert float to integer", 
+    converts_from=FLOAT, 
+    converts_to=INT
+    )
+class FloatToIntAdapter(BaseAdapter):   
+    @override
+    def convert(self, value: float) -> int:
+        return int(value)
+
+    def get_test_value(self) -> float:
+        return float(random.randrange(0, 100) * 1.0)
 
 
 @adapter(

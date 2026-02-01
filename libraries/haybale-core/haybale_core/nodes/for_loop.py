@@ -39,6 +39,7 @@ class ForLoopNode(BaseNode):
     
     def init(self):
         from ..types.specs import EXEC, INT
+        from ..widgets.basic_widgets import NumberWidget
                 
         # Control input - starts the loop
         self.add(EXEC.as_inlet(
@@ -51,21 +52,21 @@ class ForLoopNode(BaseNode):
             'start',
             default=0,
             label='Start',
-            use_mode='optional'
+            widget=NumberWidget.config()
         ))
         
         self.add(INT.as_inlet(
             'end',
             default=10,
             label='End',
-            use_mode='optional'
+            widget=NumberWidget.config()
         ))
         
         self.add(INT.as_inlet(
             'step',
             default=1,
             label='Step',
-            use_mode='optional'
+            widget=NumberWidget.config()
         ))
         
         # Control input - break out of loop

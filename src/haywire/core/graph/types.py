@@ -100,7 +100,18 @@ class ChangeReason(Enum):
     
     def requires_graph_reassembly(self) -> bool:
         """Check if this reason requires graph reassembly"""
-        return self == ChangeReason.GRAPH_REQUIRE_REASSEMBLY
+        reassembly_reasons = {
+            ChangeReason.NODE_ADDED,
+            ChangeReason.EDGE_ADDED,
+            ChangeReason.NODE_REMOVED,
+            ChangeReason.EDGE_REMOVED,
+            ChangeReason.NODE_HOT_RELOADED,
+            ChangeReason.NODE_HOT_RELOAD_ERROR,
+            ChangeReason.NODE_VALIDATION_REQUESTED,
+            ChangeReason.EDGE_HOT_RELOAD_ERROR,
+            ChangeReason.EDGE_VALIDATION_REQUESTED,
+        }        
+        return self in reassembly_reasons
     
     def get_priority(self) -> int:
         """

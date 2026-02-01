@@ -235,6 +235,8 @@ class BaseGraph:
         
         # Add to collection
         self.node_wrappers[wrapper.node_id] = wrapper
+
+        wrapper.set_as_registered(True)
         
         # Trigger validation (delegates to manager)
         self._validation.mark_node_dirty(
@@ -268,7 +270,9 @@ class BaseGraph:
         
         # Remove wrapper from collection
         wrapper = self.node_wrappers.pop(node_id)
-        
+
+        wrapper.set_as_registered(False)
+
         # Trigger validation for removal
         self._validation.mark_node_dirty(
             node_id, 

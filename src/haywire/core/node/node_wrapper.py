@@ -210,7 +210,18 @@ class NodeWrapper:
     def node_id(self) -> Optional[NodeWrapperState]:
         """Get the node id"""
         return self._node_id
+
+
+    def set_as_registered(self, is_registered: bool) -> None:
+        """
+        Set the node as registered with the graph.
         
+        Args:
+            is_registered: True if the node is registered
+        """
+        with self._lock:
+            self._state.is_registered = is_registered
+
     # ========================================================================= 
     # House Keeping & Validation
     # =========================================================================

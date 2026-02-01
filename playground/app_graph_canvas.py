@@ -29,7 +29,11 @@ from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.graph.utils.graph_to_python import graph_to_python_script
 
 from haywire.ui.editor.graph_canvas_manager import GraphCanvasManager
+from haywire.ui.editor.interpreter_loop_manager import InterpreterLoopManager
 from haywire.ui.themes import ThemePalette
+
+# Execution imports
+from haywire.core.execution import Interpreter
 
 # DI imports  
 from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
@@ -125,6 +129,13 @@ class UndoRedoTestAppWithCanvasManager:
         self.node_render_factory = self.library_service.get_node_render_factory()
         self.adapter_factory = self.library_service.get_adapter_factory()
         self.history_manager = self.library_service.get_history_manager()
+        
+        # Create interpreter and loop manager (shared)
+        self.interpreter = Interpreter()
+        self.loop_manager = InterpreterLoopManager(
+            interpreter=self.interpreter,
+            target_fps=60.0
+        )
 
         
         # Get theme palette from DI
@@ -141,6 +152,7 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Register global change listener for app-level updates
         self.graph.subscribe_to_validation(self._on_global_graph_change)
+        self.graph.subscribe_to_validation(self._on_graph_validation_for_interpreter)
 
         # Create shared Editor instance (graph-managed pattern)
         self.editor = Editor(self.graph)
@@ -235,6 +247,14 @@ class UndoRedoTestAppWithCanvasManager:
             ):
                 self.create_left_panel()
                 self.create_main_editor()
+            
+            # Set up periodic UI update timer for interpreter stats
+            # This runs on the main thread and safely updates UI
+            ui.timer(
+                0.1,  # Update every 100ms
+                lambda: self.update_interpreter_display(),
+                active=True
+            )
     
     def create_header(self):
         """Create the application header with main controls."""
@@ -256,6 +276,40 @@ class UndoRedoTestAppWithCanvasManager:
                     
                     ui.button('Undo', on_click=self.undo_action, icon='undo')
                     ui.button('Redo', on_click=self.redo_action, icon='redo')
+                    
+                    ui.separator().props('vertical')
+                    
+                    # Interpreter controls
+                    ui.button(
+                        'Play',
+                        on_click=self.start_interpreter,
+                        icon='play_arrow',
+                        color='green'
+                    ).bind_visibility_from(
+                        self,
+                        'loop_manager',
+                        backward=lambda x: not (x and x.is_running)
+                    )
+                    
+                    ui.button(
+                        'Stop',
+                        on_click=self.stop_interpreter,
+                        icon='stop',
+                        color='red'
+                    ).bind_visibility_from(
+                        self,
+                        'loop_manager',
+                        backward=lambda x: x and x.is_running
+                    )
+                    
+                    ui.number(
+                        label='FPS',
+                        value=60,
+                        min=1,
+                        max=120,
+                        step=1,
+                        on_change=lambda e: self.set_target_fps(e.value)
+                    ).classes('w-24').props('dense')
 
     
     def create_left_panel(self):
@@ -264,13 +318,29 @@ class UndoRedoTestAppWithCanvasManager:
             ui.label('Controls & Information').classes('text-lg font-bold mb-4')
             
             # Canvas Manager Status
-            with ui.expansion('Canvas Manager Status', icon='dashboard').classes('w-full'):
+            with ui.expansion(
+                'Canvas Manager Status',
+                icon='dashboard'
+            ).classes('w-full'):
                 with ui.column() as canvas_status_container:
                     # Store reference in session data
                     self.current_session['ui_containers'][
                         'canvas_status_container'
                     ] = canvas_status_container
-                    ui.label('Canvas Manager: Initializing...').classes('text-sm text-gray-600')
+                    ui.label(
+                        'Canvas Manager: Initializing...'
+                    ).classes('text-sm text-gray-600')
+            
+            # Interpreter Status
+            with ui.expansion(
+                'Interpreter Status',
+                icon='play_circle'
+            ).classes('w-full'):
+                with ui.column() as interpreter_container:
+                    self.current_session['ui_containers'][
+                        'interpreter_container'
+                    ] = interpreter_container
+                    self.update_interpreter_display()
                                                 
             # Statistics
             with ui.expansion('Statistics', icon='analytics').classes('w-full'):
@@ -489,6 +559,9 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Update theme display for this specific session
             self.update_theme_display_for_session(session_data)
+            
+            # Update interpreter display for this specific session
+            self.update_interpreter_display_for_session(session_data)
                         
         except Exception as e:
             print(f"Error updating displays for session: {e}")
@@ -551,6 +624,120 @@ class UndoRedoTestAppWithCanvasManager:
             ui.notify("Redo performed")
         else:
             ui.notify("Nothing to redo")
+    
+    # Interpreter Methods
+    def start_interpreter(self):
+        """Start the interpreter loop."""
+        # Validate graph first
+        errors = self.graph.validate()
+        
+        if errors:
+            error_summary = '\n'.join(errors[:3])  # Show first 3 errors
+            if len(errors) > 3:
+                error_summary += f'\n... and {len(errors) - 3} more errors'
+            
+            ui.notify(
+                f'Cannot start - graph has {len(errors)} error(s)',
+                type='negative',
+                position='top'
+            )
+            print(f"Graph validation errors:\n{error_summary}")
+            return
+        
+        # Load current graph (triggers assembly)
+        try:
+            self.interpreter.load_graph(self.graph)
+        except Exception as e:
+            ui.notify(
+                f'Failed to load graph: {str(e)}',
+                type='negative',
+                position='top'
+            )
+            print(f"Error loading graph: {e}")
+            traceback.print_exc()
+            return
+        
+        # Start loop
+        self.loop_manager.start()
+        
+        ui.notify("Interpreter started", type='positive', position='top')
+        print("Interpreter loop started")
+    
+    def stop_interpreter(self):
+        """Stop the interpreter loop."""
+        self.loop_manager.stop()
+        
+        # Wait for all flows to complete
+        try:
+            self.interpreter.wait_all(timeout=2.0)
+        except Exception as e:
+            print(f"Error waiting for flows: {e}")
+        
+        ui.notify("Interpreter stopped", type='info', position='top')
+        print("Interpreter loop stopped")
+    
+    def set_target_fps(self, fps: float):
+        """Update target framerate."""
+        if fps > 0:
+            self.loop_manager.set_target_fps(fps)
+            print(f"Target FPS set to {fps}")
+    
+    def _on_graph_validation_for_interpreter(self, result: ValidationResult):
+        """Handle graph validation changes for interpreter."""
+        # Check if interpreter is running
+        if not self.loop_manager or not self.loop_manager.is_running:
+            return
+        
+        # Check if changes require reassembly
+        if (
+            result.change_reason 
+            and result.change_reason.requires_graph_reassembly()
+        ):
+            # Stop the interpreter
+            self.stop_interpreter()
+            
+            # Notify user
+            ui.notify(
+                'Graph changed - interpreter stopped. '
+                'Restart to execute modified graph.',
+                type='warning',
+                position='top',
+                timeout=5000
+            )
+            print("Interpreter stopped due to graph changes requiring reassembly")
+    
+    def update_interpreter_display(self):
+        """Update interpreter status display for current session."""
+        if not hasattr(self, 'current_session'):
+            return
+        
+        containers = self.current_session.get('ui_containers', {})
+        if 'interpreter_container' not in containers:
+            return
+        
+        container = containers['interpreter_container']
+        container.clear()
+        
+        with container:
+            if self.loop_manager:
+                stats = self.loop_manager.get_stats()
+                
+                if stats['is_running']:
+                    ui.label('✓ Running').classes('text-green-600 font-bold')
+                else:
+                    ui.label('○ Stopped').classes('text-gray-500')
+                
+                ui.label(
+                    f'Target FPS: {stats["target_fps"]:.1f}'
+                ).classes('text-sm')
+                ui.label(
+                    f'Actual FPS: {stats["actual_fps"]:.1f}'
+                ).classes('text-sm')
+                ui.label(
+                    f'Frames: {stats["frame_count"]}'
+                ).classes('text-sm')
+            else:
+                ui.label('Not initialized').classes('text-gray-500')
     
     # File I/O Methods
     def save_graph(self):
@@ -1015,6 +1202,58 @@ class UndoRedoTestAppWithCanvasManager:
                                 icon='palette',
                                 on_click=lambda tn=theme_name: self.switch_theme(tn)
                             ).props('size=sm color=primary')
+    
+    def update_interpreter_display_for_session(self, session_data):
+        """Update interpreter status display for a specific session."""
+        containers = session_data.get('ui_containers', {})
+        if 'interpreter_container' in containers:
+            container = containers['interpreter_container']
+            container.clear()
+            
+            with container:
+                if self.loop_manager:
+                    stats = self.loop_manager.get_stats()
+                    
+                    # Status indicator
+                    if stats['is_running']:
+                        with ui.row().classes('items-center gap-2 mb-2'):
+                            ui.icon('play_circle', color='green')
+                            ui.label('Running').classes('text-green-600 font-bold')
+                    else:
+                        with ui.row().classes('items-center gap-2 mb-2'):
+                            ui.icon('stop_circle', color='gray')
+                            ui.label('Stopped').classes('text-gray-500')
+                    
+                    ui.separator().classes('my-2')
+                    
+                    # Performance metrics
+                    ui.label('Performance:').classes('text-sm font-bold mb-1')
+                    ui.label(
+                        f'Target: {stats["target_fps"]:.1f} FPS'
+                    ).classes('text-sm')
+                    
+                    # Color code actual FPS based on target
+                    actual_fps = stats['actual_fps']
+                    target_fps = stats['target_fps']
+                    fps_ratio = actual_fps / target_fps if target_fps > 0 else 0
+                    
+                    if fps_ratio >= 0.9:
+                        fps_color = 'text-green-600'
+                    elif fps_ratio >= 0.7:
+                        fps_color = 'text-yellow-600'
+                    else:
+                        fps_color = 'text-red-600'
+                    
+                    ui.label(
+                        f'Actual: {actual_fps:.1f} FPS'
+                    ).classes(f'text-sm {fps_color}')
+                    
+                    ui.label(
+                        f'Frames: {stats["frame_count"]:,}'
+                    ).classes('text-sm')
+                else:
+                    ui.label('Not initialized').classes('text-gray-500')
+
                 
                 ui.separator().classes('my-2')
                 

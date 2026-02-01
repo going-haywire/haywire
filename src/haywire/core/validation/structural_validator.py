@@ -269,7 +269,7 @@ class StructuralValidator(IStructuralValidator):
             node = node_wrapper.node
             
             # Check if this is an event node
-            if node.is_event_node():
+            if node.behavior.node_type & NodeType.EVENT:
                 # Check individual validity
                 if not node_wrapper._state.is_structural:
                     errors.append(

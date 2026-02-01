@@ -1324,8 +1324,8 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             'settings': self._settings.to_dict(),
             'store': self._store.to_dict(),
             'ui': self._ui.to_dict(),
-            'identity': self.identity.to_dict(),
-            'library': self.library.to_dict(),
+            'identity': asdict(self.identity),
+            'library': asdict(self.library),   
         }
     
     def _initialize_from_dict(self, data: dict) -> None:

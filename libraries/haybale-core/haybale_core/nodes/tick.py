@@ -28,15 +28,8 @@ class TickNode(BaseNode):
     """
         
     def init(self):
-        super().init()
-        
-        # Config
-        self.add(FLOAT.as_config(
-            'interval',
-            default=0.016,  # ~60fps
-            label='Interval (s)'
-        ))
-        
+        from haywire.core.data.enums import FlowType
+               
         # Control output
         self.add(EXEC.as_outlet('exec', label='Execute'))
         
