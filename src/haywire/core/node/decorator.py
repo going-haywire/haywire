@@ -5,7 +5,7 @@ Node decorator for registering node classes.
 
 from haywire.core.library.utils import derive_library_identity, reg_key
 from haywire.core.node.base import BaseNode, NodeIdentity
-from haywire.core.node.behavior import NodeBehaviorFlags, BEHAVIOR_FIELDS
+from haywire.core.node.behavior import NodeBehaviorFlags, NodeType, BEHAVIOR_FIELDS
 
 from dataclasses import asdict
 from typing import Callable, Type, TypeVar, Union
@@ -33,24 +33,25 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         _error_priority (int): Priority for error handling. Default: 0
     
     Behavior Fields (execution characteristics):
-        is_control_node (bool): Participates in control flow. Default: False
-        is_data_node (bool): Processes data. Default: True
-        is_event_node (bool): Entry point for flows. Default: False
-        is_output_node (bool): Terminal output node. Default: False
-        is_pure (bool): No side effects, cacheable. Default: True
+        node_type (NodeType): Primary node type classification. Default: NodeType(0)
+            - NodeType.DATA: Pure data processing (0 ctrl inlet/outlet)
+            - NodeType.CONTROL: Standard control flow (1 ctrl inlet/1 outlet)
+            - NodeType.EVENT: Flow entry point (0 ctrl inlet/1 outlet)
+            - NodeType.OUTPUT: Flow termination (1 ctrl inlet/0 outlet)
+            - NodeType.LOOPBACK: Loop construct (1 ctrl inlet/2+ outlets with loopback)
         is_stateful (bool): Maintains state between executions. Default: False
-        is_loopback (bool): Control flow can return here. Default: False
         has_execute_async (bool): Supports async execution. Default: False
         is_mutable (bool): Configuration can change at runtime. Default: False
+        is_thread_safe (bool): Safe for multithreaded execution. Default: False
     
     Examples:
         Basic data node:
         
         .. code-block:: python
         
-            @node
+            @node(node_type=NodeType.DATA)
             class AddNode(BaseNode):
-                def initialize(self):
+                def init(self):
                     self.add(FLOAT.as_inlet('a'))
                     self.add(FLOAT.as_inlet('b'))
                     self.add(FLOAT.as_outlet('result'))
@@ -63,13 +64,11 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         .. code-block:: python
         
             @node(
-                label="For Loop",
-                menu="control/loops",
-                is_control_node=True,
-                is_loopback=True,
-                is_pure=False
+                label="Print",
+                menu="control/debug",
+                node_type=NodeType.CONTROL
             )
-            class ForLoopNode(BaseNode):
+            class PrintNode(BaseNode):
                 ...
         
         Event node:
@@ -79,11 +78,21 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
             @node(
                 label="On Start",
                 menu="events",
-                is_event_node=True,
-                is_control_node=True,
-                is_data_node=False
+                node_type=NodeType.EVENT
             )
-            class OnStartNode(BaseNode):
+            class BeginPlayNode(BaseNode):
+                ...
+        
+        Loop node:
+        
+        .. code-block:: python
+        
+            @node(
+                label="For Loop",
+                menu="control/loops",
+                node_type=NodeType.LOOPBACK
+            )
+            class ForLoopNode(BaseNode):
                 ...
         
         Stateful node:
@@ -92,11 +101,11 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         
             @node(
                 label="Counter",
-                is_stateful=True,
-                is_pure=False
+                node_type=NodeType.DATA,
+                is_stateful=True
             )
             class CounterNode(BaseNode):
-                def initialize(self):
+                def init(self):
                     self.store.count = 0
                 
                 def worker(self, context):
@@ -110,17 +119,16 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
             @node(
                 label="Base Math",
                 menu="math",
-                is_data_node=True,
-                is_pure=True
+                node_type=NodeType.DATA
             )
             class BaseMathNode(BaseNode):
                 ...
             
-            # Inherits menu="math", is_data_node=True, is_pure=True
+            # Inherits menu="math", node_type=NodeType.DATA
             # Overrides label
             @node(label="Advanced Math")
             class AdvancedMathNode(BaseMathNode):
-                ...  # Still in "math" menu, still pure data node
+                ...
     """
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseNode):

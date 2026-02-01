@@ -5,6 +5,7 @@ Executes loop body a specified number of times with index tracking.
 """
 from haywire.core.node.base import BaseNode
 from haywire.core.node.decorator import node
+from haywire.core.node.behavior import NodeType
 from haywire.core.execution.execution_context import ExecutionContext
 
 
@@ -14,8 +15,7 @@ from haywire.core.execution.execution_context import ExecutionContext
     description='Iterate with start, end, and step control',
     menu='control/loops',
     search_tags=['loop', 'for', 'iterate', 'index', 'range'],
-    is_control_node=True,
-    is_loopback=True,
+    node_type=NodeType.LOOPBACK,
 
 )
 class ForLoopNode(BaseNode):

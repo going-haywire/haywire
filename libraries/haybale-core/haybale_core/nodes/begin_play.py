@@ -2,6 +2,7 @@ from haywire.core.execution.event_source import SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
+from haywire.core.node.behavior import NodeType
 
 from ..types.specs import EXEC, FLOAT
 
@@ -11,8 +12,7 @@ from ..types.specs import EXEC, FLOAT
     description='Triggered once when execution starts',
     menu='events/system',
     search_tags=['start', 'init', 'begin', 'event'],
-    is_control_node=True,
-    is_event_node=True,
+    node_type=NodeType.EVENT,
 )
 class BeginPlayNode(BaseNode):
     """

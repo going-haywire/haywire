@@ -6,6 +6,7 @@ Basic core node implementations
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
+from haywire.core.node.behavior import NodeType
 
 from haybale_example.types.math import MathOPs
 
@@ -13,7 +14,7 @@ from haybale_example.types.math import MathOPs
     label='Math Operation',
     search_tags=['math', 'value', 'single', 'basic', 'operation'],
     menu='math/basic',
-    is_data_node=True
+    node_type=NodeType.DATA
 )
 class MathOP(BaseNode):
     """Node that outputs a constant value"""

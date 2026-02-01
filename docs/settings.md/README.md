@@ -1,3 +1,305 @@
+
+## Data Architecture Summary
+
+### 1. App Startup (Global Registry)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     GlobalSettingsRegistry                       │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Created as singleton via DI                                 │
+│  2. Builtin modules register definitions (schema):              │
+│     - ui_node.py → 'ui.node.bg_color', 'ui.node.font_size'...  │
+│     - ui_edge.py → 'ui.edge.color', 'ui.edge.width'...         │
+│     - execution.py → 'execution.timeout_seconds'...             │
+│     - etc.                                                      │
+│  3. Load settings.toml → applies VALUES (SET/OVERRIDE modes)    │
+│  4. File watcher (optional) → hot-reload on file change         │
+└─────────────────────────────────────────────────────────────────┘
+
+settings.toml only contains VALUES, not schema:
+┌─────────────────────────────────┐
+│ [ui.node]                       │
+│ bg_color = "#f0f0f0"            │  ← SET mode (implicit)
+│ font_size = { override = true,  │  ← OVERRIDE mode (explicit)
+│               value = 14 }      │
+└─────────────────────────────────┘
+```
+
+### 2. Node Creation (Local Holder)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Node Instance Created                         │
+├─────────────────────────────────────────────────────────────────┤
+│  1. SettingsHolder created, linked to GlobalSettingsRegistry    │
+│                                                                  │
+│  2. node_instance.py registers LOCAL-ONLY settings:             │
+│     - 'node.muted' (default: False)                             │
+│     - 'node.collapsed' (default: False)                         │
+│     - 'node.pinned' (default: False)                            │
+│     - 'node.color_override' (default: None)                     │
+│     - etc.                                                       │
+│     These have NO global equivalent.                            │
+│                                                                  │
+│  3. Node designer can add more in init():                 │
+│                                                                  │
+│     # Local-only (no global equivalent)                         │
+│     self.settings.define('my_node.cache_size', 100,             │
+│                          scope=SettingScope.LOCAL_ONLY)         │
+│                                                                  │
+│     # Participate in global resolution (optional)               │
+│     self.settings.define('ui.node.special_mode', False)         │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3. Runtime Resolution
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              self.settings['ui.node.bg_color']                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Resolution Order:                                               │
+│                                                                  │
+│  1. Global OVERRIDE? ──→ Return global value (forced)           │
+│         │                                                        │
+│         ↓ No                                                     │
+│  2. Local SET? ──→ Return local value (node-specific)           │
+│         │                                                        │
+│         ↓ No                                                     │
+│  3. Global SET? ──→ Return global value (app default)           │
+│         │                                                        │
+│         ↓ No                                                     │
+│  4. Return definition default                                    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+For LOCAL-ONLY settings (e.g., 'node.muted'):
+┌─────────────────────────────────────────────────────────────────┐
+│  1. Local SET? ──→ Return local value                           │
+│         │                                                        │
+│         ↓ No                                                     │
+│  2. Return definition default                                    │
+│                                                                  │
+│  (No global lookup - these don't exist in GlobalRegistry)       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 4. Node Serialization
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      node._to_dict()                            │
+├─────────────────────────────────────────────────────────────────┤
+│  {                                                               │
+│    'node_id': 'abc123',                                         │
+│    'ports': { ... },                                            │
+│    'settings': {                                                │
+│      'local_values': {                                          │
+│        # Only non-AUTO values are saved                         │
+│        'node.muted': {'mode': 'SET', 'value': True},           │
+│        'node.collapsed': {'mode': 'SET', 'value': False},      │
+│        'ui.node.bg_color': {'mode': 'SET', 'value': '#ff0000'},│ ← Local override of global
+│        'my_node.cache_size': {'mode': 'SET', 'value': 200},    │ ← Local-only
+│      },                                                         │
+│      'local_definitions': {                                     │
+│        # Only LOCAL_ONLY definitions are saved                  │
+│        'my_node.cache_size': {                                  │
+│          'default': 100,                                        │
+│          'type': 'int',                                         │
+│          'scope': 'LOCAL_ONLY',                                 │
+│          ...                                                    │
+│        }                                                        │
+│      }                                                          │
+│    },                                                           │
+│    'store': { ... },                                            │
+│    'ui': { ... },                                               │
+│    'metadata': { ... }                                          │
+│  }                                                               │
+└─────────────────────────────────────────────────────────────────┘
+
+Note: 
+- Global-aware settings that are AUTO (inherited) are NOT saved
+- Global definitions are NOT saved (they exist in code)
+- Only local overrides and local-only definitions are persisted
+```
+
+### 5. Node Deserialization
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 node._initialize_from_dict(data)                │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Create fresh SettingsHolder (linked to GlobalRegistry)      │
+│  2. Register node_instance.py LOCAL-ONLY settings               │
+│  3. Restore local_definitions from saved data                   │
+│     (rebuilds any custom LOCAL_ONLY settings)                   │
+│  4. Restore local_values from saved data                        │
+│     (applies saved overrides)                                   │
+│                                                                  │
+│  Result: Node has same local overrides as when saved,           │
+│          but global values may have changed (that's fine!)      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Quick Reference Table
+
+| Setting Type | Defined In | Stored In | Serialized With | GUI Visible |
+|--------------|------------|-----------|-----------------|-------------|
+| Global (builtin) | `builtins/*.py` | GlobalRegistry | `settings.toml` | Global Settings Panel |
+| Global (from TOML) | `settings.toml` | GlobalRegistry | `settings.toml` | Global Settings Panel |
+| Local override of global | Node code | SettingsHolder | Node dict | Node Properties Panel |
+| Local-only | Node code | SettingsHolder | Node dict | Node Properties Panel |
+| Node instance defaults | `node_instance.py` | SettingsHolder | Node dict (if changed) | Node Properties Panel |
+
+we don't save the **global values**, we save the **local override values**. The distinction matters because:
+
+```python
+# Global registry has:
+'ui.node.bg_color' = '#ffffff' (SET mode)
+
+# Node has local override:
+self.settings['ui.node.bg_color'] = '#ff0000'
+
+# When saved, node stores:
+'ui.node.bg_color': {'mode': 'SET', 'value': '#ff0000'}  # The LOCAL value
+
+# NOT the global value '#ffffff'
+```
+
+When the node is loaded, it will:
+1. See `'ui.node.bg_color'` exists in GlobalRegistry ✓
+2. Apply the local override `'#ff0000'`
+3. Resolve to `'#ff0000'` (local wins over global)
+
+If the global value changes to `'#000000'` between save and load, the node still uses `'#ff0000'` because it has a local override.
+
+
+# Speed Considerations for Settings Access in Nodes
+
+## Rough Benchmarks
+
+```python
+# Approximate timing (will vary by hardware)
+
+# Direct dict access
+d = {'key': 42}
+d['key']  # ~50-100 ns
+
+# Settings resolution (estimated)
+self.settings['ui.node.bg_color']  # ~500-1000 ns (0.5-1 µs)
+
+# For comparison:
+# - Function call overhead: ~100-200 ns
+# - Port value access: ~200-500 ns
+# - Simple math operation: ~10-50 ns
+```
+
+## Recommendation
+
+**Don't use settings in hot paths within worker().**
+
+Instead, **cache resolved values** in `self.cache` during `on_init()` or at the beginning of `worker()`:
+
+### Pattern 1: Cache in `on_init()`
+
+```python
+@node(label="Fast Node")
+class FastNode(BaseNode):
+    
+    def init(self):
+        self.add(FLOAT.as_inlet('value'))
+        self.add(FLOAT.as_outlet('result'))
+    
+    def on_init(self, context):
+        """Called once before first execution."""
+        # Cache settings that won't change during execution
+        self.cache.verbose = self.settings['debug.verbose_logging']
+        self.cache.timeout = self.settings['execution.timeout_seconds']
+    
+    def worker(self, context, value: float):
+        # Use cached values - direct attribute access is fast
+        if self.cache.verbose:
+            context.log(f"Processing: {value}")
+        
+        self.out('result', value * 2)
+```
+
+### Pattern 2: Cache at Start of Worker (if settings might change)
+
+```python
+@node(label="Responsive Node")
+class ResponsiveNode(BaseNode):
+    
+    def init(self):
+        self.add(FLOAT.as_inlet('value'))
+        self.add(FLOAT.as_outlet('result'))
+        
+        # Track if cache needs refresh
+        self.cache.settings_valid = False
+        
+        # Subscribe to setting changes
+        self.settings.on_change(self._on_setting_change)
+    
+    def _on_setting_change(self, name: str, value: Any, source: str):
+        self.cache.settings_valid = False
+    
+    def _refresh_settings_cache(self):
+        self.cache.verbose = self.settings['debug.verbose_logging']
+        self.cache.multiplier = self.settings.get('my_node.multiplier', 1.0)
+        self.cache.settings_valid = True
+    
+    def worker(self, context, value: float):
+        # Refresh cache only when needed
+        if not self.cache.settings_valid:
+            self._refresh_settings_cache()
+        
+        # Fast access
+        if self.cache.verbose:
+            context.log(f"Processing: {value}")
+        
+        self.out('result', value * self.cache.multiplier)
+```
+
+### Pattern 3: Simple One-Time Check
+
+```python
+def worker(self, context, value: float):
+    # OK for settings checked once per execution
+    # NOT OK in a tight loop
+    
+    if self.settings['node.muted']:
+        return  # Skip execution
+    
+    # ... rest of worker
+```
+
+## When Settings Access is OK in Worker
+
+| Scenario | OK to Use Directly? |
+|----------|---------------------|
+| Check once at start of worker | ✅ Yes |
+| Conditional that rarely triggers | ✅ Yes |
+| Inside a loop (100+ iterations) | ❌ No, cache first |
+| Per-pixel/per-sample processing | ❌ No, cache first |
+| Debug logging checks | ✅ Yes (usually once) |
+| Checking `node.muted` | ✅ Yes (once per execution) |
+
+
+## Summary
+
+| Access Method | Speed | Use Case |
+|---------------|-------|----------|
+| `self.settings['key']` | ~1 µs | Occasional access, setup code |
+| `self.cache.key` | ~50 ns | Hot paths, loops, frequent access |
+| Local variable | ~10 ns | Tightest loops |
+
+**Rule of thumb**: If you access a setting more than once per `worker()` call, cache it.
+
+
+
 # Application startup
 from haywire.core.di.config import init_library_system
 
@@ -48,7 +350,7 @@ class MyCustomNode(BaseNode):
     Example node demonstrating the settings system.
     """
     
-    def initialize(self):
+    def init(self):
         """Set up ports and settings."""
         
         # Ports (your existing pattern)
@@ -131,7 +433,7 @@ class ConditionalNode(BaseNode):
     Control flow node example showing settings usage.
     """
     
-    def initialize(self):
+    def init(self):
         # self.add(BOOL.as_inlet('condition', label='Condition'))
         # self.add(EXEC.as_outlet('true_branch', label='True'))
         # self.add(EXEC.as_outlet('false_branch', label='False'))
@@ -165,7 +467,7 @@ class ConditionalNode(BaseNode):
     )
     class AccumulatorNode(BaseNode):
         
-        def initialize(self):
+        def init(self):
             # Ports
             self.add(FLOAT.as_inlet('value'))
             self.add(FLOAT.as_outlet('sum'))
@@ -393,3 +695,36 @@ Instance-Level:
 ├── store: NodeStore (persistent, serialized, NOT GUI)
 ├── ui: NodeUI (position, dimensions, convenience methods)
 └── ports: dict[str, DataPort]
+```
+
+## Potential speed Optimization for Settings Resolution
+
+we could add a **fast-path cache** to `SettingsHolder`:
+
+```python
+class SettingsHolder:
+    def __init__(self, ...):
+        # ... existing init ...
+        self._resolved_cache: dict[str, Any] = {}
+        self._cache_valid = False
+    
+    def _invalidate_cache(self):
+        self._cache_valid = False
+        self._resolved_cache.clear()
+    
+    def __getitem__(self, key: str) -> Any:
+        key = key.lower()
+        
+        # Fast path: check cache first
+        if self._cache_valid and key in self._resolved_cache:
+            return self._resolved_cache[key]
+        
+        # Slow path: full resolution
+        value, _ = self._resolve(key)
+        self._resolved_cache[key] = value
+        return value
+    
+    def _on_global_change(self, name: str, global_val: SettingValue) -> None:
+        self._invalidate_cache()
+        # ... rest of existing code
+```

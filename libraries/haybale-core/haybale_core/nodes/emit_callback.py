@@ -2,6 +2,7 @@ from haywire.core.execution.event_source import SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
+from haywire.core.node.behavior import NodeType
 
 @node(
     registry_id='emit_callback',
@@ -9,7 +10,7 @@ from haywire.core.node.base import BaseNode
     description='Emits a callback to trigger event nodes in other flows',
     menu='control/callback',
     search_tags=['callback', 'emit', 'trigger', 'event'],
-    is_control_node = True,
+    node_type=NodeType.CONTROL,
 )
 class EmitCallbackNode(BaseNode):
     """

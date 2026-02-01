@@ -1,6 +1,6 @@
 # haywire/core/settings/holder.py
 """
-SettingsHolder - provides dynaconf-style access to settings.
+SettingsHolder - provides dynaconf-style access to settings with caching.
 """
 
 from __future__ import annotations
@@ -75,8 +75,7 @@ class _SettingsNamespace:
         
         # Try as direct setting
         if self._holder._get_definition(full_name):
-            value, _ = self._holder._resolve(full_name)
-            return value
+            return self._holder[full_name]
         
         # Try as namespace
         all_names = self._holder._all_setting_names()
@@ -109,6 +108,7 @@ class SettingsHolder:
     - Case insensitive: self.settings.BG_COLOR == self.settings.bg_color
     - Automatic resolution: global override > local > global > default
     - Local-only settings: settings without global equivalent
+    - Value caching: resolved values are cached for fast repeated access
     
     Usage:
         class MyNode(BaseNode):
@@ -151,13 +151,22 @@ class SettingsHolder:
         object.__setattr__(self, '_owner_name', owner_name)
         object.__setattr__(self, '_local_values', {})
         object.__setattr__(self, '_local_definitions', {})
+        object.__setattr__(self, '_local_only_names', set())  # Fast lookup for local-only
         object.__setattr__(self, '_change_callbacks', [])
+        
+        # Value cache for fast access
+        object.__setattr__(self, '_value_cache', {})
         
         # Subscribe to global changes
         registry.add_listener(self._on_global_change)
     
     def _on_global_change(self, name: str, global_val: SettingValue) -> None:
         """Handle global setting changes."""
+        name = name.lower()
+        
+        # Invalidate cache for this setting
+        self._value_cache.pop(name, None)
+        
         # Only care about settings we might use
         defn = self._get_definition(name)
         if not defn:
@@ -173,6 +182,27 @@ class SettingsHolder:
                     cb(name, resolved, source)
                 except Exception:
                     pass
+    
+    # =========================================================================
+    # Cache Management
+    # =========================================================================
+    
+    def _invalidate_cache(self, name: str | None = None) -> None:
+        """
+        Invalidate cached values.
+        
+        Args:
+            name: Specific setting to invalidate, or None for all
+        """
+        if name is None:
+            self._value_cache.clear()
+        else:
+            self._value_cache.pop(name.lower(), None)
+    
+    def _cache_value(self, name: str, value: Any) -> Any:
+        """Cache and return a resolved value."""
+        self._value_cache[name] = value
+        return value
     
     # =========================================================================
     # Definition
@@ -203,6 +233,9 @@ class SettingsHolder:
         """
         name = name.lower()
         
+        # Invalidate any cached value
+        self._invalidate_cache(name)
+        
         if scope == SettingScope.LOCAL_ONLY:
             self._local_definitions[name] = SettingDefinition(
                 name=name,
@@ -215,6 +248,7 @@ class SettingsHolder:
                 **kwargs
             )
             self._local_values[name] = SettingValue(mode=SettingMode.AUTO)
+            self._local_only_names.add(name)
         else:
             if not self._registry.has_definition(name):
                 self._registry.define(
@@ -242,13 +276,24 @@ class SettingsHolder:
             self._registry.get_definition(name)
         )
     
+    def _resolve_local_only(self, name: str) -> Any:
+        """
+        Optimized resolution for local-only settings.
+        
+        Skips global registry lookup entirely.
+        """
+        local = self._local_values.get(name)
+        if local and local.mode == SettingMode.SET:
+            return local.value
+        return self._local_definitions[name].default
+    
     def _resolve(self, name: str) -> tuple[Any, str]:
         """Resolve setting value with full hierarchy."""
         name = name.lower()
         
         local = self._local_values.get(name)
         
-        # Local-only setting
+        # Local-only setting (fast path)
         if name in self._local_definitions:
             defn = self._local_definitions[name]
             if local and local.mode == SettingMode.SET:
@@ -272,10 +317,18 @@ class SettingsHolder:
         
         name_lower = name.lower()
         
+        # Check cache first
+        if name_lower in self._value_cache:
+            return self._value_cache[name_lower]
+        
         # Direct setting
         if self._get_definition(name_lower):
-            value, _ = self._resolve(name_lower)
-            return value
+            # Fast path for local-only
+            if name_lower in self._local_only_names:
+                value = self._resolve_local_only(name_lower)
+            else:
+                value, _ = self._resolve(name_lower)
+            return self._cache_value(name_lower, value)
         
         # Namespace prefix
         all_names = self._all_setting_names()
@@ -295,8 +348,20 @@ class SettingsHolder:
     
     def __getitem__(self, key: str) -> Any:
         """Dict-style access: self.settings['ui.node.bg_color']"""
-        value, _ = self._resolve(key.lower())
-        return value
+        key = key.lower()
+        
+        # Check cache first
+        if key in self._value_cache:
+            return self._value_cache[key]
+        
+        # Fast path for local-only
+        if key in self._local_only_names:
+            value = self._resolve_local_only(key)
+            return self._cache_value(key, value)
+        
+        # Standard resolution
+        value, _ = self._resolve(key)
+        return self._cache_value(key, value)
     
     def __setitem__(self, key: str, value: Any) -> None:
         """Dict-style setting: self.settings['bg_color'] = '#000'"""
@@ -313,14 +378,12 @@ class SettingsHolder:
     def items(self) -> Iterator[tuple[str, Any]]:
         """Iterate over (name, resolved_value) pairs."""
         for name in self:
-            value, _ = self._resolve(name)
-            yield name, value
+            yield name, self[name]
     
     def get(self, name: str, default: Any = None) -> Any:
         """Get with default: self.settings.get('missing', 'fallback')"""
         try:
-            value, _ = self._resolve(name.lower())
-            return value
+            return self[name]
         except KeyError:
             return default
     
@@ -358,9 +421,21 @@ class SettingsHolder:
             if not defn.validate(value):
                 raise ValueError(f"Invalid value for '{name}': {value}")
         
-        old_resolved, _ = self._resolve(name) if name in self._local_values or defn else (None, None)
+        # Get old value for change detection
+        try:
+            old_resolved = self[name]
+        except KeyError:
+            old_resolved = None
+        
+        # Update local value
         self._local_values[name] = SettingValue(mode=mode, value=value)
-        new_resolved, source = self._resolve(name)
+        
+        # Invalidate cache
+        self._invalidate_cache(name)
+        
+        # Get new resolved value
+        new_resolved = self[name]
+        source = 'local' if mode == SettingMode.SET else 'default'
         
         # Notify if changed
         if old_resolved != new_resolved:
@@ -381,9 +456,18 @@ class SettingsHolder:
         if name not in self._local_values:
             return
         
-        old_resolved, _ = self._resolve(name)
+        try:
+            old_resolved = self[name]
+        except KeyError:
+            old_resolved = None
+        
         self._local_values[name] = SettingValue(mode=SettingMode.AUTO)
-        new_resolved, source = self._resolve(name)
+        
+        # Invalidate cache
+        self._invalidate_cache(name)
+        
+        new_resolved = self[name]
+        source = self._resolve(name)[1]
         
         if old_resolved != new_resolved:
             for cb in self._change_callbacks:
@@ -409,6 +493,8 @@ class SettingsHolder:
         Get full resolution info for UI display.
         
         Returns SettingInfo with value, source, override status, etc.
+        
+        Note: This bypasses the cache intentionally to get fresh source info.
         """
         name = name.lower()
         
@@ -501,8 +587,12 @@ class SettingsHolder:
         type_map = {'int': int, 'float': float, 'str': str, 'bool': bool, 
                     'list': list, 'dict': dict}
         
+        # Clear caches
+        self._invalidate_cache()
+        
         # Restore local-only definitions
         for name, defn_data in data.get('local_definitions', {}).items():
+            name = name.lower()
             self._local_definitions[name] = SettingDefinition(
                 name=name,
                 default=defn_data['default'],
@@ -517,9 +607,11 @@ class SettingsHolder:
                 ui_widget=defn_data.get('ui_widget'),
                 ui_order=defn_data.get('ui_order', 0),
             )
+            self._local_only_names.add(name)
         
         # Restore values
         for name, sv_data in data.get('local_values', {}).items():
+            name = name.lower()
             self._local_values[name] = SettingValue.from_dict(sv_data)
     
     # =========================================================================
@@ -532,8 +624,11 @@ class SettingsHolder:
         self._change_callbacks.clear()
         self._local_values.clear()
         self._local_definitions.clear()
+        self._local_only_names.clear()
+        self._value_cache.clear()
     
     def __repr__(self) -> str:
         owner = self._owner_name or 'unknown'
         local_count = sum(1 for sv in self._local_values.values() if sv.mode != SettingMode.AUTO)
-        return f"SettingsHolder(owner={owner}, local_overrides={local_count})"
+        cached_count = len(self._value_cache)
+        return f"SettingsHolder(owner={owner}, local_overrides={local_count}, cached={cached_count})"

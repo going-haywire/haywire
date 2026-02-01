@@ -1,5 +1,6 @@
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
+from haywire.core.node.behavior import NodeType
 from haybale_core.types.specs import FLOAT, STRING
 
 @node(
@@ -7,16 +8,12 @@ from haybale_core.types.specs import FLOAT, STRING
     description='Displays input values for debugging',
     search_tags=['display', 'debug', 'output', 'basic'],
     menu='example/basic',
-    is_data_node=True
+    node_type=NodeType.DATA
 )
 class DisplayNode(BaseNode):
     """Node that displays input values"""
     
     def init(self):
-        
-        # Configure behavior
-        self.behavior.is_data_node = True
-        self.behavior.is_control_node = False
         
         # Configure UI
         self.ui.config.node_renderer = 'example:renderer:ExampleNodeRenderer'

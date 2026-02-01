@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from haywire.core.execution.flow import ControlFlowGraph, ControlNodeInfo
 
 from haywire.core.data.enums import FlowType
+from haywire.core.node.behavior import NodeType
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class ControlFlowBuilder:
             info = ControlNodeInfo(node_wrapper=current)
             
             # Mark loopback nodes
-            if current.node.behavior.is_loopback:
+            if current.node.behavior.node_type & NodeType.LOOPBACK:
                 info.is_loopback = True
                 logger.debug(f"Node {current.node_id} is loopback")
             

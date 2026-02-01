@@ -14,6 +14,7 @@ import logging
 
 from haywire.core.errors import HaywireException
 from haywire.core.data.enums import FlowType
+from haywire.core.node.behavior import NodeType
 from haywire.core.validation.interface import IStructuralValidator
 
 if TYPE_CHECKING:
@@ -72,14 +73,14 @@ class StructuralValidator(IStructuralValidator):
         node = wrapper.node
 
         # Check if this is an event node
-        if node.behavior.is_event_node:
+        if node.behavior.node_type & NodeType.EVENT:
             return self._validate_event_node(wrapper)
         
-        if node.behavior.is_data_node:
+        if node.behavior.node_type & NodeType.DATA:
             return self._validate_data_node(wrapper)
         
         # Check if this is a loopback node
-        if node.behavior.is_loopback:
+        if node.behavior.node_type & NodeType.LOOPBACK:
             return self._validate_loopback_node(wrapper)
         
         # Regular nodes pass by default
@@ -344,7 +345,7 @@ class StructuralValidator(IStructuralValidator):
         """
         
         # Source must be an event node
-        if not wrapper._source_wrapper.node.behavior.is_event_node:
+        if not (wrapper._source_wrapper.node.behavior.node_type & NodeType.EVENT):
             return (
                 False,
                 f"Callback edge source must be an event node. "

@@ -15,6 +15,7 @@ import logging
 from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow
+from haywire.core.node.behavior import NodeType
 
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
@@ -235,7 +236,7 @@ class HaywireVM:
         # Case 1: No outlet specified
         if next_outlet_id is None:
             # Check if this is an output node
-            if node.behavior.is_output_node:
+            if node.behavior.node_type & NodeType.OUTPUT:
                 logger.debug("Reached output node, ending flow")
                 return (None, None)  # End flow
             else:

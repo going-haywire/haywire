@@ -1,10 +1,11 @@
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
+from haywire.core.node.behavior import NodeType
 
 @node(
     label='Print Message',
     menu='test/simple',
-    is_control_node=True
+    node_type=NodeType.CONTROL
 )
 class PrintMessageNode(BaseNode):
     """Simple control node that prints a message"""

@@ -4,6 +4,31 @@ Node behavior flags - immutable class-level characteristics.
 """
 
 from dataclasses import dataclass
+from enum import IntFlag, auto
+
+
+class NodeType(IntFlag):
+    """
+    Bitwise flags for node behavior.
+    
+    Node types are mutually exclusive and determined by control port configuration:
+    - DATA: 0 ctrl inlet / 0 ctrl outlet
+    - CONTROL: 1 ctrl inlet / 1 ctrl outlet
+    - EVENT: 0 ctrl inlet / 1 ctrl outlet
+    - OUTPUT: 1 ctrl inlet / 0 ctrl outlet
+    - LOOPBACK: 1 ctrl inlet / 2+ ctrl outlets (with loopback)
+    
+    Examples:
+        @node(node_type=NodeType.EVENT)
+        @node(node_type=NodeType.CONTROL)
+        @node(node_type=NodeType.LOOPBACK)
+        @node(node_type=NodeType.DATA)
+    """
+    DATA = auto()         # 0b00001 - Pure data processing
+    CONTROL = auto()      # 0b00010 - Standard control flow
+    EVENT = auto()        # 0b00100 - Flow entry point
+    OUTPUT = auto()       # 0b01000 - Flow termination
+    LOOPBACK = auto()     # 0b10000 - Loop constructs
 
 
 @dataclass(frozen=True)
@@ -18,59 +43,30 @@ class NodeBehaviorFlags:
     Set via decorator:
         @node(
             label="My Loop Node",
-            is_control_node=True,
-            is_loopback=True,
-            is_pure=False
+            node_type=NodeType.LOOPBACK
         )
         class ForLoopNode(BaseNode):
             ...
     
     Access at runtime:
-        if self.behavior.is_control_node:
+        if self.behavior.node_type & NodeType.CONTROL:
+            ...
+        
+        if self.behavior.is_control_node:  # Computed property
             ...
     """
-    
-    is_control_node: bool = False
+
+    node_type: NodeType = NodeType(0)
     """
-    If True, this node participates in control flow.
-    Control nodes have execution (EXEC) ports and determine
-    the order of execution in the graph.
-    """
-    
-    is_data_node: bool = False
-    """
-    If True, this node processes data.
-    Data nodes have data ports and transform inputs to outputs.
-    A node can be both a control node and a data node.
-    """
-    
-    is_event_node: bool = False
-    """
-    If True, this node is an event entry point.
-    Event nodes start execution flows (e.g., OnStart, OnClick).
-    Only one event node can trigger a flow at a time.
-    """
-    
-    is_output_node: bool = False
-    """
-    If True, this node is a terminal output.
-    Output nodes represent final results (e.g., Display, Export).
-    Used by the execution engine to determine execution targets.
+    Primary node type classification.
+    Determines control flow behavior and execution semantics.
     """
     
     is_stateful: bool = False
     """
-    TODO: Do we need this?
     If True, this node maintains state between executions.
     Stateful nodes may produce different outputs even with
     identical inputs (e.g., counters, accumulators).
-    """
-    
-    is_loopback: bool = False
-    """
-    If True, control flow can return to this node.
-    Used for loop constructs (For, While, Sequence).
-    Affects cycle detection in the execution engine.
     """
     
     has_execute_async: bool = False
@@ -88,20 +84,44 @@ class NodeBehaviorFlags:
 
     is_mutable: bool = False
     """
-    TODO: Do we need this?
     If True, this node's configuration can change at runtime.
     Mutable nodes may add/remove ports dynamically.
     """
+    
+    # =========================================================================
+    # COMPUTED PROPERTIES - For backward compatibility and convenience
+    # =========================================================================
+    
+    @property
+    def is_control_node(self) -> bool:
+        """True if node participates in control flow (CONTROL, EVENT, OUTPUT, LOOPBACK)."""
+        return bool(self.node_type & (NodeType.CONTROL | NodeType.EVENT | NodeType.OUTPUT | NodeType.LOOPBACK))
+    
+    @property
+    def is_data_node(self) -> bool:
+        """True if node is a pure data node (DATA)."""
+        return bool(self.node_type & NodeType.DATA)
+    
+    @property
+    def is_event_node(self) -> bool:
+        """True if node is a flow entry point (EVENT)."""
+        return bool(self.node_type & NodeType.EVENT)
+    
+    @property
+    def is_output_node(self) -> bool:
+        """True if node is a flow termination (OUTPUT)."""
+        return bool(self.node_type & NodeType.OUTPUT)
+    
+    @property
+    def is_loopback(self) -> bool:
+        """True if control flow can return to this node (LOOPBACK)."""
+        return bool(self.node_type & NodeType.LOOPBACK)
 
 
 # Fields that belong to NodeBehaviorFlags (used by @node decorator)
 BEHAVIOR_FIELDS = frozenset({
-    'is_control_node',
-    'is_data_node', 
-    'is_event_node',
-    'is_output_node',
+    'node_type',
     'is_stateful',
-    'is_loopback',
     'has_execute_async',
     'is_mutable',
     'is_thread_safe'

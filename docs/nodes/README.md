@@ -8,6 +8,7 @@ Executes loop body a specified number of times with index tracking.
 """
 from haywire.core.node.base import BaseNode
 from haywire.core.node.decorator import node
+from haywire.core.node.behavior import NodeType
 from haywire.core.execution.execution_context import ExecutionContext
 
 
@@ -16,7 +17,7 @@ from haywire.core.execution.execution_context import ExecutionContext
     description='Doing something simple',
     menu='simple/nodes',
     search_tags=['simple', 'task'],
-    is_control_node=True, # indicates that this node controls execution flow
+    node_type=NodeType.CONTROL, # indicates that this node controls execution flow
 )
 class SimpleNode(BaseNode):
 

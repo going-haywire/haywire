@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 from haywire.core.assembly.control_flow_builder import ControlFlowBuilder
 from haywire.core.assembly.data_flow_builder import DataFlowBuilder
 from haywire.core.execution.flow import Flow
+from haywire.core.node.behavior import NodeType
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ class FlowAssemblyManager:
         
         for wrapper in graph.node_wrappers.values():
             # Check if node is an event node
-            if wrapper.node.behavior.is_event_node:
+            if wrapper.node.behavior.node_type & NodeType.EVENT:
                 event_nodes.append(wrapper)
         
         return event_nodes

@@ -7,12 +7,13 @@ from haybale_test_a.types.maps_string_type import MapsStringType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
+from haywire.core.node.behavior import NodeType
 
 @node(
     label='Test Node Four',
     search_tags=['constant', 'value', 'output', 'basic'],
     menu='core/basic',
-    is_control_node = True
+    node_type=NodeType.CONTROL
 )
 class TestNodeOne(BaseNode):
     """Node that outputs a constant value"""

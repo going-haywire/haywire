@@ -5,6 +5,7 @@ Tests for the @node decorator, including inheritance behavior.
 import pytest
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
+from haywire.core.node.behavior import NodeType
 
 
 def test_basic_node_decorator():
@@ -14,7 +15,7 @@ def test_basic_node_decorator():
         label="Test Node",
         description="A test node",
         menu="test/basic",
-        is_data_node=True,
+        node_type=NodeType.DATA,
         is_thread_safe=True
     )
     class TestNode(BaseNode):
@@ -23,6 +24,7 @@ def test_basic_node_decorator():
     assert TestNode.class_identity.label == "Test Node"
     assert TestNode.class_identity.description == "A test node"
     assert TestNode.class_identity.menu == "test/basic"
+    assert TestNode.class_behavior.node_type == NodeType.DATA
     assert TestNode.class_behavior.is_data_node is True
     assert TestNode.class_behavior.is_thread_safe is True
     assert TestNode.class_behavior.is_control_node is False
@@ -36,7 +38,7 @@ def test_node_decorator_inheritance_no_override():
         description="Parent description",
         menu="test/parent",
         search_tags=["parent", "test"],
-        is_control_node=True,
+        node_type=NodeType.CONTROL,
         is_stateful=True
     )
     class ParentNode(BaseNode):
@@ -54,6 +56,7 @@ def test_node_decorator_inheritance_no_override():
     assert ChildNode.class_identity.search_tags == ["parent", "test"]
     
     # Check behavior inheritance
+    assert ChildNode.class_behavior.node_type == NodeType.CONTROL
     assert ChildNode.class_behavior.is_control_node is True
     assert ChildNode.class_behavior.is_loopback is False
     assert ChildNode.class_behavior.is_stateful is True
@@ -67,7 +70,7 @@ def test_node_decorator_inheritance_with_override():
         description="Parent description",
         menu="test/parent",
         search_tags=["parent"],
-        is_control_node=True,
+        node_type=NodeType.CONTROL,
         is_thread_safe=False,
         is_stateful=True
     )
@@ -95,6 +98,7 @@ def test_node_decorator_inheritance_with_override():
     assert ChildNode.class_behavior.is_thread_safe is True
     
     # Check inherited behavior (not overridden)
+    assert ChildNode.class_behavior.node_type == NodeType.CONTROL
     assert ChildNode.class_behavior.is_control_node is True
     assert ChildNode.class_behavior.is_stateful is True
 
@@ -122,7 +126,7 @@ def test_node_decorator_multilevel_inheritance():
     @node(
         label="Grandparent",
         menu="test/gp",
-        is_control_node=True,
+        node_type=NodeType.CONTROL,
         is_thread_safe=True
     )
     class GrandparentNode(BaseNode):
@@ -144,6 +148,7 @@ def test_node_decorator_multilevel_inheritance():
     # Child should inherit from immediate parent (ParentNode)
     # ParentNode has inherited menu from GrandparentNode
     assert ChildNode.class_identity.menu == "test/gp"
+    assert ChildNode.class_behavior.node_type == NodeType.CONTROL
     assert ChildNode.class_behavior.is_control_node is True
     assert ChildNode.class_behavior.is_stateful is True
     assert ChildNode.class_behavior.is_thread_safe is True
@@ -161,6 +166,7 @@ def test_node_decorator_defaults_when_no_parent():
     assert TestNode.class_identity.label == "TestNode"
     
     # Should have default behavior values
+    assert TestNode.class_behavior.node_type == NodeType(0)
     assert TestNode.class_behavior.is_control_node is False
     assert TestNode.class_behavior.is_data_node is False
     assert TestNode.class_behavior.is_loopback is False
@@ -174,7 +180,7 @@ def test_node_decorator_partial_override():
         description="Base desc",
         menu="base/menu",
         search_tags=["base"],
-        is_control_node=True
+        node_type=NodeType.CONTROL
     )
     class BaseNode1(BaseNode):
         pass
@@ -182,7 +188,7 @@ def test_node_decorator_partial_override():
     @node(
         label="Derived",  # Override
         search_tags=["derived", "extended"],  # Override
-        is_data_node=True  # Add new behavior
+        node_type=NodeType.DATA  # Override node type
     )
     class DerivedNode(BaseNode1):
         pass
@@ -195,9 +201,10 @@ def test_node_decorator_partial_override():
     assert DerivedNode.class_identity.description == "Base desc"
     assert DerivedNode.class_identity.menu == "base/menu"
     
-    # Combined behaviors
-    assert DerivedNode.class_behavior.is_control_node is True  # Inherited
-    assert DerivedNode.class_behavior.is_data_node is True  # Added
+    # Type overridden - mutually exclusive
+    assert DerivedNode.class_behavior.node_type == NodeType.DATA
+    assert DerivedNode.class_behavior.is_control_node is False  # No longer control
+    assert DerivedNode.class_behavior.is_data_node is True  # Now data
 
 
 if __name__ == "__main__":

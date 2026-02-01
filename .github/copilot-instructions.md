@@ -51,23 +51,31 @@ Nodes inherit from `BaseNode` and use the `@node` decorator:
 ```python
 from haywire.core.node.base_node import node, BaseNode
 from haywire.core.node.elements import Inlet, Outlet
+from haywire.core.node.behavior import NodeType
 
 @node(
     label='My Node',
     description='What this node does',
     search_tags=['tag1', 'tag2'],
-    menu='category/subcategory'
+    menu='category/subcategory',
+    node_type=NodeType.DATA  # or CONTROL, EVENT, OUTPUT, LOOPBACK
 )
 class MyNode(BaseNode):
     def __init__(self, node_id, graph):
         super().__init__(node_id, graph)
         
-        # Configure node behavior
-        self.behavior.is_data_node = True
-        self.behavior.is_control_node = False
-        
         # Add pins using self.add_inlet() and self.add_outlet()
 ```
+
+### Node Types
+
+Node types are mutually exclusive and determined by control port configuration:
+
+- **NodeType.DATA**: Pure data processing (0 ctrl inlet/0 ctrl outlet)
+- **NodeType.CONTROL**: Standard control flow (1 ctrl inlet/1 ctrl outlet)  
+- **NodeType.EVENT**: Flow entry point (0 ctrl inlet/1 ctrl outlet)
+- **NodeType.OUTPUT**: Flow termination (1 ctrl inlet/0 ctrl outlet)
+- **NodeType.LOOPBACK**: Loop constructs (1 ctrl inlet/2+ ctrl outlets with loopback)
 
 ### Pin Configuration
 
