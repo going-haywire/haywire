@@ -48,6 +48,7 @@ class BaseLibrary(ABC):
         """Enable the library and register its components"""
         if not self._enabled:
             self._enabled = True
+            self.on_library_enable()
             self.register_components()
             self._attach_to_registries()
             self.file_watcher.start()
@@ -58,6 +59,7 @@ class BaseLibrary(ABC):
         if self._enabled:
             self._enabled = False
             self._detach_from_registries()
+            self.on_library_disable()
             self.file_watcher.stop()
             logging.info(f"Library '{self.identity.label}': Disabled and components unregistered")
             
@@ -72,6 +74,14 @@ class BaseLibrary(ABC):
     def get_registry(self, cls):
         """Get a registry instance by its class type"""
         return self.registries.get(cls)
+    
+    def on_library_enable(self):
+        """Hook called when the library is enabled"""
+        pass
+
+    def on_library_disable(self):
+        """Hook called when the library is disabled"""
+        pass
 
     @abstractmethod
     def register_components(self):
