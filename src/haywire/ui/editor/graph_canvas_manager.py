@@ -75,13 +75,7 @@ class GraphCanvasManager:
         
         # Access graph for read operations
         self.graph = editor.graph
-
-        # Subscribe to validation through graph's public API
-        self.graph.subscribe_to_validation(self._on_validated)
-       
-        # Register for simple graph change notifications
-        # self.editor.add_change_callback(self._graph_change_callback)
-                       
+                      
         # Visual state
         self.node_panels: Dict[str, UINode] = {}  # node_id -> UINode
         self.connection_paths: Dict[str, UIEdge] = {}  # connection_uuid -> UIEdge object
@@ -816,8 +810,6 @@ class GraphCanvasManager:
         self.selected_nodes.clear()
         self.selected_connections.clear()
         
-        # Unsubscribe from graph events
-        self.graph.unsubscribe_from_validation(self._on_validated)
         logger.info(f"🔧 GraphCanvasManager for {self.session_id} is shut down")
 
 

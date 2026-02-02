@@ -185,6 +185,8 @@ class NodeWrapper:
         self._is_dirty_structural: bool = False
         self._is_dirty_data: bool = False
 
+        self._profiling_enabled: bool = True
+
         self._import_node_cls()        
 
     @property  
@@ -623,55 +625,68 @@ class NodeWrapper:
     
     def _startup(self, exec_ctx: 'ExecutionContext') -> None:
         """
-        wrapper startup logic before execution
-
-        this method catches any exceptions during startup
+        Wrapper startup logic before execution.
+        
+        This method catches any exceptions during startup.
+        No locking needed - each flow has independent nodes.
         """
-        with self._lock:
-            self._clear_runtime_errors()
+        self._clear_runtime_errors()
 
-            try:
-                self._node_instance.on_startup(exec_ctx)
-            except Exception as e:
-                error = HaywireException.from_exception(
-                    exception=e,
-                    operation="Node Startup",
-                    message=f"Error during startup of node '{self.node.identity.label}'"
-                ).enrich(
-                    _node_id=self._node_id,
-                    registry_key=self.registry_key,
-                    module_name=self._node_cls.__module__,
-                    library_identity=self._node_cls.class_library
-                )
-                error.log()
-                self._add_runtime_error(error)
+        try:
+            self._node_instance.on_startup(exec_ctx)
+
+            self._profiling_elapsed_time_ns = 0
+            self._profiling_number_of_ticks = 0
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="Node Startup",
+                message=f"Error during startup of node '{self.node.identity.label}'"
+            ).enrich(
+                _node_id=self._node_id,
+                registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
+            )
+            error.log()
+            self._add_runtime_error(error)
 
     def _shutdown(self, exec_ctx: 'ExecutionContext') -> None:
         """
-        wrapper shutdown logic before execution
-
-        This method catches any exceptions during shutdown
+        Wrapper shutdown logic after execution.
+        
+        This method catches any exceptions during shutdown.
+        No locking needed - each flow has independent nodes.
         """
-        with self._lock:
-            try:
-                self._node_instance.on_shutdown(exec_ctx)
-            except Exception as e:
-                error = HaywireException.from_exception(
-                    exception=e,
-                    operation="Node Shutdown",
-                    message=f"Error during shutdown of node '{self.node.identity.label}'"
-                ).enrich(
-                    _node_id=self._node_id,
-                    registry_key=self.registry_key,
-                    module_name=self._node_cls.__module__,
-                    library_identity=self._node_cls.class_library
+        try:
+            self._node_instance.on_shutdown(exec_ctx)
+
+            if self._profiling_enabled:
+                logger.info(
+                    f"Node '{self.node.identity.label}' average execution time: "
+                    f"{(self._profiling_elapsed_time_ns / max(1, self._profiling_number_of_ticks)):.2f} ns "
+                    f"over {self._profiling_number_of_ticks} ticks."
                 )
-                error.log()
-                self._add_runtime_error(error)
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="Node Shutdown",
+                message=f"Error during shutdown of node '{self.node.identity.label}'"
+            ).enrich(
+                _node_id=self._node_id,
+                registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
+            )
+            error.log()
+            self._add_runtime_error(error)
 
     def _execute(self, exec_ctx: 'ExecutionContext') -> str | None:
         """
         Execute the node's transform method within the given execution context.
+        
+        No locking needed - each flow has independent nodes, and each flow
+        runs in a single thread.
         
         Args:
             exec_ctx: The execution context for this run
@@ -679,33 +694,42 @@ class NodeWrapper:
         Returns:
             Outlet ID to follow, or None
         """
-        with self._lock:
-            try:
-                if self._node_instance.behavior.is_data_node:
-                    if not self._is_dirty_data:
-                        logger.debug(f"Skipping {self._node_id} (not dirty)")
-                        return None  # No execution needed
-                    self._is_dirty_data = False  # Reset dirty flag
+        try:
+            if self._node_instance.behavior.is_data_node:
+                if not self._is_dirty_data:
+                    logger.debug(f"Skipping {self._node_id} (not dirty)")
+                    return None
+                self._is_dirty_data = False
 
-                self._node_instance.on_validate(exec_ctx)
+            self._node_instance.on_validate(exec_ctx)
 
-                return self._node_instance._execute(exec_ctx)
+            # Only time if profiling is enabled
+            if self._profiling_enabled:
+                start_ns = time.perf_counter_ns()
+                result = self._node_instance._execute(exec_ctx)
+                elapsed_ns = time.perf_counter_ns() - start_ns
+                self._profiling_elapsed_time_ns += elapsed_ns
+                self._profiling_number_of_ticks += 1
+            else:
+                result = self._node_instance._execute(exec_ctx)
+
+            return result
             
-            except Exception as e:
-                error = HaywireException.from_exception(
-                    exception=e,
-                    operation="Node Execution",
-                    message=f"Error executing node '{self.node.identity.label}'"
-                ).enrich(
-                    _node_id=self._node_id,
-                    registry_key=self.registry_key,
-                    module_name=self._node_cls.__module__,
-                    library_identity=self._node_cls.class_library
-                )
-                error.log()
-                self._add_runtime_error(error)
-                return None
- 
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="Node Execution",
+                message=f"Error executing node '{self.node.identity.label}'"
+            ).enrich(
+                _node_id=self._node_id,
+                registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
+            )
+            error.log()
+            self._add_runtime_error(error)
+            return None
+     
         #return self._execute_with_middleware('transform', exec_ctx)
 
     def _execute_with_middleware(self, method_name: str, *args) -> Any:

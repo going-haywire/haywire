@@ -189,7 +189,8 @@ class PrimitiveField(DataField[T]):
 
         self._value = value
         self.is_dirty = True
-        self.fire(self._value)
+        if self.on_changed.has_observers():
+            self.fire(self._value)
         
     def reset(self) -> None:
         """Reset to default value"""
@@ -236,7 +237,8 @@ class BaseField(DataField[BaseType]):
         
         self._container = value
         self.is_dirty = True
-        self.fire(self._container)
+        if self.on_changed.has_observers():
+            self.fire(self._container)
        
     def reset(self) -> None:
         """Reset to default value"""

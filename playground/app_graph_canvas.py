@@ -17,7 +17,9 @@ Key improvements:
 """
 
 import os
+import signal
 import sys
+import threading
 import traceback
 from nicegui import ui, app
 
@@ -28,8 +30,9 @@ from haywire.core.graph.types import ValidationResult
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.graph.utils.graph_to_python import graph_to_python_script
 
+from haywire.ui.console_bridge import ConsoleBridge
 from haywire.ui.editor.graph_canvas_manager import GraphCanvasManager
-from haywire.ui.editor.interpreter_loop_manager import InterpreterLoopManager
+from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
 from haywire.ui.themes import ThemePalette
 
 # Execution imports
@@ -58,44 +61,148 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Session-specific UI state (client_id -> session_data)
         self.sessions = {}
+        
+        # Track shutdown state
+        self._is_shutting_down = False
 
+        # Register lifecycle hooks
         app.on_disconnect(self.on_disconnect)
+        app.on_shutdown(self.on_app_shutdown)
 
-    def on_disconnect(self, client):
-        """Handle client disconnect and clean up session data."""
-        client_id = getattr(client, 'id', None)
-
-        if client_id and client_id in self.sessions:
-            session_data = self.sessions[client_id]
-            print(
-                f"Client disconnected: {client_id[:8]}, "
-                "cleaning up session and UI."
-            )
-
-            # IMPORTANT: Remove canvas manager's graph change listener FIRST
-            # This prevents it from receiving updates during cleanup
-            canvas_manager: GraphCanvasManager = session_data.get('canvas_manager')
-            if canvas_manager:
-                canvas_manager.cleanup()
-
-            # Cancel the interpreter update timer to prevent accessing deleted UI
-            interpreter_timer = session_data.get('interpreter_timer')
-            if interpreter_timer:
-                interpreter_timer.cancel()
-
+    def on_app_shutdown(self):
+        """
+        Handle application shutdown - cleanup all resources.
+        
+        Called by NiceGUI when the application is stopping.
+        """
+        if self._is_shutting_down:
+            return
+        
+        self._is_shutting_down = True
+        print("🔧 Application shutdown initiated...")
+        
+        # 1. Stop interpreter loop first (stops generating new events)
+        if self.loop_manager and self.loop_manager.is_running:
+            print("  Stopping interpreter loop...")
+            self.stop_interpreter()
+        
+        # 2. Clean up all sessions
+        print(f"  Cleaning up {len(self.sessions)} sessions...")
+        session_ids = list(self.sessions.keys())
+        for client_id in session_ids:
+            try:
+                self._cleanup_session(client_id)
+            except Exception as e:
+                print(f"  Error cleaning up session {client_id[:8]}: {e}")
+        
+        # 3. Unsubscribe from graph validation (app-level subscription)
+        print("  Unsubscribing from graph validation...")
+        try:
             self.graph.unsubscribe_from_validation(self._on_global_graph_change)
+            self.graph.unsubscribe_from_validation(self._on_graph_validation_for_interpreter)
+        except Exception as e:
+            print(f"  Error unsubscribing from validation: {e}")
+        
+        # 4. Unregister theme observer
+        print("  Unregistering theme observer...")
+        try:
+            ThemePalette.unregister_observer(self._on_theme_changed)
+        except Exception as e:
+            print(f"  Error unregistering theme observer: {e}")
+        
+        # 5. Stop console bridge polling
+        print("  Stopping console bridge...")
+        try:
+            from haywire.ui.console_bridge import ConsoleBridge
+            bridge = ConsoleBridge.get_instance()
+            bridge.stop_polling()
+        except Exception as e:
+            print(f"  Error stopping console bridge: {e}")
+        
+        # 6. Shutdown interpreter
+        print("  Shutting down interpreter...")
+        try:
+            if self.interpreter:
+                self.interpreter.shutdown()
+        except Exception as e:
+            print(f"  Error shutting down interpreter: {e}")
+        
+        # 7. Cleanup library system
+        print("  Cleaning up library system...")
+        try:
+            if hasattr(self.library_service, 'cleanup'):
+                self.library_service.cleanup()
+        except Exception as e:
+            print(f"  Error cleaning up library system: {e}")
+        
+        print("✅ Application shutdown complete")
 
-            # Clean up UI containers
+    def _cleanup_session(self, client_id: str):
+        """
+        Clean up a single session's resources.
+        
+        Args:
+            client_id: The client ID to clean up
+        """
+        if client_id not in self.sessions:
+            return
+        
+        session_data = self.sessions[client_id]
+        print(f"    Cleaning up session {client_id[:8]}...")
+        
+        # Clean up canvas manager
+        canvas_manager = session_data.get('canvas_manager')
+        if canvas_manager:
+            try:
+                canvas_manager.cleanup()
+            except Exception as e:
+                print(f"    Error cleaning up canvas manager: {e}")
+        
+        # Cancel interpreter update timer
+        interpreter_timer = session_data.get('interpreter_timer')
+        if interpreter_timer:
+            try:
+                interpreter_timer.cancel()
+            except Exception as e:
+                print(f"    Error canceling interpreter timer: {e}")
+        
+        # Clean up console log reference
+        console_log = session_data.get('console_log')
+        if console_log:
+            try:
+                from haywire.ui.console_bridge import ConsoleBridge
+                bridge = ConsoleBridge.get_instance()
+                bridge.unregister_log(console_log)
+            except Exception as e:
+                print(f"    Error unregistering console log: {e}")
+        
+        # Clear UI containers - skip if shutting down (clients already deleted)
+        if not self._is_shutting_down:
             containers = session_data.get('ui_containers', {})
-            for container in containers.values():
+            for name, container in containers.items():
                 try:
                     container.clear()
                 except Exception as e:
-                    print(f"Error clearing UI container: {e}")
-
-            # Remove session from dict
-            del self.sessions[client_id]
-            print(f"Session {client_id[:8]} fully cleaned up")
+                    pass  # Client likely deleted
+        
+        # Remove from sessions dict
+        del self.sessions[client_id]
+        
+    def on_disconnect(self, client):
+        """
+        Handle client disconnect and clean up session data.
+        
+        Called by NiceGUI when a client disconnects.
+        """
+        # Skip if we're in full shutdown mode
+        if self._is_shutting_down:
+            return
+        
+        client_id = getattr(client, 'id', None)
+        if client_id and client_id in self.sessions:
+            print(f"Client disconnected: {client_id[:8]}")
+            self._cleanup_session(client_id)
+            print(f"Session {client_id[:8]} cleaned up")
             
     def get_session_data(self):
         """Get or create session-specific data for current client."""
@@ -196,17 +303,40 @@ class UndoRedoTestAppWithCanvasManager:
                 pass
     
     def _on_global_graph_change(self, result: ValidationResult):
-        """Handle global graph changes (affects all sessions)."""
+        """
+        Handle global graph changes from ValidationManager.
+        
+        Called from Timer thread - marshal to main thread for UI safety.
+        """
+        try:
+            ui.timer(0, lambda r=result: self._handle_graph_change_ui(r), once=True)
+        except Exception:
+            pass
+
+    def _handle_graph_change_ui(self, result: ValidationResult):
+        """
+        Process graph changes on the main thread.
+        
+        Routes validation results to all canvas managers and updates displays.
+        """
         print("🌍 Global graph change detected")
         
         # Update global stats
         self.global_stats['nodes_created'] = len(self.graph.node_wrappers)
         self.global_stats['edges_created'] = len(self.graph.edge_wrappers)
         
-        # Update displays for all sessions
-        for session_data in self.sessions.values():
+        # Route to all session canvas managers
+        for client_id, session_data in self.sessions.items():
+            canvas_manager = session_data.get('canvas_manager')
+            if canvas_manager:
+                try:
+                    canvas_manager.on_validated(result)
+                except Exception as e:
+                    print(f"Error updating canvas for session {client_id[:8]}: {e}")
+            
+            # Update other displays
             self.update_displays_for_session(session_data)
-    
+                    
     def setup_library_system(self):
         """Initialize the library system service."""
         # Store undo config for UI access
@@ -409,7 +539,24 @@ class UndoRedoTestAppWithCanvasManager:
                         )
                     else:
                         ui.label('Undo system not available').classes('text-gray-500')
-    
+
+            # In the UI setup:
+            with ui.expansion('Console Output', icon='terminal').classes('w-full').props('default-opened'):
+                console_log = ui.log(max_lines=200).classes('w-full h-64 font-mono text-xs')
+                
+                # Register with bridge
+                bridge = ConsoleBridge.get_instance()
+                bridge.register_log(console_log)
+                bridge.start_polling(interval=0.1)  # Poll every 100ms
+                
+                # Store reference for cleanup
+                self.current_session['console_log'] = console_log
+                
+                with ui.row().classes('w-full gap-2 mt-2'):
+                    ui.button('Clear', icon='delete', 
+                        on_click=lambda: console_log.clear()
+                    ).props('size=sm')
+
     def create_main_editor(self):
         """Create the main node editor with GraphCanvasManager."""
         with ui.card().classes('flex-grow').style(
@@ -436,7 +583,6 @@ class UndoRedoTestAppWithCanvasManager:
                         
             # IMPORTANT: Sync with existing graph data when canvas manager is first created
             canvas_manager.sync_with_graph()
-            print(f"Canvas manager synced with {len(self.graph.node_wrappers)} existing nodes")
             
             # Update canvas status
             self.update_canvas_status()
@@ -1211,63 +1357,75 @@ class UndoRedoTestAppWithCanvasManager:
     def update_interpreter_display_for_session(self, session_data):
         """Update interpreter status display for a specific session."""
         containers = session_data.get('ui_containers', {})
-        if 'interpreter_container' in containers:
-            container = containers['interpreter_container']
-            container.clear()
-            
-            with container:
-                if self.loop_manager:
-                    stats = self.loop_manager.get_stats()
-                    
-                    # Status indicator
-                    if stats['is_running']:
-                        with ui.row().classes('items-center gap-2 mb-2'):
-                            ui.icon('play_circle', color='green')
-                            ui.label('Running').classes('text-green-600 font-bold')
-                    else:
-                        with ui.row().classes('items-center gap-2 mb-2'):
-                            ui.icon('stop_circle', color='gray')
-                            ui.label('Stopped').classes('text-gray-500')
-                    
-                    ui.separator().classes('my-2')
-                    
-                    # Performance metrics
-                    ui.label('Performance:').classes('text-sm font-bold mb-1')
-                    ui.label(
-                        f'Target: {stats["target_fps"]:.1f} FPS'
-                    ).classes('text-sm')
-                    
-                    # Color code actual FPS based on target
-                    actual_fps = stats['actual_fps']
-                    target_fps = stats['target_fps']
-                    fps_ratio = actual_fps / target_fps if target_fps > 0 else 0
-                    
-                    if fps_ratio >= 0.9:
-                        fps_color = 'text-green-600'
-                    elif fps_ratio >= 0.7:
-                        fps_color = 'text-yellow-600'
-                    else:
-                        fps_color = 'text-red-600'
-                    
-                    ui.label(
-                        f'Actual: {actual_fps:.1f} FPS'
-                    ).classes(f'text-sm {fps_color}')
-                    
-                    ui.label(
-                        f'Frames: {stats["frame_count"]:,}'
-                    ).classes('text-sm')
+        if 'interpreter_container' not in containers:
+            return
+        
+        container = containers['interpreter_container']
+        container.clear()
+        
+        with container:
+            if self.loop_manager:
+                stats = self.loop_manager.get_stats()
+                
+                # Status indicator
+                if stats['is_running']:
+                    with ui.row().classes('items-center gap-2 mb-2'):
+                        ui.icon('play_circle', color='green')
+                        ui.label('Running').classes('text-green-600 font-bold')
                 else:
-                    ui.label('Not initialized').classes('text-gray-500')
-
+                    with ui.row().classes('items-center gap-2 mb-2'):
+                        ui.icon('stop_circle', color='gray')
+                        ui.label('Stopped').classes('text-gray-500')
                 
                 ui.separator().classes('my-2')
                 
-                # Reload button for TOML themes
-                ui.button('Reload Current Theme', 
-                    icon='refresh',
-                    on_click=lambda: self.reload_theme()
-                ).props('size=sm color=secondary').classes('w-full')
-    
+                # Performance metrics
+                ui.label('Performance:').classes('text-sm font-bold mb-1')
+                ui.label(
+                    f'Target: {stats["target_fps"]:.1f} FPS'
+                ).classes('text-sm')
+                
+                # Color code actual FPS based on target
+                actual_fps = stats['actual_fps']
+                target_fps = stats['target_fps']
+                fps_ratio = actual_fps / target_fps if target_fps > 0 else 0
+                
+                if fps_ratio >= 0.9:
+                    fps_color = 'text-green-600'
+                elif fps_ratio >= 0.7:
+                    fps_color = 'text-yellow-600'
+                else:
+                    fps_color = 'text-red-600'
+                
+                ui.label(
+                    f'Actual: {actual_fps:.1f} FPS'
+                ).classes(f'text-sm {fps_color}')
+                
+                ui.label(
+                    f'Frames: {stats["frame_count"]:,}'
+                ).classes('text-sm')
+                
+                # New: show dropped frames and pending ticks
+                if stats['dropped_frames'] > 0:
+                    ui.label(
+                        f'Dropped: {stats["dropped_frames"]:,}'
+                    ).classes('text-sm text-orange-600')
+                
+                ui.label(
+                    f'Pending: {stats["pending_ticks"]}'
+                ).classes('text-sm')
+                
+            else:
+                ui.label('Not initialized').classes('text-gray-500')
+            
+            ui.separator().classes('my-2')
+            
+            # Reload button for TOML themes
+            ui.button('Reload Current Theme', 
+                icon='refresh',
+                on_click=lambda: self.reload_theme()
+            ).props('size=sm color=secondary').classes('w-full')
+                
     def switch_theme(self, theme_name: str):
         """Switch to a different theme."""
         # Show notification before switching to avoid UI deletion issues
@@ -1356,29 +1514,51 @@ class UndoRedoTestAppWithCanvasManager:
                 self.sync_all_sessions()
                 self.library_service.print_registry_status()
     
+    def cleanup(self):
+        """
+        Manual cleanup method - call this if not using NiceGUI's lifecycle.
+        
+        This is a fallback for cases where on_app_shutdown isn't called.
+        """
+        self.on_app_shutdown()
+
     def run(self):
         """Run the application."""
         print("Starting Enhanced Test App with Canvas Manager...")
         self.create_ui()
-        ui.run(
-            port=8082, show=True, 
-            title="Enhanced Haywire Test with Canvas Manager", 
-            reload=False
-        )
-    
-    def cleanup(self):
-        """Cleanup resources."""
-        if self.canvas_manager:
-            self.canvas_manager.cleanup()
-
-
+        
+        try:
+            ui.run(
+                port=8082,
+                show=True, 
+                title="Enhanced Haywire Test with Canvas Manager", 
+                reload=False
+            )
+        except KeyboardInterrupt:
+            print("\n⚠️ Keyboard interrupt received")
+        finally:
+            # Ensure cleanup runs even if ui.run exits unexpectedly
+            if not self._is_shutting_down:
+                self.cleanup()
+                
 def main():
     """Main entry point."""
-    app = UndoRedoTestAppWithCanvasManager()
-    try:
-        app.run()
-    finally:
-        app.cleanup()
+    # Force block-buffered stdout (like debugger mode)
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(line_buffering=False)
+
+    app_instance = UndoRedoTestAppWithCanvasManager()
+    
+    def signal_handler(signum, frame):
+        print(f"\n⚠️ Received signal {signum}, initiating shutdown...")
+        app_instance.cleanup()
+        sys.exit(0)
+    
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    app_instance.run()
 
 
 if __name__ in {"__main__", "__mp_main__"}:

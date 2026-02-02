@@ -110,6 +110,15 @@ class Event(Generic[T]):
         """
         return len(self._handlers)
 
+    def has_observers(self) -> bool:
+        """
+        Fast check if there are any registered event handlers.
+        
+        Returns:
+            bool: True if there are observers, False otherwise.
+        """
+        return bool(self._handlers)
+
     def __iadd__(self, other):
         """
         Allow the use of '+=' to add an event handler.

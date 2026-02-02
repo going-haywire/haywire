@@ -30,7 +30,7 @@ class NodeRenderer(BaseRenderer, ABC):
             ui.label(inlet.label).classes('text-xs zoom-pan-lod2')
 
         # Render inlet widget if it has a pin that does not allow multiple connections
-        if not inlet.allow_multiple_connections:
+        if not inlet.allow_multiple_connections and not inlet.is_linked():
             if inlet.widget_key:
                 # Widget rendering adds UI element to current context automatically
                 self.render_widget(inlet, wrapper.node_id, classes=widget_classes)

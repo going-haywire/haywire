@@ -8,9 +8,9 @@ Each flow has its own scheduler that:
 - Handles trigger queue modes (block/drop)
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING, Optional
 from queue import Queue, Empty
-from threading import Thread, Lock
+from threading import Thread, Event
 from enum import Enum
 import logging
 import time
@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
     from haywire.core.execution.vm import HaywireVM
-    from haywire.core.node.node_wrapper import NodeWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +35,10 @@ class FlowScheduler:
     
     Responsibilities:
     - Queue incoming triggers
-    - Ensure single-threaded execution (lock flow during execution)
+    - Ensure single-threaded execution
     - Handle queue overflow based on mode
     - Manage execution thread lifecycle
+    - Signal completion for backpressure
     """
     
     def __init__(
@@ -65,10 +65,9 @@ class FlowScheduler:
         # Trigger queue
         self.trigger_queue: Queue['Trigger'] = Queue(maxsize=max_queue_size)
         
-        # Thread management
+        # Thread management - use Event for lock-free status check
         self.execution_thread: Optional[Thread] = None
-        self.lock = Lock()
-        self.is_executing = False
+        self._is_executing = Event()
         self.should_stop = False
         
         logger.debug(f"Created scheduler for flow {flow.flow_id}")
@@ -84,7 +83,7 @@ class FlowScheduler:
             True if enqueued successfully, False if dropped
         """
         # Check if we should drop
-        if self.queue_mode == QueueMode.DROP and self.is_executing:
+        if self.queue_mode == QueueMode.DROP and self._is_executing.is_set():
             logger.debug(
                 f"Dropping trigger for {self.flow.flow_id} "
                 f"(already executing)"
@@ -92,7 +91,7 @@ class FlowScheduler:
             return False
         
         try:
-            # Try to enqueue (may block or raise if full)
+            # Try to enqueue
             if self.queue_mode == QueueMode.BLOCK:
                 self.trigger_queue.put(trigger, block=True, timeout=5.0)
             else:
@@ -115,28 +114,25 @@ class FlowScheduler:
             return False
     
     def _ensure_execution_thread(self):
-        """Start execution thread if not already running"""
-        with self.lock:
-            if self.execution_thread is None or not self.execution_thread.is_alive():
-                self.should_stop = False
-                self.execution_thread = Thread(
-                    target=self._execution_loop,
-                    name=f"FlowExec-{self.flow.flow_id}",
-                    daemon=True
-                )
-                self.execution_thread.start()
-                logger.debug(f"Started execution thread for {self.flow.flow_id}")
+        """Start execution thread if not already running."""
+        if self.execution_thread is None or not self.execution_thread.is_alive():
+            self.should_stop = False
+            self.execution_thread = Thread(
+                target=self._execution_loop,
+                name=f"FlowExec-{self.flow.flow_id}",
+                daemon=True
+            )
+            self.execution_thread.start()
+            logger.debug(f"Started execution thread for {self.flow.flow_id}")
     
     def _call_startup(self):
         """
         Call startup() on all nodes in the flow.
         
         Creates a minimal execution context for startup calls.
-        Errors in individual nodes are logged but don't stop other nodes.
         """
         from haywire.core.execution.execution_context import ExecutionContext
         
-        # Create minimal execution context for startup
         local_context = self.vm._create_local_context(self.flow)
         exec_ctx = ExecutionContext(
             global_ctx=self.vm.global_context,
@@ -155,11 +151,9 @@ class FlowScheduler:
         Call shutdown() on all nodes in the flow.
         
         Creates a minimal execution context for shutdown calls.
-        Errors in individual nodes are logged but don't stop other nodes.
         """
         from haywire.core.execution.execution_context import ExecutionContext
         
-        # Create minimal execution context for shutdown
         local_context = self.vm._create_local_context(self.flow)
         exec_ctx = ExecutionContext(
             global_ctx=self.vm.global_context,
@@ -235,15 +229,7 @@ class FlowScheduler:
         Args:
             trigger: Trigger that activated this execution
         """
-        with self.lock:
-            if self.is_executing:
-                logger.warning(
-                    f"Flow {self.flow.flow_id} already executing "
-                    f"(should not happen with proper locking)"
-                )
-                return
-            
-            self.is_executing = True
+        self._is_executing.set()
         
         try:
             logger.debug(
@@ -260,7 +246,6 @@ class FlowScheduler:
                 f"Flow {self.flow.flow_id} completed in "
                 f"{elapsed_ns / 1_000:.2f} μs"
             )
-            logger.debug(f"Flow {self.flow.flow_id} execution completed")
             
         except Exception as e:
             logger.error(
@@ -269,8 +254,16 @@ class FlowScheduler:
             )
         
         finally:
-            with self.lock:
-                self.is_executing = False
+            self._is_executing.clear()
+            
+            # Signal completion for backpressure
+            if trigger.payload:
+                on_complete = trigger.payload.get('_on_complete')
+                if on_complete and callable(on_complete):
+                    try:
+                        on_complete()
+                    except Exception as e:
+                        logger.warning(f"Error in completion callback: {e}")
     
     def wait_for_completion(self, timeout: Optional[float] = None):
         """
@@ -279,20 +272,16 @@ class FlowScheduler:
         Args:
             timeout: Maximum time to wait (None = wait forever)
         """
-        if timeout:
-            self.trigger_queue.join()  # Wait with timeout not directly supported
-        else:
-            self.trigger_queue.join()
+        self.trigger_queue.join()
     
     def stop(self):
-        """Stop the scheduler and wait for thread to exit"""
+        """Stop the scheduler and wait for thread to exit."""
         logger.debug(f"Stopping scheduler for {self.flow.flow_id}")
         self.should_stop = True
         
         if self.execution_thread and self.execution_thread.is_alive():
             self.execution_thread.join(timeout=2.0)
             
-            # If thread didn't exit cleanly, ensure shutdown is called
             if self.execution_thread.is_alive():
                 logger.warning(
                     f"Execution thread for {self.flow.flow_id} did not exit cleanly"
@@ -301,16 +290,16 @@ class FlowScheduler:
         logger.debug(f"Scheduler stopped for {self.flow.flow_id}")
     
     def get_queue_size(self) -> int:
-        """Get current number of queued triggers"""
+        """Get current number of queued triggers."""
         return self.trigger_queue.qsize()
     
     def is_busy(self) -> bool:
-        """Check if flow is currently executing"""
-        return self.is_executing
+        """Check if flow is currently executing."""
+        return self._is_executing.is_set()
     
     def __str__(self) -> str:
         return (
             f"FlowScheduler(flow={self.flow.flow_id}, "
-            f"executing={self.is_executing}, "
+            f"executing={self.is_busy()}, "
             f"queued={self.get_queue_size()})"
         )

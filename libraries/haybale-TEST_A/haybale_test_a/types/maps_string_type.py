@@ -109,7 +109,8 @@ class MapsStringField(DataField):
         
         self._items = value
         self.is_dirty = True
-        self.fire(dict(self._items))
+        if self.on_changed.has_observers():
+            self.fire(dict(self._items))
     
     def reset(self) -> None:
         """Reset to default array"""

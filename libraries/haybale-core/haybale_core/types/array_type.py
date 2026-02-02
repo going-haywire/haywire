@@ -145,7 +145,8 @@ class ArrayField(DataField):
         
         self._items = value
         self.is_dirty = True
-        self.fire(list(self._items))
+        if self.on_changed.has_observers():
+            self.fire(list(self._items))
     
     def reset(self) -> None:
         """Reset to default array"""

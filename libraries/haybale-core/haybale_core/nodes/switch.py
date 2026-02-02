@@ -3,12 +3,24 @@ Shutdown Event Node.
 
 Triggered when the interpreter is shutting down, allowing for cleanup operations.
 """
+import operator
+
 from haybale_core.widgets.basic_widgets import NumberWidget
 from haywire.core.execution.event_source import SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
 from haywire.core.node.behavior import NodeType
+
+# Mapping of condition strings to operator functions
+OPERATORS = {
+    '>': operator.gt,
+    '>=': operator.ge,
+    '==': operator.eq,
+    '<': operator.lt,
+    '<=': operator.le,
+    '!=': operator.ne,
+}
 
 @node(
     label='Control Switch',
@@ -29,7 +41,6 @@ class ControlSwitch(BaseNode):
 
         self.add(EXEC.as_inlet('exec', label='Execute'))
         
-        # Data output - timestamp of shutdown
         self.add(STRING.as_config(
             'DataType', 
             label='Data Type',
@@ -40,6 +51,8 @@ class ControlSwitch(BaseNode):
 
         self.add(EXEC.as_outlet('true', label='True'))
         self.add(EXEC.as_outlet('false', label='False'))
+
+        self.add(INT.as_outlet('test', label='Test'))
     
     def on_init(self):
         self.hb_change()
@@ -48,28 +61,24 @@ class ControlSwitch(BaseNode):
         from haybale_core.widgets.basic_widgets import SelectWidget, NumberWidget
         from ..types.specs import EXEC, FLOAT, INT, STRING
 
-        self.push(exclude=['exec', 'true', 'false', 'DataType'])
+        self.push(exclude=['exec', 'true', 'false', 'DataType', 'test'])
         if self.value('DataType') == 'int':
-            self.add(INT.as_inlet(
-                'compare', 
-                label='Compare',
-                widget=NumberWidget.config()))
             self.add(STRING.as_config(
                 'condition', 
                 label='Condition',
                 widget=SelectWidget.config(properties={ 'options': ['>', '>=', '==', '<', '<=', '!=' ]}), 
                 default='==')
             )
+            self.add(INT.as_inlet(
+                'compare', 
+                label='Compare',
+                widget=NumberWidget.config()))
             self.add(INT.as_inlet(
                 'with', 
                 label='With',
                 widget=NumberWidget.config())
             )
         elif self.value('DataType') == 'float':
-            self.add(FLOAT.as_inlet(
-                'compare', 
-                label='Compare',
-                widget=NumberWidget.config()))
             self.add(STRING.as_config(
                 'condition', 
                 label='Condition',
@@ -77,11 +86,21 @@ class ControlSwitch(BaseNode):
                 default='==')
             )
             self.add(FLOAT.as_inlet(
+                'compare', 
+                label='Compare',
+                widget=NumberWidget.config()))
+            self.add(FLOAT.as_inlet(
                 'with', 
                 label='With',
                 widget=NumberWidget.config())
             )
         else:  # string
+            self.add(STRING.as_config(
+                'condition', 
+                label='Condition',
+                widget=SelectWidget.config(properties={ 'options': ['==', '!=' ]}), 
+                default='==')
+            )
             self.add(STRING.as_inlet(
                 'compare', 
                 label='Compare',
@@ -95,49 +114,15 @@ class ControlSwitch(BaseNode):
 
         self.pop()
     
-    def worker(self, context: ExecutionContext) -> str | None:
-        if self.value('DataType') == 'int':
-            data = self.value('compare')
-            condition = self.value('condition')
-            target = self.value('with')
-            if condition == '>':
-                result = data > target
-            elif condition == '>=':
-                result = data >= target
-            elif condition == '==':
-                result = data == target
-            elif condition == '<':
-                result = data < target
-            elif condition == '<=':
-                result = data <= target
-            elif condition == '!=':
-                result = data != target
-            else:
-                result = False
-        elif self.value('DataType') == 'float':
-            data = self.value('compare')
-            condition = self.value('condition')
-            target = self.value('with')
-            if condition == '>':
-                result = data > target
-            elif condition == '>=':
-                result = data >= target
-            elif condition == '==':
-                result = data == target
-            elif condition == '<':
-                result = data < target
-            elif condition == '<=':
-                result = data <= target
-            elif condition == '!=':
-                result = data != target
-            else:
-                result = False
-        else:  # string
-            data = self.value('compare')
-            target = self.value('with')
-            result = data == target
+    def worker(self, context: ExecutionContext, condition: str) -> str | None:
+        data = self.value('compare')
+        target = self.value('with')
+        condition_str = self.value('condition')
         
-        if result:
-            return 'true'
-        else: 
-            return 'false'
+        # Get the operator function and apply it
+        op_func = OPERATORS.get(condition_str, operator.eq)
+        result = op_func(data, target)
+
+        # self.out('test', data)
+        
+        return 'true' if result else 'false'

@@ -5,8 +5,8 @@ Manages continuous execution loop for interactive interpreter sessions.
 Dispatches BEGIN_PLAY, TICK, and SHUTDOWN events at configurable framerates.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
-from threading import Thread, Lock
+from typing import TYPE_CHECKING, Optional, Callable
+from threading import Thread, Lock, Event
 import time
 import logging
 
@@ -27,26 +27,20 @@ class InterpreterLoopManager:
     - Dispatch TICK events at configured framerate
     - Handle START/STOP lifecycle
     - Track performance metrics (FPS, frame time)
+    - Backpressure to prevent queue buildup
     
     Usage:
-        # Create manager
         manager = InterpreterLoopManager(interpreter, target_fps=60.0)
-        
-        # Start loop (dispatches BEGIN_PLAY, then periodic TICK)
         manager.start()
-        
-        # Stop loop (dispatches SHUTDOWN)
-        manager.stop()
-        
-        # Get performance stats
         stats = manager.get_stats()
-        print(f"Running at {stats['actual_fps']:.1f} FPS")
+        manager.stop()
     """
     
     def __init__(
         self,
         interpreter: 'Interpreter',
-        target_fps: float = 60.0
+        target_fps: float = 60.0,
+        max_queued_ticks: int = 2
     ):
         """
         Initialize loop manager.
@@ -54,26 +48,34 @@ class InterpreterLoopManager:
         Args:
             interpreter: Interpreter instance to dispatch events to
             target_fps: Target framerate (frames per second)
+            max_queued_ticks: Maximum pending ticks before dropping frames
         """
         self.interpreter = interpreter
         self.target_fps = target_fps
         self.target_frame_time = 1.0 / target_fps
+        self.max_queued_ticks = max_queued_ticks
         
         # Loop control
         self.is_running = False
         self.loop_thread: Optional[Thread] = None
         self.should_stop = False
-        self._lock = Lock()
         
-        # Performance tracking
+        # Backpressure tracking
+        self._pending_ticks = 0
+        self._tick_lock = Lock()
+        
+        # Performance tracking (use atomics where possible)
         self.last_tick_time = 0.0
         self.actual_fps = 0.0
         self.frame_count = 0
-        self._fps_samples = []
-        self._max_fps_samples = 10  # Rolling average over 10 frames
+        self.dropped_frames = 0
+        self._fps_samples: list[float] = []
+        self._max_fps_samples = 10
+        self._stats_lock = Lock()
         
         logger.info(
-            f"InterpreterLoopManager created with target {target_fps} FPS"
+            f"InterpreterLoopManager created: "
+            f"target={target_fps}FPS, max_queued={max_queued_ticks}"
         )
     
     def start(self):
@@ -83,14 +85,19 @@ class InterpreterLoopManager:
         Dispatches BEGIN_PLAY event, then starts continuous TICK loop.
         Thread-safe - can be called multiple times.
         """
-        with self._lock:
-            if self.is_running:
-                logger.warning("Loop already running, ignoring start()")
-                return
-            
-            self.should_stop = False
-            self.is_running = True
-            self.frame_count = 0
+        if self.is_running:
+            logger.warning("Loop already running, ignoring start()")
+            return
+        
+        self.should_stop = False
+        self.is_running = True
+        self.frame_count = 0
+        self.dropped_frames = 0
+        
+        with self._tick_lock:
+            self._pending_ticks = 0
+        
+        with self._stats_lock:
             self._fps_samples.clear()
         
         # Dispatch BEGIN_PLAY event
@@ -114,14 +121,13 @@ class InterpreterLoopManager:
         Dispatches SHUTDOWN event and waits for thread to exit.
         Thread-safe - can be called multiple times.
         """
-        with self._lock:
-            if not self.is_running:
-                logger.warning("Loop not running, ignoring stop()")
-                return
-            
-            self.should_stop = True
+        if not self.is_running:
+            logger.warning("Loop not running, ignoring stop()")
+            return
         
         logger.info("Stopping interpreter loop...")
+        
+        self.should_stop = True
         
         # Wait for loop thread to exit
         if self.loop_thread and self.loop_thread.is_alive():
@@ -134,17 +140,25 @@ class InterpreterLoopManager:
         logger.info("Dispatching SHUTDOWN event")
         self.interpreter.dispatch_system_event(SystemEventType.SHUTDOWN)
         
-        with self._lock:
-            self.is_running = False
+        self.is_running = False
         
-        logger.info("Interpreter loop stopped")
+        logger.info(
+            f"Interpreter loop stopped. "
+            f"Frames: {self.frame_count}, Dropped: {self.dropped_frames}"
+        )
+    
+    def _on_tick_complete(self):
+        """Called when a tick finishes execution. Reduces pending count."""
+        with self._tick_lock:
+            self._pending_ticks = max(0, self._pending_ticks - 1)
     
     def _loop_worker(self):
         """
         Worker function that runs in separate thread.
         
         Continuously dispatches TICK events at the target framerate
-        until stop() is called.
+        until stop() is called. Implements backpressure by dropping
+        frames when execution falls behind.
         """
         logger.debug("Loop worker thread started")
         
@@ -153,22 +167,38 @@ class InterpreterLoopManager:
         while not self.should_stop:
             frame_start = time.time()
             
+            # Check backpressure
+            with self._tick_lock:
+                if self._pending_ticks >= self.max_queued_ticks:
+                    # Drop this frame - we're falling behind
+                    self.dropped_frames += 1
+                    logger.debug(
+                        f"Dropping frame (pending={self._pending_ticks})"
+                    )
+                    time.sleep(self.target_frame_time * 0.5)
+                    continue
+                
+                self._pending_ticks += 1
+            
             # Calculate delta time
             delta_time = frame_start - self.last_tick_time
             self.last_tick_time = frame_start
             
-            # Dispatch TICK event with delta_time payload
+            # Dispatch TICK event with completion callback
             try:
                 self.interpreter.dispatch_system_event(
                     SystemEventType.TICK,
-                    payload={'delta_time': delta_time}
+                    payload={
+                        'delta_time': delta_time,
+                        '_on_complete': self._on_tick_complete
+                    }
                 )
             except Exception as e:
                 logger.error(f"Error dispatching TICK event: {e}", exc_info=True)
+                self._on_tick_complete()  # Still decrement on error
             
-            # Update performance metrics
-            with self._lock:
-                self.frame_count += 1
+            # Update frame count
+            self.frame_count += 1
             
             # Sleep to maintain target framerate
             frame_elapsed = time.time() - frame_start
@@ -182,12 +212,11 @@ class InterpreterLoopManager:
             if actual_frame_time > 0:
                 frame_fps = 1.0 / actual_frame_time
                 
-                with self._lock:
+                with self._stats_lock:
                     self._fps_samples.append(frame_fps)
                     if len(self._fps_samples) > self._max_fps_samples:
                         self._fps_samples.pop(0)
                     
-                    # Update average FPS
                     self.actual_fps = (
                         sum(self._fps_samples) / len(self._fps_samples)
                     )
@@ -202,18 +231,13 @@ class InterpreterLoopManager:
         
         Args:
             fps: New target framerate (must be > 0)
-        
-        Examples:
-            manager.set_target_fps(30.0)  # Slow to 30 FPS
-            manager.set_target_fps(120.0) # Speed up to 120 FPS
         """
         if fps <= 0:
             logger.warning(f"Invalid FPS {fps}, must be > 0")
             return
         
-        with self._lock:
-            self.target_fps = fps
-            self.target_frame_time = 1.0 / fps
+        self.target_fps = fps
+        self.target_frame_time = 1.0 / fps
         
         logger.info(f"Target FPS updated to {fps:.1f}")
     
@@ -224,23 +248,22 @@ class InterpreterLoopManager:
         Thread-safe - can be called from any thread.
         
         Returns:
-            Dictionary with current loop state and performance metrics:
-            - is_running: bool
-            - target_fps: float
-            - actual_fps: float (rolling average)
-            - frame_count: int
-        
-        Examples:
-            stats = manager.get_stats()
-            print(f"FPS: {stats['actual_fps']:.1f}")
+            Dictionary with current loop state and performance metrics
         """
-        with self._lock:
-            return {
-                'is_running': self.is_running,
-                'target_fps': self.target_fps,
-                'actual_fps': self.actual_fps,
-                'frame_count': self.frame_count
-            }
+        with self._stats_lock:
+            actual_fps = self.actual_fps
+        
+        with self._tick_lock:
+            pending = self._pending_ticks
+        
+        return {
+            'is_running': self.is_running,
+            'target_fps': self.target_fps,
+            'actual_fps': actual_fps,
+            'frame_count': self.frame_count,
+            'dropped_frames': self.dropped_frames,
+            'pending_ticks': pending
+        }
     
     def __str__(self) -> str:
         stats = self.get_stats()
@@ -249,5 +272,6 @@ class InterpreterLoopManager:
             f"running={stats['is_running']}, "
             f"target={stats['target_fps']:.1f}fps, "
             f"actual={stats['actual_fps']:.1f}fps, "
-            f"frames={stats['frame_count']})"
+            f"frames={stats['frame_count']}, "
+            f"dropped={stats['dropped_frames']})"
         )

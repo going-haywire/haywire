@@ -192,7 +192,8 @@ class PooledField(DataField):
         # Update source
         self._sources[source_id] = value
         self.is_dirty = True
-        self.fire(dict(self._sources))
+        if self.on_changed.has_observers():
+            self.fire(dict(self._sources))
         
     def get_stored_type(self) -> type:
         # other than most other fields, pooled field actually stores the element type

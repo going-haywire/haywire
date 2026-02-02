@@ -220,13 +220,16 @@ class DataPort(DataTypeIdentity):
         """
         if not self._data:
             return
-        
+
+
         self._data.set_value(new_value, source_id=connection_uuid)
 
+
         # Trigger on_change callback if value actually changed
-        if self.on_change:
+        if self.on_change is not None:
             self._trigger_callback('on_change', new_value)
-        if self._pipes:
+        if self._pipes is not None:
+            pass
             self._pipes.propagate(new_value)
         if self.is_inlet:
             self._mark_as_data_dirty()
