@@ -74,6 +74,10 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         """
         Send sync event to Vue component - THE ONLY COMMUNICATION METHOD
         """
+        # Don't send events if component is being cleaned up
+        if getattr(self, '_is_cleanup', False):
+            return
+            
         event_dict = event.to_dict()
         event_type = event_dict.get('event_type')
         data = event_dict.get('data', {})
@@ -85,5 +89,6 @@ class GraphCanvasVue(ui.element, component='graph_canvas.vue'):
         
     def cleanup(self):
         """Cleanup resources and references."""
+        self._is_cleanup = True
         self._on_canvas_event = None
         self.zoom_container = None

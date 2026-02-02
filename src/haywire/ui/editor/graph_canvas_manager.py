@@ -108,10 +108,11 @@ class GraphCanvasManager:
         }
         
         self._setup_canvas()
+        logger.info(f"🔧 GraphCanvasManager for {self.session_id} is setup")
              
     def _auto_register_event_handlers(self):
         """Automatically register event handlers using decorators"""
-        print("🔧 Auto-registering event handlers...")
+        logger.debug("🔧 Auto-registering event handlers...")
         
         for method_name in dir(self):
             method = getattr(self, method_name)
@@ -119,7 +120,6 @@ class GraphCanvasManager:
                 for event_class in method._handles_event_classes:
                     event_type = event_class.event_type
                     self._event_handlers[event_type] = method
-                    print(f"✅ Registered: {event_class.__name__} → {method_name}")
         
         self._validate_handler_coverage()
     
@@ -134,13 +134,12 @@ class GraphCanvasManager:
                 missing_handlers.append(event_type)
         
         if missing_handlers:
-            print(f"⚠️  Missing handlers for events: {missing_handlers}")
+            logger.warning(f"⚠️  Missing handlers for events: {missing_handlers}")
         else:
-            print(f"✅ All {len(user_events)} user events have registered handlers")
+            logger.debug(f"✅ All {len(user_events)} user events have registered handlers")
     
     def _setup_canvas(self):
         """Setup canvas with enhanced event system."""
-        print("🔧 Setting up GraphCanvasManager with consolidated events")
         
         # Create zoom container
         self.zoom_container = ZoomPanContainer(
@@ -167,15 +166,15 @@ class GraphCanvasManager:
         handler = self._event_handlers.get(event_type)
         
         if handler:
-            print(f"🔧 Calling handler for {event_type}: {handler.__name__}")
+            logger.debug(f"🔧 Calling handler for {event_type}: {handler.__name__}")
             try:
                 handler(event)
             except Exception as e:
-                print(f"❌ Error calling handler for {event_type}: {e}")
+                logger.error(f"❌ Error calling handler for {event_type}: {e}")
                 ui.notify(f"Error while processing {event.description}: {e}", type='negative')
                 traceback.print_exc()
         else:
-            print(f"No handler found for event type: {event_type}")
+            logger.warning(f"No handler found for event type: {event_type}")
     
     # =============================================================================
     #  EVENT HANDLERS
@@ -190,7 +189,7 @@ class GraphCanvasManager:
     @handles_event(UserDragUpdateEvent)
     def process_drag_update(self, event: UserDragUpdateEvent):
         """Handle unified drag updates for nodes"""
-        print(f"Dragging {len(event.nodes)} nodes by ({event.deltaX}, {event.deltaY})")
+        logger.debug(f"Dragging {len(event.nodes)} nodes by ({event.deltaX}, {event.deltaY})")
                
         self.editor.move_nodes(event.nodes, event.deltaX, event.deltaY)
     
@@ -204,7 +203,7 @@ class GraphCanvasManager:
     def process_element_removal(self, event: UserRemoveEvent):
         """Handle unified element removal"""
         total_elements = len(event.nodes) + len(event.connections)
-        print(
+        logger.info(
             f"🗑️ Removing {total_elements} elements: "
             f"{len(event.nodes)} nodes, {len(event.connections)} connections"
         )
@@ -218,7 +217,7 @@ class GraphCanvasManager:
     @handles_event(ConnectionCreatedEvent)
     def process_connection_creation(self, event: ConnectionCreatedEvent):
         """Handle connection creation"""
-        print(
+        logger.debug(
             f"Creating connection: {event.sourceNodeId}:{event.outletPinId} -> "
             f"{event.sinkNodeId}:{event.inletPinId}"
         )
@@ -237,14 +236,14 @@ class GraphCanvasManager:
     def process_connection_click(self, event: ConnectionClickedEvent):
         """Handle connection click events"""
         try:
-            print(f"Connection clicked: {event.connectionUUID}")
+            logger.debug(f"Connection clicked: {event.connectionUUID}")
         except Exception as e:
-            print(f"Connection click handling failed: {e}")
+            logger.error(f"Connection click handling failed: {e}")
 
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Handle selection changes"""
-        print(
+        logger.debug(
             f"Selection changed: nodes={event.selectedNodes}, "
             f"connections={event.selectedConnections}"
         )
@@ -279,7 +278,7 @@ class GraphCanvasManager:
     def process_context_menu(self, event):
         """Handle context menu events"""
         if isinstance(event, ContextMenuCanvasEvent):
-            print(f"Canvas context menu at ({event.screenX}, {event.screenY})")
+            logger.debug(f"Canvas context menu at ({event.screenX}, {event.screenY})")
             if self.context_menu:
                 self.context_menu.show_canvas_menu(
                     event.screenX,
@@ -289,12 +288,12 @@ class GraphCanvasManager:
                 )
             
         elif isinstance(event, ContextMenuNodeEvent):
-            print(f"Node context menu for {event.nodeId} at ({event.screenX}, {event.screenY})")
+            logger.debug(f"Node context menu for {event.nodeId} at ({event.screenX}, {event.screenY})")
             if self.context_menu:
                 self.context_menu.show_node_menu(event.screenX, event.screenY, event.nodeId)
             
         elif isinstance(event, ContextMenuConnectionEvent):
-            print(
+            logger.debug(
                 f"Connection context menu for {event.connectionUUID} "
                 f"at ({event.screenX}, {event.screenY})"
             )
@@ -311,7 +310,7 @@ class GraphCanvasManager:
                     )
         
         elif isinstance(event, ContextMenuSelectedEvent):
-            print(
+            logger.debug(
                 f"Selected context menu at ({event.screenX}, {event.screenY}) "
                 f"for {len(event.selectedNodes)} nodes, "
                 f"{len(event.selectedConnections)} connections"
@@ -327,7 +326,7 @@ class GraphCanvasManager:
     @handles_event(NodeCreateRequestEvent)
     def process_node_creation_request(self, event: NodeCreateRequestEvent):
         """Handle node creation requests from context menu or other sources."""
-        print(
+        logger.info(
             f"📝 Processing node creation request: {event.registryKey} "
             f"at ({event.position['x']}, {event.position['y']})"
         )
@@ -339,7 +338,7 @@ class GraphCanvasManager:
             )
             
             if wrapper:
-                print(
+                logger.info(
                     f"✅ Created node {wrapper.node_id} "
                     f"at ({event.position['x']}, {event.position['y']})"
                 )
@@ -348,13 +347,13 @@ class GraphCanvasManager:
                 ui.notify(f"Failed to create node of type: {event.registryKey}", type='negative')
                 
         except Exception as e:
-            print(f"Error creating node: {e}")
+            logger.error(f"Error creating node: {e}")
             ui.notify(f"Error creating node: {e}", type='negative')
 
     @handles_event(UserCopySelectedEvent)
     def process_copy_selection(self, event: UserCopySelectedEvent):
         """Handle copying selected elements to clipboard."""
-        print(
+        logger.info(
             f"📋 Copying {len(event.selectedNodes)} nodes and "
             f"{len(event.selectedConnections)} connections"
         )
@@ -374,7 +373,7 @@ class GraphCanvasManager:
             )
                         
         except Exception as e:
-            print(f"❌ Error during copy operation: {e}")
+            logger.error(f"❌ Error during copy operation: {e}")
             ui.notify(f"Copy failed: {e}", type='negative')
             traceback.print_exc()
     
@@ -382,11 +381,11 @@ class GraphCanvasManager:
     def process_paste_clipboard(self, event: UserPasteClipboardEvent):
         """Handle pasting clipboard contents."""
         if not self.clipboard:
-            print("❌ No clipboard content to paste")
+            logger.warning("❌ No clipboard content to paste")
             ui.notify("Nothing to paste", type='warning')
             return
             
-        print(
+        logger.info(
             f"📄 Pasting {len(self.clipboard.nodes)} nodes and "
             f"{len(self.clipboard.edges)} connections "
             f"at ({event.canvasX}, {event.canvasY})"
@@ -607,7 +606,7 @@ class GraphCanvasManager:
         validation pipeline. This ensures initial sync uses the same code
         path as incremental updates.
         """
-        print(
+        logger.info(
             f"🔄 Initial sync: {len(self.graph.node_wrappers)} nodes, "
             f"{len(self.graph.edge_wrappers)} edges"
         )
@@ -625,40 +624,26 @@ class GraphCanvasManager:
                 },
                 validation_time_ms=0.0
             )
-            
-            # Add selection state to the synthetic result
-            selected_nodes, selected_connections = self.graph.get_selection_state()
-            for node_id in selected_nodes:
-                synthetic_result.nodes[node_id] = ChangeReason.NODE_SELECTED
-            for edge_uuid in selected_connections:
-                synthetic_result.edges[edge_uuid] = ChangeReason.EDGE_SELECTED
-            
-            print(
-                f"🔄 Synthetic validation: {len(synthetic_result.nodes)} nodes, "
-                f"{len(synthetic_result.edges)} edges, "
-                f"{len(selected_nodes)} selected nodes, "
-                f"{len(selected_connections)} selected connections"
-            )
-            
+                                    
             # Process through normal validation handler
             self._on_validated(synthetic_result)
             
-            print("✅ Initial sync completed via validation pipeline")
+            logger.info("✅ Initial sync completed via validation pipeline")
             
         except Exception as e:
-            print(f"❌ Error during initial sync: {e}")
+            logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
     
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
         """Add a visual representation of a node to the canvas with hot reload support."""
         x, y = position
         node_id = node.node_id
-        print(f"Adding node visual for {node_id} at position ({x}, {y})")
+        logger.debug(f"Adding node visual for {node_id} at position ({x}, {y})")
         
         # Get the wrapper for this node to enable hot reload support
         wrapper = self.graph.get_node_wrapper(node_id)
         if not wrapper:
-            print(f"⚠️ ERROR: No wrapper found for node {node_id}, hot reload won't work")
+            logger.warning(f"⚠️ ERROR: No wrapper found for node {node_id}, hot reload won't work")
         
         with self.canvas_vue:
             with ui.element('div').classes(
@@ -673,7 +658,7 @@ class GraphCanvasManager:
                     f'data-node-id="{node_id}" '
                 ) as container:    
 
-                print(f"Created container for node {node_id}")
+                logger.debug(f"Created container for node {node_id}")
                 
                 # Create UINode with wrapper reference for hot reload support
                 ui_node = UINode(container, wrapper, self.node_render_factory)
@@ -682,7 +667,7 @@ class GraphCanvasManager:
                 ui_node.register_sync_event_emitter(self.canvas_vue.emit_sync_event)
                 ui_node.refresh(ChangeReason.NODE_ADDED)
                 
-                print(f"Rendered UINode for {node_id}")
+                logger.debug(f"Rendered UINode for {node_id}")
                 
                 ui_node.position = position
                 self.node_panels[node_id] = ui_node
@@ -690,9 +675,9 @@ class GraphCanvasManager:
                 sync_event = SyncNodeObserverAddEvent(nodeId=node_id)
                 self.canvas_vue.emit_sync_event(sync_event)
 
-                print(f"Setup Vue observers for {node_id}")
+                logger.debug(f"Setup Vue observers for {node_id}")
         
-        print(f"Successfully added node visual for {node_id}")
+        logger.debug(f"Successfully added node visual for {node_id}")
         return True
             
     def remove_node_visual(self, node_id: str) -> bool:
@@ -722,7 +707,13 @@ class GraphCanvasManager:
         self.canvas_vue.emit_sync_event(sync_event)
         
         return True
-                
+
+    def remove_all_node_visuals(self):
+        """Remove all node visuals from the canvas."""
+        node_ids = list(self.node_panels.keys())
+        for node_id in node_ids:
+            self.remove_node_visual(node_id)
+
     def update_node_position(self, node_id: str, position: Tuple[float, float]):
         """Update a node's visual position."""
         if node_id not in self.node_panels:
@@ -745,7 +736,7 @@ class GraphCanvasManager:
         """Add a visual connection between two nodes."""
         connection_uuid = edge_wrapper.connection_uuid
         
-        print(
+        logger.debug(
             f"🔗 Creating connection visual: "
             f"{edge_wrapper.source_node_id}:{edge_wrapper.outlet_port_id} -> "
             f"{edge_wrapper.sink_node_id}:{edge_wrapper.inlet_port_id}"
@@ -760,7 +751,7 @@ class GraphCanvasManager:
         # Store reference
         self.connection_paths[connection_uuid] = ui_edge
         
-        print(f"🔗 Created UIEdge and connection visual: {connection_uuid}")
+        logger.debug(f"🔗 Created UIEdge and connection visual: {connection_uuid}")
         return True
    
     def remove_connection_visual(self, connection_uuid: str) -> bool:
@@ -778,20 +769,15 @@ class GraphCanvasManager:
         sync_event = SyncConnectionRemovalEvent(connectionUUID=connection_uuid)
         self.canvas_vue.emit_sync_event(sync_event)
 
-        print(f"🔗 Removed UIEdge and connection visual: {connection_uuid}")
+        logger.debug(f"🔗 Removed UIEdge and connection visual: {connection_uuid}")
         return True
-   
-    def clear_all_visuals(self):
-        """Clear all visual representations."""
-        sync_event = SyncCanvasClearEvent()        
-        self.canvas_vue.emit_sync_event(sync_event)
-        
-        # Clear local state
-        self.node_panels.clear()
-        self.connection_paths.clear()
-        self.selected_nodes.clear()
-        self.selected_connections.clear()
-        
+
+    def remove_all_connection_visuals(self):
+        """Remove all connection visuals from the canvas."""
+        connection_uuids = list(self.connection_paths.keys())
+        for connection_uuid in connection_uuids:
+            self.remove_connection_visual(connection_uuid)
+
     def sync_selections(self):
         """Helper method to emit the consolidated selection sync event."""
         sync_event = SyncSelectionsEvent(
@@ -800,9 +786,40 @@ class GraphCanvasManager:
         )
         self.canvas_vue.emit_sync_event(sync_event)
 
+    def clear_all_visuals(self):
+        """Clear all visual representations."""
+        
+        self.remove_all_connection_visuals()
+        self.remove_all_node_visuals()
+
+        # Clear local state
+        self.node_panels.clear()
+        self.connection_paths.clear()
+        self.selected_nodes.clear()
+        self.selected_connections.clear()
+
+        sync_event = SyncCanvasClearEvent()        
+        self.canvas_vue.emit_sync_event(sync_event)
+
+
     def cleanup(self):
-        """Cleanup - unsubscribe from graph"""
+        """Cleanup - unsubscribe from graph and clear resources."""
+        logger.info(f"🔧 Shutting down GraphCanvasManager for {self.session_id} ...")
+        
+        # Cleanup canvas_vue first to prevent further client communication
+        if self.canvas_vue:
+            self.canvas_vue.cleanup()
+        
+        # Clear local state
+        self.node_panels.clear()
+        self.connection_paths.clear()
+        self.selected_nodes.clear()
+        self.selected_connections.clear()
+        
+        # Unsubscribe from graph events
         self.graph.unsubscribe_from_validation(self._on_validated)
+        logger.info(f"🔧 GraphCanvasManager for {self.session_id} is shut down")
+
 
     # =============================================================================
     # CLIPBOARD HELPER METHODS

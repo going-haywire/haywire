@@ -47,8 +47,5 @@ class UINodeCard():
     def cleanup(self):
         """Clean up all widget instances by calling their cleanup methods."""
         for element_id, widget in self.widget_instances.items():
-            if widget and hasattr(widget, 'cleanup'):
-                try:
-                    widget.cleanup()
-                except Exception as e:
-                    logging.error(f"Error cleaning up widget {element_id}: {e}")
+            if widget:
+                widget.cleanup()

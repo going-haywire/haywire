@@ -108,117 +108,128 @@ class UINode:
         """
         self.render()
 
-    def render(self) -> bool:                    
-        #IMPORTANT: This may be called from background threads (file watcher).
-        # We use ui.context.client to ensure UI updates run in the correct context.
-        if self.container_slot and hasattr(self.container_slot, 'client'):
-            with self.container_slot.client:
-                if self._render():
-                    ui.notify(f"Node {self._node_id} hot-reloaded", type='positive')
-                else:
-                    ui.notify(f"Error rendering node {self._node_id}", type='negative')
-        else:
-            self._render()
+    def render(self) -> bool:
+        """
+        Render the node using the factory.
+        
+        This may be called from background threads (file watcher) or validation callbacks.
+        We always use container.client context to ensure UI updates run correctly.
+        """
+        # Always use the container's client context for safe rendering
+        # This handles both initial renders and background task updates
+        if not self.container or not hasattr(self.container, 'client'):
+            logging.error(f"Cannot render UINode {self._node_id}: no valid container")
+            return False
+            
+        with self.container.client:
+            return self._render()
 
     def _render(self) -> bool:
         """
         Render the node using the specified renderer.
         
-        Args:
-            renderer_name: Name of the renderer/renderer to use (None for default)
+        Note: Must be called within a valid NiceGUI client context.
         """
-        with self.container:
-            renderer_name = self.wrapper.node.settings.node.renderer
+        renderer_name = self.wrapper.node.settings.node.renderer
 
-            if renderer_name is None:
-                renderer_name = (
-                    self.factory._renderer_registry
-                    .get_default_renderer_registry_key()
-                )
+        if renderer_name is None:
+            renderer_name = (
+                self.factory._renderer_registry
+                .get_default_renderer_registry_key()
+            )
 
-            try:
-                # Clean up old widgets before clearing UI
-                if self.current_ui_card:
-                    self.current_ui_card.cleanup()            # Create or clear the container slot
-                if self.container_slot:
-                    self.container_slot.clear()  # NiceGUI handles cleanup reliably
-                else:
+        try:
+            # Clean up old widgets before clearing UI
+            if self.current_ui_card:
+                self.current_ui_card.cleanup()
+            
+            # Create or clear the container slot
+            # We're already in the correct client context from render()
+            if self.container_slot:
+                self.container_slot.clear()  # NiceGUI handles cleanup reliably
+            else:
+                with self.container:
                     self.container_slot = ui.column().classes('ui-node-slot').props(
                         f'id="{self.ui_node_id}"'
                     )
+            
+            # Render into the container slot
+            with self.container_slot:
+                _is_error_render = False
+                error = None
+
+                if renderer_name is None:
+                    # this can happen if :
+                    # the node has no renderer assigned AND the registry has no default renderer available                        
+                    renderer_name = NO_RENDERER_DEFINED  # Fallback if no default renderer is set"
+                    logging.debug(
+                        f"For node '{self.wrapper.node.identity.label}' - '{self.wrapper.node_id}' "
+                        f"no render or default defined. Using '{NO_RENDERER_DEFINED}' as renderer key"
+                    )
+
+                # Subscribe to factory lifecycle events with the resolved renderer key
+                # This handles re-subscription if renderer changes between renders
+                self.factory.add_factory_lifecycle_subscriber(
+                    self.wrapper.node_id,
+                    renderer_name,
+                    self._listen_on_factory_lifecycle_event
+                )
+
+                if renderer_name == NO_RENDERER_DEFINED:
+                    error =  HaywireException.create(
+                        category="Renderer Lookup Error",
+                        operation="renderer_lookup",
+                        message=(
+                            f"For node '{self.wrapper.node.identity.label}' | '{self.wrapper.node_id}': "
+                            f" No renderer registry key provided and no default renderer "
+                            f"has been set in the renderer registry."
+                        ),
+                        suggestions=[
+                            "Provide a valid renderer registry key",
+                            "Set a default renderer for the registry",
+                            "Check if the default renderer has failed to load"
+                        ]
+                    ).log()
+                    _is_error_render = True
+                    # we fallback to error renderer and hope for the best
+                    renderer_name = self.factory._renderer_registry.get_error_renderer_registry_key()
+
+                self.current_ui_card = self.factory.render(
+                    renderer_name,
+                    self.wrapper,
+                    _is_error_render=_is_error_render
+                )
+
+                if error:
+                    self.current_ui_card.append(error)  # Append error details if any
+
+                self._emit_sync_event()
                 
-                # Render into the container slot
-                with self.container_slot:
-                    _is_error_render = False
-                    error = None
+                return True  # Render successful
+        except Exception as e:
+            # Clean up old widgets before clearing UI
+            if self.current_ui_card:
+                self.current_ui_card.cleanup()
+            
+            # Clear the container slot on error
+            if self.container_slot:
+                try:
+                    self.container_slot.clear()
+                except:
+                    pass  # Ignore errors during error cleanup
 
-                    if renderer_name is None:
-                        # this can happen if :
-                        # the node has no renderer assigned AND the registry has no default renderer available                        
-                        renderer_name = NO_RENDERER_DEFINED  # Fallback if no default renderer is set"
-                        logging.debug(
-                            f"For node '{self.wrapper.node.identity.label}' - '{self.wrapper.node_id}' "
-                            f"no render or default defined. Using '{NO_RENDERER_DEFINED}' as renderer key"
-                        )
+            self.container_slot = None
 
-                    # Subscribe to factory lifecycle events with the resolved renderer key
-                    # This handles re-subscription if renderer changes between renders
-                    self.factory.add_factory_lifecycle_subscriber(
-                        self.wrapper.node_id,
-                        renderer_name,
-                        self._listen_on_factory_lifecycle_event
-                    )
+            HaywireException.from_exception(
+                exception=e,
+                message=f"FATAL Error rendering node: {e}",
+                category="FATAL Rendering Error",
+                operation="UINode.render",
+            ).enrich(
+                registry_key=renderer_name
+            ).log()
 
-                    if renderer_name == NO_RENDERER_DEFINED:
-                        error =  HaywireException.create(
-                            category="Renderer Lookup Error",
-                            operation="renderer_lookup",
-                            message=(
-                                f"For node '{self.wrapper.node.identity.label}' | '{self.wrapper.node_id}': "
-                                f" No renderer registry key provided and no default renderer "
-                                f"has been set in the renderer registry."
-                            ),
-                            suggestions=[
-                                "Provide a valid renderer registry key",
-                                "Set a default renderer for the registry",
-                                "Check if the default renderer has failed to load"
-                            ]
-                        ).log()
-                        _is_error_render = True
-                        # we fallback to error renderer and hope for the best
-                        renderer_name = self.factory._renderer_registry.get_error_renderer_registry_key()
-
-                    self.current_ui_card = self.factory.render(
-                        renderer_name,
-                        self.wrapper,
-                        _is_error_render=_is_error_render
-                    )
-
-                    if error:
-                        self.current_ui_card.append(error)  # Append error details if any
-
-                    self._emit_sync_event()
-                    
-                    return True  # Render successful
-            except Exception as e:
-                # Clean up old widgets before clearing UI
-                if self.current_ui_card:
-                    self.current_ui_card.cleanup()            # Create or clear the container slot
-                if self.container_slot:
-                    self.container_slot.clear()  # NiceGUI handles cleanup reliably
-
-                self.container_slot = None
-
-                HaywireException.from_exception(
-                    exception=e,
-                    message=f"FATAL Error rendering node: {e}",
-                    category="FATAL Rendering Error",
-                    operation="UINode.render",
-                ).enrich(
-                    registry_key=renderer_name
-                ).log()
-
-                return False    
+            return False    
 
     def _emit_sync_event(self):
         """

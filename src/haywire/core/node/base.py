@@ -538,8 +538,7 @@ class NodeData:
                 del self.ports[port_id]
                 removed.append(port_id)
 
-                self.wrapper.mark_as_structuraly_dirty()
-        
+        self.wrapper.mark_as_structuraly_dirty()
         self._executor = None
         return removed
 

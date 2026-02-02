@@ -74,9 +74,14 @@ class UndoRedoTestAppWithCanvasManager:
 
             # IMPORTANT: Remove canvas manager's graph change listener FIRST
             # This prevents it from receiving updates during cleanup
-            canvas_manager = session_data.get('canvas_manager')
+            canvas_manager: GraphCanvasManager = session_data.get('canvas_manager')
             if canvas_manager:
                 canvas_manager.cleanup()
+
+            # Cancel the interpreter update timer to prevent accessing deleted UI
+            interpreter_timer = session_data.get('interpreter_timer')
+            if interpreter_timer:
+                interpreter_timer.cancel()
 
             self.graph.unsubscribe_from_validation(self._on_global_graph_change)
 
@@ -250,12 +255,12 @@ class UndoRedoTestAppWithCanvasManager:
             
             # Set up periodic UI update timer for interpreter stats
             # This runs on the main thread and safely updates UI
-            ui.timer(
-                0.1,  # Update every 100ms
-                lambda: self.update_interpreter_display(),
-                active=True
-            )
-    
+            session_data['interpreter_timer'] = ui.timer(
+                    0.1,  # Update every 100ms
+                    lambda: self.update_interpreter_display(),
+                    active=True
+                )
+
     def create_header(self):
         """Create the application header with main controls."""
         with ui.header().classes('bg-blue-600 text-white px-4 py-2'):
@@ -425,7 +430,7 @@ class UndoRedoTestAppWithCanvasManager:
                 editor=self.editor,  # Pass the shared Editor instance
                 node_render_factory=self.node_render_factory,
                 node_factory=self.node_factory,
-                session_id=client_id,
+                session_id=client_id[:8],
             )
             session_data['canvas_manager'] = canvas_manager
                         

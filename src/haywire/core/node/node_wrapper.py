@@ -260,24 +260,25 @@ class NodeWrapper:
         Args:
             node_info: Optional serialized node data for deserialization
         """
-        logger.debug(
-            f"Start node building: {self._node_id} ... "
-        )
+        with self._lock:
+            logger.debug(
+                f"Start node building: {self._node_id} ... "
+            )
 
-        self._state._clear_errors()
+            self._state._clear_errors()
 
-        if self._instantiate():
-            if self._initialize(node_info):
-                if self._structural_validation():
-                    if self._test():
-                        logger.debug(
-                            f"Node building succeeded: {self._node_id}"
-                        )
-                        return
-        
-        logger.debug(
-            f".. building failed with errors."
-        )
+            if self._instantiate():
+                if self._initialize(node_info):
+                    if self._structural_validation():
+                        if self._test():
+                            logger.debug(
+                                f"Node building succeeded: {self._node_id}"
+                            )
+                            return
+            
+            logger.debug(
+                f".. building failed with errors."
+            )
 
     def _instantiate(self) -> bool:
         """
@@ -572,9 +573,10 @@ class NodeWrapper:
             new_x: New X position
             new_y: New Y position
         """
-        self._initial_position = (new_x, new_y)
-        if self._node_instance:
-            self._node_instance.ui.state.set_position(self._initial_position)
+        with self._lock:
+            self._initial_position = (new_x, new_y)
+            if self._node_instance:
+                self._node_instance.ui.state.set_position(self._initial_position)
 
     def add_middleware(self, middleware: NodeMiddleware) -> None:
         """Add middleware to the wrapper"""
@@ -588,12 +590,23 @@ class NodeWrapper:
                 self._middleware.remove(middleware)
     
     def _add_runtime_error(self, error: HaywireException) -> None:
-        """Add a runtime error to the list and trigger redraw"""
+        """
+        Add a runtime error with limiting to prevent accumulation.
+        
+        Keeps only the first error and the most recent error to prevent
+        thousands of errors from accumulating during loop execution.
+        """
         with self._lock:
-            self._state.error_runtime.append(error)
-            if len(self._state.error_runtime) == 1:
-                # First error - trigger redraw
+            if len(self._state.error_runtime) == 0:
+                # First error - add and trigger redraw
+                self._state.error_runtime.append(error)
                 self.redraw()
+            elif len(self._state.error_runtime) == 1:
+                # Second error - add without redraw
+                self._state.error_runtime.append(error)
+            else:
+                # Subsequent errors - replace the last one (keep first + recent)
+                self._state.error_runtime[1] = error
 
     def _get_all_runtime_errors(self) -> List[HaywireException]:
         """Get all runtime errors"""
@@ -603,10 +616,10 @@ class NodeWrapper:
     def _clear_runtime_errors(self) -> None:
         """Clear all runtime errors and trigger redraw if any existed"""
         with self._lock:
+            self._state.error_runtime.clear()
             if self._state.error_runtime:
                 # Errors cleared - trigger redraw
                 self.redraw()
-            self._state.error_runtime.clear()
     
     def _startup(self, exec_ctx: 'ExecutionContext') -> None:
         """
@@ -614,23 +627,24 @@ class NodeWrapper:
 
         this method catches any exceptions during startup
         """
-        self._clear_runtime_errors()
+        with self._lock:
+            self._clear_runtime_errors()
 
-        try:
-            self._node_instance.on_startup(exec_ctx)
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Node Startup",
-                message=f"Error during startup of node '{self.node.identity.label}'"
-            ).enrich(
-                _node_id=self._node_id,
-                registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library
-            )
-            error.log()
-            self._add_runtime_error(error)
+            try:
+                self._node_instance.on_startup(exec_ctx)
+            except Exception as e:
+                error = HaywireException.from_exception(
+                    exception=e,
+                    operation="Node Startup",
+                    message=f"Error during startup of node '{self.node.identity.label}'"
+                ).enrich(
+                    _node_id=self._node_id,
+                    registry_key=self.registry_key,
+                    module_name=self._node_cls.__module__,
+                    library_identity=self._node_cls.class_library
+                )
+                error.log()
+                self._add_runtime_error(error)
 
     def _shutdown(self, exec_ctx: 'ExecutionContext') -> None:
         """
@@ -638,21 +652,22 @@ class NodeWrapper:
 
         This method catches any exceptions during shutdown
         """
-        try:
-            self._node_instance.on_shutdown(exec_ctx)
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Node Shutdown",
-                message=f"Error during shutdown of node '{self.node.identity.label}'"
-            ).enrich(
-                _node_id=self._node_id,
-                registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library
-            )
-            error.log()
-            self._add_runtime_error(error)
+        with self._lock:
+            try:
+                self._node_instance.on_shutdown(exec_ctx)
+            except Exception as e:
+                error = HaywireException.from_exception(
+                    exception=e,
+                    operation="Node Shutdown",
+                    message=f"Error during shutdown of node '{self.node.identity.label}'"
+                ).enrich(
+                    _node_id=self._node_id,
+                    registry_key=self.registry_key,
+                    module_name=self._node_cls.__module__,
+                    library_identity=self._node_cls.class_library
+                )
+                error.log()
+                self._add_runtime_error(error)
 
     def _execute(self, exec_ctx: 'ExecutionContext') -> str | None:
         """
@@ -664,31 +679,32 @@ class NodeWrapper:
         Returns:
             Outlet ID to follow, or None
         """
-        try:
-            if self._node_instance.behavior.is_data_node:
-                if not self._is_dirty_data:
-                    logger.debug(f"Skipping {self._node_id} (not dirty)")
-                    return None  # No execution needed
-                self._is_dirty_data = False  # Reset dirty flag
+        with self._lock:
+            try:
+                if self._node_instance.behavior.is_data_node:
+                    if not self._is_dirty_data:
+                        logger.debug(f"Skipping {self._node_id} (not dirty)")
+                        return None  # No execution needed
+                    self._is_dirty_data = False  # Reset dirty flag
 
-            self._node_instance.on_validate(exec_ctx)
+                self._node_instance.on_validate(exec_ctx)
 
-            return self._node_instance._execute(exec_ctx)
-        
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Node Execution",
-                message=f"Error executing node '{self.node.identity.label}'"
-            ).enrich(
-                _node_id=self._node_id,
-                registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library
-            )
-            error.log()
-            self._add_runtime_error(error)
-            return None
+                return self._node_instance._execute(exec_ctx)
+            
+            except Exception as e:
+                error = HaywireException.from_exception(
+                    exception=e,
+                    operation="Node Execution",
+                    message=f"Error executing node '{self.node.identity.label}'"
+                ).enrich(
+                    _node_id=self._node_id,
+                    registry_key=self.registry_key,
+                    module_name=self._node_cls.__module__,
+                    library_identity=self._node_cls.class_library
+                )
+                error.log()
+                self._add_runtime_error(error)
+                return None
  
         #return self._execute_with_middleware('transform', exec_ctx)
 
@@ -724,7 +740,8 @@ class NodeWrapper:
         Called by ports when their value changes to indicate 
         the requirement for executing the worker method
         """
-        self._is_dirty_data = True
+        with self._lock:
+            self._is_dirty_data = True
 
     def mark_as_structuraly_dirty(self) -> None:
         """
@@ -732,14 +749,20 @@ class NodeWrapper:
 
         This is required to be called when the node 
         changes its inlets or outlets.
+
+        the node needs to be registered with the graph for this to work.
         """
-        # Notify graph of redraw request
-        if self._graph and not self._is_dirty_structural:
-            self._graph._validation.mark_node_dirty(
-                self._node_id,
-                ChangeReason.NODE_VALIDATION_REQUESTED
-            )
-            self._is_dirty_structural = True
+        with self._lock:
+            # Notify graph of redraw request
+            if self._graph and \
+                not self._is_dirty_structural and \
+                self.state.is_registered:
+
+                self._graph._validation.mark_node_dirty(
+                    self._node_id,
+                    ChangeReason.NODE_VALIDATION_REQUESTED
+                )
+                self._is_dirty_structural = True
 
     def _housekeeping(self) -> None:
         """
@@ -760,12 +783,13 @@ class NodeWrapper:
         """
         Request a redraw of the node in the UI.
         """
-        # Notify graph of redraw request
-        if self._graph:
-            self._graph._validation.mark_node_dirty(
-                self._node_id,
-                ChangeReason.NODE_REDRAW_REQUESTED
-            )
+        with self._lock:
+            # Notify graph of redraw request
+            if self._graph:
+                self._graph._validation.mark_node_dirty(
+                    self._node_id,
+                    ChangeReason.NODE_REDRAW_REQUESTED
+                )
 
     def request_graph_reassembly(self) -> None:
         """
@@ -779,11 +803,12 @@ class NodeWrapper:
         if the node has changed its inlet or outlet structure, use 
         mark_as_structuraly_dirty() instead.
         """
-        # Notify graph of reassembly request
-        if self._graph:
-            self._graph._validation.mark_graph_dirty(
-                ChangeReason.GRAPH_REQUIRE_REASSEMBLY
-            )
+        with self._lock:
+            # Notify graph of reassembly request
+            if self._graph:
+                self._graph._validation.mark_graph_dirty(
+                    ChangeReason.GRAPH_REQUIRE_REASSEMBLY
+                )
 
 
     # =========================================================================

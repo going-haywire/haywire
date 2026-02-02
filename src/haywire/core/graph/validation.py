@@ -91,7 +91,7 @@ class ValidationManager:
             self._dirty_graph = reason
             self._schedule_validation()
             
-            logger.debug(
+            logger.info(
                 f"Marked graph dirty (reason: {reason.value})"
             )
 
@@ -110,7 +110,7 @@ class ValidationManager:
             self._set_reason(node_id, reason=reason, store=self._dirty_nodes)
             self._schedule_validation()
             
-            logger.debug(
+            logger.info(
                 f"Marked node dirty: {node_id} (reason: {reason.value})"
             )
     
@@ -128,7 +128,7 @@ class ValidationManager:
             self._set_reason(id=connection_uuid, reason=reason, store=self._dirty_edges)
             self._schedule_validation()
             
-            logger.debug(
+            logger.info(
                 f"Marked edge dirty: {connection_uuid} "
                 f"(reason: {reason.value})"
             )
@@ -264,9 +264,9 @@ class ValidationManager:
         Returns ValidationResult with element IDs mapped to their change reasons.
         """
         start_time = time.perf_counter()
-        
+
         with self._validation_lock:
-            # Snapshot dirty elements with their reasons
+            # Snapshot dirty elements with their reasons        
             dirty_nodes = dict(self._dirty_nodes)
             dirty_edges = dict(self._dirty_edges)
             dirty_graph = self._dirty_graph
@@ -329,6 +329,8 @@ class ValidationManager:
                                     id=edge_wrapper.connection_uuid,
                                     reason=reason,
                                     store=dirty_edges)
+                            # Always include in result with its reason
+                            validated_nodes[node_id] = reason
                             continue                   
 
                     # For visual-only changes, skip validation
@@ -382,7 +384,10 @@ class ValidationManager:
             # Now that all nodes and edges are validated, we can
             # Do the housekeeping on nodes that require rebuild or validation
             for node_id, reason in validated_nodes.items():
-                if reason.requires_rebuild() or reason.requires_validation():
+                if reason.requires_adding() or \
+                    reason.requires_rebuild() or \
+                    reason.requires_validation():
+
                     node_wrapper = self._graph.get_node_wrapper(node_id)
                     if node_wrapper:
                         node_wrapper._housekeeping()
