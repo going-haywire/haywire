@@ -8,6 +8,8 @@ Each flow has its own scheduler that:
 - Handles trigger queue modes (block/drop)
 """
 from __future__ import annotations
+import sys
+import traceback
 from typing import TYPE_CHECKING, Optional
 from queue import Queue, Empty
 from threading import Thread, Event
@@ -22,6 +24,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+# Sentinel object for signaling shutdown via queue
+_SHUTDOWN_SENTINEL = object()
 
 class QueueMode(Enum):
     """How to handle triggers when flow is already executing"""
@@ -63,12 +68,13 @@ class FlowScheduler:
         self.max_queue_size = max_queue_size
         
         # Trigger queue
-        self.trigger_queue: Queue['Trigger'] = Queue(maxsize=max_queue_size)
+        self.trigger_queue: Queue = Queue(maxsize=max_queue_size)
         
-        # Thread management - use Event for lock-free status check
+        # Thread management with Events for coordination
         self.execution_thread: Optional[Thread] = None
         self._is_executing = Event()
-        self.should_stop = False
+        self._stop_requested = Event()
+        self._thread_exited = Event()
         
         logger.debug(f"Created scheduler for flow {flow.flow_id}")
     
@@ -82,6 +88,13 @@ class FlowScheduler:
         Returns:
             True if enqueued successfully, False if dropped
         """
+        # Don't accept triggers if stopping
+        if self._stop_requested.is_set():
+            logger.debug(
+                f"Rejecting trigger for {self.flow.flow_id} (stopping)"
+            )
+            return False
+        
         # Check if we should drop
         if self.queue_mode == QueueMode.DROP and self._is_executing.is_set():
             logger.debug(
@@ -115,15 +128,25 @@ class FlowScheduler:
     
     def _ensure_execution_thread(self):
         """Start execution thread if not already running."""
-        if self.execution_thread is None or not self.execution_thread.is_alive():
-            self.should_stop = False
-            self.execution_thread = Thread(
-                target=self._execution_loop,
-                name=f"FlowExec-{self.flow.flow_id}",
-                daemon=True
-            )
-            self.execution_thread.start()
-            logger.debug(f"Started execution thread for {self.flow.flow_id}")
+        # Check if thread exists and is alive
+        if self.execution_thread is not None and self.execution_thread.is_alive():
+            return
+        
+        # Wait for previous thread to fully exit if needed
+        if self.execution_thread is not None:
+            self._thread_exited.wait(timeout=1.0)
+        
+        # Reset events for new thread
+        self._stop_requested.clear()
+        self._thread_exited.clear()
+        
+        self.execution_thread = Thread(
+            target=self._execution_loop,
+            name=f"FlowExec-{self.flow.flow_id}",
+            daemon=True
+        )
+        self.execution_thread.start()
+        logger.debug(f"Started execution thread for {self.flow.flow_id}")
     
     def _call_startup(self):
         """
@@ -175,6 +198,7 @@ class FlowScheduler:
         Main execution loop (runs in separate thread).
         
         Continuously processes triggers from queue until stopped.
+        Uses sentinel value for clean shutdown signaling.
         """
         logger.debug(f"Execution loop started for {self.flow.flow_id}")
         
@@ -187,40 +211,55 @@ class FlowScheduler:
                 exc_info=True
             )
         
-        while not self.should_stop:
-            try:
-                # Wait for next trigger (with timeout for clean shutdown)
-                trigger = self.trigger_queue.get(timeout=0.5)
-                
-                # Execute flow with this trigger
-                self._execute_flow(trigger)
-                
-                # Mark task done
-                self.trigger_queue.task_done()
-                
-            except Empty:
-                # No triggers, check if we should stop
-                if self.trigger_queue.empty() and not self.should_stop:
-                    # No more work, thread can exit
-                    break
-                continue
-            
-            except Exception as e:
-                logger.error(
-                    f"Error in execution loop for {self.flow.flow_id}: {e}",
-                    exc_info=True
-                )
-        
-        # Call shutdown() on all nodes after processing is complete
         try:
-            self._call_shutdown()
+            while True:
+                try:
+                    # Block waiting for trigger or shutdown sentinel
+                    # Use small timeout to allow periodic stop check as fallback
+                    trigger = self.trigger_queue.get(timeout=0.5)
+                    
+                    # Check for shutdown sentinel
+                    if trigger is _SHUTDOWN_SENTINEL:
+                        logger.debug(
+                            f"Received shutdown sentinel for {self.flow.flow_id}"
+                        )
+                        self.trigger_queue.task_done()
+                        break
+                    
+                    # Execute flow with this trigger
+                    self._execute_flow(trigger)
+
+                    # Mark task done
+                    self.trigger_queue.task_done()
+                    
+                except Empty:
+                    # Check if stop was requested during timeout
+                    if self._stop_requested.is_set():
+                        break
+                    # Also exit if queue is empty and no work pending
+                    if self.trigger_queue.empty():
+                        break
+                    continue
+                    
         except Exception as e:
             logger.error(
-                f"Error during shutdown phase for {self.flow.flow_id}: {e}",
+                f"Fatal error in execution loop for {self.flow.flow_id}: {e}",
                 exc_info=True
             )
         
-        logger.debug(f"Execution loop ended for {self.flow.flow_id}")
+        finally:
+            # Call shutdown() on all nodes after processing is complete
+            try:
+                self._call_shutdown()
+            except Exception as e:
+                logger.error(
+                    f"Error during shutdown phase for {self.flow.flow_id}: {e}",
+                    exc_info=True
+                )
+            
+            # Signal that thread has exited
+            self._thread_exited.set()
+            logger.debug(f"Execution loop ended for {self.flow.flow_id}")
     
     def _execute_flow(self, trigger: 'Trigger'):
         """
@@ -241,7 +280,7 @@ class FlowScheduler:
             start_ns = time.perf_counter_ns()
             self.vm.execute_control_flow(self.flow, trigger)
             elapsed_ns = time.perf_counter_ns() - start_ns
-            
+
             logger.info(
                 f"Flow {self.flow.flow_id} completed in "
                 f"{elapsed_ns / 1_000:.2f} μs"
@@ -265,29 +304,54 @@ class FlowScheduler:
                     except Exception as e:
                         logger.warning(f"Error in completion callback: {e}")
     
-    def wait_for_completion(self, timeout: Optional[float] = None):
+    def wait_for_completion(self, timeout: Optional[float] = None) -> bool:
         """
         Wait for all queued triggers to complete.
         
         Args:
             timeout: Maximum time to wait (None = wait forever)
-        """
-        self.trigger_queue.join()
-    
-    def stop(self):
-        """Stop the scheduler and wait for thread to exit."""
-        logger.debug(f"Stopping scheduler for {self.flow.flow_id}")
-        self.should_stop = True
-        
-        if self.execution_thread and self.execution_thread.is_alive():
-            self.execution_thread.join(timeout=2.0)
             
-            if self.execution_thread.is_alive():
+        Returns:
+            True if completed, False if timed out
+        """
+        # Use join with timeout for queue completion
+        self.trigger_queue.join()
+        return True
+    
+    def stop(self, timeout: float = 2.0) -> bool:
+        """
+        Stop the scheduler and wait for thread to exit.
+        
+        Args:
+            timeout: Maximum time to wait for clean shutdown
+            
+        Returns:
+            True if stopped cleanly, False if forced
+        """
+        logger.debug(f"Stopping scheduler for {self.flow.flow_id}")
+        
+        # Signal stop request
+        self._stop_requested.set()
+        
+        # Send shutdown sentinel to wake up blocked get()
+        try:
+            self.trigger_queue.put_nowait(_SHUTDOWN_SENTINEL)
+        except Exception:
+            pass  # Queue full, thread will see stop_requested on timeout
+        
+        # Wait for thread to exit
+        clean_exit = True
+        if self.execution_thread and self.execution_thread.is_alive():
+            # Use event wait for more responsive shutdown
+            if not self._thread_exited.wait(timeout=timeout):
                 logger.warning(
-                    f"Execution thread for {self.flow.flow_id} did not exit cleanly"
+                    f"Execution thread for {self.flow.flow_id} "
+                    f"did not exit cleanly within {timeout}s"
                 )
+                clean_exit = False
         
         logger.debug(f"Scheduler stopped for {self.flow.flow_id}")
+        return clean_exit
     
     def get_queue_size(self) -> int:
         """Get current number of queued triggers."""
@@ -297,9 +361,17 @@ class FlowScheduler:
         """Check if flow is currently executing."""
         return self._is_executing.is_set()
     
+    def is_running(self) -> bool:
+        """Check if execution thread is running."""
+        return (
+            self.execution_thread is not None 
+            and self.execution_thread.is_alive()
+        )
+    
     def __str__(self) -> str:
         return (
             f"FlowScheduler(flow={self.flow.flow_id}, "
+            f"running={self.is_running()}, "
             f"executing={self.is_busy()}, "
             f"queued={self.get_queue_size()})"
         )

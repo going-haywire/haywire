@@ -16,6 +16,7 @@ Press Ctrl+C to stop gracefully.
 """
 
 import argparse
+import logging
 import signal
 import sys
 import time
@@ -64,6 +65,10 @@ class GraphRunner:
         import logging
         level = getattr(logging, self.log_level.upper(), logging.WARNING)
         logging.getLogger('haywire').setLevel(level)        
+        logging.getLogger('haywire.core.node.node_wrapper').setLevel(logging.INFO)  # Keep node stats
+
+        scheduler_logger = logging.getLogger('haywire.core.execution.scheduler')
+        scheduler_logger.setLevel(logging.INFO)
 
         # Setup library system
         print("\n📚 Initializing library system...")
@@ -261,14 +266,15 @@ class GraphRunner:
         elapsed = time.time() - self._start_time
         stats = self.loop_manager.get_stats() if self.loop_manager else {}
         
+        frame_count = stats.get('frame_count', 0)
+        actual_fps = frame_count / elapsed if elapsed > 0 else 0.0
+
         print("\n" + "=" * 60)
         print("Execution Summary")
         print("=" * 60)
         print(f"   Duration:       {elapsed:.2f} seconds")
         print(f"   Target FPS:     {self.fps}")
-        print(f"   Actual FPS:     {stats.get('actual_fps', 0):.1f}")
-        print(f"   Total Frames:   {stats.get('frame_count', 0):,}")
-        print(f"   Dropped Frames: {stats.get('dropped_frames', 0):,}")
+        print(f"   Actual FPS:     {actual_fps:.1f}")
         print("=" * 60)
 
 
@@ -358,5 +364,5 @@ Examples:
     print("\n👋 Done!")
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':    
     main()

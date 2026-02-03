@@ -1,4 +1,5 @@
 from __future__ import annotations
+import time
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
@@ -1058,8 +1059,15 @@ class NodeData:
         if self._executor is None:
             self._analyze_worker_signature()
 
+        #t0 = time.perf_counter_ns()
         result = self._executor(context)
-        return self._parse_worker_result(result)
+        #t1 = time.perf_counter_ns()
+        parsed = self._parse_worker_result(result)
+        #t2 = time.perf_counter_ns()
+        
+        #print(f"{self.identity.label}: executor={t1-t0}ns, parse={t2-t1}ns")
+
+        return parsed
 
     def _parse_worker_result(self, result: str | None) -> str | None:
         """Parse worker result - just flow control."""
