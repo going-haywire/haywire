@@ -20,6 +20,7 @@ import os
 import signal
 import sys
 import threading
+from time import time
 import traceback
 from nicegui import ui, app
 
@@ -74,6 +75,19 @@ class UndoRedoTestAppWithCanvasManager:
         Handle application shutdown - cleanup all resources.
         
         Called by NiceGUI when the application is stopping.
+
+        The shutdown sequence is ordered to prevent errors:
+
+        | Order | Component | Reason |
+        |-------|-----------|--------|
+        | 1 | Interpreter loop | Stop generating new events |
+        | 2 | Sessions | Clean up UI before removing subscriptions |
+        | 3 | Graph subscriptions | No more callbacks after this |
+        | 4 | Theme observer | Prevent callbacks to deleted UI |
+        | 5 | Console bridge | Stop polling timer |
+        | 6 | Interpreter | Final cleanup of execution resources |
+        | 7 | Library system | Last, since other components may depend on it |        
+
         """
         if self._is_shutting_down:
             return
@@ -345,7 +359,7 @@ class UndoRedoTestAppWithCanvasManager:
         # Create and initialize the library system service with undo support
         self.library_service = create_library_system_service(
             project_root=project_root,
-            enable_file_watching=True,
+            enable_file_watching=False,
             undo_config=self.undo_config
         )
         
@@ -446,7 +460,19 @@ class UndoRedoTestAppWithCanvasManager:
                         on_change=lambda e: self.set_target_fps(e.value)
                     ).classes('w-24').props('dense')
 
-    
+                    ui.button(
+                        'Play (Sync)',
+                        on_click=self.start_interpreter_sync,
+                        icon='play_arrow',
+                        color='orange'
+                    )
+                    ui.button(
+                        'Stop (Sync)',
+                        on_click=self.stop_interpreter_sync,
+                        icon='stop',
+                        color='orange'
+                    )
+                        
     def create_left_panel(self):
         """Create the left control panel with all information sections."""
         with ui.card().classes('w-80 overflow-auto').style('height: calc(100vh - 120px);'):
@@ -540,7 +566,6 @@ class UndoRedoTestAppWithCanvasManager:
                     else:
                         ui.label('Undo system not available').classes('text-gray-500')
 
-            # In the UI setup:
             with ui.expansion('Console Output', icon='terminal').classes('w-full').props('default-opened'):
                 console_log = ui.log(max_lines=200).classes('w-full h-64 font-mono text-xs')
                 
@@ -556,6 +581,18 @@ class UndoRedoTestAppWithCanvasManager:
                     ui.button('Clear', icon='delete', 
                         on_click=lambda: console_log.clear()
                     ).props('size=sm')
+                    ui.button('Copy', icon='content_copy',
+                        on_click=lambda: copy_from_bridge()
+                    ).props('size=sm')
+
+                    def copy_from_bridge():
+                        bridge = ConsoleBridge.get_instance()
+                        text = bridge.get_history_text()
+                        if text:
+                            ui.run_javascript(f'navigator.clipboard.writeText({repr(text)})')
+                            ui.notify(f'Copied {len(text)} characters', type='positive')
+                        else:
+                            ui.notify('Console is empty', type='warning')
 
     def create_main_editor(self):
         """Create the main node editor with GraphCanvasManager."""
@@ -826,7 +863,98 @@ class UndoRedoTestAppWithCanvasManager:
         
         ui.notify("Interpreter stopped", type='info', position='top')
         print("Interpreter loop stopped")
-    
+
+    # =========================================
+    #
+    #    Sync Interpreter Methods
+    #    They are here for testing purposes only.
+
+    def start_interpreter_sync(self):
+        """Start interpreter on main thread using UI timer."""
+        import time  # Import module, not function
+        
+        # Validate graph first
+        errors = self.graph.validate()
+        if errors:
+            ui.notify(f'Cannot start - graph has {len(errors)} error(s)', type='negative')
+            return
+        
+        # Load graph
+        try:
+            self.interpreter.load_graph(self.graph)
+        except Exception as e:
+            ui.notify(f'Failed to load graph: {str(e)}', type='negative')
+            return
+        
+        # Dispatch BEGIN_PLAY synchronously
+        from haywire.core.execution.event_source import SystemEventType
+        self.interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
+        
+        # Execute flows synchronously (not via scheduler threads)
+        for flows in self.interpreter.event_subscriptions.values():
+            for flow in flows:
+                if flow.scheduler:
+                    flow.scheduler._call_startup()
+        
+        # Start tick timer on main thread
+        self._last_tick_time = time.time()
+        self._tick_count = 0
+        self._sync_interpreter_timer = ui.timer(
+            1/60,  # 60 FPS
+            self._tick_sync
+        )
+        
+        ui.notify("Interpreter started (sync mode)", type='positive')
+        
+    def _tick_sync(self):
+        """Tick on main thread - no threading overhead."""
+        import time
+        
+        now = time.time()
+        delta_time = now - self._last_tick_time
+        self._last_tick_time = now
+        self._tick_count += 1
+        
+        # Create trigger
+        from haywire.core.execution.event_source import Trigger, SystemEvent, SystemEventType
+        
+        trigger = Trigger(
+            source_key=SystemEvent(SystemEventType.TICK).get_subscription_key(),
+            payload={'delta_time': delta_time},
+            timestamp=now
+        )
+        
+        # Execute tick flow directly (bypass scheduler/queue)
+        tick_flows = self.interpreter.event_subscriptions.get(
+            SystemEvent(SystemEventType.TICK).get_subscription_key(), 
+            []
+        )
+        
+        for flow in tick_flows:
+            self.interpreter.vm.execute_control_flow(flow, trigger)
+
+    #
+    #    Sync Interpreter Methods
+    #    They are here for testing purposes only.
+    # =========================================
+
+
+    def stop_interpreter_sync(self):
+        """Stop sync interpreter."""
+        if hasattr(self, '_sync_interpreter_timer'):
+            self._sync_interpreter_timer.cancel()
+            del self._sync_interpreter_timer
+        
+        # Call shutdown on flows
+        for flows in self.interpreter.event_subscriptions.values():
+            for flow in flows:
+                if flow.scheduler:
+                    flow.scheduler._call_shutdown()
+        
+        ui.notify("Interpreter stopped (sync mode)", type='info')
+
+
+
     def set_target_fps(self, fps: float):
         """Update target framerate."""
         if fps > 0:

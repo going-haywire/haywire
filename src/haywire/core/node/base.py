@@ -310,7 +310,8 @@ class NodeData:
         # Add to ports collection
         self.ports[port.id] = port
 
-        self.wrapper.mark_as_structuraly_dirty()
+        if self.wrapper:
+            self.wrapper.mark_as_structuraly_dirty()
         self._executor = None
 
         return port

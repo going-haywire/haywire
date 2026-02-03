@@ -34,8 +34,10 @@ class ConsoleBridge:
         self.message_queue: Queue[str] = Queue()
         self.log_elements: list = []
         self._polling_timer = None
-        self._max_messages_per_poll = 50  # Batch limit per UI update
-    
+        self._max_messages_per_poll = 50
+        self._history: list[str] = []  # Add this
+        self._max_history = 500        # Add this
+        
     @classmethod
     def get_instance(cls) -> 'ConsoleBridge':
         with cls._lock:
@@ -87,14 +89,22 @@ class ConsoleBridge:
                     self.unregister_log(log)
     
     def write(self, message: str):
-        """
-        Queue a message for display (thread-safe).
-        
-        Can be called from any thread.
-        """
+        """Queue a message for display (thread-safe)."""
         if message.strip():
             self.message_queue.put(message.rstrip())
-    
+            # Keep history for copy
+            self._history.append(message.rstrip())
+            if len(self._history) > self._max_history:
+                self._history.pop(0)
+
+    def get_history_text(self) -> str:
+        """Get all history as text for copying."""
+        return '\n'.join(self._history)
+
+    def clear_history(self):
+        """Clear the history buffer."""
+        self._history.clear()
+            
     def clear(self):
         """Clear the message queue."""
         while not self.message_queue.empty():
