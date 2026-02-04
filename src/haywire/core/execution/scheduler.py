@@ -8,6 +8,7 @@ Each flow has its own scheduler that:
 - Handles trigger queue modes (block/drop)
 """
 from __future__ import annotations
+import ctypes
 import sys
 import traceback
 from typing import TYPE_CHECKING, Optional
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 # Sentinel object for signaling shutdown via queue
 _SHUTDOWN_SENTINEL = object()
+
 
 class QueueMode(Enum):
     """How to handle triggers when flow is already executing"""
@@ -75,6 +77,14 @@ class FlowScheduler:
         self._is_executing = Event()
         self._stop_requested = Event()
         self._thread_exited = Event()
+        
+        # Execution time statistics (in nanoseconds)
+        self._frame_count = 0
+        self._exec_time_sum_ns = 0
+        self._exec_time_min_ns: Optional[int] = None
+        self._exec_time_max_ns: Optional[int] = None
+        self._exec_min_iteration: Optional[int] = None
+        self._exec_max_iteration: Optional[int] = None
         
         logger.debug(f"Created scheduler for flow {flow.flow_id}")
     
@@ -192,7 +202,8 @@ class FlowScheduler:
         for wrapper in self.flow.get_all_node_wrappers():
             wrapper._shutdown(exec_ctx)
             logger.debug(f"Called shutdown on {wrapper.node_id}")
-    
+
+                
     def _execution_loop(self):
         """
         Main execution loop (runs in separate thread).
@@ -201,7 +212,7 @@ class FlowScheduler:
         Uses sentinel value for clean shutdown signaling.
         """
         logger.debug(f"Execution loop started for {self.flow.flow_id}")
-        
+                
         # Call startup() on all nodes before processing any triggers
         try:
             self._call_startup()
@@ -210,7 +221,9 @@ class FlowScheduler:
                 f"Error during startup phase for {self.flow.flow_id}: {e}",
                 exc_info=True
             )
-        
+
+        self._frame_count = 0
+
         try:
             while True:
                 try:
@@ -218,7 +231,7 @@ class FlowScheduler:
                     # Use small timeout to allow periodic stop check as fallback
                     trigger = self.trigger_queue.get(timeout=0.5)
 
-                    # logger.info(f"Thread wake for flow {self.flow.flow_id} ")     
+                    #logger.info(f"Thread wake for flow {self.flow.flow_id} ")     
 
                     # Check for shutdown sentinel
                     if trigger is _SHUTDOWN_SENTINEL:
@@ -229,7 +242,9 @@ class FlowScheduler:
                         break
                     
                     # Execute flow with this trigger
+                    # >>>>>>>>>>>
                     self._execute_flow(trigger)
+                    # >>>>>>>>>>>
 
                     # Mark task done
                     self.trigger_queue.task_done()
@@ -273,15 +288,32 @@ class FlowScheduler:
         self._is_executing.set()
         
         try:
-            logger.debug(
+            logger.info(
                 f"Executing flow {self.flow.flow_id} "
                 f"with trigger {trigger.source_key}"
             )
             
+            queue_depth = self.trigger_queue.qsize()
+            if queue_depth > 0:
+                print(f"Queue depth at execution: {queue_depth}")
+
+            self._frame_count += 1
+
             # Execute via VM with timing
             start_ns = time.perf_counter_ns()
-            self.vm.execute_control_flow(self.flow, trigger)
+            # >>>>>>>>>>>
+            self.vm.execute_control_flow(self.flow, trigger, self._frame_count)
+            # >>>>>>>>>>>
             elapsed_ns = time.perf_counter_ns() - start_ns
+            
+            # Update execution statistics
+            self._exec_time_sum_ns += elapsed_ns
+            if self._exec_time_min_ns is None or elapsed_ns < self._exec_time_min_ns:
+                self._exec_time_min_ns = elapsed_ns
+                self._exec_min_iteration = self._frame_count
+            if self._exec_time_max_ns is None or elapsed_ns > self._exec_time_max_ns:
+                self._exec_time_max_ns = elapsed_ns
+                self._exec_max_iteration = self._frame_count
 
             logger.debug(
                 f"Flow {self.flow.flow_id} completed in "
@@ -352,7 +384,17 @@ class FlowScheduler:
                 )
                 clean_exit = False
         
+        stats = self.get_execution_stats()
+
+        logger.warning(
+            f"\nExecutions: {stats['count']} for {self.flow.flow_id}\n"
+            f"Min: {stats['min_us']:.2f} μs (iteration {stats['min_iteration']})\n"
+            f"Max: {stats['max_us']:.2f} μs (iteration {stats['max_iteration']})\n"
+            f"Avg: {stats['avg_us']:.2f} μs"
+        )
+
         logger.debug(f"Scheduler stopped for {self.flow.flow_id}")
+
         return clean_exit
     
     def get_queue_size(self) -> int:
@@ -369,6 +411,50 @@ class FlowScheduler:
             self.execution_thread is not None 
             and self.execution_thread.is_alive()
         )
+    
+    def get_execution_stats(self) -> dict:
+        """
+        Get execution time statistics.
+        
+        Returns:
+            Dictionary containing execution statistics:
+            - count: Number of executions
+            - min_us: Minimum execution time in microseconds
+            - max_us: Maximum execution time in microseconds
+            - avg_us: Average execution time in microseconds
+            - total_us: Total execution time in microseconds
+            - min_iteration: Execution number with minimum time
+            - max_iteration: Execution number with maximum time
+        
+        Examples:
+            Basic usage:
+            
+            .. code-block:: python
+            
+                stats = scheduler.get_execution_stats()
+                print(f"Avg: {stats['avg_us']:.2f} μs")
+                print(f"Min at iteration {stats['min_iteration']}")
+        """
+        if self._frame_count == 0:
+            return {
+                'count': 0,
+                'min_us': None,
+                'max_us': None,
+                'avg_us': None,
+                'total_us': None,
+                'min_iteration': None,
+                'max_iteration': None,
+            }
+        
+        return {
+            'count': self._frame_count,
+            'min_us': self._exec_time_min_ns / 1_000 if self._exec_time_min_ns else None,
+            'max_us': self._exec_time_max_ns / 1_000 if self._exec_time_max_ns else None,
+            'avg_us': (self._exec_time_sum_ns / self._frame_count) / 1_000,
+            'total_us': self._exec_time_sum_ns / 1_000,
+            'min_iteration': self._exec_min_iteration,
+            'max_iteration': self._exec_max_iteration,
+        }
     
     def __str__(self) -> str:
         return (

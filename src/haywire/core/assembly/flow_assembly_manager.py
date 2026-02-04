@@ -234,7 +234,8 @@ class FlowAssemblyManager:
                     control_graph,
                     graph
                 )
-                node_info.localized_data_flow = localized_flow
+                if len(localized_flow.execution_sequence) > 0:
+                    node_info.localized_data_flow = localized_flow
                 
             except Exception as e:
                 logger.error(

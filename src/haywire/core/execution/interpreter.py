@@ -66,7 +66,7 @@ class Interpreter:
     def __init__(
         self,
         global_context: Optional[Dict[str, Any]] = None,
-        max_stack_depth: int = 10000
+        max_stack_depth: int = 1000
     ):
         """
         Initialize interpreter.

@@ -200,13 +200,14 @@ class HaywireVM:
         node_wrapper = node_info.node_wrapper
         node = node_wrapper.node
         
-        logger.debug(f"Executing control node: {node_wrapper.node_id}")
         
         # Update context with current node
         exec_ctx.node_wrapper = node_wrapper
-        
+
+
         # 1. Evaluate localized data flow
         if node_info.localized_data_flow:
+            logger.debug(f"> Executing Data Flow for node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}, exec count {exec_ctx.exec_count}")
             # >>>>>>>>>>>
             self._evaluate_data_flow(
                 node_info.localized_data_flow,
@@ -215,6 +216,7 @@ class HaywireVM:
             )
             # >>>>>>>>>>>
         
+        logger.debug(f"> Executing Control node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}, exec count {exec_ctx.exec_count}")
 
         # 2. Execute control node
         # >>>>>>>>>>>
@@ -267,9 +269,12 @@ class HaywireVM:
         if outlet_target is None:
             # Outlet exists but not connected - try loopback
             logger.debug(
-                f"Outlet {next_outlet_id} not connected, trying loopback"
+                f"Outlet {next_outlet_id} not connected."
             )
             if loopback_stack:
+                logger.debug(
+                    f" Looping back to node {loopback_stack[-1]} from unconnected outlet"
+                )
                 return (loopback_stack.pop(), None)
             return (None, None)
         
@@ -309,8 +314,7 @@ class HaywireVM:
             lazy_mask: Optional lazy evaluation mask
         """
         logger.debug(
-            f"Evaluating data flow for {data_flow.control_node_id} "
-            f"({len(data_flow.execution_sequence)} nodes)"
+            f">> Evaluating ({len(data_flow.execution_sequence)} nodes)"
         )
         
         for data_node_wrapper in data_flow.execution_sequence:
@@ -322,7 +326,7 @@ class HaywireVM:
             #         continue  # Skip this node
                         
             # Execute data node
-            logger.debug(f"Executing data node: {data_node_wrapper.node_id}")            
+            logger.debug(f">>> Executing data node: {data_node_wrapper.node_id}")            
             data_node_wrapper._execute(exec_ctx)            
             
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
