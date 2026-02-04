@@ -26,7 +26,7 @@ class FolderScanMixin:
             List of filepaths of discovered Python files
         """
         if exclude_patterns is None:
-            exclude_patterns = ['test_', '__', '_test']
+            exclude_patterns = ['dev_', '_dev']
 
         file_paths = []
         library_dir = Path(library_path)

@@ -1192,6 +1192,11 @@ class BaseNode(NodeData, metaclass=NodeMeta):
     - inlet(id) - Get unwrapped value
     - set_outlet(id, value) - Set unwrapped value
     - No manual wrapping/unwrapping needed!
+
+    Important: Nodes in modules that start with dev_*.py or end with *_dev.py are not
+    automatically registered in the node registry. On a File change though they will
+    be loaded and are available. 
+    This is useful for nodes under development that should not yet be part of the library.
     """
     
     def __init__(self, node_id: str, wrapper: 'NodeWrapper'):

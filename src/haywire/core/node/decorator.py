@@ -43,7 +43,12 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         has_execute_async (bool): Supports async execution. Default: False
         is_mutable (bool): Configuration can change at runtime. Default: False
         is_thread_safe (bool): Safe for multithreaded execution. Default: False
-    
+
+    Important: Nodes in modules that start with dev_*.py or end with *_dev.py are not
+    automatically registered in the node registry. On a File change though they will
+    be loaded and are available. 
+    This is useful for nodes under development that should not yet be part of the library.
+
     Examples:
         Basic data node:
         
