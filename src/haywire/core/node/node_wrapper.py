@@ -186,6 +186,8 @@ class NodeWrapper:
         self._is_dirty_data: bool = False
 
         self._profiling_enabled: bool = True
+        self._profiling_elapsed_time_ns: int = 0
+        self._profiling_number_of_ticks: int = 0
 
         self._import_node_cls()        
 
@@ -622,13 +624,59 @@ class NodeWrapper:
             if self._state.error_runtime:
                 # Errors cleared - trigger redraw
                 self.redraw()
-    
-    def _startup(self, exec_ctx: 'ExecutionContext') -> None:
+
+    def _frame_start(self, exec_ctx: 'ExecutionContext') -> None:
         """
-        Wrapper startup logic before execution.
+        Wrapper startup logic before any node in the frame is executed.
         
         This method catches any exceptions during startup.
-        No locking needed - each flow has independent nodes.
+        """
+        self._clear_runtime_errors()
+
+        try:
+            self._node_instance.on_frame_start(exec_ctx)
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="Node Frame Start",
+                message=f"Error during frame start of node '{self.node.identity.label}'"
+            ).enrich(
+                _node_id=self._node_id,
+                registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
+            )
+            error.log()
+            self._add_runtime_error(error)
+
+    def _frame_end(self, exec_ctx: 'ExecutionContext') -> None:
+        """
+        Wrapper frame end logic after all nodes in the flow have executed.
+        
+        This method catches any exceptions during frame end.
+        """
+        try:
+            self._node_instance.on_frame_end(exec_ctx)
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="Node Frame End",
+                message=f"Error during frame end of node '{self.node.identity.label}'"
+            ).enrich(
+                _node_id=self._node_id,
+                registry_key=self.registry_key,
+                module_name=self._node_cls.__module__,
+                library_identity=self._node_cls.class_library
+            )
+            error.log()
+            self._add_runtime_error(error)
+
+
+    def _startup(self, exec_ctx: 'ExecutionContext') -> None:
+        """
+        Wrapper flow startup logic before first execution of the flow.
+        
+        This method catches any exceptions during startup.
         """
         self._clear_runtime_errors()
 
@@ -653,10 +701,9 @@ class NodeWrapper:
 
     def _shutdown(self, exec_ctx: 'ExecutionContext') -> None:
         """
-        Wrapper shutdown logic after execution.
+        Wrapper shutdown logic after last node in flow has executed and flow is shutting down.
         
         This method catches any exceptions during shutdown.
-        No locking needed - each flow has independent nodes.
         """
         try:
             self._node_instance.on_shutdown(exec_ctx)
@@ -710,6 +757,10 @@ class NodeWrapper:
                 elapsed_ns = time.perf_counter_ns() - start_ns
                 self._profiling_elapsed_time_ns += elapsed_ns
                 self._profiling_number_of_ticks += 1
+                import rerun as rr
+                
+                rr.set_time("frame_nr", sequence=exec_ctx.frame_number)
+                rr.log(f"node/{self.node_id}", rr.Scalars(elapsed_ns), rr.SeriesLines(widths=5))
             else:
                 result = self._node_instance._execute(exec_ctx)
 

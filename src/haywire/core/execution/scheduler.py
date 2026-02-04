@@ -176,7 +176,7 @@ class FlowScheduler:
         
         logger.debug(f"Calling startup() on all nodes in flow {self.flow.flow_id}")
         
-        for wrapper in self.flow.get_all_node_wrappers():
+        for wrapper in self.flow.get_nodes_with_on_startup():
             wrapper._startup(exec_ctx)
     
     def _call_shutdown(self):
@@ -199,7 +199,7 @@ class FlowScheduler:
             f"Calling shutdown() on all nodes in flow {self.flow.flow_id}"
         )
         
-        for wrapper in self.flow.get_all_node_wrappers():
+        for wrapper in self.flow.get_nodes_with_on_shutdown():
             wrapper._shutdown(exec_ctx)
             logger.debug(f"Called shutdown on {wrapper.node_id}")
 

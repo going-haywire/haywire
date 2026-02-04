@@ -49,6 +49,7 @@ class HaywireVM:
         """
         self.global_context = global_context or {}
         self.max_stack_depth = max_stack_depth
+        self.execution_count: int = 0
         
         # Callback manager reference (set by interpreter)
         self.callback_manager: Optional[CallbackManager] = None
@@ -84,11 +85,14 @@ class HaywireVM:
         )
        
         # Initialize execution tracking
-        execution_count: int = 0
+        self.execution_count: int = 0
         loopback_stack: List[str] = []
         
         # Create local context from graph variables
         local_context = self._create_local_context(flow)
+
+        for wrapper in flow.get_nodes_with_on_frame_start():
+            wrapper._frame_start(exec_ctx)
                 
         # Start from event node
         current_node_id = flow.get_entry_node_id()
@@ -105,10 +109,7 @@ class HaywireVM:
 
         # Main execution loop
         while current_node_id is not None:
-            
-            # Infinite loop protection
-            execution_count += 1
-            
+                        
             # Get node info
             node_info = flow.control_graph.get_node_info(current_node_id)
             if node_info is None:
@@ -123,8 +124,7 @@ class HaywireVM:
                 f"Executing node {current_node_id} via inlet: {current_inlet_id}"
             )
 
-            exec_ctx.exec_count = execution_count
-            
+
             # Execute this control node
             # >>>>>>>>>>>
             next_outlet_id = self._execute_control_node(
@@ -153,7 +153,10 @@ class HaywireVM:
                 node_info,
                 loopback_stack
             )
-        
+
+        for wrapper in flow.get_nodes_with_on_frame_end():
+            wrapper._frame_end(exec_ctx)
+
         logger.debug(f"Control flow execution completed: {flow.flow_id}")
     
     def _create_local_context(self, flow: 'Flow') -> Dict[str, Any]:
@@ -207,7 +210,7 @@ class HaywireVM:
 
         # 1. Evaluate localized data flow
         if node_info.localized_data_flow:
-            logger.debug(f"> Executing Data Flow for node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}, exec count {exec_ctx.exec_count}")
+            logger.debug(f"> Executing Data Flow for node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}")
             # >>>>>>>>>>>
             self._evaluate_data_flow(
                 node_info.localized_data_flow,
@@ -215,7 +218,10 @@ class HaywireVM:
                 lazy_mask=None  # TODO: Implement lazy evaluation
             )
             # >>>>>>>>>>>
-        
+
+        self.execution_count += 1
+        exec_ctx.exec_count = self.execution_count
+
         logger.debug(f"> Executing Control node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}, exec count {exec_ctx.exec_count}")
 
         # 2. Execute control node
@@ -324,9 +330,12 @@ class HaywireVM:
             #     eval_mask = data_flow.eval_masks.get(data_node_wrapper.node_id, 0)
             #     if (lazy_mask & eval_mask) == 0:
             #         continue  # Skip this node
-                        
+
+            self.execution_count += 1
+            exec_ctx.exec_count = self.execution_count
+
             # Execute data node
-            logger.debug(f">>> Executing data node: {data_node_wrapper.node_id}")            
+            logger.debug(f">>> Executing data node: {data_node_wrapper.node_id}, exec count {self.execution_count}")            
             data_node_wrapper._execute(exec_ctx)            
             
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):

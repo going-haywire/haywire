@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Set, Any, TYPE_CHECKING
 from datetime import datetime
 import logging
 
+
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -132,6 +133,10 @@ class Flow:
         
         # Cache for node wrappers (populated on first access after assembly)
         self._all_node_wrappers_cache: Optional[List['NodeWrapper']] = None
+        self._nodes_with_on_startup_cache: Optional[List['NodeWrapper']] = None
+        self._nodes_with_on_shutdown_cache: Optional[List['NodeWrapper']] = None
+        self._nodes_with_on_frame_start_cache: Optional[List['NodeWrapper']] = None
+        self._nodes_with_on_frame_end_cache: Optional[List['NodeWrapper']] = None
         
         # Metadata
         self.assembly_timestamp = datetime.now()
@@ -208,6 +213,131 @@ class Flow:
         # Cache and return
         self._all_node_wrappers_cache = wrappers
         return wrappers
+    
+    def _is_method_overridden(
+        self, 
+        wrapper: 'NodeWrapper', 
+        method_name: str
+    ) -> bool:
+        """
+        Check if node has overridden a lifecycle method from BaseNode.
+        
+        Args:
+            wrapper: Node wrapper to check
+            method_name: Name of the method to check
+        
+        Returns:
+            True if the method is overridden from BaseNode
+        
+        Examples:
+            is_overridden = self._is_method_overridden(
+                wrapper, 'on_startup'
+            )
+        """
+        node_class = type(wrapper.node)
+        from haywire.core.node.base import BaseNode
+        return (
+            getattr(node_class, method_name) 
+            is not getattr(BaseNode, method_name)
+        )
+    
+    def get_nodes_with_on_startup(self) -> List['NodeWrapper']:
+        """
+        Get node wrappers that have overridden on_startup from BaseNode.
+        
+        Filters nodes to only those that implement custom startup logic,
+        avoiding unnecessary method calls on nodes using default no-op.
+        
+        Returns:
+            List of NodeWrapper instances with overridden on_startup
+        
+        Examples:
+            for wrapper in flow.get_nodes_with_on_startup():
+                wrapper.node.on_startup(context)
+        """
+        if self._nodes_with_on_startup_cache is not None:
+            return self._nodes_with_on_startup_cache
+        
+        filtered = [
+            w for w in self.get_all_node_wrappers()
+            if self._is_method_overridden(w, 'on_startup')
+        ]
+        self._nodes_with_on_startup_cache = filtered
+        return filtered
+    
+    def get_nodes_with_on_shutdown(self) -> List['NodeWrapper']:
+        """
+        Get node wrappers that have overridden on_shutdown from BaseNode.
+        
+        Filters nodes to only those that implement custom shutdown logic,
+        avoiding unnecessary method calls on nodes using default no-op.
+        
+        Returns:
+            List of NodeWrapper instances with overridden on_shutdown
+        
+        Examples:
+            for wrapper in flow.get_nodes_with_on_shutdown():
+                wrapper.node.on_shutdown(context)
+        """
+        if self._nodes_with_on_shutdown_cache is not None:
+            return self._nodes_with_on_shutdown_cache
+        
+        filtered = [
+            w for w in self.get_all_node_wrappers()
+            if self._is_method_overridden(w, 'on_shutdown')
+        ]
+        self._nodes_with_on_shutdown_cache = filtered
+        return filtered
+    
+    def get_nodes_with_on_frame_start(self) -> List['NodeWrapper']:
+        """
+        Get node wrappers that have overridden on_frame_start from BaseNode.
+        
+        Filters nodes to only those that implement custom per-frame start
+        logic, avoiding unnecessary method calls on nodes using default
+        no-op.
+        
+        Returns:
+            List of NodeWrapper instances with overridden on_frame_start
+        
+        Examples:
+            for wrapper in flow.get_nodes_with_on_frame_start():
+                wrapper.node.on_frame_start(context)
+        """
+        if self._nodes_with_on_frame_start_cache is not None:
+            return self._nodes_with_on_frame_start_cache
+        
+        filtered = [
+            w for w in self.get_all_node_wrappers()
+            if self._is_method_overridden(w, 'on_frame_start')
+        ]
+        self._nodes_with_on_frame_start_cache = filtered
+        return filtered
+    
+    def get_nodes_with_on_frame_end(self) -> List['NodeWrapper']:
+        """
+        Get node wrappers that have overridden on_frame_end from BaseNode.
+        
+        Filters nodes to only those that implement custom per-frame end
+        logic, avoiding unnecessary method calls on nodes using default
+        no-op.
+        
+        Returns:
+            List of NodeWrapper instances with overridden on_frame_end
+        
+        Examples:
+            for wrapper in flow.get_nodes_with_on_frame_end():
+                wrapper.node.on_frame_end(context)
+        """
+        if self._nodes_with_on_frame_end_cache is not None:
+            return self._nodes_with_on_frame_end_cache
+        
+        filtered = [
+            w for w in self.get_all_node_wrappers()
+            if self._is_method_overridden(w, 'on_frame_end')
+        ]
+        self._nodes_with_on_frame_end_cache = filtered
+        return filtered
     
     def __str__(self) -> str:
         return (

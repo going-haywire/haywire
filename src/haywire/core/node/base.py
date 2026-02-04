@@ -1280,6 +1280,29 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         """
         pass
 
+    def on_frame_start(self, context: ExecutionContext) -> None:
+        """
+        Perform any logic needed at the start of each frame.
+        
+        This method is called at the beginning of each frame before
+        any nodes are executed. It can be used to reset state or
+        prepare for the frame's execution.
+        
+        Override this method in subclasses to implement custom frame-start logic.
+        """
+        pass
+
+    def on_frame_end(self, context: ExecutionContext) -> None:
+        """
+        Perform any logic needed at the end of each frame.
+        
+        This method is called at the end of each frame after
+        all nodes have been executed. It can be used to finalize
+        state or perform cleanup for the frame.
+        
+        Override this method in subclasses to implement custom frame-end logic.
+        """
+        pass
 
     def on_shutdown(self, context: ExecutionContext) -> None:
         """
