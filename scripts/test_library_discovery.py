@@ -28,7 +28,8 @@ def test_library_discovery():
     print("\n🔧 Creating library system service...")
     service = create_library_system_service(
         project_root=str(project_root),
-        enable_file_watching=True
+        enable_file_watching=False,
+        watch_settings=False
     )
     
     # Get library registry

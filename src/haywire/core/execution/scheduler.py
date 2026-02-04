@@ -217,7 +217,9 @@ class FlowScheduler:
                     # Block waiting for trigger or shutdown sentinel
                     # Use small timeout to allow periodic stop check as fallback
                     trigger = self.trigger_queue.get(timeout=0.5)
-                    
+
+                    # logger.info(f"Thread wake for flow {self.flow.flow_id} ")     
+
                     # Check for shutdown sentinel
                     if trigger is _SHUTDOWN_SENTINEL:
                         logger.debug(
@@ -281,7 +283,7 @@ class FlowScheduler:
             self.vm.execute_control_flow(self.flow, trigger)
             elapsed_ns = time.perf_counter_ns() - start_ns
 
-            logger.info(
+            logger.debug(
                 f"Flow {self.flow.flow_id} completed in "
                 f"{elapsed_ns / 1_000:.2f} μs"
             )

@@ -360,6 +360,7 @@ class UndoRedoTestAppWithCanvasManager:
         self.library_service = create_library_system_service(
             project_root=project_root,
             enable_file_watching=False,
+            watch_settings=False,
             undo_config=self.undo_config
         )
         

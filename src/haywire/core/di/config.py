@@ -597,7 +597,7 @@ def create_library_system_service(
     Args:
         project_root: Root path of the project (auto-detected if None)
         library_paths: Additional library paths to scan  
-        enable_file_watching: Whether to enable file watching for hot reload
+        enable_file_watching: Whether to enable file watching for library class hot reload
         undo_config: Optional undo configuration for history manager
         default_theme: Default theme to set on initialization
         settings_path: Path to settings TOML file (default: ~/.haywire/settings.toml)
