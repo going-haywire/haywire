@@ -34,7 +34,9 @@ class InterpreterLoopManager:
         self._last_time: float = 0.0
         self.frame_count: int = 0
         self._delta_diff: float = 0.0
-    
+        self._start_time: float = 0.0
+        self._smoothing: float = 0.4
+
     @property
     def is_running(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
@@ -45,6 +47,7 @@ class InterpreterLoopManager:
         
         self._stop_event.clear()
         self._last_time = time.perf_counter()
+        self._start_time = self._last_time
         self.frame_count = 0
 
         self.interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
@@ -68,12 +71,14 @@ class InterpreterLoopManager:
             delta = now - self._last_time
             self._last_time = now
             self.frame_count += 1
-            
+
+            # print(f"Tick: Frame {self.frame_count}, Delta: {delta:.4f}s, Target Interval: {interval:.4f}s, Delta Diff: {self._delta_diff:.4f}s")
             self.interpreter.dispatch_system_event(
                 SystemEventType.TICK,
                 payload={'delta_time': delta}
             )
-            self._delta_diff += delta - interval
+            new_delta_diff = self._delta_diff + (delta - interval)
+            self._delta_diff = self._delta_diff * (1.0 - self._smoothing) + new_delta_diff * self._smoothing
 
     def get_stats(self) -> dict:
         """
@@ -84,10 +89,13 @@ class InterpreterLoopManager:
         Returns:
             Dictionary with current loop state and performance metrics
         """
-                
+        elapsed_time = time.perf_counter() - self._start_time
+        avg_fps = self.frame_count / elapsed_time if elapsed_time > 0 else  0.0
+
         return {
             'is_running': self.is_running,
             'target_fps': self.target_fps,
+            'actual_fps': avg_fps,
             'frame_count': self.frame_count,
         }
     
