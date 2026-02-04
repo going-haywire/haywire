@@ -68,3 +68,8 @@ class MathOP(BaseNode):
         self.out('result', result)
         return None
     
+    def on_startup(self, context):
+        pass
+
+    def on_shutdown(self, context):
+        pass

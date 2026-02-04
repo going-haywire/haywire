@@ -1,3 +1,4 @@
+from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node.decorator import node
 from haywire.core.node.base import BaseNode
 from haywire.core.node.behavior import NodeType
@@ -20,7 +21,7 @@ class PrintMessageNode(BaseNode):
         # Data input
         self.add(STRING.as_inlet('message', default='Hello, World!'))
     
-    def worker(self, context):
+    def worker(self, context: ExecutionContext) -> str | None:
         message = self.value('message')
         print(f"[PrintMessage] {message}")
         return 'done'

@@ -619,22 +619,22 @@ class NodeWrapper:
 
     def _clear_runtime_errors(self) -> None:
         """Clear all runtime errors and trigger redraw if any existed"""
-        with self._lock:
-            self._state.error_runtime.clear()
-            if self._state.error_runtime:
-                # Errors cleared - trigger redraw
-                self.redraw()
+        self._state.error_runtime.clear()
+        if self._state.error_runtime:
+            # Errors cleared - trigger redraw
+            self.redraw()
 
     def _frame_start(self, exec_ctx: 'ExecutionContext') -> None:
         """
         Wrapper startup logic before any node in the frame is executed.
         
-        This method catches any exceptions during startup.
+        This method is only called if the node has overridden on_frame_start().
+        It catches any exceptions during frame start.
         """
-        self._clear_runtime_errors()
-
         try:
+            # any code added here will only be executed if
             self._node_instance.on_frame_start(exec_ctx)
+            # the node has overridden on_frame_start()!!
         except Exception as e:
             error = HaywireException.from_exception(
                 exception=e,
@@ -653,10 +653,13 @@ class NodeWrapper:
         """
         Wrapper frame end logic after all nodes in the flow have executed.
         
-        This method catches any exceptions during frame end.
+        This method is only called if the node has overridden on_frame_end().
+        It catches any exceptions during frame end.
         """
         try:
+            # any code added here will only be executed if 
             self._node_instance.on_frame_end(exec_ctx)
+            # the node has overridden on_frame_end()!!
         except Exception as e:
             error = HaywireException.from_exception(
                 exception=e,
@@ -676,7 +679,7 @@ class NodeWrapper:
         """
         Wrapper flow startup logic before first execution of the flow.
         
-        This method catches any exceptions during startup.
+        It catches any exceptions during startup.
         """
         self._clear_runtime_errors()
 
@@ -703,7 +706,7 @@ class NodeWrapper:
         """
         Wrapper shutdown logic after last node in flow has executed and flow is shutting down.
         
-        This method catches any exceptions during shutdown.
+        It catches any exceptions during shutdown.
         """
         try:
             self._node_instance.on_shutdown(exec_ctx)
@@ -757,10 +760,10 @@ class NodeWrapper:
                 elapsed_ns = time.perf_counter_ns() - start_ns
                 self._profiling_elapsed_time_ns += elapsed_ns
                 self._profiling_number_of_ticks += 1
-                import rerun as rr
+                #import rerun as rr
                 
-                rr.set_time("frame_nr", sequence=exec_ctx.frame_number)
-                rr.log(f"node/{self.node_id}", rr.Scalars(elapsed_ns), rr.SeriesLines(widths=5))
+                #rr.set_time("frame_nr", sequence=exec_ctx.frame_number)
+                #rr.log(f"node/{self.node_id}", rr.Scalars(elapsed_ns), rr.SeriesLines(widths=5))
             else:
                 result = self._node_instance._execute(exec_ctx)
 

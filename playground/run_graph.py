@@ -16,13 +16,26 @@ Press Ctrl+C to stop gracefully.
 """
 
 import argparse
+import gc
 import logging
 import signal
 import sys
+import threading
 import time
+import traceback
 from pathlib import Path
 from typing import Optional
 
+#import rerun as rr
+
+#from math import tau
+#import numpy as np
+#from rerun.utilities import build_color_spiral
+#from rerun.utilities import bounce_lerp
+
+#rr.init("rerun_example_dna_abacus")
+
+#rr.spawn()
 
 class GraphRunner:
     """
@@ -66,15 +79,17 @@ class GraphRunner:
         level = getattr(logging, self.log_level.upper(), logging.WARNING)
         logging.getLogger('haywire').setLevel(level)        
         logging.getLogger('haywire.core.node.node_wrapper').setLevel(logging.INFO)  # Keep node stats
-
-        scheduler_logger = logging.getLogger('haywire.core.execution.scheduler')
-        scheduler_logger.setLevel(logging.INFO)
+        #logging.getLogger('haywire.core.execution.scheduler').setLevel(logging.INFO)
+        #logging.getLogger('haywire.core.graph.validation').setLevel(logging.INFO)
+        #logging.getLogger('haywire.core.execution.vm').setLevel(logging.INFO)
 
         # Setup library system
         print("\n📚 Initializing library system...")
         self._setup_library_system()
         print("   ✓ Library system initialized")
         
+
+
         # Load graph
         print(f"\n📂 Loading graph: {self.graph_path}")
         self._load_graph()
@@ -85,6 +100,9 @@ class GraphRunner:
         print("\n⚙️  Setting up interpreter...")
         self._setup_interpreter()
         print(f"   ✓ Interpreter ready (target: {self.fps} FPS)")
+        
+        # Print thread info with stack traces
+        self._print_threads(show_stacks=True)
 
         print("\n" + "=" * 60)
     
@@ -104,6 +122,7 @@ class GraphRunner:
         self.library_service = create_library_system_service(
             project_root=str(project_root),
             enable_file_watching=False,  # No file watching for CLI
+            watch_settings=False,
             undo_config=DEVELOPMENT_CONFIG
         )
         
@@ -139,6 +158,8 @@ class GraphRunner:
         
         if not self.graph.load_from_file(str(path)):
             raise RuntimeError(f"Failed to load graph from: {path}")
+        
+        self.graph._validation.force_immediate_validation()
     
     def _setup_interpreter(self):
         """Setup interpreter and loop manager."""
@@ -211,16 +232,45 @@ class GraphRunner:
         
         return True
     
-    def _print_stats(self):
-        """Print current statistics."""
-        stats = self.loop_manager.get_stats()
-        elapsed = time.time() - self._start_time
+    def _print_threads(self, show_stacks: bool = False):
+        """
+        Print current thread information.
         
-        print(f"   [{elapsed:6.1f}s] "
-              f"FPS: {stats['actual_fps']:5.1f}/{stats['target_fps']:.0f} | "
-              f"Frames: {stats['frame_count']:,} | "
-              f"Dropped: {stats['dropped_frames']:,}")
-    
+        Args:
+            show_stacks: If True, show stack traces for each thread.
+        """
+        threads = threading.enumerate()
+        print(f"\n🧵 Active threads: {len(threads)}")
+        
+        # Get stack frames for all threads
+        import sys
+        frames = sys._current_frames()
+        
+        for thread in threads:
+            daemon_marker = " [daemon]" if thread.daemon else ""
+            alive_marker = " [alive]" if thread.is_alive() else " [dead]"
+            print(f"   • {thread.name}{daemon_marker}{alive_marker} (ID: {thread.ident})")
+            
+            # Try to show what started the thread
+            if hasattr(thread, '_target') and thread._target:
+                target = thread._target
+                module = getattr(target, '__module__', '?')
+                name = getattr(target, '__qualname__', getattr(target, '__name__', '?'))
+                print(f"     Target: {module}.{name}")
+            
+            # Show current stack if requested
+            if show_stacks and thread.ident in frames:
+                print(f"     Stack trace:")
+                frame = frames[thread.ident]
+                stack = traceback.extract_stack(frame, limit=5)
+                for i, (filename, lineno, func, text) in enumerate(stack):
+                    # Shorten filename for readability
+                    short_file = filename.split('/')[-1]
+                    indent = "       " if i < len(stack) - 1 else "     → "
+                    print(f"{indent}{short_file}:{lineno} in {func}()")
+                    if text and i == len(stack) - 1:
+                        print(f"         {text.strip()}")
+        
     def stop(self):
         """Stop the interpreter gracefully."""
         if not self._is_running:
@@ -257,7 +307,20 @@ class GraphRunner:
             set_global_injector(None)
         
         print("   ✓ Cleanup complete")
-    
+
+    def _print_stats(self):
+        """Print current statistics."""
+        stats = self.loop_manager.get_stats()
+        elapsed = time.time() - self._start_time
+
+        frame_count = stats.get('frame_count', 0)
+        actual_fps = frame_count / elapsed if elapsed > 0 else 0.0
+        
+        print(f"   [{elapsed:6.1f}s] "
+              f"Target FPS: {stats['target_fps']:.0f} | "
+              f"Actual FPS: {actual_fps:.0f} | "
+              f"Frames: {stats['frame_count']:,}")
+
     def print_summary(self):
         """Print execution summary."""
         if not self._start_time:
@@ -279,6 +342,7 @@ class GraphRunner:
 
 
 def main():
+    
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description="Run a Haywire graph file with the interpreter loop.",

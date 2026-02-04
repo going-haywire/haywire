@@ -1,11 +1,6 @@
 # Nodes Documentation
 
 ```python
-"""
-ForLoop Node - Standard loop construct for iteration.
-
-Executes loop body a specified number of times with index tracking.
-"""
 from haywire.core.node.base import BaseNode
 from haywire.core.node.decorator import node
 from haywire.core.node.behavior import NodeType
@@ -62,10 +57,14 @@ class SimpleNode(BaseNode):
     def on_startup(self, context: ExecutionContext):
         pass
 
+    # Method that is called at the start of each execution of the flow.
+    def on_frame_start(self, context: ExecutionContext) -> None:
+        pass
+
     # Handle validation of inputs before execution. Called before worker execution.
     def on_validate(self, context: ExecutionContext) -> None:
 
-    # Main workhorese method. This is called by the VM when this node is executed.
+    # Main workhorse method. This is called by the VM when this node is executed.
     # It receives the execution context. All method inputs after context are optional and
     # correspond to the node's inlets. 'value' inlet is passed as an argument here.
     def worker(
@@ -78,6 +77,10 @@ class SimpleNode(BaseNode):
         self.out('result', value)
         # and triggers the next node through 'execute' outlet.       
         return 'execute',
+
+    # Method that is called when the flow has finished executing the frame.
+    def on_frame_end(self, context: ExecutionContext):
+        pass
 
     # Method that is called once when the node is being shut down in the VM.
     def on_shutdown(self, context: ExecutionContext):
@@ -101,16 +104,23 @@ class SimpleNode(BaseNode):
 
 when the flow starts executing:
 3. **Startup**: `on_startup(context)` is called once when the node starts executing.
+
+before the flow is beeing executed
+4. **Frame Start**: `on_frame_start(context)` is called at the start of each execution of the flow.
+   
 inside the execution loop:
-4. **On Validate**: `on_validate(context)` is called to validate inputs.
-5. **Worker Execution**: `worker(context, ...)` is called to perform the node's main function.
+5. **On Validate**: `on_validate(context)` is called to validate inputs.
+6. **Worker Execution**: `worker(context, ...)` is called to perform the node's main function.
+
+when the flow finishes an execution cycle:
+7. **Frame End**: `on_frame_end(context)` is called at the end of each execution of the flow.
 
 when the flow stops executing:
-6. **Shutdown**: `on_shutdown(context)` is called once when the node stops executing.
-when the node is being unloaded:
-7. **Saved**: `on_saved()` is called just before the node is being saved.
-8. **Teardown**: `on_teardown()` is called to clean up resources.
+8. **Shutdown**: `on_shutdown(context)` is called once when the node stops executing.
 
+when the node is being unloaded:
+9. **Saved**: `on_saved()` is called just before the node is being saved.
+10. **Teardown**: `on_teardown()` is called to clean up resources.
 ---
 
 ## The Worker Method

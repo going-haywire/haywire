@@ -91,13 +91,6 @@ class HaywireVM:
         # Create local context from graph variables
         local_context = self._create_local_context(flow)
 
-        for wrapper in flow.get_nodes_with_on_frame_start():
-            wrapper._frame_start(exec_ctx)
-                
-        # Start from event node
-        current_node_id = flow.get_entry_node_id()
-        current_inlet_id: Optional[str] = None  # Entry has no inlet
-
         # Create execution context
         exec_ctx = ExecutionContext(
             global_ctx=self.global_context,
@@ -106,6 +99,14 @@ class HaywireVM:
             vm=self,
             frame_number=frame_number
         )
+        
+        for wrapper in flow.get_nodes_with_on_frame_start():
+            wrapper._frame_start(exec_ctx)
+                
+        # Start from event node
+        current_node_id = flow.get_entry_node_id()
+        current_inlet_id: Optional[str] = None  # Entry has no inlet
+
 
         # Main execution loop
         while current_node_id is not None:
