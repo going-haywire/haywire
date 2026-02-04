@@ -29,6 +29,10 @@ class ExecutionContext:
     """Current node being executed"""
     vm: Optional['HaywireVM'] = None
     """Reference to VM for callback emission"""
+    frame_number: Optional[int] = 0
+    """Current frame number"""
+    exec_count: Optional[int] = 0
+    """Current node execution count for this flow and frame"""
 
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
         """

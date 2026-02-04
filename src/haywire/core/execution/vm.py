@@ -38,14 +38,14 @@ class HaywireVM:
     def __init__(
         self,
         global_context: Optional[Dict[str, Any]] = None,
-        max_stack_depth: int = 10000
+        max_stack_depth: int = 1000
     ):
         """
         Initialize VM.
         
         Args:
             global_context: Global execution context
-            max_stack_depth: Maximum stack depth before error
+            max_stack_depth: Maximum loopback stack depth before error
         """
         self.global_context = global_context or {}
         self.max_stack_depth = max_stack_depth
@@ -55,7 +55,10 @@ class HaywireVM:
         
         logger.debug("HaywireVM initialized")
     
-    def execute_control_flow(self, flow: 'Flow', trigger: 'Trigger'):
+    def execute_control_flow(self, 
+            flow: 'Flow', 
+            trigger: 'Trigger', 
+            frame_number: int = 0):
         """
         Execute a flow's control flow.
         
@@ -68,6 +71,7 @@ class HaywireVM:
         Args:
             flow: Flow to execute
             trigger: Trigger that activated this flow
+            frame_number: int = 0
         """
         if not flow.is_assembled():
             raise RuntimeError(
@@ -85,30 +89,25 @@ class HaywireVM:
         
         # Create local context from graph variables
         local_context = self._create_local_context(flow)
-        
+                
+        # Start from event node
+        current_node_id = flow.get_entry_node_id()
+        current_inlet_id: Optional[str] = None  # Entry has no inlet
+
         # Create execution context
         exec_ctx = ExecutionContext(
             global_ctx=self.global_context,
             local_ctx=local_context,
             trigger=trigger,
-            vm=self
+            vm=self,
+            frame_number=frame_number
         )
-        
-        # Start from event node
-        current_node_id = flow.get_entry_node_id()
-        current_inlet_id: Optional[str] = None  # Entry has no inlet
-        
+
         # Main execution loop
         while current_node_id is not None:
             
             # Infinite loop protection
             execution_count += 1
-            if execution_count > self.max_stack_depth:
-                raise RuntimeError(
-                    f"Exceeded max iterations in flow {flow.flow_id}: "
-                    f"{self.max_stack_depth} iterations. "
-                    f"Possible infinite loop."
-                )
             
             # Get node info
             node_info = flow.control_graph.get_node_info(current_node_id)
@@ -123,20 +122,31 @@ class HaywireVM:
             logger.debug(
                 f"Executing node {current_node_id} via inlet: {current_inlet_id}"
             )
+
+            exec_ctx.exec_count = execution_count
             
             # Execute this control node
+            # >>>>>>>>>>>
             next_outlet_id = self._execute_control_node(
                 node_info, 
                 flow, 
                 exec_ctx
             )
-            
+            # >>>>>>>>>>>
+
+
             # Only push to loopback stack if taking a loopback outlet
             if node_info.is_loopback and next_outlet_id:
                 outlet_port = node_info.node_wrapper.node.ports[next_outlet_id]
                 if outlet_port and outlet_port.needs_loopback:
-                    loopback_stack.append(current_node_id)
-            
+                    loopback_stack.append(current_node_id) 
+                    if len(loopback_stack) > self.max_stack_depth:
+                        raise RuntimeError(
+                            f"Exceeded max iterations in flow {flow.flow_id}: "
+                            f"{self.max_stack_depth} iterations. "
+                            f"Possible infinite loop."
+                        )
+                       
             # Navigate to next node
             current_node_id, current_inlet_id = self._navigate_next(
                 next_outlet_id,
@@ -197,15 +207,20 @@ class HaywireVM:
         
         # 1. Evaluate localized data flow
         if node_info.localized_data_flow:
+            # >>>>>>>>>>>
             self._evaluate_data_flow(
                 node_info.localized_data_flow,
                 exec_ctx,
                 lazy_mask=None  # TODO: Implement lazy evaluation
             )
+            # >>>>>>>>>>>
         
-        # 2 Execute control node
+
+        # 2. Execute control node
+        # >>>>>>>>>>>
         next_outlet_id = node_wrapper._execute(exec_ctx)
-        
+        # >>>>>>>>>>>
+
         logger.debug(
             f"Control node {node_wrapper.node_id} completed, "
             f"next outlet: {next_outlet_id}"
