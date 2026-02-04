@@ -227,7 +227,10 @@ class UndoRedoTestAppWithCanvasManager:
         
         if client_id not in self.sessions:
             print(f"Creating new session for client: {client_id}")
-            self.sessions[client_id] = self.create_session_data()
+            session_data = self.create_session_data()
+            # Store client reference for later context use
+            session_data['client'] = context.client
+            self.sessions[client_id] = session_data
         
         return self.sessions[client_id], client_id
     
@@ -319,37 +322,51 @@ class UndoRedoTestAppWithCanvasManager:
     def _on_global_graph_change(self, result: ValidationResult):
         """
         Handle global graph changes from ValidationManager.
-        
-        Called from Timer thread - marshal to main thread for UI safety.
+        Thread sync from graph thread to main UI thread. 
         """
-        try:
-            ui.timer(0, lambda r=result: self._handle_graph_change_ui(r), once=True)
-        except Exception:
-            pass
+        # Schedule UI update for each active client session
+        for client_id, session_data in list(self.sessions.items()):
+            client = session_data.get('client')
+            if client:
+                try:
+                    # Schedule timer in the client's context
+                    with client:
+                        ui.timer(
+                            0,
+                            lambda r=result, s=session_data: (
+                                self._handle_graph_change_ui_for_session(r, s)
+                            ),
+                            once=True
+                        )
+                except Exception as e:
+                    print(
+                        f"Error scheduling graph change for "
+                        f"session {client_id[:8]}: {e}"
+                    )
 
-    def _handle_graph_change_ui(self, result: ValidationResult):
+    def _handle_graph_change_ui_for_session(
+        self,
+        result: ValidationResult,
+        session_data: dict
+    ):
         """
-        Process graph changes on the main thread.
-        
-        Routes validation results to all canvas managers and updates displays.
+        Process graph changes for a specific session.
+        Called on main thread with proper client context.
         """
-        print("🌍 Global graph change detected")
-        
-        # Update global stats
+        # Update global stats (shared)
         self.global_stats['nodes_created'] = len(self.graph.node_wrappers)
         self.global_stats['edges_created'] = len(self.graph.edge_wrappers)
         
-        # Route to all session canvas managers
-        for client_id, session_data in self.sessions.items():
-            canvas_manager = session_data.get('canvas_manager')
-            if canvas_manager:
-                try:
-                    canvas_manager.on_validated(result)
-                except Exception as e:
-                    print(f"Error updating canvas for session {client_id[:8]}: {e}")
-            
-            # Update other displays
-            self.update_displays_for_session(session_data)
+        # Update canvas manager for this session
+        canvas_manager: GraphCanvasManager = session_data.get('canvas_manager')
+        if canvas_manager:
+            try:
+                canvas_manager._on_validated(result)
+            except Exception as e:
+                print(f"Error updating canvas: {e}")
+        
+        # Update displays for this session
+        self.update_displays_for_session(session_data)
                     
     def setup_library_system(self):
         """Initialize the library system service."""
