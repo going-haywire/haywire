@@ -28,7 +28,6 @@ class BaseLibrary(ABC):
     ):
         self.file_path = file_path
         self.registries = {}
-        self.file_watcher: FileWatcher = FileWatcher()
         self.enforce_file_watching = enforce_file_watching
         self.debounce_delay = debounce_delay
         # registry_cls -> (folder_path, exclude_patterns)
@@ -38,6 +37,12 @@ class BaseLibrary(ABC):
         ] = {}
 
         self._enabled = False  # Library starts disabled by default
+        
+        # Initialize FileWatcher with library folder path
+        # Note: library_identity will be passed per-folder in add_watch
+        self.file_watcher: FileWatcher = FileWatcher(
+            watch_path=self.identity.folder_path
+        )
 
     @property
     def enabled(self) -> bool:
@@ -51,7 +56,8 @@ class BaseLibrary(ABC):
             self.on_library_enable()
             self.register_components()
             self._attach_to_registries()
-            self.file_watcher.start()
+            if self.enforce_file_watching or self.identity.file_watcher:
+                self.file_watcher.start()
             logging.info(f"Library '{self.identity.label}': Enabled and components registered")
 
     def disable(self):
@@ -147,11 +153,6 @@ class BaseLibrary(ABC):
             self.file_watcher.add_watch(
                 folder_path, self.identity, registry, self.debounce_delay
             )
-            rel_path = folder_path[len(self.identity.folder_path):]
-            logging.info(
-                f"Library '{self.identity.label}': "
-                f"Started watching '{rel_path}' for hot reload events."
-            )
 
     def _unregister_folder(
         self, 
@@ -167,11 +168,6 @@ class BaseLibrary(ABC):
         registry.remove_folder(folder_path, self.identity, exclude_patterns)
 
         if self.enforce_file_watching or self.identity.file_watcher:
-            self.file_watcher.remove_watch(folder_path)
-            rel_path = folder_path[len(self.identity.folder_path):]
-            logging.info(
-                f"Library '{self.identity.label}': "
-                f"Stopped watching '{rel_path}' for hot reload events."
-            )
+            self.file_watcher.remove_watch(folder_path, self.identity)
 
         
