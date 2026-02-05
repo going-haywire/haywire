@@ -125,9 +125,11 @@ class FlowScheduler:
                 f"(queue size: {self.trigger_queue.qsize()})"
             )
             
-            # Start execution thread if not running
+            # >>>>>>>>>>>
+            # Make sure execution thread is running
             self._ensure_execution_thread()
-            
+            # >>>>>>>>>>>
+
             return True
             
         except Exception as e:
@@ -150,19 +152,21 @@ class FlowScheduler:
         self._stop_requested.clear()
         self._thread_exited.clear()
         
+        # >>>>>>>>>>>
+        # Create and start new execution thread
         self.execution_thread = Thread(
             target=self._execution_loop,
             name=f"FlowExec-{self.flow.flow_id}",
             daemon=True
         )
+        # >>>>>>>>>>>
+
         self.execution_thread.start()
         logger.debug(f"Started execution thread for {self.flow.flow_id}")
     
     def _call_startup(self):
         """
-        Call startup() on all nodes in the flow.
-        
-        Creates a minimal execution context for startup calls.
+        Call on_startup() on all nodes that have this method implemented in the flow.
         """
         from haywire.core.execution.execution_context import ExecutionContext
         
@@ -174,7 +178,7 @@ class FlowScheduler:
             vm=self.vm
         )
         
-        logger.debug(f"Calling startup() on all nodes in flow {self.flow.flow_id}")
+        logger.debug(f"Calling on_startup() on all nodes in flow {self.flow.flow_id}")
         
         for wrapper in self.flow.get_all_node_wrappers():
         #for wrapper in self.flow.get_nodes_with_on_startup():
@@ -184,9 +188,7 @@ class FlowScheduler:
     
     def _call_shutdown(self):
         """
-        Call shutdown() on all nodes in the flow.
-        
-        Creates a minimal execution context for shutdown calls.
+        Call on_shutdown() on all nodes that have this method implemented in the flow.
         """
         from haywire.core.execution.execution_context import ExecutionContext
         
@@ -199,7 +201,7 @@ class FlowScheduler:
         )
         
         logger.debug(
-            f"Calling shutdown() on all nodes in flow {self.flow.flow_id}"
+            f"Calling on_shutdown() on all nodes in flow {self.flow.flow_id}"
         )
         
         for wrapper in self.flow.get_all_node_wrappers():
@@ -207,7 +209,7 @@ class FlowScheduler:
             # For the time beeing, call shutdown on all nodes to allow the 
             # utilization of the on_shutdown method inside the wrapper
             wrapper._shutdown(exec_ctx)
-            logger.debug(f"Called shutdown on {wrapper.node_id}")
+            logger.debug(f"Called on_shutdown on {wrapper.node_id}")
 
                 
     def _execution_loop(self):
@@ -247,8 +249,8 @@ class FlowScheduler:
                         self.trigger_queue.task_done()
                         break
                     
-                    # Execute flow with this trigger
                     # >>>>>>>>>>>
+                    # Execute flow with this trigger
                     self._execute_flow(trigger)
                     # >>>>>>>>>>>
 
@@ -271,8 +273,8 @@ class FlowScheduler:
             )
         
         finally:
-            # Call shutdown() on all nodes after processing is complete
             try:
+                # Call on_shutdown() on all nodes after processing is complete
                 self._call_shutdown()
             except Exception as e:
                 logger.error(
@@ -305,11 +307,13 @@ class FlowScheduler:
 
             self._frame_count += 1
 
-            # Execute via VM with timing
             start_ns = time.perf_counter_ns()
+
             # >>>>>>>>>>>
+            # Execute via VM with timing
             self.vm.execute_control_flow(self.flow, trigger, self._frame_count)
             # >>>>>>>>>>>
+
             elapsed_ns = time.perf_counter_ns() - start_ns
             
             # Update execution statistics

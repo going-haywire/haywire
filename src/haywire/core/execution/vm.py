@@ -55,7 +55,25 @@ class HaywireVM:
         self.callback_manager: Optional[CallbackManager] = None
         
         logger.debug("HaywireVM initialized")
-    
+
+    def _create_local_context(self, flow: 'Flow') -> Dict[str, Any]:
+        """
+        Create local context from graph variables.
+        
+        Args:
+            flow: Flow being executed
+            
+        Returns:
+            Dictionary with graph variable values
+        """
+        local_ctx = {}
+        
+        # Copy current values from graph variables
+        for var_name, variable in flow.graph_ref.variables.items():
+            local_ctx[var_name] = variable.current_value
+        
+        return local_ctx
+        
     def execute_control_flow(self, 
             flow: 'Flow', 
             trigger: 'Trigger', 
@@ -126,8 +144,8 @@ class HaywireVM:
             )
 
 
-            # Execute this control node
             # >>>>>>>>>>>
+            # Execute this control node (including localized data flow)
             next_outlet_id = self._execute_control_node(
                 node_info, 
                 flow, 
@@ -159,24 +177,7 @@ class HaywireVM:
             wrapper._frame_end(exec_ctx)
 
         logger.debug(f"Control flow execution completed: {flow.flow_id}")
-    
-    def _create_local_context(self, flow: 'Flow') -> Dict[str, Any]:
-        """
-        Create local context from graph variables.
-        
-        Args:
-            flow: Flow being executed
-            
-        Returns:
-            Dictionary with graph variable values
-        """
-        local_ctx = {}
-        
-        # Copy current values from graph variables
-        for var_name, variable in flow.graph_ref.variables.items():
-            local_ctx[var_name] = variable.current_value
-        
-        return local_ctx
+
     
     def _execute_control_node(
         self,
@@ -209,10 +210,10 @@ class HaywireVM:
         exec_ctx.node_wrapper = node_wrapper
 
 
-        # 1. Evaluate localized data flow
         if node_info.localized_data_flow:
             logger.debug(f"> Executing Data Flow for node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}")
             # >>>>>>>>>>>
+            # 1. Evaluate localized data flow
             self._evaluate_data_flow(
                 node_info.localized_data_flow,
                 exec_ctx,
@@ -225,8 +226,8 @@ class HaywireVM:
 
         logger.debug(f"> Executing Control node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}, exec count {exec_ctx.exec_count}")
 
-        # 2. Execute control node
         # >>>>>>>>>>>
+        # 2. Execute control node
         next_outlet_id = node_wrapper._execute(exec_ctx)
         # >>>>>>>>>>>
 
@@ -287,11 +288,11 @@ class HaywireVM:
         
         next_node_id, inlet_port_id = outlet_target
         
-        # Check if next node is already on the loopback stack.
-        # If so, unwind the stack back to that point to avoid duplicate frames.
-        # Return None for inlet_id to indicate this is a loopback return,
-        # not a fresh entry through an inlet.
+        # Case 3: Node is already on the loopback stack.
         if next_node_id in loopback_stack:
+            # Unwind the stack back to that point to avoid duplicate frames.
+            # Return None for inlet_id to indicate this is a loopback return
+            # and not a fresh entry through an inlet.
             loopback_index = loopback_stack.index(next_node_id)
             logger.debug(
                 f"Navigating back to loopback node {next_node_id} "
