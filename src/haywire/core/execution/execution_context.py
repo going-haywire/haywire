@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 if TYPE_CHECKING:
     from haywire.core.execution.event_source import Trigger
     from haywire.core.execution.vm import HaywireVM, logger
-    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.node.base import BaseNode
 
 @dataclass
 class ExecutionContext:
@@ -25,7 +25,7 @@ class ExecutionContext:
     """Current trigger that activated this flow"""
     control_pin: Optional[str] = None
     """ID of control inlet that was triggered (for control nodes)"""
-    node_wrapper: Optional['NodeWrapper'] = None
+    node: Optional['BaseNode'] = None
     """Current node being executed"""
     vm: Optional['HaywireVM'] = None
     """Reference to VM for callback emission"""
@@ -54,6 +54,6 @@ class ExecutionContext:
             'local': self.local_ctx,
             'trigger': self.trigger,
             'control_pin': self.control_pin,
-            'node': self.node_wrapper,
+            'node': self.node,
             'emit_callback': self.emit_callback
         }

@@ -14,7 +14,7 @@ import logging
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
-    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.node.base import BaseNode
     from haywire.core.execution.flow import LocalizedDataFlow, ControlFlowGraph
 
 from haywire.core.data.enums import FlowType
@@ -32,7 +32,7 @@ class DataFlowBuilder:
     
     @staticmethod
     def build_localized(
-        control_node: 'NodeWrapper',
+        control_node: 'BaseNode',
         control_graph: 'ControlFlowGraph',
         graph: 'BaseGraph'
     ) -> 'LocalizedDataFlow':
@@ -54,16 +54,20 @@ class DataFlowBuilder:
         )
         
         # Initialize data flow
-        data_flow = LocalizedDataFlow(control_node_id=control_node.node_id)
+        data_flow = LocalizedDataFlow(
+            control_node_id=control_node.node_id
+        )
         
         # Get all data inlets on control node
         data_inlets = [
-            port for port in control_node.node.ports.values()
+            port for port in control_node.ports.values()
             if port.flow_type == FlowType.DATA and port.is_inlet
         ]
         
         if not data_inlets:
-            logger.debug(f"No data inlets on {control_node.node_id}")
+            logger.debug(
+                f"No data inlets on {control_node.node_id}"
+            )
             return data_flow  # No data dependencies
         
         # Backpropagate from each inlet
@@ -104,10 +108,11 @@ class DataFlowBuilder:
             graph
         )
         
-        # Build data flow
+        # Build data flow - convert node IDs to BaseNode instances
         data_flow.execution_sequence = [
-            graph.get_node_wrapper(node_id) 
+            graph.get_node_wrapper(node_id).node
             for node_id in execution_sequence
+            if graph.get_node_wrapper(node_id) is not None
         ]
         data_flow.eval_masks = eval_masks
         data_flow.requires_lazy = any(
@@ -165,9 +170,10 @@ class DataFlowBuilder:
                 # Check if source is a control node
                 source_wrapper = graph.get_node_wrapper(source_node_id)
                 if source_wrapper:
+                    source_node = source_wrapper.node
                     is_control = any(
                         port.flow_type == FlowType.CONTROL
-                        for port in source_wrapper.node.ports.values()
+                        for port in source_node.ports.values()
                     )
                     
                     if is_control:
@@ -179,7 +185,7 @@ class DataFlowBuilder:
                     
                     # Continue backpropagating from this node's inlets
                     source_inlets = [
-                        port for port in source_wrapper.node.ports.values()
+                        port for port in source_node.ports.values()
                         if port.flow_type == FlowType.DATA and port.is_inlet
                     ]
                     
@@ -215,9 +221,11 @@ class DataFlowBuilder:
             if not node_wrapper:
                 continue
             
+            node = node_wrapper.node
+            
             # Get all data outlets
             outlets = [
-                port for port in node_wrapper.node.ports.values()
+                port for port in node.ports.values()
                 if port.flow_type == FlowType.DATA and port.is_outlet
             ]
             
@@ -283,9 +291,11 @@ class DataFlowBuilder:
             if not node_wrapper:
                 continue
             
+            node = node_wrapper.node
+            
             # Get all data outlets
             outlets = [
-                port for port in node_wrapper.node.ports.values()
+                port for port in node.ports.values()
                 if port.flow_type == FlowType.DATA and port.is_outlet
             ]
             

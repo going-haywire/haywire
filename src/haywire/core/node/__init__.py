@@ -3,7 +3,8 @@
 Node system for Haywire.
 """
 
-from .base import BaseNode, NodeData, NodeIdentity
+from .identity import NodeIdentity
+from .base import BaseNode, NodeData
 from .behavior import NodeBehaviorFlags, BEHAVIOR_FIELDS
 from .user_data import NodeCache, NodeStore
 from .ui_state import NodeUI, NodeUIState
@@ -13,7 +14,7 @@ __all__ = [
     # Base classes
     'BaseNode',
     'NodeData',
-    'NodeIdentity',
+    'identity',
     
     # Behavior
     'NodeBehaviorFlags',

@@ -183,11 +183,6 @@ class NodeWrapper:
         """Alternate registry keys for this node if the specific version is not available"""
 
         self._is_dirty_structural: bool = False
-        self._is_dirty_data: bool = False
-
-        self._profiling_enabled: bool = True
-        self._profiling_elapsed_time_ns: int = 0
-        self._profiling_number_of_ticks: int = 0
 
         self._import_node_cls()        
 
@@ -292,6 +287,7 @@ class NodeWrapper:
         """
         try:
             if self._node_instance:
+                # TODO: Create Garbage Collection for old instance
                 self._node_instance._cleanup()
                 self._node_instance = None
 
@@ -582,16 +578,6 @@ class NodeWrapper:
             if self._node_instance:
                 self._node_instance.ui.state.set_position(self._initial_position)
 
-    def add_middleware(self, middleware: NodeMiddleware) -> None:
-        """Add middleware to the wrapper"""
-        with self._lock:
-            self._middleware.append(middleware)
-    
-    def remove_middleware(self, middleware: NodeMiddleware) -> None:
-        """Remove middleware from the wrapper"""
-        with self._lock:
-            if middleware in self._middleware:
-                self._middleware.remove(middleware)
     
     def _add_runtime_error(self, error: HaywireException) -> None:
         """
@@ -619,10 +605,16 @@ class NodeWrapper:
 
     def _clear_runtime_errors(self) -> None:
         """Clear all runtime errors and trigger redraw if any existed"""
-        self._state.error_runtime.clear()
-        if self._state.error_runtime:
-            # Errors cleared - trigger redraw
-            self.redraw()
+        with self._lock:
+            self._state.error_runtime.clear()
+            if self._state.error_runtime:
+                # Errors cleared - trigger redraw
+                self.redraw()
+
+
+    # =========================================================================
+    # Node Execution Wrappers (Deprecated)
+    # =========================================================================
 
     def _frame_start(self, exec_ctx: 'ExecutionContext') -> None:
         """
@@ -684,10 +676,9 @@ class NodeWrapper:
         self._clear_runtime_errors()
 
         try:
+            # any code added here will only be executed if 
             self._node_instance.on_startup(exec_ctx)
-
-            self._profiling_elapsed_time_ns = 0
-            self._profiling_number_of_ticks = 0
+            # the node has overridden on_startup()!!
         except Exception as e:
             error = HaywireException.from_exception(
                 exception=e,
@@ -709,14 +700,9 @@ class NodeWrapper:
         It catches any exceptions during shutdown.
         """
         try:
+            # any code added here will only be executed if 
             self._node_instance.on_shutdown(exec_ctx)
-
-            if self._profiling_enabled:
-                logger.info(
-                    f"Node '{self.node.identity.label}' average execution time: "
-                    f"{(self._profiling_elapsed_time_ns / max(1, self._profiling_number_of_ticks)):.2f} ns "
-                    f"over {self._profiling_number_of_ticks} ticks."
-                )
+            # the node has overridden on_shutdown()!!
         except Exception as e:
             error = HaywireException.from_exception(
                 exception=e,
@@ -734,10 +720,7 @@ class NodeWrapper:
     def _execute(self, exec_ctx: 'ExecutionContext') -> str | None:
         """
         Execute the node's transform method within the given execution context.
-        
-        No locking needed - each flow has independent nodes, and each flow
-        runs in a single thread.
-        
+                
         Args:
             exec_ctx: The execution context for this run
             
@@ -745,29 +728,7 @@ class NodeWrapper:
             Outlet ID to follow, or None
         """
         try:
-            if self._node_instance.behavior.is_data_node:
-                if not self._is_dirty_data:
-                    logger.debug(f"Skipping {self._node_id} (not dirty)")
-                    return None
-                self._is_dirty_data = False
-
-            self._node_instance.on_validate(exec_ctx)
-
-            # Only time if profiling is enabled
-            if self._profiling_enabled:
-                start_ns = time.perf_counter_ns()
-                result = self._node_instance._execute(exec_ctx)
-                elapsed_ns = time.perf_counter_ns() - start_ns
-                self._profiling_elapsed_time_ns += elapsed_ns
-                self._profiling_number_of_ticks += 1
-                #import rerun as rr
-                
-                #rr.set_time("frame_nr", sequence=exec_ctx.frame_number)
-                #rr.log(f"node/{self.node_id}", rr.Scalars(elapsed_ns), rr.SeriesLines(widths=5))
-            else:
-                result = self._node_instance._execute(exec_ctx)
-
-            return result
+            return self._node_instance._execute(exec_ctx)
             
         except Exception as e:
             error = HaywireException.from_exception(
@@ -783,43 +744,10 @@ class NodeWrapper:
             error.log()
             self._add_runtime_error(error)
             return None
-     
-        #return self._execute_with_middleware('transform', exec_ctx)
 
-    def _execute_with_middleware(self, method_name: str, *args) -> Any:
-        """Execute a method with middleware hooks"""
-        # Before hooks
-        for middleware in self._middleware:
-            try:
-                middleware.before_method(self, method_name, *args)
-            except Exception as e:
-                HaywireException.from_exception(
-                    exception=e,
-                    message=f"Error in before middleware for {self._node_id}.{method_name}"
-                ).log()
-        
-        # Execute method (placeholder - actual implementation would call real methods)
-        result = None
-        
-        # After hooks  
-        for middleware in reversed(self._middleware):
-            try:
-                middleware.after_method(self, method_name, result)
-            except Exception as e:
-                HaywireException.from_exception(
-                    exception=e,
-                    message=f"Error in after middleware for {self._node_id}.{method_name}"
-                ).log()
-        
-        return result
-
-    def mark_as_data_dirty(self) -> None:
-        """
-        Called by ports when their value changes to indicate 
-        the requirement for executing the worker method
-        """
-        with self._lock:
-            self._is_dirty_data = True
+    # =========================================================================
+    # Node Change Notifications
+    # =========================================================================
 
     def mark_as_structuraly_dirty(self) -> None:
         """

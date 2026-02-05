@@ -156,7 +156,7 @@ class SyncGraphRunner:
         for flow in assembled_flows:
             key = flow.get_subscription_key()
             friendly_name = self._get_friendly_name(key)
-            node_count = len(list(flow.get_all_node_wrappers()))
+            node_count = len(list(flow.get_all_nodes()))
             print(f"      • {friendly_name} ({node_count} nodes)")
         
         # Find main flow to run
@@ -269,34 +269,12 @@ class SyncGraphRunner:
     
     def _call_startup(self, flow):
         """Call startup on all nodes in a flow."""
-        from haywire.core.execution.execution_context import ExecutionContext
-        
-        local_context = self.vm._create_local_context(flow)
-        exec_ctx = ExecutionContext(
-            global_ctx=self.vm.global_context,
-            local_ctx=local_context,
-            trigger=None,
-            vm=self.vm
-        )
-        
-        for wrapper in flow.get_all_node_wrappers():
-            wrapper._startup(exec_ctx)
+        self.vm.call_flow_startup(flow)
     
     def _call_shutdown(self, flow):
-        """Call shutdown on all nodes in a flow."""
-        from haywire.core.execution.execution_context import ExecutionContext
-        
-        local_context = self.vm._create_local_context(flow)
-        exec_ctx = ExecutionContext(
-            global_ctx=self.vm.global_context,
-            local_ctx=local_context,
-            trigger=None,
-            vm=self.vm
-        )
-        
-        for wrapper in flow.get_all_node_wrappers():
-            wrapper._shutdown(exec_ctx)
-    
+        """Call shutdown on all nodes in a flow."""        
+        self.vm.call_flow_shutdown(flow)
+
     def stop(self):
         """Stop execution."""
         self._should_stop = True

@@ -11,7 +11,7 @@ import logging
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
-    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.node.base import BaseNode
     from haywire.core.execution.flow import ControlFlowGraph, ControlNodeInfo
 
 from haywire.core.data.enums import FlowType
@@ -33,7 +33,7 @@ class ControlFlowBuilder:
     
     @staticmethod
     def build(
-        event_node: 'NodeWrapper',
+        event_node: 'BaseNode',
         graph: 'BaseGraph'
     ) -> 'ControlFlowGraph':
         """
@@ -59,27 +59,27 @@ class ControlFlowBuilder:
         visited: Set[str] = set()
         
         # BFS queue
-        queue: List['NodeWrapper'] = [event_node]
+        queue: List['BaseNode'] = [event_node]
         
         # Build navigation graph
         while queue:
             current = queue.pop(0)
             
-            if current.node_id in visited:
+            if current.wrapper.node_id in visited:
                 continue  # Already processed (cycle)
             
-            visited.add(current.node_id)
+            visited.add(current.wrapper.node_id)
             
             # Create info for this node
-            info = ControlNodeInfo(node_wrapper=current)
+            info = ControlNodeInfo(node=current)
             
             # Mark loopback nodes
-            if current.node.behavior.node_type & NodeType.LOOPBACK:
+            if current.behavior.node_type & NodeType.LOOPBACK:
                 info.is_loopback = True
-                logger.debug(f"Node {current.node_id} is loopback")
+                logger.debug(f"Node {current.wrapper.node_id} is loopback")
             
             # Get all control outlet ports
-            control_outlets = current.node.get_control_outlets()
+            control_outlets = current.get_control_outlets()
             
             # Map each outlet to its connected node
             for outlet in control_outlets:
@@ -96,17 +96,17 @@ class ControlFlowBuilder:
                     info.outlet_map[outlet.id] = (next_node_id, inlet_port_id)
                     
                     logger.debug(
-                        f"Outlet {current.node_id}.{outlet.id} → "
+                        f"Outlet {current.wrapper.node_id}.{outlet.id} → "
                         f"{next_node_id}.{inlet_port_id}"
                     )
                     
                     # Add next node to queue
                     next_wrapper = graph.get_node_wrapper(next_node_id)
                     if next_wrapper:
-                        queue.append(next_wrapper)
+                        queue.append(next_wrapper.node)
             
             # Add to control graph
-            control_graph.control_nodes[current.node_id] = info
+            control_graph.control_nodes[current.wrapper.node_id] = info
         
         logger.debug(
             f"Control flow built: {len(control_graph.control_nodes)} nodes"

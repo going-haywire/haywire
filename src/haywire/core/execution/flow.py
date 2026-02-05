@@ -16,7 +16,7 @@ import logging
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
-    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.node.base import BaseNode
     from haywire.core.execution.event_source import EventSource
     from haywire.core.execution.scheduler import FlowScheduler
 
@@ -29,12 +29,12 @@ class ControlNodeInfo:
     Navigation information for a control node in the flow.
     
     Contains:
-    - Node wrapper reference
+    - Node reference (BaseNode)
     - Outlet mapping (outlet_pin_id → (next_node_id, inlet_port_id))
     - Loopback flag
     - Localized data flow for this node
     """
-    node_wrapper: 'NodeWrapper'
+    node: 'BaseNode'
     outlet_map: Dict[str, tuple[str, str]] = field(default_factory=dict)
     """Maps outlet port IDs to (next_node_id, inlet_port_id) tuples"""
     is_loopback: bool = False
@@ -53,8 +53,8 @@ class LocalizedDataFlow:
     """
     control_node_id: str
     """ID of the control node this data flow belongs to"""
-    execution_sequence: List['NodeWrapper'] = field(default_factory=list)
-    """Ordered list of data node wrappers to evaluate"""
+    execution_sequence: List['BaseNode'] = field(default_factory=list)
+    """Ordered list of data nodes to evaluate"""
     eval_masks: Dict[str, int] = field(default_factory=dict)
     """Lazy evaluation masks: node_id → bitfield"""
     requires_lazy: bool = False
@@ -76,7 +76,7 @@ class ControlFlowGraph:
     that the VM uses to determine which node to execute next based
     on runtime decisions (branch outcomes, loop conditions, etc).
     """
-    entry_node: 'NodeWrapper'
+    entry_node: 'BaseNode'
     """The event node that starts this flow"""
     control_nodes: Dict[str, ControlNodeInfo] = field(default_factory=dict)
     """All control nodes in this flow: node_id → ControlNodeInfo"""
@@ -106,7 +106,7 @@ class Flow:
     def __init__(
         self,
         flow_id: str,
-        entry_event_node: 'NodeWrapper',
+        entry_event_node: 'BaseNode',
         event_subscription: 'EventSource',
         graph_ref: 'BaseGraph'
     ):
@@ -131,12 +131,12 @@ class Flow:
         self.scheduler: Optional['FlowScheduler'] = None
         self.is_locked = False
         
-        # Cache for node wrappers (populated on first access after assembly)
-        self._all_node_wrappers_cache: Optional[List['NodeWrapper']] = None
-        self._nodes_with_on_startup_cache: Optional[List['NodeWrapper']] = None
-        self._nodes_with_on_shutdown_cache: Optional[List['NodeWrapper']] = None
-        self._nodes_with_on_frame_start_cache: Optional[List['NodeWrapper']] = None
-        self._nodes_with_on_frame_end_cache: Optional[List['NodeWrapper']] = None
+        # Cache for nodes (populated on first access after assembly)
+        self._all_nodes_cache: Optional[List['BaseNode']] = None
+        self._nodes_with_on_startup_cache: Optional[List['BaseNode']] = None
+        self._nodes_with_on_shutdown_cache: Optional[List['BaseNode']] = None
+        self._nodes_with_on_frame_start_cache: Optional[List['BaseNode']] = None
+        self._nodes_with_on_frame_end_cache: Optional[List['BaseNode']] = None
         
         # Metadata
         self.assembly_timestamp = datetime.now()
@@ -163,12 +163,12 @@ class Flow:
         """Get subscription key for event registration"""
         return self.event_subscription.get_subscription_key()
     
-    def get_all_node_wrappers(self) -> List['NodeWrapper']:
+    def get_all_nodes(self) -> List['BaseNode']:
         """
-        Get all node wrappers (control + data) in this flow.
+        Get all nodes (control + data) in this flow.
         
         Returns:
-            List of all NodeWrapper instances, including:
+            List of all BaseNode instances, including:
             - Entry event node
             - All control nodes
             - All data nodes from localized data flows
@@ -183,47 +183,47 @@ class Flow:
             return []
         
         # Return cached result if available
-        if self._all_node_wrappers_cache is not None:
-            return self._all_node_wrappers_cache
+        if self._all_nodes_cache is not None:
+            return self._all_nodes_cache
         
         # Build the list
-        wrappers = []
-        seen_wrappers: Set[str] = set()
+        nodes = []
+        seen_nodes: Set[str] = set()
         
         # Add entry event node
-        wrappers.append(self.entry_event_node)
-        seen_wrappers.add(self.entry_event_node.node_id)
+        nodes.append(self.entry_event_node)
+        seen_nodes.add(self.entry_event_node.node_id)
         
         # Add all control nodes and their data flows
         for node_info in self.control_graph.control_nodes.values():
             # Add control node
-            if node_info.node_wrapper.node_id not in seen_wrappers:
-                wrappers.append(node_info.node_wrapper)
-                seen_wrappers.add(node_info.node_wrapper.node_id)
+            if node_info.node.node_id not in seen_nodes:
+                nodes.append(node_info.node)
+                seen_nodes.add(node_info.node.node_id)
             
             # Add data nodes from localized data flow
             if node_info.localized_data_flow:
-                for data_wrapper in (
+                for data_node in (
                     node_info.localized_data_flow.execution_sequence
                 ):
-                    if data_wrapper.node_id not in seen_wrappers:
-                        wrappers.append(data_wrapper)
-                        seen_wrappers.add(data_wrapper.node_id)
+                    if data_node.node_id not in seen_nodes:
+                        nodes.append(data_node)
+                        seen_nodes.add(data_node.node_id)
         
         # Cache and return
-        self._all_node_wrappers_cache = wrappers
-        return wrappers
+        self._all_nodes_cache = nodes
+        return nodes
     
     def _is_method_overridden(
         self, 
-        wrapper: 'NodeWrapper', 
+        node: 'BaseNode', 
         method_name: str
     ) -> bool:
         """
         Check if node has overridden a lifecycle method from BaseNode.
         
         Args:
-            wrapper: Node wrapper to check
+            node: Node to check
             method_name: Name of the method to check
         
         Returns:
@@ -231,110 +231,110 @@ class Flow:
         
         Examples:
             is_overridden = self._is_method_overridden(
-                wrapper, 'on_startup'
+                node, 'on_startup'
             )
         """
-        node_class = type(wrapper.node)
+        node_class = type(node)
         from haywire.core.node.base import BaseNode
         return (
             getattr(node_class, method_name) 
             is not getattr(BaseNode, method_name)
         )
     
-    def get_nodes_with_on_startup(self) -> List['NodeWrapper']:
+    def get_nodes_with_on_startup(self) -> List['BaseNode']:
         """
-        Get node wrappers that have overridden on_startup from BaseNode.
+        Get nodes that have overridden on_startup from BaseNode.
         
         Filters nodes to only those that implement custom startup logic,
         avoiding unnecessary method calls on nodes using default no-op.
         
         Returns:
-            List of NodeWrapper instances with overridden on_startup
+            List of BaseNode instances with overridden on_startup
         
         Examples:
-            for wrapper in flow.get_nodes_with_on_startup():
-                wrapper.node.on_startup(context)
+            for node in flow.get_nodes_with_on_startup():
+                node.on_startup(context)
         """
         if self._nodes_with_on_startup_cache is not None:
             return self._nodes_with_on_startup_cache
         
         filtered = [
-            w for w in self.get_all_node_wrappers()
-            if self._is_method_overridden(w, 'on_startup')
+            n for n in self.get_all_nodes()
+            if self._is_method_overridden(n, 'on_startup')
         ]
         self._nodes_with_on_startup_cache = filtered
         return filtered
     
-    def get_nodes_with_on_shutdown(self) -> List['NodeWrapper']:
+    def get_nodes_with_on_shutdown(self) -> List['BaseNode']:
         """
-        Get node wrappers that have overridden on_shutdown from BaseNode.
+        Get nodes that have overridden on_shutdown from BaseNode.
         
         Filters nodes to only those that implement custom shutdown logic,
         avoiding unnecessary method calls on nodes using default no-op.
         
         Returns:
-            List of NodeWrapper instances with overridden on_shutdown
+            List of BaseNode instances with overridden on_shutdown
         
         Examples:
-            for wrapper in flow.get_nodes_with_on_shutdown():
-                wrapper.node.on_shutdown(context)
+            for node in flow.get_nodes_with_on_shutdown():
+                node.on_shutdown(context)
         """
         if self._nodes_with_on_shutdown_cache is not None:
             return self._nodes_with_on_shutdown_cache
         
         filtered = [
-            w for w in self.get_all_node_wrappers()
-            if self._is_method_overridden(w, 'on_shutdown')
+            n for n in self.get_all_nodes()
+            if self._is_method_overridden(n, 'on_shutdown')
         ]
         self._nodes_with_on_shutdown_cache = filtered
         return filtered
     
-    def get_nodes_with_on_frame_start(self) -> List['NodeWrapper']:
+    def get_nodes_with_on_frame_start(self) -> List['BaseNode']:
         """
-        Get node wrappers that have overridden on_frame_start from BaseNode.
+        Get nodes that have overridden on_frame_start from BaseNode.
         
         Filters nodes to only those that implement custom per-frame start
         logic, avoiding unnecessary method calls on nodes using default
         no-op.
         
         Returns:
-            List of NodeWrapper instances with overridden on_frame_start
+            List of BaseNode instances with overridden on_frame_start
         
         Examples:
-            for wrapper in flow.get_nodes_with_on_frame_start():
-                wrapper.node.on_frame_start(context)
+            for node in flow.get_nodes_with_on_frame_start():
+                node.on_frame_start(context)
         """
         if self._nodes_with_on_frame_start_cache is not None:
             return self._nodes_with_on_frame_start_cache
         
         filtered = [
-            w for w in self.get_all_node_wrappers()
-            if self._is_method_overridden(w, 'on_frame_start')
+            n for n in self.get_all_nodes()
+            if self._is_method_overridden(n, 'on_frame_start')
         ]
         self._nodes_with_on_frame_start_cache = filtered
         return filtered
     
-    def get_nodes_with_on_frame_end(self) -> List['NodeWrapper']:
+    def get_nodes_with_on_frame_end(self) -> List['BaseNode']:
         """
-        Get node wrappers that have overridden on_frame_end from BaseNode.
+        Get nodes that have overridden on_frame_end from BaseNode.
         
         Filters nodes to only those that implement custom per-frame end
         logic, avoiding unnecessary method calls on nodes using default
         no-op.
         
         Returns:
-            List of NodeWrapper instances with overridden on_frame_end
+            List of BaseNode instances with overridden on_frame_end
         
         Examples:
-            for wrapper in flow.get_nodes_with_on_frame_end():
-                wrapper.node.on_frame_end(context)
+            for node in flow.get_nodes_with_on_frame_end():
+                node.on_frame_end(context)
         """
         if self._nodes_with_on_frame_end_cache is not None:
             return self._nodes_with_on_frame_end_cache
         
         filtered = [
-            w for w in self.get_all_node_wrappers()
-            if self._is_method_overridden(w, 'on_frame_end')
+            n for n in self.get_all_nodes()
+            if self._is_method_overridden(n, 'on_frame_end')
         ]
         self._nodes_with_on_frame_end_cache = filtered
         return filtered

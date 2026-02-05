@@ -290,10 +290,12 @@ class ValidationManager:
                     # For removal, just track it
                     if reason.requires_removal():
                         validated_nodes[node_id] = reason
+                        validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
                     if reason.requires_adding():
                         validated_nodes[node_id] = reason
+                        validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
                     if reason.requires_rebuild():
@@ -313,6 +315,7 @@ class ValidationManager:
                                     store=dirty_edges)
                             # Always include in result with its reason
                             validated_nodes[node_id] = reason
+                            validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                             continue                   
 
                     if reason.requires_validation():
@@ -331,6 +334,7 @@ class ValidationManager:
                                     store=dirty_edges)
                             # Always include in result with its reason
                             validated_nodes[node_id] = reason
+                            validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                             continue                   
 
                     # For visual-only changes, skip validation
@@ -351,11 +355,13 @@ class ValidationManager:
                     # For removal, just track it
                     if reason.requires_removal():
                         validated_edges[connection_uuid] = reason
+                        validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
                     if reason.requires_adding():
                         # Update port links (needs to be done after registration)
                         validated_edges[connection_uuid] = reason
+                        validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
                     edge_wrapper = self._graph.get_edge_wrapper(connection_uuid)
@@ -368,6 +374,7 @@ class ValidationManager:
                             self._graph.update_port_link(edge_wrapper)
                             # Always include in result with its reason
                             validated_edges[connection_uuid] = reason
+                            validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                             continue
                     
                     # For visual-only changes, skip validation
@@ -391,7 +398,7 @@ class ValidationManager:
                     node_wrapper = self._graph.get_node_wrapper(node_id)
                     if node_wrapper:
                         node_wrapper._housekeeping()
-
+                    
             # Build simplified result
             validation_time_ms = (time.perf_counter() - start_time) * 1000.0
             

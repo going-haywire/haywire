@@ -879,7 +879,6 @@ class UndoRedoTestAppWithCanvasManager:
         except Exception as e:
             print(f"Error waiting for flows: {e}")
         
-        ui.notify("Interpreter stopped", type='info', position='top')
         print("Interpreter loop stopped")
 
     # =========================================
@@ -987,21 +986,14 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Check if changes require reassembly
         if (
-            result.change_reason 
-            and result.change_reason.requires_graph_reassembly()
+            result.has_changes() and result.graph is not None
+            and result.graph.requires_graph_reassembly()
         ):
+            print("Interpreter stopped due to graph changes requiring reassembly")
+
             # Stop the interpreter
             self.stop_interpreter()
             
-            # Notify user
-            ui.notify(
-                'Graph changed - interpreter stopped. '
-                'Restart to execute modified graph.',
-                type='warning',
-                position='top',
-                timeout=5000
-            )
-            print("Interpreter stopped due to graph changes requiring reassembly")
     
     def update_interpreter_display(self):
         """Update interpreter status display for current session."""

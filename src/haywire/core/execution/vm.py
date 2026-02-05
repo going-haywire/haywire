@@ -15,11 +15,13 @@ import logging
 from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.behavior import NodeType
 
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
+    from haywire.core.node.base import BaseNode
 
 logger = logging.getLogger(__name__)
 
@@ -56,23 +58,75 @@ class HaywireVM:
         
         logger.debug("HaywireVM initialized")
 
-    def _create_local_context(self, flow: 'Flow') -> Dict[str, Any]:
+    def _create_execution_context(
+        self,
+        flow: 'Flow',
+        trigger: Optional['Trigger'] = None,
+        frame_number: int = 0
+    ) -> ExecutionContext:
         """
-        Create local context from graph variables.
+        Create execution context for flow execution.
+        
+        Creates local context from graph variables and builds complete
+        ExecutionContext with global context, trigger, and frame number.
         
         Args:
             flow: Flow being executed
+            trigger: Optional trigger that activated flow
+            frame_number: Current frame number for this execution
             
         Returns:
-            Dictionary with graph variable values
+            Complete ExecutionContext ready for node execution
         """
+        # Create local context from graph variables
         local_ctx = {}
-        
-        # Copy current values from graph variables
         for var_name, variable in flow.graph_ref.variables.items():
             local_ctx[var_name] = variable.current_value
         
-        return local_ctx
+        # Build and return complete execution context
+        return ExecutionContext(
+            global_ctx=self.global_context,
+            local_ctx=local_ctx,
+            trigger=trigger,
+            vm=self,
+            frame_number=frame_number
+        )
+    
+    def call_flow_startup(self, flow: 'Flow'):
+        """
+        Call on_startup() on all nodes in flow.
+        
+        Invoked once when flow execution thread starts, before processing
+        any triggers. Nodes can use this to initialize resources.
+        
+        Args:
+            flow: Flow containing nodes to initialize
+        """
+        exec_ctx = self._create_execution_context(flow)
+        
+        for node in flow.get_nodes_with_on_startup():
+            try:
+                node.on_startup(exec_ctx)
+            except Exception as e:
+                self.catch_exception(e, node, "Node on_startup() Execution")
+    
+    def call_flow_shutdown(self, flow: 'Flow'):
+        """
+        Call on_shutdown() on all nodes in flow.
+        
+        Invoked once when flow execution thread ends, after all triggers
+        processed. Nodes can use this to cleanup resources.
+        
+        Args:
+            flow: Flow containing nodes to cleanup
+        """
+        exec_ctx = self._create_execution_context(flow)
+                
+        for node in flow.get_nodes_with_on_shutdown():
+            try:
+                node.on_shutdown(exec_ctx)
+            except Exception as e:
+                self.catch_exception(e, node, "Node on_shutdown() Execution")
         
     def execute_control_flow(self, 
             flow: 'Flow', 
@@ -97,29 +151,23 @@ class HaywireVM:
                 f"Cannot execute flow {flow.flow_id}: not assembled"
             )
         
-        logger.debug(
-            f"Starting control flow execution: {flow.flow_id} "
-            f"(trigger: {trigger.source_key})"
-        )
+        # logger.debug(
+        #     f"Starting control flow execution: {flow.flow_id} "
+        #     f"(trigger: {trigger.source_key})"
+        # )
        
         # Initialize execution tracking
         self.execution_count: int = 0
         loopback_stack: List[str] = []
         
-        # Create local context from graph variables
-        local_context = self._create_local_context(flow)
-
         # Create execution context
-        exec_ctx = ExecutionContext(
-            global_ctx=self.global_context,
-            local_ctx=local_context,
-            trigger=trigger,
-            vm=self,
-            frame_number=frame_number
-        )
+        exec_ctx = self._create_execution_context(flow, trigger, frame_number)
         
-        for wrapper in flow.get_nodes_with_on_frame_start():
-            wrapper._frame_start(exec_ctx)
+        for node in flow.get_nodes_with_on_frame_start():
+            try:
+                node.on_frame_start(exec_ctx)
+            except Exception as e:
+                self.catch_exception(e, node, "Node on_frame_start() Execution")
                 
         # Start from event node
         current_node_id = flow.get_entry_node_id()
@@ -139,10 +187,6 @@ class HaywireVM:
 
             # Set which control inlet we entered through
             exec_ctx.control_pin = current_inlet_id
-            logger.debug(
-                f"Executing node {current_node_id} via inlet: {current_inlet_id}"
-            )
-
 
             # >>>>>>>>>>>
             # Execute this control node (including localized data flow)
@@ -153,10 +197,9 @@ class HaywireVM:
             )
             # >>>>>>>>>>>
 
-
             # Only push to loopback stack if taking a loopback outlet
             if node_info.is_loopback and next_outlet_id:
-                outlet_port = node_info.node_wrapper.node.ports[next_outlet_id]
+                outlet_port = node_info.node.ports[next_outlet_id]
                 if outlet_port and outlet_port.needs_loopback:
                     loopback_stack.append(current_node_id) 
                     if len(loopback_stack) > self.max_stack_depth:
@@ -173,10 +216,11 @@ class HaywireVM:
                 loopback_stack
             )
 
-        for wrapper in flow.get_nodes_with_on_frame_end():
-            wrapper._frame_end(exec_ctx)
-
-        logger.debug(f"Control flow execution completed: {flow.flow_id}")
+        for node in flow.get_nodes_with_on_frame_end():
+            try:
+                node.on_frame_end(exec_ctx)
+            except Exception as e:
+                self.catch_exception(e, node, "Node on_frame_end() Execution")
 
     
     def _execute_control_node(
@@ -202,16 +246,15 @@ class HaywireVM:
         Returns:
             ID of outlet pin to follow next, or None
         """
-        node_wrapper = node_info.node_wrapper
-        node = node_wrapper.node
+        node = node_info.node
         
         
         # Update context with current node
-        exec_ctx.node_wrapper = node_wrapper
+        exec_ctx.node_wrapper = node
 
 
         if node_info.localized_data_flow:
-            logger.debug(f"> Executing Data Flow for node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}")
+            # logger.debug(f"> Executing Data Flow for node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}")
             # >>>>>>>>>>>
             # 1. Evaluate localized data flow
             self._evaluate_data_flow(
@@ -224,21 +267,46 @@ class HaywireVM:
         self.execution_count += 1
         exec_ctx.exec_count = self.execution_count
 
-        logger.debug(f"> Executing Control node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}, exec count {exec_ctx.exec_count}")
-
         # >>>>>>>>>>>
         # 2. Execute control node
-        next_outlet_id = node_wrapper._execute(exec_ctx)
+        try:
+            next_outlet_id = node._execute(exec_ctx)
+        except Exception as e:
+            self.catch_exception(e, node, "Node Execution")
         # >>>>>>>>>>>
 
-        logger.debug(
-            f"Control node {node_wrapper.node_id} completed, "
-            f"next outlet: {next_outlet_id}"
-        )
+        # logger.debug(
+        #     f"Control node {node.node_id} completed, "
+        #     f"next outlet: {next_outlet_id}"
+        # )
         
         return next_outlet_id
     
-    
+    def catch_exception(
+        self,
+        exception: Exception,
+        node: 'BaseNode',
+        operation: str
+    ) -> Optional[str]:
+        """
+        Handle exception during node execution.
+        
+        stores the error in the node's runtime errors."""
+
+        error = HaywireException.from_exception(
+            exception=exception,
+            operation=operation,
+            message=f"Error executing node '{node.identity.label}'"
+        ).enrich(
+            _node_id=node.node_id,
+            registry_key=node.identity.registry_key,
+            module_name=node.__class__.__module__,
+            library_identity=node.identity.library_identity
+        )
+        error.log()
+        node.wrapper._add_runtime_error(error)
+
+
     def _navigate_next(
         self,
         next_outlet_id: Optional[str],
@@ -256,13 +324,12 @@ class HaywireVM:
         Returns:
             Tuple of (next_node_id, inlet_port_id), or (None, None) to end
         """
-        node = node_info.node_wrapper.node
+        node = node_info.node
         
         # Case 1: No outlet specified
         if next_outlet_id is None:
             # Check if this is an output node
             if node.behavior.node_type & NodeType.OUTPUT:
-                logger.debug("Reached output node, ending flow")
                 return (None, None)  # End flow
             else:
                 # Branch ended without output - try loopback
@@ -276,13 +343,7 @@ class HaywireVM:
         
         if outlet_target is None:
             # Outlet exists but not connected - try loopback
-            logger.debug(
-                f"Outlet {next_outlet_id} not connected."
-            )
             if loopback_stack:
-                logger.debug(
-                    f" Looping back to node {loopback_stack[-1]} from unconnected outlet"
-                )
                 return (loopback_stack.pop(), None)
             return (None, None)
         
@@ -294,10 +355,6 @@ class HaywireVM:
             # Return None for inlet_id to indicate this is a loopback return
             # and not a fresh entry through an inlet.
             loopback_index = loopback_stack.index(next_node_id)
-            logger.debug(
-                f"Navigating back to loopback node {next_node_id} "
-                f"already on stack at index {loopback_index}, unwinding"
-            )
             # Truncate stack to remove this node and everything after
             del loopback_stack[loopback_index:]
             return (next_node_id, None)  # Loopback return, no specific inlet
@@ -320,12 +377,8 @@ class HaywireVM:
             data_flow: LocalizedDataFlow to evaluate
             exec_ctx: Execution context
             lazy_mask: Optional lazy evaluation mask
-        """
-        logger.debug(
-            f">> Evaluating ({len(data_flow.execution_sequence)} nodes)"
-        )
-        
-        for data_node_wrapper in data_flow.execution_sequence:
+        """        
+        for data_node in data_flow.execution_sequence:
             
             # TODO: Implement lazy evaluation check
             # if lazy_mask and data_flow.requires_lazy:
@@ -337,9 +390,13 @@ class HaywireVM:
             exec_ctx.exec_count = self.execution_count
 
             # Execute data node
-            logger.debug(f">>> Executing data node: {data_node_wrapper.node_id}, exec count {self.execution_count}")            
-            data_node_wrapper._execute(exec_ctx)            
-            
+            try:
+                data_node._execute(exec_ctx)            
+            except Exception as e:
+                self.catch_exception(e, data_node, "Node Execution")
+
+
+
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
         """
         Emit a callback to trigger other flows.

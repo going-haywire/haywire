@@ -79,8 +79,8 @@ class GraphRunner:
         level = getattr(logging, self.log_level.upper(), logging.WARNING)
         logging.getLogger('haywire').setLevel(level)        
         logging.getLogger('haywire.core.node.node_wrapper').setLevel(logging.INFO)  # Keep node stats
-        #logging.getLogger('haywire.core.execution.scheduler').setLevel(logging.INFO)
-        #logging.getLogger('haywire.core.graph.validation').setLevel(logging.INFO)
+        logging.getLogger('haywire.core.execution.scheduler').setLevel(logging.INFO)
+        logging.getLogger('haywire.core.graph.validation').setLevel(logging.INFO)
         #logging.getLogger('haywire.core.execution.vm').setLevel(logging.INFO)
 
         # Setup library system

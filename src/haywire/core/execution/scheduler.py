@@ -164,71 +164,14 @@ class FlowScheduler:
         self.execution_thread.start()
         logger.debug(f"Started execution thread for {self.flow.flow_id}")
     
-    def _call_startup(self):
-        """
-        Call on_startup() on all nodes that have this method implemented in the flow.
-        """
-        from haywire.core.execution.execution_context import ExecutionContext
-        
-        local_context = self.vm._create_local_context(self.flow)
-        exec_ctx = ExecutionContext(
-            global_ctx=self.vm.global_context,
-            local_ctx=local_context,
-            trigger=None,
-            vm=self.vm
-        )
-        
-        logger.debug(f"Calling on_startup() on all nodes in flow {self.flow.flow_id}")
-        
-        for wrapper in self.flow.get_all_node_wrappers():
-        #for wrapper in self.flow.get_nodes_with_on_startup():
-            # For the time beeing, call startup on all nodes to allow the 
-            # utilization of the startup method inside the wrapper
-            wrapper._startup(exec_ctx)
-    
-    def _call_shutdown(self):
-        """
-        Call on_shutdown() on all nodes that have this method implemented in the flow.
-        """
-        from haywire.core.execution.execution_context import ExecutionContext
-        
-        local_context = self.vm._create_local_context(self.flow)
-        exec_ctx = ExecutionContext(
-            global_ctx=self.vm.global_context,
-            local_ctx=local_context,
-            trigger=None,
-            vm=self.vm
-        )
-        
-        logger.debug(
-            f"Calling on_shutdown() on all nodes in flow {self.flow.flow_id}"
-        )
-        
-        for wrapper in self.flow.get_all_node_wrappers():
-        #for wrapper in self.flow.get_nodes_with_on_shutdown(): 
-            # For the time beeing, call shutdown on all nodes to allow the 
-            # utilization of the on_shutdown method inside the wrapper
-            wrapper._shutdown(exec_ctx)
-            logger.debug(f"Called on_shutdown on {wrapper.node_id}")
-
-                
     def _execution_loop(self):
         """
         Main execution loop (runs in separate thread).
         
         Continuously processes triggers from queue until stopped.
         Uses sentinel value for clean shutdown signaling.
-        """
-        logger.debug(f"Execution loop started for {self.flow.flow_id}")
-                
-        # Call startup() on all nodes before processing any triggers
-        try:
-            self._call_startup()
-        except Exception as e:
-            logger.error(
-                f"Error during startup phase for {self.flow.flow_id}: {e}",
-                exc_info=True
-            )
+        """                
+        self.vm.call_flow_startup(self.flow)
 
         self._frame_count = 0
 
@@ -239,13 +182,8 @@ class FlowScheduler:
                     # Use small timeout to allow periodic stop check as fallback
                     trigger = self.trigger_queue.get(timeout=0.5)
 
-                    #logger.info(f"Thread wake for flow {self.flow.flow_id} ")     
-
                     # Check for shutdown sentinel
                     if trigger is _SHUTDOWN_SENTINEL:
-                        logger.debug(
-                            f"Received shutdown sentinel for {self.flow.flow_id}"
-                        )
                         self.trigger_queue.task_done()
                         break
                     
@@ -273,18 +211,10 @@ class FlowScheduler:
             )
         
         finally:
-            try:
-                # Call on_shutdown() on all nodes after processing is complete
-                self._call_shutdown()
-            except Exception as e:
-                logger.error(
-                    f"Error during shutdown phase for {self.flow.flow_id}: {e}",
-                    exc_info=True
-                )
+            self.vm.call_flow_shutdown(self.flow)
             
             # Signal that thread has exited
             self._thread_exited.set()
-            logger.debug(f"Execution loop ended for {self.flow.flow_id}")
     
     def _execute_flow(self, trigger: 'Trigger'):
         """
@@ -295,15 +225,10 @@ class FlowScheduler:
         """
         self._is_executing.set()
         
-        try:
-            logger.info(
-                f"Executing flow {self.flow.flow_id} "
-                f"with trigger {trigger.source_key}"
-            )
-            
+        try:            
             queue_depth = self.trigger_queue.qsize()
             if queue_depth > 0:
-                print(f"Queue depth at execution: {queue_depth}")
+                logger.info(f"Queue depth at execution: {queue_depth}")
 
             self._frame_count += 1
 
@@ -324,11 +249,6 @@ class FlowScheduler:
             if self._exec_time_max_ns is None or elapsed_ns > self._exec_time_max_ns:
                 self._exec_time_max_ns = elapsed_ns
                 self._exec_max_iteration = self._frame_count
-
-            logger.debug(
-                f"Flow {self.flow.flow_id} completed in "
-                f"{elapsed_ns / 1_000:.2f} μs"
-            )
             
         except Exception as e:
             logger.error(

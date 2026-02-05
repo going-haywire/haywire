@@ -22,6 +22,7 @@ from haywire.core.types.pipe import Pipes
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
+    from haywire.core.node.base import BaseNode
 
 
 @dataclass
@@ -137,6 +138,13 @@ class DataPort(DataTypeIdentity):
         repr=False, 
         metadata={'serialize': False}
     )
+    
+    _node: Optional['BaseNode'] = field(
+        default=None, 
+        repr=False, 
+        metadata={'serialize': False}
+    )
+    """Reference to parent BaseNode (for callbacks)"""
     
     def __post_init__(self):
         """
@@ -368,8 +376,8 @@ class DataPort(DataTypeIdentity):
 
     def _mark_as_data_dirty(self) -> None:
         """Mark the port's node as data dirty."""
-        if self._wrapper:
-            self._wrapper.mark_as_data_dirty()
+        if self._node:
+            self._node.mark_as_data_dirty(self.id)
 
     def is_callback_pin(self) -> bool:
         """Check if this is a callback pin"""
@@ -396,7 +404,8 @@ class DataPort(DataTypeIdentity):
         cls, 
         spec: dict, 
         type_registry: 'TypeRegistry', 
-        wrapper: 'NodeWrapper'
+        wrapper: 'NodeWrapper',
+        node: 'BaseNode'
     ) -> 'DataPort':
         """
         Create a DataPort from a PortSpec dict.
@@ -411,7 +420,7 @@ class DataPort(DataTypeIdentity):
             spec: PortSpec from as_inlet/as_outlet/as_config or to_dict
             type_registry: Registry to resolve type classes
             wrapper: NodeWrapper to attach to the port
-        
+            node: BaseNode to attach to the port
         Returns:
             Instantiated DataPort
         """
@@ -429,6 +438,7 @@ class DataPort(DataTypeIdentity):
             'flow_type': flow_type,
             'type_cls': type_cls,
             '_wrapper': wrapper, 
+            '_node': node
         }
         
         # Create port

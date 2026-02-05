@@ -17,7 +17,7 @@ import logging
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.execution.flow import Flow
-    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.node.base import BaseNode
 
 from haywire.core.assembly.control_flow_builder import ControlFlowBuilder
 from haywire.core.assembly.data_flow_builder import DataFlowBuilder
@@ -148,12 +148,12 @@ class FlowAssemblyManager:
         event_nodes = self._identify_event_nodes(graph)
         event_types: Dict[str, List[str]] = {}
         
-        for wrapper in event_nodes:
-            if hasattr(wrapper.node, 'event_subscription'):
-                key = wrapper.node.event_subscription.get_subscription_key()
+        for node in event_nodes:
+            if hasattr(node, 'event_subscription'):
+                key = node.event_subscription.get_subscription_key()
                 if key not in event_types:
                     event_types[key] = []
-                event_types[key].append(wrapper.node_id)
+                event_types[key].append(node.node_id)
         
         for event_type, node_ids in event_types.items():
             if len(node_ids) > 1:
@@ -169,7 +169,7 @@ class FlowAssemblyManager:
         
         return errors
     
-    def _identify_event_nodes(self, graph: 'BaseGraph') -> List['NodeWrapper']:
+    def _identify_event_nodes(self, graph: 'BaseGraph') -> List['BaseNode']:
         """
         Identify all event nodes in the graph.
         
@@ -177,20 +177,20 @@ class FlowAssemblyManager:
             graph: Graph to search
             
         Returns:
-            List of event node wrappers
+            List of event nodes (BaseNode instances)
         """
         event_nodes = []
         
         for wrapper in graph.node_wrappers.values():
             # Check if node is an event node
             if wrapper.node.behavior.node_type & NodeType.EVENT:
-                event_nodes.append(wrapper)
+                event_nodes.append(wrapper.node)
         
         return event_nodes
     
     def _assemble_flow(
         self,
-        event_node: 'NodeWrapper',
+        event_node: 'BaseNode',
         graph: 'BaseGraph'
     ) -> Flow:
         """
@@ -203,16 +203,19 @@ class FlowAssemblyManager:
         Returns:
             Assembled flow
         """
-        logger.debug(f"Assembling flow from event node {event_node.node_id}")
+        logger.debug(
+            f"Assembling flow from event node {event_node.node_id}"
+        )
         
         # Get event subscription
-        if event_node.node and event_node.node.event_subscription:
-            if event_node.node.event_subscription == None:
+        if event_node and event_node.event_subscription:
+            if event_node.event_subscription == None:
                 raise RuntimeError(
-                    f"Event node {event_node.node_id} has no event_subscription"
+                    f"Event node {event_node.node_id} has no "
+                    f"event_subscription"
                 )
         
-        event_subscription = event_node.node.event_subscription
+        event_subscription = event_node.event_subscription
         
         # Create flow
         flow = Flow(
@@ -230,7 +233,7 @@ class FlowAssemblyManager:
         for node_id, node_info in control_graph.control_nodes.items():
             try:
                 localized_flow = DataFlowBuilder.build_localized(
-                    node_info.node_wrapper,
+                    node_info.node,
                     control_graph,
                     graph
                 )
@@ -311,13 +314,16 @@ class FlowAssemblyManager:
             
             if source_wrapper and target_wrapper:
                 logger.debug(
-                    f"  Callback edge: {source_wrapper.node_id}.{edge.outlet_port_id} "
-                    f"→ {target_wrapper.node_id}.{edge.inlet_port_id}"
+                    f"  Callback edge: {source_wrapper.node_id}."
+                    f"{edge.outlet_port_id} → {target_wrapper.node_id}."
+                    f"{edge.inlet_port_id}"
                 )
                 
                 # Log the event propagation for debugging
-                source_port = source_wrapper.node.ports.get(edge.outlet_port_id)
-                target_port = target_wrapper.node.ports.get(edge.inlet_port_id)
+                source_node = source_wrapper.node
+                target_node = target_wrapper.node
+                source_port = source_node.ports.get(edge.outlet_port_id)
+                target_port = target_node.ports.get(edge.inlet_port_id)
                 
                 if source_port and target_port:
                     source_event = source_port.get_value()
@@ -421,8 +427,8 @@ class FlowAssemblyManager:
                     logger.warning(f"No metadata for flow {flow_id}, skipping")
                     continue
                 
-                event_node = graph.get_node_wrapper(metadata.event_node_id)
-                if not event_node:
+                event_wrapper = graph.get_node_wrapper(metadata.event_node_id)
+                if not event_wrapper:
                     logger.warning(
                         f"Event node {metadata.event_node_id} not found, "
                         f"removing flow {flow_id}"
@@ -432,7 +438,7 @@ class FlowAssemblyManager:
                     continue
                 
                 # Reassemble
-                flow = self._assemble_flow(event_node, graph)
+                flow = self._assemble_flow(event_wrapper.node, graph)
                 
                 # Update cache
                 self.assembled_flows[flow_id] = flow
@@ -440,7 +446,7 @@ class FlowAssemblyManager:
                     flow_id=flow.flow_id,
                     timestamp=flow.assembly_timestamp,
                     node_count=len(flow.get_control_node_ids()),
-                    event_node_id=event_node.node_id
+                    event_node_id=event_wrapper.node_id
                 )
                 
                 reassembled.append(flow)
@@ -484,8 +490,14 @@ class FlowAssemblyManager:
                     'event_type': flow.event_subscription.get_subscription_key(),
                     'node_count': len(flow.get_control_node_ids()),
                     'assembled_at': metadata.timestamp.isoformat(),
-                    'emits_callbacks': flow.entry_event_node.node_id in callback_connections,
-                    'receives_callbacks': flow.entry_event_node.node_id in callback_triggers
+                    'emits_callbacks': (
+                        flow.entry_event_node.node_id 
+                        in callback_connections
+                    ),
+                    'receives_callbacks': (
+                        flow.entry_event_node.node_id 
+                        in callback_triggers
+                    )
                 }
                 for flow_id, flow in self.assembled_flows.items()
                 if (metadata := self.assembly_cache.get(flow_id))

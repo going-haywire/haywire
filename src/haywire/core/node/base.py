@@ -3,16 +3,16 @@ import time
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict
 from abc import abstractmethod
 from contextlib import contextmanager
 
 from haywire.core.execution.event_source import EventSource
+from haywire.core.node.identity import NodeIdentity
 from haywire.core.settings.builtins import register_node_instance_settings
 
 from ..data.enums import FlowType
 from ..execution.execution_context import ExecutionContext
-from ..registry.identity import BaseIdentity
 from ..library.identity import LibraryIdentity
 from ..types.ports import DataPort
 from .behavior import NodeBehaviorFlags
@@ -25,20 +25,6 @@ if TYPE_CHECKING:
     from haywire.core.types.registry import TypeRegistry
 
 T = TypeVar('T')
-
-
-T = TypeVar('T')
-
-@dataclass
-class NodeIdentity(BaseIdentity):
-    """Core identifying attributes of a node"""
-    search_tags: list[str] = field(default_factory=lambda: ['add', 'sub', 'math', 'vector'])
-    menu: str = 'misc/custom'
-    help_md: str | None = None
-    help_url: str = 'https://haywire.io/docs/node-help'
-    _is_error: bool = False
-    _error_priority: int = 0
-
 
 class NodeMeta(type):
     """Metaclass for nodes"""
@@ -108,6 +94,7 @@ class NodeData:
         # UI state (position, dimensions)
         self._ui: NodeUI = NodeUI(self)
         
+        self._is_dirty_data: Set[str] = set()
 
         # ---------------------------------------------------------------------
         # Internal state
@@ -280,7 +267,8 @@ class NodeData:
         port = DataPort.from_spec(
             spec, 
             self._type_registry, 
-            self.wrapper
+            self.wrapper,
+            self
         )
 
         # Set parent from current group stack
@@ -948,6 +936,13 @@ class NodeData:
         
         return '>>'.join(hierarchy_parts)
 
+    def mark_as_data_dirty(self, port_id: str) -> None:
+        """
+        Called by ports when their value changes to indicate 
+        the requirement for executing the worker method
+        """
+        self._is_dirty_data.add(port_id)
+
     # =========================================================================
     # Worker Signature Analysis and Execution
     # =========================================================================
@@ -1044,31 +1039,6 @@ class NodeData:
             
             return lambda ctx: self.worker(ctx, **extract_dict())
     
-    def _execute(self, context: 'ExecutionContext') -> Optional[str]:
-        """
-        Execute the worker with optimized value extraction.
-        
-        This is the single entry point
-
-        Args:
-            context: Execution context
-        
-        Returns:
-            Outlet ID to follow, or None
-        """
-        if self._executor is None:
-            self._analyze_worker_signature()
-
-        #t0 = time.perf_counter_ns()
-        result = self._executor(context)
-        #t1 = time.perf_counter_ns()
-        parsed = self._parse_worker_result(result)
-        #t2 = time.perf_counter_ns()
-        
-        #print(f"{self.identity.label}: executor={t1-t0}ns, parse={t2-t1}ns")
-
-        return parsed
-
     def _parse_worker_result(self, result: str | None) -> str | None:
         """Parse worker result - just flow control."""
         if result is not None and not isinstance(result, str):
@@ -1078,62 +1048,6 @@ class NodeData:
             )
         return result
 
-    @abstractmethod
-    def worker(self, context: ExecutionContext, *args, **kwargs) -> str | None:
-        """
-        The main execution logic of the node.
-        
-        Override this method in subclasses to implement node behavior.
-        
-        Worker signature design:
-        - Parameter names must match inlet port IDs
-        - Parameters are automatically extracted and passed as unwrapped values
-        - Use type hints to document expected types
-        - Use default values for optional ports (if port doesn't exist, default used)
-        - Required parameters (no default) must have matching ports or ValueError raised
-        
-        Args:
-            context: Execution context (always first parameter)
-            *args: Named parameters matching inlet port IDs (auto-extracted)
-            **kwargs: Named parameters matching inlet port IDs (auto-extracted)
-        
-        Returns:
-            - None  # for data flow nodes
-            - 'next'  # for control flow nodes
-        
-        Examples:
-            Simple node with required inputs:
-            
-            .. code-block:: python
-            
-                def worker(self, context: ExecutionContext, value: float, multiplier: float):
-                    self.out('result', value * multiplier)
-            
-            Node with optional inputs (default if port missing):
-            
-            .. code-block:: python
-            
-                def worker(self, context: ExecutionContext, value: float, offset: float = 0.0):
-                    self.out('result', value + offset)
-            
-            Control flow node:
-            
-            .. code-block:: python
-            
-                def worker(self, context: ExecutionContext, condition: bool):
-                    return 'true_branch' if condition else 'false_branch'
-            
-            Multi-output with control flow:
-            
-            .. code-block:: python
-            
-                def worker(self, context: ExecutionContext, x: float, y: float):
-                    self.out('sum', x + y)
-                    self.out('product', x * y)
-                    self.out('difference', x - y)
-                    return 'next'
-            """
-        pass
 
     # =========================================================================
     # SERIALIZATION
@@ -1168,7 +1082,7 @@ class NodeData:
         # Recreate each port from PortSpec
         for port_id, spec in ports_data.items():
             # Use same instantiation path as add()
-            port = DataPort.from_spec(spec, self._type_registry, self.wrapper)
+            port = DataPort.from_spec(spec, self._type_registry, self.wrapper, self)
             
             # Add directly to collection (skip add() to preserve order from spec)
             self.ports[port.id] = port
@@ -1291,6 +1205,96 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         Override this method in subclasses to implement custom frame-start logic.
         """
         pass
+
+
+    def _execute(self, context: 'ExecutionContext') -> Optional[str]:
+        """
+        Execute the worker with optimized value extraction.
+        
+        This is the single entry point
+
+        Args:
+            context: Execution context
+        
+        Returns:
+            Outlet ID to follow, or None
+        """
+        if self.behavior.is_data_node:
+            if not self._is_dirty_data:
+                return None
+            self._is_dirty_data = set()
+            # TODO: to optimize further, we could track which inlets changed
+            # and then request for the dirty ones to execute the source-outlet pipe
+            # !!that would need to be done for the control flow nodes as well!!
+
+        self.on_validate(context)
+
+        if self._executor is None:
+            self._analyze_worker_signature()
+
+        result = self._executor(context)
+
+        parsed = self._parse_worker_result(result)
+
+        return parsed
+    
+    @abstractmethod
+    def worker(self, context: ExecutionContext, *args, **kwargs) -> str | None:
+        """
+        The main execution logic of the node.
+        
+        Override this method in subclasses to implement node behavior.
+        
+        Worker signature design:
+        - Parameter names must match inlet port IDs
+        - Parameters are automatically extracted and passed as unwrapped values
+        - Use type hints to document expected types
+        - Use default values for optional ports (if port doesn't exist, default used)
+        - Required parameters (no default) must have matching ports or ValueError raised
+        
+        Args:
+            context: Execution context (always first parameter)
+            *args: Named parameters matching inlet port IDs (auto-extracted)
+            **kwargs: Named parameters matching inlet port IDs (auto-extracted)
+        
+        Returns:
+            - None  # for data flow nodes
+            - 'next'  # for control flow nodes
+        
+        Examples:
+            Simple node with required inputs:
+            
+            .. code-block:: python
+            
+                def worker(self, context: ExecutionContext, value: float, multiplier: float):
+                    self.out('result', value * multiplier)
+            
+            Node with optional inputs (default if port missing):
+            
+            .. code-block:: python
+            
+                def worker(self, context: ExecutionContext, value: float, offset: float = 0.0):
+                    self.out('result', value + offset)
+            
+            Control flow node:
+            
+            .. code-block:: python
+            
+                def worker(self, context: ExecutionContext, condition: bool):
+                    return 'true_branch' if condition else 'false_branch'
+            
+            Multi-output with control flow:
+            
+            .. code-block:: python
+            
+                def worker(self, context: ExecutionContext, x: float, y: float):
+                    self.out('sum', x + y)
+                    self.out('product', x * y)
+                    self.out('difference', x - y)
+                    return 'next'
+            """
+        pass
+
 
     def on_frame_end(self, context: ExecutionContext) -> None:
         """

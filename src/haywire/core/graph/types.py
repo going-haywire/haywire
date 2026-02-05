@@ -110,6 +110,7 @@ class ChangeReason(Enum):
             ChangeReason.NODE_VALIDATION_REQUESTED,
             ChangeReason.EDGE_HOT_RELOAD_ERROR,
             ChangeReason.EDGE_VALIDATION_REQUESTED,
+            ChangeReason.GRAPH_REQUIRE_REASSEMBLY,
         }        
         return self in reassembly_reasons
     
