@@ -282,12 +282,13 @@ class FlowScheduler:
         self.trigger_queue.join()
         return True
     
-    def stop(self, timeout: float = 2.0) -> bool:
+    def stop(self, timeout: float = 2.0, print_stats: bool = False) -> bool:
         """
         Stop the scheduler and wait for thread to exit.
         
         Args:
             timeout: Maximum time to wait for clean shutdown
+            print_stats: Whether to print execution statistics on stop
             
         Returns:
             True if stopped cleanly, False if forced
@@ -314,14 +315,17 @@ class FlowScheduler:
                 )
                 clean_exit = False
         
-        stats = self.get_execution_stats()
-
-        logger.warning(
-            f"\nExecutions: {stats['count']} for {self.flow.flow_id}\n"
-            f"Min: {stats['min_us']:.2f} μs (iteration {stats['min_iteration']})\n"
-            f"Max: {stats['max_us']:.2f} μs (iteration {stats['max_iteration']})\n"
-            f"Avg: {stats['avg_us']:.2f} μs"
-        )
+        # Only print stats if explicitly requested (not during cleanup)
+        if print_stats:
+            stats = self.get_execution_stats()
+            logger.warning(
+                f"\nExecutions: {stats['count']} for {self.flow.flow_id}\n"
+                f"Min: {stats['min_us']:.2f} μs "
+                f"(iteration {stats['min_iteration']})\n"
+                f"Max: {stats['max_us']:.2f} μs "
+                f"(iteration {stats['max_iteration']})\n"
+                f"Avg: {stats['avg_us']:.2f} μs"
+            )
 
         logger.debug(f"Scheduler stopped for {self.flow.flow_id}")
 

@@ -159,8 +159,13 @@ class Interpreter:
                 flow
             )
     
-    def _cleanup_current_graph(self):
-        """Cleanup current graph state"""
+    def _cleanup_current_graph(self, print_stats: bool = False):
+        """
+        Cleanup current graph state.
+        
+        Args:
+            print_stats: Whether to print scheduler statistics during cleanup
+        """
         if not self.current_graph:
             return
         
@@ -170,7 +175,7 @@ class Interpreter:
         for flows in self.event_subscriptions.values():
             for flow in flows:
                 if flow.scheduler:
-                    flow.scheduler.stop()
+                    flow.scheduler.stop(print_stats=print_stats)
         
         # Clear subscriptions
         self.event_subscriptions.clear()
@@ -288,8 +293,8 @@ class Interpreter:
         """Shutdown interpreter and cleanup resources"""
         logger.info("Shutting down interpreter")
         
-        # Cleanup current graph
-        self._cleanup_current_graph()
+        # Cleanup current graph - print stats on explicit shutdown
+        self._cleanup_current_graph(print_stats=True)
         
         logger.info("Interpreter shutdown complete")
     

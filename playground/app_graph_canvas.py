@@ -16,6 +16,7 @@ Key improvements:
 - Clean event-driven architecture
 """
 
+import logging
 import os
 import signal
 import sys
@@ -376,7 +377,7 @@ class UndoRedoTestAppWithCanvasManager:
         # Create and initialize the library system service with undo support
         self.library_service = create_library_system_service(
             project_root=project_root,
-            enable_file_watching=False,
+            enable_file_watching=True,
             watch_settings=False,
             undo_config=self.undo_config
         )
@@ -950,12 +951,6 @@ class UndoRedoTestAppWithCanvasManager:
         for flow in tick_flows:
             self.interpreter.vm.execute_control_flow(flow, trigger)
 
-    #
-    #    Sync Interpreter Methods
-    #    They are here for testing purposes only.
-    # =========================================
-
-
     def stop_interpreter_sync(self):
         """Stop sync interpreter."""
         if hasattr(self, '_sync_interpreter_timer'):
@@ -971,6 +966,10 @@ class UndoRedoTestAppWithCanvasManager:
         ui.notify("Interpreter stopped (sync mode)", type='info')
 
 
+    #
+    #    Sync Interpreter Methods
+    #    They are here for testing purposes only.
+    # =========================================
 
     def set_target_fps(self, fps: float):
         """Update target framerate."""
@@ -979,7 +978,12 @@ class UndoRedoTestAppWithCanvasManager:
             print(f"Target FPS set to {fps}")
     
     def _on_graph_validation_for_interpreter(self, result: ValidationResult):
-        """Handle graph validation changes for interpreter."""
+        """
+        Handle graph validation changes for interpreter.
+        
+        When graph changes require reassembly (like hot reload), stop the
+        interpreter. User must press Play again to validate/reassemble/restart.
+        """
         # Check if interpreter is running
         if not self.loop_manager or not self.loop_manager.is_running:
             return
@@ -988,10 +992,8 @@ class UndoRedoTestAppWithCanvasManager:
         if (
             result.has_changes() and result.graph is not None
             and result.graph.requires_graph_reassembly()
-        ):
-            print("Interpreter stopped due to graph changes requiring reassembly")
-
-            # Stop the interpreter
+        ):            
+            # Stop the interpreter - user must manually restart
             self.stop_interpreter()
             
     
@@ -1683,7 +1685,12 @@ def main():
     """Main entry point."""
     # Force block-buffered stdout (like debugger mode)
     if hasattr(sys.stdout, 'reconfigure'):
-        sys.stdout.reconfigure(line_buffering=False)
+        pass
+        #sys.stdout.reconfigure(line_buffering=False)
+
+    #logging.getLogger('haywire.core.assembly.control_flow_builder').setLevel(logging.DEBUG)
+    #logging.getLogger('haywire.core.assembly.flow_assembly_manager').setLevel(logging.DEBUG)
+    #logging.getLogger('haywire.core.assembly.data_flow_builder').setLevel(logging.DEBUG)
 
     app_instance = UndoRedoTestAppWithCanvasManager()
     

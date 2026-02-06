@@ -277,9 +277,14 @@ class DataPort(DataTypeIdentity):
             else:
                 self._edge_wrappers[edge_wrapper.connection_uuid] = edge_wrapper
 
-            self._mark_as_structuraly_dirty()
             if self.on_connect:
                 self._trigger_callback('on_connect', edge_wrapper)
+        
+        # we mark it as structurally dirty in any case bcause even if the 
+        # connection already exists, it may have been reconnected to a 
+        # different source during edge validation, and we need to 
+        # refresh pipes to reflect the new source
+        self._mark_as_structuraly_dirty()
 
     def _get_linked_edges_uuid(self) -> list[str]:
         """

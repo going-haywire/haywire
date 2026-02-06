@@ -290,7 +290,6 @@ class NodeWrapper:
                 # TODO: Create Garbage Collection for old instance
                 self._node_instance._cleanup()
                 self._node_instance = None
-
             self._node_instance = self._node_cls(self._node_id, self)
             self._node_instance.ui.state.set_position(self._initial_position)
             self._state.is_instantiated = True
@@ -508,12 +507,14 @@ class NodeWrapper:
                     )
                 return  # abort further processing
             
-            # Successful reload - mark for migration
+            # Successful reload - update class reference
+            old_class_name = self._node_cls.__name__ if self._node_cls else "None"
+            old_class_id = id(self._node_cls) if self._node_cls else "None"
             self._node_cls = lc_event.affected_class
             self._state.error_import = None
             self._state.is_imported = True
             
-            # Tell graph about need for hot reload
+            # Tell graph about need for hot reload (will trigger rebuild via validation)
             if self._graph:
                 self._graph._validation.mark_node_dirty(
                     self._node_id,

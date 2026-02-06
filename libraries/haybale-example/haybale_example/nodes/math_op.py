@@ -10,6 +10,8 @@ from haywire.core.node.behavior import NodeType
 
 from haybale_example.types.math import MathOPs
 
+from haywire.ui.console_bridge import console_print
+
 @node(
     label='Math Operation',
     search_tags=['math', 'value', 'single', 'basic', 'operation'],
@@ -65,11 +67,7 @@ class MathOP(BaseNode):
                 result = value_a / value_b
             else:
                 result = 0.0
+        # result = 1 / 0
         self.out('result', result)
         return None
     
-    def on_startup(self, context):
-        pass
-
-    def on_shutdown(self, context):
-        pass
