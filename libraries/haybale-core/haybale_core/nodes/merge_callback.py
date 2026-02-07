@@ -7,7 +7,7 @@ from haywire.core.node.behavior import NodeType
 @node(
     label='Merge Callback',
     description='Listens for a specified number of callbacks from other flows',
-    menu='events/callback',
+    menu='event/callback',
     search_tags=['callback', 'listen', 'event', 'custom'],
     node_type=NodeType.EVENT,
 )

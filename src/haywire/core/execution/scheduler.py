@@ -124,11 +124,6 @@ class FlowScheduler:
                 f"Enqueued trigger for {self.flow.flow_id} "
                 f"(queue size: {self.trigger_queue.qsize()})"
             )
-            
-            # >>>>>>>>>>>
-            # Make sure execution thread is running
-            self._ensure_execution_thread()
-            # >>>>>>>>>>>
 
             return True
             
@@ -138,10 +133,18 @@ class FlowScheduler:
             )
             return False
     
-    def _ensure_execution_thread(self):
-        """Start execution thread if not already running."""
+    def start(self):
+        """
+        Start execution thread.
+        
+        Thread will stay alive until explicitly stopped, sleeping while
+        waiting for triggers to arrive in the queue.
+        """
         # Check if thread exists and is alive
         if self.execution_thread is not None and self.execution_thread.is_alive():
+            logger.debug(
+                f"Execution thread for {self.flow.flow_id} already running"
+            )
             return
         
         # Wait for previous thread to fully exit if needed
@@ -152,14 +155,12 @@ class FlowScheduler:
         self._stop_requested.clear()
         self._thread_exited.clear()
         
-        # >>>>>>>>>>>
         # Create and start new execution thread
         self.execution_thread = Thread(
             target=self._execution_loop,
             name=f"FlowExec-{self.flow.flow_id}",
             daemon=True
         )
-        # >>>>>>>>>>>
 
         self.execution_thread.start()
         logger.debug(f"Started execution thread for {self.flow.flow_id}")
@@ -168,40 +169,32 @@ class FlowScheduler:
         """
         Main execution loop (runs in separate thread).
         
-        Continuously processes triggers from queue until stopped.
-        Uses sentinel value for clean shutdown signaling.
+        Stays alive and blocks waiting for triggers until explicitly stopped.
+        Thread only exits when stop is requested or shutdown sentinel is received.
         """                
         self.vm.call_flow_startup(self.flow)
 
         self._frame_count = 0
 
         try:
-            while True:
+            while not self._stop_requested.is_set():
                 try:
-                    # Block waiting for trigger or shutdown sentinel
-                    # Use small timeout to allow periodic stop check as fallback
-                    trigger = self.trigger_queue.get(timeout=0.5)
+                    # Block indefinitely waiting for trigger or shutdown sentinel
+                    trigger = self.trigger_queue.get()
 
                     # Check for shutdown sentinel
                     if trigger is _SHUTDOWN_SENTINEL:
                         self.trigger_queue.task_done()
                         break
                     
-                    # >>>>>>>>>>>
                     # Execute flow with this trigger
                     self._execute_flow(trigger)
-                    # >>>>>>>>>>>
 
                     # Mark task done
                     self.trigger_queue.task_done()
                     
                 except Empty:
-                    # Check if stop was requested during timeout
-                    if self._stop_requested.is_set():
-                        break
-                    # Also exit if queue is empty and no work pending
-                    if self.trigger_queue.empty():
-                        break
+                    # Should not happen with blocking get(), but handle gracefully
                     continue
                     
         except Exception as e:

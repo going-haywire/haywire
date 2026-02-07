@@ -12,7 +12,7 @@ from haywire.core.node.behavior import NodeType
 @node(
     label='Test Node Four',
     search_tags=['constant', 'value', 'output', 'basic'],
-    menu='core/basic',
+    menu='testing/testbed',
     node_type=NodeType.CONTROL
 )
 class TestNodeOne(BaseNode):
@@ -37,8 +37,6 @@ class TestNodeOne(BaseNode):
             SwitchWidget,
             TextWidget,
         )
-
-        from ..types.specs import Temperature
 
         self.push()
 

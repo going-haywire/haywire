@@ -12,7 +12,7 @@ from ..types.specs import EXEC, FLOAT
     registry_id='tick',
     label='Tick',
     description='Triggered periodically (every frame/interval)',
-    menu='events/system',
+    menu='event/runtime',
     search_tags=['frame', 'update', 'loop', 'event'],
     node_type=NodeType.EVENT,
 )

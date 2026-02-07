@@ -5,7 +5,7 @@ from haywire.core.node.behavior import NodeType
 
 @node(
     label='Print Message',
-    menu='test/simple',
+    menu='testing/utils',
     node_type=NodeType.CONTROL
 )
 class PrintMessageNode(BaseNode):

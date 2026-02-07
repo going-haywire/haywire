@@ -10,7 +10,7 @@ from haywire.core.node.behavior import NodeType
     registry_id='custom_callback',
     label='Custom Callback',
     description='Listens for custom callbacks from other flows',
-    menu='events/callback',
+    menu='event/callback',
     search_tags=['callback', 'listen', 'event', 'custom'],
     node_type=NodeType.EVENT,
 )
@@ -96,3 +96,4 @@ class CustomCallbackNode(BaseNode):
         
         self.out('payload', payload)
         return 'triggered'
+    

@@ -204,44 +204,32 @@ class CustomType(BaseType):
 
 ---
 
-## CompoundType Metaclass
+## CompoundType
 
 Enables clean syntax: `CompoundType[ElementType].as_inlet(...)`
 
 ```python
-class CompoundTypeMeta(type):
-    def __getitem__(cls, element_type_cls):
-        """Enable ArrayType[FLOAT] syntax"""
-        class ParameterizedCompound:
-            @staticmethod
-            def as_inlet(id: str, **kwargs):
-                return cls._create_inlet(
-                    id=id,
-                    element_type_cls=element_type_cls,
-                    **kwargs
-                )
-            # ... as_outlet, as_config
-        
-        return ParameterizedCompound
+class CompoundType(BaseType, ABC, Generic[T]):
 
-class CompoundType(BaseType, metaclass=CompoundTypeMeta):
+    # Subclasses MUST override field_class
+    field_class = None
+
+    # Cache for parameterized classes
+    # this cache is cleared in the decorator when a class is recreated by hot-reload
+    _parameterized_cache = {}
+
     @classmethod
-    def _create_inlet(cls, id: str, element_type_cls, **kwargs):
-        # Create PortInlet with both type_cls and element_type_cls
-        pass
+    def __class_getitem__(cls, element_type_cls: type[IType]):
+        """
+        Create parameterized compound type with caching.
+        
+        Returns a cached class instance to ensure type identity:
+        ArrayType[FLOAT] is ArrayType[FLOAT] → True
+        
+        Each parameterized class has its own element_type_cls.
+        """
 ```
 
-**How it works:**
-```python
-# 1. ArrayType[FLOAT]
-#    Calls: ArrayType.__getitem__(FLOAT)
-#    Returns: ParameterizedCompound (temporary)
-
-# 2. .as_inlet(id='numbers')
-#    Calls: ParameterizedCompound.as_inlet(id='numbers')
-#    Calls: ArrayType._create_inlet(id='numbers', element_type_cls=FLOAT)
-#    Returns: PortInlet
-```
 
 ---
 
@@ -250,31 +238,67 @@ class CompoundType(BaseType, metaclass=CompoundTypeMeta):
 Adapters work with **unwrapped values**, matched by **type classes**:
 
 ```python
-class BaseAdapter(ABC):
-    @classmethod
-    @abstractmethod
-    def can_adapt(cls, source: type[IType], target: type[IType]) -> bool:
-        """Type-level: Can we convert Temperature to FLOAT?"""
-        pass
+class IAdapter(ABC):
+    """
+    Interface for all adapters.
     
+    All adapters must implement:
+    - convert(): Transform a value
+    - execute(): Execute this adapter, then chain to next
+    - get_registry_keys(): Get all registry keys in chain
+    """
+
+    # IDENTITY ATTRIBUTES (set by @type decorator)
+    class_identity: AdapterIdentity
+    class_library: LibraryIdentity
+        
     @abstractmethod
     def convert(self, value: Any) -> Any:
-        """Value-level: Convert 25.0 to 77.0"""
-        pass
+        """
+        Method to convert value.
+        This method ONLY performs conversion.
+        Use execute() to run the full adapter chain.
+        """
+
+    @abstractmethod
+    def execute(self, value: Any) -> Any:
+        """
+        Main method to execute adapter-chain
+        """
+
+    @abstractmethod
+    def _get_registry_keys(self) -> List[str]:
+        """Get all registry keys in chain"""
+
+    @abstractmethod
+    def get_test_value(self) -> Any:
+        """
+        method returns a sample value of the type this adapter 
+        is converting from for testing this adapter        
+        """
+
+    def get_test_repetitions(self) -> int:
+        """method returns the number of repetitions the test needs to run"""
+
+    @abstractmethod
+    def test(self, value: any) -> any:
+        """Tests this adapter with sample data"""
+
 
 # Example
-class CelsiusToFahrenheit(BaseAdapter):
-    @classmethod
-    def can_adapt(cls, source, target):
-        return source == Celsius and target == Fahrenheit  # Type classes
-    
-    def convert(self, celsius: float) -> float:
-        return (celsius * 9/5) + 32  # Unwrapped primitives!
-```
+@adapter(
+    description="Convert integer to float", 
+    converts_from=INT, 
+    converts_to=FLOAT
+    )
+class IntToFloatAdapter(BaseAdapter):   
+    @override
+    def convert(self, value: int) -> float:
+        return float(value)
 
-**Pattern:**
-- Registration: Uses IType classes (`Celsius`, `Fahrenheit`)
-- Conversion: Uses unwrapped values (`25.0`, `77.0`)
+    def get_test_value(self) -> int:
+        return int(random.randrange(0, 100))
+```
 
 ---
 
@@ -309,41 +333,6 @@ haywire/
 
 **Key pattern**: Type and Field definitions co-located in same file
 
----
-
-## Design Decisions
-
-### 1. Why field_class Attribute?
-
-**Decision**: Each IType declares `field_class` directly
-
-**Rationale**:
-- No separate registry needed
-- Type and field clearly linked
-- Co-location in same file
-- Simple lookup (just read attribute)
-
-**Alternative Considered**: Central registry
-- ❌ Extra registration step
-- ❌ Indirection
-- ✅ Would allow runtime field swapping (not needed)
-
-### 3. Why CompoundType Pattern?
-
-**Decision**: Introduce CompoundType as third category
-
-**Rationale**:
-- Explicit pattern: Primitive, Complex, Compound
-- Extensible (can add SetType, etc.)
-- Consistent API (all use element_type_cls)
-- Removes special cases
-
-**Alternative Considered**: Just use LIST type
-- ❌ No element type safety
-- ❌ No adapter support
-- ❌ Runtime errors instead of connection-time
-
----
 
 ## Testing Recommendations
 
@@ -387,34 +376,6 @@ haywire/
    - Compound types preserve element_type_cls
    - Recipe format works for all types
 
-### Performance Tests
-
-1. **Benchmark worker outputs** (should be ~40x faster)
-2. **Measure memory usage** (should be ~90% less for primitives)
-3. **Profile large graphs** (1000+ nodes, 10k+ connections)
-
----
-
-## Future Enhancements
-
-### Short Term
-- [ ] Implement AdapterRegistry.find_adapter_chain()
-- [ ] Add validation to set_value() (optional type checking)
-- [ ] Optimize field event batching
-
-### Medium Term
-- [ ] SetType compound type (unique elements)
-- [ ] MapType compound type (key-value pairs)
-- [ ] Lazy evaluation for expensive fields
-- [ ] Field metadata (units, ranges, constraints)
-
-### Long Term
-- [ ] Reactive computation (auto-propagate changes)
-- [ ] Incremental updates (delta-based)
-- [ ] Distributed fields (network sharing)
-- [ ] Persistent fields (auto-save)
-
----
 
 ## Conclusion
 

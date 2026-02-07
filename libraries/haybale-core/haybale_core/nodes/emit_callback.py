@@ -8,7 +8,7 @@ from haywire.core.node.behavior import NodeType
     registry_id='emit_callback',
     label='Emit Callback',
     description='Emits a callback to trigger event nodes in other flows',
-    menu='control/callback',
+    menu='emit/callback',
     search_tags=['callback', 'emit', 'trigger', 'event'],
     node_type=NodeType.CONTROL,
 )

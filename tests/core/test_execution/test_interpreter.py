@@ -27,7 +27,7 @@ class TestInterpreter:
             The populated graph
         """
         from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_testing.nodes.testbed.print_node import PrintMessageNode
+        from haybale_testing.nodes.utils.print_node import PrintMessageNode
 
         begin_play = graph.create_node_wrapper(
             BeginPlayNode.class_identity.registry_key,
@@ -57,7 +57,7 @@ class TestInterpreter:
             The populated graph
         """
         from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_testing.nodes.testbed.print_node import PrintMessageNode
+        from haybale_testing.nodes.utils.print_node import PrintMessageNode
         from haybale_example.nodes.math_op import MathOP
 
         begin_play = graph.create_node_wrapper(
@@ -154,7 +154,7 @@ class TestInterpreter:
         from haybale_core.nodes.begin_play import BeginPlayNode
         from haybale_core.nodes.emit_callback import EmitCallbackNode
         from haybale_core.nodes.custom_callback import CustomCallbackNode
-        from haybale_testing.nodes.testbed.print_node import PrintMessageNode
+        from haybale_testing.nodes.utils.print_node import PrintMessageNode
 
         graph = graph_with_library_system
 
@@ -263,7 +263,7 @@ class TestInterpreter:
     ):
         """Test reloading a different graph into the interpreter"""
         from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_testing.nodes.testbed.print_node import PrintMessageNode
+        from haybale_testing.nodes.utils.print_node import PrintMessageNode
 
         # Create first graph
         graph1 = self._create_simple_graph(graph_with_library_system)

@@ -10,7 +10,7 @@ from ..types.specs import EXEC, FLOAT
     registry_id='begin_play',
     label='Begin Play',
     description='Triggered once when execution starts',
-    menu='events/system',
+    menu='event/runtime',
     search_tags=['start', 'init', 'begin', 'event'],
     node_type=NodeType.EVENT,
 )

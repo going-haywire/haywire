@@ -125,14 +125,16 @@ class UndoRedoTestAppWithCanvasManager:
         except Exception as e:
             print(f"  Error unregistering theme observer: {e}")
         
-        # 5. Stop console bridge polling
-        print("  Stopping console bridge...")
+        # 5. Clean up console bridge (all timers cleaned via session cleanup)
+        print("  Cleaning up console bridge...")
         try:
             from haywire.ui.console_bridge import ConsoleBridge
             bridge = ConsoleBridge.get_instance()
-            bridge.stop_polling()
+            # Clear any remaining log elements (timers already cancelled in session cleanup)
+            bridge.log_elements.clear()
+            bridge.clear_history()
         except Exception as e:
-            print(f"  Error stopping console bridge: {e}")
+            print(f"  Error cleaning up console bridge: {e}")
         
         # 6. Shutdown interpreter
         print("  Shutting down interpreter...")
@@ -181,15 +183,22 @@ class UndoRedoTestAppWithCanvasManager:
             except Exception as e:
                 print(f"    Error canceling interpreter timer: {e}")
         
-        # Clean up console log reference
+        # Clean up console log and timer
         console_log = session_data.get('console_log')
+        console_timer = session_data.get('console_timer')
         if console_log:
             try:
                 from haywire.ui.console_bridge import ConsoleBridge
                 bridge = ConsoleBridge.get_instance()
-                bridge.unregister_log(console_log)
+                bridge.unregister_log(console_log)  # This will also cancel the timer
             except Exception as e:
                 print(f"    Error unregistering console log: {e}")
+        elif console_timer:
+            # If we only have the timer reference, cancel it directly
+            try:
+                console_timer.cancel()
+            except Exception as e:
+                print(f"    Error canceling console timer: {e}")
         
         # Clear UI containers - skip if shutting down (clients already deleted)
         if not self._is_shutting_down:
@@ -588,13 +597,13 @@ class UndoRedoTestAppWithCanvasManager:
             with ui.expansion('Console Output', icon='terminal').classes('w-full').props('default-opened'):
                 console_log = ui.log(max_lines=200).classes('w-full h-64 font-mono text-xs')
                 
-                # Register with bridge
+                # Register with bridge and create timer in current client context
                 bridge = ConsoleBridge.get_instance()
-                bridge.register_log(console_log)
-                bridge.start_polling(interval=0.1)  # Poll every 100ms
+                console_timer = bridge.register_log_with_polling(console_log, interval=0.1)
                 
-                # Store reference for cleanup
+                # Store references for cleanup
                 self.current_session['console_log'] = console_log
+                self.current_session['console_timer'] = console_timer
                 
                 with ui.row().classes('w-full gap-2 mt-2'):
                     ui.button('Clear', icon='delete', 

@@ -16,11 +16,13 @@ class ConsoleBridge:
     Thread-safe bridge between worker threads and NiceGUI log elements.
     
     Usage:
-        # In UI setup:
+        # In UI setup (per session):
         bridge = ConsoleBridge.get_instance()
         log = ui.log(max_lines=100)
-        bridge.register_log(log)
-        bridge.start_polling()
+        timer = bridge.register_log_with_polling(log)
+        
+        # Store timer reference for cleanup:
+        session_data['console_timer'] = timer
         
         # In worker thread (e.g., Print Message node):
         from haywire.ui.console_bridge import console_print
@@ -32,11 +34,10 @@ class ConsoleBridge:
     
     def __init__(self):
         self.message_queue: Queue[str] = Queue()
-        self.log_elements: list = []
-        self._polling_timer = None
+        self.log_elements: dict = {}  # Maps log element to its timer
         self._max_messages_per_poll = 50
-        self._history: list[str] = []  # Add this
-        self._max_history = 500        # Add this
+        self._history: list[str] = []
+        self._max_history = 500
         
     @classmethod
     def get_instance(cls) -> 'ConsoleBridge':
@@ -45,48 +46,83 @@ class ConsoleBridge:
                 cls._instance = ConsoleBridge()
             return cls._instance
     
+    def register_log_with_polling(self, log_element, interval: float = 0.1):
+        """
+        Register a ui.log element and create a dedicated timer for it.
+        
+        Each timer polls the shared queue and broadcasts to ALL log elements.
+        This ensures all sessions see the same output even if only one timer
+        fires (in multi-session scenarios).
+        
+        Returns:
+            The timer object for cleanup by caller.
+        """
+        # Create a timer in current client context that broadcasts to all logs
+        timer = ui.timer(interval, self._poll_and_broadcast)
+        self.log_elements[log_element] = timer
+        return timer
+    
     def register_log(self, log_element):
-        """Register a ui.log element to receive output."""
+        """
+        Register a ui.log element (deprecated - use register_log_with_polling).
+        
+        Kept for backwards compatibility.
+        """
         if log_element not in self.log_elements:
-            self.log_elements.append(log_element)
+            self.log_elements[log_element] = None
     
     def unregister_log(self, log_element):
-        """Unregister a ui.log element."""
+        """Unregister a ui.log element and cancel its timer."""
         if log_element in self.log_elements:
-            self.log_elements.remove(log_element)
+            timer = self.log_elements[log_element]
+            if timer:
+                try:
+                    timer.cancel()
+                except Exception:
+                    pass
+            del self.log_elements[log_element]
     
     def start_polling(self, interval: float = 0.1):
-        """Start polling for messages (call from main thread)."""
-        if self._polling_timer is None:
-            self._polling_timer = ui.timer(interval, self._poll_messages)
+        """
+        Start polling (deprecated - use register_log_with_polling instead).
+        
+        Kept for backwards compatibility but doesn't work correctly with
+        multiple sessions.
+        """
+        pass  # No-op, kept for compatibility
     
     def stop_polling(self):
-        """Stop polling for messages."""
-        if self._polling_timer:
-            self._polling_timer.cancel()
-            self._polling_timer = None
+        """Stop polling (deprecated)."""
+        pass  # No-op, kept for compatibility
     
-    def _poll_messages(self):
-        """Poll message queue and push to log elements (runs on main thread)."""
+    def _poll_and_broadcast(self):
+        """
+        Poll message queue and broadcast to ALL log elements.
+        
+        This is called by timers from different client contexts, but it
+        broadcasts messages to all registered log elements. This ensures
+        all sessions see all console output.
+        """
         messages = []
         
-        # Drain queue (up to batch limit)
-        for _ in range(self._max_messages_per_poll):
-            try:
-                msg = self.message_queue.get_nowait()
-                messages.append(msg)
-            except Empty:
-                break
+        # Drain queue (up to batch limit) - thread-safe with lock
+        with self._lock:
+            for _ in range(self._max_messages_per_poll):
+                try:
+                    msg = self.message_queue.get_nowait()
+                    messages.append(msg)
+                except Empty:
+                    break
         
-        # Push to all log elements
+        # Broadcast to ALL log elements (outside lock to avoid UI blocking)
         if messages:
-            for log in self.log_elements[:]:  # Copy list to avoid mutation issues
+            for log_element in list(self.log_elements.keys()):
                 try:
                     for msg in messages:
-                        log.push(msg)
+                        log_element.push(msg)
                 except Exception:
                     # Log element might be deleted, remove it
-                    self.unregister_log(log)
+                    self.unregister_log(log_element)
     
     def write(self, message: str):
         """Queue a message for display (thread-safe)."""

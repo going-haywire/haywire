@@ -697,8 +697,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                             event_type=LifeCycleEventType.CLASS_REMOVED,
                             affected_class=None,
                             library_identity=library_identity,
-                            module_name=module_name,
-                            class_name=removed_cls.__name__
+                            module_name=module_name
                         )
                         self._queue_lifecycle_event(event)
             if classes_to_add:
@@ -790,7 +789,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             if snapshot['needs_reregistring']:
                 # Re-register classes from snapshot
                 for hw_name, class_info in snapshot['registered_classes'].items():
-                    self._unregister_class(hw_name.class_identity.registry_key)
+                    self._unregister_class(class_info['class'].class_identity.registry_key)
                     self._register_class(class_info['class'], library_identity)
             
             self.logger.info(

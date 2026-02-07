@@ -13,7 +13,7 @@ from haywire.core.node.behavior import NodeType
 @node(
     label='Performance Testing Node',
     description='Helps test performance of execution system',
-    menu='test/performance',
+    menu='testing/performance',
     search_tags=['performance', 'control', 'flow', 'event'],
     node_type=NodeType.CONTROL,
 )

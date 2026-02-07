@@ -93,8 +93,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             # Log the move operation
             if event.src_path.endswith('.py') or event.dest_path.endswith('.py'):
                 logging.info(
-                    f"[{self.library_identity.label}] File moved: "
-                    f"{event.src_path} → {event.dest_path}"
+                    f"File moved: {event.src_path} → {event.dest_path}"
                 )
             
             # Handle source file deletion (if it's a Python file)

@@ -5,7 +5,7 @@ from haywire.ui.console_bridge import console_print
 
 @node(
     label='Print Log',
-    menu='core/utils',
+    menu='system/utils',
     node_type=NodeType.CONTROL
 )
 class PrintLogNode(BaseNode):

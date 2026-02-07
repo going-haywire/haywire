@@ -16,7 +16,7 @@ from ..types.specs import EXEC, FLOAT
     registry_id='shutdown',
     label='Shutdown',
     description='Triggered when execution is shutting down',
-    menu='events/system',
+    menu='event/runtime',
     search_tags=['stop', 'end', 'cleanup', 'event'],
     node_type=NodeType.EVENT,
 )

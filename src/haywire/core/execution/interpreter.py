@@ -152,6 +152,9 @@ class Interpreter:
             queue_mode=QueueMode.BLOCK
         )
         
+        # Start execution thread - it will sleep until triggers arrive
+        flow.scheduler.start()
+        
         # Register callback listeners
         if isinstance(flow.event_subscription, CallbackEvent):
             self.callback_manager.register_callback_listener(
@@ -273,19 +276,38 @@ class Interpreter:
         
         return triggered
     
-    def wait_all(self, timeout: Optional[float] = None):
+    def wait_all(
+        self, 
+        timeout: Optional[float] = None, 
+        stop_after: bool = True
+    ):
         """
         Wait for all flows to complete their queued triggers.
         
+        After waiting, optionally stops all scheduler threads so they
+        exit their execution loops. This is the primary way to signal
+        schedulers to stop waiting for new triggers.
+        
         Args:
-            timeout: Maximum time to wait (None = wait forever)
+            timeout: Maximum time to wait per scheduler (None = wait forever)
+            stop_after: Whether to stop schedulers after waiting. Defaults to
+                True, which causes threads to exit after processing queued work.
         """
         logger.debug("Waiting for all flows to complete")
         
+        # Wait for all queues to empty
         for flows in self.event_subscriptions.values():
             for flow in flows:
                 if flow.scheduler:
                     flow.scheduler.wait_for_completion(timeout)
+        
+        # Stop all schedulers if requested
+        if stop_after:
+            logger.debug("Stopping all schedulers after completion")
+            for flows in self.event_subscriptions.values():
+                for flow in flows:
+                    if flow.scheduler:
+                        flow.scheduler.stop(print_stats=False)
         
         logger.debug("All flows completed")
     
