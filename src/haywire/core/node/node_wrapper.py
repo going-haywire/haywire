@@ -167,10 +167,7 @@ class NodeWrapper:
 
         self._node_cls: type['BaseNode'] | None = None
         self._node_instance: 'BaseNode' | None = None
-        
-        # Middleware support
-        self._middleware: List[NodeMiddleware] = []
-               
+              
         # Store initial position for later initialization
         self._initial_position = position
 
@@ -529,7 +526,6 @@ class NodeWrapper:
                 self.registry_key, self._on_node_lifecycle_event
             )
                         
-            self._middleware.clear()
             self._state = None
             self._node_cls = None
             self._node_factory = None
