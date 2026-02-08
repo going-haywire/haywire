@@ -67,14 +67,20 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
         # Register the HTTP endpoint
         self._register_endpoint()
         
-        # Start the queue reader task
+        # Start the queue reader task (with error handling for hot reload)
         self._start_queue_reader()
     
     def _start_queue_reader(self) -> None:
         """Start the background task that pulls from thread queue"""
-        if self._queue_reader_task is None or self._queue_reader_task.done():
-            self._is_running = True
-            self._queue_reader_task = asyncio.create_task(self._queue_reader_loop())
+        try:
+            if self._queue_reader_task is None or self._queue_reader_task.done():
+                self._is_running = True
+                self._queue_reader_task = asyncio.create_task(self._queue_reader_loop())
+        except RuntimeError as e:
+            # No event loop during hot reload - this is expected
+            # Task will be created on next component instantiation
+            print(f"[StreamingViewer] Deferring task start (no event loop yet): {e}")
+            pass
     
     async def _queue_reader_loop(self) -> None:
         """Background task: pull from thread queue, update shared frame, notify viewers"""
