@@ -247,32 +247,7 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
                     break
         except Exception:
             pass
-    
-    async def async_cleanup(self) -> None:
-        """Async cleanup that properly waits for task cancellation"""
-        # Set flag first
-        self._is_running = False
         
-        # Cancel and wait for task to finish
-        if self._queue_reader_task and not self._queue_reader_task.done():
-            self._queue_reader_task.cancel()
-            try:
-                await asyncio.wait_for(self._queue_reader_task, timeout=1.0)
-            except (asyncio.CancelledError, asyncio.TimeoutError):
-                pass
-            except Exception:
-                pass
-        
-        # Clear queue
-        try:
-            while not self._thread_queue.empty():
-                try:
-                    self._thread_queue.get_nowait()
-                except Exception:
-                    break
-        except Exception:
-            pass
-    
     def __del__(self):
         """Ensure cleanup on deletion"""
         try:
