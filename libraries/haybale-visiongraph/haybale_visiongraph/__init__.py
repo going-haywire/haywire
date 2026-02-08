@@ -15,7 +15,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 @library(
     label='Visiongraph',
-    id='VISIONGRAPH',
+    id='visiongraph',
     version='0.0.1',
     description='Visiongraph library',
     url='https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph',
