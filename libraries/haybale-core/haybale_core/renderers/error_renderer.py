@@ -80,10 +80,10 @@ class ErrorNodeRenderer(NodeRenderer):
                 with ui.row():
                     ui.label(node.identity.label).classes('text-h6')
             
-                if wrapper.state.has_error():
-                    error = wrapper.state.get_error()
-                    ui.label(error.message).classes('text-sm text-red-600 mb-2')
-                    error_render_detail(error)
+                 # Runtime errors indicator with popup
+                runtime_errors = wrapper.state.get_errors()
+                if runtime_errors:
+                    self._render_errors_button(runtime_errors)
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):

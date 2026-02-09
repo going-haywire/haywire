@@ -106,7 +106,9 @@ class HaywireVM:
         
         for node in flow.get_nodes_with_on_startup():
             try:
-                node.on_startup(exec_ctx)
+                # call the nodes wrapper on_startup for housekeeping purposes.
+                node.wrapper.on_startup(exec_ctx)
+                node.on_startup(exec_ctx) 
             except Exception as e:
                 self.catch_exception(e, node, "Node on_startup() Execution")
     
@@ -124,7 +126,9 @@ class HaywireVM:
                 
         for node in flow.get_nodes_with_on_shutdown():
             try:
+                # call the nodes wrapper on_shutdown for housekeeping purposes.
                 node.on_shutdown(exec_ctx)
+                node.wrapper.on_shutdown(exec_ctx)
             except Exception as e:
                 self.catch_exception(e, node, "Node on_shutdown() Execution")
         
@@ -301,7 +305,7 @@ class HaywireVM:
             _node_id=node.node_id,
             registry_key=node.identity.registry_key,
             module_name=node.__class__.__module__,
-            library_identity=node.identity.library_identity
+            library_identity=node.library
         )
         error.log()
         node.wrapper._add_runtime_error(error)

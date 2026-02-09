@@ -54,8 +54,8 @@ class NodeWrapperState:
     """node custom error """
     error_test: Optional[HaywireException] = None
     """node test error"""
-    error_runtime: List[HaywireException] = field(default_factory=list)
-    """node runtime errors (startup, execution, shutdown)"""
+    error_runtime: Optional[HaywireException] = None
+    """node runtime error (startup, execution, shutdown)"""
     test_execution_time_ns: float = 0.0
     """Last transform() execution time"""
 
@@ -68,31 +68,25 @@ class NodeWrapperState:
             self.is_structural and
             self.has_test_passed)
 
-    def has_error(self) -> bool:
-        """
-        Check if any error exists in the wrapper state
-        Having an error does not necessarily mean the node is invalid.
-        """
-        return self.get_error() is not None
-
-    def get_error(self) -> Optional[HaywireException]:
+    def get_errors(self) -> list[HaywireException] | None:
         """Get error. Having an error does not necessarily mean the node is invalid."""
+        error: list[HaywireException] = []
         if self.error_import:
-            return self.error_import
-        elif self.error_instantiate:
-            return self.error_instantiate
-        elif self.error_initialize:
-            return self.error_initialize
-        elif self.error_structural:
-            return self.error_structural
-        elif self.error_test:
-            return self.error_test
-        elif self.error_custom:
-            return self.error_custom
-        elif self.error_runtime:
-            return self.error_runtime[-1]  # Return most recent
-        else:
-            return None
+            error.append(self.error_import)
+        if self.error_instantiate:
+            error.append(self.error_instantiate)
+        if self.error_initialize:
+            error.append(self.error_initialize)
+        if self.error_structural:
+            error.append(self.error_structural)
+        if self.error_test:
+            error.append(self.error_test)
+        if self.error_custom:
+            error.append(self.error_custom)
+        if self.error_runtime:
+            error.append(self.error_runtime)
+        
+        return error if error else None
         
     def _clear_errors(self) -> None:
         """Clear all error states"""
@@ -103,6 +97,7 @@ class NodeWrapperState:
         self.error_structural = None
         self.error_test = None
         self.error_custom = None
+        self.error_runtime = None
 
 class NodeMiddleware(ABC):
     """Abstract base for wrapper middleware/plugins"""
@@ -570,10 +565,9 @@ class NodeWrapper:
             new_x: New X position
             new_y: New Y position
         """
-        with self._lock:
-            self._initial_position = (new_x, new_y)
-            if self._node_instance:
-                self._node_instance.ui.state.set_position(self._initial_position)
+        self._initial_position = (new_x, new_y)
+        if self._node_instance:
+            self._node_instance.ui.state.set_position(self._initial_position)
 
     
     def _add_runtime_error(self, error: HaywireException) -> None:
@@ -583,164 +577,36 @@ class NodeWrapper:
         Keeps only the first error and the most recent error to prevent
         thousands of errors from accumulating during loop execution.
         """
-        with self._lock:
-            if len(self._state.error_runtime) == 0:
-                # First error - add and trigger redraw
-                self._state.error_runtime.append(error)
-                self.redraw()
-            elif len(self._state.error_runtime) == 1:
-                # Second error - add without redraw
-                self._state.error_runtime.append(error)
-            else:
-                # Subsequent errors - replace the last one (keep first + recent)
-                self._state.error_runtime[1] = error
-
-    def _get_all_runtime_errors(self) -> List[HaywireException]:
-        """Get all runtime errors"""
-        with self._lock:
-            return list(self._state.error_runtime)
+        if self._state.error_runtime is None:
+            # First error - add and trigger redraw
+            self._state.error_runtime = error
+            self.redraw()
+        else:
+            # Subsequent errors - replace the last one (keep first + recent)
+            self._state.error_runtime = error
 
     def _clear_runtime_errors(self) -> None:
         """Clear all runtime errors and trigger redraw if any existed"""
-        with self._lock:
-            self._state.error_runtime.clear()
-            if self._state.error_runtime:
-                # Errors cleared - trigger redraw
-                self.redraw()
+        self._state.error_runtime = None
+        self.redraw()
 
 
     # =========================================================================
-    # Node Execution Wrappers (Deprecated)
+    # Wrapper Runtime Hooks
     # =========================================================================
 
-    def _frame_start(self, exec_ctx: 'ExecutionContext') -> None:
+    def on_startup(self, exec_ctx: 'ExecutionContext') -> None:
         """
-        Wrapper startup logic before any node in the frame is executed.
-        
-        This method is only called if the node has overridden on_frame_start().
-        It catches any exceptions during frame start.
-        """
-        try:
-            # any code added here will only be executed if
-            self._node_instance.on_frame_start(exec_ctx)
-            # the node has overridden on_frame_start()!!
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Node Frame Start",
-                message=f"Error during frame start of node '{self.node.identity.label}'"
-            ).enrich(
-                _node_id=self._node_id,
-                registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library
-            )
-            error.log()
-            self._add_runtime_error(error)
-
-    def _frame_end(self, exec_ctx: 'ExecutionContext') -> None:
-        """
-        Wrapper frame end logic after all nodes in the flow have executed.
-        
-        This method is only called if the node has overridden on_frame_end().
-        It catches any exceptions during frame end.
-        """
-        try:
-            # any code added here will only be executed if 
-            self._node_instance.on_frame_end(exec_ctx)
-            # the node has overridden on_frame_end()!!
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Node Frame End",
-                message=f"Error during frame end of node '{self.node.identity.label}'"
-            ).enrich(
-                _node_id=self._node_id,
-                registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library
-            )
-            error.log()
-            self._add_runtime_error(error)
-
-
-    def _startup(self, exec_ctx: 'ExecutionContext') -> None:
-        """
-        Wrapper flow startup logic before first execution of the flow.
-        
-        It catches any exceptions during startup.
+        Wrapper flow startup logic.
+        - Clears runtime errors before execution to ensure a clean state.
         """
         self._clear_runtime_errors()
-
-        try:
-            # any code added here will only be executed if 
-            self._node_instance.on_startup(exec_ctx)
-            # the node has overridden on_startup()!!
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Node Startup",
-                message=f"Error during startup of node '{self.node.identity.label}'"
-            ).enrich(
-                _node_id=self._node_id,
-                registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library
-            )
-            error.log()
-            self._add_runtime_error(error)
-
-    def _shutdown(self, exec_ctx: 'ExecutionContext') -> None:
+ 
+    def on_shutdown(self, exec_ctx: 'ExecutionContext') -> None:
         """
         Wrapper shutdown logic after last node in flow has executed and flow is shutting down.
-        
-        It catches any exceptions during shutdown.
         """
-        try:
-            # any code added here will only be executed if 
-            self._node_instance.on_shutdown(exec_ctx)
-            # the node has overridden on_shutdown()!!
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Node Shutdown",
-                message=f"Error during shutdown of node '{self.node.identity.label}'"
-            ).enrich(
-                _node_id=self._node_id,
-                registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library
-            )
-            error.log()
-            self._add_runtime_error(error)
-
-    def _execute(self, exec_ctx: 'ExecutionContext') -> str | None:
-        """
-        Execute the node's transform method within the given execution context.
-                
-        Args:
-            exec_ctx: The execution context for this run
-            
-        Returns:
-            Outlet ID to follow, or None
-        """
-        try:
-            return self._node_instance._execute(exec_ctx)
-            
-        except Exception as e:
-            error = HaywireException.from_exception(
-                exception=e,
-                operation="Node Execution",
-                message=f"Error executing node '{self.node.identity.label}'"
-            ).enrich(
-                _node_id=self._node_id,
-                registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library
-            )
-            error.log()
-            self._add_runtime_error(error)
-            return None
+        ...
 
     # =========================================================================
     # Node Change Notifications
@@ -766,21 +632,6 @@ class NodeWrapper:
                     ChangeReason.NODE_VALIDATION_REQUESTED
                 )
                 self._is_dirty_structural = True
-
-    def _housekeeping(self) -> None:
-        """
-        Perform housekeeping of the node and its ports.
-        Should only be called by the graph validation or 
-        after deserialization, but not from inside a node.
-
-        This includes the rebuild of the port pipelines
-        """
-        with self._lock:
-            if self._node_instance:
-                if self._is_dirty_structural:
-                    self._node_instance._housekeeping()
-                    self._is_dirty_structural = False
-
 
     def redraw(self) -> None:
         """
@@ -813,6 +664,19 @@ class NodeWrapper:
                     ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                 )
 
+    def _housekeeping(self) -> None:
+        """
+        Perform housekeeping of the node and its ports.
+        Should only be called by the graph validation or 
+        after deserialization, but not from inside a node.
+
+        This includes the rebuild of the port pipelines
+        """
+        with self._lock:
+            if self._node_instance:
+                if self._is_dirty_structural:
+                    self._node_instance._housekeeping()
+                    self._is_dirty_structural = False
 
     # =========================================================================
     # SERIALIZATION

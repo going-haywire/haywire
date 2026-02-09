@@ -54,7 +54,8 @@ def error_render_detail(error: HaywireException) -> ui.element:
             backdrop_color="rgba(0,0,0,0.5)",
             clamp_to_viewport=True,
             title="Error Details",
-            draggable=True
+            draggable=True,
+            closable=True,
         )
         
         # Render error details inside the popup

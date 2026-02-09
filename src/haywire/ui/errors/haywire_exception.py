@@ -75,19 +75,19 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                     f'navigator.clipboard.writeText({text!r})'
                 )
             ).props('flat dense').classes('ml-2').tooltip('Copy detailed error to clipboard')
-        
+
+        # Show the actual error message right above the code
+        if error.original_exception:
+            exc_type_name = type(error.original_exception).__name__
+            exc_message = str(error.original_exception)
+            with ui.card().classes('w-full bg-red-100 border-l-4 border-red-500 mb-2'):
+                with ui.row().classes('items-start gap-2 p-2'):
+                    _create_detail_row(exc_type_name, exc_message, 'error')
+
         if error.message:
             with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
                 with ui.row().classes('items-start gap-2 p-2'):
                     _create_detail_row('Message', error.message, 'build')
-
-        # Suggestions section
-        if error.has_suggestions():
-            with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
-                ui.label('💡 Suggestions:').classes('font-bold text-sm text-blue-700')
-                for suggestion in error.suggestions:
-                    with ui.row().classes('items-start gap-2'):
-                        _create_detail_row(suggestion, "", 'lightbulb')
 
         # Source code section
         if error.has_source_location():
@@ -175,6 +175,13 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                             if error.line_number:
                                 _create_detail_row('Line', str(error.line_number), 'tag')
 
+        # Suggestions section
+        if error.has_suggestions():
+            with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):
+                for suggestion in error.suggestions:
+                    with ui.row().classes('items-start gap-2'):
+                        _create_detail_row('Suggestion', suggestion, 'lightbulb')
+
         # Traceback section (filter interesting frames)
         if error.traceback_frames:
             interesting_frames = [
@@ -234,14 +241,6 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                             ui.label(source_line.strip()).classes(
                                                 'text-xs font-mono'
                                             )
-
-        # Show the actual error message right above the code
-        if error.original_exception:
-            exc_type_name = type(error.original_exception).__name__
-            exc_message = str(error.original_exception)
-            with ui.card().classes('w-full bg-red-100 border-l-4 border-red-500 mb-2'):
-                with ui.row().classes('items-start gap-2 p-2'):
-                    _create_detail_row(exc_type_name, exc_message, 'error')
 
         # Main error info card
         with ui.card().classes('w-full border-l-4 border-black-500 mb-2'):

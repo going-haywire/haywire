@@ -5,7 +5,6 @@ This renderer provides the standard node appearance with collapsible groups
 """
 
 from typing import List, TYPE_CHECKING
-from haywire.ui.widget.factory import error_render_detail
 from nicegui import ui
 
 from haywire.core.node.node_wrapper import NodeWrapper
@@ -50,6 +49,11 @@ class DefaultNodeRenderer(NodeRenderer):
         )        
 
         with main_card:
+            # Runtime errors indicator with popup
+            runtime_errors = wrapper.state.get_errors()
+            if runtime_errors:
+                self._render_errors_button(runtime_errors)
+
             # Header with node label and ghost pins for hidden connected ports
             with ui.row().classes('drag-handle w-full items-center'):
                 # Ghost pins for hidden inlet connections (left side)
@@ -58,10 +62,10 @@ class DefaultNodeRenderer(NodeRenderer):
                     with ui.column().classes('gap-0 items-center'):
                         for port in hidden_inlets:
                             self._render_pin(port, wrapper, direction='left')
-                
+
                 # Node title (centered/flexible)
                 ui.label(node.identity.label).classes('text-h6 flex-grow')
-                
+               
                 # Ghost pins for hidden outlet connections (right side)
                 hidden_outlets = node.get_hidden_connected_ports(is_inlet=False)
                 if hidden_outlets:
@@ -69,22 +73,13 @@ class DefaultNodeRenderer(NodeRenderer):
                         for port in hidden_outlets:
                             self._render_pin(port, wrapper, direction='right')
            
-                if wrapper.state and wrapper.state.has_error():
-                    error = wrapper.state.get_error()
-                    ui.label(error.message).classes('text-sm text-red-600 mb-2')
-                    error_render_detail(error)
-
+                if runtime_errors:
                     if wrapper._alternate_registry_keys:
                         ui.label(
                             f"Alternate versions available: "
                             f"{', '.join(wrapper._alternate_registry_keys)}"
                         ).classes('text-sm text-yellow-600 mb-2')
                 
-                # Runtime errors indicator with popup
-                runtime_errors = wrapper._get_all_runtime_errors()
-                if runtime_errors:
-                    self._render_runtime_errors_button(runtime_errors)
-
             # Main content: inlets and outlets in two columns
             with ui.row().classes('w-full gap-2'):
                 # Left column: Inlets
@@ -102,11 +97,6 @@ class DefaultNodeRenderer(NodeRenderer):
                             is_inlet=True
                         )
                         
-            # Footer with port counts
-            with ui.row().classes('w-full justify-between mt-2 zoom-pan-lod1'):
-                ui.label(f'↓ {len([p for p in node.ports.values() if p.is_inlet])}').classes('text-caption')
-                ui.label(f'↑ {len([p for p in node.ports.values() if p.is_outlet])}').classes('text-caption')
-
         # Add resize handle in bottom-right corner
         self._add_resize_handle(main_card, wrapper)
 
@@ -191,35 +181,4 @@ class DefaultNodeRenderer(NodeRenderer):
                             self._render_inlet(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
                         else:
                             self._render_outlet(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
-
-    def _render_runtime_errors_button(self, errors: List['HaywireException']):
-        """
-        Render a button that shows runtime errors count and opens a popup with details.
-        
-        Args:
-            errors: List of runtime errors to display
-        """
-        error_count = len(errors)
-        
-        with ui.button(
-            icon='warning',
-            color='red'
-        ).classes('text-xs px-2 py-1').props('dense flat') as btn:
-            ui.badge(str(error_count), color='red').props('floating')
-            
-            with ui.menu().props('anchor="bottom left" self="top left"'):
-                with ui.card().classes('p-2 max-w-md max-h-96 overflow-auto'):
-                    ui.label(
-                        f'Runtime Errors ({error_count})'
-                    ).classes('text-subtitle2 font-bold mb-2')
-                    
-                    for idx, error in enumerate(errors):
-                        with ui.expansion(
-                            f'{idx + 1}. {error.operation or "Error"}',
-                            icon='error'
-                        ).classes('w-full text-red-600'):
-                            ui.label(error.message).classes(
-                                'text-sm text-red-600 mb-2'
-                            )
-                            error_render_detail(error)
 

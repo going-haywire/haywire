@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import TYPE_CHECKING, List
 from nicegui import ui
 
 from haywire.core.data.enums import FlowType
@@ -6,11 +7,15 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.base import CompoundType, PrimitiveType
 from haywire.core.types.ports import DataPort
 
+from haywire.ui.widget.factory import error_render_detail
 from haywire.ui.renderer.base import BaseRenderer
 from haywire.ui.themes.icons import ICONS
 from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.utils import generate_pin_uuid
 from haywire.ui.themes import ThemePalette
+
+if TYPE_CHECKING:
+    from haywire.core.errors import HaywireException
 
 class NodeRenderer(BaseRenderer, ABC):
     """
@@ -229,3 +234,33 @@ class NodeRenderer(BaseRenderer, ABC):
                     document.addEventListener('mouseup', onMouseUp);
                 }
             ''')
+
+    def _render_errors_button(self, errors: List['HaywireException']):
+        """
+        Render a button that shows runtime errors count and opens a popup with details.
+        
+        Args:
+            errors: List of runtime errors to display
+        """
+        error_count = len(errors)
+        
+        with ui.button(
+            icon='warning',
+            color='red'
+        ) as btn:
+            btn.classes('text-xl px-2 py-1')
+            btn.props('dense flat')
+            btn.style('position: absolute; top: -25px;')
+            ui.badge(str(error_count), color='red').props('floating')
+            
+            with ui.menu().props('anchor="bottom left" self="top left"'):
+                with ui.card().classes('p-2 max-w-md max-h-96 overflow-auto'):                    
+                    for idx, error in enumerate(errors):
+                        with ui.expansion(
+                            f'{idx + 1}. {error.operation or "Error"}',
+                            icon='error'
+                        ).classes('w-full text-red-600'):
+                            ui.label(error.message).classes(
+                                'text-sm text-red-600 mb-2'
+                            )
+                            error_render_detail(error)
