@@ -42,6 +42,9 @@ dev = [
     "cattrs==25.3.0",
 ]
 
+[tool.pytest.ini_options]
+python_path = "src"
+
 [tool.ruff]
 # Set the maximum line length to 109.
 line-length = 109
