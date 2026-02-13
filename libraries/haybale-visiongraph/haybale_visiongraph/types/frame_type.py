@@ -3,13 +3,10 @@ Frame data type for video streams
 """
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Optional
 import numpy as np
 
-from haywire.core.data.enums import FlowType
-from haywire.core.types.base import BaseType
-from haywire.core.types.decorator import type
-
+from haywire.core.types import type, FlowType, BaseType
 
 @type(
     registry_id='frame',

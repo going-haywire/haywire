@@ -6,9 +6,7 @@ Triggered when the interpreter is shutting down, allowing for cleanup operations
 
 from haybale_core.widgets.basic_widgets import NumberWidget
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node.decorator import node
-from haywire.core.node.base import BaseNode
-from haywire.core.node.behavior import NodeType
+from haywire.core.node import node, BaseNode, NodeType
 
 @node(
     label='Performance Testing Node',

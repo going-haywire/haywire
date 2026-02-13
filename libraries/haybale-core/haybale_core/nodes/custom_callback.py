@@ -2,9 +2,7 @@ from haybale_core.types.specs import BOOL
 from haybale_core.widgets.basic_widgets import SelectWidget
 from haywire.core.execution.event_source import CallbackEvent, SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node.decorator import node
-from haywire.core.node.base import BaseNode
-from haywire.core.node.behavior import NodeType
+from haywire.core.node import node, BaseNode, NodeType
 
 @node(
     registry_id='custom_callback',

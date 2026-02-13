@@ -16,7 +16,7 @@ import logging
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
-    from haywire.core.node.base import BaseNode
+    from haywire.core.node import BaseNode
     from haywire.core.execution.event_source import EventSource
     from haywire.core.execution.scheduler import FlowScheduler
 

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 if TYPE_CHECKING:
     from haywire.core.execution.event_source import Trigger
     from haywire.core.execution.vm import HaywireVM, logger
-    from haywire.core.node.base import BaseNode
+    from haywire.core.node import BaseNode
 
 @dataclass
 class ExecutionContext:

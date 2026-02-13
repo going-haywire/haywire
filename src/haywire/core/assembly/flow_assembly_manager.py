@@ -23,6 +23,7 @@ from haywire.core.assembly.control_flow_builder import ControlFlowBuilder
 from haywire.core.assembly.data_flow_builder import DataFlowBuilder
 from haywire.core.execution.flow import Flow
 from haywire.core.node.behavior import NodeType
+from haywire.core.types import FlowType
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +210,7 @@ class FlowAssemblyManager:
         
         # Get event subscription
         if event_node and event_node.event_subscription:
-            if event_node.event_subscription == None:
+            if event_node.event_subscription is None:
                 raise RuntimeError(
                     f"Event node {event_node.node_id} has no "
                     f"event_subscription"
@@ -271,9 +272,7 @@ class FlowAssemblyManager:
         Args:
             graph: Parent graph
             flows: List of assembled flows
-        """
-        from haywire.core.data.enums import FlowType
-        
+        """        
         # Find all callback edges
         callback_edges = [
             edge for edge in graph.edge_wrappers.values()

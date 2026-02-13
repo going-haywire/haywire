@@ -1,15 +1,10 @@
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type, TypeVar
+from typing import Any, Dict, TypeVar
 from typing_extensions import NotRequired, TypedDict
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
-from haywire.core.types.registry import TypeRegistry
-from haywire.ui.widget.globals import validate_widget_type_compatibility
 
 
 from .interface import IType
-
-if TYPE_CHECKING:
-    from .ports import DataPort
 
 
 T = TypeVar('T')
@@ -61,7 +56,6 @@ def create_port_spec(
         dict ready for node.add()
     
     """
-    from dataclasses import asdict
        
     # Normalize default if provided
     if 'default' in kwargs:

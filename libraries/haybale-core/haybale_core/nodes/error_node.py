@@ -1,7 +1,6 @@
 
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node.decorator import node
-from haywire.core.node.base import BaseNode
+from haywire.core.node import node, BaseNode
 
 # ============================================================================
 # Error Node (returned when a node cannot be loaded)

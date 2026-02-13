@@ -1,5 +1,6 @@
+import re
 
-
+from haywire.core.types import PrimitiveField
 from haywire.core.graph.base import BaseGraph
 
 
@@ -16,8 +17,6 @@ def graph_to_python_script(graph: 'BaseGraph') -> str:
     Returns:
         String containing the complete Python script with imports inside function
     """
-    from haywire.core.data.fields import PrimitiveField
-    import re
     
     lines = []
     

@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 import nicegui.ui as ui
 
-from haywire.core.types.ports import DataPort
+from haywire.core.types import DataPort
 from haywire.ui.widget.base import BaseWidget
 
 

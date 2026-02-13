@@ -9,9 +9,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..registry.identity import BaseIdentity
-from ..data.enums import FlowType
-
-from .interface import IType
 
 @dataclass
 class DataTypeIdentity(BaseIdentity):
@@ -52,6 +49,8 @@ class DataTypeIdentity(BaseIdentity):
     # registry_key: str = ''
     # label: str = ''
     # description: str = ''
+    from . import IType
+    from .enums import FlowType
     
     # Override flow_type to make it required for ports
     flow_type: FlowType = FlowType.NONE

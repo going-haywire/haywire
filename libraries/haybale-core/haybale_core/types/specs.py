@@ -2,11 +2,7 @@
 Built-in data type specifications for Haywire core library.
 """
 
-from haywire.core.data.fields import PrimitiveField
-from haywire.core.types.base import PrimitiveType
-from haywire.core.types.decorator import type
-from haywire.core.types.base import BaseType
-from haywire.core.data.enums import FlowType
+from haywire.core.types import type, FlowType, PrimitiveType, PrimitiveField, BaseType
 
 
 # ============================================================================

@@ -1,27 +1,26 @@
 from __future__ import annotations
-import time
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Set, Any, Callable, Dict, List, Optional, TypeVar
 from dataclasses import asdict
 from abc import abstractmethod
 from contextlib import contextmanager
 
 from haywire.core.execution.event_source import EventSource
-from haywire.core.node.identity import NodeIdentity
+from haywire.core.node import NodeIdentity
 from haywire.core.settings.builtins import register_node_instance_settings
 
-from ..data.enums import FlowType
+from ..types.enums import FlowType
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
-from ..types.ports import DataPort
+from ..types import DataPort
 from .behavior import NodeBehaviorFlags
 from .user_data import NodeCache, NodeStore
-from .ui_state import NodeUI, NodeUIState
+from .ui_state import NodeUI
 from haywire.core.settings import SettingsHolder
 
 if TYPE_CHECKING:
-    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.node import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
 
 T = TypeVar('T')
@@ -31,10 +30,6 @@ class NodeMeta(type):
     def __new__(cls, name, bases, attrs):
         new_class = super().__new__(cls, name, bases, attrs)
         return new_class
-
-
-from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Set
 
 class NodeData:
     """

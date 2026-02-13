@@ -8,20 +8,18 @@ import time
 import threading
 import logging
 from typing import List, Optional, Tuple, Any, Dict, TYPE_CHECKING
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
 from ..graph.types import ChangeReason
-from ..library.utils import get_registry_id_from_key
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
 from ..validation.interface import IStructuralValidator
 
 if TYPE_CHECKING:
-    from .base import BaseNode
     from ..graph.base import BaseGraph
-    from .factory import NodeFactory
     from ..execution.execution_context import ExecutionContext
+    from . import BaseNode
 
 logger = logging.getLogger(__name__)
 

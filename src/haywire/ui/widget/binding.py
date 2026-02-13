@@ -13,8 +13,7 @@ from dataclasses import dataclass, field
 import threading
 from typing import Any, Callable, List, Optional
 
-from haywire.core.types.ports import DataPort
-from haywire.core.data.fields import PrimitiveField, BaseField
+from haywire.core.types import PrimitiveField, BaseField, DataPort
 from haywire.ui.widget.converters import (
     BindingConverter,
     BindingMode,

@@ -5,10 +5,8 @@ Tests the core node functionality.
 """
 
 import pytest
-from haywire.core.node.base import BaseNode
-from haywire.core.node.decorator import node
+from haywire.core.node import node, BaseNode, NodeFactory
 from haywire.core.graph.base import BaseGraph
-from haywire.core.node.factory import NodeFactory
 
 
 @pytest.mark.unit

@@ -9,20 +9,20 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.data.enums import FlowType
+from haywire.core.types.enums import FlowType
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
-from haywire.core.types.utils import PortSpec, serialize_element_type
+from haywire.core.types.utils import serialize_element_type
 
 # Import the new DataField classes
-from haywire.core.data.fields import DataField
+from haywire.core.types.fields import DataField
 from haywire.core.types.pipe import Pipes
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
-    from haywire.core.node.base import BaseNode
+    from haywire.core.node import BaseNode
 
 
 @dataclass
@@ -268,7 +268,7 @@ class DataPort(DataTypeIdentity):
         Args:
             edge_wrapper:  EdgeWrapper representing the link
         """
-        if not edge_wrapper.connection_uuid in self._edge_wrappers:
+        if edge_wrapper.connection_uuid not in self._edge_wrappers:
             if not self.allow_multiple_connections:
                 old_wrapper_uuid = next(iter(self._edge_wrappers), None)
                 if old_wrapper_uuid:

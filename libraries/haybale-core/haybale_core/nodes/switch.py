@@ -5,12 +5,8 @@ Triggered when the interpreter is shutting down, allowing for cleanup operations
 """
 import operator
 
-from haybale_core.widgets.basic_widgets import NumberWidget
-from haywire.core.execution.event_source import SystemEvent, SystemEventType
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node.decorator import node
-from haywire.core.node.base import BaseNode
-from haywire.core.node.behavior import NodeType
+from haywire.core.node import node, BaseNode, NodeType
 
 # Mapping of condition strings to operator functions
 OPERATORS = {

@@ -2,16 +2,14 @@
 Base classes for the Haywire library system
 """
 
+from typing import Dict, Any, Optional, Type, List, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 import importlib
 from pathlib import Path
 import sys
-from typing import Dict, Any, Optional, Type, List, Tuple
 import logging
-
-from haywire.core.data import event
 
 from ..errors import HaywireException
 from ..library.identity import LibraryIdentity

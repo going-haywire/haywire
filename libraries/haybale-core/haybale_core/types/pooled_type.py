@@ -11,10 +11,7 @@ Key changes:
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, TypeVar
 
-from haywire.core.types.base import CompoundType
-from haywire.core.data.fields import DataField
-from haywire.core.types.decorator import type
-from haywire.core.data.enums import FlowType
+from haywire.core.types import type, FlowType, CompoundType, DataField
 
 T = TypeVar('T')
 

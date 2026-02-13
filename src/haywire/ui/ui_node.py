@@ -15,7 +15,6 @@ from haywire.core.graph.types import ChangeReason
 from haywire.core.node.base import BaseNode
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
 from haywire.ui.editor.event_definitions import SyncNodePositionEvent
 from haywire.ui.ui_nodecard import UINodeCard

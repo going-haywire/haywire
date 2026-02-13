@@ -4,21 +4,17 @@ Default NodeRenderer with group support
 This renderer provides the standard node appearance with collapsible groups
 """
 
-from typing import List, TYPE_CHECKING
+from typing import List
 from nicegui import ui
 
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.types.ports import DataPort
+from haywire.core.types import DataPort
 
 from haywire.ui.renderer.decorator import renderer
 from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.themes import ThemePalette
 
 from ..renderers.node_renderer import NodeRenderer
-
-if TYPE_CHECKING:
-    from haywire.core.node.base import BaseNode
-    from haywire.core.errors import HaywireException
 
 @renderer(
     description="Default renderer with collapsible group support", 

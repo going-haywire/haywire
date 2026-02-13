@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from ...ui.utils import generate_connection_uuid
 from ..graph.types import ChangeReason
 from ..validation.interface import IStructuralValidator
-from ..data.enums import FlowType
+from ..types import FlowType
 from ..adapter.base import IAdapter, ReturnAdapter
 from ..errors import HaywireException
 from ..registry.lifecycle_event import (
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from ..graph.base import BaseGraph
     from ..adapter.factory import AdapterFactory
     from ..node.node_wrapper import NodeWrapper
-    from ..types.ports import DataPort
+    from ..types import DataPort
 
 logger = logging.getLogger(__name__)
 

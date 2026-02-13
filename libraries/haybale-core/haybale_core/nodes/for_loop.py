@@ -3,9 +3,7 @@ ForLoop Node - Standard loop construct for iteration.
 
 Executes loop body a specified number of times with index tracking.
 """
-from haywire.core.node.base import BaseNode
-from haywire.core.node.decorator import node
-from haywire.core.node.behavior import NodeType
+from haywire.core.node import node, BaseNode, NodeType
 from haywire.core.execution.execution_context import ExecutionContext
 
 

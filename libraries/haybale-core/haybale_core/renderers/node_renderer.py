@@ -2,10 +2,8 @@ from abc import ABC
 from typing import TYPE_CHECKING, List
 from nicegui import ui
 
-from haywire.core.data.enums import FlowType
+from haywire.core.types import DataPort, CompoundType, FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.types.base import CompoundType, PrimitiveType
-from haywire.core.types.ports import DataPort
 
 from haywire.ui.widget.factory import error_render_detail
 from haywire.ui.renderer.base import BaseRenderer

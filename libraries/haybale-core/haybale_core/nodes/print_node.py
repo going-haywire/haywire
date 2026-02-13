@@ -1,6 +1,4 @@
-from haywire.core.node.decorator import node
-from haywire.core.node.base import BaseNode
-from haywire.core.node.behavior import NodeType
+from haywire.core.node import node, BaseNode, NodeType
 from haywire.ui.console_bridge import console_print
 
 @node(

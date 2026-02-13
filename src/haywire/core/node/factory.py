@@ -7,14 +7,11 @@ lifecycle or undo operations - those are handled by Graph and Actions respective
 """
 
 import logging
-from typing import TYPE_CHECKING, Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any
 
 from haywire.core.errors.haywire_exception import HaywireException
-from .decorator import node
+from . import node, BaseNode, NodeRegistry
 
-
-from .base import BaseNode
-from .registry import NodeRegistry
 from ..registry.lifecycle_event import (
     LifeCycleEvent,
     LifeCycleBatchCallback,

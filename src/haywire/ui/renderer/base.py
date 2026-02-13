@@ -6,7 +6,7 @@ import logging
 import nicegui.ui as ui
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.types.ports import DataPort
+from haywire.core.types import DataPort
 from haywire.ui.ui_nodecard import UINodeCard
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.registry.identity import BaseIdentity

@@ -9,11 +9,10 @@ Validates domain-specific structural rules that go beyond formal validity:
 - Callback edge rules
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List
 import logging
 
-from haywire.core.errors import HaywireException
-from haywire.core.data.enums import FlowType
+from haywire.core.types import FlowType
 from haywire.core.node.behavior import NodeType
 from haywire.core.validation.interface import IStructuralValidator
 

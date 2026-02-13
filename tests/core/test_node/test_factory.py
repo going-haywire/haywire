@@ -5,10 +5,7 @@ These tests use DI fixtures but don't load full library system.
 """
 
 import pytest
-from haywire.core.node.factory import NodeFactory
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.node.base import BaseNode
-from haywire.core.node.decorator import node
+from haywire.core.node import node, BaseNode, NodeFactory, NodeRegistry
 from haywire.core.graph.base import BaseGraph
 from haywire.core.registry.base import BaseRegistry
 

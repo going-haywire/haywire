@@ -4,12 +4,10 @@ Node decorator for registering node classes.
 """
 
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Callable, Type, TypeVar, Union
+from typing import Callable, Type, TypeVar, Union
 
 from haywire.core.library.utils import derive_library_identity, reg_key
-from haywire.core.node.identity import NodeIdentity
-from haywire.core.node.base import BaseNode
-from haywire.core.node.behavior import NodeBehaviorFlags, NodeType, BEHAVIOR_FIELDS
+from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIOR_FIELDS
 
 T = TypeVar('T')
 

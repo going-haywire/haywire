@@ -20,8 +20,6 @@ import logging
 import os
 import signal
 import sys
-import threading
-from time import time
 import traceback
 from nicegui import ui, app
 

@@ -8,8 +8,7 @@ including node and edge manipulation, positioning, and selection.
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 
-from ...node.node_wrapper import NodeWrapper
-from ...node.base import BaseNode
+from ...node import BaseNode, NodeWrapper
 from ...graph.base import BaseGraph
 from ...edge.edge_wrapper import EdgeWrapper, Edge
 from ..base_action import ActionBase, CompositeAction

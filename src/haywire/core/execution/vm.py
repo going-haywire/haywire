@@ -21,7 +21,7 @@ from haywire.core.node.behavior import NodeType
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
-    from haywire.core.node.base import BaseNode
+    from haywire.core.node import BaseNode
 
 logger = logging.getLogger(__name__)
 

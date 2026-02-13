@@ -1,18 +1,10 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
-from typing_extensions import Self
 
 if TYPE_CHECKING:
-    from ..adapter.base import BaseAdapter
-    from ..adapter.registry import AdapterRegistry
     from ..library.identity import LibraryIdentity
-    from ..types.identity import DataTypeIdentity
-    from ..data.fields import DataField
-    from ..types.ports import DataPort
-    from ..types.utils import PortSpec
-
-
+    from . import DataPort, DataField, PortSpec, DataTypeIdentity
 
 # ============================================================================
 # ROOT INTERFACE WITH SHARED IMPLEMENTATIONS
@@ -302,7 +294,7 @@ class IType(ABC):
             self.add(FLOAT.as_config('threshold', default=0.5))
             self.add(ArrayType[STRING].as_config('tags', default=['a', 'b']))
         """
-        from haywire.core.data.enums import FlowType
+        from haywire.core.types.enums import FlowType
         from haywire.core.types.utils import create_port_spec
                 
         # Validate port type

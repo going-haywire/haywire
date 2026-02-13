@@ -10,24 +10,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import (
-    TYPE_CHECKING, 
     Any, 
     Callable, 
     Dict, 
     Generic, 
-    List, 
-    Optional, 
     TypeVar
 )
 
-from haywire.core.types.base import PrimitiveType
-
-if TYPE_CHECKING:
-    from haywire.core.adapter.registry import AdapterRegistry
-
-from haywire.core.data.event import Event
-from haywire.core.types.interface import IType
-from haywire.core.types.base import BaseType
+from haywire.core.types import IType, BaseType, PrimitiveType, Event
 
 
 T = TypeVar('T')

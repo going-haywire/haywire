@@ -3,7 +3,7 @@ from collections.abc import Callable
 import logging
 from typing import Any, Optional
 from nicegui import ui
-from haywire.core.types.ports import DataPort
+from haywire.core.types import DataPort
 from haywire.ui.widget.interface import IWidget
 
 class SimpleWidget(IWidget, ABC):

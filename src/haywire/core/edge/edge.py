@@ -7,10 +7,9 @@ management is handled by EdgeWrapper.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, List
 
-from ..data.enums import FlowType
+from ..types import FlowType
 
 @dataclass
 class Edge:

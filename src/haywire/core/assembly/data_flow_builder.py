@@ -9,7 +9,7 @@ For each control node, this builder:
 5. Handles lazy evaluation setup
 """
 from __future__ import annotations
-from typing import Dict, List, Set, Optional, TYPE_CHECKING
+from typing import Dict, List, Set, TYPE_CHECKING
 import logging
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from haywire.core.node.base import BaseNode
     from haywire.core.execution.flow import LocalizedDataFlow, ControlFlowGraph
 
-from haywire.core.data.enums import FlowType
+from haywire.core.types.enums import FlowType
 
 logger = logging.getLogger(__name__)
 
@@ -262,9 +262,9 @@ class DataFlowBuilder:
             if node_id not in visited:
                 if has_cycle(node_id):
                     raise RuntimeError(
-                        f"Illegal cycle detected in data flow for control node. "
-                        f"Data cycles are not allowed unless passing through "
-                        f"a control node."
+                        "Illegal cycle detected in data flow for control node. "
+                        "Data cycles are not allowed unless passing through "
+                        "a control node."
                     )
     
     @staticmethod

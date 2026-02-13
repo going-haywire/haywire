@@ -13,7 +13,7 @@ from nicegui import ui
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.types import ChangeReason, ValidationResult
-from haywire.core.node.base import BaseNode
+from haywire.core.node import BaseNode
 from haywire.core.undo.actions.graph_actions import ClipboardData
 
 from ..utils import parse_connection_uuid

@@ -6,10 +6,9 @@ import logging
 from haywire.core.library.utils import get_registry_id_from_key
 
 from ...core.registry.lifecycle_event import LifeCycleEvent
-from ..errors.haywire_exception import HaywireException
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
-from .base import BaseNode
+from . import BaseNode
 
 class NodeRegistry(BaseRegistry):
     """registry for managing nodes using library.name:node:node.name keys"""

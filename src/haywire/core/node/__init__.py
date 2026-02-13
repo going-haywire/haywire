@@ -4,28 +4,45 @@ Node system for Haywire.
 """
 
 from .identity import NodeIdentity
-from .base import BaseNode, NodeData
-from .behavior import NodeBehaviorFlags, BEHAVIOR_FIELDS
-from .user_data import NodeCache, NodeStore
-from .ui_state import NodeUI, NodeUIState
+from .base import NodeMeta, NodeData, BaseNode
+from .behavior import NodeType, NodeBehaviorFlags, BEHAVIOR_FIELDS
 from .decorator import node
+from .user_data import NodeCache, NodeStore
+from .ui_state import NodeUIState, NodeUI
+from .node_wrapper import NodeWrapperState, NodeMiddleware, NodeWrapper
+from .registry import NodeRegistry
+from .factory import NodeFactory
+from .dataclasses import NodeErrorInfo, NodeBehavior, NodeUIConfig, NodeUserMetadata
 
 __all__ = [
+    # Identity
+    "NodeIdentity",
     # Base classes
-    'BaseNode',
-    'NodeData',
-    'identity',
-    
+    "NodeMeta",
+    "NodeData",
+    "BaseNode",
     # Behavior
-    'NodeBehaviorFlags',
-    'BEHAVIOR_FIELDS',
-    
-    # Containers
-    'NodeCache',
-    'NodeStore',
-    'NodeUI',
-    'NodeUIState',
-    
+    "NodeType",
+    "NodeBehaviorFlags",
+    "BEHAVIOR_FIELDS",
     # Decorator
-    'node',
+    "node",
+    # User data containers
+    "NodeCache",
+    "NodeStore",
+    # UI state
+    "NodeUIState",
+    "NodeUI",
+    # Node wrapper & lifecycle
+    "NodeWrapperState",
+    "NodeMiddleware",
+    "NodeWrapper",
+    # Registry & factory
+    "NodeRegistry",
+    "NodeFactory",
+    # Dataclasses (legacy)
+    "NodeErrorInfo",
+    "NodeBehavior",
+    "NodeUIConfig",
+    "NodeUserMetadata",
 ]

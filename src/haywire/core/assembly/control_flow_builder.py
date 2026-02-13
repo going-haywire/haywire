@@ -6,15 +6,14 @@ sequence) that the VM uses to determine which node to execute next based
 on runtime decisions.
 """
 from __future__ import annotations
-from typing import Dict, List, Set, Optional, TYPE_CHECKING
+from typing import Dict, List, Set, TYPE_CHECKING
 import logging
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.base import BaseNode
-    from haywire.core.execution.flow import ControlFlowGraph, ControlNodeInfo
+    from haywire.core.execution.flow import ControlFlowGraph
 
-from haywire.core.data.enums import FlowType
 from haywire.core.node.behavior import NodeType
 
 logger = logging.getLogger(__name__)

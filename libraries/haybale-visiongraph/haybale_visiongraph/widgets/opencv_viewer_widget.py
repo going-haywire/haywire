@@ -13,7 +13,7 @@ from haywire.ui.widget.decorator import widget
 from haybale_visiongraph.widgets.components.streaming_viewer import StreamingViewer
 
 if TYPE_CHECKING:
-    from haywire.core.types.ports import DataPort
+    from haywire.core.types import DataPort
 
 
 @widget(

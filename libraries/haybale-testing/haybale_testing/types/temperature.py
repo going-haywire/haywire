@@ -3,8 +3,7 @@ Temperature type - derived from FLOAT for testing type hierarchy support.
 """
 
 from haybale_core.types.specs import FLOAT, FLOATField
-from haywire.core.types.decorator import type
-from haywire.core.data.enums import FlowType
+from haywire.core.types import type, FlowType
 
 
 @type(

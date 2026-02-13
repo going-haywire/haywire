@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from haywire.core.types.ports import DataPort
+from haywire.core.types import DataPort
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import (
     BindingConverter,

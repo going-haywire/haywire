@@ -15,12 +15,12 @@ from haywire.core.validation.interface import IStructuralValidator
 from haywire.core.validation.structural_validator import StructuralValidator
 from haywire.core.library.utils import get_registry_id_from_key
 
-from ..data.enums import FlowType
+from ..types import FlowType
 from .validation import ValidationManager, ValidationCallback
-from .types import ChangeReason, ValidationResult
+from .types import ChangeReason
 
 if TYPE_CHECKING:
-    from ..types.ports import DataPort
+    from ..types import DataPort
     from ..edge.edge_wrapper import EdgeWrapper
     from ..node.node_wrapper import NodeWrapper
 

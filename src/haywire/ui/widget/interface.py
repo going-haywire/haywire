@@ -4,7 +4,7 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.widget.identity import WidgetIdentity
 
 if TYPE_CHECKING:
-    from haywire.core.types.ports import DataPort
+    from haywire.core.types import DataPort
 
 
 # ============================================================================

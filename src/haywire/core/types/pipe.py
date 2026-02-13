@@ -5,7 +5,7 @@ from haywire.core.adapter.base import IAdapter
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 
 if TYPE_CHECKING:
-    from .ports import DataPort
+    from . import DataPort
 
 # Example showing how pipes would work with multi-value inlets
 class Pipes:
