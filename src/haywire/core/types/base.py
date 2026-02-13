@@ -19,7 +19,7 @@ class PrimitiveType(IType, ABC, Generic[T]):
     The actual storage in PrimitiveField is unwrapped for performance.
     
     The wrapper serves as:
-    - Type descriptor (metadata via @type decorator)
+    - Type descriptor (metadata via **@type** decorator)
     - Interface contract (adapters work with types)
     - Default value creation
     
@@ -33,6 +33,7 @@ class PrimitiveType(IType, ABC, Generic[T]):
         # → FLOAT.element_type_cls = float
     
     Examples:
+    .. code-block:: python
         @type(default={'value': 12.0})
         class FLOAT(PrimitiveType[float]):
             pass
@@ -101,6 +102,51 @@ class PrimitiveType(IType, ABC, Generic[T]):
         """Sets the wrapped primitive value."""
         self._value = val
 
+    # ========================================================================
+    # SERIALIZATION - Stub methods for field value persistence
+    # ========================================================================
+
+    @classmethod
+    def to_dict(cls, value: T) -> dict:
+        """
+        Serialize primitive value to dictionary.
+
+        Default stub implementation - returns default from @type decorator.
+        Override in subclasses for custom serialization logic.
+
+        Args:
+            value: The unwrapped primitive value (42.0, not FLOAT(42.0))
+
+        Returns:
+            dict: Serialized representation
+        """
+        # Default: return decorator default
+        default_dict = getattr(cls.class_identity, 'default', None)
+        if isinstance(default_dict, dict):
+            return default_dict
+        return {}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> T:
+        """
+        Deserialize primitive value from dictionary.
+
+        Default stub implementation - returns default from @type decorator.
+        Override in subclasses for custom deserialization logic.
+
+        Args:
+            data: Dictionary containing serialized value
+
+        Returns:
+            T: Unwrapped primitive value (42.0, not FLOAT(42.0))
+        """
+        # Default: return decorator default value
+        value = None
+        default_dict = getattr(cls.class_identity, 'default', None)
+        if isinstance(default_dict, dict):
+            value = default_dict.get('value')
+        return value
+
 
 # ============================================================================
 # BASETYPE - Custom complex types
@@ -126,6 +172,7 @@ class BaseType(IType, ABC):
         # → MeshData.element_type_cls = MeshData
     
     Examples:
+    .. code-block:: python
         @type(default={'vertices': [], 'faces': []})
         @dataclass
         class MeshData(BaseType):
@@ -160,11 +207,92 @@ class BaseType(IType, ABC):
     def value(self):
         """
         Returns self - the instance IS the value.
-        
+
         Unlike PrimitiveType which wraps a primitive,
         BaseType instances are themselves the data.
         """
         return self
+
+    # ========================================================================
+    # SERIALIZATION - Stub methods for field value persistence
+    # ========================================================================
+
+    @classmethod
+    def _get_default_dict(cls) -> dict:
+        """
+        Get default kwargs from @type decorator.
+
+        Helper method used by default to_dict/from_dict implementations.
+
+        Returns:
+            dict: Default kwargs from decorator, or empty dict if not available
+        """
+        if hasattr(cls, 'class_identity'):
+            default_dict = getattr(cls.class_identity, 'default', None)
+            if isinstance(default_dict, dict):
+                return default_dict
+        return {}
+
+    def to_dict(self) -> dict:
+        """
+        Serialize BaseType instance to dictionary.
+
+        Default implementation:
+        - If dataclass: uses dataclasses.asdict()
+        - Otherwise: returns decorator default
+
+        Override in subclasses for custom serialization logic.
+
+        Returns:
+            dict: Serialized representation
+
+        Example override:
+            def to_dict(self) -> dict:
+                return {
+                    'vertices': self.vertices.tolist(),
+                    'faces': self.faces.tolist()
+                }
+        """
+        import dataclasses
+
+        if dataclasses.is_dataclass(self):
+            return dataclasses.asdict(self)
+
+        # Fallback: return decorator default
+        return self._get_default_dict()
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Self:
+        """
+        Deserialize BaseType instance from dictionary.
+
+        Default implementation:
+        - If dataclass: unpacks data as constructor kwargs
+        - Otherwise: uses decorator default as kwargs
+
+        Override in subclasses for custom deserialization logic.
+
+        Args:
+            data: Dictionary containing serialized data
+
+        Returns:
+            Self: New instance of this type
+
+        Example override:
+            @classmethod
+            def from_dict(cls, data: dict) -> Self:
+                return cls(
+                    vertices=np.array(data['vertices']),
+                    faces=np.array(data['faces'])
+                )
+        """
+        import dataclasses
+
+        if dataclasses.is_dataclass(cls):
+            return cls(**data)
+
+        # Fallback: use decorator default
+        return cls(**cls._get_default_dict())
 
 
 # ============================================================================
@@ -198,6 +326,8 @@ class CompoundType(BaseType, ABC, Generic[T]):
     - Can override _configure_port() to add port attributes
     
     Examples:
+
+    .. code-block:: python
         @type(default={'value': []})
         class ArrayType(CompoundType[T]):
             field_class = ArrayField

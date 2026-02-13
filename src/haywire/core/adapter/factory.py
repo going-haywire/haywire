@@ -225,24 +225,28 @@ class AdapterFactory:
     ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
         Case 1: Create chain for scalar types.
-        
+
         Example: FLOAT → STRING
         Result: FloatToStringAdapter (linked to ReturnAdapter)
+
+        Supports type hierarchy: if Temperature extends FLOAT,
+        Temperature → INT resolves via FLOAT → INT adapter.
         """
         # Direct match - no adapters needed
         if source_type == sink_type:
             return (ReturnAdapter(), None)
-        
-        # Extract registry keys from types
-        source_key = source_type.class_identity.registry_key
+
+        # Child → parent passthrough: derived types are compatible
+        # with their ancestor types (e.g. Temperature → FLOAT)
+        if issubclass(source_type, sink_type):
+            return (ReturnAdapter(), None)
+
+        # Find chain, walking source type's MRO as fallback
         sink_key = sink_type.class_identity.registry_key
-        
-        adapter_classes = self.adapter_registry.find_adapter_chain(
-            source_key,
-            sink_key,
-            max_depth=max_depth
+        adapter_classes = self._find_chain_with_ancestors(
+            source_type, sink_key, max_depth
         )
-        
+
         if adapter_classes is None:
             return (
                 None,
@@ -251,21 +255,57 @@ class AdapterFactory:
                     f"{source_type.__name__} → {sink_type.__name__}"
                 )
             )
-        
+
         try:
             # Build chain from right to left (terminal to first)
             chain = ReturnAdapter()  # Terminal
-            
+
             for cls in reversed(adapter_classes):
                 chain = cls(child=chain)
-            
+
             return (chain, None)
-            
+
         except Exception as e:
             return (
                 None,
                 f"Failed to instantiate adapter chain: {e}"
             )
+
+    def _find_chain_with_ancestors(
+        self,
+        source_type: type[IType],
+        sink_key: str,
+        max_depth: int
+    ) -> list[type] | None:
+        """
+        Find adapter chain, falling back to source type's ancestors.
+
+        Walks source_type.__mro__ to find the most specific ancestor
+        that has a registered adapter chain to the target. The first
+        entry in the MRO is source_type itself, so the exact match
+        is always tried first.
+
+        Example: Temperature extends FLOAT, FLOAT→INT adapter exists.
+                 Temperature→INT resolves via FLOAT→INT.
+
+        Args:
+            source_type: Source IType class
+            sink_key: Target type's registry key
+            max_depth: Maximum chain length
+
+        Returns:
+            List of adapter classes or None
+        """
+        for ancestor in source_type.__mro__:
+            if not hasattr(ancestor, 'class_identity'):
+                continue
+            ancestor_key = ancestor.class_identity.registry_key
+            chain = self.adapter_registry.find_adapter_chain(
+                ancestor_key, sink_key, max_depth
+            )
+            if chain is not None:
+                return chain
+        return None
     
     def _create_element_chain(
         self,

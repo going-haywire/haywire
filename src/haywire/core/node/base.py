@@ -1053,14 +1053,20 @@ class NodeData:
     # SERIALIZATION
     # =========================================================================
     
-    def _serialize_ports(self) -> Dict[str, Any]:
+    def _serialize_ports(self, include_data: bool = True) -> Dict[str, Any]:
         """
-        Serialize all ports to dictionary.
-        
+        Serialize all ports to dictionary, optionally with data.
+
+        Args:
+            include_data: If True, includes field values
+
         Returns:
             Dictionary mapping port IDs to PortSpec-format dicts
         """
-        return {port_id: port.to_dict() for port_id, port in self.ports.items()}
+        return {
+            port_id: port.to_dict(include_data=include_data)
+            for port_id, port in self.ports.items()
+        }
     
     def _deserialize_ports(self, ports_data: Dict[str, Any]) -> bool:
         """
@@ -1350,22 +1356,25 @@ class BaseNode(NodeData, metaclass=NodeMeta):
     # SERIALIZATION (updated)
     # =========================================================================
 
-    def _to_dict(self) -> dict:
+    def _to_dict(self, include_data: bool = True) -> dict:
         """
-        Serialize node to dictionary. 
+        Serialize node to dictionary.
         This also includes identity and library info.
-        
+
+        Args:
+            include_data: If True, includes field values
+
         Returns:
             Dict representation of the node
         """
         return {
             'node_id': self.node_id,
-            'ports': self._serialize_ports(),
+            'ports': self._serialize_ports(include_data=include_data),
             'settings': self._settings.to_dict(),
             'store': self._store.to_dict(),
             'ui': self._ui.to_dict(),
             'identity': asdict(self.identity),
-            'library': asdict(self.library),   
+            'library': asdict(self.library),
         }
     
     def _initialize_from_dict(self, data: dict) -> None:

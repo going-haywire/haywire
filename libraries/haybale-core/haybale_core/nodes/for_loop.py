@@ -59,7 +59,8 @@ class ForLoopNode(BaseNode):
             'end',
             default=10,
             label='End',
-            widget=NumberWidget.config()
+            widget=NumberWidget.config(),
+            store_data=True
         ))
         
         self.add(INT.as_inlet(

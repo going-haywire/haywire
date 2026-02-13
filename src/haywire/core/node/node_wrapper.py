@@ -682,10 +682,13 @@ class NodeWrapper:
     # SERIALIZATION
     # =========================================================================
     
-    def serialize(self) -> Dict[str, Any]:
+    def serialize(self, include_data: bool = True) -> Dict[str, Any]:
         """
         Serialize wrapper state for graph save.
-        
+
+        Args:
+            include_data: If True, includes field values
+
         Returns:
             Dictionary containing wrapper and node state
         """
@@ -698,11 +701,11 @@ class NodeWrapper:
                 'registry_key': self.registry_key,
                 'position': list(self._initial_position),
             }
-            
+
             # Serialize node instance if available
             if self._node_instance:
-                result['node_data'] = self._node_instance._to_dict()
-            
+                result['node_data'] = self._node_instance._to_dict(include_data=include_data)
+
             return result
     
     def __repr__(self) -> str:

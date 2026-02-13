@@ -37,6 +37,7 @@ class TestNodeOne(BaseNode):
             SwitchWidget,
             TextWidget,
         )
+        from haybale_testing.types.temperature import Temperature
 
         self.push()
 
@@ -103,6 +104,13 @@ class TestNodeOne(BaseNode):
 
         self.add(CALLBACK.as_inlet(id='callback'))
 
+        # Temperature inlet (derived from FLOAT — tests type hierarchy)
+        self.add(Temperature.as_inlet(
+                id='temperature_in',
+                label='Temperature',
+                default=20.0
+            ))
+
         # Add outlets
         self.add(EXEC.as_outlet(id='execute_out'))
 
@@ -146,6 +154,12 @@ class TestNodeOne(BaseNode):
                     id='mapsString_bool_outlet',
                     label='MAPSSTRING[BOOL]'
                 ))
+
+        # Temperature outlet (derived from FLOAT — tests type hierarchy)
+        self.add(Temperature.as_outlet(
+                id='temperature_out',
+                label='Temperature'
+            ))
 
         self.pop()
 

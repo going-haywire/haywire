@@ -22,9 +22,16 @@ from haywire.core.data.enums import FlowType
     widget_key='core:widget:SwitchWidget',
     default={'value': False},
 )
-class GROUP(PrimitiveType[int]):
+class GROUP(PrimitiveType[bool]):
     """Group data type"""
-    pass
+
+    @classmethod
+    def to_dict(cls, value: bool) -> dict:
+        return {"value": bool(value)}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> bool:
+        return bool(data.get("value", False))
 
 # ============================================================================
 # Numeric Types
@@ -40,7 +47,14 @@ class GROUP(PrimitiveType[int]):
 )
 class INT(PrimitiveType[int]):
     """Integer data type"""
-    pass
+
+    @classmethod
+    def to_dict(cls, value: int) -> dict:
+        return {"value": int(value)}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> int:
+        return int(data.get("value", 0))
 
 # define INTField for INT type to guarantee integer storage
 class INTField(PrimitiveField):
@@ -52,6 +66,8 @@ class INTField(PrimitiveField):
 # Set field_class attributes after classes are defined
 INT.field_class = INTField
 
+# ============================================================================
+
 @type(
     registry_id='float',
     flow_type=FlowType.DATA,
@@ -62,8 +78,15 @@ INT.field_class = INTField
 )
 class FLOAT(PrimitiveType[float]):
     """Float data type"""
-    pass
 
+    @classmethod
+    def to_dict(cls, value: float) -> dict:
+        return {"value": float(value)}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> float:
+        return float(data.get("value", 0.0))
+    
 # define FLOATField for FLOAT type to guarantee float storage
 class FLOATField(PrimitiveField):
     """DataField for FLOAT type storing float values"""
@@ -88,9 +111,15 @@ FLOAT.field_class = FLOATField
 )
 class STRING(PrimitiveType[str]):
     """String data type"""
-    pass
 
+    @classmethod
+    def to_dict(cls, value: str) -> dict:
+        return {"value": str(value)}
 
+    @classmethod
+    def from_dict(cls, data: dict) -> str:
+        return str(data.get("value", ""))
+    
 # ============================================================================
 # Boolean Type
 # ============================================================================
@@ -105,8 +134,15 @@ class STRING(PrimitiveType[str]):
 )
 class BOOL(PrimitiveType[bool]):
     """Boolean data type"""
-    pass
 
+    @classmethod
+    def to_dict(cls, value: bool) -> dict:
+        return {"value": bool(value)}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> bool:
+        return bool(data.get("value", False))
+    
 
 # ============================================================================
 # Binary Type
@@ -122,8 +158,16 @@ class BOOL(PrimitiveType[bool]):
 )
 class BYTES(PrimitiveType[bytes]):
     """Bytes data type"""
-    pass
 
+    @classmethod
+    def to_dict(cls, value: bytes) -> dict:
+        import base64
+        return {"value": base64.b64encode(value).decode('ascii')}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> bytes:
+        import base64
+        return base64.b64decode(data.get("value", ""))
 
 # ============================================================================
 # Collection Types
@@ -139,7 +183,14 @@ class BYTES(PrimitiveType[bytes]):
 )
 class LIST(PrimitiveType[list]):
     """List data type"""
-    pass
+
+    @classmethod
+    def to_dict(cls, value: list) -> dict:
+        return {"value": list(value)}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> list:
+        return list(data.get("value", []))
 
 @type(
     registry_id='dict',
@@ -151,7 +202,14 @@ class LIST(PrimitiveType[list]):
 )
 class DICT(PrimitiveType[dict]):
     """Dictionary data type"""
-    pass
+
+    @classmethod
+    def to_dict(cls, value: dict) -> dict:
+        return {"value": dict(value)}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> dict:
+        return dict(data.get("value", {}))
 
 # ============================================================================
 # Exec Types
@@ -168,7 +226,7 @@ class DICT(PrimitiveType[dict]):
 )
 class EXEC(BaseType):
     """Execution signal type - represents execution flow, not data"""
-    
+
     @classmethod
     def create_default(cls) -> 'EXEC':
         return cls()
@@ -189,6 +247,6 @@ class EXEC(BaseType):
 )
 class CALLBACK(STRING):
     """
-    callback signal type - represents callback flow, not data
+    callback signal type - represents callback flow
     Inherits from STRING for payload compatibility.
     """

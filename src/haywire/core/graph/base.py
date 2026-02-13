@@ -943,10 +943,13 @@ class BaseGraph:
     # SERIALIZATION
     # =========================================================================
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, include_data: bool = True) -> Dict[str, Any]:
         """
         Serialize graph to dictionary.
-        
+
+        Args:
+            include_data: If True, includes field values. If False, structure only.
+
         Returns:
             Dictionary representation of the graph
         """
@@ -959,15 +962,15 @@ class BaseGraph:
             "created_at": self.created_at,
             "modified_at": self.modified_at,
             "nodes": {
-                node_id: wrapper.serialize() 
+                node_id: wrapper.serialize(include_data=include_data)
                 for node_id, wrapper in self.node_wrappers.items()
             },
             "edges": {
-                connection_uuid: wrapper.edge.to_dict() 
+                connection_uuid: wrapper.edge.to_dict()
                 for connection_uuid, wrapper in self.edge_wrappers.items()
             },
             "variables": {
-                name: var.to_dict() 
+                name: var.to_dict()
                 for name, var in self.variables.items()
             }
         }
@@ -1090,25 +1093,31 @@ class BaseGraph:
     # FILE I/O
     # =========================================================================
     
-    def save_to_file(self, filepath: str) -> bool:
+    def save_to_file(self, filepath: str, include_data: bool = True) -> bool:
         """
         Save graph to JSON file.
-        
+
         Args:
             filepath: Path to save the graph file
-            
+            include_data: If True (default), saves field values.
+                         If False, saves structure only.
+
         Returns:
             True if save succeeded, False otherwise
+
+        Examples:
+            graph.save_to_file('my_graph.json')  # Full save
+            graph.save_to_file('template.json', include_data=False)  # Structure only
         """
         import json
         from datetime import datetime
-        
+
         try:
             # Update modification timestamp
             self.modified_at = datetime.now().isoformat()
-            
+
             # Serialize graph
-            data = self.to_dict()
+            data = self.to_dict(include_data=include_data)
             
             # Write to file with pretty formatting
             with open(filepath, 'w', encoding='utf-8') as f:

@@ -48,7 +48,7 @@ class AddNode(BaseNode):
 from haywire.libraries.core.types.specs import FLOAT, INT, STRING, BOOL
 
 class MyNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         # Float with default
         self.add(FLOAT.as_inlet(
@@ -94,7 +94,7 @@ def worker(self, context: ExecutionContext):
 from haywire.libraries.core.types.mesh import MeshData
 
 class MeshProcessorNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         # Complex type with default
         self.add(MeshData.as_inlet(
@@ -123,7 +123,7 @@ from haywire.libraries.core.types.specs import FLOAT
 from haywire.libraries.core.types.mesh import MeshData
 
 class SortNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         # Array of primitives
         self.add(ArrayType[FLOAT].as_inlet(
@@ -164,7 +164,7 @@ from haywire.libraries.core.types.pooled import PooledType
 from haywire.libraries.core.types.specs import FLOAT
 
 class AverageNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         # Pooled inlet - accepts multiple connections!
         self.add(PooledType[FLOAT].as_inlet(
@@ -208,7 +208,7 @@ def worker(self, context: ExecutionContext):
 
 ```python
 class MathNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         self.add(FLOAT.as_inlet(id='a', default=0.0))
         self.add(FLOAT.as_inlet(id='b', default=0.0))
@@ -235,7 +235,7 @@ class MathNode(BaseNode):
 
 ```python
 class FilterNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         self.add(ArrayType[FLOAT].as_inlet(id='numbers'))
         self.add(FLOAT.as_inlet(id='threshold', default=0.0))
@@ -258,7 +258,7 @@ class FilterNode(BaseNode):
 
 ```python
 class MeshGeneratorNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         self.add(INT.as_inlet(id='subdivisions', default=1))
         self.add(MeshData.as_outlet(id='mesh'))
@@ -322,7 +322,7 @@ class CelsiusToFahrenheitNode(BaseNode):
     menu='arrays/analysis'
 )
 class ArrayStatsNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         self.behavior.is_data_node = True
         
@@ -368,7 +368,7 @@ class ArrayStatsNode(BaseNode):
     menu='geometry/operations'
 )
 class CombineMeshesNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         self.behavior.is_data_node = True
         
@@ -424,7 +424,7 @@ class CombineMeshesNode(BaseNode):
     menu='logic/conditional'
 )
 class ConditionalNode(BaseNode):
-    def initialize(self):
+    def init(self):
         
         self.add(BOOL.as_inlet(id='condition', default=True))
         self.add(FLOAT.as_inlet(id='if_true', default=1.0))

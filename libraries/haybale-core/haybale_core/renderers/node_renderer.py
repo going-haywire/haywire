@@ -17,6 +17,7 @@ from haywire.ui.themes import ThemePalette
 if TYPE_CHECKING:
     from haywire.core.errors import HaywireException
 
+
 class NodeRenderer(BaseRenderer, ABC):
     """
     Base class for all NiceGui NodeRenderer classes.
@@ -25,14 +26,14 @@ class NodeRenderer(BaseRenderer, ABC):
     They are cached and reused by the NodeRenderFactory.
     """
 
-    def _render_inlet(self, inlet: DataPort, wrapper: NodeWrapper, widget_classes: str = ''):
+    def _render_inlet(self, inlet: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render an inlet with its port and optional widget."""
-        with ui.row().classes('w-full items-center justify-start gap-0'):
+        with ui.row().classes("w-full items-center justify-start gap-0"):
             # only render pins for inlets that are actually involved in flows
-            self._render_pin(inlet, wrapper, direction='left')
+            self._render_pin(inlet, wrapper, direction="left")
 
             # Pin label
-            ui.label(inlet.label).classes('text-xs zoom-pan-lod2')
+            ui.label(inlet.label).classes("text-xs zoom-pan-lod2")
 
         # Render inlet widget if it has a pin that does not allow multiple connections
         if not inlet.allow_multiple_connections:
@@ -40,20 +41,19 @@ class NodeRenderer(BaseRenderer, ABC):
                 # Widget rendering adds UI element to current context automatically
                 self.render_widget(inlet, wrapper.node_id, classes=widget_classes)
 
-    
-    def _render_outlet(self, outlet, wrapper: NodeWrapper, widget_classes: str = ''):
+    def _render_outlet(self, outlet, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render an outlet with its port."""
-        with ui.row().classes('w-full items-center justify-end gap-0'):
+        with ui.row().classes("w-full items-center justify-end gap-0"):
             # Pin label
-            ui.label(outlet.label).classes('text-xs')
+            ui.label(outlet.label).classes("text-xs")
 
             # only render pins for outlets that are actually involved in flows
-            self._render_pin(outlet, wrapper, direction='right')
-    
-    def _render_pin(self, pin: DataPort, wrapper: NodeWrapper, direction: str = 'left'):
+            self._render_pin(outlet, wrapper, direction="right")
+
+    def _render_pin(self, pin: DataPort, wrapper: NodeWrapper, direction: str = "left"):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
-        pin_direction = 'inlet' if pin.is_inlet else 'outlet'
+        pin_direction = "inlet" if pin.is_inlet else "outlet"
         pin_uuid = generate_pin_uuid(wrapper.node_id, pin.id)
 
         # Calculate 2D direction vector components based on pin type
@@ -63,7 +63,7 @@ class NodeRenderer(BaseRenderer, ABC):
         else:
             # Outlets point right (positive X)
             dir_x, dir_y = "1", "0"
-        
+
         common_props = (
             f'id="{pin_uuid}" '
             f'data-node-id="{wrapper.node_id}" '
@@ -73,32 +73,21 @@ class NodeRenderer(BaseRenderer, ABC):
             f'data-pin-dir-x="{dir_x}" '
             f'data-pin-dir-y="{dir_y}"'
         )
-        
+
         if pin.flow_type == FlowType.CONTROL:
             # Get control flow color from theme
             ctrl_color = pin.color
             # Pin connector
             if pin.is_inlet:
-                ctrl_icon = ThemePalette.get(
-                    ThemeKey.UI_PORT_ICON_IN_CTRL,
-                    pin.icon_in,
-                    ICONS.JOIN_LEFT
-                )
+                ctrl_icon = ThemePalette.get(ThemeKey.UI_PORT_ICON_IN_CTRL, pin.icon_in, ICONS.JOIN_LEFT)
             else:
-                ctrl_icon = ThemePalette.get(
-                    ThemeKey.UI_PORT_ICON_OUT_CTRL,
-                    pin.icon_out,
-                    ICONS.JOIN_RIGHT
-                )
-            with ui.icon(ctrl_icon, color=ctrl_color, size='xs').classes(
-                    'text-4xl port input-port connection-pin zoom-pan-lod0'
-                ).style(
-                    f'position: absolute; {direction}: -20px; '
-                    f'cursor: crosshair;'
-                ).props(
-                    f'{common_props} '
-                    f'data-pin-color="{ctrl_color}"'
-                ):
+                ctrl_icon = ThemePalette.get(ThemeKey.UI_PORT_ICON_OUT_CTRL, pin.icon_out, ICONS.JOIN_RIGHT)
+            with (
+                ui.icon(ctrl_icon, color=ctrl_color, size="xs")
+                .classes("text-4xl port input-port connection-pin zoom-pan-lod0")
+                .style(f"position: absolute; {direction}: -20px; cursor: crosshair;")
+                .props(f'{common_props} data-pin-color="{ctrl_color}"')
+            ):
                 with ui.tooltip().classes(ctrl_color):
                     self._tooltip_for_port(pin)
 
@@ -107,26 +96,19 @@ class NodeRenderer(BaseRenderer, ABC):
             callback_color = pin.color
             if pin.is_inlet:
                 callback_icon = ThemePalette.get(
-                    ThemeKey.UI_PORT_ICON_IN_CALLBACK,
-                    pin.icon_in,
-                    ICONS.SWIPE_LEFT_ALT
+                    ThemeKey.UI_PORT_ICON_IN_CALLBACK, pin.icon_in, ICONS.SWIPE_LEFT_ALT
                 )
             else:
                 callback_icon = ThemePalette.get(
-                    ThemeKey.UI_PORT_ICON_OUT_CALLBACK,
-                    pin.icon_out,
-                    ICONS.SWIPE_RIGHT_ALT
+                    ThemeKey.UI_PORT_ICON_OUT_CALLBACK, pin.icon_out, ICONS.SWIPE_RIGHT_ALT
                 )
             # Pin connector
-            with ui.icon(callback_icon, color=callback_color, size='20px').classes(
-                    'text-4xl port input-port connection-pin zoom-pan-lod0'
-                ).style(
-                    f'position: absolute; {direction}: -20px; '
-                    f'cursor: crosshair;'
-                ).props(
-                    f'{common_props} '
-                    f'data-pin-color="{callback_color}"'
-                ):
+            with (
+                ui.icon(callback_icon, color=callback_color, size="20px")
+                .classes("text-4xl port input-port connection-pin zoom-pan-lod0")
+                .style(f"position: absolute; {direction}: -20px; cursor: crosshair;")
+                .props(f'{common_props} data-pin-color="{callback_color}"')
+            ):
                 with ui.tooltip().classes(callback_color):
                     self._tooltip_for_port(pin)
 
@@ -140,75 +122,76 @@ class NodeRenderer(BaseRenderer, ABC):
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_MULTI_COMPOUND,
                             pin._data.get_stored_type().class_identity.icon_in_multi,
-                            fallback=ICONS.WEB_STORIES
+                            fallback=ICONS.WEB_STORIES,
                         )
                     else:
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_MULTI_SINGLE,
                             pin._data.get_stored_type().class_identity.icon_in_multi,
-                            fallback=ICONS.FIBER_SMART_RECORD
+                            fallback=ICONS.FIBER_SMART_RECORD,
                         )
                 else:
                     if issubclass(pin.type_cls, CompoundType):
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_COMPOUND,
                             pin._data.get_stored_type().class_identity.icon_in,
-                            fallback=ICONS.VIEW_DAY
+                            fallback=ICONS.VIEW_DAY,
                         )
                     else:
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_SINGLE,
                             pin._data.get_stored_type().class_identity.icon_in,
-                            fallback=ICONS.MY_LOCATION
+                            fallback=ICONS.MY_LOCATION,
                         )
             else:
                 if issubclass(pin.type_cls, CompoundType):
                     data_icon = ThemePalette.get(
                         ThemeKey.UI_PORT_ICON_OUT_MULTI_COMPOUND,
                         pin._data.get_stored_type().class_identity.icon_out_multi,
-                        fallback=ICONS.VIEW_DAY
+                        fallback=ICONS.VIEW_DAY,
                     )
                 else:
                     data_icon = ThemePalette.get(
                         ThemeKey.UI_PORT_ICON_OUT_MULTI_SINGLE,
                         pin._data.get_stored_type().class_identity.icon_out_multi,
-                        fallback=ICONS.CIRCLE
+                        fallback=ICONS.CIRCLE,
                     )
-            with ui.icon(data_icon, color=pin_color, size='15px').classes(
-                    'text-4xl port connection-pin zoom-pan-lod0'
-                ).style(
-                    f'position: absolute; {direction}: -20px; '
-                    f'cursor: crosshair;'
-                ).props(
-                    f'{common_props} '
-                    f'data-pin-data-type="{pin_data_type}" '
-                    f'data-pin-color="{pin_color}"'
-                ):
+            with (
+                ui.icon(data_icon, color=pin_color, size="15px")
+                .classes("text-4xl port connection-pin zoom-pan-lod0")
+                .style(f"position: absolute; {direction}: -20px; cursor: crosshair;")
+                .props(f'{common_props} data-pin-data-type="{pin_data_type}" data-pin-color="{pin_color}"')
+            ):
                 with ui.tooltip().classes(pin_color):
                     self._tooltip_for_port(pin)
 
     def _tooltip_for_port(self, port: DataPort):
-        ui.label(f'Desc: {port.description}')
-        ui.label(f'Flow: {port.flow_type.value}')
-        ui.label(f'Type: {port._data.get_stored_type().class_identity.registry_key}')
+        ui.label(f"Desc: {port.description}")
+        ui.label(f"Flow: {port.flow_type.value}")
+        ui.label(f"Type: {port._data.get_stored_type().class_identity.registry_key}")
 
     def _add_resize_handle(self, main_card: ui.card, wrapper: NodeWrapper):
         """Add a draggable resize handle to the bottom-right corner."""
-        
+
         # Resize handle element
-        with ui.element('div').classes('resize-handle').style(
-            'position: absolute; '
-            'bottom: 0; '
-            'right: 0; '
-            'width: 16px; '
-            'height: 16px; '
-            'cursor: nwse-resize; '
-            'background: linear-gradient(135deg, transparent 50%, rgba(128,128,128,0.3) 50%); '
-            'z-index: 1000;'
-        ) as handle:
-            
+        with (
+            ui.element("div")
+            .classes("resize-handle")
+            .style(
+                "position: absolute; "
+                "bottom: 0; "
+                "right: 0; "
+                "width: 16px; "
+                "height: 16px; "
+                "cursor: nwse-resize; "
+                "background: linear-gradient(135deg, transparent 50%, rgba(128,128,128,0.3) 50%); "
+                "z-index: 1000;"
+            ) as handle
+        ):
             # Add JavaScript for drag functionality
-            handle.on('mousedown', js_handler='''
+            handle.on(
+                "mousedown",
+                js_handler="""
                 (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -233,34 +216,29 @@ class NodeRenderer(BaseRenderer, ABC):
                     document.addEventListener('mousemove', onMouseMove);
                     document.addEventListener('mouseup', onMouseUp);
                 }
-            ''')
+            """,
+            )
 
-    def _render_errors_button(self, errors: List['HaywireException']):
+    def _render_errors_button(self, errors: List["HaywireException"]):
         """
         Render a button that shows runtime errors count and opens a popup with details.
-        
+
         Args:
             errors: List of runtime errors to display
         """
         error_count = len(errors)
-        
-        with ui.button(
-            icon='warning',
-            color='red'
-        ) as btn:
-            btn.classes('text-xl px-2 py-1')
-            btn.props('dense flat')
-            btn.style('position: absolute; top: -25px;')
-            ui.badge(str(error_count), color='red').props('floating')
-            
+
+        with ui.button(icon="warning", color="red") as btn:
+            btn.classes("text-xl px-2 py-1")
+            btn.props("dense flat")
+            btn.style("position: absolute; top: -25px;")
+            ui.badge(str(error_count), color="red").props("floating")
+
             with ui.menu().props('anchor="bottom left" self="top left"'):
-                with ui.card().classes('p-2 max-w-md max-h-96 overflow-auto'):                    
+                with ui.card().classes("p-2 max-w-md max-h-96 overflow-auto"):
                     for idx, error in enumerate(errors):
-                        with ui.expansion(
-                            f'{idx + 1}. {error.operation or "Error"}',
-                            icon='error'
-                        ).classes('w-full text-red-600'):
-                            ui.label(error.message).classes(
-                                'text-sm text-red-600 mb-2'
-                            )
+                        with ui.expansion(f"{idx + 1}. {error.operation or 'Error'}", icon="error").classes(
+                            "w-full text-red-600"
+                        ):
+                            ui.label(error.message).classes("text-sm text-red-600 mb-2")
                             error_render_detail(error)

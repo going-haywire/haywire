@@ -43,6 +43,7 @@ class DataTypeIdentity(BaseIdentity):
         icon_out_multi: Icon for multi-connection outlet pins
         widget: Widget for editing values
         default: Default value for this type
+        store_data: Whether to serialize field values 
         ui: Additional UI properties (dict)
         help_url: Documentation link
     """
@@ -58,7 +59,9 @@ class DataTypeIdentity(BaseIdentity):
     # Type specification:
     type_cls: IType = None  # The Python Type class
     default: dict = None
-    
+    store_data: bool = False
+    """flag to control whether field values are serialized"""
+
     # UI specification:
     color: str = '#757575'
     icon: str | None = None

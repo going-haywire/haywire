@@ -1055,7 +1055,7 @@ class UndoRedoTestAppWithCanvasManager:
         filepath = os.path.join(saves_dir, filename)
         
         # Save the graph
-        if self.graph.save_to_file(filepath):
+        if self.graph.save_to_file(filepath, include_data=True):
             ui.notify(
                 f"Graph saved successfully: {filename}", 
                 type='positive',

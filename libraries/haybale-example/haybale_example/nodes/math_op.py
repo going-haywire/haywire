@@ -19,8 +19,9 @@ from haywire.ui.console_bridge import console_print
     node_type=NodeType.DATA
 )
 class MathOP(BaseNode):
-    """Node that outputs a constant value"""
-    
+    """Node that outputs a constant value
+    """
+       
     def init(self):
         from haybale_example.types.math import MathOPSelector
         from haybale_core.types.specs import (
@@ -67,7 +68,7 @@ class MathOP(BaseNode):
                 result = value_a / value_b
             else:
                 result = 0.0
-        # result = 1 / 0
+        #result = 1 / 0
         self.out('result', result)
         return None
     

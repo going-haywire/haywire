@@ -142,6 +142,40 @@ class DataField(ABC, Generic[T]):
         """Mark field as clean (up-to-date)"""
         self.is_dirty = False
 
+    # ========================================================================
+    # SERIALIZATION - Stub methods for field value persistence
+    # ========================================================================
+
+    def to_dict(self) -> dict:
+        """
+        Serialize field value.
+
+        Default stub implementation - returns decorator default.
+        Subclasses override for actual serialization.
+
+        Returns:
+            dict: Serialized representation
+        """
+        # Default: return decorator default
+        if hasattr(self.type_cls, 'class_identity'):
+            default_dict = getattr(self.type_cls.class_identity, 'default', None)
+            if isinstance(default_dict, dict):
+                return default_dict
+        return {}
+
+    def from_dict(self, data: dict) -> None:
+        """
+        Deserialize field value.
+
+        Default stub implementation - resets to default.
+        Subclasses override for actual deserialization.
+
+        Args:
+            data: Dictionary containing serialized value
+        """
+        # Default: reset to initial state
+        self.reset()
+
 
 # ============================================================================
 # PRIMITIVEFIELD - Stores unwrapped primitives
@@ -201,6 +235,33 @@ class PrimitiveField(DataField[T]):
         """Check if has data"""
         return self._value is not None
 
+    # ========================================================================
+    # SERIALIZATION - Delegate to PrimitiveType classmethods
+    # ========================================================================
+
+    def to_dict(self) -> dict:
+        """
+        Serialize primitive field value.
+
+        Delegates to PrimitiveType.to_dict(value) classmethod.
+
+        Returns:
+            dict: Serialized representation
+        """
+        return self.type_cls.to_dict(self._value)
+
+    def from_dict(self, data: dict) -> None:
+        """
+        Deserialize primitive field value.
+
+        Delegates to PrimitiveType.from_dict(data) classmethod.
+
+        Args:
+            data: Dictionary containing serialized value
+        """
+        self._value = self.type_cls.from_dict(data)
+        self.is_dirty = True
+
 
 # ============================================================================
 # BASEFIELD - Stores BaseType instances
@@ -248,6 +309,33 @@ class BaseField(DataField[BaseType]):
     def has_data(self) -> bool:
         """Check if has data"""
         return self._container is not None
+
+    # ========================================================================
+    # SERIALIZATION - Delegate to BaseType methods
+    # ========================================================================
+
+    def to_dict(self) -> dict:
+        """
+        Serialize BaseType field value.
+
+        Delegates to instance's to_dict() method.
+
+        Returns:
+            dict: Serialized representation
+        """
+        return self._container.to_dict()
+
+    def from_dict(self, data: dict) -> None:
+        """
+        Deserialize BaseType field value.
+
+        Delegates to type's from_dict(data) classmethod.
+
+        Args:
+            data: Dictionary containing serialized value
+        """
+        self._container = self.type_cls.from_dict(data)
+        self.is_dirty = True
 
 
 # Set field_class attributes after classes are defined

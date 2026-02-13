@@ -448,37 +448,54 @@ class DataPort(DataTypeIdentity):
         
         # Create port
         port = cls(**port_kwargs)
-        
+
         # Let type configure port (for compound types, etc.)
         type_cls._configure_port(port)
-        
+
+        # Restore field data if present (backward compatible)
+        if 'field_data' in spec:
+            port._data.from_dict(spec['field_data'])
+
         return port
     
-    def to_dict(self) -> dict:
-        """Serialize port using field metadata for control"""
+    def to_dict(self, include_data: bool = True) -> dict:
+        """
+        Serialize port using field metadata for control.
+
+        Args:
+            include_data: If True, includes field values (when store_data is also True)
+
+        Returns:
+            dict: Serialized port representation
+        """
         result = {
             'kwargs': {},
             'recipe': serialize_element_type(self.type_cls)
         }
-        
+
         # Iterate over dataclass fields
         for f in fields(self):
             # Skip fields marked as non-serializable
             if not f.metadata.get('serialize', True):
                 continue
-                
+
             value = getattr(self, f.name)
-            
+
             # Skip if default value
             if f.default is not MISSING and value == f.default:
                 continue
             if f.default_factory is not MISSING and value == f.default_factory():
                 continue
-            
+
             # Transform enums
             if isinstance(value, FlowType):
                 value = value.value
-                
+
             result['kwargs'][f.name] = value
-        
+
+        # Optionally serialize field data
+        # Check BOTH include_data (user choice) AND store_data (type capability)
+        if include_data and self.store_data and self._data:
+            result['field_data'] = self._data.to_dict()
+
         return result
