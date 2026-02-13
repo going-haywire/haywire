@@ -54,7 +54,7 @@ class ControlSwitch(BaseNode):
 
         self.add(INT.as_outlet('test', label='Test'))
     
-    def on_init(self):
+    def post_init(self):
         self.hb_change()
 
     def hb_change(self, *args, **kwargs) -> None:

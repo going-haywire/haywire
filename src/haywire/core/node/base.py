@@ -1142,11 +1142,11 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         
         Only do operations in here that can also be deserialized from file. For
         any additional setup that cannot be done through deserialization, 
-        use the on_init() method.
+        use the post_init() method.
         """
         pass
 
-    def on_init(self) -> None:
+    def post_init(self) -> None:
         """
         Override this method in subclasses to implement custom 
         setup logic right after initialization.

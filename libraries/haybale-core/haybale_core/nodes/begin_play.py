@@ -30,7 +30,7 @@ class BeginPlayNode(BaseNode):
         # Data output
         self.add(FLOAT.as_outlet('timestamp', label='Start Time'))
     
-    def on_init(self):
+    def post_init(self):
         self.event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)
     
     def worker(self, context: ExecutionContext) -> str | None:

@@ -68,7 +68,7 @@ class CustomCallbackNode(BaseNode):
         # Data output
         self.add(FLOAT.as_outlet('payload', label='Payload'))
     
-    def on_init(self):
+    def post_init(self):
         # Set initial subscription
         self._update_subscription(None, None)
 

@@ -38,7 +38,7 @@ class MergeCallbackNode(BaseNode):
         
         self.hb_reconfigure(number_of_callbacks=1)
 
-    def on_init(self):
+    def post_init(self):
         # Set initial subscription
         self.cache.store = {}
         self.event_subscription = CallbackEvent(event_name=self.node_id)

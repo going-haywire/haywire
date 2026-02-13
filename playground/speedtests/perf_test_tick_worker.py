@@ -106,7 +106,7 @@ def run_performance_test():
         # Create fresh node instance for each test
         node = TickNode("tick_test_node", None)
         node.init()
-        node.on_init()
+        node.post_init()
         
         # Create mock context with trigger payload
         trigger = MockTrigger(payload={'delta_time': 0.016})
@@ -159,7 +159,7 @@ def run_comparison_test():
     
     node = TickNode("tick_test_node", None)
     node.init()
-    node.on_init()
+    node.post_init()
     
     trigger = MockTrigger(payload={'delta_time': 0.016})
     context = MockExecutionContext(trigger=trigger)

@@ -106,7 +106,7 @@ class StartWebcamStreamNode(BaseNode):
         self.add(EXEC.as_outlet('started', label='Started'))
         self.add(EXEC.as_outlet('stopped', label='Stopped'))
     
-    def on_init(self):
+    def post_init(self):
         """Initialize node state"""
         self.hb_capture: Optional[cv2.VideoCapture] = None
         self.hb_capture_thread: Optional[threading.Thread] = None

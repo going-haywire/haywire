@@ -50,7 +50,7 @@ class SimpleNode(BaseNode):
 
     # Method that is called right after initialize() to set up any additional state
     # that cannot be serialized.
-    def on_init(self):
+    def post_init(self):
         pass
 
     # Method that is called once when the node is started up in the VM.
@@ -100,7 +100,7 @@ class SimpleNode(BaseNode):
 ## Lifecyle of a Node
 
 1. **Initialization**: `init()` method is called to set up inlets and outlets.
-2. **Setup**: `on_init()` method is called for additional setup.
+2. **Setup**: `post_init()` method is called for additional setup.
 
 when the flow starts executing:
 3. **Startup**: `on_startup(context)` is called once when the node starts executing.

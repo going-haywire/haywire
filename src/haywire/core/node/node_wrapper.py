@@ -321,7 +321,7 @@ class NodeWrapper:
                 self._node_instance._initialize_from_dict(node_info)
             else:   
                 self._node_instance.init()
-            self._node_instance.on_init()
+            self._node_instance.post_init()
             self._state.is_initialized = True
             self._state.error_initialize = None
             return True

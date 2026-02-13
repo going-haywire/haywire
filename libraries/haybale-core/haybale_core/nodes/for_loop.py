@@ -97,7 +97,7 @@ class ForLoopNode(BaseNode):
             label='Completed'
         ))
 
-    def on_init(self):
+    def post_init(self):
         # Initialize loop state
         # Loop state variables
         self._current_index = 0

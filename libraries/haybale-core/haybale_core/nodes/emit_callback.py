@@ -72,7 +72,7 @@ class EmitCallbackNode(BaseNode):
         # Control output
         self.add(EXEC.as_outlet('exec', label='Then'))
 
-    def on_init(self):
+    def post_init(self):
         self.callback_index = 0
 
     def redraw(self, *args, **kwargs) -> None:

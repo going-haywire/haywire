@@ -201,9 +201,9 @@ self.settings['ui.node.bg_color']  # ~500-1000 ns (0.5-1 µs)
 
 **Don't use settings in hot paths within worker().**
 
-Instead, **cache resolved values** in `self.cache` during `on_init()` or at the beginning of `worker()`:
+Instead, **cache resolved values** in `self.cache` during `post_init()` or at the beginning of `worker()`:
 
-### Pattern 1: Cache in `on_init()`
+### Pattern 1: Cache in `post_init()`
 
 ```python
 @node(label="Fast Node")
@@ -213,7 +213,7 @@ class FastNode(BaseNode):
         self.add(FLOAT.as_inlet('value'))
         self.add(FLOAT.as_outlet('result'))
     
-    def on_init(self, context):
+    def post_init(self, context):
         """Called once before first execution."""
         # Cache settings that won't change during execution
         self.cache.verbose = self.settings['debug.verbose_logging']

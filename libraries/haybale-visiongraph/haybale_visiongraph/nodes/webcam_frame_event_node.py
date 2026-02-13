@@ -63,7 +63,7 @@ class WebcamFrameEventNode(BaseNode):
         self.add(INT.as_outlet('width', label='Width'))
         self.add(INT.as_outlet('height', label='Height'))
     
-    def on_init(self):
+    def post_init(self):
         """Initialize event subscription"""
         callback_name = self.value('callback_name')
         self.event_subscription = CallbackEvent(event_name=callback_name)

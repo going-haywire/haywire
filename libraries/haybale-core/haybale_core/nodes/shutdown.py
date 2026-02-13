@@ -68,7 +68,7 @@ class ShutdownNode(BaseNode):
         # Data output - timestamp of shutdown
         self.add(FLOAT.as_outlet('timestamp', label='Shutdown Time'))
     
-    def on_init(self):
+    def post_init(self):
         """Register for SHUTDOWN system events."""
         self.event_subscription = SystemEvent(SystemEventType.SHUTDOWN)
     

@@ -37,7 +37,7 @@ class TickNode(BaseNode):
         # Data output
         self.add(FLOAT.as_outlet('delta_time', label='Delta Time'))
     
-    def on_init(self):
+    def post_init(self):
         self.event_subscription = SystemEvent(SystemEventType.TICK)
 
     def worker(self, context: ExecutionContext) -> str | None:   

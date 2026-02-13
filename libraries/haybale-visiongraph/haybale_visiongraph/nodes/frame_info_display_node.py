@@ -78,7 +78,7 @@ class WebcamFrameInfoDisplayNode(BaseNode):
         self.add(INT.as_outlet('width', label='Width'))
         self.add(INT.as_outlet('height', label='Height'))
     
-    def on_init(self):
+    def post_init(self):
         """Initialize state"""
         self.hb_last_frame_number = 0
     
