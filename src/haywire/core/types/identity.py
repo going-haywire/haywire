@@ -8,6 +8,8 @@ with type specification for all data that can flow through ports.
 from dataclasses import dataclass, field
 from typing import Any
 
+from haywire.core.types.enums import StoreType
+
 from ..registry.identity import BaseIdentity
 
 @dataclass
@@ -40,8 +42,7 @@ class DataTypeIdentity(BaseIdentity):
         icon_out_multi: Icon for multi-connection outlet pins
         widget: Widget for editing values
         default: Default value for this type
-        store_data: Whether to serialize field values 
-        ui: Additional UI properties (dict)
+        store_type: when to serialize field values 
         help_url: Documentation link
     """
     # Inherited from BaseIdentity:
@@ -58,7 +59,7 @@ class DataTypeIdentity(BaseIdentity):
     # Type specification:
     type_cls: IType = None  # The Python Type class
     default: dict = None
-    store_data: bool = False
+    store_type: StoreType = StoreType.NOPE
     """flag to control whether field values are serialized"""
 
     # UI specification:
@@ -69,8 +70,7 @@ class DataTypeIdentity(BaseIdentity):
     icon_out: str | None = None
     icon_out_multi: str | None = None
 
-    widget: dict[str, Any] | None = None
-    widget_key: str | dict | None = None
+    widget_key: str | None = None
     widget_config: dict[str, Any] = field(default_factory=dict)
 
     help_url: str = ''

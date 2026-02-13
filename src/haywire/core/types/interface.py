@@ -2,6 +2,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
+from haywire.core.types.enums import StoreType
+
 if TYPE_CHECKING:
     from ..library.identity import LibraryIdentity
     from . import DataPort, DataField, PortSpec, DataTypeIdentity
@@ -203,95 +205,207 @@ class IType(ABC):
     def as_inlet(cls, id: str, **kwargs) -> 'PortSpec':
         """
         Create an inlet specification from this type.
-        
+
         Returns a PortSpec dict, not a port instance. The node's add()
         method uses this spec to instantiate the actual DataPort.
-        
+
+        Sets the store_type to WIDGET
+        (only stores widget data when saving the graph)
+
         Universal implementation that works for all type categories:
         - PrimitiveType: FLOAT.as_inlet('value', default=0.0)
         - BaseType: MeshData.as_inlet('mesh', default={...})
         - CompoundType: Uses parameterized syntax (see below)
-        
+
         For CompoundType, use parameterized syntax:
             ArrayType[FLOAT].as_inlet('numbers')
             PooledType[MeshData].as_inlet('meshes')
-                
+
         Args:
             id: Port identifier
-            **kwargs: Override identity attributes or add port-specific fields
-                - default: Default value for the inlet
-                - flow_type: FlowType enum value
-                - widget: widget configuration
-                - on_change: callback for value changes
-                - on_connect: callback for connections
-                - on_disconnect: callback for disconnections
-        
+            **kwargs: Override identity or port attributes. All values below
+                are inherited from the type's class_identity and can be
+                overridden per-port.
+
+            Identity:
+                label (str): Display name (auto-generated from id if omitted)
+                description (str): Human-readable description
+ 
+            Type configuration:
+                default (dict | primitive): Default value. Primitives auto-wrap
+                    to {'value': ...} for PrimitiveType subclasses
+                flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
+                    (default: DATA)
+                store_type (StoreType): OFF, WIDGET, LINK, or STORE
+                    (default: WIDGET)
+                color (str): Pin color as hex string (e.g. '#FF0000')
+                icon (str): Pin icon (sets all icon variants)
+                icon_in (str): Icon for inlet pin
+                icon_in_multi (str): Icon for multi-connection inlet pin
+                icon_out (str): Icon for outlet pin
+                icon_out_multi (str): Icon for multi-connection outlet pin
+                widget_key (str): Widget key for value editing (preferably use widget instead)
+                widget_config (dict): Widget configuration parameters (preferably use widget instead)
+                help_url (str): Documentation link
+
+            Port behavior:
+                widget (dict): Transient widget config dict with 'key' and
+                    optional 'config' fields. Decomposed into widget_key and
+                    widget_config during port creation. Use
+                    WidgetClass.config(**kwargs) to generate correct format
+                allow_multiple_connections (bool): Allow multiple incoming
+                    connections (default: False)
+                use_mode (str): 'optional' or 'required' (default: 'optional')
+                is_lazy (bool): Lazy evaluation (default: False)
+
+            Callbacks:
+                on_change (str): Node method name to call when value changes
+                on_connect (str): Node method name to call when connected
+                on_disconnect (str): Node method name to call when disconnected
+
         Returns:
             PortSpec dict for node.add()
-        
+
         Examples:
+        .. code-block:: python
             self.add(FLOAT.as_inlet('value', default=1.0))
+            self.add(FLOAT.as_inlet('threshold', default=0.5,
+                     widget=SliderWidget.config(min=0.0, max=1.0)))
             self.add(ArrayType[FLOAT].as_inlet('numbers', default=[1.0, 2.0]))
             self.add(PooledType[FLOAT].as_inlet('values'))
+            self.add(FLOAT.as_inlet('param', on_change='on_param_changed'))
         """
         from haywire.core.types.utils import create_port_spec
                 
         # Validate port type
         cls._validate_port_type('inlet')
         
-        return create_port_spec(cls, is_inlet=True, id=id, **kwargs)
+        return create_port_spec(cls, is_inlet=True, id=id, store_type=StoreType.WIDGET, **kwargs)
     
     @classmethod
     def as_outlet(cls, id: str, **kwargs) -> 'PortSpec':
         """
         Create an outlet specification from this type.
-        
+
         Returns a PortSpec dict, not a port instance. The node's add()
         method uses this spec to instantiate the actual DataPort.
-        See as_inlet() for more usage examples.
-        
+
+        Sets the store_type to STORE
+        (stores when saving the graph)
+
+        Note: Data-flow outlets automatically get allow_multiple_connections=True.
+
         Args:
             id: Port identifier
-            **kwargs: Override identity attributes
-                - default: Default value for the inlet
-                - flow_type: FlowType enum value
-                - is_loopback: bool for control flow outlets
-                - widget: widget configuration
-                - on_change: callback for value changes
-                - on_connect: callback for connections
-                - on_disconnect: callback for disconnections
-        
+
+            **kwargs: Override identity or port attributes. All values below
+                are inherited from the type's class_identity and can be
+                overridden per-port.
+
+            Identity:
+                label (str): Display name (auto-generated from id if omitted)
+                description (str): Human-readable description
+                deprecation_warning (str): Deprecation warning message
+
+            Type configuration:
+                default (dict | primitive): Default value. Primitives auto-wrap
+                    to {'value': ...} for PrimitiveType subclasses
+                flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
+                    (default: DATA)
+                store_type (StoreType): OFF, WIDGET, LINK, or STORE
+                    (default: STORE)
+                color (str): Pin color as hex string (e.g. '#FF0000')
+                icon (str): Pin icon (sets all icon variants)
+                icon_in (str): Icon for inlet pin
+                icon_in_multi (str): Icon for multi-connection inlet pin
+                icon_out (str): Icon for outlet pin
+                icon_out_multi (str): Icon for multi-connection outlet pin
+                widget_key (str): Widget key for value editing (preferably use widget instead)
+                widget_config (dict): Widget configuration parameters (preferably use widget instead)
+                help_url (str): Documentation link
+
+            Port behavior:
+                widget (dict): Transient widget config dict with 'key' and
+                    optional 'config' fields. Decomposed into widget_key and
+                    widget_config during port creation. Use
+                    WidgetClass.config(**kwargs) to generate correct format
+                allow_multiple_connections (bool): Allow multiple outgoing
+                    connections (default: True for DATA flow)
+                needs_loopback (bool): Set to True if the control flow from
+                    this outlet needs to loop back to the node (default: False)
+
+            Callbacks:
+                on_change (str): Node method name to call when value changes
+                on_connect (str): Node method name to call when connected
+                on_disconnect (str): Node method name to call when disconnected
+
         Returns:
             PortSpec dict for node.add()
-        
+
         Examples:
+        .. code-block:: python
             self.add(FLOAT.as_outlet('result'))
             self.add(ArrayType[FLOAT].as_outlet('sorted'))
+            self.add(CTRL.as_outlet('loop_body', needs_loopback=True))
         """
         from haywire.core.types.utils import create_port_spec
         
         # Validate port type
         cls._validate_port_type('outlet')
         
-        return create_port_spec(cls, is_inlet=False, id=id, **kwargs)
+        return create_port_spec(cls, is_inlet=False, id=id, store_type=StoreType.ALWAYS, **kwargs)
     
     @classmethod
     def as_config(cls, id: str, **kwargs) -> 'PortSpec':
         """
         Create a config inlet specification (no visible pin) from this type.
-        
+
         Config inlets are internal parameters that don't show as connection pins.
         Returns a PortSpec dict, not a port instance.
-        
+
+        Sets flow_type to NONE and store_type to STORE
+        (always stores when saving the graph)
+
         Args:
             id: Config identifier
-            **kwargs: Override identity attributes
-        
+                
+            **kwargs: Override identity or port attributes. All values below
+                are inherited from the type's class_identity and can be
+                overridden per-port.
+
+            Identity:
+                label (str): Display name (auto-generated from id if omitted)
+                description (str): Human-readable description
+                deprecation_warning (str) : Deprecation warning message
+
+            Type configuration:
+                default (dict | primitive): Default value. Primitives auto-wrap
+                    to {'value': ...} for PrimitiveType subclasses
+                store_type (StoreType): OFF, WIDGET, LINK, or STORE
+                    (default: STORE)
+                color (str): Pin color as hex string (e.g. '#FF0000')
+                widget_key (str): Widget key for value editing (preferably use widget instead)
+                widget_config (dict): Widget configuration parameters (preferably use widget instead)
+                help_url (str): Documentation link
+
+            Port behavior:
+                widget (dict): Transient widget config dict with 'key' and
+                    optional 'config' fields. Decomposed into widget_key and
+                    widget_config during port creation. Use
+                    WidgetClass.config(**kwargs) to generate correct format
+                use_mode (str): 'optional' or 'required' (default: 'optional')
+
+            Callbacks:
+                on_change (str): Node method name to call when value changes
+
         Returns:
             PortSpec dict for node.add() with flow_type=NONE
-        
+
         Examples:
+        .. code-block:: python
             self.add(FLOAT.as_config('threshold', default=0.5))
+            self.add(FLOAT.as_config('speed', default=1.0,
+                     widget=SliderWidget.config(min=0.0, max=10.0)))
             self.add(ArrayType[STRING].as_config('tags', default=['a', 'b']))
         """
         from haywire.core.types.enums import FlowType
@@ -302,7 +416,7 @@ class IType(ABC):
 
         kwargs['flow_type'] = FlowType.NONE
         
-        return create_port_spec(cls, is_inlet=True, id=id, **kwargs)
+        return create_port_spec(cls, is_inlet=True, id=id, store_type=StoreType.ALWAYS, **kwargs)
 
 
     # ========================================================================

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.types.enums import FlowType
+from haywire.core.types.enums import FlowType, StoreType
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
@@ -132,6 +132,12 @@ class DataPort(DataTypeIdentity):
     on_disconnect: Optional[str] = None
     """Callback identifier to invoke when connection is broken"""
 
+    widget: dict[str, Any] | None = field(
+        default=None, 
+        repr=False, 
+        metadata={'serialize': False})
+    """transient input only field. do not use other then in port creation"""
+
     # Runtime reference (not serialized)
     _wrapper: Optional['NodeWrapper'] = field(
         default=None, 
@@ -173,6 +179,8 @@ class DataPort(DataTypeIdentity):
             # Merge widget config into widget_config dict (widget config takes precedence)
             self.widget_config = {**self.widget_config, **widget_config}
             self.widget_key = widget_key
+
+            self.widget = None
 
         # Create data field if needed
         if self._data is None and self.type_cls is not None:
@@ -494,8 +502,10 @@ class DataPort(DataTypeIdentity):
             result['kwargs'][f.name] = value
 
         # Optionally serialize field data
-        # Check BOTH include_data (user choice) AND store_data (type capability)
-        if include_data and self.store_data and self._data:
-            result['field_data'] = self._data.to_dict()
+        if include_data and self._data:
+            if StoreType.ALWAYS in self.store_type or \
+                (StoreType.LINK in self.store_type and self.is_linked()) or \
+                (StoreType.WIDGET in self.store_type and self.widget_key is not None):
+                    result['field_data'] = self._data.to_dict()
 
         return result

@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntFlag
 
 class FlowType(Enum):
     """
@@ -23,3 +23,13 @@ class SocketType(Enum):
     """
     INLET = "inlet"
     OUTLET = "outlet"
+
+
+class StoreType(IntFlag):
+    """
+    Bitwise flags for store behavior.
+    """
+    NOPE    = 1
+    WIDGET  = 2
+    LINK    = 4    
+    ALWAYS  = WIDGET | LINK # 6

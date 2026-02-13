@@ -8,6 +8,7 @@ import numpy as np
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
+from haybale_visiongraph.types.frame_type import FRAME
 
 @node(
     label='Webcam Frame Info Display',
@@ -82,7 +83,6 @@ class WebcamFrameInfoDisplayNode(BaseNode):
     
     def worker(self, context: ExecutionContext, frame) -> Optional[str]:
         """Process and display frame information"""
-        from haybale_visiongraph.types.frame_type import FRAME
         
         # Validate frame
         if frame is None:
