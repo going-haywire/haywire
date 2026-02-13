@@ -183,7 +183,7 @@ class FlowAssemblyManager:
         
         for wrapper in graph.node_wrappers.values():
             # Check if node is an event node
-            if wrapper.node.behavior.node_type & NodeType.EVENT:
+            if NodeType.EVENT in wrapper.node.behavior.node_type:
                 event_nodes.append(wrapper.node)
         
         return event_nodes

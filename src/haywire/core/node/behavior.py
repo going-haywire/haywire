@@ -16,7 +16,7 @@ class NodeType(IntFlag):
     - CONTROL: 1 ctrl inlet / 1 ctrl outlet
     - EVENT: 0 ctrl inlet / 1 ctrl outlet
     - OUTPUT: 1 ctrl inlet / 0 ctrl outlet
-    - LOOPBACK: 1 ctrl inlet / 2+ ctrl outlets (with loopback)
+    - LOOPBACK: 1 ctrl inlet / 2+ ctrl outlets (one with, and one without loopback)
     
     Examples:
         @node(node_type=NodeType.EVENT)
@@ -24,11 +24,11 @@ class NodeType(IntFlag):
         @node(node_type=NodeType.LOOPBACK)
         @node(node_type=NodeType.DATA)
     """
-    DATA = auto()         # 0b00001 - Pure data processing
-    CONTROL = auto()      # 0b00010 - Standard control flow
-    EVENT = auto()        # 0b00100 - Flow entry point
-    OUTPUT = auto()       # 0b01000 - Flow termination
-    LOOPBACK = auto()     # 0b10000 - Loop constructs
+    DATA     = 1
+    CONTROL  = 2
+    EVENT    = 4  | CONTROL   # 6
+    OUTPUT   = 8  | CONTROL   # 10
+    LOOPBACK = 16 | CONTROL   # 18
 
 
 @dataclass(frozen=True)
@@ -95,27 +95,27 @@ class NodeBehaviorFlags:
     @property
     def is_control_node(self) -> bool:
         """True if node participates in control flow (CONTROL, EVENT, OUTPUT, LOOPBACK)."""
-        return bool(self.node_type & (NodeType.CONTROL | NodeType.EVENT | NodeType.OUTPUT | NodeType.LOOPBACK))
+        return bool(NodeType.CONTROL in self.node_type)
     
     @property
     def is_data_node(self) -> bool:
         """True if node is a pure data node (DATA)."""
-        return bool(self.node_type & NodeType.DATA)
+        return bool(NodeType.DATA in self.node_type)
     
     @property
     def is_event_node(self) -> bool:
         """True if node is a flow entry point (EVENT)."""
-        return bool(self.node_type & NodeType.EVENT)
+        return bool(NodeType.EVENT in self.node_type)
     
     @property
     def is_output_node(self) -> bool:
         """True if node is a flow termination (OUTPUT)."""
-        return bool(self.node_type & NodeType.OUTPUT)
+        return bool(NodeType.OUTPUT in self.node_type)
     
     @property
     def is_loopback(self) -> bool:
         """True if control flow can return to this node (LOOPBACK)."""
-        return bool(self.node_type & NodeType.LOOPBACK)
+        return bool(NodeType.LOOPBACK in self.node_type)
 
 
 # Fields that belong to NodeBehaviorFlags (used by @node decorator)

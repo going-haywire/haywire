@@ -337,7 +337,7 @@ class HaywireVM:
         # Case 1: No outlet specified
         if next_outlet_id is None:
             # Check if this is an output node
-            if node.behavior.node_type & NodeType.OUTPUT:
+            if NodeType.OUTPUT in node.behavior.node_type:
                 return (None, None)  # End flow
             else:
                 # Branch ended without output - try loopback

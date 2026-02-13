@@ -74,7 +74,7 @@ class ControlFlowBuilder:
             info = ControlNodeInfo(node=current)
             
             # Mark loopback nodes
-            if current.behavior.node_type & NodeType.LOOPBACK:
+            if NodeType.LOOPBACK in current.behavior.node_type:
                 info.is_loopback = True
                 logger.debug(f"Node {current.wrapper.node_id} is loopback")
             

@@ -73,14 +73,14 @@ class StructuralValidator(IStructuralValidator):
         node = wrapper.node
 
         # Check if this is an event node
-        if node.behavior.node_type & NodeType.EVENT:
+        if NodeType.EVENT in node.behavior.node_type:
             return self._validate_event_node(wrapper)
         
-        if node.behavior.node_type & NodeType.DATA:
+        if NodeType.DATA in node.behavior.node_type:
             return self._validate_data_node(wrapper)
         
         # Check if this is a loopback node
-        if node.behavior.node_type & NodeType.LOOPBACK:
+        if NodeType.LOOPBACK in node.behavior.node_type:
             return self._validate_loopback_node(wrapper)
         
         # Regular nodes pass by default
@@ -269,7 +269,7 @@ class StructuralValidator(IStructuralValidator):
             node = node_wrapper.node
             
             # Check if this is an event node
-            if node.behavior.node_type & NodeType.EVENT:
+            if NodeType.EVENT in node.behavior.node_type:
                 # Check individual validity
                 if not node_wrapper._state.is_structural:
                     errors.append(
@@ -345,7 +345,7 @@ class StructuralValidator(IStructuralValidator):
         """
         
         # Source must be an event node
-        if not (wrapper._source_wrapper.node.behavior.node_type & NodeType.EVENT):
+        if NodeType.EVENT not in wrapper._source_wrapper.node.behavior.node_type:
             return (
                 False,
                 f"Callback edge source must be an event node. "
