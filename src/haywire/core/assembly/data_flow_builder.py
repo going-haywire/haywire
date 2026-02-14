@@ -61,7 +61,7 @@ class DataFlowBuilder:
         # Get all data inlets on control node
         data_inlets = [
             port for port in control_node.ports.values()
-            if port.flow_type == FlowType.DATA and port.is_inlet
+            if port.flow_type == FlowType.DATA and port.is_inlet()
         ]
         
         if not data_inlets:
@@ -186,7 +186,7 @@ class DataFlowBuilder:
                     # Continue backpropagating from this node's inlets
                     source_inlets = [
                         port for port in source_node.ports.values()
-                        if port.flow_type == FlowType.DATA and port.is_inlet
+                        if port.flow_type == FlowType.DATA and port.is_inlet()
                     ]
                     
                     for inlet in source_inlets:
@@ -226,7 +226,7 @@ class DataFlowBuilder:
             # Get all data outlets
             outlets = [
                 port for port in node.ports.values()
-                if port.flow_type == FlowType.DATA and port.is_outlet
+                if port.flow_type == FlowType.DATA and port.is_outlet()
             ]
             
             for outlet in outlets:
@@ -296,7 +296,7 @@ class DataFlowBuilder:
             # Get all data outlets
             outlets = [
                 port for port in node.ports.values()
-                if port.flow_type == FlowType.DATA and port.is_outlet
+                if port.flow_type == FlowType.DATA and port.is_outlet()
             ]
             
             for outlet in outlets:

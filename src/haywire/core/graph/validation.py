@@ -11,16 +11,12 @@ Internal component used by BaseGraph. Manages:
 import threading
 import time
 import logging
-from typing import Dict, List, Set, Callable, Optional, Any, TYPE_CHECKING
-
-from haywire.core.node import node_wrapper
+from typing import Dict, List, Callable, Optional, Any, TYPE_CHECKING
 
 from .types import ChangeReason, ValidationResult
 
 if TYPE_CHECKING:
     from .base import BaseGraph
-    from ..node.node_wrapper import NodeWrapper
-    from ..edge.edge_wrapper import EdgeWrapper
 
 logger = logging.getLogger(__name__)
 

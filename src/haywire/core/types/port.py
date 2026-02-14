@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.types.enums import FlowType, StoreStrategy
+from haywire.core.types.enums import FlowType, PortType, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
@@ -53,6 +53,8 @@ class DataPort(DataTypeIdentity):
     
     # Port identifier within node (different from registry_id!)
     id: str = ''
+
+    port_type: PortType = PortType.UNDEFINED
         
     # Runtime data field (created by type in __post_init__)
     _data: Optional[DataField] = field(
@@ -83,10 +85,6 @@ class DataPort(DataTypeIdentity):
     allow_multiple_connections: bool = False  
     """Whether multiple connections are allowed"""
 
-    # Direction flag
-    is_inlet: bool = False
-    """True for inlet, False for outlet"""
-
     # Inlet-specific
     use_mode: str = 'optional'
     is_lazy: bool = False
@@ -94,6 +92,18 @@ class DataPort(DataTypeIdentity):
     # Internal: Store default override for field creation
     default: Optional[Dict[str, Any]] = field(default=None, repr=False)
 
+    def is_config(self) -> bool:
+        """True for outlet, False for anything else"""
+        return self.port_type == PortType.CONFIG
+    
+    def is_outlet(self) -> bool:
+        """True for outlet, False for anything else"""
+        return self.port_type == PortType.OUTLET
+
+    def is_inlet(self) -> bool:
+        """True for inlet, False for anything else"""
+        return self.port_type == PortType.INLET
+    
     # ========================================================================
     # HIERARCHY & ORGANIZATION
     # ========================================================================
@@ -195,7 +205,7 @@ class DataPort(DataTypeIdentity):
             )
         
         # Outlets allow multiple connections by default for data flow
-        if self.is_outlet and self.flow_type == FlowType.DATA:
+        if self.is_outlet() and self.flow_type == FlowType.DATA:
             self.allow_multiple_connections = True
 
     def _trigger_callback(self, callback_type: str, *args):
@@ -254,7 +264,7 @@ class DataPort(DataTypeIdentity):
         if self._pipes is not None:
             pass
             self._pipes.propagate(new_value)
-        if self.is_inlet:
+        if self.is_inlet():
             self._mark_as_data_dirty()
 
     def has_pin(self) -> bool:
@@ -263,12 +273,7 @@ class DataPort(DataTypeIdentity):
         TODO: Not shure if this approach is correct
         """
         return self.flow_type != FlowType.NONE
-    
-    @property
-    def is_outlet(self) -> bool:
-        """Check if this is an outlet"""
-        return not self.is_inlet
-    
+
     def is_linked(self) -> bool:
         """Check if port has any linked edges"""
         return len(self._edge_wrappers) > 0
@@ -382,7 +387,7 @@ class DataPort(DataTypeIdentity):
         If outlet and unlinked, clear pipes.
         Called during graph housekeeping phase.
         """
-        if self.is_outlet:
+        if self.is_outlet():
             if self.is_linked():
                 if self._pipes is None:
                     self._pipes = Pipes()
@@ -413,7 +418,7 @@ class DataPort(DataTypeIdentity):
     
     def get_control_outlets(self) -> bool:
         """Check if this port is a control outlet"""
-        return self.flow_type == FlowType.CONTROL and self.is_outlet
+        return self.flow_type == FlowType.CONTROL and self.is_outlet()
 
     # ========================================================================
     # FACTORY
@@ -452,10 +457,12 @@ class DataPort(DataTypeIdentity):
         
         # Build port kwargs - spec already contains merged identity + user values
         flow_type = FlowType(kwargs.pop('flow_type', FlowType.DATA.value))
+        port_type = PortType(kwargs.pop('port_type', PortType.UNDEFINED.value))
         
         port_kwargs = {
             **kwargs,                # Spec already has identity + user overrides
             'flow_type': flow_type,
+            'port_type': port_type,
             'type_cls': type_cls,
             '_wrapper': wrapper, 
             '_node': node
@@ -504,6 +511,8 @@ class DataPort(DataTypeIdentity):
 
             # Transform enums
             if isinstance(value, FlowType):
+                value = value.value
+            if isinstance(value, PortType):
                 value = value.value
 
             result['kwargs'][f.name] = value

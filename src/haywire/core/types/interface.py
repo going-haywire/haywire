@@ -280,7 +280,12 @@ class IType(ABC):
         # Validate port type
         cls._validate_port_type(PortType.INLET)
         
-        return create_port_spec(cls, is_inlet=True, id=id, store_strategy=StoreStrategy.HAS_WIDGET, **kwargs)
+        return create_port_spec(cls, 
+            id=id, 
+            port_type=PortType.INLET, 
+            store_strategy=StoreStrategy.HAS_WIDGET, 
+            **kwargs)
+    
     
     @classmethod
     def as_outlet(cls, id: str, **kwargs) -> 'PortSpec':
@@ -353,7 +358,11 @@ class IType(ABC):
         # Validate port type
         cls._validate_port_type(PortType.OUTLET)
         
-        return create_port_spec(cls, is_inlet=False, id=id, store_strategy=StoreStrategy.ALWAYS, **kwargs)
+        return create_port_spec(cls, 
+            id=id, 
+            port_type=PortType.OUTLET, 
+            store_strategy=StoreStrategy.ALWAYS, 
+            **kwargs)
     
     @classmethod
     def as_config(cls, id: str, **kwargs) -> 'PortSpec':
@@ -416,7 +425,11 @@ class IType(ABC):
 
         kwargs['flow_type'] = FlowType.NONE
         
-        return create_port_spec(cls, is_inlet=True, id=id, store_strategy=StoreStrategy.ALWAYS, **kwargs)
+        return create_port_spec(cls, 
+            id=id, 
+            port_type=PortType.CONFIG, 
+            store_strategy=StoreStrategy.ALWAYS, 
+            **kwargs)
 
 
     # ========================================================================

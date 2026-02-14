@@ -92,7 +92,7 @@ class ErrorNodeRenderer(NodeRenderer):
                     if node.ports:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.ports.values():
-                            if inlet.is_inlet:
+                            if inlet.is_inlet():
                                 self._render_inlet(inlet, wrapper)
 
                 # Right column: Outlets
@@ -100,11 +100,11 @@ class ErrorNodeRenderer(NodeRenderer):
                     if node.ports:
                         ui.label('Outputs').classes('font-bold text-sm')
                         for outlet in node.ports.values():
-                            if outlet.is_outlet:
+                            if outlet.is_outlet():
                                 self._render_outlet(outlet, wrapper)
 
             # Footer with port counts
             with ui.row().classes('w-full justify-between mt-2'):
-                ui.label(f'↓ {len([p for p in node.ports.values() if p.is_inlet])}').classes('text-caption')
-                ui.label(f'↑ {len([p for p in node.ports.values() if p.is_outlet])}').classes('text-caption')
+                ui.label(f'↓ {len([p for p in node.ports.values() if p.is_inlet()])}').classes('text-caption')
+                ui.label(f'↑ {len([p for p in node.ports.values() if p.is_outlet()])}').classes('text-caption')
         

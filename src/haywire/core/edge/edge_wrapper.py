@@ -413,7 +413,7 @@ class EdgeWrapper:
                 )
 
             # Check if this is an inlet (sanity check)
-            if self._outlet_port.is_inlet == self._inlet_port.is_inlet:
+            if self._outlet_port.is_inlet() == self._inlet_port.is_inlet():
                 raise Exception(
                     f"Cannot connect inlet to inlet or outlet to outlet"
                 )
@@ -574,12 +574,12 @@ class EdgeWrapper:
         is_linked = self._state.is_linked
 
         if port._is_linked_to(self._connection_uuid):
-            if port.is_inlet:
+            if port.is_inlet():
                 self._state.is_inlet_linked = True
             else:
                 self._state.is_outlet_linked = True
         else:
-            if port.is_inlet:
+            if port.is_inlet():
                 self._state.is_inlet_linked = False
             else:
                 self._state.is_outlet_linked = False

@@ -601,7 +601,7 @@ class NodeData:
         port = self.ports.get(id)
         if not port:
             raise KeyError(f"Port '{id}' not found")
-        if port.is_inlet:
+        if port.is_inlet():
             raise ValueError(f"Port '{id}' is not an outlet")
         
         port.set_value(value)
@@ -767,7 +767,7 @@ class NodeData:
         """
         return [
             port for port in self.ports.values()
-            if port.flow_type == FlowType.CONTROL and port.is_outlet
+            if port.flow_type == FlowType.CONTROL and port.is_outlet()
         ]
 
     def get_ports(self, 
@@ -796,8 +796,8 @@ class NodeData:
         """
         return [
             port for port in self.ports.values()
-            if (is_inlet is None or is_inlet == port.is_inlet)
-            and (is_outlet is None or is_outlet == port.is_outlet)
+            if (is_inlet is None or is_inlet == port.is_inlet())
+            and (is_outlet is None or is_outlet == port.is_outlet())
             and (has_pin is None or has_pin == port.has_pin())
             and (is_flow_type is None or is_flow_type == port.flow_type)
             and (is_not_flow_type is None or is_not_flow_type != port.flow_type)
@@ -826,7 +826,7 @@ class NodeData:
         
         for port in self.ports.values():
             # Skip if wrong direction
-            if port.is_inlet != is_inlet:
+            if port.is_inlet() == is_inlet:
                 continue
             
             # Skip section markers and group ports

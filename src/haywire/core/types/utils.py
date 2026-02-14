@@ -3,6 +3,8 @@ from typing_extensions import NotRequired, TypedDict
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
 
+from haywire.core.types.enums import PortType
+
 
 from .interface import IType
 
@@ -39,7 +41,7 @@ class PortSpec(TypedDict):
 
 def create_port_spec(
     type_cls: type['IType'],
-    is_inlet: bool,
+    port_type: PortType,
     id: str,
     **kwargs
 ) -> dict:
@@ -48,7 +50,7 @@ def create_port_spec(
     
     Args:
         type_cls: The IType class (FLOAT, ArrayType[STRING], etc.)
-        is_inlet: True for inlet, False for outlet
+        port_type: port type
         id: Port identifier
         **kwargs: Port configuration (label, default, widget, etc.)
     
@@ -62,7 +64,7 @@ def create_port_spec(
         kwargs['default'] = normalize_and_validate_default(
             kwargs['default'],
             type_cls,
-            context=f"{'as_inlet' if is_inlet else 'as_outlet'} for port '{id}'"
+            context=f"as_{port_type.value} for port '{id}'"
         )
         
     # Build spec: identity as defaults, kwargs override
@@ -70,7 +72,7 @@ def create_port_spec(
     merged_kwargs = {
         **asdict(type_cls.class_identity),  # Identity defaults
         'id': id,
-        'is_inlet': is_inlet,
+        'port_type': port_type,
         **kwargs                             # User overrides
     }
     

@@ -61,7 +61,7 @@ class ExampleNodeRenderer(NodeRenderer):
                     if node.ports:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.ports.values():
-                            if inlet.is_inlet:
+                            if inlet.is_inlet():
                                 with ui.row().classes('w-full items-center gap-1'):
                                     ui.label(inlet.label).classes('text-xs')
                                     if inlet.widget_key:
@@ -72,7 +72,7 @@ class ExampleNodeRenderer(NodeRenderer):
                     if node.ports:
                         ui.label('Outputs').classes('font-bold text-sm')
                         for outlet in node.ports.values():
-                            if outlet.is_outlet:
+                            if outlet.is_outlet():
                                 ui.label(outlet.label).classes('text-xs text-right')
         
     

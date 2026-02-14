@@ -20,6 +20,7 @@ class PortType(Enum):
     - OUTLET: Sends data/control via Outlets
     - CONFIG: Has neither Inlets nor Outlets
     """
+    UNDEFINED = "undefined"
     INLET = "inlet"
     OUTLET = "outlet"
     CONFIG = "config"

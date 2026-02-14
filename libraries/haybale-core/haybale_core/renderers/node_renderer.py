@@ -51,11 +51,11 @@ class NodeRenderer(BaseRenderer, ABC):
     def _render_pin(self, pin: DataPort, wrapper: NodeWrapper, direction: str = "left"):
         """Render a pin with connection system compatibility."""
         # Create unique pin ID and determine port type for connection system
-        pin_direction = "inlet" if pin.is_inlet else "outlet"
+        pin_direction = "inlet" if pin.is_inlet() else "outlet"
         pin_uuid = generate_pin_uuid(wrapper.node_id, pin.id)
 
         # Calculate 2D direction vector components based on pin type
-        if pin.is_inlet:
+        if pin.is_inlet():
             # Inlets point left (negative X)
             dir_x, dir_y = "-1", "0"
         else:
@@ -76,7 +76,7 @@ class NodeRenderer(BaseRenderer, ABC):
             # Get control flow color from theme
             ctrl_color = pin.color
             # Pin connector
-            if pin.is_inlet:
+            if pin.is_inlet():
                 ctrl_icon = ThemePalette.get(ThemeKey.UI_PORT_ICON_IN_CTRL, pin.icon_in, ICONS.JOIN_LEFT)
             else:
                 ctrl_icon = ThemePalette.get(ThemeKey.UI_PORT_ICON_OUT_CTRL, pin.icon_out, ICONS.JOIN_RIGHT)
@@ -92,7 +92,7 @@ class NodeRenderer(BaseRenderer, ABC):
         elif pin.flow_type == FlowType.CALLBACK:
             # Get callback flow color from theme
             callback_color = pin.color
-            if pin.is_inlet:
+            if pin.is_inlet():
                 callback_icon = ThemePalette.get(
                     ThemeKey.UI_PORT_ICON_IN_CALLBACK, pin.icon_in, ICONS.SWIPE_LEFT_ALT
                 )
@@ -114,7 +114,7 @@ class NodeRenderer(BaseRenderer, ABC):
             pin_color = pin._data.get_stored_type().class_identity.color
             pin_data_type = pin._data.get_stored_type().class_identity.registry_key
             # Get pin color: try data type specific, use pin.color as preference
-            if pin.is_inlet:
+            if pin.is_inlet():
                 if pin.allow_multiple_connections:
                     if issubclass(pin._data.get_stored_type(), CompoundType):
                         data_icon = ThemePalette.get(

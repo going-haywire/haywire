@@ -113,7 +113,7 @@ class DefaultNodeRenderer(NodeRenderer):
         """
         for port in ports:
             # Skip ports of wrong direction
-            if port.is_inlet != is_inlet:
+            if port.is_inlet() != is_inlet:
                 continue
             
             # Skip child ports (they're rendered inside their parent group)
@@ -165,7 +165,7 @@ class DefaultNodeRenderer(NodeRenderer):
                 # Find and render direct children
                 children = [
                     port for port in all_ports
-                    if port.parent_group == group_port.id and port.is_inlet == is_inlet
+                    if port.parent_group == group_port.id and port.is_inlet() == is_inlet
                 ]
                 
                 for child_port in sorted(children, key=lambda p: p.order):
