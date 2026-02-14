@@ -10,7 +10,7 @@ from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
 from haywire.core.settings.builtins import register_node_instance_settings
 
-from ..types.enums import FlowType
+from ..types.enums import FlowType, PortType
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
 from ..types import DataPort
@@ -758,21 +758,8 @@ class NodeData:
         
         return self.value(group_id)
 
-    def get_control_outlets(self) -> list[DataPort]:
-        """
-        Get all control outlet ports (EXEC type outlets).
-        
-        Returns:
-            List of control outlet ports
-        """
-        return [
-            port for port in self.ports.values()
-            if port.flow_type == FlowType.CONTROL and port.is_outlet()
-        ]
-
     def get_ports(self, 
-                    is_inlet: Optional[bool] = None,
-                    is_outlet: Optional[bool] = None,
+                    is_port_type: Optional[PortType] = None,
                     has_pin: Optional[bool] = None,
                     is_flow_type: Optional[FlowType] = None,
                     is_not_flow_type: Optional[FlowType] = None,
@@ -784,8 +771,7 @@ class NodeData:
         If all parameters are None, returns all ports.
         
         Args:
-            is_inlet: Filter by inlet (True) or outlet (False). None = no filter.
-            is_outlet: Filter by outlet (True) or inlet (False). None = no filter.
+            is_port_type: Filter by PortType. None = no filter.
             is_flow_type: Filter by flow type (CONTROL, DATA, CALLBACK, NONE). None = no filter.
             is_not_flow_type: Exclude this flow type. None = no filter.
             has_widget: Filter by presence of widget. None = no filter.
@@ -796,8 +782,7 @@ class NodeData:
         """
         return [
             port for port in self.ports.values()
-            if (is_inlet is None or is_inlet == port.is_inlet())
-            and (is_outlet is None or is_outlet == port.is_outlet())
+            if (is_port_type is None or is_port_type == port.port_type)
             and (has_pin is None or has_pin == port.has_pin())
             and (is_flow_type is None or is_flow_type == port.flow_type)
             and (is_not_flow_type is None or is_not_flow_type != port.flow_type)

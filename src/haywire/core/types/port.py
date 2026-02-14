@@ -416,10 +416,6 @@ class DataPort(DataTypeIdentity):
         """Check if this is a data pin"""
         return self.flow_type == FlowType.DATA
     
-    def get_control_outlets(self) -> bool:
-        """Check if this port is a control outlet"""
-        return self.flow_type == FlowType.CONTROL and self.is_outlet()
-
     # ========================================================================
     # FACTORY
     # ========================================================================

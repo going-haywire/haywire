@@ -9,6 +9,8 @@ from __future__ import annotations
 from typing import Dict, List, Set, TYPE_CHECKING
 import logging
 
+from haywire.core.types.enums import FlowType, PortType
+
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.base import BaseNode
@@ -78,7 +80,7 @@ class ControlFlowBuilder:
                 logger.debug(f"Node {current.wrapper.node_id} is loopback")
             
             # Get all control outlet ports
-            control_outlets = current.get_control_outlets()
+            control_outlets = current.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL)
             
             # Map each outlet to its connected node
             for outlet in control_outlets:

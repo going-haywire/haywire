@@ -14,6 +14,7 @@ import logging
 
 from haywire.core.types import FlowType
 from haywire.core.node.behavior import NodeType
+from haywire.core.types.enums import PortType
 from haywire.core.validation.interface import IStructuralValidator
 
 if TYPE_CHECKING:
@@ -108,7 +109,7 @@ class StructuralValidator(IStructuralValidator):
         node = wrapper.node
         
         # Check for inlets with pins (not allowed)
-        inlets = node.get_ports(is_inlet=True, has_pin=True)
+        inlets = node.get_ports(is_port_type=PortType.INLET, has_pin=True)
         if len(inlets) > 0:
             return (
                 False,
@@ -132,7 +133,7 @@ class StructuralValidator(IStructuralValidator):
             )
         
         # Check for at least one control outlet  
-        if len(node.get_control_outlets()) == 0:
+        if len(node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL)) == 0:
             return (
                 False,
                 "Event node must have at least one control outlet",
@@ -176,7 +177,7 @@ class StructuralValidator(IStructuralValidator):
             )
         
         # Check for at least one data outlet  
-        if len(node.get_ports(is_outlet=True, is_flow_type=FlowType.DATA)) == 0:
+        if len(node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.DATA)) == 0:
             return (
                 False,
                 "Data nodes must have at least one data outlet",
@@ -207,7 +208,7 @@ class StructuralValidator(IStructuralValidator):
             Suggestions is a list of actionable fixes.
         """
         node = wrapper.node
-        control_outlets = node.get_ports(is_outlet=True, is_flow_type=FlowType.CONTROL)
+        control_outlets = node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL)
         
         # Must have at least 2 control outlets (one for loop, one for exit)
         if len(control_outlets) < 2:
