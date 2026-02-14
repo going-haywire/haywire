@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from haywire.core.types.enums import StoreStrategy
+from haywire.core.types.enums import PortType, StoreStrategy
 
 if TYPE_CHECKING:
     from ..library.identity import LibraryIdentity
@@ -153,7 +153,7 @@ class IType(ABC):
     # ========================================================================
     
     @classmethod
-    def _validate_port_type(cls, port_type: str) -> None:
+    def _validate_port_type(cls, port_type: PortType) -> None:
         """
         Validate if this type supports the given port type.
         
@@ -161,7 +161,7 @@ class IType(ABC):
         Default implementation allows all port types.
         
         Args:
-            port_type: 'inlet', 'outlet', or 'config'
+            port_type: PortType
         
         Raises:
             ValueError: If this type doesn't support the port type
@@ -170,8 +170,8 @@ class IType(ABC):
             # Override to restrict
             class PooledType(CompoundType):
                 @classmethod
-                def _validate_port_type(cls, port_type: str):
-                    if port_type == 'outlet':
+                def _validate_port_type(cls, port_type: PortType):
+                    if port_type != PortType.INLET:
                         raise ValueError("PooledType only supports inlets")
         """
         pass  # Default: all port types allowed
@@ -278,7 +278,7 @@ class IType(ABC):
         from haywire.core.types.utils import create_port_spec
                 
         # Validate port type
-        cls._validate_port_type('inlet')
+        cls._validate_port_type(PortType.INLET)
         
         return create_port_spec(cls, is_inlet=True, id=id, store_strategy=StoreStrategy.HAS_WIDGET, **kwargs)
     
@@ -351,7 +351,7 @@ class IType(ABC):
         from haywire.core.types.utils import create_port_spec
         
         # Validate port type
-        cls._validate_port_type('outlet')
+        cls._validate_port_type(PortType.OUTLET)
         
         return create_port_spec(cls, is_inlet=False, id=id, store_strategy=StoreStrategy.ALWAYS, **kwargs)
     
@@ -412,7 +412,7 @@ class IType(ABC):
         from haywire.core.types.utils import create_port_spec
                 
         # Validate port type
-        cls._validate_port_type('config')
+        cls._validate_port_type(PortType.CONFIG)
 
         kwargs['flow_type'] = FlowType.NONE
         

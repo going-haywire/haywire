@@ -217,7 +217,6 @@ class DICT(PrimitiveType[dict]):
     label='Execution Signal',
     description='Signal for controlling execution flow between nodes',
     color="#004cff",
-    widget=None,
     default={},
 )
 class EXEC(BaseType):
@@ -238,7 +237,6 @@ class EXEC(BaseType):
     label='Callback Signal',
     description='Signal for callback execution between nodes',
     color="#ff3c00",
-    widget=None,
     default={},
 )
 class CALLBACK(STRING):

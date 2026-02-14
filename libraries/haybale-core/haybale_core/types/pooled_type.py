@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, TypeVar
 
 from haywire.core.types import type, FlowType, CompoundType, DataField
+from haywire.core.types.enums import PortType
 
 T = TypeVar('T')
 
@@ -45,8 +46,10 @@ class PooledType(CompoundType[T]):
     It sets the pin to allow multiple connections automatically. 
 
     IMPORTANT:
-    It inherits the element type's flow type (if it is set). 
-    !!Setting the flow type in the decorator or as_inlet/as_outlet has no effect!!
+        It inherits the element type's flow_type (if it is set). 
+        Setting the flow type here in the 
+            * as_inlet() has no effect
+        if the element type has a flow_type defined.
     
     Storage: PooledField stores Dict[str, T] with unwrapped values
     Worker Access: Dict[str, T] or List[T]
@@ -64,18 +67,17 @@ class PooledType(CompoundType[T]):
     
 
     @classmethod
-    def _validate_port_type(cls, port_type: str) -> None:
+    def _validate_port_type(cls, port_type: PortType) -> None:
         """
         Override: Pooled only supports inlets.
         
         Pooled fields aggregate multiple inputs - they can't be outputs.
         """
-        if port_type == 'outlet':
+        if port_type != PortType.INLET:
             raise ValueError(
-                "PooledType cannot be used with outlets. "
+                "PooledType cannot be used with outlets or configs. "
                 "Pooled fields are for aggregating multiple inputs only."
             )
-        # inlet and config are allowed (no error)
     
     @classmethod
     def _configure_port(cls, port, **context) -> None:
