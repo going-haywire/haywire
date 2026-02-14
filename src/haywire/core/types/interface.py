@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from haywire.core.types.enums import StoreType
+from haywire.core.types.enums import StoreStrategy
 
 if TYPE_CHECKING:
     from ..library.identity import LibraryIdentity
@@ -209,7 +209,7 @@ class IType(ABC):
         Returns a PortSpec dict, not a port instance. The node's add()
         method uses this spec to instantiate the actual DataPort.
 
-        Sets the store_type to WIDGET
+        Sets the store_strategy to WIDGET
         (only stores widget data when saving the graph)
 
         Universal implementation that works for all type categories:
@@ -236,7 +236,7 @@ class IType(ABC):
                     to {'value': ...} for PrimitiveType subclasses
                 flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
                     (default: DATA)
-                store_type (StoreType): OFF, WIDGET, LINK, or STORE
+                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
                     (default: WIDGET)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
@@ -280,7 +280,7 @@ class IType(ABC):
         # Validate port type
         cls._validate_port_type('inlet')
         
-        return create_port_spec(cls, is_inlet=True, id=id, store_type=StoreType.WIDGET, **kwargs)
+        return create_port_spec(cls, is_inlet=True, id=id, store_strategy=StoreStrategy.HAS_WIDGET, **kwargs)
     
     @classmethod
     def as_outlet(cls, id: str, **kwargs) -> 'PortSpec':
@@ -290,7 +290,7 @@ class IType(ABC):
         Returns a PortSpec dict, not a port instance. The node's add()
         method uses this spec to instantiate the actual DataPort.
 
-        Sets the store_type to STORE
+        Sets the store_strategy to STORE
         (stores when saving the graph)
 
         Note: Data-flow outlets automatically get allow_multiple_connections=True.
@@ -312,8 +312,8 @@ class IType(ABC):
                     to {'value': ...} for PrimitiveType subclasses
                 flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
                     (default: DATA)
-                store_type (StoreType): OFF, WIDGET, LINK, or STORE
-                    (default: STORE)
+                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
+                    (default: ALWAYS)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
                 icon_in (str): Icon for inlet pin
@@ -353,7 +353,7 @@ class IType(ABC):
         # Validate port type
         cls._validate_port_type('outlet')
         
-        return create_port_spec(cls, is_inlet=False, id=id, store_type=StoreType.ALWAYS, **kwargs)
+        return create_port_spec(cls, is_inlet=False, id=id, store_strategy=StoreStrategy.ALWAYS, **kwargs)
     
     @classmethod
     def as_config(cls, id: str, **kwargs) -> 'PortSpec':
@@ -363,7 +363,7 @@ class IType(ABC):
         Config inlets are internal parameters that don't show as connection pins.
         Returns a PortSpec dict, not a port instance.
 
-        Sets flow_type to NONE and store_type to STORE
+        Sets flow_type to NONE and store_strategy to STORE
         (always stores when saving the graph)
 
         Args:
@@ -381,8 +381,8 @@ class IType(ABC):
             Type configuration:
                 default (dict | primitive): Default value. Primitives auto-wrap
                     to {'value': ...} for PrimitiveType subclasses
-                store_type (StoreType): OFF, WIDGET, LINK, or STORE
-                    (default: STORE)
+                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
+                    (default: ALWAYS)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 widget_key (str): Widget key for value editing (preferably use widget instead)
                 widget_config (dict): Widget configuration parameters (preferably use widget instead)
@@ -416,7 +416,7 @@ class IType(ABC):
 
         kwargs['flow_type'] = FlowType.NONE
         
-        return create_port_spec(cls, is_inlet=True, id=id, store_type=StoreType.ALWAYS, **kwargs)
+        return create_port_spec(cls, is_inlet=True, id=id, store_strategy=StoreStrategy.ALWAYS, **kwargs)
 
 
     # ========================================================================

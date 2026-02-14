@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.types.enums import FlowType, StoreType
+from haywire.core.types.enums import FlowType, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
@@ -118,6 +118,11 @@ class DataPort(DataTypeIdentity):
     
     _is_dirty_structural: bool = False
     """Internal flag to track if port link has structurally changed"""
+
+    _is_node_set: bool = field(
+        default=False, 
+        metadata={'serialize': False}) 
+    """Internal flag to indicate if the value was set via the node"""
 
     # ========================================================================
     # CALLBACKS
@@ -240,6 +245,8 @@ class DataPort(DataTypeIdentity):
 
         self._data.set_value(new_value, source_id=connection_uuid)
 
+        # this flag should only be set by the nodes self.out() method to True 
+        self._is_node_set = False
 
         # Trigger on_change callback if value actually changed
         if self.on_change is not None:
@@ -503,9 +510,11 @@ class DataPort(DataTypeIdentity):
 
         # Optionally serialize field data
         if include_data and self._data:
-            if StoreType.ALWAYS in self.store_type or \
-                (StoreType.LINK in self.store_type and self.is_linked()) or \
-                (StoreType.WIDGET in self.store_type and self.widget_key is not None):
+            if StoreStrategy.NEVER not in self.store_strategy or \
+                (StoreStrategy.ALWAYS in self.store_strategy) or \
+                (StoreStrategy.WHEN_LINKED in self.store_strategy and self.is_linked()) or \
+                (StoreStrategy.HAS_WIDGET in self.store_strategy and self.widget_key is not None) or \
+                (StoreStrategy.NODE_SET in self.store_strategy and self._is_node_set):
                     result['field_data'] = self._data.to_dict()
 
         return result

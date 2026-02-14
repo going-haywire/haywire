@@ -28,3 +28,7 @@
 - [ ] Manual testing: Verify color changes
 - [ ] Manual testing: Right-click connection for context menu
 - [ ] Manual testing: Verify metrics display
+
+## DataPorts
+
+- [ ] Test StoreStrategy to see if the different store strategies work as intended.
