@@ -382,7 +382,7 @@ class EdgeWrapper:
             True if validation successful, False otherwise
         """
 
-        try:
+        try:            
             # Get node wrapper references
             self._source_wrapper = self._graph.get_node_wrapper(self.source_node_id)
             self._sink_wrapper = self._graph.get_node_wrapper(self.sink_node_id)
@@ -400,10 +400,18 @@ class EdgeWrapper:
             
             self._outlet_port = outlet_node.ports.get(self.outlet_port_id)
             self._inlet_port = inlet_node.ports.get(self.inlet_port_id)
-            
+
+            self.outletPinFallback = self._source_wrapper.node.get_port_hierarchy(self.outlet_port_id)
+            self.inletPinFallback = self._sink_wrapper.node.get_port_hierarchy(self.inlet_port_id)
+
             # Determine edge type if not set
             if self._edge_type is None:
                 self._edge_type = self._outlet_port.flow_type
+
+            if self.source_node_id == self.sink_node_id:
+                raise Exception(
+                    f"Source and sink node are the same: {self.source_node_id}"
+                )
 
             if not self._outlet_port or not self._inlet_port:
                 raise Exception(
@@ -413,9 +421,16 @@ class EdgeWrapper:
                 )
 
             # Check if this is an inlet (sanity check)
-            if self._outlet_port.is_inlet() == self._inlet_port.is_inlet():
+            if self._outlet_port.is_inlet():
                 raise Exception(
-                    f"Cannot connect inlet to inlet or outlet to outlet"
+                    f"Invalid port types for edge: "
+                    f"Outlet port {self._outlet_port.id} is an inlet"   
+                )
+            
+            if self._inlet_port.is_outlet():
+                raise Exception(
+                    f"Invalid port types for edge: "
+                    f"Inlet port {self._inlet_port.id} is an outlet"
                 )
 
             if self._outlet_port.flow_type != self._inlet_port.flow_type:
@@ -425,9 +440,6 @@ class EdgeWrapper:
                     f"({self._inlet_port.flow_type}) on edge "
                     f"{self._connection_uuid}"
                 )
-
-            self.outletPinFallback = self._source_wrapper.node.get_port_hierarchy(self.outlet_port_id)
-            self.inletPinFallback = self._sink_wrapper.node.get_port_hierarchy(self.inlet_port_id)
 
             self._state.is_formally_validated = True
             self._state.error_formal = None

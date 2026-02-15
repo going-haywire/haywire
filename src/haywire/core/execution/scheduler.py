@@ -311,14 +311,19 @@ class FlowScheduler:
         # Only print stats if explicitly requested (not during cleanup)
         if print_stats:
             stats = self.get_execution_stats()
-            logger.warning(
-                f"\nExecutions: {stats['count']} for {self.flow.flow_id}\n"
-                f"Min: {stats['min_us']:.2f} μs "
-                f"(iteration {stats['min_iteration']})\n"
-                f"Max: {stats['max_us']:.2f} μs "
-                f"(iteration {stats['max_iteration']})\n"
-                f"Avg: {stats['avg_us']:.2f} μs"
-            )
+            if stats['min_us'] is not None:
+                logger.warning(
+                    f"\nExecutions: {stats['count']} for {self.flow.flow_id}\n"
+                    f"Min: {stats['min_us']:.2f} μs "
+                    f"(iteration {stats['min_iteration']})\n"
+                    f"Max: {stats['max_us']:.2f} μs "
+                    f"(iteration {stats['max_iteration']})\n"
+                    f"Avg: {stats['avg_us']:.2f} μs"
+                )
+            else:
+                logger.warning(
+                    f"\nExecutions: 0 for {self.flow.flow_id}"
+                )
 
         logger.debug(f"Scheduler stopped for {self.flow.flow_id}")
 

@@ -82,7 +82,10 @@ class PooledType(CompoundType[T]):
     @classmethod
     def _configure_port(cls, port, **context) -> None:
         """
-        Override: Mark port as accepting multiple connections.
+        Override: 
+        - Mark port as accepting multiple connections.
+        - Set flow type based on element type.
+        - Set color based on element type.
         
         This is the semantic purpose of pooled - to aggregate from
         multiple sources into one inlet.
@@ -102,6 +105,7 @@ class PooledType(CompoundType[T]):
             if hasattr(current_type, 'class_identity'):
                 if current_type.class_identity.flow_type != FlowType.NONE:
                     port.flow_type = current_type.class_identity.flow_type
+                    port.color = current_type.class_identity.color
                     return
                         
                 # Move to next level if available

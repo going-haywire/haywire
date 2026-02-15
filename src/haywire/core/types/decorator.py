@@ -123,6 +123,11 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         if parent_identity:
             # Start with parent's identity
             identity_dict = asdict(parent_identity)
+            # Derived types must have their own registry_id —
+            # inheriting the parent's would cause a registry key collision.
+            # Use the child class name unless explicitly overridden.
+            if 'registry_id' not in kwargs:
+                identity_dict['registry_id'] = inner_cls.__name__
             # Override with explicitly provided kwargs
             identity_dict.update(kwargs)
         else:

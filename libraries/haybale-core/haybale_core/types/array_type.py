@@ -22,7 +22,7 @@ T = TypeVar('T')
     registry_id='array',
     label='Array',
     description='Homogeneous typed array',
-    color='#e91e63',
+    color="#d8e91e",
     default={'value': []},
 )
 class ArrayType(CompoundType[T]):
@@ -59,6 +59,10 @@ class ArrayType(CompoundType[T]):
     def _configure_port(cls, port, **context) -> None:
         """
         array type's flow type is determined by its element type
+
+        Override: 
+        - Set flow type based on element type.
+        - Set color based on element type.
         """
         # array type's flow type is determined by its element type
         if not port.type_cls.element_type_cls:
@@ -73,6 +77,7 @@ class ArrayType(CompoundType[T]):
             if hasattr(current_type, 'class_identity'):
                 if current_type.class_identity.flow_type != FlowType.NONE:
                     port.flow_type = current_type.class_identity.flow_type
+                    port.color = current_type.class_identity.color
                     return
                         
                 # Move to next level if available

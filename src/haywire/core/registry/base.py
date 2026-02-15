@@ -517,7 +517,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         self.logger.info(
             f"Library '{library_identity.label}': Reload plan: "
             f"{len(reload_plan.non_managed_modules)} helpers, "
-            f"{len(reload_plan.managed_modules)} managed classes"
+            f"{len(reload_plan.managed_modules)} managed modules to reload."
         )
         
         # reset dependency errors for this reload

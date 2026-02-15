@@ -208,6 +208,10 @@ class DataPort(DataTypeIdentity):
         if self.is_outlet() and self.flow_type == FlowType.DATA:
             self.allow_multiple_connections = True
 
+        # EXEC inlets allow multiple connections by default for control flow
+        if self.is_inlet() and self.flow_type == FlowType.CONTROL:
+            self.allow_multiple_connections = True
+
     def _trigger_callback(self, callback_type: str, *args):
         """
         Trigger a callback by resolving the identifier.

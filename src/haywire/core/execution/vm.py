@@ -275,13 +275,14 @@ class HaywireVM:
             next_outlet_id = node._execute(exec_ctx)
         except Exception as e:
             self.catch_exception(e, node, "Node Execution")
+            return None
         # >>>>>>>>>>>
 
         # logger.debug(
         #     f"Control node {node.node_id} completed, "
         #     f"next outlet: {next_outlet_id}"
         # )
-        
+
         return next_outlet_id
     
     def catch_exception(

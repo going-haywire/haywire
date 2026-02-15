@@ -138,7 +138,7 @@ class NodeRenderer(BaseRenderer, ABC):
                     self._tooltip_for_port(pin)
 
         elif pin.flow_type == FlowType.DATA:
-            pin_color = pin._data.get_stored_type().class_identity.color
+            pin_color = pin.color
             pin_data_type = pin._data.get_stored_type().class_identity.registry_key
             # Get pin color: try data type specific, use pin.color as preference
             if pin.is_inlet():
