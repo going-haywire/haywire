@@ -139,7 +139,7 @@ def example_basic_loop():
     )
     
     # Validate graph
-    graph._validation.force_immediate_validation()
+    graph.force_validation()
     
     # Execute
     interpreter = Interpreter()
@@ -208,7 +208,7 @@ def example_backward_loop():
     )
     
     # Validate graph
-    graph._validation.force_immediate_validation()
+    graph.force_validation()
     
     # Execute
     interpreter = Interpreter()
@@ -279,7 +279,7 @@ def example_loop_with_step():
     )
     
     # Validate graph
-    graph._validation.force_immediate_validation()
+    graph.force_validation()
     
     # Execute
     interpreter = Interpreter()
@@ -370,7 +370,7 @@ def example_loop_with_math():
     )
     
     # Validate graph
-    graph._validation.force_immediate_validation()
+    graph.force_validation()
     
     # Execute
     interpreter = Interpreter()

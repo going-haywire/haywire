@@ -125,10 +125,7 @@ class FlowAssemblyManager:
         
         # Process callback edges for observability
         self._process_callback_edges(graph, flows)
-        
-        # Process callback edges for observability
-        self._process_callback_edges(graph, flows)
-        
+                
         logger.info(f"Assembly complete: {len(flows)} flows")
         
         return flows

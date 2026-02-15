@@ -155,6 +155,94 @@ class BaseGraph:
         """
         return self._validation.get_statistics()
     
+    def force_validation(self):
+        """
+        Forces the graph to do an immediate validation
+        on all queued validation requests.
+
+        Its good practice to call this method before adding
+        the graph to the interpretor for assembly
+        """
+        self._validation.force_immediate_validation()
+
+    # =========================================================================
+    # REFRESH REQUESTS (bypass undo history - non-mutating operations)
+    # =========================================================================
+
+    def request_node_redraw(self, node_id: str) -> None:
+        """Request visual refresh for a node. Does not modify state."""
+        if node_id in self.node_wrappers:
+            self._validation.mark_node_dirty(
+                node_id, ChangeReason.NODE_REDRAW_REQUESTED
+            )
+
+    def request_node_revalidation(self, node_id: str) -> None:
+        """Request structural revalidation for a node and its connected edges."""
+        if node_id in self.node_wrappers:
+            self._validation.mark_node_dirty(
+                node_id, ChangeReason.NODE_VALIDATION_REQUESTED
+            )
+
+    def request_node_reset(self, node_id: str) -> None:
+        """Request full rebuild for a node (re-runs build + validation)."""
+        if node_id in self.node_wrappers:
+            self._validation.mark_node_dirty(
+                node_id, ChangeReason.NODE_RESET_REQUESTED
+            )
+
+    def request_edge_redraw(self, connection_uuid: str) -> None:
+        """Request visual refresh for an edge. Does not modify state."""
+        if connection_uuid in self.edge_wrappers:
+            self._validation.mark_edge_dirty(
+                connection_uuid, ChangeReason.EDGE_REDRAW_REQUESTED
+            )
+
+    def request_edge_revalidation(self, connection_uuid: str) -> None:
+        """Request structural revalidation for an edge."""
+        if connection_uuid in self.edge_wrappers:
+            self._validation.mark_edge_dirty(
+                connection_uuid, ChangeReason.EDGE_VALIDATION_REQUESTED
+            )
+
+    def request_edge_reset(self, connection_uuid: str) -> None:
+        """Request full rebuild for an edge (re-runs build + port link update)."""
+        if connection_uuid in self.edge_wrappers:
+            self._validation.mark_edge_dirty(
+                connection_uuid, ChangeReason.EDGE_RESET_REQUESTED
+            )
+
+    def request_full_redraw(self) -> None:
+        """Request visual refresh for all nodes and edges."""
+        for node_id in self.node_wrappers:
+            self._validation.mark_node_dirty(
+                node_id, ChangeReason.NODE_REDRAW_REQUESTED
+            )
+        for edge_id in self.edge_wrappers:
+            self._validation.mark_edge_dirty(
+                edge_id, ChangeReason.EDGE_REDRAW_REQUESTED
+            )
+
+    def request_full_revalidation(self) -> None:
+        """Request structural revalidation for all nodes and edges."""
+        for node_id in self.node_wrappers:
+            self._validation.mark_node_dirty(
+                node_id, ChangeReason.NODE_VALIDATION_REQUESTED
+            )
+        for edge_id in self.edge_wrappers:
+            self._validation.mark_edge_dirty(
+                edge_id, ChangeReason.EDGE_VALIDATION_REQUESTED
+            )
+
+    def request_full_reset(self) -> None:
+        """Request full rebuild for all nodes and edges."""
+        for node_id in self.node_wrappers:
+            self._validation.mark_node_dirty(
+                node_id, ChangeReason.NODE_RESET_REQUESTED
+            )
+        for edge_id in self.edge_wrappers:
+            self._validation.mark_edge_dirty(
+                edge_id, ChangeReason.EDGE_RESET_REQUESTED
+            )
     # =========================================================================
     # NODE MANAGEMENT
     # =========================================================================

@@ -89,12 +89,6 @@ class UserDragUpdateEvent(BaseGraphEvent):
 class UserDragEndEvent(BaseGraphEvent):
     nodes: List[str]  # List of node IDs that were dragged
 
-@graph_event("userRemove", category="user", description="User wants to remove elements")
-@dataclass
-class UserRemoveEvent(BaseGraphEvent):
-    nodes: List[str]
-    connections: List[str]
-
 @graph_event(
     "nodeCreateRequest",
     category="user",
@@ -118,9 +112,39 @@ class ConnectionCreatedEvent(BaseGraphEvent):
 class ConnectionClickedEvent(BaseGraphEvent):
     connectionUUID: str
 
+@graph_event("elementRedraw", category="user", description="redraw selected element")
+@dataclass
+class ElementRedrawEvent(BaseGraphEvent):
+    nodes: List[str]
+    connections: List[str]
+
+@graph_event("elementReset", category="user", description="reset selected element")
+@dataclass
+class ElementResetEvent(BaseGraphEvent):
+    nodes: List[str]
+    connections: List[str]
+
+@graph_event("elementRevalidate", category="user", description="revalidate selected element")
+@dataclass
+class ElementRevalidateEvent(BaseGraphEvent):
+    nodes: List[str]
+    connections: List[str]
+
 @graph_event("selectionChanged", category="user", description="Selection state changed")
 @dataclass
 class SelectionChangedEvent(BaseGraphEvent):
+    selectedNodes: List[str]
+    selectedConnections: List[str]
+
+@graph_event("userRemove", category="user", description="User wants to remove elements")
+@dataclass
+class UserRemoveEvent(BaseGraphEvent):
+    nodes: List[str]
+    connections: List[str]
+
+@graph_event("userCopySelected", category="user", description="Copy selected elements to clipboard")
+@dataclass
+class UserCopySelectedEvent(BaseGraphEvent):
     selectedNodes: List[str]
     selectedConnections: List[str]
 
@@ -168,16 +192,6 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
     selectedNodes: List[str]
     selectedConnections: List[str]
 
-@graph_event(
-    "userCopySelected",
-    category="user",
-    description="Copy selected elements to clipboard"
-)
-@dataclass
-class UserCopySelectedEvent(BaseGraphEvent):
-    selectedNodes: List[str]
-    selectedConnections: List[str]
-
 @graph_event("userPasteClipboard", category="user", description="Paste clipboard contents")
 @dataclass
 class UserPasteClipboardEvent(BaseGraphEvent):
@@ -185,7 +199,7 @@ class UserPasteClipboardEvent(BaseGraphEvent):
     canvasY: float
 
 # =============================================================================
-# SYNC EVENTS (Python → Vue) - Unchanged
+# SYNC EVENTS (Python → Vue)
 # =============================================================================
 
 @graph_event("syncNodeAddition", category="sync", description="Sync node addition to UI")

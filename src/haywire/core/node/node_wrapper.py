@@ -498,8 +498,6 @@ class NodeWrapper:
                 return  # abort further processing
             
             # Successful reload - update class reference
-            old_class_name = self._node_cls.__name__ if self._node_cls else "None"
-            old_class_id = id(self._node_cls) if self._node_cls else "None"
             self._node_cls = lc_event.affected_class
             self._state.error_import = None
             self._state.is_imported = True
@@ -583,10 +581,11 @@ class NodeWrapper:
             # Subsequent errors - replace the last one (keep first + recent)
             self._state.error_runtime = error
 
-    def _clear_runtime_errors(self) -> None:
+    def clear_runtime_errors(self) -> None:
         """Clear all runtime errors and trigger redraw if any existed"""
-        self._state.error_runtime = None
-        self.redraw()
+        if self._state.error_runtime is not None:
+            self._state.error_runtime = None
+            self.redraw()
 
 
     # =========================================================================
@@ -596,9 +595,7 @@ class NodeWrapper:
     def on_startup(self, exec_ctx: 'ExecutionContext') -> None:
         """
         Wrapper flow startup logic.
-        - Clears runtime errors before execution to ensure a clean state.
         """
-        self._clear_runtime_errors()
  
     def on_shutdown(self, exec_ctx: 'ExecutionContext') -> None:
         """

@@ -128,7 +128,7 @@ def example_simple_flow():
     
     _create_graph_with_math(graph)
 
-    graph._validation.force_immediate_validation()
+    graph.force_validation()
     
     # Create interpreter
     interpreter = Interpreter()
@@ -277,7 +277,7 @@ def example_callback_string_based():
         print_msg.node_id, 'exec'
     )
     
-    graph._validation.force_immediate_validation()
+    graph.force_validation()
 
     # NO callback edge between flows - connection via string matching
     print("\nString-based mode: No callback edge needed")
@@ -378,7 +378,7 @@ def example_callback_edge_based():
         emit_callback.node_id, 'edge_callback'  # Target: emitter's inlet
     )
     
-    graph._validation.force_immediate_validation()
+    graph.force_validation()
     
     print(f"Created callback edge: {callback_edge.connection_uuid}")
     print(f"  Event name will propagate: {callback_listener.node_id}")

@@ -138,7 +138,7 @@ class WebcamFrameInfoDisplayNode(BaseNode):
     def hb_update_display(self, info: str):
         """Update the info display label"""
         try:
-            self.set_value('info_display', info)
+            self.out('info_display', info)
         except Exception:
             # Silently fail if UI update fails
             pass

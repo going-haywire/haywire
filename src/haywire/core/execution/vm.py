@@ -104,9 +104,6 @@ class HaywireVM:
         """
         exec_ctx = self._create_execution_context(flow)
         
-        for node in flow.get_all_nodes():
-            node.wrapper.on_startup(exec_ctx)
-
         for node in flow.get_nodes_with_on_startup():
             try:
                 # call the nodes wrapper on_startup for housekeeping purposes.
@@ -132,9 +129,6 @@ class HaywireVM:
                 node.on_shutdown(exec_ctx)
             except Exception as e:
                 self.catch_exception(e, node, "Node on_shutdown() Execution")
-
-        for node in flow.get_all_nodes():
-            node.wrapper.on_shutdown(exec_ctx)
 
     def execute_control_flow(self, 
             flow: 'Flow', 

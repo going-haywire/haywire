@@ -45,6 +45,9 @@ from .event_definitions import (
     SyncConnectionRemovalEvent,
     SyncSelectionsEvent,
     SyncCanvasClearEvent,
+    ElementRedrawEvent,
+    ElementResetEvent,
+    ElementRevalidateEvent,
     GRAPH_EVENT_REGISTRY,
     )
 from .event_handlers import handles_event
@@ -171,98 +174,15 @@ class GraphCanvasManager:
             logger.warning(f"No handler found for event type: {event_type}")
     
     # =============================================================================
+    # 
     #  EVENT HANDLERS
+    # 
     # =============================================================================
-    
-    @handles_event(UserDragStartEvent)
-    def process_drag_start(self, event: UserDragStartEvent):
-        """Handle unified drag start for nodes"""        
-        # Add fence for undo grouping
-        self.editor.add_fence()
-        
-    @handles_event(UserDragUpdateEvent)
-    def process_drag_update(self, event: UserDragUpdateEvent):
-        """Handle unified drag updates for nodes"""
-        logger.debug(f"Dragging {len(event.nodes)} nodes by ({event.deltaX}, {event.deltaY})")
-               
-        self.editor.move_nodes(event.nodes, event.deltaX, event.deltaY)
-    
-    @handles_event(UserDragEndEvent)
-    def process_drag_end(self, event: UserDragEndEvent):
-        """Handle unified drag end for nodes"""
-        self.editor.add_fence()
-        
-    
-    @handles_event(UserRemoveEvent)
-    def process_element_removal(self, event: UserRemoveEvent):
-        """Handle unified element removal"""
-        total_elements = len(event.nodes) + len(event.connections)
-        logger.info(
-            f"🗑️ Removing {total_elements} elements: "
-            f"{len(event.nodes)} nodes, {len(event.connections)} connections"
-        )
-        
-        # Use the new unified removal method
-        if self.editor.remove_elements(event.nodes, event.connections):
-            ui.notify(f"Deleted {total_elements} element(s)", type='positive')
-        else:
-            ui.notify("Failed to delete elements", type='warning')
-    
-    @handles_event(ConnectionCreatedEvent)
-    def process_connection_creation(self, event: ConnectionCreatedEvent):
-        """Handle connection creation"""
-        logger.debug(
-            f"Creating connection: {event.sourceNodeId}:{event.outletPinId} -> "
-            f"{event.sinkNodeId}:{event.inletPinId}"
-        )
 
-        if self.editor.create_connection(
-            event.sourceNodeId,
-            event.outletPinId,
-            event.sinkNodeId,
-            event.inletPinId
-        ):
-            ui.notify("Connection created")
-        else:
-            ui.notify("Failed to create connection", type='negative')
+    # =============================================================================
+    #  CONTEXT MENU EVENTS
+    # =============================================================================
 
-    @handles_event(ConnectionClickedEvent)
-    def process_connection_click(self, event: ConnectionClickedEvent):
-        """Handle connection click events"""
-        try:
-            logger.debug(f"Connection clicked: {event.connectionUUID}")
-        except Exception as e:
-            logger.error(f"Connection click handling failed: {e}")
-
-    @handles_event(SelectionChangedEvent)
-    def process_selection_change(self, event: SelectionChangedEvent):
-        """Handle selection changes"""
-        logger.debug(
-            f"Selection changed: nodes={event.selectedNodes}, "
-            f"connections={event.selectedConnections}"
-        )
-        
-        # Create new selection state
-        selected_nodes_set = set(event.selectedNodes)
-        selected_connections_set = set(event.selectedConnections)
-        
-        # Convert connection IDs to edge tuples for SelectionState format
-        selected_edges = set()
-        for connection_uuid in selected_connections_set:
-            try:
-                components = parse_connection_uuid(connection_uuid)
-                selected_edges.add((components.outlet_node_id, components.outlet_pin_id, 
-                                  components.inlet_node_id, components.inlet_pin_id))
-            except (ValueError, AttributeError):
-                continue
-        
-        # Use Editor to set selection
-        self.editor.set_selection(selected_nodes_set, selected_edges)
-        
-        # Update local state for fast access
-        self.selected_nodes = selected_nodes_set
-        self.selected_connections = selected_connections_set
-    
     @handles_event(
         ContextMenuCanvasEvent,
         ContextMenuNodeEvent,
@@ -316,33 +236,98 @@ class GraphCanvasManager:
                     event.selectedNodes,
                     event.selectedConnections
                 )
+
+    # =============================================================================
+    #  INTERACTION EVENTS
+    # =============================================================================
+
+    @handles_event(UserDragStartEvent)
+    def process_drag_start(self, event: UserDragStartEvent):
+        """Handle unified drag start for nodes"""        
+        # Add fence for undo grouping
+        self.editor.add_fence()
+        
+    @handles_event(UserDragUpdateEvent)
+    def process_drag_update(self, event: UserDragUpdateEvent):
+        """Handle unified drag updates for nodes"""
+        logger.debug(f"Dragging {len(event.nodes)} nodes by ({event.deltaX}, {event.deltaY})")
+               
+        self.editor.move_nodes(event.nodes, event.deltaX, event.deltaY)
     
-    @handles_event(NodeCreateRequestEvent)
-    def process_node_creation_request(self, event: NodeCreateRequestEvent):
-        """Handle node creation requests from context menu or other sources."""
-        logger.info(
-            f"📝 Processing node creation request: {event.registryKey} "
-            f"at ({event.position['x']}, {event.position['y']})"
+    @handles_event(UserDragEndEvent)
+    def process_drag_end(self, event: UserDragEndEvent):
+        """Handle unified drag end for nodes"""
+        self.editor.add_fence()
+        
+        
+    @handles_event(ConnectionClickedEvent)
+    def process_connection_click(self, event: ConnectionClickedEvent):
+        """Handle connection click events"""
+        try:
+            logger.debug(f"Connection clicked: {event.connectionUUID}")
+        except Exception as e:
+            logger.error(f"Connection click handling failed: {e}")
+
+
+    @handles_event(ElementRedrawEvent, ElementResetEvent, ElementRevalidateEvent)
+    def process_update_element(self, event):
+        """Handle element update requests by calling graph directly (bypasses undo history)."""
+
+        if isinstance(event, ElementRedrawEvent):
+            for node_id in event.nodes:
+                self.graph.request_node_redraw(node_id)
+            for connection_uuid in event.connections:
+                self.graph.request_edge_redraw(connection_uuid)
+
+        elif isinstance(event, ElementRevalidateEvent):
+            for node_id in event.nodes:
+                self.graph.request_node_revalidation(node_id)
+            for connection_uuid in event.connections:
+                self.graph.request_edge_revalidation(connection_uuid)
+
+        elif isinstance(event, ElementResetEvent):
+            for node_id in event.nodes:
+                self.graph.request_node_reset(node_id)
+            for connection_uuid in event.connections:
+                self.graph.request_edge_reset(connection_uuid)
+        
+
+    # =============================================================================
+    #  SELECTION EVENTS
+    # =============================================================================
+
+    @handles_event(SelectionChangedEvent)
+    def process_selection_change(self, event: SelectionChangedEvent):
+        """Handle selection changes"""
+        logger.debug(
+            f"Selection changed: nodes={event.selectedNodes}, "
+            f"connections={event.selectedConnections}"
         )
         
-        try:
-            wrapper = self.editor.create_wrapper(
-                event.registryKey,
-                (event.position['x'], event.position['y'])
-            )
-            
-            if wrapper:
-                logger.info(
-                    f"✅ Created node {wrapper.node_id} "
-                    f"at ({event.position['x']}, {event.position['y']})"
-                )
-                ui.notify(f"Created {event.registryKey} node", type='positive')
-            else:
-                ui.notify(f"Failed to create node of type: {event.registryKey}", type='negative')
-                
-        except Exception as e:
-            logger.error(f"Error creating node: {e}")
-            ui.notify(f"Error creating node: {e}", type='negative')
+        # Create new selection state
+        selected_nodes_set = set(event.selectedNodes)
+        selected_connections_set = set(event.selectedConnections)
+        
+        # Convert connection IDs to edge tuples for SelectionState format
+        selected_edges = set()
+        for connection_uuid in selected_connections_set:
+            try:
+                components = parse_connection_uuid(connection_uuid)
+                selected_edges.add((components.outlet_node_id, components.outlet_pin_id, 
+                                  components.inlet_node_id, components.inlet_pin_id))
+            except (ValueError, AttributeError):
+                continue
+        
+        # Use Editor to set selection
+        self.editor.set_selection(selected_nodes_set, selected_edges)
+        
+        # Update local state for fast access
+        self.selected_nodes = selected_nodes_set
+        self.selected_connections = selected_connections_set
+    
+    # =============================================================================
+    # COPY PASTE EVENTS
+    # =============================================================================
 
     @handles_event(UserCopySelectedEvent)
     def process_copy_selection(self, event: UserCopySelectedEvent):
@@ -479,7 +464,72 @@ class GraphCanvasManager:
             traceback.print_exc()
 
         """
+
+    # =============================================================================
+    # CREATION / REMOVAL EVENTS
+    # =============================================================================
+
+    @handles_event(NodeCreateRequestEvent)
+    def process_node_creation_request(self, event: NodeCreateRequestEvent):
+        """Handle node creation requests from context menu or other sources."""
+        logger.info(
+            f"📝 Processing node creation request: {event.registryKey} "
+            f"at ({event.position['x']}, {event.position['y']})"
+        )
+        
+        try:
+            wrapper = self.editor.create_wrapper(
+                event.registryKey,
+                (event.position['x'], event.position['y'])
+            )
             
+            if wrapper:
+                logger.info(
+                    f"✅ Created node {wrapper.node_id} "
+                    f"at ({event.position['x']}, {event.position['y']})"
+                )
+                ui.notify(f"Created {event.registryKey} node", type='positive')
+            else:
+                ui.notify(f"Failed to create node of type: {event.registryKey}", type='negative')
+                
+        except Exception as e:
+            logger.error(f"Error creating node: {e}")
+            ui.notify(f"Error creating node: {e}", type='negative')
+
+    @handles_event(ConnectionCreatedEvent)
+    def process_connection_creation(self, event: ConnectionCreatedEvent):
+        """Handle connection creation"""
+        logger.debug(
+            f"Creating connection: {event.sourceNodeId}:{event.outletPinId} -> "
+            f"{event.sinkNodeId}:{event.inletPinId}"
+        )
+
+        if self.editor.create_connection(
+            event.sourceNodeId,
+            event.outletPinId,
+            event.sinkNodeId,
+            event.inletPinId
+        ):
+            ui.notify("Connection created")
+        else:
+            ui.notify("Failed to create connection", type='negative')
+
+    @handles_event(UserRemoveEvent)
+    def process_element_removal(self, event: UserRemoveEvent):
+        """Handle unified element removal"""
+        total_elements = len(event.nodes) + len(event.connections)
+        logger.info(
+            f"🗑️ Removing {total_elements} elements: "
+            f"{len(event.nodes)} nodes, {len(event.connections)} connections"
+        )
+        
+        # Use the new unified removal method
+        if self.editor.remove_elements(event.nodes, event.connections):
+            ui.notify(f"Deleted {total_elements} element(s)", type='positive')
+        else:
+            ui.notify("Failed to delete elements", type='warning')
+
+
     # =============================================================================
     # SYNC UI with GRAPH STATE (unchanged from original)
     # =============================================================================

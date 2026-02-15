@@ -19,6 +19,9 @@ from haywire.core.edge.edge_wrapper import EdgeWrapperState
 
 from .popup import Popup
 from .event_definitions import (
+    ElementRedrawEvent,
+    ElementResetEvent,
+    ElementRevalidateEvent,
     NodeCreateRequestEvent,
     UserRemoveEvent,
     UserCopySelectedEvent,
@@ -107,6 +110,33 @@ class PopupContextMenu:
     def _delete_node(self, node_id: str):
         """Handle node deletion."""
         event = UserRemoveEvent(
+            nodes = [node_id,],
+            connections=[]
+            )
+        self._on_emit_event(event)
+        self._close_current_menu()
+
+    def _redraw_node(self, node_id: str):
+        """Handle node deletion."""
+        event = ElementRedrawEvent(
+            nodes = [node_id,],
+            connections=[]
+            )
+        self._on_emit_event(event)
+        self._close_current_menu()
+
+    def _revalidate_node(self, node_id: str):
+        """Handle node deletion."""
+        event = ElementRevalidateEvent(
+            nodes = [node_id,],
+            connections=[]
+            )
+        self._on_emit_event(event)
+        self._close_current_menu()
+
+    def _reset_node(self, node_id: str):
+        """Handle node deletion."""
+        event = ElementResetEvent(
             nodes = [node_id,],
             connections=[]
             )
@@ -244,7 +274,27 @@ class PopupContextMenu:
                     'w-full justify-start px-3 py-2 '
                     'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
                 )
-        
+
+                btn3 = ui.button('✏️ Redraw Node', on_click=lambda: self._redraw_node(node_id))
+                btn3.props('flat align=left')
+                btn3.classes(
+                    'w-full justify-start px-3 py-2 '
+                    'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
+                )
+
+                btn3 = ui.button('🔔 Revalidate Node', on_click=lambda: self._revalidate_node(node_id))
+                btn3.props('flat align=left')
+                btn3.classes(
+                    'w-full justify-start px-3 py-2 '
+                    'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
+                )
+                
+                btn3 = ui.button('⚒️ Reset Node', on_click=lambda: self._reset_node(node_id))
+                btn3.props('flat align=left')
+                btn3.classes(
+                    'w-full justify-start px-3 py-2 '
+                    'text-red-600 hover:bg-red-50 hover:text-red-700 text-sm'
+                )        
         popup.open()
         self._current_popup = popup
     

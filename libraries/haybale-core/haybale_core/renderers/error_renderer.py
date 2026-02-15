@@ -92,8 +92,7 @@ class ErrorNodeRenderer(NodeRenderer):
                     if node.ports:
                         ui.label('Inputs').classes('font-bold text-sm')
                         for inlet in node.ports.values():
-                            if inlet.is_inlet():
-                                self._render_inlet(inlet, wrapper)
+                            self.render_port(inlet, wrapper)
 
                 # Right column: Outlets
                 with ui.column().classes('flex-1 gap-1'):

@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, List
 import logging
 
 from haywire.core.types import FlowType
-from haywire.core.node.behavior import NodeType
 from haywire.core.types.enums import PortType
 from haywire.core.validation.interface import IStructuralValidator
 
@@ -71,6 +70,7 @@ class StructuralValidator(IStructuralValidator):
             Suggestions is a list of actionable fixes.
         """
         node = wrapper.node
+        from haywire.core.node.behavior import NodeType
 
         # Check if this is an event node
         if NodeType.EVENT in node.behavior.node_type:
@@ -264,7 +264,8 @@ class StructuralValidator(IStructuralValidator):
         """
         errors = []
         event_subscriptions = {}  # subscription_key -> list of node_ids
-        
+        from haywire.core.node.behavior import NodeType
+
         for node_wrapper in self.graph.node_wrappers.values():
             node = node_wrapper.node
             
@@ -343,7 +344,8 @@ class StructuralValidator(IStructuralValidator):
             Error message is None if valid.
             Suggestions is a list of actionable fixes.
         """
-        
+        from haywire.core.node.behavior import NodeType
+
         # Source must be an event node
         if NodeType.EVENT not in wrapper._source_wrapper.node.behavior.node_type:
             return (

@@ -31,6 +31,7 @@ class ChangeReason(Enum):
     NODE_HOT_RELOAD_ERROR = "node_error"
     NODE_REDRAW_REQUESTED = "node_redraw_requested"
     NODE_VALIDATION_REQUESTED = "node_validation_requested"
+    NODE_RESET_REQUESTED = "node_reset_requested"
     
     # Node reasons - visual only (no redraw needed)
     NODE_MOVED = "node_moved"
@@ -43,6 +44,7 @@ class ChangeReason(Enum):
     EDGE_ADAPTERS_RELOADED = "edge_adapters_reloaded"
     EDGE_HOT_RELOAD_ERROR = "edge_error"
     EDGE_VALIDATION_REQUESTED = "edge_validation_requested"
+    EDGE_RESET_REQUESTED = "edge_reset_requested"
     
     # Edge reasons - visual only (no redraw needed)
     EDGE_PORT_CHANGED = "edge_port_changed"
@@ -68,7 +70,9 @@ class ChangeReason(Enum):
     def requires_rebuild(self) -> bool:
         validation_reasons = {
             ChangeReason.NODE_HOT_RELOADED,
+            ChangeReason.NODE_RESET_REQUESTED,
             ChangeReason.EDGE_ADAPTERS_RELOADED,
+            ChangeReason.EDGE_RESET_REQUESTED,
         }
         return self in validation_reasons
 
@@ -107,8 +111,10 @@ class ChangeReason(Enum):
             ChangeReason.EDGE_REMOVED,
             ChangeReason.NODE_HOT_RELOADED,
             ChangeReason.NODE_HOT_RELOAD_ERROR,
+            ChangeReason.NODE_RESET_REQUESTED,
             ChangeReason.NODE_VALIDATION_REQUESTED,
             ChangeReason.EDGE_HOT_RELOAD_ERROR,
+            ChangeReason.EDGE_RESET_REQUESTED,
             ChangeReason.EDGE_VALIDATION_REQUESTED,
             ChangeReason.GRAPH_REQUIRE_REASSEMBLY,
         }        

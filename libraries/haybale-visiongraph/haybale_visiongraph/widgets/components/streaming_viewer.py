@@ -20,18 +20,18 @@ from nicegui.element import Element
 class StreamingViewer(Element, component='opencv_viewer.js'):
     """
     NiceGUI component for MJPEG streaming of numpy image arrays.
-    
+
     Adapted from duit's OpencvViewer to work within Haywire's widget system
     by managing the background task lifecycle explicitly instead of using
     app.on_startup decorator.
-    
+
     :param endpoint: HTTP endpoint for the MJPEG stream (default: random id is generated).
     :param quality: JPEG compression quality (0-100, higher is better quality, default: 80).
     :param frame_queue_size: Maximum number of frames to buffer (default: 1).
     :param block_on_full: If True, block the producer when the queue is full;
                           if False, drop the oldest frame when full (default: False).
     """
-    
+
     def __init__(
             self,
             endpoint: str | None = None,
@@ -40,133 +40,116 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
             block_on_full: bool = False,
     ):
         super().__init__()
-        
+
         # Generate a new random endpoint for this component
         if endpoint is None:
             endpoint_id = uuid.uuid4().hex[:8]
             endpoint = f"/stream/{endpoint_id}"
-        
+
         self._props['endpoint'] = endpoint
         self.endpoint = endpoint
         self.quality = quality
         self.frame_queue_size = frame_queue_size
         self.block_on_full = block_on_full
-        
+
         # Shared state for latest frame broadcast
         self.latest_frame: bytes | None = None
         self.frame_id: int = 0
         self.cond: asyncio.Condition = asyncio.Condition()
-        
+
         # Thread-safe queue holding JPEG bytes
         self._thread_queue: Queue[bytes] = Queue(maxsize=self.frame_queue_size)
-        
+
         # Background task handle
         self._queue_reader_task: Optional[asyncio.Task] = None
         self._is_running = False
-        
+
         # Register the HTTP endpoint
         self._register_endpoint()
-        
-        # Start the queue reader task (with error handling for hot reload)
-        self._start_queue_reader()
-    
-    def _start_queue_reader(self) -> None:
-        """Start the background task that pulls from thread queue"""
-        try:
-            if self._queue_reader_task is None or self._queue_reader_task.done():
-                self._is_running = True
-                self._queue_reader_task = asyncio.create_task(self._queue_reader_loop())
-        except RuntimeError as e:
-            # No event loop during hot reload - this is expected
-            # Task will be created on next component instantiation
-            print(f"[StreamingViewer] Deferring task start (no event loop yet): {e}")
-            pass
-    
+
+    def _ensure_queue_reader(self) -> None:
+        """Ensure the background queue reader task is running.
+
+        Called lazily from the endpoint handler or stream(), not from __init__,
+        because __init__ may run before the event loop is started.
+        """
+        if self._queue_reader_task is None or self._queue_reader_task.done():
+            self._is_running = True
+            self._queue_reader_task = asyncio.create_task(self._queue_reader_loop())
+
     async def _queue_reader_loop(self) -> None:
         """Background task: pull from thread queue, update shared frame, notify viewers"""
         from queue import Empty
-        
+
         try:
             while self._is_running:
-                # Check if we should stop
-                if not self._is_running:
-                    break
-                
                 try:
-                    # Get from queue with timeout - this will raise Empty on timeout
                     def get_with_timeout():
                         try:
                             return self._thread_queue.get(block=True, timeout=0.1)
                         except Empty:
                             return None
-                    
+
                     data = await asyncio.to_thread(get_with_timeout)
-                    
-                    # If no data, continue (queue was empty)
+
                     if data is None:
                         if not self._is_running:
                             break
                         await asyncio.sleep(0.01)
                         continue
-                    
-                    # Double-check we're still running before processing
+
                     if not self._is_running:
                         break
-                    
+
                     async with self.cond:
                         self.latest_frame = data
                         self.frame_id += 1
                         self.cond.notify_all()
-                        
+
                 except asyncio.CancelledError:
-                    # Task was cancelled - exit cleanly without logging
                     break
-                    
                 except Exception:
-                    # Silently ignore all errors (especially during shutdown)
                     if not self._is_running:
                         break
                     await asyncio.sleep(0.01)
-                    
+
         except asyncio.CancelledError:
-            # Task cancelled - this is expected during cleanup
             pass
         except Exception:
-            # Suppress all errors during shutdown
             pass
         finally:
             self._is_running = False
-    
+
     def stream(self, frame: np.ndarray) -> None:
         """
         Push an OpenCV BGR frame into the streaming pipeline.
-        
+
         :param frame: OpenCV image (BGR numpy array) to encode and enqueue.
         """
-        # Don't try to stream if we're shutting down
+        # Lazily start the queue reader if needed
         if not self._is_running:
-            return
-        
+            try:
+                self._ensure_queue_reader()
+            except RuntimeError:
+                pass  # No event loop in this thread - endpoint handler will start it
+
         import cv2
-        
+
         try:
             success, buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, self.quality])
             if not success:
                 return
             data = buf.tobytes()
-            
-            # Check again before queuing
+
             if not self._is_running:
                 return
-            
+
             if self.block_on_full:
-                # Block until there's room in the queue (with timeout)
                 try:
                     self._thread_queue.put(data, timeout=0.1)
                 except Exception:
-                    pass  # Queue operation failed, silently skip
+                    pass
             else:
-                # Drop oldest if queue is full
                 try:
                     self._thread_queue.put_nowait(data)
                 except Full:
@@ -174,30 +157,30 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
                         _ = self._thread_queue.get_nowait()
                         self._thread_queue.put_nowait(data)
                     except Exception:
-                        pass  # Silently fail if we can't drop frame
-                        
+                        pass
+
         except Exception as e:
-            # Only log if we're still running
             if self._is_running:
                 print(f"[StreamingViewer] Stream error: {e}")
-    
+
     def _register_endpoint(self) -> None:
         """Register the HTTP endpoint for MJPEG streaming"""
-        
+
         @app.get(self.endpoint)
         async def mjpeg_endpoint(request: Request):
             """HTTP endpoint that streams multipart MJPEG to clients"""
+            self._ensure_queue_reader()
             boundary = "--frame"
-            
+
             async def generator():
                 """Async generator yielding JPEG frames to each connected client"""
                 last_id = 0
-                
+
                 try:
                     while True:
                         if await request.is_disconnected():
                             break
-                        
+
                         # Wait for a newer frame than we've sent
                         try:
                             async with self.cond:
@@ -208,37 +191,35 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
                                 last_id = self.frame_id
                                 frame = self.latest_frame
                         except asyncio.TimeoutError:
-                            # No new frame in 5 seconds, continue
                             continue
-                        
+
                         if not frame:
                             continue
-                        
+
                         yield (
                             boundary.encode() + b"\r\n"
                             b"Content-Type: image/jpeg\r\n"
                             b"Content-Length: " + str(len(frame)).encode() + b"\r\n\r\n"
                             + frame + b"\r\n"
                         )
-                        
+
+                except asyncio.CancelledError:
+                    return
                 except Exception as e:
                     print(f"[StreamingViewer] Client stream error: {e}")
-            
+
             return StreamingResponse(
                 generator(),
                 media_type="multipart/x-mixed-replace; boundary=frame"
             )
-    
+
     def cleanup(self) -> None:
-        """Clean up resources when widget is destroyed (synchronous version)"""
-        # Set flag first to signal task to stop
+        """Clean up resources when widget is destroyed."""
         self._is_running = False
-        
-        # Cancel the background task
+
         if self._queue_reader_task and not self._queue_reader_task.done():
             self._queue_reader_task.cancel()
-        
-        # Clear queue without raising errors
+
         try:
             while not self._thread_queue.empty():
                 try:
@@ -247,7 +228,7 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
                     break
         except Exception:
             pass
-        
+
     def __del__(self):
         """Ensure cleanup on deletion"""
         try:

@@ -18,7 +18,6 @@ Key improvements:
 
 import logging
 import os
-import signal
 import sys
 import traceback
 from nicegui import ui, app
@@ -112,7 +111,6 @@ class UndoRedoTestAppWithCanvasManager:
         print("  Unsubscribing from graph validation...")
         try:
             self.graph.unsubscribe_from_validation(self._on_global_graph_change)
-            self.graph.unsubscribe_from_validation(self._on_graph_validation_for_interpreter)
         except Exception as e:
             print(f"  Error unsubscribing from validation: {e}")
         
@@ -289,7 +287,6 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Register global change listener for app-level updates
         self.graph.subscribe_to_validation(self._on_global_graph_change)
-        self.graph.subscribe_to_validation(self._on_graph_validation_for_interpreter)
 
         # Create shared Editor instance (graph-managed pattern)
         self.editor = Editor(self.graph)
@@ -332,49 +329,33 @@ class UndoRedoTestAppWithCanvasManager:
         Handle global graph changes from ValidationManager.
         Thread sync from graph thread to main UI thread. 
         """
+        # first stop the interpreter 
+        self._on_graph_validation_for_interpreter(result)
+
         # Schedule UI update for each active client session
         for client_id, session_data in list(self.sessions.items()):
             client = session_data.get('client')
             if client:
                 try:
-                    # Schedule timer in the client's context
-                    with client:
-                        ui.timer(
-                            0,
-                            lambda r=result, s=session_data: (
-                                self._handle_graph_change_ui_for_session(r, s)
-                            ),
-                            once=True
-                        )
+                    # Update global stats (shared)
+                    self.global_stats['nodes_created'] = len(self.graph.node_wrappers)
+                    self.global_stats['edges_created'] = len(self.graph.edge_wrappers)
+                    
+                    # Update canvas manager for this session
+                    canvas_manager: GraphCanvasManager = session_data.get('canvas_manager')
+                    if canvas_manager:
+                        try:
+                            canvas_manager._on_validated(result)
+                        except Exception as e:
+                            print(f"Error updating canvas: {e}")
+                    
+                    # Update displays for this session
+                    self.update_displays_for_session(session_data)
                 except Exception as e:
                     print(
                         f"Error scheduling graph change for "
                         f"session {client_id[:8]}: {e}"
                     )
-
-    def _handle_graph_change_ui_for_session(
-        self,
-        result: ValidationResult,
-        session_data: dict
-    ):
-        """
-        Process graph changes for a specific session.
-        Called on main thread with proper client context.
-        """
-        # Update global stats (shared)
-        self.global_stats['nodes_created'] = len(self.graph.node_wrappers)
-        self.global_stats['edges_created'] = len(self.graph.edge_wrappers)
-        
-        # Update canvas manager for this session
-        canvas_manager: GraphCanvasManager = session_data.get('canvas_manager')
-        if canvas_manager:
-            try:
-                canvas_manager._on_validated(result)
-            except Exception as e:
-                print(f"Error updating canvas: {e}")
-        
-        # Update displays for this session
-        self.update_displays_for_session(session_data)
                     
     def setup_library_system(self):
         """Initialize the library system service."""
@@ -485,19 +466,6 @@ class UndoRedoTestAppWithCanvasManager:
                         step=1,
                         on_change=lambda e: self.set_target_fps(e.value)
                     ).classes('w-24').props('dense')
-
-                    ui.button(
-                        'Play (Sync)',
-                        on_click=self.start_interpreter_sync,
-                        icon='play_arrow',
-                        color='orange'
-                    )
-                    ui.button(
-                        'Stop (Sync)',
-                        on_click=self.stop_interpreter_sync,
-                        icon='stop',
-                        color='orange'
-                    )
                         
     def create_left_panel(self):
         """Create the left control panel with all information sections."""
@@ -860,6 +828,14 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Load current graph (triggers assembly)
         try:
+            # TODO: This code makes the graph super slow - And I dont know why:
+            for _, wrapper in self.graph.node_wrappers.items():
+                wrapper.clear_runtime_errors()
+            # shen the _clear_runtime_errors is called to redraw the nodes, it 
+            # becomes super slow.
+            
+            self.graph.force_validation()
+
             self.interpreter.load_graph(self.graph)
         except Exception as e:
             ui.notify(
@@ -888,95 +864,6 @@ class UndoRedoTestAppWithCanvasManager:
             print(f"Error waiting for flows: {e}")
         
         print("Interpreter loop stopped")
-
-    # =========================================
-    #
-    #    Sync Interpreter Methods
-    #    They are here for testing purposes only.
-
-    def start_interpreter_sync(self):
-        """Start interpreter on main thread using UI timer."""
-        import time  # Import module, not function
-        
-        # Validate graph first
-        errors = self.graph.validate()
-        if errors:
-            ui.notify(f'Cannot start - graph has {len(errors)} error(s)', type='negative')
-            return
-        
-        # Load graph
-        try:
-            self.interpreter.load_graph(self.graph)
-        except Exception as e:
-            ui.notify(f'Failed to load graph: {str(e)}', type='negative')
-            return
-        
-        # Dispatch BEGIN_PLAY synchronously
-        from haywire.core.execution.event_source import SystemEventType
-        self.interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
-        
-        # Execute flows synchronously (not via scheduler threads)
-        for flows in self.interpreter.event_subscriptions.values():
-            for flow in flows:
-                if flow.scheduler:
-                    flow.scheduler._call_startup()
-        
-        # Start tick timer on main thread
-        self._last_tick_time = time.time()
-        self._tick_count = 0
-        self._sync_interpreter_timer = ui.timer(
-            1/60,  # 60 FPS
-            self._tick_sync
-        )
-        
-        ui.notify("Interpreter started (sync mode)", type='positive')
-        
-    def _tick_sync(self):
-        """Tick on main thread - no threading overhead."""
-        import time
-        
-        now = time.time()
-        delta_time = now - self._last_tick_time
-        self._last_tick_time = now
-        self._tick_count += 1
-        
-        # Create trigger
-        from haywire.core.execution.event_source import Trigger, SystemEvent, SystemEventType
-        
-        trigger = Trigger(
-            source_key=SystemEvent(SystemEventType.TICK).get_subscription_key(),
-            payload={'delta_time': delta_time},
-            timestamp=now
-        )
-        
-        # Execute tick flow directly (bypass scheduler/queue)
-        tick_flows = self.interpreter.event_subscriptions.get(
-            SystemEvent(SystemEventType.TICK).get_subscription_key(), 
-            []
-        )
-        
-        for flow in tick_flows:
-            self.interpreter.vm.execute_control_flow(flow, trigger)
-
-    def stop_interpreter_sync(self):
-        """Stop sync interpreter."""
-        if hasattr(self, '_sync_interpreter_timer'):
-            self._sync_interpreter_timer.cancel()
-            del self._sync_interpreter_timer
-        
-        # Call shutdown on flows
-        for flows in self.interpreter.event_subscriptions.values():
-            for flow in flows:
-                if flow.scheduler:
-                    flow.scheduler._call_shutdown()
-        
-        ui.notify("Interpreter stopped (sync mode)", type='info')
-
-
-    #
-    #    Sync Interpreter Methods
-    #    They are here for testing purposes only.
-    # =========================================
 
     def set_target_fps(self, fps: float):
         """Update target framerate."""
@@ -1203,8 +1090,10 @@ class UndoRedoTestAppWithCanvasManager:
         dialog.open()
     
     def _do_clear_graph(self):
-        """Actually clear the graph."""
+        """Clears the graph and undo History"""
         self.graph.clear()
+        # clear also all undo history and references it holds
+        self.history_manager.clear()
         ui.notify("Graph cleared", type='info', position='top')
         # Sync all sessions
         self.sync_all_sessions()
@@ -1698,17 +1587,11 @@ def main():
     #logging.getLogger('haywire.core.assembly.control_flow_builder').setLevel(logging.DEBUG)
     #logging.getLogger('haywire.core.assembly.flow_assembly_manager').setLevel(logging.DEBUG)
     #logging.getLogger('haywire.core.assembly.data_flow_builder').setLevel(logging.DEBUG)
+    logging.getLogger('haywire.ui.editor.graph_canvas_manager').setLevel(logging.DEBUG)
 
     app_instance = UndoRedoTestAppWithCanvasManager()
     
-    def signal_handler(signum, frame):
-        print(f"\n⚠️ Received signal {signum}, initiating shutdown...")
-        app_instance.cleanup()
-        sys.exit(0)
-    
-    # Register signal handlers
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    app.on_shutdown(app_instance.cleanup)
     
     app_instance.run()
 

@@ -10,6 +10,7 @@ from nicegui import ui
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types import DataPort
 
+from haywire.core.types.enums import PortType
 from haywire.ui.renderer.decorator import renderer
 from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.themes import ThemePalette
@@ -83,23 +84,30 @@ class DefaultNodeRenderer(NodeRenderer):
                     if node.ports:
                         self._render_port_hierarchy(
                             node.get_visible_ports(),
-                            wrapper,
-                            is_inlet=False
+                            wrapper = wrapper,
+                            port_type = PortType.OUTLET,
                         )
                     if node.ports:
                         self._render_port_hierarchy(
                             node.get_visible_ports(),
-                            wrapper,
-                            is_inlet=True
+                            wrapper = wrapper,
+                            port_type = PortType.CONFIG,
+                        )
+                    if node.ports:
+                        self._render_port_hierarchy(
+                            node.get_visible_ports(),
+                            wrapper = wrapper,
+                            port_type = PortType.INLET,
                         )
                         
         # Add resize handle in bottom-right corner
         self._add_resize_handle(main_card, wrapper)
 
     def _render_port_hierarchy(self, 
-                               ports: List[DataPort],
-                               wrapper: NodeWrapper,
-                               is_inlet: bool):
+            ports: List[DataPort],
+            wrapper: NodeWrapper,
+            port_type: PortType
+        ):
         """
         Render ports with hierarchical group structure.
         
@@ -113,7 +121,7 @@ class DefaultNodeRenderer(NodeRenderer):
         """
         for port in ports:
             # Skip ports of wrong direction
-            if port.is_inlet() != is_inlet:
+            if port.port_type != port_type:
                 continue
             
             # Skip child ports (they're rendered inside their parent group)
@@ -122,18 +130,16 @@ class DefaultNodeRenderer(NodeRenderer):
             
             # Render based on port type
             if port.is_group:
-                self._render_group(port, ports, wrapper, is_inlet)
+                self._render_group(port, ports, wrapper, port_type)
             else:
-                if is_inlet:
-                    self._render_inlet(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
-                else:
-                    self._render_outlet(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
-    
+                self.render_port(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+
     def _render_group(self,
-                     group_port: DataPort,
-                     all_ports: List[DataPort],
-                     wrapper: NodeWrapper,
-                     is_inlet: bool):
+            group_port: DataPort,
+            all_ports: List[DataPort],
+            wrapper: NodeWrapper,
+            port_type: PortType
+        ):
         """
         Render a collapsible group with visual hierarchy.
         
@@ -147,7 +153,7 @@ class DefaultNodeRenderer(NodeRenderer):
             group_port: The group control port (boolean inlet)
             all_ports: All visible ports (to find children)
             wrapper: NodeWrapper containing the node
-            is_inlet: True if rendering in inlet column
+            port_type: Port Type
         """
         node = wrapper.node
         is_expanded = node.value(group_port.id)
@@ -165,16 +171,13 @@ class DefaultNodeRenderer(NodeRenderer):
                 # Find and render direct children
                 children = [
                     port for port in all_ports
-                    if port.parent_group == group_port.id and port.is_inlet() == is_inlet
+                    if port.parent_group == group_port.id and port.port_type == port_type
                 ]
                 
                 for child_port in sorted(children, key=lambda p: p.order):
                     # Recursively handle nested groups
                     if child_port.is_group:
-                        self._render_group(child_port, all_ports, wrapper, is_inlet)
+                        self._render_group(child_port, all_ports, wrapper, port_type)
                     else:
-                        if is_inlet:
-                            self._render_inlet(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
-                        else:
-                            self._render_outlet(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+                        self.render_port(child_port, wrapper, widget_classes='widget-container zoom-pan-lod2')
 

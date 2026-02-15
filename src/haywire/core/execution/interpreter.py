@@ -114,7 +114,7 @@ class Interpreter:
         
         # Store graph reference
         self.current_graph = graph
-        
+
         # Assemble flows
         flows = self.assembly_manager.assemble_graph(graph)
         

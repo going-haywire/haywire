@@ -24,29 +24,56 @@ class NodeRenderer(BaseRenderer, ABC):
     They are cached and reused by the NodeRenderFactory.
     """
 
-    def _render_inlet(self, inlet: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
-        """Render an inlet with its port and optional widget."""
+    def render_port(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
+        """Render a port according to its ort type"""
+        if port.is_inlet():
+            self._render_inlet(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+        elif port.is_outlet():
+            self._render_outlet(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+        elif port.is_config():
+            self._render_config(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+
+    def _render_inlet(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
+        """Render an inlet with its pin and widget."""
         with ui.row().classes("w-full items-center justify-start gap-0"):
             # only render pins for inlets that are actually involved in flows
-            self._render_pin(inlet, wrapper, direction="left")
+            self._render_pin(port, wrapper, direction="left")
 
             # Pin label
-            ui.label(inlet.label).classes("text-xs zoom-pan-lod2")
+            ui.label(port.label).classes("text-xs zoom-pan-lod2")
 
         # Render inlet widget if it has a pin that does not allow multiple connections
-        if not inlet.allow_multiple_connections:
-            if inlet.widget_key:
+        if not port.allow_multiple_connections:
+            if port.widget_key:
                 # Widget rendering adds UI element to current context automatically
-                self.render_widget(inlet, wrapper.node_id, classes=widget_classes)
+                self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
-    def _render_outlet(self, outlet, wrapper: NodeWrapper, widget_classes: str = ""):
-        """Render an outlet with its port."""
+    def _render_outlet(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
+        """Render an outlet with its pin and widget."""
         with ui.row().classes("w-full items-center justify-end gap-0"):
             # Pin label
-            ui.label(outlet.label).classes("text-xs")
+            ui.label(port.label).classes("text-xs")
 
             # only render pins for outlets that are actually involved in flows
-            self._render_pin(outlet, wrapper, direction="right")
+            self._render_pin(port, wrapper, direction="right")
+
+        # Render inlet widget if it has a pin that does not allow multiple connections
+        if not port.allow_multiple_connections:
+            if port.widget_key:
+                # Widget rendering adds UI element to current context automatically
+                self.render_widget(port, wrapper.node_id, classes=widget_classes)
+
+    def _render_config(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
+        """Render an config with its widget."""
+        with ui.row().classes("w-full items-center justify-start gap-0"):
+            # Pin label
+            ui.label(port.label).classes("text-xs")
+
+        # Render inlet widget if it has a pin that does not allow multiple connections
+        if not port.allow_multiple_connections:
+            if port.widget_key:
+                # Widget rendering adds UI element to current context automatically
+                self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
     def _render_pin(self, pin: DataPort, wrapper: NodeWrapper, direction: str = "left"):
         """Render a pin with connection system compatibility."""

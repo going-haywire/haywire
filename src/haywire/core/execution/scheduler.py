@@ -154,7 +154,7 @@ class FlowScheduler:
         # Reset events for new thread
         self._stop_requested.clear()
         self._thread_exited.clear()
-        
+
         # Create and start new execution thread
         self.execution_thread = Thread(
             target=self._execution_loop,

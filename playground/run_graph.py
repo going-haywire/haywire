@@ -159,7 +159,7 @@ class GraphRunner:
         if not self.graph.load_from_file(str(path)):
             raise RuntimeError(f"Failed to load graph from: {path}")
         
-        self.graph._validation.force_immediate_validation()
+        self.graph.force_validation()
     
     def _setup_interpreter(self):
         """Setup interpreter and loop manager."""
