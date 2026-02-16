@@ -607,7 +607,7 @@ class NodeData:
         port.set_value(value)
 
         # this indicates to the port that the value was set by the node
-        port._is_node_set = True
+        port._is_set_by_node = True
 
     # =========================================================================
     # Port Querying and Organization

@@ -129,7 +129,7 @@ class DataPort(DataTypeIdentity):
     _is_dirty_structural: bool = False
     """Internal flag to track if port link has structurally changed"""
 
-    _is_node_set: bool = field(
+    _is_set_by_node: bool = field(
         default=False, 
         metadata={'serialize': False}) 
     """Internal flag to indicate if the value was set via the node"""
@@ -266,7 +266,7 @@ class DataPort(DataTypeIdentity):
         self._data.set_value(new_value, source_id=connection_uuid)
 
         # this flag should only be set by the nodes self.out() method to True 
-        self._is_node_set = False
+        self._is_set_by_node = False
 
         # Trigger on_change callback if value actually changed
         if self.on_change is not None:
@@ -529,7 +529,7 @@ class DataPort(DataTypeIdentity):
                 (StoreStrategy.ALWAYS in self.store_strategy) or \
                 (StoreStrategy.WHEN_LINKED in self.store_strategy and self.is_linked()) or \
                 (StoreStrategy.HAS_WIDGET in self.store_strategy and self.widget_key is not None) or \
-                (StoreStrategy.NODE_SET in self.store_strategy and self._is_node_set):
+                (StoreStrategy.NODE_SET in self.store_strategy and self._is_set_by_node):
                     result['field_data'] = self._data.to_dict()
 
         return result
