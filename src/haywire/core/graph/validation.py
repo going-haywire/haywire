@@ -363,11 +363,16 @@ class ValidationManager:
                     edge_wrapper = self._graph.get_edge_wrapper(connection_uuid)
                     if reason.requires_rebuild() or \
                         reason.requires_validation():
-                        # we play it safe - in case the node has changed the type of an 
+                        # we play it safe - in case the node has changed the type of an
                         # existing port with the same id the edge is rebuild and validated
-                        if edge_wrapper:                            
+                        if edge_wrapper:
+                            was_functional = edge_wrapper.is_functional()
                             edge_wrapper.build()
-                            self._graph.update_port_link(edge_wrapper)
+                            if edge_wrapper.is_functional():
+                                edge_wrapper.link()
+                            elif was_functional:
+                                # Lost functionality during rebuild
+                                edge_wrapper.unlink()
                             # Always include in result with its reason
                             validated_edges[connection_uuid] = reason
                             validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY

@@ -10,10 +10,7 @@ from ..validation.interface import IStructuralValidator
 from ..types import FlowType
 from ..adapter.base import IAdapter, ReturnAdapter
 from ..errors import HaywireException
-from ..registry.lifecycle_event import (
-    LifeCycleEvent,
-    LifeCycleBatchCallback
-)
+from ..registry.lifecycle_event import LifeCycleEvent
 from ..types.interface import IType
 from .edge import Edge
 
@@ -178,10 +175,7 @@ class EdgeWrapper:
 
         # State management
         self._state = EdgeWrapperState(creation_time=time.time())
-        
-        # Lifecycle event subscribers (for UIEdge)
-        self._lifecycle_subscribers: List[LifeCycleBatchCallback] = []
-        
+
         # Create Edge instance in any case
         self._edge = Edge(
             source_node_id=self.source_node_id,
@@ -241,6 +235,250 @@ class EdgeWrapper:
     def state(self) -> Optional[EdgeWrapperState]:
         """Get the Edge state"""
         return self._state
+
+    @property
+    def edge_type(self) -> FlowType:
+        """Get the edge flow type"""
+        return self._edge_type
+
+    # =========================================================================
+    # GRAPH NOTIFICATION (mirrors NodeWrapper pattern)
+    # =========================================================================
+
+    def redraw(self) -> None:
+        """
+        Request a visual redraw of this edge in the UI.
+        Mirrors NodeWrapper.redraw().
+        """
+        if self._graph:
+            self._graph._validation.mark_edge_dirty(
+                self._connection_uuid,
+                ChangeReason.EDGE_REDRAW_REQUESTED
+            )
+
+    def request_revalidation(self) -> None:
+        """
+        Request revalidation of this edge (rebuild + re-link).
+        Mirrors NodeWrapper.mark_as_structuraly_dirty().
+        """
+        if self._graph:
+            self._graph._validation.mark_edge_dirty(
+                self._connection_uuid,
+                ChangeReason.EDGE_VALIDATION_REQUESTED
+            )
+
+    # =========================================================================
+    # LINK LIFECYCLE
+    # =========================================================================
+
+    def link(self) -> None:
+        """
+        Attempt to link this edge at both ports.
+
+        Precondition: edge must be functional (is_functional() == True).
+        If not functional, this is a no-op.
+
+        Flow:
+        1. Register at inlet via _add_link (may displace an old edge)
+        2. Register at outlet via _add_link (may displace an old edge)
+        3. Update own link state flags
+        4. Handle displaced edges with asymmetric invalidation rules
+        5. Housekeeping on both ports (rebuild pipes)
+        """
+        if not self.is_functional():
+            return
+
+        if not self._inlet_port or not self._outlet_port:
+            return
+
+        # Link at both ports — each returns the displaced edge (if any)
+        displaced_at_inlet = self._inlet_port._add_link(self)
+        displaced_at_outlet = self._outlet_port._add_link(self)
+
+        # Update own link flags
+        self._update_link_state()
+
+        # Handle displaced edges with asymmetric invalidation:
+        # Inlet displaced old edge → old edge DOES inform its source outlet
+        if displaced_at_inlet:
+            displaced_at_inlet._on_displaced_from_inlet()
+
+        # Outlet displaced old edge → old edge does NOT inform its sink inlet
+        if displaced_at_outlet:
+            displaced_at_outlet._on_displaced_from_outlet()
+
+        # Housekeeping (rebuild pipes)
+        self._inlet_port._housekeeping()
+        self._outlet_port._housekeeping()
+
+    def unlink(self) -> None:
+        """
+        Remove this edge from the linked set of both ports.
+        The edge remains tracked in _all_edges for potential re-enablement.
+
+        Used when the edge loses functionality (e.g. hot reload broke
+        the adapter chain).
+
+        After unlinking, attempts re-enablement on both ports.
+        """
+        if self._inlet_port:
+            self._inlet_port._clear_link(self._connection_uuid)
+
+        if self._outlet_port:
+            self._outlet_port._clear_link(self._connection_uuid)
+
+        self._update_link_state()
+        self._try_reenable_on_ports()
+
+        if self._inlet_port:
+            self._inlet_port._housekeeping()
+        if self._outlet_port:
+            self._outlet_port._housekeeping()
+
+    def detach(self) -> None:
+        """
+        Fully remove this edge from both ports (both tiers).
+        Used when the edge is explicitly deleted or its port is destroyed.
+
+        After detaching, attempts re-enablement on both ports.
+        """
+        if self._inlet_port:
+            self._inlet_port._remove_edge(self._connection_uuid)
+
+        if self._outlet_port:
+            self._outlet_port._remove_edge(self._connection_uuid)
+
+        self._update_link_state()
+        self._try_reenable_on_ports()
+
+        if self._inlet_port:
+            self._inlet_port._housekeeping()
+        if self._outlet_port:
+            self._outlet_port._housekeeping()
+
+    # =========================================================================
+    # ASYMMETRIC DISPLACEMENT HANDLERS
+    # =========================================================================
+
+    def _on_displaced_from_inlet(self) -> None:
+        """
+        Called when this edge was displaced from its INLET port by a newer edge.
+
+        Asymmetric rule: DOES inform the source outlet, because the outlet
+        needs to remove this edge from its pipes.
+        """
+        self._state.is_inlet_linked = False
+        self._state.is_linked = False
+        self._state.error_link = HaywireException.create(
+            message="Edge was displaced from inlet port by a newer connection.",
+            category="Port Linking Error"
+        ).enrich(
+            operation="Port Linking Validation",
+            suggestions=["Remove this edge or reconnect it"]
+        )
+
+        # Inform source outlet: remove from its linked set too
+        if self._outlet_port:
+            self._outlet_port._clear_link(self._connection_uuid)
+            self._state.is_outlet_linked = False
+            self._outlet_port._housekeeping()
+
+        self.redraw()
+
+    def _on_displaced_from_outlet(self) -> None:
+        """
+        Called when this edge was displaced from its OUTLET port by a newer edge.
+
+        Asymmetric rule: does NOT inform the sink inlet. The inlet may
+        have stale link state, but the edge will be drawn as invalid,
+        and the user can clean up.
+        """
+        self._state.is_outlet_linked = False
+        self._state.is_linked = False
+        self._state.error_link = HaywireException.create(
+            message="Edge was displaced from outlet port by a newer connection.",
+            category="Port Linking Error"
+        ).enrich(
+            operation="Port Linking Validation",
+            suggestions=["Remove this edge or reconnect it"]
+        )
+
+        # Do NOT inform sink inlet (asymmetric rule)
+        self.redraw()
+
+    # =========================================================================
+    # LINK STATE HELPERS
+    # =========================================================================
+
+    def _update_link_state(self) -> None:
+        """
+        Update own link state flags based on whether each port considers
+        this edge as linked.
+        """
+        if self._inlet_port:
+            self._state.is_inlet_linked = self._inlet_port._is_linked_to(
+                self._connection_uuid
+            )
+        else:
+            self._state.is_inlet_linked = False
+
+        if self._outlet_port:
+            self._state.is_outlet_linked = self._outlet_port._is_linked_to(
+                self._connection_uuid
+            )
+        else:
+            self._state.is_outlet_linked = False
+
+        self._state.is_linked = (
+            self._state.is_inlet_linked and self._state.is_outlet_linked
+        )
+
+        # Update error state
+        if self._state.is_linked:
+            self._state.error_link = None
+        elif not self._state.is_inlet_linked:
+            self._state.error_link = HaywireException.create(
+                message="Port link refused due to link limit on inlet port.",
+                category="Port Linking Error"
+            ).enrich(
+                operation="Port Linking Validation",
+                suggestions=[
+                    "Check port linking limits",
+                    "Ensure port is not already linked"
+                ]
+            )
+        elif not self._state.is_outlet_linked:
+            self._state.error_link = HaywireException.create(
+                message="Port link refused due to link limit on outlet port.",
+                category="Port Linking Error"
+            ).enrich(
+                operation="Port Linking Validation",
+                suggestions=[
+                    "Check port linking limits",
+                    "Ensure port is not already linked"
+                ]
+            )
+
+    def _try_reenable_on_ports(self) -> None:
+        """
+        After this edge is unlinked or detached, check both ports for
+        re-enablement candidates.
+        """
+        if self._inlet_port:
+            candidate = self._inlet_port._try_reenable()
+            if candidate:
+                candidate.link()
+                candidate.redraw()
+
+        if self._outlet_port:
+            candidate = self._outlet_port._try_reenable()
+            if candidate:
+                candidate.link()
+                candidate.redraw()
+
+    # =========================================================================
+    # BUILD PIPELINE
+    # =========================================================================
 
     def build(self):
         """
@@ -393,7 +631,7 @@ class EdgeWrapper:
                     f"{self._connection_uuid} | "
                     f" (source_node_id={self.source_node_id}, sink_node_id={self.sink_node_id})"
                 )
-            
+                
             # Get DataPort references
             outlet_node = self._source_wrapper.node
             inlet_node = self._sink_wrapper.node
@@ -567,65 +805,6 @@ class EdgeWrapper:
             self._state.has_test_passed = False
             return False
 
-    def validate_link(self, port: 'DataPort') -> bool:
-        """
-        Validate if this edge is linked to the given port.
-        This does not establish the link itself! 
-        To initiate a link is the sole responsibility of the graph.
-        An edge can be 'connected' to a port, but thats not the same as being 'linked'. 
-        Only the port can accept or refuse the link depending on its connection rules.
-
-        Once an edge is linked to both ports, for which it has to be functional, 
-        it is considered valid.
-        
-        Args:
-            port: The DataPort to validate against
-        Returns:
-            True if linked condition changed, False otherwise
-        """
-        is_linked = self._state.is_linked
-
-        if port._is_linked_to(self._connection_uuid):
-            if port.is_inlet():
-                self._state.is_inlet_linked = True
-            else:
-                self._state.is_outlet_linked = True
-        else:
-            if port.is_inlet():
-                self._state.is_inlet_linked = False
-            else:
-                self._state.is_outlet_linked = False
-
-        if not self._state.is_inlet_linked:
-            self._state.error_link = HaywireException.create(
-                message="Port link refused due to link limit on inlet port.",
-                category="Port Linking Error"
-            ).enrich(
-                operation="Port Linking Validation",
-                suggestions=[
-                    "Check port linking limits",
-                    "Ensure port is not already linked"
-                ]
-            )
-        elif not self._state.is_outlet_linked:
-            self._state.error_link = HaywireException.create(
-                message="Port link refused due to link limit on outlet port.",
-                category="Port Linking Error"
-            ).enrich(
-                operation="Port Linking Validation",
-                suggestions=[
-                    "Check port linking limits",
-                    "Ensure port is not already linked"
-                ]
-            )
-        else:
-            self._state.error_link = None
-
-        self._state.is_linked = (self._state.is_inlet_linked and self._state.is_outlet_linked)
-
-        return self._state.is_linked != is_linked
-
-
     def _on_adapter_lifecycle_event(self, batch: List[LifeCycleEvent]):
         """
         Handle adapter hot reload events.
@@ -727,11 +906,14 @@ class EdgeWrapper:
     
     def cleanup(self):
         """Clean up edge resources"""
+        # Remove from ports before nulling references
+        self.detach()
+
         # Unsubscribe from adapter factory
         self._adapter_factory.unregister_edge_callback(
             self._connection_uuid
         )
-        
+
         # Clear references
         self._first_adapter = None
         self._source_wrapper = None
@@ -739,9 +921,6 @@ class EdgeWrapper:
         self._outlet_port = None
         self._inlet_port = None
         self._edge = None
-        
-        # Clear subscribers
-        self._lifecycle_subscribers.clear()
     
         
     def __repr__(self) -> str:

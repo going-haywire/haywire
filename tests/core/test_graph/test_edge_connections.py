@@ -79,7 +79,7 @@ class TestEdgeConnections:
 
         inlet_port = self._get_port(node_b, 'bool_inlet')
         assert inlet_port.is_linked()
-        assert len(inlet_port._edge_wrappers) == 1
+        assert len(inlet_port._linked_edges) == 1
 
     def test_data_inlet_second_valid_connection_replaces_first(
         self, graph_with_library_system: BaseGraph, library_system
@@ -107,8 +107,8 @@ class TestEdgeConnections:
         inlet_port = self._get_port(node_c, 'bool_inlet')
 
         # Inlet should only have one linked edge — the second one
-        assert len(inlet_port._edge_wrappers) == 1
-        assert edge_2.connection_uuid in inlet_port._edge_wrappers
+        assert len(inlet_port._linked_edges) == 1
+        assert edge_2.connection_uuid in inlet_port._linked_edges
 
         # The second edge should not be valid
         assert not edge_1.state.is_valid()
@@ -149,7 +149,7 @@ class TestEdgeConnections:
 
         inlet_port = self._get_port(node_c, 'bool_inlet')
         # The first valid edge should still be linked
-        assert edge_valid.connection_uuid in inlet_port._edge_wrappers
+        assert edge_valid.connection_uuid in inlet_port._linked_edges
         assert edge_valid.state.is_inlet_linked
 
         assert edge_valid.state.is_valid()
@@ -180,8 +180,8 @@ class TestEdgeConnections:
         assert edge_2.state.is_valid()
 
         inlet_port = self._get_port(node_c, 'int_inlet')
-        assert len(inlet_port._edge_wrappers) == 1
-        assert edge_2.connection_uuid in inlet_port._edge_wrappers
+        assert len(inlet_port._linked_edges) == 1
+        assert edge_2.connection_uuid in inlet_port._linked_edges
         assert not edge_1.state.is_inlet_linked
 
         assert not edge_1.state.is_valid()
@@ -213,7 +213,7 @@ class TestEdgeConnections:
 
         pooled_port = self._get_port(node_c, 'pooled_bool_inlet')
         assert pooled_port.allow_multiple_connections is True
-        assert len(pooled_port._edge_wrappers) == 2
+        assert len(pooled_port._linked_edges) == 2
 
     def test_pooled_inlet_with_adapter_connections(
         self, graph_with_library_system: BaseGraph, library_system
@@ -240,7 +240,7 @@ class TestEdgeConnections:
         assert edge_2.state.is_valid()
 
         pooled_port = self._get_port(node_c, 'pooled_int_inlet')
-        assert len(pooled_port._edge_wrappers) == 2
+        assert len(pooled_port._linked_edges) == 2
 
     def test_data_outlet_allows_multiple_connections(
         self, graph_with_library_system: BaseGraph, library_system
@@ -263,7 +263,7 @@ class TestEdgeConnections:
 
         outlet_port = self._get_port(node_a, 'bool_outlet')
         assert outlet_port.allow_multiple_connections is True
-        assert len(outlet_port._edge_wrappers) == 2
+        assert len(outlet_port._linked_edges) == 2
 
     # ==================================================================
     # ADAPTER CHAIN CREATION
@@ -472,10 +472,10 @@ class TestEdgeConnections:
 
         outlet_port = self._get_port(node_a, 'execute_out')
         assert outlet_port.allow_multiple_connections is False
-        assert len(outlet_port._edge_wrappers) == 1
+        assert len(outlet_port._linked_edges) == 1
 
         # The second edge should be the one linked
-        assert edge_2.connection_uuid in outlet_port._edge_wrappers
+        assert edge_2.connection_uuid in outlet_port._linked_edges
         # The first edge should no longer be linked on the outlet side
         assert not edge_1.state.is_outlet_linked
 
@@ -501,7 +501,7 @@ class TestEdgeConnections:
         )
 
         inlet_port = self._get_port(node_c, 'execute_inlet')
-        assert len(inlet_port._edge_wrappers) == 2
+        assert len(inlet_port._linked_edges) == 2
 
         assert edge_1.state.is_valid()
         assert edge_2.state.is_valid()
@@ -748,12 +748,12 @@ class TestEdgeConnections:
         assert edge_2.state.is_valid()
 
         pooled_port = self._get_port(node_c, 'pooled_bool_inlet')
-        assert len(pooled_port._edge_wrappers) == 2
+        assert len(pooled_port._linked_edges) == 2
 
         graph.remove_edge_wrapper(edge_1.connection_uuid)
 
-        assert len(pooled_port._edge_wrappers) == 1
-        assert edge_2.connection_uuid in pooled_port._edge_wrappers
+        assert len(pooled_port._linked_edges) == 1
+        assert edge_2.connection_uuid in pooled_port._linked_edges
         assert edge_2.state.is_valid()
 
     # ==================================================================
@@ -918,3 +918,492 @@ class TestEdgeConnections:
             assert port.allow_multiple_connections is False, (
                 f"Port {port_id} should NOT allow multiple connections"
             )
+
+    # ==================================================================
+    # TWO-TIER PORT STORAGE & RE-ENABLEMENT
+    # ==================================================================
+
+    def test_displaced_edge_remains_in_all_edges(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        When a second valid edge displaces the first on a single-connection
+        inlet, the displaced edge should leave _linked_edges but remain
+        tracked in _all_edges.
+        """
+        graph = graph_with_library_system
+        node_a, node_b, node_c = self._create_three_nodes(graph)
+
+        edge_1 = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+        edge_2 = graph.create_edge_wrapper(
+            node_b.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+
+        inlet_port = self._get_port(node_c, 'bool_inlet')
+
+        # Displaced edge leaves _linked_edges
+        assert edge_1.connection_uuid not in inlet_port._linked_edges
+        # But remains in _all_edges
+        assert edge_1.connection_uuid in inlet_port._all_edges
+        # Active edge is in both
+        assert edge_2.connection_uuid in inlet_port._linked_edges
+        assert edge_2.connection_uuid in inlet_port._all_edges
+
+    def test_reenable_after_active_edge_removed(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        When the active edge on a single-connection inlet is removed,
+        a previously displaced but functional edge should be automatically
+        re-enabled (promoted back to _linked_edges).
+        """
+        graph = graph_with_library_system
+        node_a, node_b, node_c = self._create_three_nodes(graph)
+
+        edge_1 = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+        edge_2 = graph.create_edge_wrapper(
+            node_b.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+
+        # edge_1 is displaced, edge_2 is active
+        assert not edge_1.state.is_linked
+        assert edge_2.state.is_linked
+
+        # Remove the active edge
+        graph.remove_edge_wrapper(edge_2.connection_uuid)
+
+        inlet_port = self._get_port(node_c, 'bool_inlet')
+
+        # edge_1 should be re-enabled
+        assert edge_1.connection_uuid in inlet_port._linked_edges
+        assert edge_1.state.is_linked
+        assert edge_1.state.is_inlet_linked
+        assert edge_1.state.is_outlet_linked
+        assert edge_1.state.error_link is None
+
+    def test_detach_removes_from_all_edges(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        detach() (via remove_edge_wrapper) should fully remove the edge
+        from both _linked_edges and _all_edges on both ports.
+        """
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'bool_inlet'
+        )
+        assert edge.state.is_valid()
+
+        outlet_port = self._get_port(node_a, 'bool_outlet')
+        inlet_port = self._get_port(node_b, 'bool_inlet')
+
+        graph.remove_edge_wrapper(edge.connection_uuid)
+
+        # Fully removed from both tiers on both ports
+        assert edge.connection_uuid not in inlet_port._linked_edges
+        assert edge.connection_uuid not in inlet_port._all_edges
+        assert edge.connection_uuid not in outlet_port._linked_edges
+        assert edge.connection_uuid not in outlet_port._all_edges
+
+    def test_asymmetric_inlet_displacement(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        When an edge is displaced from an INLET, the source outlet
+        MUST be informed (the outlet removes the edge from its linked set
+        so pipes are rebuilt correctly).
+        """
+        graph = graph_with_library_system
+        node_a, node_b, node_c = self._create_three_nodes(graph)
+
+        edge_1 = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+        assert edge_1.state.is_valid()
+
+        # Displace edge_1 at the inlet
+        edge_2 = graph.create_edge_wrapper(
+            node_b.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+
+        outlet_port_a = self._get_port(node_a, 'bool_outlet')
+        inlet_port_c = self._get_port(node_c, 'bool_inlet')
+
+        # edge_1 should be removed from the source outlet's linked set
+        assert edge_1.connection_uuid not in outlet_port_a._linked_edges
+        # edge_1 should not be linked on either side
+        assert not edge_1.state.is_inlet_linked
+        assert not edge_1.state.is_outlet_linked
+        assert not edge_1.state.is_linked
+
+    def test_asymmetric_outlet_displacement(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        When an edge is displaced from an OUTLET (e.g. exec outlet,
+        single-connection), the sink inlet should NOT be informed.
+        The inlet retains the stale edge in its linked set.
+        """
+        graph = graph_with_library_system
+        node_a, node_b, node_c = self._create_three_nodes(graph)
+
+        # Exec outlets are single-connection
+        edge_1 = graph.create_edge_wrapper(
+            node_a.node_id, 'execute_out',
+            node_b.node_id, 'execute_inlet'
+        )
+        assert edge_1.state.is_valid()
+
+        # Displace edge_1 at the outlet
+        edge_2 = graph.create_edge_wrapper(
+            node_a.node_id, 'execute_out',
+            node_c.node_id, 'execute_inlet'
+        )
+
+        outlet_port_a = self._get_port(node_a, 'execute_out')
+        inlet_port_b = self._get_port(node_b, 'execute_inlet')
+
+        # edge_1 should be removed from outlet
+        assert edge_1.connection_uuid not in outlet_port_a._linked_edges
+        # Sink inlet NOT informed — edge_1 remains in inlet's linked set
+        assert edge_1.connection_uuid in inlet_port_b._linked_edges
+
+        # Edge state reflects asymmetry
+        assert edge_1.state.is_inlet_linked  # Stale but harmless
+        assert not edge_1.state.is_outlet_linked
+        assert not edge_1.state.is_linked
+
+    def test_reenable_skips_nonfunctional(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        Re-enablement should skip edges that lost functionality
+        (e.g. adapter chain broke during hot reload). Only functional
+        candidates should be promoted.
+        """
+        graph = graph_with_library_system
+        node_a, node_b, node_c = self._create_three_nodes(graph)
+
+        edge_1 = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+        edge_2 = graph.create_edge_wrapper(
+            node_b.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+
+        # edge_1 is displaced; simulate hot reload failure
+        edge_1._state.is_built = False
+
+        # Remove the active edge
+        graph.remove_edge_wrapper(edge_2.connection_uuid)
+
+        inlet_port = self._get_port(node_c, 'bool_inlet')
+
+        # edge_1 is not functional, so it should NOT be re-enabled
+        assert edge_1.connection_uuid not in inlet_port._linked_edges
+        assert not inlet_port.is_linked()
+
+    # ==================================================================
+    # VALIDATION PIPELINE: HOT RELOAD & RECONFIGURATION
+    # ==================================================================
+
+    def _create_dynamic_node(self, graph: BaseGraph):
+        """Create a DynamicPortTestNode and return its wrapper."""
+        from haybale_testing.nodes.testbed.dynamic_port_test import DynamicPortTestNode
+        return graph.create_node_wrapper(
+            DynamicPortTestNode.class_identity.registry_key,
+            position=(100, 100)
+        )
+
+    def test_node_validation_edges_stay_valid(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        After marking a node dirty with NODE_VALIDATION_REQUESTED and
+        running force_immediate_validation(), all edges attached to that
+        node should remain valid and linked.
+        """
+        from haywire.core.graph.types import ChangeReason
+
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'bool_inlet'
+        )
+        # Flush pending NODE_ADDED from creation
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+
+        # Simulate node validation request (e.g. port reconfiguration)
+        graph._validation.mark_node_dirty(
+            node_a.node_id,
+            ChangeReason.NODE_VALIDATION_REQUESTED
+        )
+        result = graph._validation.force_immediate_validation()
+
+        # Edge should still be valid after validation
+        assert edge.state.is_valid()
+        assert edge.state.is_linked
+
+        # Ports should still have the edge
+        outlet_port = self._get_port(node_a, 'bool_outlet')
+        inlet_port = self._get_port(node_b, 'bool_inlet')
+        assert edge.connection_uuid in outlet_port._linked_edges
+        assert edge.connection_uuid in inlet_port._linked_edges
+
+    def test_node_hot_reload_edges_survive_rebuild(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        After a full node hot reload (NODE_HOT_RELOADED), the node is
+        completely rebuilt with new port objects. Edges should survive
+        by rebinding to the new ports.
+        """
+        from haywire.core.graph.types import ChangeReason
+
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'bool_inlet'
+        )
+        assert edge.state.is_valid()
+
+        # Flush pending NODE_ADDED validation from create_node/edge_wrapper
+        graph._validation.force_immediate_validation()
+
+        # Remember old port objects
+        old_outlet = self._get_port(node_a, 'bool_outlet')
+
+        # Simulate hot reload — rebuilds the entire node
+        graph._validation.mark_node_dirty(
+            node_a.node_id,
+            ChangeReason.NODE_HOT_RELOADED
+        )
+        result = graph._validation.force_immediate_validation()
+
+        # Edge should be valid after rebuild
+        assert edge.state.is_valid()
+        assert edge.state.is_linked
+
+        # Port objects should be NEW (node was re-instantiated)
+        new_outlet = self._get_port(node_a, 'bool_outlet')
+        assert new_outlet is not old_outlet
+
+        # Edge should be linked at the new port
+        assert edge.connection_uuid in new_outlet._linked_edges
+
+        # Edge should be linked at the new port
+        assert edge.connection_uuid in new_outlet._linked_edges
+
+    def test_node_hot_reload_adapter_chain_survives(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        An edge with an adapter chain (bool→int) should survive a hot
+        reload of either node, rebuilding its adapter chain against
+        the new port objects.
+        """
+        from haywire.core.graph.types import ChangeReason
+
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        # bool→int requires BoolToIntAdapter
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'int_inlet'
+        )
+        # Flush pending NODE_ADDED from creation
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+        assert len(edge.edge.chain_adapter_keys) == 1
+
+        # Hot reload the sink node
+        graph._validation.mark_node_dirty(
+            node_b.node_id,
+            ChangeReason.NODE_HOT_RELOADED
+        )
+        result = graph._validation.force_immediate_validation()
+
+        # Edge should survive with adapter chain intact
+        assert edge.state.is_valid()
+        assert len(edge.edge.chain_adapter_keys) == 1
+
+        # Linked at new ports
+        new_inlet = self._get_port(node_b, 'int_inlet')
+        assert edge.connection_uuid in new_inlet._linked_edges
+
+    def test_node_hot_reload_displaced_edge_survives(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        After a hot reload, displaced edges should still be tracked
+        in _all_edges on the rebuilt ports, and the active edge should
+        be the one that was last linked.
+        """
+        from haywire.core.graph.types import ChangeReason
+
+        graph = graph_with_library_system
+        node_a, node_b, node_c = self._create_three_nodes(graph)
+
+        # edge_1 will be displaced by edge_2
+        edge_1 = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+        edge_2 = graph.create_edge_wrapper(
+            node_b.node_id, 'bool_outlet',
+            node_c.node_id, 'bool_inlet'
+        )
+
+        # Flush pending NODE_ADDED from creation
+        graph._validation.force_immediate_validation()
+        assert not edge_1.state.is_linked
+        assert edge_2.state.is_valid()
+
+        # Hot reload the sink node (rebuilds ports)
+        graph._validation.mark_node_dirty(
+            node_c.node_id,
+            ChangeReason.NODE_HOT_RELOADED
+        )
+        result = graph._validation.force_immediate_validation()
+
+        new_inlet = self._get_port(node_c, 'bool_inlet')
+
+        # After rebuild: both edges are rebuilt and link() is called
+        # in order. edge_1 links first, then edge_2 displaces it.
+        assert edge_2.state.is_valid()
+        assert edge_2.connection_uuid in new_inlet._linked_edges
+
+        # edge_1 was displaced again — in _all_edges but not _linked_edges
+        assert edge_1.connection_uuid in new_inlet._all_edges
+        assert edge_1.connection_uuid not in new_inlet._linked_edges
+
+    def test_dynamic_port_removal_detaches_edge(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        When a dynamic port is removed via push/pop reconfiguration,
+        the edge connected to that port should be detached (unlinked
+        from both ports).
+        """
+        from haywire.core.graph.types import ChangeReason
+
+        graph = graph_with_library_system
+        dyn_node = self._create_dynamic_node(graph)
+        node_b, _ = self._create_two_nodes(graph)
+
+        # Connect to dynamic_outlet_1 (exists with default port_count=2)
+        edge = graph.create_edge_wrapper(
+            dyn_node.node_id, 'dynamic_outlet_1',
+            node_b.node_id, 'int_inlet'
+        )
+        # Flush pending NODE_ADDED from creation
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+
+        # Reconfigure to port_count=1 — removes dynamic_inlet_1, dynamic_outlet_1
+        dyn_node.node.ports['port_count'].set_value(1)
+
+        # pop() already marked the node dirty; run validation
+        result = graph._validation.force_immediate_validation()
+
+        # The dynamic port is gone
+        assert 'dynamic_outlet_1' not in dyn_node.node.ports
+
+        # Edge should no longer be linked (port was destroyed)
+        assert not edge.state.is_linked
+
+    def test_dynamic_port_edge_survives_reconfiguration(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        When a dynamic port survives push/pop reconfiguration (same ID
+        re-added), the edge connected to it should remain valid after
+        validation rebuilds it.
+        """
+        from haywire.core.graph.types import ChangeReason
+
+        graph = graph_with_library_system
+        dyn_node = self._create_dynamic_node(graph)
+        node_b, _ = self._create_two_nodes(graph)
+
+        # Connect to dynamic_outlet_0 (always present when count >= 1)
+        edge = graph.create_edge_wrapper(
+            dyn_node.node_id, 'dynamic_outlet_0',
+            node_b.node_id, 'int_inlet'
+        )
+        # Flush pending NODE_ADDED from creation
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+
+        # Reconfigure to port_count=3 — dynamic_outlet_0 survives, adds 2
+        dyn_node.node.ports['port_count'].set_value(3)
+
+        # pop() marked node dirty; run validation
+        result = graph._validation.force_immediate_validation()
+
+        # Port still exists
+        assert 'dynamic_outlet_0' in dyn_node.node.ports
+
+        # Edge should be valid after rebuild
+        assert edge.state.is_valid()
+        assert edge.state.is_linked
+
+        # New dynamic ports should also be available
+        assert 'dynamic_outlet_2' in dyn_node.node.ports
+
+    def test_static_port_edge_survives_dynamic_reconfiguration(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        Edges connected to static ports (not affected by push/pop)
+        should be completely unaffected by dynamic port reconfiguration.
+        """
+        from haywire.core.graph.types import ChangeReason
+
+        graph = graph_with_library_system
+        dyn_node = self._create_dynamic_node(graph)
+        node_b, _ = self._create_two_nodes(graph)
+
+        # Connect to the static bool_outlet
+        edge = graph.create_edge_wrapper(
+            dyn_node.node_id, 'bool_outlet',
+            node_b.node_id, 'bool_inlet'
+        )
+        # Flush pending NODE_ADDED from creation
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+
+        # Reconfigure dynamic ports to 0 — removes all dynamic ports
+        dyn_node.node.ports['port_count'].set_value(0)
+
+        # Validate
+        result = graph._validation.force_immediate_validation()
+
+        # Static edge should be completely unaffected
+        assert edge.state.is_valid()
+        assert edge.state.is_linked
+
+        # Dynamic ports are gone, but static ports remain
+        assert 'dynamic_outlet_0' not in dyn_node.node.ports
+        assert 'bool_outlet' in dyn_node.node.ports

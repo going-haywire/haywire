@@ -68,12 +68,19 @@ class DataPort(DataTypeIdentity):
         metadata={'serialize': False}) 
     """The type class (FLOAT, ArrayType, etc.)"""
     
-    # Connection state
-    _edge_wrappers: dict[str, EdgeWrapper] = field(
-        default_factory=dict, 
-        repr=False, 
+    # Connection state — two-tier storage
+    _linked_edges: dict[str, EdgeWrapper] = field(
+        default_factory=dict,
+        repr=False,
         metadata={'serialize': False})
-    """Dict of EdgeWrapper instances connected to this port, keyed by UUID"""
+    """Active linked EdgeWrapper instances. Used for pipe building."""
+
+    _all_edges: dict[str, EdgeWrapper] = field(
+        default_factory=dict,
+        repr=False,
+        metadata={'serialize': False})
+    """ALL EdgeWrapper instances targeting this port (linked + denied/displaced).
+    Used for re-enablement when an active edge is removed."""
 
     # Outlet-specific
     _pipes: Optional[Pipes] = field(
@@ -92,10 +99,14 @@ class DataPort(DataTypeIdentity):
     # Internal: Store default override for field creation
     default: Optional[Dict[str, Any]] = field(default=None, repr=False)
 
+    def __hash__(self) -> int:
+        """Hash by port id so DataPort can be used in sets."""
+        return hash(self.id)
+
     def is_config(self) -> bool:
         """True for outlet, False for anything else"""
         return self.port_type == PortType.CONFIG
-    
+
     def is_outlet(self) -> bool:
         """True for outlet, False for anything else"""
         return self.port_type == PortType.OUTLET
@@ -336,35 +347,48 @@ class DataPort(DataTypeIdentity):
 
     def is_linked(self) -> bool:
         """Check if port has any linked edges"""
-        return len(self._edge_wrappers) > 0
+        return len(self._linked_edges) > 0
 
-    def _add_link(self, edge_wrapper: EdgeWrapper) -> None:
+    def _add_link(self, edge_wrapper: EdgeWrapper) -> EdgeWrapper | None:
         """
-        Register a linked edge.
-        If multiple links are not allowed, replaces existing.
-        In addition, marks node as structurally dirty
-        It triggers the on_connect callback.
+        Attempt to link an edge to this port.
+
+        Always tracks in _all_edges. If the port is single-connection and
+        already has a linked edge, the old edge is displaced (removed from
+        _linked_edges but remains in _all_edges).
 
         Args:
-            edge_wrapper:  EdgeWrapper representing the link
+            edge_wrapper: EdgeWrapper to link
+
+        Returns:
+            The displaced EdgeWrapper if one was replaced, None otherwise
         """
-        if edge_wrapper.connection_uuid not in self._edge_wrappers:
+        displaced: EdgeWrapper | None = None
+
+        # Always track in _all_edges
+        self._all_edges[edge_wrapper.connection_uuid] = edge_wrapper
+
+        if edge_wrapper.connection_uuid not in self._linked_edges:
             if not self.allow_multiple_connections:
-                old_wrapper_uuid = next(iter(self._edge_wrappers), None)
+                old_wrapper_uuid = next(iter(self._linked_edges), None)
                 if old_wrapper_uuid:
-                    self._clear_link(old_wrapper_uuid)
-                self._edge_wrappers = {edge_wrapper.connection_uuid: edge_wrapper}
+                    displaced = self._linked_edges.pop(old_wrapper_uuid)
+                    self._data.remove_source(old_wrapper_uuid)
+                    if self.on_disconnect and displaced:
+                        self._trigger_callback('on_disconnect', displaced)
+                self._linked_edges = {edge_wrapper.connection_uuid: edge_wrapper}
             else:
-                self._edge_wrappers[edge_wrapper.connection_uuid] = edge_wrapper
+                self._linked_edges[edge_wrapper.connection_uuid] = edge_wrapper
 
             if self.on_connect:
                 self._trigger_callback('on_connect', edge_wrapper)
-        
-        # we mark it as structurally dirty in any case bcause even if the 
-        # connection already exists, it may have been reconnected to a 
-        # different source during edge validation, and we need to 
-        # refresh pipes to reflect the new source
+
+        # Mark structurally dirty in any case because even if the
+        # connection already exists, it may have been reconnected to a
+        # different source during edge validation
         self._mark_as_structuraly_dirty()
+
+        return displaced
 
     def _get_linked_edges_uuid(self) -> list[str]:
         """
@@ -373,7 +397,7 @@ class DataPort(DataTypeIdentity):
         Returns:
             List of EdgeWrapper UUIDs linked to this port
         """
-        return list(self._edge_wrappers.keys())
+        return list(self._linked_edges.keys())
 
     def _is_linked_to(self, wrapper_uuid: str) -> bool:
         """
@@ -383,32 +407,71 @@ class DataPort(DataTypeIdentity):
         Returns:
             True if linked, False otherwise
         """
-        return wrapper_uuid in self._edge_wrappers
-    
+        return wrapper_uuid in self._linked_edges
+
     def _clear_link(self, wrapper_uuid: str) -> None:
         """
-        Remove a linked edge. 
-        It clears the source from the data field.
-        It also marks the node as structurally dirty.
-        It triggers the on_disconnect callback.
+        Remove an edge from the linked set only (stays in _all_edges).
+        Called when an edge is displaced or loses functionality.
 
         Args:
-            wrapper_uuid: UUID of EdgeWrapper representing the link
+            wrapper_uuid: UUID of EdgeWrapper to unlink
         """
-        if wrapper_uuid in self._edge_wrappers:
-            edge_wrapper = self._edge_wrappers.pop(wrapper_uuid, None)
+        if wrapper_uuid in self._linked_edges:
+            edge_wrapper = self._linked_edges.pop(wrapper_uuid)
             self._data.remove_source(wrapper_uuid)
             self._mark_as_structuraly_dirty()
 
             if self.on_disconnect and edge_wrapper:
                 self._trigger_callback('on_disconnect', edge_wrapper)
 
-    def _clear_all_links(self) -> None:
+    def _remove_edge(self, wrapper_uuid: str) -> None:
         """
-        Clear all linked edges. 
-        Should only be called on cleanup operations.
+        Fully remove an edge from both _linked_edges and _all_edges.
+        Called when an edge is explicitly deleted or the port is destroyed.
+
+        Args:
+            wrapper_uuid: UUID of EdgeWrapper to remove entirely
         """
-        self._edge_wrappers.clear()
+        if wrapper_uuid in self._linked_edges:
+            self._clear_link(wrapper_uuid)
+        self._all_edges.pop(wrapper_uuid, None)
+
+    def _try_reenable(self) -> EdgeWrapper | None:
+        """
+        After an active edge is removed, scan _all_edges for a functional
+        candidate to promote to linked. Uses FIFO order (dict insertion order).
+
+        Only applicable for single-connection ports that have no linked edge.
+
+        Returns:
+            The re-enableable EdgeWrapper, or None if none found.
+            Caller is responsible for calling candidate.link().
+        """
+        if self.allow_multiple_connections:
+            return None
+
+        if self._linked_edges:
+            return None  # Already has a linked edge
+
+        for uuid, edge in self._all_edges.items():
+            if uuid not in self._linked_edges and edge.is_functional():
+                return edge
+
+        return None
+
+    def _detach_all_edges(self) -> list[EdgeWrapper]:
+        """
+        Remove all edges from both tiers. Used during port destruction (push/pop).
+
+        Returns:
+            List of all edges that were being tracked, so the caller can
+            notify them of port destruction.
+        """
+        all_edges = list(self._all_edges.values())
+        self._linked_edges.clear()
+        self._all_edges.clear()
+        return all_edges
 
     def get_valid_edges(self) -> list[EdgeWrapper]:
         """
@@ -418,7 +481,7 @@ class DataPort(DataTypeIdentity):
             List of valid EdgeWrapper instances linked to this port
         """
         return [
-            edge_wrapper for edge_wrapper in self._edge_wrappers.values()
+            edge_wrapper for edge_wrapper in self._linked_edges.values()
             if edge_wrapper.is_valid()
         ]
 

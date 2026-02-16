@@ -531,147 +531,52 @@ class BaseGraph:
         self.edge_wrappers[edge_wrapper.connection_uuid] = edge_wrapper
         edge_wrapper.set_as_registered(True)
 
-        # Update port links (needs to be done after registration)
-        self.update_port_link(edge_wrapper)
-        
+        # Edge drives its own linking to ports
+        edge_wrapper.link()
+
         # Trigger validation (delegates to manager)
         self._validation.mark_edge_dirty(
-            edge_wrapper.connection_uuid, 
+            edge_wrapper.connection_uuid,
             ChangeReason.EDGE_ADDED
         )
-        
+
         logger.debug(f"Added edge wrapper: {edge_wrapper.connection_uuid}")
-       
+
         return edge_wrapper
 
     def remove_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
         """
         Remove EdgeWrapper from graph.
-        
-        Also updates port links and triggers validation.
-        
+
+        Also detaches from ports and triggers validation.
+
         Args:
             connection_uuid: Connection UUID to remove
-            
+
         Returns:
             Removed wrapper or None
         """
         if connection_uuid not in self.edge_wrappers:
             return None
-                
+
         edge_wrapper = self.edge_wrappers[connection_uuid]
-        
+
         # Remove from collection
         del self.edge_wrappers[connection_uuid]
         edge_wrapper.set_as_registered(False)
-        
-        # Update port links (needs to be done after deregistration)
-        self.update_port_link(edge_wrapper)
-        
+
+        # Edge drives its own detachment from ports
+        edge_wrapper.detach()
+
         # Trigger validation for removal
         self._validation.mark_edge_dirty(
-            connection_uuid, 
+            connection_uuid,
             ChangeReason.EDGE_REMOVED
         )
-        
+
         logger.debug(f"Removed edge wrapper: {connection_uuid}")
- 
+
         return edge_wrapper
-
-    def update_port_link(self, edge_wrapper: 'EdgeWrapper') -> None:
-        """
-        Updates the link of an EdgeWrapper to the data ports.
-        
-        An edge being linked to a port means that the port knows about 
-        the edge and the edge is functional. This causes an update of 
-        all the other connected edges on the ports this edge connects to 
-        and might cause other edges to change their linked state if the 
-        port connection rules demand it.
-        
-        Args:
-            edge_wrapper: EdgeWrapper to validate
-        """
-        if edge_wrapper.is_functional():
-            self._link_edge_to_port(
-                edge_wrapper,
-                edge_wrapper.sink_node_id,
-                edge_wrapper.inlet_port_id
-            )
-            self._link_edge_to_port(
-                edge_wrapper,
-                edge_wrapper.source_node_id,
-                edge_wrapper.outlet_port_id
-            ) 
-        else:
-            self._unlink_edge_from_port(
-                edge_wrapper,
-                edge_wrapper.sink_node_id,
-                edge_wrapper.inlet_port_id
-            )
-            self._unlink_edge_from_port(
-                edge_wrapper,
-                edge_wrapper.source_node_id,
-                edge_wrapper.outlet_port_id
-            ) 
-        # when both ports have been updated, do housekeeping on them
-        edge_wrapper._source_wrapper.node.ports[edge_wrapper.outlet_port_id]._housekeeping()
-        edge_wrapper._sink_wrapper.node.ports[edge_wrapper.inlet_port_id]._housekeeping()
-
-    def _link_edge_to_port(
-        self,
-        edge_wrapper: 'EdgeWrapper',
-        node_id: str,
-        port_id: str
-    ):
-        """
-        Links an edge to a port. 
-        Update port link state.
-        Update link of other connected edges and refresh them.
-        """
-        port = self._get_port(node_id, port_id)
-        if port:
-            port._add_link(edge_wrapper)
-            edge_wrapper.validate_link(port)
-            edges_wrps = self._get_edge_wrappers_for_port(node_id, port_id)
-            if edge_wrapper in edges_wrps:
-                edges_wrps.remove(edge_wrapper)
-            for ew in edges_wrps:
-                if ew.validate_link(port) or ew.state.has_warning():
-                    self._validation.mark_edge_dirty(
-                        ew.connection_uuid,
-                        ChangeReason.EDGE_REDRAW_REQUESTED
-                    )
-        return
-
-    def _unlink_edge_from_port(
-        self,
-        edge_wrapper: 'EdgeWrapper',
-        node_id: str,
-        port_id: str
-    ):
-        """
-        Unlinks the edge from a port. 
-        Updates port link state.
-        Update link of other connected edges and refresh them.
-        """
-        port = self._get_port(node_id, port_id)
-        if port:
-            port._clear_link(edge_wrapper.connection_uuid)
-            edge_wrapper.validate_link(port)
-            edges_wrps = self._get_edge_wrappers_for_port(node_id, port_id)
-            if edge_wrapper in edges_wrps:
-                edges_wrps.remove(edge_wrapper)
-            for ew in edges_wrps:
-                if ew.is_functional():
-                    port._add_link(ew)
-            for ew in edges_wrps:   
-                if ew.validate_link(port):
-                    self._validation.mark_edge_dirty(
-                        ew.connection_uuid,
-                        ChangeReason.EDGE_REDRAW_REQUESTED
-                    )
-
-        return
 
     def get_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
         """

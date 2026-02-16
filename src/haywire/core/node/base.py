@@ -289,7 +289,8 @@ class NodeData:
                 raise ValueError(f"Port ID already exists: {port.id}")
             
             # Preserve connections from existing port
-            port._edge_wrappers = existing._edge_wrappers.copy()
+            port._linked_edges = existing._linked_edges.copy()
+            port._all_edges = existing._all_edges.copy()
         
         # Add to ports collection
         self.ports[port.id] = port
@@ -511,14 +512,25 @@ class NodeData:
         
         flagged = self._push_stack.pop()
         removed = []
-        
+
         for port_id in flagged:
             if port_id in self.ports:
                 port = self.ports[port_id]
-                
-                # Clean up all connections
-                port._clear_all_links()
-                
+
+                # Detach all edges from the destroyed port
+                detached = port._detach_all_edges()
+                for edge in detached:
+                    if port.is_inlet():
+                        # Inlet destroyed → inform source outlet (needs pipe update)
+                        if edge._outlet_port and edge._outlet_port is not port:
+                            edge._outlet_port._remove_edge(edge.connection_uuid)
+                            edge._update_link_state()
+                            edge._outlet_port._housekeeping()
+                    else:
+                        # Outlet destroyed → do NOT inform sink inlet (asymmetric)
+                        edge._update_link_state()
+                    edge.redraw()
+
                 # Remove port
                 del self.ports[port_id]
                 removed.append(port_id)
