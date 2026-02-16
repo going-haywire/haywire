@@ -6,7 +6,6 @@ For each control node, this builder:
 2. Identifies all required data nodes
 3. Topologically sorts for execution order
 4. Detects illegal data cycles
-5. Handles lazy evaluation setup
 """
 from __future__ import annotations
 from typing import Dict, List, Set, TYPE_CHECKING
@@ -72,12 +71,8 @@ class DataFlowBuilder:
         
         # Backpropagate from each inlet
         required_nodes: Set[str] = set()
-        eval_masks: Dict[str, int] = {}
-        
-        for i, inlet in enumerate(data_inlets):
-            # Create bit mask for this inlet (bit i set)
-            inlet_mask = 1 << i
-            
+
+        for inlet in data_inlets:
             # Backpropagate to find dependencies
             dependencies = DataFlowBuilder._backpropagate(
                 control_node.node_id,
@@ -85,15 +80,9 @@ class DataFlowBuilder:
                 graph,
                 control_graph
             )
-            
+
             # Update required nodes
             required_nodes.update(dependencies)
-            
-            # Update eval masks (OR together at merge points)
-            for dep_node_id in dependencies:
-                if dep_node_id not in eval_masks:
-                    eval_masks[dep_node_id] = 0
-                eval_masks[dep_node_id] |= inlet_mask
         
         # Check for cycles (not allowed in data flow, except through control)
         DataFlowBuilder._check_cycles(
@@ -114,14 +103,8 @@ class DataFlowBuilder:
             for node_id in execution_sequence
             if graph.get_node_wrapper(node_id) is not None
         ]
-        data_flow.eval_masks = eval_masks
-        data_flow.requires_lazy = any(
-            inlet.is_lazy for inlet in data_inlets
-        )
-        
         logger.debug(
-            f"Localized data flow built: {len(execution_sequence)} nodes, "
-            f"lazy={data_flow.requires_lazy}"
+            f"Localized data flow built: {len(execution_sequence)} nodes"
         )
         
         return data_flow

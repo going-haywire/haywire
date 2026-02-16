@@ -94,8 +94,7 @@ class DataPort(DataTypeIdentity):
 
     # Inlet-specific
     use_mode: str = 'optional'
-    is_lazy: bool = False
-        
+
     # Internal: Store default override for field creation
     default: Optional[Dict[str, Any]] = field(default=None, repr=False)
 
@@ -145,10 +144,10 @@ class DataPort(DataTypeIdentity):
         metadata={'serialize': False}) 
     """Internal flag to indicate if the value was set via the node"""
 
-    _has_lazy_edges: set = field(
+    _pending_lazy_pipes: set = field(
         default_factory=set,
         metadata={'serialize': False})
-    """Internal set to track which edges need lazy propagation"""
+    """Tracks (Pipes, connection_uuid) pairs needing lazy resolution."""
 
     # ========================================================================
     # CALLBACKS
@@ -282,34 +281,45 @@ class DataPort(DataTypeIdentity):
     def set_value(self, new_value: Any, connection_uuid: str | None = None) -> None:
         """
         Set value from eager links, widget or programmatic update.
-        
+
+        For inlets:
+        - Widget/programmatic (no connection_uuid) with on_change: fire immediately
+        - Edge-driven (connection_uuid set) or no callback: defer to resolve_dirty_data()
+
         Args:
             new_value: Value to set (can be IType instance or raw value)
-            source_id: Source identifier (required for pooled fields)
+            connection_uuid: Source identifier (set when value comes from an edge)
         """
         self.set_value_by_lazy_link(new_value, connection_uuid=connection_uuid)
 
         if self.is_inlet():
-            self._mark_as_data_dirty()
+            if connection_uuid is None and self.on_change is not None:
+                # Widget/programmatic change → fire on_change immediately
+                self._trigger_callback('on_change', new_value)
+            else:
+                # Edge-driven OR no callback → defer to resolve_dirty_data()
+                self._mark_as_data_dirty()
         else:
+            # Outlet: fire on_change immediately (node is the setter)
+            if self.on_change is not None:
+                self._trigger_callback('on_change', new_value)
             if self._pipes is not None:
                 self._pipes.propagate(new_value)
 
     def set_value_by_lazy_link(self, new_value: Any, connection_uuid: str | None = None) -> None:
         """
-        Set value from lazy links, with source tracking for pooled fields.
+        Store value with source tracking. Pure storage, no callbacks.
+
+        Called by set_value() for eager edges, and by pipe.pull_lazy() for
+        lazy edges during resolve_dirty_data().
         """
         if not self._data:
             return
 
         self._data.set_value(new_value, source_id=connection_uuid)
 
-        # this flag should only be set by the nodes self.out() method to True 
+        # this flag should only be set by the nodes self.out() method to True
         self._is_set_by_node = False
-
-        # Trigger on_change callback if value actually changed
-        if self.on_change is not None:
-            self._trigger_callback('on_change', new_value)
 
 
     # ========================================================================
@@ -318,27 +328,30 @@ class DataPort(DataTypeIdentity):
 
     def resolve_dirty_data(self) -> None:
         """
-        Resolve any dirty data on this port.
-        
-        If the cause is a lazy edge, we need to trigger 
-        the lazy propagation on the edge wrapper.
-        """
-        while self._has_lazy_edges:
-            edge_wrapper = self._has_lazy_edges.pop()
-            # edge_wrapper._propagate_lazy() not yet implemented, 
-            # but this is where we would trigger the lazy propagation on the edge
+        Resolve dirty data: pull lazy pipes, then fire deferred on_change.
 
-    def _mark_as_data_dirty(self, edge_wrapper: 'EdgeWrapper' | None = None) -> None:
+        Called at the start of node execution, before on_validate and worker.
+        """
+        # 1. Pull data from lazy pipes
+        while self._pending_lazy_pipes:
+            pipe, uuid = self._pending_lazy_pipes.pop()
+            pipe.pull_lazy(uuid)
+
+        # 2. Fire deferred on_change (covers both eager pushes and lazy pulls)
+        if self.on_change is not None:
+            self._trigger_callback('on_change', self.get_value())
+
+    def _mark_as_data_dirty(self, pipe: 'Pipes | None' = None, connection_uuid: str | None = None) -> None:
         """
         Mark the port as data dirty and inform the node.
-        
+
         Args:
-            edge_wrapper: Optional EdgeWrapper that triggered the change, 
-            used to track which edges need lazy propagation.
+            pipe: Pipe instance for lazy pull (only set for lazy edges)
+            connection_uuid: Connection UUID for lazy pull (only set for lazy edges)
         """
         if self._node:
-            if edge_wrapper:
-                self._has_lazy_edges.add(edge_wrapper)
+            if pipe and connection_uuid:
+                self._pending_lazy_pipes.add((pipe, connection_uuid))
             self._node.mark_port_as_dirty(self)
 
     # ========================================================================
@@ -513,7 +526,7 @@ class DataPort(DataTypeIdentity):
         if self.is_outlet():
             if self.is_linked():
                 if self._pipes is None:
-                    self._pipes = Pipes()
+                    self._pipes = Pipes(outlet_port=self)
                 self._pipes.clear()
                 for wrapper in self.get_valid_edges():
                     self._pipes.add_pipe(wrapper)

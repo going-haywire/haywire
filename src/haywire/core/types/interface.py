@@ -256,7 +256,6 @@ class IType(ABC):
                 allow_multiple_connections (bool): Allow multiple incoming
                     connections (default: False)
                 use_mode (str): 'optional' or 'required' (default: 'optional')
-                is_lazy (bool): Lazy evaluation (default: False)
 
             Callbacks:
                 on_change (str): Node method name to call when value changes

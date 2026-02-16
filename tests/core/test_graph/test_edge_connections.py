@@ -1407,3 +1407,259 @@ class TestEdgeConnections:
         # Dynamic ports are gone, but static ports remain
         assert 'dynamic_outlet_0' not in dyn_node.node.ports
         assert 'bool_outlet' in dyn_node.node.ports
+
+    # ==================================================================
+    # LAZY PROPAGATION
+    # ==================================================================
+
+    def test_lazy_edge_creation(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """create_edge_wrapper(..., lazy=True) should set is_lazy on the edge."""
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'bool_inlet',
+            lazy=True
+        )
+
+        assert edge is not None
+        assert edge.state.is_valid()
+        assert edge.is_lazy is True
+        assert edge.edge.is_lazy is True
+
+    def test_lazy_edge_serialization(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """is_lazy should survive to_dict() round-trip."""
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'bool_inlet',
+            lazy=True
+        )
+
+        # Serialize and check
+        edge_dict = edge.edge.to_dict()
+        assert edge_dict['is_lazy'] is True
+
+        # Eager edge should serialize as False
+        node_c, _ = self._create_two_nodes(graph)
+        eager_edge = graph.create_edge_wrapper(
+            node_a.node_id, 'int_outlet',
+            node_c.node_id, 'int_inlet',
+            lazy=False
+        )
+        assert eager_edge.edge.to_dict()['is_lazy'] is False
+
+    def test_eager_edge_defers_on_change(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        Eager edge pushes value to inlet, but on_change should NOT fire
+        at push time. It fires during resolve_dirty_data() instead.
+        """
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        # Connect bool→bool (eager, same type, no adapter)
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'bool_inlet'
+        )
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+
+        inlet_port = self._get_port(node_b, 'bool_inlet')
+        outlet_port = self._get_port(node_a, 'bool_outlet')
+
+        # Set value on outlet — pipes propagate to inlet
+        outlet_port.set_value(False)
+
+        # Inlet should have the value stored (eager push happened)
+        assert inlet_port.get_value() == False
+
+        # Port should be marked dirty (deferred)
+        assert inlet_port in node_b.node._has_dirty_ports
+
+    def test_lazy_edge_does_not_push_value(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        Lazy edge should NOT transform/push value when outlet changes.
+        It should only mark the inlet as dirty with the pipe reference.
+        """
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'bool_inlet',
+            lazy=True
+        )
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+
+        inlet_port = self._get_port(node_b, 'bool_inlet')
+        outlet_port = self._get_port(node_a, 'bool_outlet')
+
+        # Get inlet's value before outlet changes
+        original_value = inlet_port.get_value()
+
+        # Set outlet value — lazy pipe should NOT push
+        outlet_port.set_value(not original_value)
+
+        # Inlet should still have original value (not pushed)
+        assert inlet_port.get_value() == original_value
+
+        # But inlet port should be marked dirty
+        assert inlet_port in node_b.node._has_dirty_ports
+
+        # And _pending_lazy_pipes should have an entry
+        assert len(inlet_port._pending_lazy_pipes) == 1
+
+    def test_lazy_edge_pulls_on_resolve(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        resolve_dirty_data() should pull the latest value through the
+        adapter chain from the source outlet.
+        """
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        # bool→int requires adapter (BoolToIntAdapter)
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_b.node_id, 'int_inlet',
+            lazy=True
+        )
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+        assert len(edge.edge.chain_adapter_keys) == 1
+
+        inlet_port = self._get_port(node_b, 'int_inlet')
+        outlet_port = self._get_port(node_a, 'bool_outlet')
+
+        # Set outlet to True — lazy, not pushed yet
+        outlet_port.set_value(True)
+        original_inlet_value = inlet_port.get_value()
+
+        # Resolve dirty data — should pull and transform
+        inlet_port.resolve_dirty_data()
+
+        # Inlet should now have the transformed value (True → 1 via BoolToInt)
+        resolved_value = inlet_port.get_value()
+        assert resolved_value != original_inlet_value
+        assert resolved_value is not None
+
+        # Pending lazy pipes should be cleared
+        assert len(inlet_port._pending_lazy_pipes) == 0
+
+    def test_lazy_always_latest(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        When outlet changes A→B→C before resolve, lazy inlet should get C
+        (always-latest semantics, skipping intermediates).
+        """
+        graph = graph_with_library_system
+        node_a, node_b = self._create_two_nodes(graph)
+
+        edge = graph.create_edge_wrapper(
+            node_a.node_id, 'int_outlet',
+            node_b.node_id, 'int_inlet',
+            lazy=True
+        )
+        graph._validation.force_immediate_validation()
+        assert edge.state.is_valid()
+
+        inlet_port = self._get_port(node_b, 'int_inlet')
+        outlet_port = self._get_port(node_a, 'int_outlet')
+
+        # Change outlet 3 times — lazy, none pushed
+        outlet_port.set_value(10)
+        outlet_port.set_value(20)
+        outlet_port.set_value(30)
+
+        # Resolve — should get latest value (30)
+        inlet_port.resolve_dirty_data()
+
+        assert inlet_port.get_value() == 30
+
+    def test_mixed_pooled_on_change_debounce(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        Pooled inlet with eager + lazy edges: on_change should fire
+        once during resolve_dirty_data(), not per-edge-push.
+        """
+        graph = graph_with_library_system
+        node_a, node_b, node_c = self._create_three_nodes(graph)
+
+        # Both connect to pooled_bool_inlet on node_c
+        eager_edge = graph.create_edge_wrapper(
+            node_a.node_id, 'bool_outlet',
+            node_c.node_id, 'pooled_bool_inlet',
+            lazy=False
+        )
+        lazy_edge = graph.create_edge_wrapper(
+            node_b.node_id, 'bool_outlet',
+            node_c.node_id, 'pooled_bool_inlet',
+            lazy=True
+        )
+        graph._validation.force_immediate_validation()
+        assert eager_edge.state.is_valid()
+        assert lazy_edge.state.is_valid()
+
+        pooled_port = self._get_port(node_c, 'pooled_bool_inlet')
+
+        # Both edges should be linked
+        assert eager_edge.connection_uuid in pooled_port._linked_edges
+        assert lazy_edge.connection_uuid in pooled_port._linked_edges
+
+        # Change both outlets
+        outlet_a = self._get_port(node_a, 'bool_outlet')
+        outlet_b = self._get_port(node_b, 'bool_outlet')
+        outlet_a.set_value(True)
+        outlet_b.set_value(False)
+
+        # Port should be dirty
+        assert pooled_port in node_c.node._has_dirty_ports
+
+        # Lazy edge should have pending pipe
+        assert len(pooled_port._pending_lazy_pipes) == 1
+
+        # Resolve — pulls lazy data, fires on_change once
+        pooled_port.resolve_dirty_data()
+
+        # Pending should be cleared
+        assert len(pooled_port._pending_lazy_pipes) == 0
+
+    def test_widget_change_fires_on_change_immediately(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """
+        Widget/programmatic change (no connection_uuid) with on_change
+        should fire on_change immediately, not deferred.
+        """
+        graph = graph_with_library_system
+        dyn_node = self._create_dynamic_node(graph)
+
+        # port_count has on_change='reconfigure'
+        config_port = dyn_node.node.ports['port_count']
+        assert config_port.on_change == 'reconfigure'
+
+        # Start with 2 dynamic ports
+        assert 'dynamic_outlet_0' in dyn_node.node.ports
+        assert 'dynamic_outlet_1' in dyn_node.node.ports
+
+        # Widget change (no connection_uuid) — should fire on_change immediately
+        config_port.set_value(3)
+
+        # Reconfigure should have already happened (immediate on_change)
+        assert 'dynamic_outlet_2' in dyn_node.node.ports

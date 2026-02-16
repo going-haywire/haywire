@@ -55,15 +55,11 @@ class LocalizedDataFlow:
     """ID of the control node this data flow belongs to"""
     execution_sequence: List['BaseNode'] = field(default_factory=list)
     """Ordered list of data nodes to evaluate"""
-    eval_masks: Dict[str, int] = field(default_factory=dict)
-    """Lazy evaluation masks: node_id → bitfield"""
-    requires_lazy: bool = False
-    """If True, lazy evaluation is possible for this flow"""
-    
+
     def __str__(self) -> str:
         return (
             f"LocalizedDataFlow(control={self.control_node_id}, "
-            f"nodes={len(self.execution_sequence)}, lazy={self.requires_lazy})"
+            f"nodes={len(self.execution_sequence)})"
         )
 
 

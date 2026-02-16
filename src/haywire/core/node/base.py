@@ -1220,15 +1220,15 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         Returns:
             Outlet ID to follow, or None
         """
+        # Data nodes skip execution entirely if nothing changed
         if self.behavior.is_data_node:
             if not self._has_dirty_ports:
                 return None
-            while self._has_dirty_ports:
-                # TODO: to optimize further, we track which inlets changed
-                # and then request for the dirty ones to execute the source-outlet pipe
-                # !!that would need to be done for the control flow nodes as well!!
-                port = self._has_dirty_ports.pop()
-                port.resolve_dirty_data()
+
+        # Resolve dirty data for ALL node types (lazy pulls + deferred on_change)
+        while self._has_dirty_ports:
+            port = self._has_dirty_ports.pop()
+            port.resolve_dirty_data()
 
         self.on_validate(context)
 

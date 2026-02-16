@@ -465,25 +465,27 @@ class BaseGraph:
         source_node_id: str,
         outlet_port_id: str,
         sink_node_id: str,
-        inlet_port_id: str
+        inlet_port_id: str,
+        lazy: bool = False
     ) -> Optional['EdgeWrapper']:
         """
         Create and add EdgeWrapper (graph-managed factory pattern).
-        
+
         This creates a new edge, builds its adapter chain, and adds it to the graph.
         Automatically triggers validation pipeline.
-        
+
         Args:
             source_node_id: Source node ID
             outlet_port_id: Source outlet ID
             sink_node_id: Target node ID
             inlet_port_id: Target inlet ID
-            
+            lazy: If True, edge uses lazy (pull-on-demand) propagation
+
         Returns:
             EdgeWrapper if successful, None if failed
         """
         from ..edge.edge_wrapper import EdgeWrapper
-        
+
         flow_type = self.node_wrappers[source_node_id].node.ports[outlet_port_id].flow_type
 
         # Create new wrapper
@@ -494,8 +496,9 @@ class BaseGraph:
             sink_node_id=sink_node_id,
             inlet_port_id=inlet_port_id,
             edge_type=flow_type,
+            lazy=lazy,
         )
-        
+
         # Build adapter chain
         edge_wrapper.build()
 
@@ -1042,8 +1045,9 @@ class BaseGraph:
                             sink_node_id=edge_data["sink_node_id"],
                             inlet_port_id=edge_data["inlet_port_id"],
                             edge_type=FlowType(edge_data["edge_type"]),
+                            lazy=edge_data.get("is_lazy", False),
                         )
-                        
+
                         edge_wrapper.build()
 
                         # Validate adapter chain for changes

@@ -262,7 +262,6 @@ class HaywireVM:
             self._evaluate_data_flow(
                 node_info.localized_data_flow,
                 exec_ctx,
-                lazy_mask=None  # TODO: Implement lazy evaluation
             )
             # >>>>>>>>>>>
 
@@ -368,27 +367,18 @@ class HaywireVM:
         self,
         data_flow: 'LocalizedDataFlow',
         exec_ctx: ExecutionContext,
-        lazy_mask: Optional[int]
     ):
         """
         Evaluate a localized data flow.
-        
+
         Executes data nodes in sequence to update inlet values
         for the control node.
-        
+
         Args:
             data_flow: LocalizedDataFlow to evaluate
             exec_ctx: Execution context
-            lazy_mask: Optional lazy evaluation mask
-        """        
+        """
         for data_node in data_flow.execution_sequence:
-            
-            # TODO: Implement lazy evaluation check
-            # if lazy_mask and data_flow.requires_lazy:
-            #     eval_mask = data_flow.eval_masks.get(data_node_wrapper.node_id, 0)
-            #     if (lazy_mask & eval_mask) == 0:
-            #         continue  # Skip this node
-
             self.execution_count += 1
             exec_ctx.exec_count = self.execution_count
 

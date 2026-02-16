@@ -33,7 +33,11 @@ class Edge:
     # Adapter chain metadata (for serialization/deserialization)
     chain_adapter_keys: List[str] = field(default_factory=list)
     """List of adapter registry keys in execution order."""
-        
+
+    # Lazy propagation
+    is_lazy: bool = False
+    """If True, data is pulled on-demand instead of pushed eagerly."""
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize edge for graph save"""
         return {
@@ -42,6 +46,7 @@ class Edge:
             'sink_node_id': self.sink_node_id,
             'inlet_port_id': self.inlet_port_id,
             'edge_type': self.edge_type.value,
-            'chain_adapter_keys': self.chain_adapter_keys
+            'chain_adapter_keys': self.chain_adapter_keys,
+            'is_lazy': self.is_lazy
         }
     

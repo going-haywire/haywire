@@ -125,17 +125,19 @@ class EdgeWrapper:
         outlet_port_id: str,
         sink_node_id: str,
         inlet_port_id: str,
-        edge_type: FlowType
+        edge_type: FlowType,
+        lazy: bool = False
     ):
         """
         Initialize EdgeWrapper (similar to NodeWrapper.__init__).
-        
+
         Args:
             source_node_id: Source node ID
             outlet_port_id: Source outlet ID
             sink_node_id: Sink node ID
             inlet_port_id: Sink inlet ID
             edge_type: edge type
+            lazy: If True, edge uses lazy (pull-on-demand) propagation
         """
         self.source_node_id = source_node_id
         self.outlet_port_id = outlet_port_id
@@ -183,7 +185,8 @@ class EdgeWrapper:
             sink_node_id=self.sink_node_id,
             inlet_port_id=self.inlet_port_id,
             edge_type=self._edge_type,
-            chain_adapter_keys=([])
+            chain_adapter_keys=([]),
+            is_lazy=lazy
         )
 
         self._source_type: Optional[IType] = None
@@ -240,6 +243,15 @@ class EdgeWrapper:
     def edge_type(self) -> FlowType:
         """Get the edge flow type"""
         return self._edge_type
+
+    @property
+    def is_lazy(self) -> bool:
+        """True if this edge uses lazy (pull-on-demand) propagation."""
+        return self._edge.is_lazy
+
+    @is_lazy.setter
+    def is_lazy(self, value: bool) -> None:
+        self._edge.is_lazy = value
 
     # =========================================================================
     # GRAPH NOTIFICATION (mirrors NodeWrapper pattern)
