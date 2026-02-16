@@ -134,6 +134,11 @@ class DataPort(DataTypeIdentity):
         metadata={'serialize': False}) 
     """Internal flag to indicate if the value was set via the node"""
 
+    _has_lazy_edges: set = field(
+        default_factory=set,
+        metadata={'serialize': False})
+    """Internal set to track which edges need lazy propagation"""
+
     # ========================================================================
     # CALLBACKS
     # ========================================================================
@@ -218,6 +223,14 @@ class DataPort(DataTypeIdentity):
             # Control flow inlets do allow multiple connections by design
             self.allow_multiple_connections = True
 
+        # contrary to data and control flow, callback flow does not have 
+        # hardcoded connection rules and can be freely configured by the user
+
+
+    # ========================================================================
+    # CALLBACK TRIGGERING
+    # ========================================================================
+
     def _trigger_callback(self, callback_type: str, *args):
         """
         Trigger a callback by resolving the identifier.
@@ -236,6 +249,10 @@ class DataPort(DataTypeIdentity):
         else:
             raise ReferenceError(f"Node callback '{callback_name}' not found on node")
 
+    # ========================================================================
+    # VALUE MANAGEMENT
+    # ========================================================================
+
     def get_value(self) -> Any:
         """
         Get unwrapped value for worker convenience.
@@ -253,15 +270,26 @@ class DataPort(DataTypeIdentity):
     
     def set_value(self, new_value: Any, connection_uuid: str | None = None) -> None:
         """
-        Set value from connection or programmatic update.
+        Set value from eager links, widget or programmatic update.
         
         Args:
             new_value: Value to set (can be IType instance or raw value)
             source_id: Source identifier (required for pooled fields)
         """
+        self.set_value_by_lazy_link(new_value, connection_uuid=connection_uuid)
+
+        if self.is_inlet():
+            self._mark_as_data_dirty()
+        else:
+            if self._pipes is not None:
+                self._pipes.propagate(new_value)
+
+    def set_value_by_lazy_link(self, new_value: Any, connection_uuid: str | None = None) -> None:
+        """
+        Set value from lazy links, with source tracking for pooled fields.
+        """
         if not self._data:
             return
-
 
         self._data.set_value(new_value, source_id=connection_uuid)
 
@@ -271,17 +299,40 @@ class DataPort(DataTypeIdentity):
         # Trigger on_change callback if value actually changed
         if self.on_change is not None:
             self._trigger_callback('on_change', new_value)
-        if self._pipes is not None:
-            self._pipes.propagate(new_value)
-        if self.is_inlet():
-            self._mark_as_data_dirty()
 
-    def has_pin(self) -> bool:
+
+    # ========================================================================
+    # Lazy Propagation
+    # ========================================================================
+
+    def resolve_dirty_data(self) -> None:
         """
-        Check if this is a visible pin (not a config)
-        TODO: Not shure if this approach is correct
+        Resolve any dirty data on this port.
+        
+        If the cause is a lazy edge, we need to trigger 
+        the lazy propagation on the edge wrapper.
         """
-        return self.flow_type != FlowType.NONE
+        while self._has_lazy_edges:
+            edge_wrapper = self._has_lazy_edges.pop()
+            # edge_wrapper._propagate_lazy() not yet implemented, 
+            # but this is where we would trigger the lazy propagation on the edge
+
+    def _mark_as_data_dirty(self, edge_wrapper: 'EdgeWrapper' | None = None) -> None:
+        """
+        Mark the port as data dirty and inform the node.
+        
+        Args:
+            edge_wrapper: Optional EdgeWrapper that triggered the change, 
+            used to track which edges need lazy propagation.
+        """
+        if self._node:
+            if edge_wrapper:
+                self._has_lazy_edges.add(edge_wrapper)
+            self._node.mark_port_as_dirty(self)
+
+    # ========================================================================
+    # LINK MANAGEMENT
+    # ========================================================================
 
     def is_linked(self) -> bool:
         """Check if port has any linked edges"""
@@ -408,10 +459,16 @@ class DataPort(DataTypeIdentity):
                     self._pipes.clear()
                     self._pipes = None
 
-    def _mark_as_data_dirty(self) -> None:
-        """Mark the port's node as data dirty."""
-        if self._node:
-            self._node.mark_as_data_dirty(self.id)
+    # ========================================================================
+    # PORT TYPE CHECKS
+    # ========================================================================
+
+    def has_pin(self) -> bool:
+        """
+        Check if this is a visible pin (not a config)
+        TODO: Not shure if this approach is correct
+        """
+        return self.flow_type != FlowType.NONE or self.port_type != PortType.CONFIG
 
     def is_callback_pin(self) -> bool:
         """Check if this is a callback pin"""
@@ -424,7 +481,7 @@ class DataPort(DataTypeIdentity):
     def is_data_pin(self) -> bool:
         """Check if this is a data pin"""
         return self.flow_type == FlowType.DATA
-    
+
     # ========================================================================
     # FACTORY
     # ========================================================================

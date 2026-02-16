@@ -89,7 +89,7 @@ class NodeData:
         # UI state (position, dimensions)
         self._ui: NodeUI = NodeUI(self)
         
-        self._is_dirty_data: Set[str] = set()
+        self._has_dirty_ports: Set[DataPort] = set()
 
         # ---------------------------------------------------------------------
         # Internal state
@@ -602,7 +602,7 @@ class NodeData:
         if not port:
             raise KeyError(f"Port '{id}' not found")
         if port.is_inlet():
-            raise ValueError(f"Port '{id}' is not an outlet")
+            raise ValueError(f"Port '{id}' is an inlet and cannot be set via out()")
         
         port.set_value(value)
 
@@ -919,12 +919,12 @@ class NodeData:
         
         return '>>'.join(hierarchy_parts)
 
-    def mark_as_data_dirty(self, port_id: str) -> None:
+    def mark_port_as_dirty(self, port: DataPort) -> None:
         """
         Called by ports when their value changes to indicate 
         the requirement for executing the worker method
         """
-        self._is_dirty_data.add(port_id)
+        self._has_dirty_ports.add(port)
 
     # =========================================================================
     # Worker Signature Analysis and Execution
@@ -1209,12 +1209,14 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             Outlet ID to follow, or None
         """
         if self.behavior.is_data_node:
-            if not self._is_dirty_data:
+            if not self._has_dirty_ports:
                 return None
-            self._is_dirty_data = set()
-            # TODO: to optimize further, we could track which inlets changed
-            # and then request for the dirty ones to execute the source-outlet pipe
-            # !!that would need to be done for the control flow nodes as well!!
+            while self._has_dirty_ports:
+                # TODO: to optimize further, we track which inlets changed
+                # and then request for the dirty ones to execute the source-outlet pipe
+                # !!that would need to be done for the control flow nodes as well!!
+                port = self._has_dirty_ports.pop()
+                port.resolve_dirty_data()
 
         self.on_validate(context)
 
