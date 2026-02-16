@@ -272,7 +272,6 @@ class DataPort(DataTypeIdentity):
         if self.on_change is not None:
             self._trigger_callback('on_change', new_value)
         if self._pipes is not None:
-            pass
             self._pipes.propagate(new_value)
         if self.is_inlet():
             self._mark_as_data_dirty()
