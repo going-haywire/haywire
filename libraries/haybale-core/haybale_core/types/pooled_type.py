@@ -106,6 +106,8 @@ class PooledType(CompoundType[T]):
                 if current_type.class_identity.flow_type != FlowType.NONE:
                     port.flow_type = current_type.class_identity.flow_type
                     port.color = current_type.class_identity.color
+                    if port.flow_type == FlowType.CONTROL:
+                        raise ValueError("PooledType cannot have CONTROL flow type based on its element type")
                     return
                         
                 # Move to next level if available

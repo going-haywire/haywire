@@ -204,12 +204,18 @@ class DataPort(DataTypeIdentity):
                 default_override=self.default
             )
         
-        # Outlets allow multiple connections by default for data flow
-        if self.is_outlet() and self.flow_type == FlowType.DATA:
-            self.allow_multiple_connections = True
+        # Hardcoded connection rules based on flow type and direction
+        # They cannot be overridden by the user since they are fundamental to how the ports work
+        if self.is_outlet():
+            if self.flow_type == FlowType.DATA:
+                # Data flow outlets allow multiple connections by design
+                self.allow_multiple_connections = True
+            if self.flow_type == FlowType.CONTROL:
+                # Control flow outlets do NOT allow multiple connections by design
+                self.allow_multiple_connections = False
 
-        # EXEC inlets allow multiple connections by default for control flow
         if self.is_inlet() and self.flow_type == FlowType.CONTROL:
+            # Control flow inlets do allow multiple connections by design
             self.allow_multiple_connections = True
 
     def _trigger_callback(self, callback_type: str, *args):
