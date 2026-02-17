@@ -41,21 +41,20 @@ class DynamicPortTestNode(BaseNode):
             id='port_count',
             label='Port Count',
             default=2,
-            on_change='reconfigure'
+            on_change='hb_reconfigure'
         ))
 
         # Build dynamic ports based on initial count
         self._build_dynamic_ports(2)
 
-    def reconfigure(self, port=None, *args):
+    def hb_reconfigure(self, port=None, *args):
         """Called by on_change when port_count changes."""
         count = self.value('port_count')
         if not isinstance(count, int) or count < 0:
             count = 0
 
-        self.push(include=r'^dynamic_')
-        self._build_dynamic_ports(count)
-        self.pop()
+        with self.rejig(include=r'^dynamic_'):
+            self._build_dynamic_ports(count)
 
     def _build_dynamic_ports(self, count: int):
         """Add dynamic inlet/outlet pairs."""

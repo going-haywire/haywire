@@ -43,21 +43,18 @@ class PerformanceTester(BaseNode):
         from haybale_core.widgets.basic_widgets import NumberWidget
         from haybale_core.types.specs import FLOAT, INT
 
-        self.push(exclude=['exec', 'trigger', 'port_count'])
-
-        for i in range(self.value('port_count')):
-            self.add(FLOAT.as_inlet(
-                'float_inlet_' + str(i), 
-                label='Input ' + str(i),
-                widget=NumberWidget.config(),
-                default=i
-            ))
-            self.add(FLOAT.as_outlet(
-                'float_outlet_' + str(i), 
-                label='Output ' + str(i)
-            ))
- 
-        self.pop()
+        with self.rejig(exclude=['exec', 'trigger', 'port_count']):
+            for i in range(self.value('port_count')):
+                self.add(FLOAT.as_inlet(
+                    'float_inlet_' + str(i),
+                    label='Input ' + str(i),
+                    widget=NumberWidget.config(),
+                    default=i
+                ))
+                self.add(FLOAT.as_outlet(
+                    'float_outlet_' + str(i),
+                    label='Output ' + str(i)
+                ))
     
     def worker(self, context: ExecutionContext, port_count: int) -> str | None:
         for i in range(port_count):

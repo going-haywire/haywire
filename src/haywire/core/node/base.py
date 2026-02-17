@@ -1,7 +1,7 @@
 from __future__ import annotations
 import inspect
 import re
-from typing import TYPE_CHECKING, Set, Any, Callable, Dict, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Iterator, Set, Any, Callable, Dict, List, Optional, TypeVar
 from dataclasses import asdict
 from abc import abstractmethod
 from contextlib import contextmanager
@@ -37,7 +37,7 @@ class NodeData:
     
     Provides:
     - Unified port storage (inlets and outlets in single dict)
-    - Dynamic port reconfiguration (push/pop pattern)
+    - Dynamic port reconfiguration (rejig context manager)
     - Hierarchical grouping (nested groups with context managers)
     - Section organization (for property panels)
     - Clean API for port access
@@ -96,7 +96,7 @@ class NodeData:
         # ---------------------------------------------------------------------
                
         self._push_stack: List[set[str]] = []
-        """Stack of port ID sets for push/pop operations."""
+        """Stack of port ID sets for rejig operations."""
         
         self._group_stack: List[str] = []
         """Stack of active group IDs for nested groups."""
@@ -235,7 +235,7 @@ class NodeData:
         - Assigns the port to the current section (if in a section context)
         - Assigns a display order
         - Preserves connections if replacing an existing port (during reconfiguration)
-        - Unflags the port if in a push/pop context
+        - Unflags the port if in a rejig context
         
         Args:
             spec: specification dict
@@ -244,7 +244,7 @@ class NodeData:
             The added DataPort
         
         Raises:
-            ValueError: If port ID already exists (unless in push/pop context)
+            ValueError: If port ID already exists (unless in rejig context)
         
         Examples:
             # Recommended: pass spec (returns PortSpec dict)
@@ -386,80 +386,12 @@ class NodeData:
         finally:
             self._section_stack.pop()
     
-    def push(
+    def _push(
         self,
         include: Optional[List[str] | str] = None,
         exclude: Optional[List[str] | str] = None
     ) -> None:
-        """
-        Mark existing ports for potential removal (start of reconfiguration).
-        
-        Flags ports as candidates for removal based on include/exclude filters.
-        Ports that are re-added via add() before pop() is called will be
-        preserved with their connections intact. Ports not re-added will
-        be removed by pop().
-        
-        Args:
-            include: Ports to flag (applied first):
-                - None: Start with all ports
-                - List[str]: Start with these specific port IDs
-                - str: Regex pattern to match port IDs
-            exclude: Ports to exclude from flagging (applied second):
-                - None: No exclusions
-                - List[str]: Exclude these specific port IDs
-                - str: Regex pattern to exclude matching port IDs
-
-
-        Quick reference:
-        
-        =================================================   ===========================
-        Call                                                Effect
-        =================================================   ===========================
-        ``push()``                                          All ports
-        ``push(include=['a', 'b'])``                        Only 'a' and 'b'
-        ``push(exclude=['ctrl'])``                          All except 'ctrl'
-        ``push(include=r'^input_')``                        All starting with 'input\_'
-        ``push(exclude=r'^ctrl_')``                         All except control ports
-        ``push(include=r'^param_', exclude=['param_0'])``   Params except param_0
-        =================================================   ===========================
-
-        Examples:
-            Flag all ports:
-            
-            .. code-block:: python
-            
-                self.push()
-                self.add(FLOAT.as_inlet('value'))
-                removed = self.pop()
-            
-            Flag specific ports by ID list:
-            
-            .. code-block:: python
-            
-                self.push(include=['old_param1', 'old_param2'])
-                removed = self.pop()
-            
-            Flag all except certain ports:
-            
-            .. code-block:: python
-            
-                # Flag all ports except 'ctrl_in' and 'ctrl_out'
-                self.push(exclude=['ctrl_in', 'ctrl_out'])
-            
-            Use regex patterns:
-            
-            .. code-block:: python
-            
-                # Flag all 'input_*' ports except 'input_0'
-                self.push(include=r'^input_', exclude=['input_0'])
-                
-                # Flag all ports except control ports
-                self.push(exclude=r'^ctrl_')
-                
-                # Flag numbered params, exclude even numbers
-                self.push(include=r'^param_\d+$', exclude=r'^param_[02468]$')
-                        
-            """
+        """Internal: flag ports for potential removal. Use rejig() instead."""
         
         # Step 1: Build include set
         if include is None:
@@ -486,29 +418,10 @@ class NodeData:
         
         self._push_stack.append(flagged)
     
-    def pop(self) -> List[str]:
-        """
-        Remove flagged ports that weren't refreshed (end of reconfiguration).
-        
-        Completes a push/pop reconfiguration cycle by removing all ports
-        that were flagged by push() and not re-added. Connections to removed
-        ports are cleaned up automatically.
-        
-        Returns:
-            List of removed port IDs
-        
-        Raises:
-            RuntimeError: If pop() called without matching push()
-        
-        Examples:
-            self.push()
-            # ... reconfigure ports ...
-            removed = self.pop()
-            if removed:
-                print(f"Removed ports: {removed}")
-        """
+    def _pop(self) -> List[str]:
+        """Internal: remove flagged ports not refreshed. Use rejig() instead."""
         if not self._push_stack:
-            raise RuntimeError("pop() called without matching push()")
+            raise RuntimeError("_pop() called without matching _push()")
         
         flagged = self._push_stack.pop()
         removed = []
@@ -538,6 +451,56 @@ class NodeData:
         self.wrapper.mark_as_structuraly_dirty()
         self._executor = None
         return removed
+
+    @contextmanager
+    def rejig(
+        self,
+        include: Optional[List[str] | str] = None,
+        exclude: Optional[List[str] | str] = None
+    ):
+        """
+        Context manager for dynamic port reconfiguration.
+
+        Flags existing ports for potential removal, yields control for
+        re-adding ports, then removes any ports that weren't refreshed.
+        Connections on refreshed ports are preserved automatically.
+
+        This is the recommended API over raw _push()/_pop() calls — it
+        guarantees _pop() runs even if an exception occurs during
+        reconfiguration.
+
+        Args:
+            include: Ports to flag (applied first):
+                - None: Start with all ports
+                - List[str]: Start with these specific port IDs
+                - str: Regex pattern to match port IDs
+            exclude: Ports to exclude from flagging (applied second):
+                - None: No exclusions
+                - List[str]: Exclude these specific port IDs
+                - str: Regex pattern to exclude matching port IDs
+
+        Examples:
+            Reconfigure all ports except a config port:
+
+            .. code-block:: python
+
+                with self.rejig(exclude=['config_port']):
+                    self.add(FLOAT.as_inlet('value'))
+                    self.add(FLOAT.as_outlet('result'))
+
+            Reconfigure only dynamic ports by regex:
+
+            .. code-block:: python
+
+                with self.rejig(include=r'^dynamic_'):
+                    for i in range(count):
+                        self.add(INT.as_inlet(f'dynamic_inlet_{i}'))
+        """
+        self._push(include=include, exclude=exclude)
+        try:
+            yield
+        finally:
+            self._pop()
 
    # =========================================================================
     # Port Value Access
@@ -625,139 +588,126 @@ class NodeData:
     # Port Querying and Organization
     # =========================================================================
 
-    def get_visible_ports(self, 
-                          include_sections: bool = False) -> List[DataPort]:
+    def _iter_ports(self) -> Iterator[DataPort]:
+        """All ports in display order. Single source of ordered iteration."""
+        yield from sorted(self.ports.values(), key=lambda p: p.order)
+
+    def iter_visible_ports(self,
+                           include_sections: bool = False) -> Iterator[DataPort]:
         """
-        Get ports visible in the node UI (respecting group collapse state).
-        
-        Returns only ports that should be rendered in the node's visual
-        representation. Handles:
+        Yield ports visible in the node UI (respecting group collapse state).
+
+        Handles:
         - Filtering by group expansion state (collapsed groups hide children)
         - Filtering section-marked ports (optional)
-        - Sorting by display order
-        
+        - Sorted by display order
+
         Args:
             include_sections: If True, include ports marked with sections.
                             If False, section ports are excluded from node UI
                             (but still available for property panels).
-        
-        Returns:
-            List of visible ports in display order
-        
+
+        Yields:
+            Visible ports in display order
+
         Examples:
-            # Get ports for node rendering
-            visible = self.get_visible_ports()
-            for port in visible:
+            # Iterate ports for node rendering
+            for port in node.iter_visible_ports():
                 render_port(port)
-            
-            # Include section ports for property panel
-            all_ui_ports = self.get_visible_ports(include_sections=True)
+
+            # Collect as list when needed
+            visible = list(node.iter_visible_ports())
         """
-        visible = []
-        
-        for port in sorted(self.ports.values(), key=lambda p: p.order):
-            
-            # Skip section-marked ports if not requested
+        for port in self._iter_ports():
             if not include_sections and port.section:
                 continue
-            
-            # Check if parent groups are expanded
-            if port.parent_group:
-                parent = self.ports.get(port.parent_group)
-                if parent:
-                    # Parent exists - check if expanded
-                    try:
-                        is_expanded = self.value(port.parent_group)
-                        if not is_expanded:
-                            # Parent group is collapsed, skip this port
-                            continue
-                    except (KeyError, Exception):
-                        # If we can't get parent state, assume visible
-                        pass
-            
-            visible.append(port)
-        
-        return visible
-    
-    def get_section_ports(self, 
+            if port.parent_group and self._is_any_ancestor_collapsed(port):
+                continue
+            yield port
+
+    def get_visible_ports(self,
+                          include_sections: bool = False) -> List[DataPort]:
+        """Get ports visible in the node UI as a list.
+
+        Convenience wrapper around iter_visible_ports().
+        """
+        return list(self.iter_visible_ports(include_sections=include_sections))
+
+    def iter_section_ports(self,
+                           section: Optional[str] = None) -> Iterator[DataPort]:
+        """
+        Yield ports that belong to sections, in display order.
+
+        Args:
+            section: Specific section name to filter by, or None for all sections
+
+        Yields:
+            Section-assigned ports in display order
+        """
+        for port in self._iter_ports():
+            if not port.section:
+                continue
+            if section is not None and port.section != section:
+                continue
+            yield port
+
+    def get_section_ports(self,
                          section: Optional[str] = None) -> Dict[str, List[DataPort]]:
         """
         Get ports organized by section for property panel rendering.
-        
+
         Returns ports grouped by their section assignment, useful for
         building property panels with organized sections.
-        
+
         Args:
             section: Specific section name to filter by, or None for all sections
-        
+
         Returns:
             Dict mapping section names to lists of ports in display order
-        
+
         Examples:
-            # Get all sections
-            sections = self.get_section_ports()
-            # Returns: {
-            #     'validation': [port1, port2],
-            #     'performance': [port3, port4]
-            # }
-            
-            # Get specific section
-            validation_ports = self.get_section_ports('validation')
-            # Returns: {'validation': [port1, port2]}
-            
-            # Render property panel
             sections = self.get_section_ports()
             for section_name, ports in sections.items():
                 render_section_header(section_name)
                 for port in ports:
                     render_property(port)
         """
-        sections = {}
-        
-        for port in sorted(self.ports.values(), key=lambda p: p.order):
-            
-            # Only process ports with section assignment
-            if port.section:
-                section_name = port.section
-                
-                # Filter by requested section if specified
-                if section is None or section_name == section:
-                    if section_name not in sections:
-                        sections[section_name] = []
-                    sections[section_name].append(port)
-        
+        sections: Dict[str, List[DataPort]] = {}
+        for port in self.iter_section_ports(section):
+            sections.setdefault(port.section, []).append(port)
         return sections
-    
-    def get_group_children(self, group_id: str) -> List[DataPort]:
+
+    def iter_group_children(self, group_id: str) -> Iterator[DataPort]:
         """
-        Get all direct children of a group.
-        
+        Yield direct children of a group in display order.
+
         Args:
             group_id: ID of the group port
-        
-        Returns:
-            List of ports that are direct children of the group
-        
-        Examples:
-            # Get children of a group
-            children = self.get_group_children('advanced')
-            print(f"Group has {len(children)} children")
+
+        Yields:
+            Ports that are direct children of the group
         """
-        return [
-            port for port in sorted(self.ports.values(), key=lambda p: p.order)
-            if port.parent_group == group_id
-        ]
-    
+        for port in self._iter_ports():
+            if port.parent_group == group_id:
+                yield port
+
+    def get_group_children(self, group_id: str) -> List[DataPort]:
+        """Get all direct children of a group as a list.
+
+        Convenience wrapper around iter_group_children().
+        """
+        return list(self.iter_group_children(group_id))
+
     def is_group_expanded(self, group_id: str) -> bool:
         """
         Check if a group is currently expanded.
-        
+
         Args:
             group_id: ID of the group port
-        
+
         Returns:
             True if expanded, False if collapsed
-        
+
         Raises:
             KeyError: If group not found
             ValueError: If port is not a group
@@ -767,10 +717,10 @@ class NodeData:
             raise KeyError(f"Group '{group_id}' not found")
         if not port.is_group:
             raise ValueError(f"Port '{group_id}' is not a group")
-        
+
         return self.value(group_id)
 
-    def get_ports(self, 
+    def get_ports(self,
                     is_port_type: Optional[PortType] = None,
                     has_pin: Optional[bool] = None,
                     is_flow_type: Optional[FlowType] = None,
@@ -778,19 +728,19 @@ class NodeData:
                     has_widget: Optional[bool] = None) -> list[DataPort]:
         """
         Get ports matching optional filter criteria.
-        
+
         Only filters by criteria that are explicitly provided (not None).
         If all parameters are None, returns all ports.
-        
+
         Args:
             is_port_type: Filter by PortType. None = no filter.
             is_flow_type: Filter by flow type (CONTROL, DATA, CALLBACK, NONE). None = no filter.
             is_not_flow_type: Exclude this flow type. None = no filter.
             has_widget: Filter by presence of widget. None = no filter.
-            has_pin: Filter by presence of visual pin. None = no filter. 
+            has_pin: Filter by presence of visual pin. None = no filter.
         Returns:
             List of ports matching all specified criteria
-        
+
         """
         return [
             port for port in self.ports.values()
@@ -800,48 +750,37 @@ class NodeData:
             and (is_not_flow_type is None or is_not_flow_type != port.flow_type)
             and (has_widget is None or has_widget == port.widget_key is not None)
         ]
-      
-    def get_hidden_connected_ports(self, is_inlet: bool) -> List[DataPort]:
+
+    def iter_hidden_connected_ports(self, is_inlet: bool) -> Iterator[DataPort]:
         """
-        Get ports that are hidden but have active connections.
-        
+        Yield ports that are hidden but have active connections, in display order.
+
         These ports need ghost pins rendered near the title to maintain
-        visual connection endpoints. A port is considered hidden if:
-        - It's not in the visible ports list, OR
-        - Any ancestor group in its hierarchy is collapsed
-        
+        visual connection endpoints. A port is considered hidden if it
+        has any ancestor group that is collapsed.
+
         Args:
             is_inlet: True to get hidden inlets, False for outlets
-            
-        Returns:
-            List of hidden ports with connections, sorted by order
+
+        Yields:
+            Hidden ports with connections, in display order
         """
-        visible_ports = self.get_visible_ports()
-        visible_port_ids: Set[str] = {port.id for port in visible_ports}
-        
-        hidden_connected: List[DataPort] = []
-        
-        for port in self.ports.values():
-            # Skip if wrong direction
+        visible_ids = {p.id for p in self.iter_visible_ports()}
+
+        for port in self._iter_ports():
             if port.is_inlet() == is_inlet:
                 continue
-            
-            # Skip section markers and group ports
             if port.section or port.is_group:
                 continue
-            
-            # Check if port is truly hidden (not visible OR any ancestor collapsed)
-            is_hidden = port.id not in visible_port_ids
-            
-            # Also check full ancestor chain for collapsed groups
-            if not is_hidden:
-                is_hidden = self._is_any_ancestor_collapsed(port)
-            
-            # Include if port is hidden and has connections
-            if is_hidden and port.is_linked():
-                hidden_connected.append(port)
-        
-        return sorted(hidden_connected, key=lambda p: p.order)
+            if port.id not in visible_ids and port.is_linked():
+                yield port
+
+    def get_hidden_connected_ports(self, is_inlet: bool) -> List[DataPort]:
+        """Get hidden connected ports as a list.
+
+        Convenience wrapper around iter_hidden_connected_ports().
+        """
+        return list(self.iter_hidden_connected_ports(is_inlet))
     
     def _is_any_ancestor_collapsed(self, port: DataPort) -> bool:
         """

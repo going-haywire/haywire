@@ -57,58 +57,56 @@ class ControlSwitch(BaseNode):
         from haybale_core.widgets.basic_widgets import SelectWidget, NumberWidget
         from ..types.specs import EXEC, FLOAT, INT, STRING
 
-        self.push(exclude=['exec', 'true', 'false', 'DataType', 'test'])
-        if self.value('DataType') == 'int':
-            self.add(STRING.as_config(
-                'condition', 
-                label='Condition',
-                widget=SelectWidget.config(properties={ 'options': ['>', '>=', '==', '<', '<=', '!=' ]}), 
-                default='==')
-            )
-            self.add(INT.as_inlet(
-                'compare', 
-                label='Compare',
-                widget=NumberWidget.config()))
-            self.add(INT.as_inlet(
-                'with', 
-                label='With',
-                widget=NumberWidget.config())
-            )
-        elif self.value('DataType') == 'float':
-            self.add(STRING.as_config(
-                'condition', 
-                label='Condition',
-                widget=SelectWidget.config(properties={ 'options': ['>', '>=', '==', '<', '<=', '!=' ]}), 
-                default='==')
-            )
-            self.add(FLOAT.as_inlet(
-                'compare', 
-                label='Compare',
-                widget=NumberWidget.config()))
-            self.add(FLOAT.as_inlet(
-                'with', 
-                label='With',
-                widget=NumberWidget.config())
-            )
-        else:  # string
-            self.add(STRING.as_config(
-                'condition', 
-                label='Condition',
-                widget=SelectWidget.config(properties={ 'options': ['==', '!=' ]}), 
-                default='==')
-            )
-            self.add(STRING.as_inlet(
-                'compare', 
-                label='Compare',
-                default='')
-            )
-            self.add(STRING.as_inlet(
-                'with', 
-                label='With',
-                default='')
-            )
-
-        self.pop()
+        with self.rejig(exclude=['exec', 'true', 'false', 'DataType', 'test']):
+            if self.value('DataType') == 'int':
+                self.add(STRING.as_config(
+                    'condition',
+                    label='Condition',
+                    widget=SelectWidget.config(properties={ 'options': ['>', '>=', '==', '<', '<=', '!=' ]}),
+                    default='==')
+                )
+                self.add(INT.as_inlet(
+                    'compare',
+                    label='Compare',
+                    widget=NumberWidget.config()))
+                self.add(INT.as_inlet(
+                    'with',
+                    label='With',
+                    widget=NumberWidget.config())
+                )
+            elif self.value('DataType') == 'float':
+                self.add(STRING.as_config(
+                    'condition',
+                    label='Condition',
+                    widget=SelectWidget.config(properties={ 'options': ['>', '>=', '==', '<', '<=', '!=' ]}),
+                    default='==')
+                )
+                self.add(FLOAT.as_inlet(
+                    'compare',
+                    label='Compare',
+                    widget=NumberWidget.config()))
+                self.add(FLOAT.as_inlet(
+                    'with',
+                    label='With',
+                    widget=NumberWidget.config())
+                )
+            else:  # string
+                self.add(STRING.as_config(
+                    'condition',
+                    label='Condition',
+                    widget=SelectWidget.config(properties={ 'options': ['==', '!=' ]}),
+                    default='==')
+                )
+                self.add(STRING.as_inlet(
+                    'compare',
+                    label='Compare',
+                    default='')
+                )
+                self.add(STRING.as_inlet(
+                    'with',
+                    label='With',
+                    default='')
+                )
     
     def worker(self, context: ExecutionContext, condition: str) -> str | None:
         data = self.value('compare')

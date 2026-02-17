@@ -1650,9 +1650,9 @@ class TestEdgeConnections:
         graph = graph_with_library_system
         dyn_node = self._create_dynamic_node(graph)
 
-        # port_count has on_change='reconfigure'
+        # port_count has on_change='hb_reconfigure'
         config_port = dyn_node.node.ports['port_count']
-        assert config_port.on_change == 'reconfigure'
+        assert config_port.on_change == 'hb_reconfigure'
 
         # Start with 2 dynamic ports
         assert 'dynamic_outlet_0' in dyn_node.node.ports

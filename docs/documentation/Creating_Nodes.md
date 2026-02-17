@@ -219,7 +219,129 @@ def worker(self, context: ExecutionContext):
     self.out('result', value if value > threshold else 0.0)
 ```
 
-## Custom instance attributes
+## Dynamic Port Reconfiguration (`rejig`)
+
+Nodes can dynamically add and remove ports at runtime using the `rejig()` context manager. This is useful for nodes whose port layout depends on a configuration value (e.g. a data type selector or a count input).
+
+### Basic Pattern
+
+```python
+def hb_reconfigure(self, port=None, *args):
+    """Called when config port changes."""
+    with self.rejig(exclude=['my_config_port']):
+        # All ports except 'my_config_port' are flagged for removal.
+        # Ports re-added here are preserved with their connections intact.
+        # Ports NOT re-added are destroyed when the block exits.
+        self.add(FLOAT.as_inlet('value', label='Value'))
+        self.add(FLOAT.as_outlet('result', label='Result'))
+```
+
+### Filtering Which Ports to Rejig
+
+`rejig()` accepts `include` and `exclude` parameters (list of IDs or regex string):
+
+```python
+# Rejig all ports
+with self.rejig():
+    ...
+
+# Rejig only dynamic ports (by regex)
+with self.rejig(include=r'^dynamic_'):
+    ...
+
+# Rejig all except specific static ports
+with self.rejig(exclude=['exec', 'config']):
+    ...
+```
+
+### Complete Example: Type-Switching Node
+
+```python
+@node(label='Control Switch', node_type=NodeType.CONTROL)
+class ControlSwitch(BaseNode):
+
+    def init(self):
+        from ..types.specs import EXEC, STRING
+        from haybale_core.widgets.basic_widgets import SelectWidget
+
+        self.add(EXEC.as_inlet('exec', label='Execute'))
+        self.add(STRING.as_config(
+            'DataType', label='Data Type',
+            widget=SelectWidget.config(properties={'options': ['int', 'float']}),
+            default='int',
+            on_change='hb_change'
+        ))
+        self.add(EXEC.as_outlet('true', label='True'))
+        self.add(EXEC.as_outlet('false', label='False'))
+
+    def post_init(self):
+        self.hb_change()
+
+    def hb_change(self, *args, **kwargs):
+        from ..types.specs import INT, FLOAT, STRING
+        from haybale_core.widgets.basic_widgets import SelectWidget, NumberWidget
+
+        with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
+            if self.value('DataType') == 'int':
+                self.add(INT.as_inlet('compare', label='Compare',
+                         widget=NumberWidget.config()))
+                self.add(INT.as_inlet('with', label='With',
+                         widget=NumberWidget.config()))
+            else:
+                self.add(FLOAT.as_inlet('compare', label='Compare',
+                         widget=NumberWidget.config()))
+                self.add(FLOAT.as_inlet('with', label='With',
+                         widget=NumberWidget.config()))
+```
+
+### What Happens to Connections
+
+- **Re-added port (same ID)**: connections are preserved — the edge survives the rejig
+- **Removed port (not re-added)**: all edges are detached and cleaned up automatically
+- **Static ports (excluded from rejig)**: completely unaffected
+
+---
+
+## Port Groups and Sections
+
+### Groups (Collapsible Port Containers)
+
+Groups create a collapsible header in the node UI. Ports added inside a `group()` block become children of the group — when the group is collapsed, child ports are hidden but connections are preserved via ghost pins.
+
+```python
+def init(self):
+    from ..types.specs import FLOAT, GROUP
+
+    self.add(FLOAT.as_inlet('value', label='Value'))
+
+    with self.group(GROUP.as_inlet('advanced', label='Advanced Options')):
+        self.add(FLOAT.as_inlet('epsilon', label='Epsilon', default=0.001))
+        self.add(FLOAT.as_inlet('tolerance', label='Tolerance', default=0.1))
+
+        # Groups can be nested
+        with self.group(GROUP.as_inlet('expert', label='Expert')):
+            self.add(FLOAT.as_inlet('damping', label='Damping', default=0.5))
+```
+
+### Sections (Property Panel Organization)
+
+Sections organize ports in the property panel/inspector without affecting the node's visual layout. Ports in a section are hidden from the node body but accessible in the inspector.
+
+```python
+def init(self):
+    from ..types.specs import FLOAT, BOOL
+
+    self.add(FLOAT.as_inlet('value', label='Value'))
+
+    with self.section('validation'):
+        self.add(FLOAT.as_inlet('min_value', label='Min', default=0.0))
+        self.add(FLOAT.as_inlet('max_value', label='Max', default=100.0))
+        self.add(BOOL.as_inlet('clamp', label='Clamp', default=False))
+```
+
+---
+
+## Custom Instance Attributes
 
 You can define your own instance attributes within your node class to encapsulate reusable logic. To make sure your custom methods work even when the haywire framework is adding new functionality in the future, use the following guidelines:
 

@@ -219,17 +219,25 @@ def _execute(self, context):
     # ... worker ...
 ```
 
-## Dynamic Port Reconfiguration (Push/Pop)
+## Dynamic Port Reconfiguration (`rejig`)
 
-Nodes can dynamically add/remove ports using the push/pop pattern:
+Nodes can dynamically add/remove ports using the `rejig()` context manager:
 
 ```python
-self.push(include=r'^dynamic_')    # flag matching ports for removal
-self._build_dynamic_ports(count)   # re-add surviving ports (unflagged by add())
-self.pop()                         # remove any still-flagged ports
+with self.rejig(include=r'^dynamic_'):    # flag matching ports for removal
+    self._build_dynamic_ports(count)      # re-add surviving ports (unflagged by add())
+# _pop() runs automatically on exit      # remove any still-flagged ports
 ```
 
-### Port Destruction in `pop()`
+`rejig()` wraps the internal `_push()`/`_pop()` pair in a context manager, guaranteeing cleanup even if an exception occurs during reconfiguration.
+
+### How It Works
+
+1. **On enter**: flags existing ports as candidates for removal (filtered by `include`/`exclude`)
+2. **Inside the block**: ports re-added via `self.add()` are unflagged (preserved with connections intact)
+3. **On exit**: any still-flagged ports are destroyed
+
+### Port Destruction on Exit
 
 When a flagged port is destroyed:
 
@@ -237,15 +245,26 @@ When a flagged port is destroyed:
 - **Asymmetric notification**: destroyed inlet → informs source outlet; destroyed outlet → does NOT inform sink inlet
 - `mark_as_structuraly_dirty()` queues validation for edge rebuilds
 
+### Filter Options
+
+| Call                                                  | Effect                   |
+| ----------------------------------------------------- | ------------------------ |
+| `rejig()` | All ports |
+| `rejig(include=['a', 'b'])` | Only 'a' and 'b' |
+| `rejig(exclude=['ctrl'])` | All except 'ctrl' |
+| `rejig(include=r'^input_')` | All starting with 'input_' |
+| `rejig(exclude=r'^ctrl_')` | All except control ports |
+| `rejig(include=r'^param_', exclude=['param_0'])` | Params except param_0 |
+
 ### DynamicPortTestNode (test fixture)
 
 `DynamicPortTestNode` provides configurable dynamic ports for testing:
 
 - **Static ports**: `bool_inlet`, `bool_outlet` (always present)
-- **Config port**: `port_count` (TEST_INT inlet with `on_change='reconfigure'`)
+- **Config port**: `port_count` (TEST_INT inlet with `on_change='hb_reconfigure'`)
 - **Dynamic ports**: `dynamic_inlet_0..N`, `dynamic_outlet_0..N` (TEST_INT, controlled by `port_count`)
 
-Setting `port_count` triggers `reconfigure()` synchronously via the `on_change` callback.
+Setting `port_count` triggers `hb_reconfigure()` synchronously via the `on_change` callback, which uses `rejig(include=r'^dynamic_')` internally.
 
 ## Registered Test Adapters (haybale-testing)
 
@@ -282,7 +301,7 @@ So the chains are: BOOL→INT (1), BOOL→FLOAT (2), BOOL→STRING (3), INT→FL
 - `src/haywire/core/graph/base.py` — BaseGraph (create/add/remove edge, delegates to edge methods)
 - `src/haywire/core/graph/validation.py` — ValidationManager (debounced batch validation, priority system)
 - `src/haywire/core/graph/types.py` — ChangeReason enum, ValidationResult
-- `src/haywire/core/node/base.py` — NodeData (push/pop port reconfiguration)
+- `src/haywire/core/node/base.py` — NodeData (`rejig()` port reconfiguration, `_iter_ports()` generator queries)
 - `src/haywire/core/node/node_wrapper.py` — NodeWrapper (build/rebuild, mark_as_structuraly_dirty)
 - `src/haywire/core/adapter/factory.py` — AdapterFactory (chain creation)
 - `src/haywire/core/adapter/registry.py` — AdapterRegistry (BFS chain discovery)
@@ -377,8 +396,8 @@ So the chains are: BOOL→INT (1), BOOL→FLOAT (2), BOOL→STRING (3), INT→FL
 
 ### Dynamic Port Reconfiguration (3 tests)
 
-- Port removed via push/pop → connected edge detached
-- Port surviving push/pop (same ID re-added) → edge survives reconfiguration
+- Port removed via `rejig()` → connected edge detached
+- Port surviving `rejig()` (same ID re-added) → edge survives reconfiguration
 - Static port edge unaffected by dynamic port reconfiguration
 
 ### Lazy Propagation (8 tests)

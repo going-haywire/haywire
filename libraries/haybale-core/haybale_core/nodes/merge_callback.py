@@ -55,25 +55,22 @@ class MergeCallbackNode(BaseNode):
 
         self.cache.store = {}
 
-        self.push(exclude=['custom_callback_count'])
+        with self.rejig(exclude=['custom_callback_count']):
+            for i in range(number_of_callbacks):
+                # Declare callback interest
+                self.add(CALLBACK.as_outlet(
+                    f'listen_callback_{i+1}',
+                    label='Listener '+str(i+1),
+                    default=self.node_id+str(i+1),
+                ))
 
-        for i in range(number_of_callbacks):
-            # Declare callback interest
-            self.add(CALLBACK.as_outlet(
-                f'listen_callback_{i+1}',
-                label='Listener '+str(i+1),
-                default=self.node_id+str(i+1),
-            ))
+            if number_of_callbacks > 0:
+                # Control output
+                self.add(EXEC.as_outlet('triggered', label='Triggered'))
 
-        if number_of_callbacks > 0:
-            # Control output
-            self.add(EXEC.as_outlet('triggered', label='Triggered'))
-
-        for i in range(number_of_callbacks):
-            # Data output
-            self.add(FLOAT.as_outlet(f'payload_{i+1}', label='Payload '+str(i+1)))
-    
-        self.pop()
+            for i in range(number_of_callbacks):
+                # Data output
+                self.add(FLOAT.as_outlet(f'payload_{i+1}', label='Payload '+str(i+1)))
 
     def worker(self, context: ExecutionContext) -> str | None:
         # Extract payload from trigger

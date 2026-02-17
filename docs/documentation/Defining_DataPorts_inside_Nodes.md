@@ -443,6 +443,63 @@ class ConditionalNode(BaseNode):
 
 ---
 
+## Dynamic Port Reconfiguration (`rejig`)
+
+Use the `rejig()` context manager to dynamically add/remove ports at runtime. Ports re-added inside the block keep their connections; ports not re-added are destroyed.
+
+```python
+def hb_reconfigure(self, port=None, *args):
+    count = self.value('port_count')
+
+    with self.rejig(include=r'^dynamic_'):
+        # Only ports matching '^dynamic_' are flagged for removal.
+        # Static ports are untouched.
+        for i in range(count):
+            self.add(FLOAT.as_inlet(f'dynamic_inlet_{i}', label=f'Input {i}'))
+            self.add(FLOAT.as_outlet(f'dynamic_outlet_{i}', label=f'Output {i}'))
+```
+
+Trigger reconfiguration via an `on_change` callback on a config port:
+
+```python
+def init(self):
+    self.add(INT.as_inlet(
+        'port_count', label='Port Count', default=2,
+        on_change='hb_reconfigure'
+    ))
+    self._build_dynamic_ports(2)
+```
+
+See the [Creating Nodes](Creating_Nodes.md) guide for a complete example.
+
+---
+
+## Port Groups and Sections
+
+### Groups
+
+Create collapsible port containers in the node UI:
+
+```python
+with self.group(GROUP.as_inlet('advanced', label='Advanced Options')):
+    self.add(FLOAT.as_inlet('epsilon', default=0.001))
+    self.add(FLOAT.as_inlet('tolerance', default=0.1))
+```
+
+Child ports are hidden when the group is collapsed. Connections are preserved via ghost pins.
+
+### Sections
+
+Organize ports into property panel categories (hidden from node body):
+
+```python
+with self.section('validation'):
+    self.add(FLOAT.as_inlet('min_value', default=0.0))
+    self.add(FLOAT.as_inlet('max_value', default=100.0))
+```
+
+---
+
 ## Common Patterns
 
 ### Pattern 1: Input Validation
