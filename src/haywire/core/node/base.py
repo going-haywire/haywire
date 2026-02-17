@@ -291,6 +291,11 @@ class NodeData:
             # Preserve connections from existing port
             port._linked_edges = existing._linked_edges.copy()
             port._all_edges = existing._all_edges.copy()
+
+            # Preserve value if types are compatible
+            if existing._data is not None and port._data is not None:
+                if existing.type_cls is port.type_cls:
+                    port._data = existing._data
         
         # Add to ports collection
         self.ports[port.id] = port
