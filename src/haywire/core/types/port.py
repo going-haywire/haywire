@@ -300,7 +300,7 @@ class DataPort(DataTypeIdentity):
                 # Edge-driven OR no callback → defer to resolve_dirty_data()
                 self._mark_as_data_dirty()
         else:
-            # Outlet: fire on_change immediately (node is the setter)
+            # Outlet or Config: fire on_change immediately (node is the setter)
             if self.on_change is not None:
                 self._trigger_callback('on_change', new_value)
             if self._pipes is not None:
