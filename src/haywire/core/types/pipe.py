@@ -30,6 +30,20 @@ class Pipe:
         self.is_lazy = is_lazy
         self._connection_uuid = connection_uuid
 
+    def propagate(self):
+        """Propagate outlet value through all pipe connections.
+
+        Eager edges: mark inlet dirty, then immediately pull (transform + store).
+        Lazy edges: mark inlet dirty with pipe ref (pull deferred to execution).
+        """
+        if self.is_lazy:
+            # Lazy: defer pull to resolve_dirty_data()
+            self.sink._mark_as_data_dirty(pipe=self)
+        else:
+            # Eager: mark dirty + pull immediately
+            self.sink._mark_as_data_dirty()
+            self.pull()
+
     def pull(self) -> None:
         """Pull current outlet value through adapter chain to inlet.
 
@@ -74,19 +88,9 @@ class Pipes:
         self._pipes.pop(edge_wrapper.connection_uuid, None)
 
     def propagate(self):
-        """Propagate outlet value through all pipe connections.
-
-        Eager edges: mark inlet dirty, then immediately pull (transform + store).
-        Lazy edges: mark inlet dirty with pipe ref (pull deferred to execution).
-        """
+        """Propagate outlet value through all pipe connections."""
         for pipe in self._pipes.values():
-            if pipe.is_lazy:
-                # Lazy: defer pull to resolve_dirty_data()
-                pipe.sink._mark_as_data_dirty(pipe=pipe)
-            else:
-                # Eager: mark dirty + pull immediately
-                pipe.sink._mark_as_data_dirty()
-                pipe.pull()
+            pipe.propagate()
 
     def clear(self):
         self._pipes.clear()
