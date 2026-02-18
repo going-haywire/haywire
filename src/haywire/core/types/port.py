@@ -17,7 +17,7 @@ from haywire.core.types.utils import serialize_element_type
 
 # Import the new DataField classes
 from haywire.core.types.fields import DataField
-from haywire.core.types.pipe import Pipes
+from haywire.core.types.pipe import Pipe, Pipes
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -147,7 +147,7 @@ class DataPort(DataTypeIdentity):
     _pending_lazy_pipes: set = field(
         default_factory=set,
         metadata={'serialize': False})
-    """Tracks (Pipes, connection_uuid) pairs needing lazy resolution."""
+    """Tracks Pipe objects needing lazy resolution at execution time."""
 
     # ========================================================================
     # CALLBACKS
@@ -280,17 +280,24 @@ class DataPort(DataTypeIdentity):
     
     def set_value(self, new_value: Any, connection_uuid: str | None = None) -> None:
         """
-        Set value from eager links, widget or programmatic update.
+        Set port value. Single entry point for all value updates.
 
         For inlets:
         - Widget/programmatic (no connection_uuid) with on_change: fire immediately
         - Edge-driven (connection_uuid set) or no callback: defer to resolve_dirty_data()
 
+        For outlets:
+        - Fire on_change immediately, then propagate to downstream inlets
+
         Args:
             new_value: Value to set (can be IType instance or raw value)
-            connection_uuid: Source identifier (set when value comes from an edge)
+            connection_uuid: Source identifier (set when value comes via Pipe.pull())
         """
-        self.set_value_by_lazy_link(new_value, connection_uuid=connection_uuid)
+        if not self._data:
+            return
+
+        self._data.set_value(new_value, source_id=connection_uuid)
+        self._is_set_by_node = False
 
         if self.is_inlet():
             if connection_uuid is None and self.on_change is not None:
@@ -300,26 +307,11 @@ class DataPort(DataTypeIdentity):
                 # Edge-driven OR no callback → defer to resolve_dirty_data()
                 self._mark_as_data_dirty()
         else:
-            # Outlet or Config: fire on_change immediately (node is the setter)
+            # Outlet: fire on_change immediately (node is the setter)
             if self.on_change is not None:
                 self._trigger_callback('on_change', new_value)
             if self._pipes is not None:
-                self._pipes.propagate(new_value)
-
-    def set_value_by_lazy_link(self, new_value: Any, connection_uuid: str | None = None) -> None:
-        """
-        Store value with source tracking. Pure storage, no callbacks.
-
-        Called by set_value() for eager edges, and by pipe.pull_lazy() for
-        lazy edges during resolve_dirty_data().
-        """
-        if not self._data:
-            return
-
-        self._data.set_value(new_value, source_id=connection_uuid)
-
-        # this flag should only be set by the nodes self.out() method to True
-        self._is_set_by_node = False
+                self._pipes.propagate()
 
 
     # ========================================================================
@@ -334,24 +326,23 @@ class DataPort(DataTypeIdentity):
         """
         # 1. Pull data from lazy pipes
         while self._pending_lazy_pipes:
-            pipe, uuid = self._pending_lazy_pipes.pop()
-            pipe.pull_lazy(uuid)
+            pipe = self._pending_lazy_pipes.pop()
+            pipe.pull()
 
         # 2. Fire deferred on_change (covers both eager pushes and lazy pulls)
         if self.on_change is not None:
             self._trigger_callback('on_change', self.get_value())
 
-    def _mark_as_data_dirty(self, pipe: 'Pipes | None' = None, connection_uuid: str | None = None) -> None:
+    def _mark_as_data_dirty(self, pipe: 'Pipe | None' = None) -> None:
         """
         Mark the port as data dirty and inform the node.
 
         Args:
             pipe: Pipe instance for lazy pull (only set for lazy edges)
-            connection_uuid: Connection UUID for lazy pull (only set for lazy edges)
         """
         if self._node:
-            if pipe and connection_uuid:
-                self._pending_lazy_pipes.add((pipe, connection_uuid))
+            if pipe is not None:
+                self._pending_lazy_pipes.add(pipe)
             self._node.mark_port_as_dirty(self)
 
     # ========================================================================
@@ -513,7 +504,7 @@ class DataPort(DataTypeIdentity):
             self._refresh_pipes()
             # as soon as we refresh pipes, propagate current value
             if self._pipes:
-                self._pipes.propagate(self.get_value())
+                self._pipes.propagate()
         self._is_dirty_structural = False
 
     def _refresh_pipes(self) -> None:
