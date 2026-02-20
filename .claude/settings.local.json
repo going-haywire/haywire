@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -m pytest:*)"
+      "Bash(python -m pytest:*)",
+      "Bash(git -C /Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo mv:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run:*)",
+      "Bash(uv sync:*)"
     ]
   }
 }

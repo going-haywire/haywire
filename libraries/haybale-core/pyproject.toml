@@ -10,7 +10,7 @@ authors = [
 ]
 keywords = ["haywire", "node-editor", "visual-programming", "core"]
 
-dependencies = []
+dependencies = ["haywire-framework>=0.1.0"]
 
 # Entry point for Haywire library discovery
 [project.entry-points."haywire.libraries"]
@@ -22,6 +22,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["haybale_core"]
+
+[tool.uv.sources]
+haywire-framework = { workspace = true }
 
 [tool.hatch.build.targets.sdist]
 include = [

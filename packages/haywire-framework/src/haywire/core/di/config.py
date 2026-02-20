@@ -74,12 +74,8 @@ class HaywireModule(Module):
         else:
             self.settings_path = Path.home() / '.haywire' / 'settings.toml'
         
-        # Add default library paths if not provided
-        if not self.library_paths:
-            self.library_paths = [
-                os.path.join(self.project_root, 'libraries'),
-                os.path.join(self.project_root, 'tests', 'libraries')
-            ]
+        # Library paths must be explicitly provided by the app or test config.
+        # The framework does not assume a particular project layout.
     
     @provider
     @singleton
@@ -107,10 +103,8 @@ class HaywireModule(Module):
     def provide_library_registry(self) -> LibraryRegistry:
         """Provide singleton LibraryRegistry."""
         library_registry = LibraryRegistry()
-        
-        # Set core libraries path (priority 1)
-        core_path = os.path.join(self.project_root, 'src', 'haywire', 'libraries')
-        library_registry.core_libraries_path = core_path
+
+        # Core libraries are not used (loaded via pip entry points instead)
         library_registry.load_core_libraries = False
         
         # Enable pip package discovery (priority 2 & 3)
