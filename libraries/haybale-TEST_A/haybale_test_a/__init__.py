@@ -26,6 +26,7 @@ from haywire.ui.widget.registry import WidgetRegistry
     author='Haywire Team',
     author_url='https://github.com/maybites/haywire',
     dependencies=['haywire.libraries.core'],
+    tags=['testing', 'development'],
     file_watcher=False
 )
 class Library(BaseLibrary):

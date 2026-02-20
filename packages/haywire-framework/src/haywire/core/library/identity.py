@@ -15,6 +15,7 @@ class LibraryIdentity:
     # List of referenced haywire libraries.
     # For hot reloading to work, the dependencies must be specified.
     dependencies: list[str] = None
+    tags: list[str] = None  # Searchable tags for marketplace/discovery
     file_watcher: bool = False  # Whether to watch for file changes
     folder_path: str = None  # Path to the library folder, auto set during registration
     module_name: str = None  # Python module name, auto set during registration
@@ -22,3 +23,5 @@ class LibraryIdentity:
     def __post_init__(self):
         if self.dependencies is None:
             self.dependencies = []
+        if self.tags is None:
+            self.tags = []

@@ -26,6 +26,7 @@ from haywire.ui.renderer.registry import RendererRegistry
     author='maybites',
     author_url='https://maybites.ch',
     dependencies=[],
+    tags=['core', 'types', 'widgets', 'renderers'],
     file_watcher=False
 )
 class Library(BaseLibrary):

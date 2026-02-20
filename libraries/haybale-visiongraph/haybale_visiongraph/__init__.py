@@ -23,6 +23,7 @@ from haywire.ui.widget.registry import WidgetRegistry
     author='Florian Briggisser, Martin Fröhlich',
     author_url='https://author_url',
     dependencies=['haybale_core'],
+    tags=['vision', 'camera', 'video', 'opencv'],
     file_watcher=False
 )
 class Library(BaseLibrary):

@@ -295,6 +295,11 @@ class HaywireApp:
             'redo_operations': 0
         }
         
+        # Create library manager for runtime install/uninstall
+        from .library_manager import LibraryManager
+        library_registry = self.library_service.get_library_registry()
+        self.library_manager = LibraryManager(library_registry)
+
         print(f"History manager available: {self.history_manager is not None}")
         print("Editor created with change callbacks")
         print("Shared services configured successfully.")
@@ -388,6 +393,13 @@ class HaywireApp:
 
     def create_ui(self):
         """Create the main UI."""
+        # Library management page
+        @ui.page('/libraries', title="Library Manager")
+        def libraries_page():
+            from .library_manager_ui import LibraryManagerPage
+            page = LibraryManagerPage(self.library_manager)
+            page.create_page()
+
         @ui.page('/', title="Enhanced Haywire Test App with Canvas Manager")
         def main_page():
             # Get session-specific data
@@ -435,6 +447,14 @@ class HaywireApp:
                     
                     ui.button('Undo', on_click=self.undo_action, icon='undo')
                     ui.button('Redo', on_click=self.redo_action, icon='redo')
+
+                    ui.separator().props('vertical')
+
+                    ui.button(
+                        'Libraries',
+                        icon='extension',
+                        on_click=lambda: ui.navigate.to('/libraries'),
+                    )
                     
                     ui.separator().props('vertical')
                     
@@ -1580,8 +1600,8 @@ class HaywireApp:
             if not self._is_shutting_down:
                 self.cleanup()
                 
-def main():
-    """Main entry point for the Haywire application."""
+def run_app():
+    """Launch the Haywire application."""
     logging.getLogger('haywire.ui.editor.graph_canvas_manager').setLevel(logging.DEBUG)
 
     app_instance = HaywireApp()
@@ -1589,6 +1609,38 @@ def main():
     app.on_shutdown(app_instance.cleanup)
 
     app_instance.run()
+
+
+def main():
+    """Main entry point — routes CLI subcommands."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog='haywire',
+        description='Haywire visual programming system',
+    )
+    subparsers = parser.add_subparsers(dest='command')
+
+    # haywire init <project-name>
+    init_parser = subparsers.add_parser(
+        'init',
+        help='Create a new haywire project',
+    )
+    init_parser.add_argument('name', help='Project name')
+    init_parser.add_argument(
+        '--no-sync',
+        action='store_true',
+        help='Skip running uv sync after scaffolding',
+    )
+
+    args = parser.parse_args()
+
+    if args.command == 'init':
+        from .init import init_project
+        init_project(args.name, auto_sync=not args.no_sync)
+    else:
+        # No subcommand = launch the app
+        run_app()
 
 
 if __name__ in {"__main__", "__mp_main__"}:
