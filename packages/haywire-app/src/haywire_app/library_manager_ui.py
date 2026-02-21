@@ -60,6 +60,9 @@ class LibraryManagerPage:
         self._installed_container = None
         self._marketplace_container = None
         self._status_label = None
+        # Maps package/library name → card element for in-card log injection
+        self._marketplace_cards: dict[str, ui.card] = {}
+        self._installed_cards: dict[str, ui.card] = {}
 
     def create_page(self):
         """Build the /libraries page UI."""
@@ -86,7 +89,7 @@ class LibraryManagerPage:
             # Two-column layout
             with ui.row().classes('w-full gap-6'):
                 # Installed libraries
-                with ui.card().classes('flex-1'):
+                with ui.card().classes('flex-1 min-w-0'):
                     ui.label('Installed Libraries').classes(
                         'text-lg font-bold mb-4'
                     )
@@ -96,7 +99,7 @@ class LibraryManagerPage:
                     self._render_installed()
 
                 # Marketplace
-                with ui.card().classes('flex-1'):
+                with ui.card().classes('flex-1 min-w-0'):
                     ui.label('Marketplace').classes(
                         'text-lg font-bold mb-4'
                     )
@@ -133,21 +136,12 @@ class LibraryManagerPage:
         badge_text: str,
         badge_color: str,
         actions_builder,
-    ):
+    ) -> ui.card:
         """Render a library card with consistent layout.
 
-        Args:
-            name: Display name / label.
-            version: Version string.
-            description: One-line description.
-            author: Author name (shown if non-empty).
-            tags: List of tag strings.
-            badge_text: Text for the source/type badge.
-            badge_color: Color for the badge.
-            actions_builder: Callable that emits action buttons
-                into the current UI context.
+        Returns the card element so callers can inject content (e.g. log panels).
         """
-        with ui.card().classes('w-full p-3'):
+        with ui.card().classes('w-full p-3 overflow-hidden') as card:
             # Title row: name + version + badge ... actions on the right
             with ui.row().classes(
                 'w-full items-center justify-between'
@@ -184,6 +178,7 @@ class LibraryManagerPage:
                 with ui.row().classes('gap-1 mt-1'):
                     for tag in tags:
                         ui.badge(tag).props('outline color=grey')
+        return card
 
     def _render_installed(self):
         """Render the installed libraries list."""
@@ -191,6 +186,7 @@ class LibraryManagerPage:
             return
 
         self._installed_container.clear()
+        self._installed_cards.clear()
         libraries = self.manager.list_installed()
 
         with self._installed_container:
@@ -239,7 +235,7 @@ class LibraryManagerPage:
                             ),
                         ).props('size=sm color=red flat round')
 
-                self._render_library_card(
+                card = self._render_library_card(
                     name=lib.label,
                     version=lib.version,
                     description=lib.description,
@@ -249,6 +245,7 @@ class LibraryManagerPage:
                     badge_color=badge_color,
                     actions_builder=make_actions,
                 )
+                self._installed_cards[lib.library_id] = card
 
     def _render_marketplace(self):
         """Render the marketplace panel with packages from manifest."""
@@ -256,6 +253,7 @@ class LibraryManagerPage:
             return
 
         self._marketplace_container.clear()
+        self._marketplace_cards.clear()
 
         # Load from project marketplace file if available, else use sample
         if self.marketplace_path:
@@ -267,9 +265,12 @@ class LibraryManagerPage:
                 MarketplaceEntry(**pkg) for pkg in data.get('packages', [])
             ]
 
-        # Get installed library names for comparison
-        installed_names = {
-            lib.library_id for lib in self.manager.list_installed()
+        # Build lookup sets for installed detection (case-insensitive)
+        installed_libs = self.manager.list_installed()
+        installed_ids = {lib.library_id.lower() for lib in installed_libs}
+        installed_dist_names = {
+            lib.distribution_name.lower()
+            for lib in installed_libs if lib.distribution_name
         }
 
         with self._marketplace_container:
@@ -282,9 +283,12 @@ class LibraryManagerPage:
             ).classes('w-full mb-3').props('dense clearable')
 
             for pkg in packages:
-                pkg_id = pkg.name.replace('haybale-', '')
-                is_installed = pkg_id in installed_names or (
-                    pkg.name in installed_names
+                # Check by library ID (strip haybale- prefix) and distribution name
+                pkg_id = pkg.name.replace('haybale-', '').lower()
+                is_installed = (
+                    pkg_id in installed_ids
+                    or pkg.name.lower() in installed_ids
+                    or pkg.name.lower() in installed_dist_names
                 )
 
                 source_color = (
@@ -302,12 +306,12 @@ class LibraryManagerPage:
                         ui.button(
                             'Install',
                             icon='download',
-                            on_click=lambda spec=pkg.install_spec, n=pkg.name: (
-                                self._install_package(spec, n)
+                            on_click=lambda e, spec=pkg.install_spec, n=pkg.name: (
+                                self._install_package(spec, n, e.sender)
                             ),
                         ).props('size=sm color=primary')
 
-                self._render_library_card(
+                card = self._render_library_card(
                     name=pkg.name,
                     version=pkg.version,
                     description=pkg.description,
@@ -317,6 +321,7 @@ class LibraryManagerPage:
                     badge_color=source_color,
                     actions_builder=make_actions,
                 )
+                self._marketplace_cards[pkg.name] = card
 
     def _enable_library(self, library_id: str):
         """Enable a library and refresh."""
@@ -339,33 +344,87 @@ class LibraryManagerPage:
                 'the venv. Any graph nodes using this library will '
                 'show as errors.'
             ).classes('text-gray-600 mb-4')
+
+            async def confirm_and_uninstall():
+                dialog.close()
+                await self._do_uninstall(library_id, label)
+
             with ui.row().classes('w-full justify-end gap-2'):
                 ui.button('Cancel', on_click=dialog.close)
                 ui.button(
                     'Uninstall',
-                    on_click=lambda: (
-                        self._do_uninstall(library_id, label),
-                        dialog.close(),
-                    ),
+                    on_click=confirm_and_uninstall,
                 ).props('color=negative')
         dialog.open()
 
-    def _do_uninstall(self, library_id: str, label: str):
-        """Perform the uninstall."""
-        success, message = self.manager.uninstall(library_id)
+    @staticmethod
+    def _create_log_in_card(card: ui.card, title: str) -> ui.log:
+        """Append an expandable log panel inside an existing card."""
+        with card:
+            with ui.expansion(
+                title, icon='terminal', value=True,
+            ).classes('w-full min-w-0'):
+                log = ui.log(max_lines=50).classes('w-full h-32')
+        return log
+
+    async def _do_uninstall(self, library_id: str, label: str):
+        """Perform the uninstall with streaming log output."""
+        self._set_status(f"Uninstalling {label}...", 'info')
+
+        card = self._installed_cards.get(library_id)
+        if card:
+            log = self._create_log_in_card(card, f'Uninstalling {label}...')
+        else:
+            log = None
+
+        def on_output(line: str):
+            if log:
+                log.push(line)
+
+        success, message = await self.manager.uninstall_streaming(
+            library_id, on_output,
+        )
+
         if success:
+            if log:
+                log.push(f'--- {label} uninstalled successfully ---')
             self._set_status(f"Uninstalled: {label}", 'success')
         else:
+            if log:
+                log.push(f'--- ERROR: {message} ---')
             self._set_status(message, 'error')
+
         self._refresh_all()
 
-    def _install_package(self, install_spec: str, name: str):
-        """Install a package from the marketplace."""
+    async def _install_package(
+        self, install_spec: str, name: str, button: ui.button,
+    ):
+        """Install a package from the marketplace with streaming log."""
+        button.disable()
+        button.props('loading')
         self._set_status(f"Installing {name}...", 'info')
 
-        success, message = self.manager.install(install_spec)
+        card = self._marketplace_cards.get(name)
+        if card:
+            log = self._create_log_in_card(card, f'Installing {name}...')
+        else:
+            log = None
+
+        def on_output(line: str):
+            if log:
+                log.push(line)
+
+        success, message = await self.manager.install_streaming(
+            install_spec, on_output,
+        )
+
         if success:
+            if log:
+                log.push(f'--- {name} installed successfully ---')
             self._set_status(f"Installed: {name}", 'success')
         else:
+            if log:
+                log.push(f'--- ERROR: {message} ---')
             self._set_status(message, 'error')
+
         self._refresh_all()

@@ -5,10 +5,12 @@ Wraps uv subprocess calls + entry point cache invalidation +
 library registry operations into a single service API.
 """
 
+import asyncio
 import importlib
 import importlib.metadata
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -157,6 +159,79 @@ class LibraryManager:
         # Re-scan to update registry state
         self.registry.scan_for_libraries()
 
+        return True, f"Uninstalled: {dist_name}"
+
+    def _uv_cmd(self, args: list[str]) -> list[str]:
+        """Build the full uv command list."""
+        cmd = ['uv', 'pip'] + args
+        if self.venv_path:
+            cmd.extend(['--python', str(Path(self.venv_path) / 'bin' / 'python')])
+        return cmd
+
+    async def _run_uv_streaming(
+        self, args: list[str], on_output: Callable[[str], None],
+    ) -> tuple[bool, str]:
+        """Run a uv command asynchronously, streaming output lines.
+
+        uv writes progress/results to stderr, so we merge stderr into
+        stdout to get a single stream for the UI log.
+        """
+        cmd = self._uv_cmd(args)
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        last_lines: list[str] = []
+        async for line in proc.stdout:
+            text = line.decode().rstrip()
+            on_output(text)
+            last_lines.append(text)
+            # Keep only last few lines for error reporting
+            if len(last_lines) > 10:
+                last_lines.pop(0)
+        await proc.wait()
+        return proc.returncode == 0, '\n'.join(last_lines)
+
+    async def install_streaming(
+        self, install_spec: str, on_output: Callable[[str], None],
+    ) -> tuple[bool, str]:
+        """Install a package with live output streaming.
+
+        Same logic as install() but non-blocking with per-line callbacks.
+        """
+        if Path(install_spec).is_dir():
+            args = ['install', '-e', install_spec]
+        else:
+            args = ['install', install_spec]
+
+        success, stderr = await self._run_uv_streaming(args, on_output)
+        if not success:
+            return False, f"Install failed: {stderr}"
+
+        self._invalidate_caches()
+        self.registry.scan_for_libraries()
+        self.registry.enable_all_libraries()
+        return True, f"Installed: {install_spec}"
+
+    async def uninstall_streaming(
+        self, library_id: str, on_output: Callable[[str], None],
+    ) -> tuple[bool, str]:
+        """Uninstall a library with live output streaming."""
+        dist_name = self.registry.get_library_distribution_name(library_id)
+        if not dist_name:
+            return False, f"Cannot find pip package name for library '{library_id}'"
+
+        self.registry.disable_library(library_id)
+
+        success, stderr = await self._run_uv_streaming(
+            ['uninstall', dist_name], on_output,
+        )
+        if not success:
+            return False, f"Uninstall failed: {stderr}"
+
+        self._invalidate_caches()
+        self.registry.scan_for_libraries()
         return True, f"Uninstalled: {dist_name}"
 
     def list_installed(self) -> list[InstalledLibrary]:
