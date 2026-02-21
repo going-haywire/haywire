@@ -60,6 +60,32 @@ From within the running app, navigate to **Libraries** (button in the header, or
 
 Libraries are installed into your project's virtual environment — nothing is shared globally.
 
+### Sharing a Library
+
+If you've built custom nodes in your project's local library and want to share them, use `haywire share` to generate a marketplace snippet that others can paste into their `marketplace.toml`:
+
+```sh
+cd my-project
+uv run haywire share
+```
+
+This reads the library's `pyproject.toml` metadata and detects the git remote URL to produce a ready-to-use entry:
+
+```toml
+# Copy this snippet into a marketplace.toml:
+
+[[packages]]
+name = "haybale-my-project"
+version = "0.1.0"
+description = "Local library for my-project"
+author = "Your Name"
+source = "git"
+install_spec = "haybale-my-project @ git+https://github.com/you/my-project.git#subdirectory=libs/haybale-my-project"
+tags = []
+```
+
+Recipients paste this into their `.haywire/marketplace.toml` and install the library from the Library Manager UI. Works with any git host (GitHub, GitLab, Bitbucket, etc.) and automatically converts SSH remote URLs to HTTPS.
+
 ### Global Configuration
 
 User-level settings are stored in `~/.haywire/`:
@@ -123,6 +149,7 @@ haywire-repo/
 │       └── src/haywire_app/
 │           ├── app.py              # main application
 │           ├── init.py             # haywire init command
+│           ├── share.py            # haywire share command
 │           ├── config.py           # global/project config
 │           ├── library_manager.py  # runtime library management
 │           └── library_manager_ui.py # library management UI

@@ -1647,12 +1647,28 @@ def main():
         help='Use editable local sources from this dev repo instead of PyPI',
     )
 
+    # haywire share <library-path>
+    share_parser = subparsers.add_parser(
+        'share',
+        help='Generate a marketplace.toml snippet for sharing a library',
+    )
+    share_parser.add_argument(
+        'library_path',
+        nargs='?',
+        default=None,
+        help='Path to the library directory (e.g. libs/haybale-myproject). '
+             'Auto-detected if libs/ contains exactly one library.',
+    )
+
     args = parser.parse_args()
 
     if args.command == 'init':
         from .init import init_project, _get_dev_repo_root
         dev_repo = _get_dev_repo_root() if args.dev else None
         init_project(args.name, auto_sync=not args.no_sync, dev_repo=dev_repo)
+    elif args.command == 'share':
+        from .share import share_library
+        share_library(args.library_path)
     else:
         # No subcommand = launch the app
         run_app()

@@ -209,8 +209,13 @@ class LibraryManager:
         if not success:
             return False, f"Install failed: {stderr}"
 
+        on_output('Invalidating caches...')
         self._invalidate_caches()
-        self.registry.scan_for_libraries()
+
+        on_output('Scanning for libraries...')
+        await asyncio.to_thread(self.registry.scan_for_libraries)
+
+        on_output('Enabling libraries...')
         self.registry.enable_all_libraries()
         return True, f"Installed: {install_spec}"
 
@@ -230,8 +235,11 @@ class LibraryManager:
         if not success:
             return False, f"Uninstall failed: {stderr}"
 
+        on_output('Invalidating caches...')
         self._invalidate_caches()
-        self.registry.scan_for_libraries()
+
+        on_output('Scanning for libraries...')
+        await asyncio.to_thread(self.registry.scan_for_libraries)
         return True, f"Uninstalled: {dist_name}"
 
     def list_installed(self) -> list[InstalledLibrary]:
