@@ -298,7 +298,12 @@ class HaywireApp:
         # Create library manager for runtime install/uninstall
         from .library_manager import LibraryManager
         library_registry = self.library_service.get_library_registry()
-        self.library_manager = LibraryManager(library_registry)
+        self.library_manager = LibraryManager(
+            library_registry,
+            project_dir=self.workspace_root,
+        )
+        # Apply persisted disabled state from project config
+        self.library_manager.apply_persisted_state()
 
         print(f"History manager available: {self.history_manager is not None}")
         print("Editor created with change callbacks")
@@ -397,7 +402,11 @@ class HaywireApp:
         @ui.page('/libraries', title="Library Manager")
         def libraries_page():
             from .library_manager_ui import LibraryManagerPage
-            page = LibraryManagerPage(self.library_manager)
+            marketplace_path = Path(self.workspace_root) / '.haywire' / 'marketplace.toml'
+            page = LibraryManagerPage(
+                self.library_manager,
+                marketplace_path=str(marketplace_path) if marketplace_path.exists() else None,
+            )
             page.create_page()
 
         @ui.page('/', title="Enhanced Haywire Test App with Canvas Manager")

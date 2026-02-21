@@ -35,6 +35,7 @@ class DiscoveredLibrary:
     library_path: Path
     install_type: InstallType
     entry_point_name: str | None = None  # Name from entry point (if applicable)
+    distribution_name: str | None = None  # Pip package name (e.g. "haybale-visiongraph")
 
 
 class LibraryDiscovery:
@@ -116,7 +117,8 @@ class LibraryDiscovery:
                 library_cls=library_cls,
                 library_path=library_path,
                 install_type=install_type,
-                entry_point_name=ep.name
+                entry_point_name=ep.name,
+                distribution_name=ep.dist.name if ep.dist else None,
             )
         
         except Exception as e:

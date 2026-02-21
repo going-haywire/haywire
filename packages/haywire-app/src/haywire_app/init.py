@@ -53,7 +53,6 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
             'requires-python': '>=3.10',
             'dependencies': [
                 'haywire-app>=0.1.0',
-                'haybale-core>=1.0.0',
             ],
         },
         'tool': {
@@ -69,7 +68,6 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
         data['tool']['uv']['sources'] = {
             'haywire-app': {'path': f'{dev_repo}/packages/haywire-app', 'editable': True},
             'haywire-framework': {'path': f'{dev_repo}/packages/haywire-framework', 'editable': True},
-            'haybale-core': {'path': f'{dev_repo}/libraries/haybale-core', 'editable': True},
         }
 
     return toml.dumps(data)
@@ -117,15 +115,24 @@ def _generate_library_init(name: str, label: str) -> str:
     return f'''"""
 Local haybale library for the {name} project.
 
-Add your custom nodes in the nodes/ folder.
-They will be automatically discovered and registered.
+Add your custom components in the corresponding folders:
+- nodes/      — node definitions
+- types/      — custom data types
+- widgets/    — UI widgets for data types
+- renderers/  — custom node renderers
+- adapters/   — type-to-type conversion adapters
 """
 
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
+from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
+from haywire.core.types.registry import TypeRegistry
+
+from haywire.ui.renderer.registry import RendererRegistry
+from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
@@ -136,11 +143,31 @@ from haywire.core.node.registry import NodeRegistry
     file_watcher=True,
 )
 class Library(BaseLibrary):
-    """Local project library — add your nodes in the nodes/ folder."""
+    """Local project library — add your components in the subfolders."""
 
     def register_components(self):
         """Register all components with the global registries."""
         base_path = Path(__file__).parent
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'types'),
+            registry_cls=TypeRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'adapters'),
+            registry_cls=AdapterRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'widgets'),
+            registry_cls=WidgetRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'renderers'),
+            registry_cls=RendererRegistry,
+        )
 
         self.add_folder_to_registry(
             folder_path=str(base_path / 'nodes'),
@@ -151,6 +178,63 @@ class Library(BaseLibrary):
         """Validate library structure."""
         return True
 '''
+
+
+def _generate_dev_marketplace(dev_repo: str) -> str:
+    """Generate a marketplace.toml pointing to dev repo libraries.
+
+    Lists all libraries in the dev repo so developers can install them
+    from the library manager UI.
+    """
+    libraries = [
+        {
+            'name': 'haybale-core',
+            'version': '1.0.0',
+            'description': 'Core Haywire library with fundamental components',
+            'author': 'maybites',
+            'source': 'local',
+            'install_spec': f'{dev_repo}/libraries/haybale-core',
+            'tags': ['core', 'types', 'widgets', 'renderers'],
+        },
+        {
+            'name': 'haybale-example',
+            'version': '0.1.0',
+            'description': 'Example library for demonstrating multi-library support',
+            'author': 'Example Author',
+            'source': 'local',
+            'install_spec': f'{dev_repo}/libraries/haybale-example',
+            'tags': ['example', 'demo', 'tutorial'],
+        },
+        {
+            'name': 'haybale-testing',
+            'version': '1.0.0',
+            'description': 'Test library for test support',
+            'author': 'Haywire Team',
+            'source': 'local',
+            'install_spec': f'{dev_repo}/libraries/haybale-testing',
+            'tags': ['testing', 'development', 'debug'],
+        },
+        {
+            'name': 'haybale-visiongraph',
+            'version': '0.0.1',
+            'description': 'Visiongraph library — camera, video, OpenCV nodes',
+            'author': 'Florian Bruggisser, Martin Froehlich',
+            'source': 'local',
+            'install_spec': f'{dev_repo}/libraries/haybale-visiongraph',
+            'tags': ['vision', 'camera', 'video', 'opencv'],
+        },
+        {
+            'name': 'haybale-TEST_A',
+            'version': '1.0.0',
+            'description': 'Test library A for demonstrating multi-library support',
+            'author': 'Haywire Team',
+            'source': 'local',
+            'install_spec': f'{dev_repo}/libraries/haybale-TEST_A',
+            'tags': ['testing', 'development'],
+        },
+    ]
+    data = {'packages': libraries}
+    return toml.dumps(data)
 
 
 def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None):
@@ -179,8 +263,14 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
 
     lib_dir = project_dir / 'libs' / f'haybale-{name}'
     pkg_dir = lib_dir / module_name
-    nodes_dir = pkg_dir / 'nodes'
-    nodes_dir.mkdir(parents=True)
+    pkg_dir.mkdir(parents=True)
+
+    # Create all component folders
+    component_folders = ['nodes', 'types', 'widgets', 'renderers', 'adapters']
+    for folder in component_folders:
+        folder_dir = pkg_dir / folder
+        folder_dir.mkdir()
+        (folder_dir / '__init__.py').write_text('')
 
     # Generate files
     (project_dir / 'pyproject.toml').write_text(
@@ -195,10 +285,14 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
         _generate_library_init(name, label)
     )
 
-    (nodes_dir / '__init__.py').write_text('')
-
     # Project-level .haywire config
     ensure_project_config(project_dir)
+
+    # Dev marketplace manifest
+    if dev_repo:
+        (project_dir / '.haywire' / 'marketplace.toml').write_text(
+            _generate_dev_marketplace(dev_repo)
+        )
 
     # Global ~/.haywire config
     ensure_global_config()

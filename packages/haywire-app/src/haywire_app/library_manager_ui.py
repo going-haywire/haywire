@@ -54,8 +54,9 @@ tags = ["osc", "network", "music"]
 class LibraryManagerPage:
     """NiceGUI page for library management."""
 
-    def __init__(self, library_manager: LibraryManager):
+    def __init__(self, library_manager: LibraryManager, marketplace_path: str | None = None):
         self.manager = library_manager
+        self.marketplace_path = marketplace_path
         self._installed_container = None
         self._marketplace_container = None
         self._status_label = None
@@ -250,18 +251,21 @@ class LibraryManagerPage:
                 )
 
     def _render_marketplace(self):
-        """Render the marketplace panel with sample packages."""
+        """Render the marketplace panel with packages from manifest."""
         if not self._marketplace_container:
             return
 
         self._marketplace_container.clear()
 
-        # Parse sample manifest
-        import toml as toml_lib
-        data = toml_lib.loads(SAMPLE_MARKETPLACE_TOML)
-        packages = [
-            MarketplaceEntry(**pkg) for pkg in data.get('packages', [])
-        ]
+        # Load from project marketplace file if available, else use sample
+        if self.marketplace_path:
+            packages = self.manager.load_marketplace(self.marketplace_path)
+        else:
+            import toml as toml_lib
+            data = toml_lib.loads(SAMPLE_MARKETPLACE_TOML)
+            packages = [
+                MarketplaceEntry(**pkg) for pkg in data.get('packages', [])
+            ]
 
         # Get installed library names for comparison
         installed_names = {
@@ -316,13 +320,13 @@ class LibraryManagerPage:
 
     def _enable_library(self, library_id: str):
         """Enable a library and refresh."""
-        self.manager.registry.enable_library(library_id)
+        self.manager.enable_library(library_id)
         self._set_status(f"Enabled: {library_id}", 'success')
         self._render_installed()
 
     def _disable_library(self, library_id: str):
         """Disable a library and refresh."""
-        self.manager.registry.disable_library(library_id)
+        self.manager.disable_library(library_id)
         self._set_status(f"Disabled: {library_id}", 'warning')
         self._render_installed()
 

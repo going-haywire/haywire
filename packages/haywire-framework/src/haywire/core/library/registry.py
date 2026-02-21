@@ -42,6 +42,7 @@ class LibraryRegistry:
         # Track library sources to avoid duplicates
         self._library_sources: Dict[str, str] = {}  # library_id -> source path
         self._library_install_types: Dict[str, InstallType] = {}  # library_id -> install type
+        self._library_distribution_names: Dict[str, str] = {}  # library_id -> pip package name
         
         # Loading configuration
         self.load_core_libraries = False  # Load core libraries from src/haywire/libraries
@@ -455,9 +456,11 @@ class LibraryRegistry:
                 
                 instantiated[lib_id] = library_instance
                 
-                # Track the source and install type
+                # Track the source, install type, and distribution name
                 self._library_sources[lib_id] = str(lib_info.library_path)
                 self._library_install_types[lib_id] = lib_info.install_type
+                if lib_info.distribution_name:
+                    self._library_distribution_names[lib_id] = lib_info.distribution_name
                 
             except Exception as e:
                 logger.error(
@@ -512,6 +515,8 @@ class LibraryRegistry:
                 # Remove from sources tracking
                 if library_id in self._library_sources:
                     del self._library_sources[library_id]
+                if library_id in self._library_distribution_names:
+                    del self._library_distribution_names[library_id]
     
     def _has_library_with_path(self, path: str) -> bool:
         """Check if a library with the given path is already registered"""
@@ -536,4 +541,8 @@ class LibraryRegistry:
     def get_library_install_type(self, library_id: str) -> InstallType | None:
         """Get the install type for a library"""
         return self._library_install_types.get(library_id)
+
+    def get_library_distribution_name(self, library_id: str) -> str | None:
+        """Get the pip distribution name for a library (e.g. 'haybale-visiongraph')"""
+        return self._library_distribution_names.get(library_id)
 
