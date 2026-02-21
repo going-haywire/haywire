@@ -71,6 +71,14 @@ User-level settings are stored in `~/.haywire/`:
 └── recent_projects.toml    # recently opened projects
 ```
 
+### For Developers
+
+the following will create a new project in /tmp/my-test-project with the haybale-my-test-project library scaffolded inside it:
+
+´´´
+cd /tmp
+uv run --project <absolute filepath to this repo folder> haywire init my-test-project --dev
+´´´
 ---
 
 ## For Developers

@@ -1632,12 +1632,18 @@ def main():
         action='store_true',
         help='Skip running uv sync after scaffolding',
     )
+    init_parser.add_argument(
+        '--dev',
+        action='store_true',
+        help='Use editable local sources from this dev repo instead of PyPI',
+    )
 
     args = parser.parse_args()
 
     if args.command == 'init':
-        from .init import init_project
-        init_project(args.name, auto_sync=not args.no_sync)
+        from .init import init_project, _get_dev_repo_root
+        dev_repo = _get_dev_repo_root() if args.dev else None
+        init_project(args.name, auto_sync=not args.no_sync, dev_repo=dev_repo)
     else:
         # No subcommand = launch the app
         run_app()
