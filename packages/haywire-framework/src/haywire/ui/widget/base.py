@@ -38,7 +38,11 @@ class BaseWidget(IWidget, ABC):
         """
         self.port = port
         self.port_id: str = port.id
-        self.ui_properties: Dict[str, Any] = port.widget_config.get('properties', {})
+        self.config: Dict[str, Any] = (
+            port.widget_config
+            if hasattr(port, 'widget_config') and port.widget_config
+            else {}
+        )
         
         # UI element (created during render)
         self.ui_element: Optional[Any] = None

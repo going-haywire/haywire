@@ -57,9 +57,9 @@ class SimpleWidget(IWidget, ABC):
         """Initialize simple widget"""
         self.port = port
         self.port_id: str = port.id
-        self.ui_properties: dict = (
-            port.widget_config.get('properties', {}) 
-            if hasattr(port, 'widget_config') 
+        self.config: dict = (
+            port.widget_config
+            if hasattr(port, 'widget_config') and port.widget_config
             else {}
         )
         

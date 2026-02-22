@@ -27,6 +27,7 @@ class MarketplaceEntry:
     source: str = 'pypi'
     install_spec: str = ''
     tags: list[str] = field(default_factory=list)
+    source_url: str = ''  # URL to the library's source (repo/subdirectory)
 
 
 @dataclass
@@ -302,6 +303,92 @@ class LibraryManager:
         ]
         set_disabled_libraries(self.project_dir, disabled_ids)
 
+    def get_installed_version(self, package_name: str) -> str | None:
+        """Return the currently installed version of a pip package, or None.
+
+        Uses importlib.metadata so it works for both PyPI and git installs.
+        """
+        try:
+            return importlib.metadata.version(package_name)
+        except importlib.metadata.PackageNotFoundError:
+            return None
+
+    async def fetch_versions(self, pkg: 'MarketplaceEntry') -> list[str]:
+        """Fetch available versions for a marketplace package.
+
+        Only called on demand (when the user requests a specific version).
+        Returns versions in descending order (newest first).
+
+        For PyPI packages: queries the PyPI JSON API.
+        For git packages: queries the GitHub tags API (GitHub URLs only).
+        Returns an empty list if the source is unreachable or unsupported.
+        """
+        import json
+        import urllib.request
+        import urllib.error
+
+        if pkg.source == 'pypi':
+            url = f'https://pypi.org/pypi/{pkg.name}/json'
+
+            def _fetch_pypi():
+                try:
+                    with urllib.request.urlopen(url, timeout=10) as resp:
+                        data = json.loads(resp.read())
+                    versions = list(data.get('releases', {}).keys())
+                    # Sort by PEP 440 if packaging is available, else lexicographic
+                    try:
+                        from packaging.version import Version
+                        versions.sort(key=Version, reverse=True)
+                    except Exception:
+                        versions.sort(reverse=True)
+                    return versions
+                except urllib.error.URLError:
+                    return []
+
+            return await asyncio.to_thread(_fetch_pypi)
+
+        elif pkg.source == 'git':
+            # Only handles GitHub URLs: git+https://github.com/{user}/{repo}.git[...]
+            spec = pkg.install_spec
+            # Strip git+ prefix and any @tag or #subdirectory suffix
+            url = spec.removeprefix('git+').split('@')[0].split('#')[0].rstrip('/')
+            if 'github.com' not in url:
+                return []
+            # Convert https://github.com/user/repo.git → api.github.com/repos/user/repo/tags
+            path = url.removeprefix('https://github.com/').removesuffix('.git')
+            api_url = f'https://api.github.com/repos/{path}/tags'
+
+            def _fetch_github():
+                try:
+                    req = urllib.request.Request(
+                        api_url, headers={'Accept': 'application/vnd.github.v3+json'}
+                    )
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read())
+                    return [tag['name'] for tag in data]
+                except urllib.error.URLError:
+                    return []
+
+            return await asyncio.to_thread(_fetch_github)
+
+        return []
+
+    @staticmethod
+    def build_versioned_spec(pkg: 'MarketplaceEntry', version: str) -> str:
+        """Build a version-pinned install spec for a specific version.
+
+        For PyPI: returns '{name}=={version}'.
+        For git: appends '@{version}' to the base URL before any #subdirectory.
+        """
+        if pkg.source == 'pypi':
+            return f'{pkg.name}=={version}'
+        elif pkg.source == 'git':
+            spec = pkg.install_spec.removeprefix('git+')
+            base = spec.split('@')[0]  # strip any existing tag
+            fragment = f'#{spec.split("#")[1]}' if '#' in spec else ''
+            return f'git+{base}@{version}{fragment}'
+        return pkg.install_spec
+
     @staticmethod
     def load_marketplace(manifest_path: str) -> list[MarketplaceEntry]:
         """Parse a TOML marketplace manifest file.
@@ -327,5 +414,6 @@ class LibraryManager:
                 source=pkg.get('source', 'pypi'),
                 install_spec=pkg.get('install_spec', pkg.get('name', '')),
                 tags=pkg.get('tags', []),
+                source_url=pkg.get('source_url', ''),
             ))
         return entries

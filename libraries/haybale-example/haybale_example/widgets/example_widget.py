@@ -18,8 +18,9 @@ class ValidatedNumberWidget(BaseWidget):
     """Number widget with range validation and custom formatting"""
     
     def configure_bindings(self) -> None:
-        min_val = self.ui_properties.get('min')
-        max_val = self.ui_properties.get('max')
+        props = self.config.get('properties', {})
+        min_val = props.get('min')
+        max_val = props.get('max')
         
         if min_val is not None or max_val is not None:
             # Use range validation
@@ -34,11 +35,12 @@ class ValidatedNumberWidget(BaseWidget):
             self.add_binding(self.create_default_binding())
     
     def create_element(self) -> Any:
+        props = self.config.get('properties', {})
         kwargs = {'value': 0}
-        
+
         for prop in ['label', 'min', 'max', 'step', 'precision', 'prefix', 'suffix']:
-            if prop in self.ui_properties:
-                kwargs[prop] = self.ui_properties[prop]
+            if prop in props:
+                kwargs[prop] = props[prop]
         
         return ui.number(**kwargs).classes('w-full')
 
@@ -57,7 +59,7 @@ class TemperatureWidget(BaseWidget):
     
     def __init__(self, element):
         super().__init__(element)
-        self.unit = self.ui_properties.get('unit', 'celsius')
+        self.unit = self.config.get('properties', {}).get('unit', 'celsius')
         self.conversion_label = None
     
     def configure_bindings(self) -> None:

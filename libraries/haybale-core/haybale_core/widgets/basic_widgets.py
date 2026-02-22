@@ -15,18 +15,34 @@ from haybale_core.types.specs import BOOL, FLOAT, INT, STRING
     compatible_types=[FLOAT, INT]
 )
 class NumberWidget(SimpleWidget):
-    """number widget for performance-critical scenarios"""
-    
+    """
+    Number input widget for float and int ports.
+
+    Config options (via ``NumberWidget.config(properties={...})``):
+
+    - ``label`` (str): Input label shown above the field.
+    - ``min`` (int | float): Minimum allowed value.
+    - ``max`` (int | float): Maximum allowed value.
+    - ``step`` (int | float): Step increment for the input arrows.
+    - ``precision`` (int): Number of decimal places to display.
+    - ``prefix`` (str): Text shown before the value (e.g. ``'$'``).
+    - ``suffix`` (str): Text shown after the value (e.g. ``'kg'``).
+
+    Example::
+
+        NumberWidget.config(properties={'label': 'Speed', 'min': 0, 'max': 200, 'step': 0.5})
+    """
+
     def create_element(self) -> Any:
+        props = self.config.get('properties', {})
         kwargs = {'value': 0}
-        
-        # Apply UI properties
+
         for prop in ['label', 'min', 'max', 'step', 'precision', 'prefix', 'suffix']:
-            if prop in self.ui_properties:
-                kwargs[prop] = self.ui_properties[prop]
-        
+            if prop in props:
+                kwargs[prop] = props[prop]
+
         return ui.number(**kwargs).classes('w-full')
-    
+
     def get_default_value(self) -> float:
         return 0.0
 
@@ -36,17 +52,30 @@ class NumberWidget(SimpleWidget):
     compatible_types=[STRING]
 )
 class TextWidget(SimpleWidget):
-    """text input for simple string binding"""
-    
+    """
+    Text input widget for string ports.
+
+    Config options (via ``TextWidget.config(properties={...})``):
+
+    - ``label`` (str): Input label shown above the field.
+    - ``placeholder`` (str): Placeholder text shown when the field is empty.
+    - ``password`` (bool): If ``True``, input is masked as a password field.
+
+    Example::
+
+        TextWidget.config(properties={'label': 'Name', 'placeholder': 'Enter name...'})
+    """
+
     def create_element(self) -> Any:
+        props = self.config.get('properties', {})
         kwargs = {'value': ''}
-        
+
         for prop in ['label', 'placeholder', 'password']:
-            if prop in self.ui_properties:
-                kwargs[prop] = self.ui_properties[prop]
-        
+            if prop in props:
+                kwargs[prop] = props[prop]
+
         return ui.input(**kwargs).classes('w-full')
-    
+
     def get_default_value(self) -> str:
         return ''
 
@@ -56,16 +85,27 @@ class TextWidget(SimpleWidget):
     compatible_types=[BOOL]
 )
 class CheckboxWidget(SimpleWidget):
-    """checkbox for boolean binding"""
-    
+    """
+    Checkbox widget for boolean ports.
+
+    Config options (via ``CheckboxWidget.config(properties={...})``):
+
+    - ``text`` (str): Label text displayed next to the checkbox.
+
+    Example::
+
+        CheckboxWidget.config(properties={'text': 'Enable feature'})
+    """
+
     def create_element(self) -> Any:
+        props = self.config.get('properties', {})
         kwargs = {'value': False}
-        
-        if 'text' in self.ui_properties:
-            kwargs['text'] = self.ui_properties['text']
-        
+
+        if 'text' in props:
+            kwargs['text'] = props['text']
+
         return ui.checkbox(**kwargs).classes('w-full')
-    
+
     def get_default_value(self) -> bool:
         return False
 
@@ -75,16 +115,27 @@ class CheckboxWidget(SimpleWidget):
     compatible_types=[BOOL]
 )
 class SwitchWidget(SimpleWidget):
-    """switch for boolean binding"""
-    
+    """
+    Toggle switch widget for boolean ports.
+
+    Config options (via ``SwitchWidget.config(properties={...})``):
+
+    - ``text`` (str): Label text displayed next to the switch.
+
+    Example::
+
+        SwitchWidget.config(properties={'text': 'Active'})
+    """
+
     def create_element(self) -> Any:
+        props = self.config.get('properties', {})
         kwargs = {'value': False}
-        
-        if 'text' in self.ui_properties:
-            kwargs['text'] = self.ui_properties['text']
-        
+
+        if 'text' in props:
+            kwargs['text'] = props['text']
+
         return ui.switch(**kwargs).classes('w-full text-xs')
-    
+
     def get_default_value(self) -> bool:
         return False
 
@@ -94,20 +145,34 @@ class SwitchWidget(SimpleWidget):
     compatible_types=[FLOAT, INT]
 )
 class SliderWidget(SimpleWidget):
-    """slider for numeric ranges"""
-    
+    """
+    Horizontal slider widget for numeric ports.
+
+    Config options (via ``SliderWidget.config(properties={...})``):
+
+    - ``min`` (int | float): Minimum value (default: ``0``).
+    - ``max`` (int | float): Maximum value (default: ``100``).
+    - ``step`` (int | float): Step increment (default: ``1``).
+
+    Example::
+
+        SliderWidget.config(properties={'min': -1.0, 'max': 1.0, 'step': 0.01})
+    """
+
     def create_element(self) -> Any:
+        props = self.config.get('properties', {})
         kwargs = {
             'value': 0,
-            'min': self.ui_properties.get('min', 0),
-            'max': self.ui_properties.get('max', 100),
-            'step': self.ui_properties.get('step', 1)
+            'min': props.get('min', 0),
+            'max': props.get('max', 100),
+            'step': props.get('step', 1)
         }
-        
+
         return ui.slider(**kwargs).classes('w-full text-xs').props('label-always')
-    
+
     def get_default_value(self) -> float:
-        return float(self.ui_properties.get('min', 0))
+        props = self.config.get('properties', {})
+        return float(props.get('min', 0))
 
 
 @widget(
@@ -115,18 +180,32 @@ class SliderWidget(SimpleWidget):
     compatible_types=[INT, STRING]
 )
 class SelectWidget(SimpleWidget):
-    """dropdown select"""
-    
+    """
+    Dropdown select widget for int and string ports.
+
+    Config options (via ``SelectWidget.config(properties={...})``):
+
+    - ``options`` (list): List of selectable values or ``{value: label}`` dict (required).
+    - ``clearable`` (bool): If ``True``, shows a clear button to reset the selection.
+    - ``multiple`` (bool): If ``True``, allows selecting multiple values.
+
+    Example::
+
+        SelectWidget.config(properties={'options': ['Low', 'Medium', 'High']})
+        SelectWidget.config(properties={'options': {0: 'Off', 1: 'On'}, 'clearable': True})
+    """
+
     def create_element(self) -> Any:
+        props = self.config.get('properties', {})
         kwargs = {
-            'options': self.ui_properties.get('options', []),
+            'options': props.get('options', []),
             'value': None
         }
-        
+
         for prop in ['clearable', 'multiple']:
-            if prop in self.ui_properties:
-                kwargs[prop] = self.ui_properties[prop]
-        
+            if prop in props:
+                kwargs[prop] = props[prop]
+
         return ui.select(**kwargs).classes('w-full text-xs')
 
 
@@ -135,41 +214,63 @@ class SelectWidget(SimpleWidget):
     compatible_types=[FLOAT, INT]
 )
 class KnobWidget(SimpleWidget):
-    """knob for numeric input"""
-    
+    """
+    Rotary knob widget for numeric ports.
+
+    Config options (via ``KnobWidget.config(properties={...})``):
+
+    - ``min`` (int | float): Minimum value.
+    - ``max`` (int | float): Maximum value.
+    - ``step`` (int | float): Step increment.
+    - ``color`` (str): Quasar color name for the knob arc (e.g. ``'primary'``, ``'green'``).
+    - ``size`` (str): CSS size of the knob element (e.g. ``'60px'``).
+
+    Example::
+
+        KnobWidget.config(properties={'min': 0, 'max': 360, 'step': 1, 'color': 'teal'})
+    """
+
     def create_element(self) -> Any:
+        props = self.config.get('properties', {})
         kwargs = {
             'value': 0,
             'show_value': True
         }
-        
+
         for prop in ['min', 'max', 'step', 'color', 'size']:
-            if prop in self.ui_properties:
-                kwargs[prop] = self.ui_properties[prop]
-        
+            if prop in props:
+                kwargs[prop] = props[prop]
+
         with ui.row().classes('w-full justify-center text-xs'):
             knob = ui.knob(**kwargs)
-        
+
         return knob.classes('w-32 h-32')
-    
+
     def get_default_value(self) -> float:
         return 0.0
 
 
-# Read-only widget example
 @widget(
     description="Simple label for display only",
     compatible_types=[STRING, FLOAT, INT]
 )
 class SimpleLabelWidget(SimpleWidget):
-    """Read-only label widget"""
-    
-    # Override class attributes
+    """
+    Read-only label widget that displays the port value as text.
+
+    No configuration options — the label renders the raw value with no
+    additional styling controls.
+
+    Example::
+
+        SimpleLabelWidget.config()
+    """
+
     UI_PROPERTY = 'text'
     IS_READONLY = True
-    
+
     def create_element(self) -> Any:
         return ui.label('').classes('text-base text-xs')
-    
+
     def get_default_value(self) -> str:
         return ''

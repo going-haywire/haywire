@@ -6,6 +6,8 @@ Provides a /libraries route with:
 - Marketplace panel (browse/install from manifest)
 """
 
+import asyncio
+
 from nicegui import ui
 
 from .library_manager import LibraryManager, MarketplaceEntry
@@ -21,6 +23,7 @@ author = "community"
 source = "pypi"
 install_spec = "haybale-opencv>=0.2.0"
 tags = ["image", "video", "opencv"]
+source_url = "https://github.com/example/haybale-opencv"
 
 [[packages]]
 name = "haybale-audio"
@@ -30,6 +33,7 @@ author = "community"
 source = "git"
 install_spec = "git+https://github.com/example/haybale-audio.git"
 tags = ["audio", "dsp"]
+source_url = "https://github.com/example/haybale-audio"
 
 [[packages]]
 name = "haybale-mqtt"
@@ -39,6 +43,7 @@ author = "community"
 source = "pypi"
 install_spec = "haybale-mqtt>=0.3.0"
 tags = ["iot", "mqtt", "network"]
+source_url = "https://github.com/example/haybale-mqtt"
 
 [[packages]]
 name = "haybale-osc"
@@ -48,6 +53,7 @@ author = "community"
 source = "pypi"
 install_spec = "haybale-osc>=0.2.1"
 tags = ["osc", "network", "music"]
+source_url = "https://github.com/example/haybale-osc"
 '''
 
 
@@ -291,17 +297,77 @@ class LibraryManagerPage:
                     or pkg.name.lower() in installed_dist_names
                 )
 
+                # Check installed version (fast — no network call)
+                installed_version = (
+                    self.manager.get_installed_version(pkg.name)
+                    if is_installed else None
+                )
+                try:
+                    from packaging.version import Version
+                    update_available = (
+                        is_installed
+                        and installed_version is not None
+                        and pkg.version
+                        and Version(pkg.version) > Version(installed_version)
+                    )
+                except Exception:
+                    update_available = False
+
                 source_color = (
                     'blue' if pkg.source == 'pypi' else 'purple'
                 )
 
                 def make_actions(
-                    pkg=pkg, is_installed=is_installed
+                    pkg=pkg,
+                    is_installed=is_installed,
+                    installed_version=installed_version,
+                    update_available=update_available,
                 ):
                     if is_installed:
-                        ui.label('Installed').classes(
-                            'text-green-500 text-sm font-medium'
-                        )
+                        # Show installed version badge
+                        if installed_version:
+                            badge_color = 'orange' if update_available else 'green'
+                            badge_label = (
+                                f'v{installed_version} — update available'
+                                if update_available
+                                else f'v{installed_version} installed'
+                            )
+                            ui.badge(badge_label, color=badge_color).props(
+                                'outline'
+                            ).classes('text-xs')
+
+                        # VS Code-style split uninstall button
+                        with ui.row().classes('gap-0 items-center'):
+                            ui.button(
+                                'Uninstall',
+                                on_click=lambda lid=pkg_id, ln=pkg.name: (
+                                    self._confirm_uninstall_marketplace(lid, ln)
+                                ),
+                            ).props('size=sm color=negative flat')
+                            with ui.button(icon='arrow_drop_down').props(
+                                'size=sm color=negative flat'
+                            ):
+                                with ui.menu():
+                                    if update_available:
+                                        ui.menu_item(
+                                            f'Update to v{pkg.version}',
+                                            on_click=lambda e, spec=pkg.install_spec, n=pkg.name: (
+                                                self._install_package(spec, n, e.sender)
+                                            ),
+                                        )
+                                    ui.menu_item(
+                                        'Install specific version…',
+                                        on_click=lambda p=pkg: (
+                                            self._open_version_picker(p)
+                                        ),
+                                    )
+                                    ui.separator()
+                                    ui.menu_item(
+                                        'Uninstall permanently',
+                                        on_click=lambda lid=pkg_id, ln=pkg.name: (
+                                            self._confirm_uninstall_marketplace(lid, ln)
+                                        ),
+                                    )
                     else:
                         ui.button(
                             'Install',
@@ -396,12 +462,71 @@ class LibraryManagerPage:
 
         self._refresh_all()
 
+    def _confirm_uninstall_marketplace(self, library_id: str, label: str):
+        """Uninstall a library that was installed via the marketplace panel."""
+        # Resolve the actual library_id from the installed registry
+        installed = self.manager.list_installed()
+        pkg_id = library_id.replace('haybale-', '').lower()
+        matched = next(
+            (lib for lib in installed
+             if lib.library_id.lower() == pkg_id
+             or lib.distribution_name.lower() == label.lower()),
+            None,
+        )
+        if matched:
+            self._confirm_uninstall(matched.library_id, matched.label)
+        else:
+            self._set_status(f"Could not find installed entry for '{label}'", 'error')
+
+    def _open_version_picker(self, pkg: MarketplaceEntry):
+        """Open a dialog that fetches available versions and lets the user pick one."""
+        with ui.dialog() as dialog, ui.card().classes('min-w-80'):
+            ui.label(f'Install specific version — {pkg.name}').classes(
+                'text-lg font-bold mb-2'
+            )
+            version_select = ui.select(
+                options=['Loading…'],
+                value='Loading…',
+                label='Version',
+            ).classes('w-full').props('dense')
+            status = ui.label('Fetching versions…').classes('text-xs text-gray-400')
+
+            async def load_versions():
+                versions = await self.manager.fetch_versions(pkg)
+                if versions:
+                    version_select.options = versions
+                    version_select.value = versions[0]
+                    status.text = f'{len(versions)} versions available'
+                else:
+                    version_select.options = ['(unavailable)']
+                    version_select.value = '(unavailable)'
+                    status.text = 'Could not fetch version list'
+
+            async def install_selected(e):
+                selected = version_select.value
+                if not selected or selected in ('Loading…', '(unavailable)'):
+                    return
+                dialog.close()
+                spec = self.manager.build_versioned_spec(pkg, selected)
+                # Find install button stub — pass None since we have no button ref here
+                await self._install_package(spec, pkg.name, None)
+
+            with ui.row().classes('w-full justify-end gap-2 mt-4'):
+                ui.button('Cancel', on_click=dialog.close).props('flat')
+                ui.button(
+                    'Install', on_click=install_selected,
+                ).props('color=primary')
+
+        dialog.open()
+        asyncio.ensure_future(load_versions())
+
     async def _install_package(
-        self, install_spec: str, name: str, button: ui.button,
+        self, install_spec: str, name: str, button: ui.button | None,
     ):
         """Install a package from the marketplace with streaming log."""
-        button.disable()
-        button.props('loading')
+        if button:
+            button.disable()
+            button.props('loading')
         self._set_status(f"Installing {name}...", 'info')
 
         card = self._marketplace_cards.get(name)

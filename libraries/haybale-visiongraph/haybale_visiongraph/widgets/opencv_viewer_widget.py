@@ -27,12 +27,13 @@ class OpencvViewerWidget(IWidget):
     Uses a custom StreamingViewer component for efficient MJPEG streaming.
     Automatically streams frame updates when the port value changes.
     
-    UI Properties:
-        quality: JPEG compression quality (0-100, default: 80)
-        width: CSS width (default: '100%')
-        height: CSS height (default: 'auto')
-        frame_queue_size: Buffer size (default: 1)
-        block_on_full: Block when queue full (default: False)
+    Config options (via ``OpencvViewerWidget.config(properties={...})``):
+
+    - ``quality`` (int): JPEG compression quality (0–100, default: ``80``).
+    - ``width`` (str): CSS width of the viewer (default: ``'100%'``).
+    - ``height`` (str): CSS height of the viewer (default: ``'auto'``).
+    - ``frame_queue_size`` (int): Internal frame buffer size (default: ``1``).
+    - ``block_on_full`` (bool): Block the producer when the queue is full (default: ``False``).
     
     Usage:
         from haybale_visiongraph.widgets.opencv_viewer_widget import OpencvViewerWidget
@@ -57,7 +58,11 @@ class OpencvViewerWidget(IWidget):
         """
         self.port = port
         self.port_id: str = port.id
-        self.ui_properties: dict = port.widget_config.get('properties', {})
+        self.config: dict = (
+            port.widget_config
+            if hasattr(port, 'widget_config') and port.widget_config
+            else {}
+        )
         
         # UI elements
         self.ui_element: Optional[Any] = None
@@ -75,11 +80,12 @@ class OpencvViewerWidget(IWidget):
         """
         if self.ui_element is None:
             # Extract configuration
-            quality = self.ui_properties.get('quality', 80)
-            width = self.ui_properties.get('width', '100%')
-            height = self.ui_properties.get('height', 'auto')
-            frame_queue_size = self.ui_properties.get('frame_queue_size', 1)
-            block_on_full = self.ui_properties.get('block_on_full', False)
+            props = self.config.get('properties', {})
+            quality = props.get('quality', 80)
+            width = props.get('width', '100%')
+            height = props.get('height', 'auto')
+            frame_queue_size = props.get('frame_queue_size', 1)
+            block_on_full = props.get('block_on_full', False)
             
             # Create container with viewer
             with ui.card().classes('w-full') as container:
