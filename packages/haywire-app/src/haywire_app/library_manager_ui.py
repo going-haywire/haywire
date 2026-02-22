@@ -75,12 +75,14 @@ class LibraryManagerPage:
         ui.add_css(
             '.nicegui-content { padding: 0 !important; max-width: none !important;'
             ' height: 100vh !important; overflow: hidden !important; }'
-            # Scope overflow:visible to the center panel tabs only.
-            # Without this the codemirror in the right panel's Source tab
-            # can expand the scroll-content width, causing the sibling tab
-            # bar to squish and the info-header to reflow on tab switch.
+            # Center panel tabs: allow overflow so markdown / lists aren't clipped.
             ' .hw-center-tab-panels .q-panel-parent { overflow: visible !important; }'
             ' .hw-center-tab-panels .q-panel.scroll { overflow: visible !important; }'
+            # Right panel tabs: thread height:100% through Quasar's q-panel.scroll
+            # wrapper so the codemirror can fill the remaining space and the Save
+            # button stays visible without requiring outer-panel scrolling.
+            ' .hw-right-tab-panels > .q-panel.scroll'
+            ' { height: 100%; overflow: hidden; }'
             ' .hw-panel-divider:hover { background-color: #93c5fd !important; }'
         )
         ui.add_head_html('''<script>
@@ -232,8 +234,7 @@ class LibraryManagerPage:
                 self._right_container = ui.element('div').classes(
                     'flex-shrink-0'
                 ).style(
-                    'width: 40%; height: 100%;'
-                    ' overflow-y: auto; overflow-x: hidden;'
+                    'width: 40%; height: 100%; overflow: hidden;'
                 )
                 with self._right_container:
                     self._render_right_placeholder()
@@ -1150,7 +1151,8 @@ class LibraryManagerPage:
         is_editable = lib.install_type == 'EDITABLE'
 
         with self._right_container:
-            with ui.column().classes('w-full p-4 gap-0'):
+            # height:100% + flex column so tab_panels can fill remaining space.
+            with ui.column().classes('w-full p-4 gap-0').style('height: 100%;'):
                 # ── Header bar ─────────────────────────────────────────────
                 with ui.row().classes('w-full items-center justify-between mb-3'):
                     ui.label(comp_singular.upper()).classes(
@@ -1175,8 +1177,16 @@ class LibraryManagerPage:
                     else:
                         t_source = None
 
-                with ui.tab_panels(tabs, value=t_docs).classes('w-full'):
-                    with ui.tab_panel(t_docs).classes('px-0'):
+                # flex:1 + min-height:0 makes this fill all remaining vertical
+                # space in the column; each panel handles its own scrolling.
+                with ui.tab_panels(tabs, value=t_docs).classes(
+                    'w-full hw-right-tab-panels'
+                ).style('flex: 1; min-height: 0; overflow: hidden;'):
+
+                    # Docs: scroll internally so long markdown is reachable.
+                    with ui.tab_panel(t_docs).style(
+                        'height: 100%; overflow-y: auto; padding: 0;'
+                    ):
                         if doc_file and doc_file.exists():
                             doc_text = doc_file.read_text()
                             lines = doc_text.split('\n')
@@ -1192,18 +1202,20 @@ class LibraryManagerPage:
                             )
 
                     if t_source:
-                        with ui.tab_panel(t_source).classes('px-0'):
+                        # Source: flex column — codemirror grows, Save button
+                        # stays pinned at bottom, no outer-panel scroll needed.
+                        with ui.tab_panel(t_source).style(
+                            'height: 100%; padding: 0;'
+                            ' display: flex; flex-direction: column; overflow: hidden;'
+                        ):
                             ui.label(src_file.name).classes(
-                                'text-xs font-mono text-gray-400 mb-2'
-                            )
-                            with ui.element('div').style(
-                                'width: 100%; min-width: 0; overflow: hidden;'
-                            ):
-                                editor = ui.codemirror(
-                                    src_file.read_text(),
-                                    language='Python',
-                                    theme='vscodeDark',
-                                ).style('width: 100%; height: 520px;')
+                                'text-xs font-mono text-gray-400'
+                            ).style('flex-shrink: 0; padding-bottom: 8px;')
+                            editor = ui.codemirror(
+                                src_file.read_text(),
+                                language='Python',
+                                theme='vscodeDark',
+                            ).style('flex: 1; min-height: 0; width: 100%;')
                             if is_editable:
                                 def _save(p=src_file):
                                     try:
@@ -1213,7 +1225,7 @@ class LibraryManagerPage:
                                         ui.notify(f'Save failed: {exc}', type='negative')
                                 ui.button('Save', icon='save', on_click=_save).props(
                                     'color=primary size=sm'
-                                ).classes('mt-2')
+                                ).style('flex-shrink: 0; margin-top: 8px;')
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)

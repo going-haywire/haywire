@@ -12,7 +12,7 @@ For each library, three files plus a per-component doc tree are generated:
 libs/haybale-myproject/
 ├── OVERVIEW.md              # discovery tier — intent-focused node list
 ├── QUICKREF.md              # usage tier — ports, types, config (machine-optimized)
-├── LIBRARY_EXTRA.md         # manual supplement — NEVER overwritten
+├── LIBRARY.md               # manual supplement — NEVER overwritten
 └── docs/
     ├── nodes/
     │   └── {ClassName}.md   # full detail doc per node
@@ -76,7 +76,7 @@ __{description}__
 
 ## Additional Notes
 
-{Contents of LIBRARY_EXTRA.md verbatim, if the file exists. Otherwise omit this entire section.}
+{Contents of LIBRARY.md verbatim, if the file exists. Otherwise omit this entire section.}
 ````
 
 ### OVERVIEW.md rules
@@ -85,7 +85,7 @@ __{description}__
 - Nodes sorted alphabetically within each category
 - One line per node — focus on intent/purpose, not ports
 - Omit Types, Widgets, Adapters, Renderers sections if the library has none
-- Omit "Additional Notes" if `LIBRARY_EXTRA.md` does not exist
+- Omit "Additional Notes" if `LIBRARY.md` does not exist
 - Renderers are not listed (implementation detail, not user-facing)
 
 ---

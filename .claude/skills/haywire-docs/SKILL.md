@@ -1,5 +1,5 @@
 ---
-name: docs
+name: haywire-docs
 description: Generate OVERVIEW.md, QUICKREF.md, and per-component docs for a haybale library. Use when the user wants to generate or update library documentation.
 argument-hint: "[library-path]"
 ---
@@ -131,7 +131,7 @@ Search each node class for:
 When found, read the full method to understand what triggers it, what changes, and the variations.
 
 ### g. Manual supplement
-Check if `LIBRARY_EXTRA.md` exists at `module_path/LIBRARY_EXTRA.md`. If so, include its contents verbatim in the "Additional Notes" section of `OVERVIEW.md`. NEVER modify or overwrite this file.
+Check if `LIBRARY.md` exists at `module_path/LIBRARY.md`. If so, include its contents verbatim in the "Additional Notes" section of `OVERVIEW.md`. NEVER modify or overwrite this file.
 
 ### h. Compute source hashes
 For each node and widget source file, compute `sha256(file_content)` and take the first 12 hex characters. Store alongside the component data for use in per-component doc headers.
@@ -149,7 +149,7 @@ Write to `module_path/OVERVIEW.md`.
 - Intent sentence: what the node does or solves, NOT its ports — use the class docstring first sentence
 - List types, widgets, adapters as flat bullet lists
 - Renderers are omitted (implementation detail)
-- Include "Additional Notes" section only if `LIBRARY_EXTRA.md` exists
+- Include "Additional Notes" section only if `LIBRARY.md` exists
 
 ### 4b. QUICKREF.md (always regenerate)
 
@@ -179,7 +179,7 @@ Create `module_path/docs/nodes/` and `module_path/docs/widgets/` directories as 
 ### Rules
 - Always overwrite `module_path/OVERVIEW.md` and `module_path/QUICKREF.md` completely
 - Per-component docs: only write if hash has changed or file is absent (idempotent)
-- NEVER modify or overwrite `LIBRARY_EXTRA.md`
+- NEVER modify or overwrite `LIBRARY.md`
 - Use the type's `registry_id` for port types (e.g., `FLOAT`, `INT`, `Image`), not the Python class name
 - For `registry_key`, use `{library_id}:{component_type}:{registry_id}` — registry_id defaults to class name if not set in decorator
 - Dynamic port behavior: natural language description of triggers, static ports, and variations
