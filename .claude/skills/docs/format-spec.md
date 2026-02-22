@@ -29,10 +29,13 @@ libs/haybale-myproject/
 Purpose: answers "does this library have what I need?" — concise, intent-focused, good for both users and LLMs choosing libraries.
 
 ````markdown
-# {library_label} ({package_name})
+# {library_label} 
+
+**({package_name})**
 
 v{version} | By {author}
-{description}
+
+__{description}__
 
 **Source:** {source_url}
 **Dependencies:** {comma-separated from pyproject.toml}
@@ -193,9 +196,11 @@ On regeneration: if this hash matches the current hash of the source file, skip 
 ````markdown
 <!-- source: {relative_source_path} | sha256: {hash} -->
 
-# {node_label} (`{node_registry_id}`)
+# {node_label} 
 
-Category: {menu} | Type: {node_type} | Library: {library_id}
+**(`{node_registry_id}`)**
+
+**Category:** {menu} | **Type:** {node_type} | **Library:** {library_id}
 
 {full description from class docstring — can be multi-paragraph}
 
@@ -204,8 +209,10 @@ Category: {menu} | Type: {node_type} | Library: {library_id}
 | Direction | Name | Type | Default | Description |
 |-----------|------|------|---------|-------------|
 | inlet | {port_id} | {TYPE_REGISTRY_ID} | {default_value} | {label or description} |
-| outlet | {port_id} | {TYPE_REGISTRY_ID} | | {label or description} |
 | config | {port_id} | {TYPE_REGISTRY_ID} | {default_value} | {label or description} |
+| outlet | {port_id} | {TYPE_REGISTRY_ID} | | {label or description} |
+
+{sort the ports by direction inlets first, then configs, then outlets, and within each direction by control, data and then callback type}
 
 ## Dynamic Behavior
 
@@ -225,7 +232,7 @@ Category: {menu} | Type: {node_type} | Library: {library_id}
 
 # {widget_label} (`{widget_registry_id}`)
 
-Library: {library_id} | Compatible types: {comma-separated type registry_ids}
+**Library:** {library_id} | **Compatible types:** {comma-separated type registry_ids}
 
 {full description from class docstring — first paragraph}
 

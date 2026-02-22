@@ -75,8 +75,12 @@ class LibraryManagerPage:
         ui.add_css(
             '.nicegui-content { padding: 0 !important; max-width: none !important;'
             ' height: 100vh !important; overflow: hidden !important; }'
-            ' .q-panel-parent { overflow: visible !important; }'
-            ' .q-panel.scroll { overflow: visible !important; }'
+            # Scope overflow:visible to the center panel tabs only.
+            # Without this the codemirror in the right panel's Source tab
+            # can expand the scroll-content width, causing the sibling tab
+            # bar to squish and the info-header to reflow on tab switch.
+            ' .hw-center-tab-panels .q-panel-parent { overflow: visible !important; }'
+            ' .hw-center-tab-panels .q-panel.scroll { overflow: visible !important; }'
             ' .hw-panel-divider:hover { background-color: #93c5fd !important; }'
         )
         ui.add_head_html('''<script>
@@ -218,13 +222,21 @@ class LibraryManagerPage:
                     ' border-left: 1px solid #e5e7eb; transition: background-color 0.15s;'
                 )
 
-                # Right panel — 40%, scroll_area handles scrolling
-                with ui.element('div').classes('flex-shrink-0 overflow-hidden').style(
+                # Right panel — 40%.
+                # Use a plain div (not scroll_area) so that overflow-x: hidden
+                # references the parent's fixed 40% width, not the scroll
+                # content width.  scroll_area's q-scrollarea__content is
+                # position:absolute and grows with its children, meaning
+                # width:100% inside it would resolve to the codemirror's
+                # expanded width and cause tabs/text to reflow on tab switch.
+                self._right_container = ui.element('div').classes(
+                    'flex-shrink-0'
+                ).style(
                     'width: 40%; height: 100%;'
-                ):
-                    self._right_container = ui.scroll_area().style('width: 100%; height: 100%;')
-                    with self._right_container:
-                        self._render_right_placeholder()
+                    ' overflow-y: auto; overflow-x: hidden;'
+                )
+                with self._right_container:
+                    self._render_right_placeholder()
 
         # Kick off async fetch of any HTTP sources in ~/.haywire/marketplace.toml
         asyncio.ensure_future(self._load_remote_sources())
@@ -637,9 +649,9 @@ class LibraryManagerPage:
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         with self._center_scroll:
             if installed_lib and tabs is not None:
-                with ui.tab_panels(tabs, value=t_overview).classes('w-full').style(
-                    'overflow: visible !important;'
-                ):
+                with ui.tab_panels(tabs, value=t_overview).classes(
+                    'w-full hw-center-tab-panels'
+                ).style('overflow: visible !important;'):
                     with ui.tab_panel(t_overview):
                         with ui.column().classes('w-full p-6 gap-1'):
                             self._render_overview(installed_lib)
@@ -1060,7 +1072,7 @@ class LibraryManagerPage:
         _info_row('Key', registry_key)
         _info_row('Class', actual_name)
         if module_path:
-            short = (module_path[:28] + '…') if len(module_path) > 30 else module_path
+            short = (module_path[:48] + '…') if len(module_path) > 50 else module_path
             _info_row('Module', short, module_path)
 
         # ── Node-specific info ────────────────────────────────────────────────
@@ -1136,52 +1148,42 @@ class LibraryManagerPage:
                 pass
 
         is_editable = lib.install_type == 'EDITABLE'
-        showing_source = [False]
 
         with self._right_container:
             with ui.column().classes('w-full p-4 gap-0'):
                 # ── Header bar ─────────────────────────────────────────────
-                with ui.row().classes('w-full items-center gap-0 mb-3'):
-                    # Buttons first — always visible even if label overflows
+                with ui.row().classes('w-full items-center justify-between mb-3'):
+                    ui.label(comp_singular.upper()).classes(
+                        'text-xs text-gray-400 font-bold tracking-wider'
+                    )
                     ui.button(
                         icon='close',
                         on_click=lambda: self._render_right_placeholder(),
                     ).props('flat round size=xs').tooltip('Close')
-                    # Source toggle — only when we have a real file
-                    toggle_btn = None
-                    if src_file and src_file.exists():
-                        toggle_btn = (
-                            ui.button(icon='code')
-                            .props('flat round size=xs')
-                            .tooltip('View source')
-                        )
-                    ui.label(comp_singular.upper()).classes(
-                        'text-xs text-gray-400 font-bold tracking-wider ml-1'
-                    )
 
                 # ── Class info header ──────────────────────────────────────
                 self._render_component_info_header(
                     lib, class_name, comp_type, registry_key, cls
                 )
 
-                # ── Swappable content area ─────────────────────────────────
-                content_col = ui.column().classes('w-full')
+                # ── Tabs: Docs / Source ────────────────────────────────────
+                ui.separator().classes('mt-3')
+                with ui.tabs().classes('w-full').props('dense') as tabs:
+                    t_docs = ui.tab('Docs', icon='description')
+                    if src_file and src_file.exists():
+                        t_source = ui.tab('Source', icon='code')
+                    else:
+                        t_source = None
 
-                def _show_docs():
-                    content_col.clear()
-                    with content_col:
+                with ui.tab_panels(tabs, value=t_docs).classes('w-full'):
+                    with ui.tab_panel(t_docs).classes('px-0'):
                         if doc_file and doc_file.exists():
                             doc_text = doc_file.read_text()
                             lines = doc_text.split('\n')
                             if lines and lines[0].startswith('<!--'):
                                 doc_text = '\n'.join(lines[2:])
-                            ui.separator().classes('my-3')
-                            ui.label('Documentation').classes(
-                                'text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'
-                            )
                             ui.markdown(doc_text).classes('w-full text-sm')
                         else:
-                            ui.separator().classes('my-3')
                             ui.label('No documentation file found.').classes(
                                 'text-gray-400 text-sm'
                             )
@@ -1189,55 +1191,29 @@ class LibraryManagerPage:
                                 'text-xs text-gray-400 italic mt-1'
                             )
 
-                def _show_source():
-                    content_col.clear()
-                    with content_col:
-                        code_text = src_file.read_text()
-                        ui.separator().classes('my-3')
-                        with ui.row().classes('w-full items-center justify-between mb-1'):
-                            with ui.column().classes('gap-0'):
-                                ui.label('Source').classes(
-                                    'text-xs font-bold text-gray-400 uppercase tracking-wider'
-                                )
-                                ui.label(src_file.name).classes(
-                                    'text-xs font-mono text-gray-400'
-                                )
-                        with ui.element('div').style(
-                            'width: 100%; min-width: 0; overflow: hidden;'
-                        ):
-                            editor = ui.codemirror(
-                                code_text,
-                                language='Python',
-                                theme='vscodeDark',
-                            ).style('width: 100%; height: 520px;')
-                        if is_editable:
-                            def _save(p=src_file):
-                                try:
-                                    p.write_text(editor.value)
-                                    ui.notify('Saved.', type='positive')
-                                except Exception as exc:
-                                    ui.notify(f'Save failed: {exc}', type='negative')
-                            ui.button('Save', icon='save', on_click=_save).props(
-                                'color=primary size=sm'
-                            ).classes('mt-2')
-
-                def _toggle_view():
-                    showing_source[0] = not showing_source[0]
-                    if showing_source[0]:
-                        toggle_btn._props['icon'] = 'article'
-                        toggle_btn.update()
-                        toggle_btn.tooltip('View documentation')
-                        _show_source()
-                    else:
-                        toggle_btn._props['icon'] = 'code'
-                        toggle_btn.update()
-                        toggle_btn.tooltip('View source')
-                        _show_docs()
-
-                if toggle_btn:
-                    toggle_btn.on('click', lambda: _toggle_view())
-
-                _show_docs()  # default view
+                    if t_source:
+                        with ui.tab_panel(t_source).classes('px-0'):
+                            ui.label(src_file.name).classes(
+                                'text-xs font-mono text-gray-400 mb-2'
+                            )
+                            with ui.element('div').style(
+                                'width: 100%; min-width: 0; overflow: hidden;'
+                            ):
+                                editor = ui.codemirror(
+                                    src_file.read_text(),
+                                    language='Python',
+                                    theme='vscodeDark',
+                                ).style('width: 100%; height: 520px;')
+                            if is_editable:
+                                def _save(p=src_file):
+                                    try:
+                                        p.write_text(editor.value)
+                                        ui.notify('Saved.', type='positive')
+                                    except Exception as exc:
+                                        ui.notify(f'Save failed: {exc}', type='negative')
+                                ui.button('Save', icon='save', on_click=_save).props(
+                                    'color=primary size=sm'
+                                ).classes('mt-2')
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)
