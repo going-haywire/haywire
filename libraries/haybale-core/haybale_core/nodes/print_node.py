@@ -4,6 +4,7 @@ from haywire.ui.console_bridge import console_print
 @node(
     label='Print Log',
     menu='system/utils',
+    description='Print to the system log',
     node_type=NodeType.CONTROL
 )
 class PrintLogNode(BaseNode):

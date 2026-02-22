@@ -63,6 +63,9 @@ class LibraryManagerPage:
         self._search_input = None
         self._filter_btns: dict[str, ui.button] = {}
 
+        # Async-populated entries from remote [[sources]] in ~/.haywire/marketplace.toml
+        self._extra_marketplace_entries: list[MarketplaceEntry] = []
+
     # ─────────────────────────────────────────────────────────────────────────
     # Page structure
     # ─────────────────────────────────────────────────────────────────────────
@@ -223,6 +226,9 @@ class LibraryManagerPage:
                     with self._right_container:
                         self._render_right_placeholder()
 
+        # Kick off async fetch of any HTTP sources in ~/.haywire/marketplace.toml
+        asyncio.ensure_future(self._load_remote_sources())
+
     # ─────────────────────────────────────────────────────────────────────────
     # Left panel — filter controls (built once, updated reactively)
     # ─────────────────────────────────────────────────────────────────────────
@@ -339,7 +345,8 @@ class LibraryManagerPage:
                 self._section_label('AVAILABLE')
                 for pkg in available:
                     self._left_item(
-                        pkg.name, pkg.version, 'teal', pkg.name, True
+                        pkg.name, pkg.version, 'teal', pkg.name, True,
+                        source_label=pkg.source_label,
                     )
 
             if not enabled and not disabled and not available:
@@ -361,6 +368,7 @@ class LibraryManagerPage:
         dot_color: str,
         item_id: str,
         is_marketplace: bool,
+        source_label: str = '',
     ):
         """Render a single clickable row in the library list."""
         is_active = item_id == self._selected_id
@@ -376,6 +384,10 @@ class LibraryManagerPage:
                 f'text-{dot_color}-500 flex-shrink-0'
             )
             ui.label(label).classes(f'text-sm flex-1 truncate {text_cls}')
+            if source_label:
+                ui.label(source_label).classes(
+                    'text-xs text-gray-300 flex-shrink-0 font-light'
+                )
             if version:
                 ui.label(f'v{version}').classes(
                     'text-xs text-gray-400 flex-shrink-0'
@@ -595,6 +607,21 @@ class LibraryManagerPage:
                     with ui.row().classes('gap-1 mt-2 flex-wrap'):
                         for tag in tags:
                             ui.badge(tag).props('outline color=grey')
+                if marketplace_pkg and marketplace_pkg.source_label:
+                    with ui.row().classes('items-center gap-1 mt-2 flex-wrap'):
+                        ui.label('Feed:').classes('text-xs text-gray-400')
+                        ui.button(
+                            marketplace_pkg.source_label,
+                            icon='edit',
+                            on_click=lambda sf=marketplace_pkg.source_file,
+                                        so=marketplace_pkg.source_origin: (
+                                self._open_source_editor(sf, so)
+                            ),
+                        ).props('flat dense size=xs color=blue-grey')
+                        if marketplace_pkg.source_origin:
+                            ui.label(f'→ {marketplace_pkg.source_origin}').classes(
+                                'text-xs text-gray-400 truncate'
+                            )
 
                 # ── Tabs bar (only when library is installed) ─────────────────
                 if installed_lib:
@@ -992,20 +1019,20 @@ class LibraryManagerPage:
         def _info_row(label: str, display: str, full_value: str | None = None):
             v = full_value if full_value is not None else display
             with ui.row().classes('w-full items-center gap-1 py-0.5'):
-                ui.label(label).classes('text-xs text-gray-400 w-20 flex-shrink-0')
-                ui.label(display).classes('text-xs font-mono flex-1 min-w-0 truncate')
                 _copy_btn(v)
+                ui.label(label).classes('text-xs text-gray-400 w-16 flex-shrink-0')
+                ui.label(display).classes('text-xs font-mono min-w-0 truncate')
 
         def _code_row(code: str, label: str | None = None):
             with ui.column().classes('w-full gap-0.5 py-1'):
                 if label:
                     ui.label(label).classes('text-xs text-gray-400')
-                with ui.row().classes('w-full items-center gap-1'):
+                with ui.row().classes('w-full items-center gap-1 overflow-hidden'):
+                    _copy_btn(code)
                     with ui.element('div').classes(
-                        'flex-1 min-w-0 bg-gray-50 rounded px-2 py-1 border overflow-hidden'
+                        'min-w-0 bg-gray-50 rounded px-2 py-1 border overflow-hidden'
                     ):
                         ui.label(code).classes('text-xs font-mono')
-                    _copy_btn(code)
 
         def _section(text: str):
             ui.label(text).classes(
@@ -1099,42 +1126,118 @@ class LibraryManagerPage:
             else None
         )
 
+        # Resolve the source file via inspect (most reliable)
+        src_file: Path | None = None
+        if cls:
+            try:
+                import inspect
+                src_file = Path(inspect.getfile(cls))
+            except (TypeError, OSError):
+                pass
+
+        is_editable = lib.install_type == 'EDITABLE'
+        showing_source = [False]
+
         with self._right_container:
             with ui.column().classes('w-full p-4 gap-0'):
                 # ── Header bar ─────────────────────────────────────────────
-                with ui.row().classes('w-full justify-between items-center mb-3'):
-                    ui.label(comp_singular.upper()).classes(
-                        'text-xs text-gray-400 font-bold tracking-wider'
-                    )
+                with ui.row().classes('w-full items-center gap-0 mb-3'):
+                    # Buttons first — always visible even if label overflows
                     ui.button(
                         icon='close',
                         on_click=lambda: self._render_right_placeholder(),
                     ).props('flat round size=xs').tooltip('Close')
+                    # Source toggle — only when we have a real file
+                    toggle_btn = None
+                    if src_file and src_file.exists():
+                        toggle_btn = (
+                            ui.button(icon='code')
+                            .props('flat round size=xs')
+                            .tooltip('View source')
+                        )
+                    ui.label(comp_singular.upper()).classes(
+                        'text-xs text-gray-400 font-bold tracking-wider ml-1'
+                    )
 
                 # ── Class info header ──────────────────────────────────────
                 self._render_component_info_header(
                     lib, class_name, comp_type, registry_key, cls
                 )
 
-                # ── Documentation ──────────────────────────────────────────
-                if doc_file and doc_file.exists():
-                    content = doc_file.read_text()
-                    lines = content.split('\n')
-                    if lines and lines[0].startswith('<!--'):
-                        content = '\n'.join(lines[2:])
-                    ui.separator().classes('my-3')
-                    ui.label('Documentation').classes(
-                        'text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'
-                    )
-                    ui.markdown(content).classes('w-full text-sm')
-                else:
-                    ui.separator().classes('my-3')
-                    ui.label('No documentation file found.').classes(
-                        'text-gray-400 text-sm'
-                    )
-                    ui.label(
-                        'Run /docs to generate per-component docs.'
-                    ).classes('text-xs text-gray-400 italic mt-1')
+                # ── Swappable content area ─────────────────────────────────
+                content_col = ui.column().classes('w-full')
+
+                def _show_docs():
+                    content_col.clear()
+                    with content_col:
+                        if doc_file and doc_file.exists():
+                            doc_text = doc_file.read_text()
+                            lines = doc_text.split('\n')
+                            if lines and lines[0].startswith('<!--'):
+                                doc_text = '\n'.join(lines[2:])
+                            ui.separator().classes('my-3')
+                            ui.label('Documentation').classes(
+                                'text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'
+                            )
+                            ui.markdown(doc_text).classes('w-full text-sm')
+                        else:
+                            ui.separator().classes('my-3')
+                            ui.label('No documentation file found.').classes(
+                                'text-gray-400 text-sm'
+                            )
+                            ui.label('Run /docs to generate per-component docs.').classes(
+                                'text-xs text-gray-400 italic mt-1'
+                            )
+
+                def _show_source():
+                    content_col.clear()
+                    with content_col:
+                        code_text = src_file.read_text()
+                        ui.separator().classes('my-3')
+                        with ui.row().classes('w-full items-center justify-between mb-1'):
+                            with ui.column().classes('gap-0'):
+                                ui.label('Source').classes(
+                                    'text-xs font-bold text-gray-400 uppercase tracking-wider'
+                                )
+                                ui.label(src_file.name).classes(
+                                    'text-xs font-mono text-gray-400'
+                                )
+                        with ui.element('div').style(
+                            'width: 100%; min-width: 0; overflow: hidden;'
+                        ):
+                            editor = ui.codemirror(
+                                code_text,
+                                language='Python',
+                                theme='vscodeDark',
+                            ).style('width: 100%; height: 520px;')
+                        if is_editable:
+                            def _save(p=src_file):
+                                try:
+                                    p.write_text(editor.value)
+                                    ui.notify('Saved.', type='positive')
+                                except Exception as exc:
+                                    ui.notify(f'Save failed: {exc}', type='negative')
+                            ui.button('Save', icon='save', on_click=_save).props(
+                                'color=primary size=sm'
+                            ).classes('mt-2')
+
+                def _toggle_view():
+                    showing_source[0] = not showing_source[0]
+                    if showing_source[0]:
+                        toggle_btn._props['icon'] = 'article'
+                        toggle_btn.update()
+                        toggle_btn.tooltip('View documentation')
+                        _show_source()
+                    else:
+                        toggle_btn._props['icon'] = 'code'
+                        toggle_btn.update()
+                        toggle_btn.tooltip('View source')
+                        _show_docs()
+
+                if toggle_btn:
+                    toggle_btn.on('click', lambda: _toggle_view())
+
+                _show_docs()  # default view
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)
@@ -1277,13 +1380,114 @@ class LibraryManagerPage:
                     ).classes('text-xs text-blue-500 mt-1')
 
     # ─────────────────────────────────────────────────────────────────────────
+    # Marketplace source editor + remote source loader
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _open_source_editor(self, source_file: str, source_origin: str = ''):
+        """Open a dialog to edit the local marketplace TOML file."""
+        if not source_file:
+            ui.notify('No editable source file found.', type='warning')
+            return
+        p = Path(source_file)
+        if not p.exists():
+            ui.notify(f'File not found: {source_file}', type='negative')
+            return
+
+        with ui.dialog() as dialog, ui.card().classes('w-full').style('max-width: 780px;'):
+            # Header
+            with ui.row().classes('w-full items-start justify-between mb-1'):
+                with ui.column().classes('gap-0 min-w-0 flex-1'):
+                    ui.label(str(p)).classes('text-xs font-mono text-gray-600 break-all')
+                    if source_origin:
+                        with ui.row().classes('items-center gap-1 mt-0.5'):
+                            ui.icon('arrow_forward', size='12px').classes('text-gray-400')
+                            ui.label(source_origin).classes(
+                                'text-xs text-gray-400 truncate'
+                            )
+                ui.button(icon='close', on_click=dialog.close).props(
+                    'flat round dense size=sm'
+                )
+
+            editor = (
+                ui.textarea(value=p.read_text())
+                .classes('w-full')
+                .props(
+                    'outlined rows=24'
+                    ' input-style="font-family: monospace; font-size: 12px; line-height: 1.5;"'
+                )
+            )
+
+            with ui.row().classes('w-full justify-end gap-2 mt-2'):
+                ui.button('Cancel', on_click=dialog.close).props('flat')
+
+                def _save(p=p, dlg=dialog):
+                    try:
+                        p.write_text(editor.value)
+                        ui.notify('Saved.', type='positive')
+                        dlg.close()
+                        # Re-read local sources immediately; clear + re-fetch remote ones
+                        self._extra_marketplace_entries.clear()
+                        self._render_left_list()
+                        asyncio.ensure_future(self._load_remote_sources())
+                    except Exception as exc:
+                        ui.notify(f'Save failed: {exc}', type='negative')
+
+                ui.button('Save', icon='save', on_click=_save).props('color=primary')
+
+        dialog.open()
+
+    async def _load_remote_sources(self):
+        """Fetch HTTP marketplace sources and refresh the left list when done."""
+        from .config import GLOBAL_CONFIG_DIR, get_marketplace_sources
+        global_file = str(GLOBAL_CONFIG_DIR / 'marketplace.toml')
+        any_new = False
+        for src in get_marketplace_sources():
+            name = src.get('name', 'global')
+            url = src.get('url', '')
+            if not url or not url.startswith('http'):
+                continue
+            fetched = await asyncio.to_thread(self.manager._fetch_remote_marketplace, url)
+            for e in fetched:
+                e.source_label = name
+                e.source_file = global_file
+                e.source_origin = url
+            if fetched:
+                self._extra_marketplace_entries.extend(fetched)
+                any_new = True
+        if any_new:
+            self._render_left_list()
+
+    # ─────────────────────────────────────────────────────────────────────────
     # Marketplace helpers
     # ─────────────────────────────────────────────────────────────────────────
 
     def _get_marketplace_packages(self) -> list[MarketplaceEntry]:
+        from .config import get_marketplace_sources
+        entries: list[MarketplaceEntry] = []
+
+        # 1. Project-level .haywire/marketplace.toml
         if self.marketplace_path:
-            return self.manager.load_marketplace(self.marketplace_path)
-        return []
+            for e in self.manager.load_marketplace(self.marketplace_path):
+                e.source_label = 'project'
+                e.source_file = self.marketplace_path
+                entries.append(e)
+
+        # 2. Local-path sources listed in ~/.haywire/marketplace.toml [[sources]]
+        for src in get_marketplace_sources():
+            name = src.get('name', 'global')
+            url = src.get('url', '')
+            if not url:
+                continue
+            p = Path(url)
+            if p.exists():
+                for e in self.manager.load_marketplace(str(p)):
+                    e.source_label = name
+                    e.source_file = str(p)
+                    entries.append(e)
+
+        # 3. Remote-fetched entries (populated asynchronously by _load_remote_sources)
+        entries.extend(self._extra_marketplace_entries)
+        return entries
 
     def _is_pkg_installed(
         self,
@@ -1424,7 +1628,7 @@ class LibraryManagerPage:
         """Perform uninstall with streaming log output."""
         self._set_status(f'Uninstalling {label}…', 'info')
         log = self._create_log_in_card(
-            self._center_scroll, f'Uninstalling {label}…'
+            self._center_fixed, f'Uninstalling {label}…'
         )
 
         success, message = await self.manager.uninstall_streaming(
@@ -1456,7 +1660,7 @@ class LibraryManagerPage:
             button.props('loading')
         self._set_status(f'Installing {name}…', 'info')
         log = self._create_log_in_card(
-            self._center_scroll, f'Installing {name}…'
+            self._center_fixed, f'Installing {name}…'
         )
 
         success, message = await self.manager.install_streaming(

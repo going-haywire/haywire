@@ -29,6 +29,9 @@ class MarketplaceEntry:
     tags: list[str] = field(default_factory=list)
     source_url: str = ''   # URL to the library's source (repo/subdirectory)
     docs_url: str = ''     # Raw URL to OVERVIEW.md (or directory containing it)
+    source_label: str = '' # "project", "official", "my-team" — which feed this came from
+    source_file: str = ''  # local file path the user can edit (always a local file)
+    source_origin: str = '' # remote URL if this entry was fetched via a [[sources]] URL
 
 
 @dataclass
@@ -389,6 +392,31 @@ class LibraryManager:
             fragment = f'#{spec.split("#")[1]}' if '#' in spec else ''
             return f'git+{base}@{version}{fragment}'
         return pkg.install_spec
+
+    @staticmethod
+    def _fetch_remote_marketplace(url: str) -> 'list[MarketplaceEntry]':
+        """Fetch a remote marketplace.toml URL and return its entries (no source metadata set)."""
+        import urllib.request
+        try:
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                content = resp.read().decode('utf-8')
+            data = toml.loads(content)
+            return [
+                MarketplaceEntry(
+                    name=pkg.get('name', ''),
+                    version=pkg.get('version', ''),
+                    description=pkg.get('description', ''),
+                    author=pkg.get('author', ''),
+                    source=pkg.get('source', 'pypi'),
+                    install_spec=pkg.get('install_spec', pkg.get('name', '')),
+                    tags=pkg.get('tags', []),
+                    source_url=pkg.get('source_url', ''),
+                    docs_url=pkg.get('docs_url', ''),
+                )
+                for pkg in data.get('packages', [])
+            ]
+        except Exception:
+            return []
 
     @staticmethod
     def load_marketplace(manifest_path: str) -> list[MarketplaceEntry]:
