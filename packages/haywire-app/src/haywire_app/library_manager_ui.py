@@ -1,121 +1,1359 @@
 """
-NiceGUI-based library management page.
+Library manager page — VS Code-style 3-panel layout.
 
-Provides a /libraries route with:
-- Installed libraries panel (enable/disable/uninstall)
-- Marketplace panel (browse/install from manifest)
+Left panel:   searchable / filterable library list (Enabled / Disabled / Available)
+Center panel: unified library detail — marketplace header + optional installed tabs
+Right panel:  per-component documentation (hidden until a node / widget is clicked)
 """
 
 import asyncio
+from pathlib import Path
 
 from nicegui import ui
 
-from .library_manager import LibraryManager, MarketplaceEntry
+from .library_manager import InstalledLibrary, LibraryManager, MarketplaceEntry
 
 
-# Sample marketplace manifest for mockup purposes
-SAMPLE_MARKETPLACE_TOML = '''
-[[packages]]
-name = "haybale-opencv"
-version = "0.2.0"
-description = "OpenCV nodes for image processing — filters, transforms, video I/O"
-author = "community"
-source = "pypi"
-install_spec = "haybale-opencv>=0.2.0"
-tags = ["image", "video", "opencv"]
-source_url = "https://github.com/example/haybale-opencv"
+class _WidgetPreviewPort:
+    """Minimal mock port used to render a live widget preview without binding."""
+    id = 'preview'
+    widget_config = {}
 
-[[packages]]
-name = "haybale-audio"
-version = "0.1.0"
-description = "Audio processing nodes — FFT, filters, playback, recording"
-author = "community"
-source = "git"
-install_spec = "git+https://github.com/example/haybale-audio.git"
-tags = ["audio", "dsp"]
-source_url = "https://github.com/example/haybale-audio"
 
-[[packages]]
-name = "haybale-mqtt"
-version = "0.3.0"
-description = "MQTT client nodes for IoT and messaging"
-author = "community"
-source = "pypi"
-install_spec = "haybale-mqtt>=0.3.0"
-tags = ["iot", "mqtt", "network"]
-source_url = "https://github.com/example/haybale-mqtt"
-
-[[packages]]
-name = "haybale-osc"
-version = "0.2.1"
-description = "OSC (Open Sound Control) send/receive nodes"
-author = "community"
-source = "pypi"
-install_spec = "haybale-osc>=0.2.1"
-tags = ["osc", "network", "music"]
-source_url = "https://github.com/example/haybale-osc"
-'''
 
 
 class LibraryManagerPage:
-    """NiceGUI page for library management."""
+    """VS Code-style 3-panel library manager page."""
 
-    def __init__(self, library_manager: LibraryManager, marketplace_path: str | None = None):
+    def __init__(
+        self,
+        library_manager: LibraryManager,
+        marketplace_path: str | None = None,
+        node_registry=None,
+        widget_registry=None,
+        type_registry=None,
+        adapter_registry=None,
+        renderer_registry=None,
+    ):
         self.manager = library_manager
         self.marketplace_path = marketplace_path
-        self._installed_container = None
-        self._marketplace_container = None
+        self.node_registry = node_registry
+        self.widget_registry = widget_registry
+        self.type_registry = type_registry
+        self.adapter_registry = adapter_registry
+        self.renderer_registry = renderer_registry
+
+        # Selection state
+        self._selected_id: str | None = None
+        self._selected_is_marketplace: bool = False
+
+        # Filter / search state
+        self._search_query: str = ''
+        self._filter_enabled: bool = True
+        self._filter_disabled: bool = True
+        self._filter_available: bool = True
+
+        # UI containers (assigned in create_page)
+        self._left_container = None
+        self._left_list_container = None   # rebuilt on search / refresh
+        self._center_fixed = None          # header + metadata + tabs bar (non-scrolling)
+        self._center_scroll = None         # tab panels / placeholder (scrolling)
+        self._right_container = None
         self._status_label = None
-        # Maps package/library name → card element for in-card log injection
-        self._marketplace_cards: dict[str, ui.card] = {}
-        self._installed_cards: dict[str, ui.card] = {}
+        self._search_input = None
+        self._filter_btns: dict[str, ui.button] = {}
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Page structure
+    # ─────────────────────────────────────────────────────────────────────────
 
     def create_page(self):
         """Build the /libraries page UI."""
-        with ui.column().classes('w-full max-w-5xl mx-auto p-6 gap-6'):
-            # Header
-            with ui.row().classes('w-full items-center justify-between'):
-                ui.label('Library Manager').classes('text-2xl font-bold')
-                with ui.row().classes('gap-2'):
-                    ui.button(
-                        'Back to Editor',
-                        icon='arrow_back',
-                        on_click=lambda: ui.navigate.to('/'),
-                    ).props('flat')
-                    ui.button(
-                        'Refresh',
-                        icon='refresh',
-                        on_click=self._refresh_all,
-                    ).props('flat')
+        ui.add_css(
+            '.nicegui-content { padding: 0 !important; max-width: none !important;'
+            ' height: 100vh !important; overflow: hidden !important; }'
+            ' .q-panel-parent { overflow: visible !important; }'
+            ' .q-panel.scroll { overflow: visible !important; }'
+            ' .hw-panel-divider:hover { background-color: #93c5fd !important; }'
+        )
+        ui.add_head_html('''<script>
+(function () {
+  var drag = null;
+  document.addEventListener("mousedown", function (e) {
+    var divider = e.target.closest ? e.target.closest(".hw-panel-divider") : null;
+    if (!divider) return;
+    e.preventDefault();
+    var prev = divider.previousElementSibling;
+    var next = divider.nextElementSibling;
+    if (!prev || !next) return;
+    var container = divider.parentElement;
+    Array.from(container.children).forEach(function (child) {
+      if (!child.classList.contains("hw-panel-divider")) {
+        var w = child.getBoundingClientRect().width;
+        child.style.flex = "none";
+        child.style.width = w + "px";
+      }
+    });
+    drag = {
+      prev: prev, next: next,
+      startX: e.clientX,
+      startPrevW: prev.getBoundingClientRect().width,
+      startNextW: next.getBoundingClientRect().width
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  });
+  document.addEventListener("mousemove", function (e) {
+    if (!drag) return;
+    var dx = e.clientX - drag.startX;
+    var newPrevW = Math.max(150, drag.startPrevW + dx);
+    var newNextW = Math.max(200, drag.startNextW - dx);
+    drag.prev.style.width = newPrevW + "px";
+    drag.next.style.width = newNextW + "px";
+  });
+  document.addEventListener("mouseup", function () {
+    if (drag) {
+      drag = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+  });
+})();
+</script>''')
 
-            self._status_label = ui.label('').classes(
-                'text-sm text-gray-500'
+        with ui.column().classes('w-full h-full gap-0 overflow-hidden'):
+
+            # ── Header ────────────────────────────────────────────────────────
+            with ui.row().classes(
+                'w-full px-4 py-2 border-b items-center justify-between flex-shrink-0'
+            ):
+                ui.label('Library Manager').classes('text-xl font-bold')
+                self._status_label = ui.label('').classes(
+                    'text-sm text-gray-400 flex-1 mx-4'
+                )
+                ui.button(
+                    'Back',
+                    icon='arrow_back',
+                    on_click=lambda: ui.navigate.to('/'),
+                ).props('flat size=sm')
+                ui.button(
+                    'Refresh',
+                    icon='refresh',
+                    on_click=self._refresh_all,
+                ).props('flat size=sm')
+
+            # ── 3-panel body ──────────────────────────────────────────────────
+            with ui.row(wrap=False).classes('flex-1 gap-0 w-full overflow-hidden').style(
+                'max-width: 1600px; margin: 0 auto;'
+            ):
+
+                # Left panel — 20%, fixed structure (search bar + scroll list)
+                with ui.column().classes(
+                    'flex-shrink-0 gap-0'
+                ).style(
+                    'width: 20%; height: 100%; display: flex; flex-direction: column; overflow: hidden;'
+                ) as self._left_container:
+
+                    # Fixed top: search input + filter toggles
+                    with ui.column().classes('p-2 gap-1.5 border-b flex-shrink-0'):
+                        self._search_input = (
+                            ui.input(placeholder='Search libraries…')
+                            .classes('w-full')
+                            .props('dense outlined clearable')
+                        )
+                        self._search_input.on(
+                            'update:model-value',
+                            lambda e: self._on_search_update(e.args),
+                        )
+                        self._search_input.on(
+                            'clear',
+                            lambda e: self._on_search_update(''),
+                        )
+
+                        with ui.row().classes('items-center gap-0.5'):
+                            ui.label('Show:').classes(
+                                'text-xs text-gray-400 mr-1'
+                            )
+                            self._make_filter_toggle(
+                                'enabled', 'green', 'check_circle', 'Enabled libraries'
+                            )
+                            self._make_filter_toggle(
+                                'disabled', 'orange', 'pause_circle', 'Disabled libraries'
+                            )
+                            self._make_filter_toggle(
+                                'available', 'teal', 'add_circle', 'Available in marketplace'
+                            )
+
+                    # Scrollable library list (rebuilt on every refresh)
+                    self._left_list_container = ui.scroll_area().style(
+                        'flex: 1; height: 0;'
+                    )
+                    with self._left_list_container:
+                        self._render_left_list()
+
+                # Divider between left and center
+                ui.element('div').classes('hw-panel-divider flex-shrink-0').style(
+                    'width: 5px; height: 100%; cursor: col-resize;'
+                    ' border-left: 1px solid #e5e7eb; transition: background-color 0.15s;'
+                )
+
+                # Center panel — fixed top (header+tabs) + scrollable content
+                with ui.element('div').classes('flex-shrink-0 overflow-hidden').style(
+                    'width: 40%; height: 100%; display: flex; flex-direction: column;'
+                ):
+                    # Non-scrolling section: library header, metadata, tabs bar
+                    self._center_fixed = ui.column().classes('flex-shrink-0 w-full gap-0')
+                    # Scrollable section: tab panels / placeholder
+                    with ui.element('div').style('flex: 1; height: 0; overflow: hidden;'):
+                        self._center_scroll = ui.scroll_area().style('width: 100%; height: 100%;')
+                    with self._center_scroll:
+                        self._render_center_placeholder()
+
+                # Divider between center and right
+                ui.element('div').classes('hw-panel-divider flex-shrink-0').style(
+                    'width: 5px; height: 100%; cursor: col-resize;'
+                    ' border-left: 1px solid #e5e7eb; transition: background-color 0.15s;'
+                )
+
+                # Right panel — 40%, scroll_area handles scrolling
+                with ui.element('div').classes('flex-shrink-0 overflow-hidden').style(
+                    'width: 40%; height: 100%;'
+                ):
+                    self._right_container = ui.scroll_area().style('width: 100%; height: 100%;')
+                    with self._right_container:
+                        self._render_right_placeholder()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Left panel — filter controls (built once, updated reactively)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _make_filter_toggle(
+        self, attr: str, color: str, icon: str, tooltip: str
+    ):
+        """Create a persistent colored icon toggle button."""
+        active = getattr(self, f'_filter_{attr}')
+        btn_color = color if active else 'grey'
+        btn = (
+            ui.button(icon=icon)
+            .props(f'flat round dense size=sm color={btn_color}')
+            .tooltip(tooltip)
+        )
+        btn.on('click', lambda a=attr: self._toggle_filter(a))
+        self._filter_btns[attr] = btn
+
+    def _toggle_filter(self, attr: str):
+        """Toggle a filter flag and refresh the list."""
+        current = getattr(self, f'_filter_{attr}')
+        setattr(self, f'_filter_{attr}', not current)
+        colors = {'enabled': 'green', 'disabled': 'orange', 'available': 'teal'}
+        new_color = colors[attr] if not current else 'grey'
+        self._filter_btns[attr].props(f'color={new_color}')
+        self._render_left_list()
+
+    def _on_search_update(self, args=None):
+        """Update search query from event args (avoids relying on .value timing)."""
+        if args is None:
+            value = self._search_input.value
+        elif isinstance(args, (list, tuple)):
+            value = args[0] if args else ''
+        else:
+            value = args
+        self._search_query = value or ''
+        self._render_left_list()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Left panel — library list (rebuilt on every refresh / search)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _render_left_list(self):
+        """Rebuild the scrollable library list."""
+        self._left_list_container.clear()
+
+        libraries = self.manager.list_installed()
+        q = self._search_query.lower().strip()
+
+        def lib_matches(lib: InstalledLibrary) -> bool:
+            if not q:
+                return True
+            return (
+                q in lib.label.lower()
+                or bool(lib.description and q in lib.description.lower())
+                or any(q in t.lower() for t in (lib.tags or []))
             )
 
-            # Two-column layout
-            with ui.row().classes('w-full gap-6'):
-                # Installed libraries
-                with ui.card().classes('flex-1 min-w-0'):
-                    ui.label('Installed Libraries').classes(
-                        'text-lg font-bold mb-4'
-                    )
-                    self._installed_container = ui.column().classes(
-                        'w-full gap-2'
-                    )
-                    self._render_installed()
+        def pkg_matches(pkg: MarketplaceEntry) -> bool:
+            if not q:
+                return True
+            return (
+                q in pkg.name.lower()
+                or bool(pkg.description and q in pkg.description.lower())
+                or any(q in t.lower() for t in (pkg.tags or []))
+            )
 
-                # Marketplace
-                with ui.card().classes('flex-1 min-w-0'):
-                    ui.label('Marketplace').classes(
-                        'text-lg font-bold mb-4'
+        enabled = (
+            sorted(
+                [l for l in libraries if l.enabled and lib_matches(l)],
+                key=lambda x: x.label,
+            )
+            if self._filter_enabled
+            else []
+        )
+        disabled = (
+            sorted(
+                [l for l in libraries if not l.enabled and lib_matches(l)],
+                key=lambda x: x.label,
+            )
+            if self._filter_disabled
+            else []
+        )
+        marketplace = self._get_marketplace_packages()
+        available = (
+            sorted(
+                [
+                    p
+                    for p in marketplace
+                    if not self._is_pkg_installed(p, libraries) and pkg_matches(p)
+                ],
+                key=lambda x: x.name,
+            )
+            if self._filter_available
+            else []
+        )
+
+        with self._left_list_container:
+            if enabled:
+                self._section_label('ENABLED')
+                for lib in enabled:
+                    self._left_item(
+                        lib.label, lib.version, 'green', lib.library_id, False
                     )
-                    self._marketplace_container = ui.column().classes(
-                        'w-full gap-2'
+
+            if disabled:
+                self._section_label('DISABLED')
+                for lib in disabled:
+                    self._left_item(
+                        lib.label, lib.version, 'orange', lib.library_id, False
                     )
-                    self._render_marketplace()
+
+            if available:
+                self._section_label('AVAILABLE')
+                for pkg in available:
+                    self._left_item(
+                        pkg.name, pkg.version, 'teal', pkg.name, True
+                    )
+
+            if not enabled and not disabled and not available:
+                with ui.column().classes('w-full items-center py-8 gap-2'):
+                    ui.icon('search_off', size='32px').classes('text-gray-300')
+                    ui.label('No libraries found').classes(
+                        'text-xs text-gray-400 italic'
+                    )
+
+    def _section_label(self, title: str):
+        ui.label(title).classes(
+            'text-xs font-bold text-gray-400 px-2 pt-3 pb-1 tracking-wider'
+        )
+
+    def _left_item(
+        self,
+        label: str,
+        version: str,
+        dot_color: str,
+        item_id: str,
+        is_marketplace: bool,
+    ):
+        """Render a single clickable row in the library list."""
+        is_active = item_id == self._selected_id
+        bg = 'bg-blue-50' if is_active else 'hover:bg-gray-100'
+        text_cls = 'text-blue-700 font-medium' if is_active else ''
+        with ui.row().classes(
+            f'w-full items-center gap-2 px-2 py-1.5 rounded cursor-pointer {bg}'
+        ).on(
+            'click',
+            lambda lid=item_id, mp=is_marketplace: self._select(lid, mp),
+        ):
+            ui.icon('circle', size='xs').classes(
+                f'text-{dot_color}-500 flex-shrink-0'
+            )
+            ui.label(label).classes(f'text-sm flex-1 truncate {text_cls}')
+            if version:
+                ui.label(f'v{version}').classes(
+                    'text-xs text-gray-400 flex-shrink-0'
+                )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Selection dispatcher
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _select(self, item_id: str, is_marketplace: bool):
+        """Resolve installed + marketplace data, then render the center panel."""
+        self._selected_id = item_id
+        self._selected_is_marketplace = is_marketplace
+        self._render_right_placeholder()
+
+        all_installed = self.manager.list_installed()
+
+        if is_marketplace:
+            pkg = self._find_marketplace_pkg(item_id)
+            installed_lib = (
+                self._find_installed_for_pkg(pkg, all_installed) if pkg else None
+            )
+        else:
+            installed_lib = next(
+                (l for l in all_installed if l.library_id == item_id), None
+            )
+            pkg = (
+                self._find_marketplace_pkg_for_lib(installed_lib)
+                if installed_lib
+                else None
+            )
+
+        self._render_center(installed_lib, pkg)
+        self._render_left_list()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Center panel — unified renderer
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _render_center_placeholder(self):
+        """Placeholder shown when nothing is selected."""
+        self._center_fixed.clear()
+        self._center_scroll.clear()
+        with self._center_scroll:
+            with ui.column().classes(
+                'w-full items-center justify-center gap-2 py-32'
+            ):
+                ui.icon('library_books', size='48px').classes('text-gray-300')
+                ui.label('Select a library to view details').classes(
+                    'text-gray-400 text-sm'
+                )
+
+    def _render_center(
+        self,
+        installed_lib: InstalledLibrary | None,
+        marketplace_pkg: MarketplaceEntry | None,
+    ):
+        """
+        Unified center panel renderer.
+
+        - installed_lib only  → installed header + tabs (FOLDER / local libs with no marketplace entry)
+        - installed_lib + pkg → marketplace header with installed badges + tabs
+        - pkg only            → marketplace header + Install button, no tabs
+        """
+        if not installed_lib and not marketplace_pkg:
+            self._render_center_placeholder()
+            return
+
+        self._center_fixed.clear()
+        self._center_scroll.clear()
+
+        # Determine display properties
+        if installed_lib:
+            name = installed_lib.label
+            version = installed_lib.version
+            description = installed_lib.description
+            author = installed_lib.author
+            tags = installed_lib.tags or []
+        else:
+            name = marketplace_pkg.name
+            version = marketplace_pkg.version
+            description = marketplace_pkg.description
+            author = marketplace_pkg.author
+            tags = marketplace_pkg.tags or []
+
+        # Check for available update
+        update_available = False
+        if (
+            marketplace_pkg
+            and installed_lib
+            and marketplace_pkg.version
+            and installed_lib.version
+        ):
+            try:
+                from packaging.version import Version
+
+                update_available = Version(marketplace_pkg.version) > Version(
+                    installed_lib.version
+                )
+            except Exception:
+                pass
+
+        # Tab references — created in fixed section, used in scroll section
+        tabs = t_overview = t_nodes = t_widgets = None
+        t_types = t_adapters = t_renderers = None
+
+        # ── Fixed section: header + metadata + tabs bar ───────────────────────
+        with self._center_fixed:
+            with ui.column().classes('w-full px-6 pt-6 min-w-0 gap-1'):
+
+                # ── Header ────────────────────────────────────────────────────
+                with ui.row().classes('w-full items-start justify-between mb-2'):
+                    with ui.column().classes('gap-0.5 min-w-0 flex-1'):
+                        ui.label(name).classes('text-2xl font-bold break-words')
+                        with ui.row().classes('items-center gap-2 mt-1 flex-wrap'):
+                            ui.label(f'v{version}').classes('text-sm text-gray-400')
+                            if installed_lib:
+                                inst_color = {
+                                    'EDITABLE': 'purple',
+                                    'REGULAR': 'blue',
+                                    'FOLDER': 'teal',
+                                }.get(installed_lib.install_type, 'grey')
+                                ui.badge(
+                                    installed_lib.install_type.lower(),
+                                    color=inst_color,
+                                ).props('outline')
+                            if marketplace_pkg:
+                                src_color = (
+                                    'blue' if marketplace_pkg.source == 'pypi' else 'purple'
+                                )
+                                ui.badge(
+                                    marketplace_pkg.source, color=src_color
+                                ).props('outline')
+                            if update_available:
+                                ui.badge(
+                                    f'v{marketplace_pkg.version} available',
+                                    color='orange',
+                                ).props('outline')
+
+                    # ── Action buttons ────────────────────────────────────────
+                    with ui.row().classes('gap-1 flex-shrink-0 items-center'):
+                        if installed_lib:
+                            # Enable / Disable toggle
+                            if installed_lib.enabled:
+                                ui.button(
+                                    'Disable',
+                                    icon='pause',
+                                    on_click=lambda lid=installed_lib.library_id: (
+                                        self._disable_library(lid)
+                                    ),
+                                ).props('size=sm color=orange flat')
+                            else:
+                                ui.button(
+                                    'Enable',
+                                    icon='play_arrow',
+                                    on_click=lambda lid=installed_lib.library_id: (
+                                        self._enable_library(lid)
+                                    ),
+                                ).props('size=sm color=green flat')
+
+                            # Uninstall (only for removable installs)
+                            if installed_lib.install_type in ('REGULAR', 'EDITABLE'):
+                                with ui.row().classes('gap-0 items-center'):
+                                    ui.button(
+                                        'Uninstall',
+                                        on_click=lambda lid=installed_lib.library_id, ln=installed_lib.label: (
+                                            self._confirm_uninstall(lid, ln)
+                                        ),
+                                    ).props('size=sm color=negative flat')
+                                    with ui.button(icon='arrow_drop_down').props(
+                                        'size=sm color=negative flat'
+                                    ):
+                                        with ui.menu():
+                                            if update_available and marketplace_pkg:
+                                                ui.menu_item(
+                                                    f'Update to v{marketplace_pkg.version}',
+                                                    on_click=lambda e, spec=marketplace_pkg.install_spec, n=marketplace_pkg.name: (
+                                                        self._install_package(spec, n, e.sender)
+                                                    ),
+                                                )
+                                            if marketplace_pkg:
+                                                ui.menu_item(
+                                                    'Install specific version…',
+                                                    on_click=lambda p=marketplace_pkg: (
+                                                        self._open_version_picker(p)
+                                                    ),
+                                                )
+                                            ui.separator()
+                                            ui.menu_item(
+                                                'Uninstall permanently',
+                                                on_click=lambda lid=installed_lib.library_id, ln=installed_lib.label: (
+                                                    self._confirm_uninstall(lid, ln)
+                                                ),
+                                            )
+                        else:
+                            # Not installed — simple Install button
+                            ui.button(
+                                'Install',
+                                icon='download',
+                                on_click=lambda e, spec=marketplace_pkg.install_spec, n=marketplace_pkg.name: (
+                                    self._install_package(spec, n, e.sender)
+                                ),
+                            ).props('color=primary size=sm')
+
+                # ── Metadata ──────────────────────────────────────────────────
+                if description:
+                    ui.label(description).classes('text-gray-600 text-sm mb-1')
+                if author:
+                    ui.label(f'By {author}').classes('text-xs text-gray-400')
+                if marketplace_pkg and marketplace_pkg.source_url:
+                    ui.link(
+                        marketplace_pkg.source_url,
+                        marketplace_pkg.source_url,
+                        new_tab=True,
+                    ).classes('text-xs text-blue-500 mt-1')
+                if tags:
+                    with ui.row().classes('gap-1 mt-2 flex-wrap'):
+                        for tag in tags:
+                            ui.badge(tag).props('outline color=grey')
+
+                # ── Tabs bar (only when library is installed) ─────────────────
+                if installed_lib:
+                    ui.separator().classes('mt-4')
+                    with ui.tabs().classes('w-full').props('dense') as tabs:
+                        t_overview  = ui.tab('Overview',  icon='description')
+                        t_nodes     = ui.tab('Nodes',     icon='account_tree')
+                        t_widgets   = ui.tab('Widgets',   icon='widgets')
+                        t_types     = ui.tab('Types',     icon='category')
+                        t_adapters  = ui.tab('Adapters',  icon='swap_horiz')
+                        t_renderers = ui.tab('Renderers', icon='brush')
+
+        # ── Scrollable section: tab panels / placeholder ──────────────────────
+        with self._center_scroll:
+            if installed_lib and tabs is not None:
+                with ui.tab_panels(tabs, value=t_overview).classes('w-full').style(
+                    'overflow: visible !important;'
+                ):
+                    with ui.tab_panel(t_overview):
+                        with ui.column().classes('w-full p-6 gap-1'):
+                            self._render_overview(installed_lib)
+                    with ui.tab_panel(t_nodes):
+                        with ui.column().classes('w-full p-6 gap-1'):
+                            self._render_nodes_tab(installed_lib)
+                    with ui.tab_panel(t_widgets):
+                        with ui.column().classes('w-full p-6 gap-1'):
+                            self._render_widgets_tab(installed_lib)
+                    with ui.tab_panel(t_types):
+                        with ui.column().classes('w-full p-6 gap-1'):
+                            self._render_types_tab(installed_lib)
+                    with ui.tab_panel(t_adapters):
+                        with ui.column().classes('w-full p-6 gap-1'):
+                            self._render_adapters_tab(installed_lib)
+                    with ui.tab_panel(t_renderers):
+                        with ui.column().classes('w-full p-6 gap-1'):
+                            self._render_renderers_tab(installed_lib)
+
+            elif marketplace_pkg and not installed_lib:
+                # Marketplace-only: async-load OVERVIEW.md from source repo
+                with ui.column().classes('w-full p-6 gap-2'):
+                    loading_row = ui.row().classes('items-center gap-2')
+                    with loading_row:
+                        ui.spinner(size='sm')
+                        ui.label('Loading overview…').classes(
+                            'text-sm text-gray-400'
+                        )
+                    content_area = ui.column().classes('w-full')
+                asyncio.ensure_future(
+                    self._load_marketplace_overview(
+                        marketplace_pkg, loading_row, content_area
+                    )
+                )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Tab content renderers
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _render_overview(self, lib: InstalledLibrary):
+        """Render OVERVIEW.md or a helpful fallback.
+
+        lib.source_path is the Python package directory itself
+        (e.g. .../haybale_visiongraph/), so OVERVIEW.md is directly inside it.
+        """
+        source = Path(lib.source_path) if lib.source_path else None
+        overview = source / 'OVERVIEW.md' if source else None
+
+        if overview and overview.exists():
+            ui.markdown(overview.read_text()).classes('w-full')
+        else:
+            with ui.column().classes('gap-2 py-4'):
+                ui.label('No OVERVIEW.md found.').classes(
+                    'text-gray-400 italic text-sm'
+                )
+                ui.label(
+                    'Run /docs to generate library documentation.'
+                ).classes('text-xs text-gray-400')
+
+    def _render_nodes_tab(self, lib: InstalledLibrary):
+        """Render the node list grouped by menu category."""
+        if not self.node_registry:
+            ui.label('Node registry not available.').classes(
+                'text-gray-400 italic text-sm'
+            )
+            return
+
+        prefix = f'{lib.library_id}:node:'
+        items = [
+            (k, self.node_registry.get(k))
+            for k in self.node_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [
+            (k, c)
+            for k, c in items
+            if c
+            and hasattr(c, 'class_identity')
+            and c.class_identity
+            and not getattr(c.class_identity, '_is_error', False)
+        ]
+
+        if not items:
+            ui.label('No nodes registered for this library.').classes(
+                'text-gray-400 italic text-sm py-4'
+            )
+            return
+
+        categories: dict[str, list] = {}
+        for key, cls in items:
+            menu = getattr(cls.class_identity, 'menu', '') or ''
+            cat = menu.split('/')[0].title() if menu else 'Other'
+            categories.setdefault(cat, []).append((key, cls))
+
+        for cat in sorted(categories):
+            ui.label(cat).classes(
+                'text-xs font-bold text-gray-500 mt-4 mb-1 uppercase tracking-wider'
+            )
+            for key, cls in sorted(
+                categories[cat],
+                key=lambda x: x[1].class_identity.label or '',
+            ):
+                ident = cls.class_identity
+                class_name = key.split(':')[-1]
+                with ui.row().classes(
+                    'w-full items-start gap-3 px-3 py-2 rounded'
+                    ' hover:bg-gray-50 cursor-pointer'
+                ).on(
+                    'click',
+                    lambda cn=class_name, l=lib: self._select_component(
+                        l, cn, 'nodes'
+                    ),
+                ):
+                    with ui.column().classes('gap-0 flex-1 min-w-0'):
+                        ui.label(ident.label or class_name).classes(
+                            'text-sm font-medium'
+                        )
+                        if ident.description:
+                            ui.label(ident.description).classes(
+                                'text-xs text-gray-400 truncate'
+                            )
+
+    def _render_widgets_tab(self, lib: InstalledLibrary):
+        """Render the widget list with a live preview of each widget."""
+        if not self.widget_registry:
+            ui.label('Widget registry not available.').classes(
+                'text-gray-400 italic text-sm'
+            )
+            return
+
+        prefix = f'{lib.library_id}:widget:'
+        items = [
+            (k, self.widget_registry.get(k))
+            for k in self.widget_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [
+            (k, c)
+            for k, c in items
+            if c and hasattr(c, 'class_identity') and c.class_identity
+        ]
+
+        if not items:
+            ui.label('No widgets registered for this library.').classes(
+                'text-gray-400 italic text-sm py-4'
+            )
+            return
+
+        for key, cls in sorted(
+            items, key=lambda x: x[1].class_identity.label or ''
+        ):
+            ident = cls.class_identity
+            class_name = key.split(':')[-1]
+            with ui.row().classes(
+                'w-full items-center gap-4 px-3 py-2 rounded'
+                ' hover:bg-gray-50 cursor-pointer'
+            ).on(
+                'click',
+                lambda cn=class_name, l=lib: self._select_component(
+                    l, cn, 'widgets'
+                ),
+            ):
+                with ui.column().classes('gap-0 flex-1 min-w-0'):
+                    ui.label(ident.label or class_name).classes(
+                        'text-sm font-medium'
+                    )
+                    if ident.description:
+                        ui.label(ident.description).classes(
+                            'text-xs text-gray-400 truncate'
+                        )
+                # Live widget preview — uniform fixed-width box
+                with ui.element('div').classes(
+                    'flex-shrink-0 border rounded-sm bg-white'
+                ).style('width: 11rem; min-height: 2.5rem; padding: 4px; overflow: hidden;'):
+                    if not hasattr(cls, 'create_element'):
+                        # Widget uses render() only (e.g. streaming viewers)
+                        with ui.column().classes('w-full items-center py-1 gap-0.5'):
+                            ui.icon('videocam', size='18px').classes('text-gray-300')
+                            ui.label('live only').classes('text-xs text-gray-300 italic')
+                    else:
+                        try:
+                            mock_port = _WidgetPreviewPort()
+                            instance = cls(mock_port)
+                            instance.create_element()
+                        except Exception:
+                            with ui.column().classes('w-full items-center py-1'):
+                                ui.label('—').classes('text-xs text-gray-300 italic')
+
+    def _render_types_tab(self, lib: InstalledLibrary):
+        """Render the type list for this library."""
+        if not self.type_registry:
+            ui.label('Type registry not available.').classes(
+                'text-gray-400 italic text-sm'
+            )
+            return
+
+        prefix = f'{lib.library_id}:type:'
+        items = [
+            (k, self.type_registry.get(k))
+            for k in self.type_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [
+            (k, c)
+            for k, c in items
+            if c and hasattr(c, 'class_identity') and c.class_identity
+        ]
+
+        if not items:
+            ui.label('No types registered for this library.').classes(
+                'text-gray-400 italic text-sm py-4'
+            )
+            return
+
+        for key, cls in sorted(
+            items, key=lambda x: x[1].class_identity.label or ''
+        ):
+            ident = cls.class_identity
+            class_name = key.split(':')[-1]
+            with ui.row().classes(
+                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer'
+            ).on(
+                'click',
+                lambda cn=class_name, l=lib: self._select_component(l, cn, 'types'),
+            ):
+                with ui.column().classes('gap-0 flex-1 min-w-0'):
+                    ui.label(ident.label or class_name).classes(
+                        'text-sm font-medium'
+                    )
+                    if ident.description:
+                        ui.label(ident.description).classes(
+                            'text-xs text-gray-400 truncate'
+                        )
+                    ui.label(key).classes('text-xs text-gray-300 font-mono')
+
+    def _render_adapters_tab(self, lib: InstalledLibrary):
+        """Render the adapter list for this library."""
+        if not self.adapter_registry:
+            ui.label('Adapter registry not available.').classes(
+                'text-gray-400 italic text-sm'
+            )
+            return
+
+        prefix = f'{lib.library_id}:adapter:'
+        items = [
+            (k, self.adapter_registry.get(k))
+            for k in self.adapter_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [
+            (k, c)
+            for k, c in items
+            if c and hasattr(c, 'class_identity') and c.class_identity
+        ]
+
+        if not items:
+            ui.label('No adapters registered for this library.').classes(
+                'text-gray-400 italic text-sm py-4'
+            )
+            return
+
+        for key, cls in sorted(
+            items, key=lambda x: x[1].class_identity.label or ''
+        ):
+            ident = cls.class_identity
+            class_name = key.split(':')[-1]
+            with ui.row().classes(
+                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer'
+            ).on(
+                'click',
+                lambda cn=class_name, l=lib: self._select_component(l, cn, 'adapters'),
+            ):
+                with ui.column().classes('gap-0 flex-1 min-w-0'):
+                    ui.label(ident.label or class_name).classes(
+                        'text-sm font-medium'
+                    )
+                    if ident.description:
+                        ui.label(ident.description).classes(
+                            'text-xs text-gray-400 truncate'
+                        )
+                    ui.label(key).classes('text-xs text-gray-300 font-mono')
+
+    def _render_renderers_tab(self, lib: InstalledLibrary):
+        """Render the renderer list for this library."""
+        if not self.renderer_registry:
+            ui.label('Renderer registry not available.').classes(
+                'text-gray-400 italic text-sm'
+            )
+            return
+
+        prefix = f'{lib.library_id}:renderer:'
+        items = [
+            (k, self.renderer_registry.get(k))
+            for k in self.renderer_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [
+            (k, c)
+            for k, c in items
+            if c and hasattr(c, 'class_identity') and c.class_identity
+        ]
+
+        if not items:
+            ui.label('No renderers registered for this library.').classes(
+                'text-gray-400 italic text-sm py-4'
+            )
+            return
+
+        for key, cls in sorted(
+            items, key=lambda x: x[1].class_identity.label or ''
+        ):
+            ident = cls.class_identity
+            class_name = key.split(':')[-1]
+            with ui.row().classes(
+                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer'
+            ).on(
+                'click',
+                lambda cn=class_name, l=lib: self._select_component(l, cn, 'renderers'),
+            ):
+                with ui.column().classes('gap-0 flex-1 min-w-0'):
+                    ui.label(ident.label or class_name).classes(
+                        'text-sm font-medium'
+                    )
+                    if ident.description:
+                        ui.label(ident.description).classes(
+                            'text-xs text-gray-400 truncate'
+                        )
+                    ui.label(key).classes('text-xs text-gray-300 font-mono')
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Right panel — component documentation
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _render_right_placeholder(self):
+        """Placeholder shown in the right panel when no component is selected."""
+        self._right_container.clear()
+        with self._right_container:
+            with ui.column().classes(
+                'w-full items-center justify-center gap-2 py-24'
+            ):
+                ui.icon('menu_book', size='40px').classes('text-gray-300')
+                ui.label('Click a node or widget').classes(
+                    'text-gray-400 text-sm text-center'
+                )
+                ui.label('to view its documentation').classes(
+                    'text-gray-300 text-xs text-center'
+                )
+
+    def _render_component_info_header(
+        self,
+        lib: InstalledLibrary,
+        class_name: str,
+        comp_type: str,
+        registry_key: str,
+        cls,
+    ):
+        """Render per-class identity info + copy snippets at the top of the right panel."""
+        import json as _json
+
+        ident = getattr(cls, 'class_identity', None) if cls else None
+        module_path = getattr(cls, '__module__', None) if cls else None
+        actual_name = getattr(cls, '__name__', class_name) if cls else class_name
+
+        def _copy_btn(value: str):
+            v = value
+            return (
+                ui.button(
+                    icon='content_copy',
+                    on_click=lambda _v=v: ui.run_javascript(
+                        f'navigator.clipboard.writeText({_json.dumps(_v)})'
+                    ),
+                )
+                .props('flat round dense size=xs color=grey')
+                .tooltip('Copy to clipboard')
+            )
+
+        def _info_row(label: str, display: str, full_value: str | None = None):
+            v = full_value if full_value is not None else display
+            with ui.row().classes('w-full items-center gap-1 py-0.5'):
+                ui.label(label).classes('text-xs text-gray-400 w-20 flex-shrink-0')
+                ui.label(display).classes('text-xs font-mono flex-1 min-w-0 truncate')
+                _copy_btn(v)
+
+        def _code_row(code: str, label: str | None = None):
+            with ui.column().classes('w-full gap-0.5 py-1'):
+                if label:
+                    ui.label(label).classes('text-xs text-gray-400')
+                with ui.row().classes('w-full items-center gap-1'):
+                    with ui.element('div').classes(
+                        'flex-1 min-w-0 bg-gray-50 rounded px-2 py-1 border overflow-hidden'
+                    ):
+                        ui.label(code).classes('text-xs font-mono')
+                    _copy_btn(code)
+
+        def _section(text: str):
+            ui.label(text).classes(
+                'text-xs font-bold text-gray-400 uppercase tracking-wider mt-3 mb-1'
+            )
+
+        # ── Title ─────────────────────────────────────────────────────────────
+        label = (getattr(ident, 'label', None) or actual_name) if ident else actual_name
+        description = getattr(ident, 'description', None) if ident else None
+
+        with ui.column().classes('w-full gap-0.5 mb-2'):
+            ui.label(label).classes('text-base font-bold')
+            if description:
+                ui.label(description).classes('text-xs text-gray-500')
+
+        # ── Tags ──────────────────────────────────────────────────────────────
+        tags = getattr(ident, 'tags', None) if ident else None
+        if tags and isinstance(tags, (list, tuple)):
+            with ui.row().classes('gap-1 flex-wrap mb-2'):
+                for tag in tags:
+                    ui.badge(str(tag)).props('outline color=grey')
+
+        # ── Identifiers ───────────────────────────────────────────────────────
+        _section('Identifiers')
+        _info_row('Key', registry_key)
+        _info_row('Class', actual_name)
+        if module_path:
+            short = (module_path[:28] + '…') if len(module_path) > 30 else module_path
+            _info_row('Module', short, module_path)
+
+        # ── Node-specific info ────────────────────────────────────────────────
+        if comp_type == 'nodes' and ident:
+            menu = getattr(ident, 'menu', None)
+            if menu:
+                _info_row('Menu', menu)
+
+        # ── Usage snippets ────────────────────────────────────────────────────
+        if comp_type == 'types':
+            type_var = actual_name
+            _section('Usage')
+            if module_path:
+                _code_row(f'from {module_path} import {type_var}', 'Import')
+            _code_row(
+                f"self.add({type_var}.as_inlet('id', label='Label'))", 'Inlet port'
+            )
+            _code_row(
+                f"self.add({type_var}.as_outlet('id', label='Label'))", 'Outlet port'
+            )
+            _code_row(
+                f"self.add({type_var}.as_config('id', label='Label', default=...))",
+                'Config port',
+            )
+
+        elif comp_type == 'widgets':
+            _section('Usage')
+            if module_path:
+                _code_row(f'from {module_path} import {actual_name}', 'Import')
+            _code_row(
+                f'widget={actual_name}.config(properties={{}})', 'Widget config'
+            )
+
+        elif comp_type == 'nodes' and module_path:
+            _section('Import')
+            _code_row(f'from {module_path} import {actual_name}')
+
+    def _select_component(
+        self, lib: InstalledLibrary, class_name: str, comp_type: str
+    ):
+        """Show per-component info and docs in the right panel."""
+        self._right_container.clear()
+
+        # Look up the class from the appropriate registry
+        comp_singular = {
+            'nodes': 'node', 'widgets': 'widget', 'types': 'type',
+            'adapters': 'adapter', 'renderers': 'renderer',
+        }.get(comp_type, comp_type)
+        registry_key = f'{lib.library_id}:{comp_singular}:{class_name}'
+        registry = {
+            'nodes': self.node_registry,
+            'widgets': self.widget_registry,
+            'types': self.type_registry,
+            'adapters': self.adapter_registry,
+            'renderers': self.renderer_registry,
+        }.get(comp_type)
+        cls = registry.get(registry_key) if registry else None
+
+        source = Path(lib.source_path) if lib.source_path else None
+        doc_file = (
+            source / 'docs' / comp_type / f'{class_name}.md'
+            if source
+            else None
+        )
+
+        with self._right_container:
+            with ui.column().classes('w-full p-4 gap-0'):
+                # ── Header bar ─────────────────────────────────────────────
+                with ui.row().classes('w-full justify-between items-center mb-3'):
+                    ui.label(comp_singular.upper()).classes(
+                        'text-xs text-gray-400 font-bold tracking-wider'
+                    )
+                    ui.button(
+                        icon='close',
+                        on_click=lambda: self._render_right_placeholder(),
+                    ).props('flat round size=xs').tooltip('Close')
+
+                # ── Class info header ──────────────────────────────────────
+                self._render_component_info_header(
+                    lib, class_name, comp_type, registry_key, cls
+                )
+
+                # ── Documentation ──────────────────────────────────────────
+                if doc_file and doc_file.exists():
+                    content = doc_file.read_text()
+                    lines = content.split('\n')
+                    if lines and lines[0].startswith('<!--'):
+                        content = '\n'.join(lines[2:])
+                    ui.separator().classes('my-3')
+                    ui.label('Documentation').classes(
+                        'text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'
+                    )
+                    ui.markdown(content).classes('w-full text-sm')
+                else:
+                    ui.separator().classes('my-3')
+                    ui.label('No documentation file found.').classes(
+                        'text-gray-400 text-sm'
+                    )
+                    ui.label(
+                        'Run /docs to generate per-component docs.'
+                    ).classes('text-xs text-gray-400 italic mt-1')
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Marketplace overview fetch (async)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    async def _fetch_marketplace_overview(
+        self, pkg: MarketplaceEntry
+    ) -> 'str | None':
+        """
+        Fetch OVERVIEW.md (or README fallback) for a marketplace-only package.
+
+        Priority:
+        1. ``docs_url`` field — explicit raw URL to OVERVIEW.md or to the
+           directory that contains it (e.g. a GitHub raw content URL).
+           If the URL ends with a filename it is fetched directly; otherwise
+           OVERVIEW.md and QUICKREF.md are appended and tried in order.
+        2. Heuristic GitHub lookup — derived from ``source_url`` or
+           ``install_spec``, for both pypi and git sources.  The module name
+           is inferred from the package name (``-`` → ``_``) and the optional
+           ``#subdirectory=`` fragment of ``install_spec`` is respected.
+        3. PyPI long_description fallback — only when no GitHub URL is found
+           and ``source == 'pypi'``.
+        """
+        import json
+        import urllib.request
+
+        def _try_urls(urls: list) -> 'str | None':
+            for url in urls:
+                try:
+                    with urllib.request.urlopen(url, timeout=6) as resp:
+                        return resp.read().decode('utf-8', errors='replace')
+                except Exception:
+                    continue
+            return None
+
+        # ── 1. Explicit docs_url ──────────────────────────────────────────
+        if pkg.docs_url:
+            # Local filesystem path
+            p = Path(pkg.docs_url)
+            if p.is_dir():
+                for candidate in (p / 'OVERVIEW.md', p / 'QUICKREF.md'):
+                    if candidate.exists():
+                        return candidate.read_text()
+            elif p.is_file():
+                return p.read_text()
+            # Remote URL
+            elif pkg.docs_url.startswith('http'):
+                url = pkg.docs_url.rstrip('/')
+                if url.endswith('.md'):
+                    candidates = [url]
+                else:
+                    candidates = [f'{url}/OVERVIEW.md', f'{url}/QUICKREF.md']
+                content = await asyncio.to_thread(_try_urls, candidates)
+                if content:
+                    return content
+
+        # ── 2. Heuristic: derive raw GitHub URL ───────────────────────────
+        module_name = pkg.name.replace('-', '_')
+
+        subdir = ''
+        if pkg.install_spec and '#subdirectory=' in pkg.install_spec:
+            subdir = pkg.install_spec.split('#subdirectory=')[-1].strip('/')
+
+        def _github_raw_base(url: str) -> 'str | None':
+            url = url.rstrip('/').removesuffix('.git')
+            if 'github.com' not in url:
+                return None
+            return url.replace('https://github.com/', 'https://raw.githubusercontent.com/')
+
+        raw_base = None
+        if pkg.source_url and 'github.com' in pkg.source_url:
+            raw_base = _github_raw_base(pkg.source_url)
+        elif pkg.source == 'git' and pkg.install_spec:
+            git_url = (
+                pkg.install_spec
+                .removeprefix('git+')
+                .split('@')[0]
+                .split('#')[0]
+                .rstrip('/')
+            )
+            raw_base = _github_raw_base(git_url)
+
+        if raw_base:
+            candidates = []
+            for branch in ('main', 'master'):
+                prefix = f'{raw_base}/{branch}'
+                pkg_prefix = (
+                    f'{prefix}/{subdir}/{module_name}'
+                    if subdir
+                    else f'{prefix}/{module_name}'
+                )
+                candidates.append(f'{pkg_prefix}/OVERVIEW.md')
+                candidates.append(f'{pkg_prefix}/QUICKREF.md')
+            # repo/subdir-root fallbacks
+            for branch in ('main', 'master'):
+                prefix = f'{raw_base}/{branch}'
+                if subdir:
+                    candidates.append(f'{prefix}/{subdir}/OVERVIEW.md')
+                candidates.append(f'{prefix}/OVERVIEW.md')
+
+            content = await asyncio.to_thread(_try_urls, candidates)
+            if content:
+                return content
+
+        # ── 3. PyPI long_description fallback ────────────────────────────
+        if pkg.source == 'pypi':
+            def _pypi_desc():
+                try:
+                    url = f'https://pypi.org/pypi/{pkg.name}/json'
+                    with urllib.request.urlopen(url, timeout=8) as resp:
+                        data = json.loads(resp.read())
+                    return data.get('info', {}).get('description') or None
+                except Exception:
+                    return None
+            return await asyncio.to_thread(_pypi_desc)
+
+        return None
+
+    async def _load_marketplace_overview(
+        self,
+        pkg: MarketplaceEntry,
+        loading_row,
+        content_area,
+    ):
+        """Fetch overview content async and populate the content_area."""
+        content = await self._fetch_marketplace_overview(pkg)
+        loading_row.set_visibility(False)
+        with content_area:
+            if content:
+                ui.markdown(content).classes('w-full')
+            else:
+                ui.label('No overview available for this package.').classes(
+                    'text-gray-400 text-sm italic'
+                )
+                if pkg.source_url:
+                    ui.link(
+                        'View source repository →',
+                        pkg.source_url,
+                        new_tab=True,
+                    ).classes('text-xs text-blue-500 mt-1')
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Marketplace helpers
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _get_marketplace_packages(self) -> list[MarketplaceEntry]:
+        if self.marketplace_path:
+            return self.manager.load_marketplace(self.marketplace_path)
+        return []
+
+    def _is_pkg_installed(
+        self,
+        pkg: MarketplaceEntry,
+        libraries: list[InstalledLibrary] | None = None,
+    ) -> bool:
+        if libraries is None:
+            libraries = self.manager.list_installed()
+        installed_ids = {lib.library_id.lower() for lib in libraries}
+        installed_dist = {
+            lib.distribution_name.lower()
+            for lib in libraries
+            if lib.distribution_name
+        }
+        pkg_id = pkg.name.replace('haybale-', '').lower()
+        return (
+            pkg_id in installed_ids
+            or pkg.name.lower() in installed_ids
+            or pkg.name.lower() in installed_dist
+        )
+
+    def _find_marketplace_pkg(self, name: str) -> MarketplaceEntry | None:
+        return next(
+            (p for p in self._get_marketplace_packages() if p.name == name),
+            None,
+        )
+
+    def _find_marketplace_pkg_for_lib(
+        self, lib: InstalledLibrary
+    ) -> MarketplaceEntry | None:
+        """Find the marketplace entry matching an installed library (if any)."""
+        for pkg in self._get_marketplace_packages():
+            pkg_id = pkg.name.replace('haybale-', '').lower()
+            if (
+                pkg_id == lib.library_id.lower()
+                or pkg.name.lower() == lib.library_id.lower()
+                or (
+                    lib.distribution_name
+                    and pkg.name.lower() == lib.distribution_name.lower()
+                )
+            ):
+                return pkg
+        return None
+
+    def _find_installed_for_pkg(
+        self,
+        pkg: MarketplaceEntry,
+        libraries: list[InstalledLibrary] | None = None,
+    ) -> InstalledLibrary | None:
+        """Find the installed library matching a marketplace package (if any)."""
+        if libraries is None:
+            libraries = self.manager.list_installed()
+        pkg_id = pkg.name.replace('haybale-', '').lower()
+        for lib in libraries:
+            if (
+                lib.library_id.lower() == pkg_id
+                or lib.library_id.lower() == pkg.name.lower()
+                or (
+                    lib.distribution_name
+                    and lib.distribution_name.lower() == pkg.name.lower()
+                )
+            ):
+                return lib
+        return None
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Status and refresh
+    # ─────────────────────────────────────────────────────────────────────────
 
     def _set_status(self, message: str, msg_type: str = 'info'):
-        """Update the status bar."""
         if self._status_label:
             self._status_label.text = message
         color_map = {
@@ -127,288 +1365,37 @@ class LibraryManagerPage:
         ui.notify(message, type=color_map.get(msg_type, 'info'))
 
     def _refresh_all(self):
-        """Refresh both panels."""
-        self._render_installed()
-        self._render_marketplace()
+        if self._selected_id:
+            self._select(self._selected_id, self._selected_is_marketplace)
+        else:
+            self._render_left_list()
         self._set_status('Refreshed')
 
-    def _render_library_card(
-        self,
-        name: str,
-        version: str,
-        description: str,
-        author: str,
-        tags: list[str],
-        badge_text: str,
-        badge_color: str,
-        actions_builder,
-    ) -> ui.card:
-        """Render a library card with consistent layout.
-
-        Returns the card element so callers can inject content (e.g. log panels).
-        """
-        with ui.card().classes('w-full p-3 overflow-hidden') as card:
-            # Title row: name + version + badge ... actions on the right
-            with ui.row().classes(
-                'w-full items-center justify-between'
-            ):
-                with ui.row().classes('items-center gap-2'):
-                    ui.label(name).classes('font-medium')
-                    if version:
-                        ui.label(f'v{version}').classes(
-                            'text-xs text-gray-400'
-                        )
-                    ui.badge(
-                        badge_text,
-                        color=badge_color,
-                    ).props('outline')
-
-                # Action buttons aligned right
-                with ui.row().classes('gap-1'):
-                    actions_builder()
-
-            # Description
-            if description:
-                ui.label(description).classes(
-                    'text-sm text-gray-600'
-                )
-
-            # Metadata row
-            if author:
-                ui.label(f'By {author}').classes(
-                    'text-xs text-gray-400'
-                )
-
-            # Tags
-            if tags:
-                with ui.row().classes('gap-1 mt-1'):
-                    for tag in tags:
-                        ui.badge(tag).props('outline color=grey')
-        return card
-
-    def _render_installed(self):
-        """Render the installed libraries list."""
-        if not self._installed_container:
-            return
-
-        self._installed_container.clear()
-        self._installed_cards.clear()
-        libraries = self.manager.list_installed()
-
-        with self._installed_container:
-            if not libraries:
-                ui.label('No libraries discovered').classes(
-                    'text-gray-500 italic'
-                )
-                return
-
-            ui.label(f'{len(libraries)} libraries found').classes(
-                'text-sm text-gray-500 mb-2'
-            )
-
-            for lib in sorted(libraries, key=lambda x: x.label):
-                # Badge shows install type
-                type_colors = {
-                    'EDITABLE': 'purple',
-                    'REGULAR': 'blue',
-                    'FOLDER': 'teal',
-                }
-                badge_color = type_colors.get(lib.install_type, 'grey')
-
-                def make_actions(lib=lib):
-                    if lib.enabled:
-                        ui.button(
-                            'Disable',
-                            icon='pause',
-                            on_click=lambda lid=lib.library_id: (
-                                self._disable_library(lid)
-                            ),
-                        ).props('size=sm color=orange flat')
-                    else:
-                        ui.button(
-                            'Enable',
-                            icon='play_arrow',
-                            on_click=lambda lid=lib.library_id: (
-                                self._enable_library(lid)
-                            ),
-                        ).props('size=sm color=green flat')
-
-                    if lib.install_type in ('REGULAR', 'EDITABLE'):
-                        ui.button(
-                            icon='delete',
-                            on_click=lambda lid=lib.library_id, ln=lib.label: (
-                                self._confirm_uninstall(lid, ln)
-                            ),
-                        ).props('size=sm color=red flat round')
-
-                card = self._render_library_card(
-                    name=lib.label,
-                    version=lib.version,
-                    description=lib.description,
-                    author=lib.author,
-                    tags=lib.tags,
-                    badge_text=lib.install_type.lower(),
-                    badge_color=badge_color,
-                    actions_builder=make_actions,
-                )
-                self._installed_cards[lib.library_id] = card
-
-    def _render_marketplace(self):
-        """Render the marketplace panel with packages from manifest."""
-        if not self._marketplace_container:
-            return
-
-        self._marketplace_container.clear()
-        self._marketplace_cards.clear()
-
-        # Load from project marketplace file if available, else use sample
-        if self.marketplace_path:
-            packages = self.manager.load_marketplace(self.marketplace_path)
-        else:
-            import toml as toml_lib
-            data = toml_lib.loads(SAMPLE_MARKETPLACE_TOML)
-            packages = [
-                MarketplaceEntry(**pkg) for pkg in data.get('packages', [])
-            ]
-
-        # Build lookup sets for installed detection (case-insensitive)
-        installed_libs = self.manager.list_installed()
-        installed_ids = {lib.library_id.lower() for lib in installed_libs}
-        installed_dist_names = {
-            lib.distribution_name.lower()
-            for lib in installed_libs if lib.distribution_name
-        }
-
-        with self._marketplace_container:
-            ui.label(
-                'Browse available haybale libraries'
-            ).classes('text-sm text-gray-500 mb-2')
-
-            ui.input(
-                placeholder='Search packages...',
-            ).classes('w-full mb-3').props('dense clearable')
-
-            for pkg in packages:
-                # Check by library ID (strip haybale- prefix) and distribution name
-                pkg_id = pkg.name.replace('haybale-', '').lower()
-                is_installed = (
-                    pkg_id in installed_ids
-                    or pkg.name.lower() in installed_ids
-                    or pkg.name.lower() in installed_dist_names
-                )
-
-                # Check installed version (fast — no network call)
-                installed_version = (
-                    self.manager.get_installed_version(pkg.name)
-                    if is_installed else None
-                )
-                try:
-                    from packaging.version import Version
-                    update_available = (
-                        is_installed
-                        and installed_version is not None
-                        and pkg.version
-                        and Version(pkg.version) > Version(installed_version)
-                    )
-                except Exception:
-                    update_available = False
-
-                source_color = (
-                    'blue' if pkg.source == 'pypi' else 'purple'
-                )
-
-                def make_actions(
-                    pkg=pkg,
-                    is_installed=is_installed,
-                    installed_version=installed_version,
-                    update_available=update_available,
-                ):
-                    if is_installed:
-                        # Show installed version badge
-                        if installed_version:
-                            badge_color = 'orange' if update_available else 'green'
-                            badge_label = (
-                                f'v{installed_version} — update available'
-                                if update_available
-                                else f'v{installed_version} installed'
-                            )
-                            ui.badge(badge_label, color=badge_color).props(
-                                'outline'
-                            ).classes('text-xs')
-
-                        # VS Code-style split uninstall button
-                        with ui.row().classes('gap-0 items-center'):
-                            ui.button(
-                                'Uninstall',
-                                on_click=lambda lid=pkg_id, ln=pkg.name: (
-                                    self._confirm_uninstall_marketplace(lid, ln)
-                                ),
-                            ).props('size=sm color=negative flat')
-                            with ui.button(icon='arrow_drop_down').props(
-                                'size=sm color=negative flat'
-                            ):
-                                with ui.menu():
-                                    if update_available:
-                                        ui.menu_item(
-                                            f'Update to v{pkg.version}',
-                                            on_click=lambda e, spec=pkg.install_spec, n=pkg.name: (
-                                                self._install_package(spec, n, e.sender)
-                                            ),
-                                        )
-                                    ui.menu_item(
-                                        'Install specific version…',
-                                        on_click=lambda p=pkg: (
-                                            self._open_version_picker(p)
-                                        ),
-                                    )
-                                    ui.separator()
-                                    ui.menu_item(
-                                        'Uninstall permanently',
-                                        on_click=lambda lid=pkg_id, ln=pkg.name: (
-                                            self._confirm_uninstall_marketplace(lid, ln)
-                                        ),
-                                    )
-                    else:
-                        ui.button(
-                            'Install',
-                            icon='download',
-                            on_click=lambda e, spec=pkg.install_spec, n=pkg.name: (
-                                self._install_package(spec, n, e.sender)
-                            ),
-                        ).props('size=sm color=primary')
-
-                card = self._render_library_card(
-                    name=pkg.name,
-                    version=pkg.version,
-                    description=pkg.description,
-                    author=pkg.author,
-                    tags=pkg.tags,
-                    badge_text=pkg.source,
-                    badge_color=source_color,
-                    actions_builder=make_actions,
-                )
-                self._marketplace_cards[pkg.name] = card
+    # ─────────────────────────────────────────────────────────────────────────
+    # Enable / Disable
+    # ─────────────────────────────────────────────────────────────────────────
 
     def _enable_library(self, library_id: str):
-        """Enable a library and refresh."""
         self.manager.enable_library(library_id)
-        self._set_status(f"Enabled: {library_id}", 'success')
-        self._render_installed()
+        self._set_status(f'Enabled: {library_id}', 'success')
+        self._refresh_all()
 
     def _disable_library(self, library_id: str):
-        """Disable a library and refresh."""
         self.manager.disable_library(library_id)
-        self._set_status(f"Disabled: {library_id}", 'warning')
-        self._render_installed()
+        self._set_status(f'Disabled: {library_id}', 'warning')
+        self._refresh_all()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Uninstall
+    # ─────────────────────────────────────────────────────────────────────────
 
     def _confirm_uninstall(self, library_id: str, label: str):
-        """Show confirmation dialog before uninstalling."""
+        """Show confirmation dialog, then uninstall."""
         with ui.dialog() as dialog, ui.card():
             ui.label(f'Uninstall {label}?').classes('text-lg font-bold')
             ui.label(
-                'This will disable the library and remove it from '
-                'the venv. Any graph nodes using this library will '
-                'show as errors.'
+                'This will disable the library and remove it from the venv. '
+                'Any graph nodes using this library will show as errors.'
             ).classes('text-gray-600 mb-4')
 
             async def confirm_and_uninstall():
@@ -418,78 +1405,91 @@ class LibraryManagerPage:
             with ui.row().classes('w-full justify-end gap-2'):
                 ui.button('Cancel', on_click=dialog.close)
                 ui.button(
-                    'Uninstall',
-                    on_click=confirm_and_uninstall,
+                    'Uninstall', on_click=confirm_and_uninstall
                 ).props('color=negative')
+
         dialog.open()
 
     @staticmethod
-    def _create_log_in_card(card: ui.card, title: str) -> ui.log:
-        """Append an expandable log panel inside an existing card."""
-        with card:
-            with ui.expansion(
-                title, icon='terminal', value=True,
-            ).classes('w-full min-w-0'):
+    def _create_log_in_card(container, title: str) -> ui.log:
+        """Append an expandable terminal log inside a container."""
+        with container:
+            with ui.expansion(title, icon='terminal', value=True).classes(
+                'w-full min-w-0'
+            ):
                 log = ui.log(max_lines=50).classes('w-full h-32')
         return log
 
     async def _do_uninstall(self, library_id: str, label: str):
-        """Perform the uninstall with streaming log output."""
-        self._set_status(f"Uninstalling {label}...", 'info')
-
-        card = self._installed_cards.get(library_id)
-        if card:
-            log = self._create_log_in_card(card, f'Uninstalling {label}...')
-        else:
-            log = None
-
-        def on_output(line: str):
-            if log:
-                log.push(line)
+        """Perform uninstall with streaming log output."""
+        self._set_status(f'Uninstalling {label}…', 'info')
+        log = self._create_log_in_card(
+            self._center_scroll, f'Uninstalling {label}…'
+        )
 
         success, message = await self.manager.uninstall_streaming(
-            library_id, on_output,
+            library_id, log.push
         )
 
         if success:
-            if log:
-                log.push(f'--- {label} uninstalled successfully ---')
-            self._set_status(f"Uninstalled: {label}", 'success')
+            log.push(f'--- {label} uninstalled successfully ---')
+            self._set_status(f'Uninstalled: {label}', 'success')
         else:
-            if log:
-                log.push(f'--- ERROR: {message} ---')
+            log.push(f'--- ERROR: {message} ---')
+            self._set_status(message, 'error')
+
+        self._selected_id = None
+        self._render_right_placeholder()
+        self._render_center_placeholder()
+        self._render_left_list()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Install
+    # ─────────────────────────────────────────────────────────────────────────
+
+    async def _install_package(
+        self, install_spec: str, name: str, button: ui.button | None
+    ):
+        """Install a package with streaming log output."""
+        if button:
+            button.disable()
+            button.props('loading')
+        self._set_status(f'Installing {name}…', 'info')
+        log = self._create_log_in_card(
+            self._center_scroll, f'Installing {name}…'
+        )
+
+        success, message = await self.manager.install_streaming(
+            install_spec, log.push
+        )
+
+        if success:
+            log.push(f'--- {name} installed successfully ---')
+            self._set_status(f'Installed: {name}', 'success')
+        else:
+            log.push(f'--- ERROR: {message} ---')
             self._set_status(message, 'error')
 
         self._refresh_all()
 
-    def _confirm_uninstall_marketplace(self, library_id: str, label: str):
-        """Uninstall a library that was installed via the marketplace panel."""
-        # Resolve the actual library_id from the installed registry
-        installed = self.manager.list_installed()
-        pkg_id = library_id.replace('haybale-', '').lower()
-        matched = next(
-            (lib for lib in installed
-             if lib.library_id.lower() == pkg_id
-             or lib.distribution_name.lower() == label.lower()),
-            None,
-        )
-        if matched:
-            self._confirm_uninstall(matched.library_id, matched.label)
-        else:
-            self._set_status(f"Could not find installed entry for '{label}'", 'error')
-
     def _open_version_picker(self, pkg: MarketplaceEntry):
-        """Open a dialog that fetches available versions and lets the user pick one."""
+        """Dialog to fetch and select a specific version for installation."""
         with ui.dialog() as dialog, ui.card().classes('min-w-80'):
             ui.label(f'Install specific version — {pkg.name}').classes(
                 'text-lg font-bold mb-2'
             )
-            version_select = ui.select(
-                options=['Loading…'],
-                value='Loading…',
-                label='Version',
-            ).classes('w-full').props('dense')
-            status = ui.label('Fetching versions…').classes('text-xs text-gray-400')
+            version_select = (
+                ui.select(
+                    options=['Loading…'],
+                    value='Loading…',
+                    label='Version',
+                )
+                .classes('w-full')
+                .props('dense')
+            )
+            status = ui.label('Fetching versions…').classes(
+                'text-xs text-gray-400'
+            )
 
             async def load_versions():
                 versions = await self.manager.fetch_versions(pkg)
@@ -508,48 +1508,13 @@ class LibraryManagerPage:
                     return
                 dialog.close()
                 spec = self.manager.build_versioned_spec(pkg, selected)
-                # Find install button stub — pass None since we have no button ref here
                 await self._install_package(spec, pkg.name, None)
 
             with ui.row().classes('w-full justify-end gap-2 mt-4'):
                 ui.button('Cancel', on_click=dialog.close).props('flat')
                 ui.button(
-                    'Install', on_click=install_selected,
+                    'Install', on_click=install_selected
                 ).props('color=primary')
 
         dialog.open()
         asyncio.ensure_future(load_versions())
-
-    async def _install_package(
-        self, install_spec: str, name: str, button: ui.button | None,
-    ):
-        """Install a package from the marketplace with streaming log."""
-        if button:
-            button.disable()
-            button.props('loading')
-        self._set_status(f"Installing {name}...", 'info')
-
-        card = self._marketplace_cards.get(name)
-        if card:
-            log = self._create_log_in_card(card, f'Installing {name}...')
-        else:
-            log = None
-
-        def on_output(line: str):
-            if log:
-                log.push(line)
-
-        success, message = await self.manager.install_streaming(
-            install_spec, on_output,
-        )
-
-        if success:
-            if log:
-                log.push(f'--- {name} installed successfully ---')
-            self._set_status(f"Installed: {name}", 'success')
-        else:
-            if log:
-                log.push(f'--- ERROR: {message} ---')
-            self._set_status(message, 'error')
-
-        self._refresh_all()

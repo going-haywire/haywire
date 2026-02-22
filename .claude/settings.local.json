@@ -5,7 +5,11 @@
       "Bash(git -C /Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo mv:*)",
       "Bash(uv run pytest:*)",
       "Bash(uv run:*)",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(git mv:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:nicegui.io)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

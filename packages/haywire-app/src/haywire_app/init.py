@@ -186,52 +186,36 @@ def _generate_dev_marketplace(dev_repo: str) -> str:
     Lists all libraries in the dev repo so developers can install them
     from the library manager UI.
     """
+    def _lib(name, version, description, author, tags):
+        module_name = name.replace('-', '_')
+        lib_path = f'{dev_repo}/libraries/{name}'
+        return {
+            'name': name,
+            'version': version,
+            'description': description,
+            'author': author,
+            'source': 'local',
+            'install_spec': lib_path,
+            'tags': tags,
+            'docs_url': f'{lib_path}/{module_name}',
+        }
+
     libraries = [
-        {
-            'name': 'haybale-core',
-            'version': '1.0.0',
-            'description': 'Core Haywire library with fundamental components',
-            'author': 'maybites',
-            'source': 'local',
-            'install_spec': f'{dev_repo}/libraries/haybale-core',
-            'tags': ['core', 'types', 'widgets', 'renderers'],
-        },
-        {
-            'name': 'haybale-example',
-            'version': '0.1.0',
-            'description': 'Example library for demonstrating multi-library support',
-            'author': 'Example Author',
-            'source': 'local',
-            'install_spec': f'{dev_repo}/libraries/haybale-example',
-            'tags': ['example', 'demo', 'tutorial'],
-        },
-        {
-            'name': 'haybale-testing',
-            'version': '1.0.0',
-            'description': 'Test library for test support',
-            'author': 'Haywire Team',
-            'source': 'local',
-            'install_spec': f'{dev_repo}/libraries/haybale-testing',
-            'tags': ['testing', 'development', 'debug'],
-        },
-        {
-            'name': 'haybale-visiongraph',
-            'version': '0.0.1',
-            'description': 'Visiongraph library — camera, video, OpenCV nodes',
-            'author': 'Florian Bruggisser, Martin Froehlich',
-            'source': 'local',
-            'install_spec': f'{dev_repo}/libraries/haybale-visiongraph',
-            'tags': ['vision', 'camera', 'video', 'opencv'],
-        },
-        {
-            'name': 'haybale-TEST_A',
-            'version': '1.0.0',
-            'description': 'Test library A for demonstrating multi-library support',
-            'author': 'Haywire Team',
-            'source': 'local',
-            'install_spec': f'{dev_repo}/libraries/haybale-TEST_A',
-            'tags': ['testing', 'development'],
-        },
+        _lib('haybale-core', '1.0.0',
+             'Core Haywire library with fundamental components',
+             'maybites', ['core', 'types', 'widgets', 'renderers']),
+        _lib('haybale-example', '0.1.0',
+             'Example library for demonstrating multi-library support',
+             'Example Author', ['example', 'demo', 'tutorial']),
+        _lib('haybale-testing', '1.0.0',
+             'Test library for test support',
+             'Haywire Team', ['testing', 'development', 'debug']),
+        _lib('haybale-visiongraph', '0.0.1',
+             'Visiongraph library — camera, video, OpenCV nodes',
+             'Florian Bruggisser, Martin Froehlich', ['vision', 'camera', 'video', 'opencv']),
+        _lib('haybale-TEST_A', '1.0.0',
+             'Test library A for demonstrating multi-library support',
+             'Haywire Team', ['testing', 'development']),
     ]
     data = {'packages': libraries}
     return toml.dumps(data)

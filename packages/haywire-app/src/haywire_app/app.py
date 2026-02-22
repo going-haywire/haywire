@@ -406,6 +406,11 @@ class HaywireApp:
             page = LibraryManagerPage(
                 self.library_manager,
                 marketplace_path=str(marketplace_path) if marketplace_path.exists() else None,
+                node_registry=self.node_registry,
+                widget_registry=self.library_service.get_widget_registry(),
+                type_registry=self.library_service.get_type_registry(),
+                adapter_registry=self.library_service.get_adapter_registry(),
+                renderer_registry=self.library_service.get_renderer_registry(),
             )
             page.create_page()
 

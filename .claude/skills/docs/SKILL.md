@@ -17,6 +17,15 @@ If `$ARGUMENTS` is provided, use it as the library path. Otherwise, auto-detect:
 - If multiple exist, ask the user which one to document
 - Also accept paths like `libraries/haybale-core` for dev repo libraries
 
+### Determine the module path (critical)
+
+After locating `library_path` (the package root, containing `pyproject.toml`), determine `module_path` — the Python module directory where docs will be written:
+
+- **Flat structure** — if `library_path/__init__.py` exists: `module_path = library_path`
+- **Package structure** — if `library_path/pyproject.toml` exists without a top-level `__init__.py`: scan one level deep for a subdirectory that contains `__init__.py`. Use that subdirectory as `module_path`. (E.g., `library_path/haybale_visiongraph/` for haybale-visiongraph.)
+
+All documentation output (OVERVIEW.md, QUICKREF.md, docs/) is written to `module_path`, not `library_path`. Component source files (nodes/, widgets/, etc.) are read from `module_path` subdirectories.
+
 ## 2. Sync docstrings (preprocess)
 
 Before generating docs, scan all component source files and ensure their docstrings are complete and accurate. This step runs always and is idempotent — only write a file back if something actually changed.
@@ -82,19 +91,19 @@ Read `pyproject.toml` and extract:
 - `[project].dependencies` — list of pip dependencies
 
 ### b. Library identity
-Read the `__init__.py` file and extract fields from the `@library(...)` decorator:
+Read the `module_path/__init__.py` file and extract fields from the `@library(...)` decorator:
 - `id`, `label`, `version`, `description`, `author`, `tags`, `help_url`, `file_watcher`
 - The `module_name` is the Python package directory name (e.g., `haybale_core`)
 
 ### c. Components
-Read ALL Python files in these subdirectories (recursively):
+Read ALL Python files in these subdirectories of `module_path` (recursively):
 - `nodes/`, `types/`, `widgets/`, `renderers/`, `adapters/`
 
 For EACH decorated class, extract:
 - **Decorator arguments** — all keyword arguments
 - **Class docstring** — full docstring (now guaranteed complete by step 2)
 - **Module path** — full dotted import path (e.g., `haybale_core.nodes.switch`)
-- **Source file path** — relative to library root (for hash comments)
+- **Source file path** — relative to `module_path` (for hash comments, e.g. `nodes/start_web_cam_stream_node.py`)
 
 ### d. Widget config options
 Extract from each widget's `Config options (via ...)` docstring block:
@@ -122,7 +131,7 @@ Search each node class for:
 When found, read the full method to understand what triggers it, what changes, and the variations.
 
 ### g. Manual supplement
-Check if `LIBRARY_EXTRA.md` exists. If so, include its contents verbatim in the "Additional Notes" section of `OVERVIEW.md`. NEVER modify or overwrite this file.
+Check if `LIBRARY_EXTRA.md` exists at `module_path/LIBRARY_EXTRA.md`. If so, include its contents verbatim in the "Additional Notes" section of `OVERVIEW.md`. NEVER modify or overwrite this file.
 
 ### h. Compute source hashes
 For each node and widget source file, compute `sha256(file_content)` and take the first 12 hex characters. Store alongside the component data for use in per-component doc headers.
@@ -133,6 +142,8 @@ Write output files using the exact canonical formats defined in [format-spec.md]
 
 ### 4a. OVERVIEW.md (always regenerate)
 
+Write to `module_path/OVERVIEW.md`.
+
 - Group nodes by the first segment of their `menu=` path, title-cased (e.g., `control/loops` → "Control", `event/runtime` → "Events")
 - One bullet per node: `- **{label}** (`{registry_id}`) — {intent sentence}`
 - Intent sentence: what the node does or solves, NOT its ports — use the class docstring first sentence
@@ -142,26 +153,31 @@ Write output files using the exact canonical formats defined in [format-spec.md]
 
 ### 4b. QUICKREF.md (always regenerate)
 
+Write to `module_path/QUICKREF.md`.
+
 - Compact key-value format, no tables, one line per field
 - Include `# Source: {source_url}` header line if available
 - Alphabetical by class name within each section
 
 ### 4c. Per-component docs (incremental)
 
+Write to `module_path/docs/nodes/{ClassName}.md` and `module_path/docs/widgets/{ClassName}.md`.
+
 For each node and widget:
 
 1. Compute the sha256 hash of the source `.py` file (first 12 hex chars)
-2. Check if `docs/nodes/{ClassName}.md` (or `docs/widgets/`) exists
+2. Check if `module_path/docs/nodes/{ClassName}.md` (or `docs/widgets/`) exists
 3. If the file exists, read its first line and parse the stored hash
 4. **If hashes match**: skip this component — do not write
 5. **If hashes differ or file is absent**: write the full component doc with the hash comment as the first line
 
 The hash comment format is: `<!-- source: {relative/path.py} | sha256: {12-char-hash} -->`
+where `{relative/path.py}` is relative to `module_path` (e.g. `nodes/start_web_cam_stream_node.py`).
 
-Create `docs/nodes/` and `docs/widgets/` directories as needed.
+Create `module_path/docs/nodes/` and `module_path/docs/widgets/` directories as needed.
 
 ### Rules
-- Always overwrite `OVERVIEW.md` and `QUICKREF.md` completely
+- Always overwrite `module_path/OVERVIEW.md` and `module_path/QUICKREF.md` completely
 - Per-component docs: only write if hash has changed or file is absent (idempotent)
 - NEVER modify or overwrite `LIBRARY_EXTRA.md`
 - Use the type's `registry_id` for port types (e.g., `FLOAT`, `INT`, `Image`), not the Python class name

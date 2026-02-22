@@ -27,7 +27,8 @@ class MarketplaceEntry:
     source: str = 'pypi'
     install_spec: str = ''
     tags: list[str] = field(default_factory=list)
-    source_url: str = ''  # URL to the library's source (repo/subdirectory)
+    source_url: str = ''   # URL to the library's source (repo/subdirectory)
+    docs_url: str = ''     # Raw URL to OVERVIEW.md (or directory containing it)
 
 
 @dataclass
@@ -415,5 +416,6 @@ class LibraryManager:
                 install_spec=pkg.get('install_spec', pkg.get('name', '')),
                 tags=pkg.get('tags', []),
                 source_url=pkg.get('source_url', ''),
+                docs_url=pkg.get('docs_url', ''),
             ))
         return entries

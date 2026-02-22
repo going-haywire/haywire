@@ -52,6 +52,21 @@ def _ssh_to_https(url: str) -> str:
     return url
 
 
+def _find_module_dir(lib_dir: Path) -> Path | None:
+    """Return the Python package directory inside lib_dir.
+
+    Checks flat layout (lib_dir/<module>/__init__.py) and src layout
+    (lib_dir/src/<module>/__init__.py).  Returns the first match, or None.
+    """
+    for search_root in (lib_dir, lib_dir / 'src'):
+        if not search_root.is_dir():
+            continue
+        for child in sorted(search_root.iterdir()):
+            if child.is_dir() and (child / '__init__.py').exists():
+                return child
+    return None
+
+
 def _detect_library() -> Path:
     """Auto-detect the library path from libs/ in the current directory.
 
@@ -132,6 +147,19 @@ def share_library(library_path: str | None):
         subdirectory = lib_dir.relative_to(Path.cwd()) if lib_dir.is_relative_to(Path.cwd()) else lib_dir.name
         install_spec = f'{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}'
 
+    # Build docs_url — raw URL pointing to the Python package directory
+    # (where OVERVIEW.md and docs/ live).  Only meaningful for GitHub/GitLab.
+    docs_url = ''
+    module_dir = _find_module_dir(lib_dir)
+    if remote_url and module_dir:
+        # https_url already computed above (stripped .git suffix)
+        module_rel = module_dir.relative_to(git_root)
+        if 'github.com' in https_url:
+            raw_base = https_url.replace('github.com', 'raw.githubusercontent.com')
+            docs_url = f'{raw_base}/main/{module_rel}/'
+        elif 'gitlab.com' in https_url:
+            docs_url = f'{https_url}/-/raw/main/{module_rel}/'
+
     # Build TOML snippet
     entry = {
         'name': name,
@@ -141,6 +169,8 @@ def share_library(library_path: str | None):
         'source': 'git',
         'install_spec': install_spec,
         'tags': tags,
+        'source_url': https_url if remote_url else '',
+        'docs_url': docs_url,
     }
 
     # Format as TOML array-of-tables entry
