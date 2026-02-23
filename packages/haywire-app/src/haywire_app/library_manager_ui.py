@@ -7,6 +7,7 @@ Right panel:  per-component documentation (hidden until a node / widget is click
 """
 
 import asyncio
+import re
 from pathlib import Path
 
 from nicegui import ui
@@ -561,8 +562,16 @@ class LibraryManagerPage:
                                     ),
                                 ).props('size=sm color=green flat')
 
-                            # Uninstall (only for removable installs)
-                            if installed_lib.install_type in ('REGULAR', 'EDITABLE'):
+                            # Rename (project lib) or Uninstall (other removable installs)
+                            if self._is_project_library(installed_lib):
+                                ui.button(
+                                    'Rename',
+                                    icon='drive_file_rename_outline',
+                                    on_click=lambda _lib=installed_lib: (
+                                        self._show_rename_warning(_lib)
+                                    ),
+                                ).props('size=sm color=blue flat')
+                            elif installed_lib.install_type in ('REGULAR', 'EDITABLE'):
                                 with ui.row().classes('gap-0 items-center'):
                                     ui.button(
                                         'Uninstall',
@@ -1497,6 +1506,13 @@ class LibraryManagerPage:
             or pkg.name.lower() in installed_dist
         )
 
+    def _is_project_library(self, lib: InstalledLibrary) -> bool:
+        """Return True if lib is the local project library (lives under workspace/libs/)."""
+        if not self.marketplace_path or not lib.source_path:
+            return False
+        workspace_root = Path(self.marketplace_path).parent.parent
+        return Path(lib.source_path).is_relative_to(workspace_root / 'libs')
+
     def _find_marketplace_pkg(self, name: str) -> MarketplaceEntry | None:
         return next(
             (p for p in self._get_marketplace_packages() if p.name == name),
@@ -1634,6 +1650,271 @@ class LibraryManagerPage:
         self._render_right_placeholder()
         self._render_center_placeholder()
         self._render_left_list()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Rename (project library)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _show_rename_warning(self, lib: InstalledLibrary):
+        """Show a safety warning before opening the rename dialog."""
+        # Build the rename dialog now while the page context is active.
+        # _proceed() only needs to call .open(), which never needs a slot context.
+        rename_dialog = self._build_rename_dialog(lib)
+
+        with ui.dialog() as warn_dialog, ui.card().classes('max-w-md gap-3'):
+            with ui.row().classes('items-center gap-2'):
+                ui.icon('warning', size='24px').classes('text-orange-500')
+                ui.label('Rename changes registry keys').classes('text-lg font-bold')
+            ui.separator()
+            ui.label(
+                'Every node and widget from this library is identified in saved graphs '
+                'by its registry key, which includes the library name '
+                f'(e.g. "{lib.library_id}:node:…"). '
+                'After renaming, graphs that reference this library from other projects '
+                'will fail to load those nodes. If your nodes are using absolute '
+                'from ... import ... statements referencing this library, '
+                'those will also need to be updated.'
+            ).classes('text-sm text-gray-600')
+            ui.label(
+                "Only proceed if you have a backup of this project and this "
+                "project's graphs/ folder is the only place these nodes are "
+                "used — or if you really know what you're doing. Alternatively "
+                "be prepared to enter a world of pain."
+            ).classes('text-sm text-gray-500 italic')
+            with ui.row().classes('w-full justify-end gap-2 mt-1'):
+                ui.button('Cancel', on_click=warn_dialog.close).props('flat size=sm')
+                def _proceed():
+                    warn_dialog.close()
+                    rename_dialog.open()
+                ui.button(
+                    'Proceed to Rename',
+                    icon='arrow_forward',
+                    on_click=_proceed,
+                ).props('color=warning size=sm')
+        warn_dialog.open()
+
+    def _show_rename_dialog(self, lib: InstalledLibrary):
+        """Build and immediately open the rename dialog."""
+        self._build_rename_dialog(lib).open()
+
+    def _build_rename_dialog(self, lib: InstalledLibrary) -> 'ui.dialog':
+        """Build the rename dialog and return it without opening."""
+        old_name_part = (
+            lib.distribution_name.removeprefix('haybale-')
+            if lib.distribution_name
+            else lib.library_id
+        )
+
+        with ui.dialog() as dialog, ui.card().style('width: 480px; gap: 12px;'):
+            ui.label('Rename Library').classes('text-lg font-bold')
+            ui.label(f'Current: haybale-{old_name_part}').classes(
+                'text-sm text-gray-500'
+            )
+            ui.separator()
+            name_input = ui.input(
+                label='New name  (part after haybale-)',
+                value=old_name_part,
+            ).classes('w-full')
+            preview = ui.label('').classes(
+                'text-xs text-gray-400 font-mono whitespace-pre-line mb-1'
+            )
+
+            ui.separator()
+            ui.label('Library Identity').classes(
+                'text-xs font-bold text-gray-400 uppercase tracking-wider'
+            )
+            label_input = ui.input(label='Label', value=lib.label).classes('w-full')
+            version_input = ui.input(
+                label='Version', value=lib.version or '0.1.0'
+            ).classes('w-full')
+            desc_input = ui.input(
+                label='Description', value=lib.description
+            ).classes('w-full')
+            url_input = ui.input(label='URL', value=lib.url).classes('w-full')
+            help_url_input = ui.input(
+                label='Help URL', value=lib.help_url
+            ).classes('w-full')
+            author_input = ui.input(
+                label='Author', value=lib.author
+            ).classes('w-full')
+            author_url_input = ui.input(
+                label='Author URL', value=lib.author_url
+            ).classes('w-full')
+
+            identity_inputs = [
+                label_input, version_input, desc_input,
+                url_input, help_url_input, author_input, author_url_input,
+            ]
+            for inp in identity_inputs:
+                inp.disable()
+
+            confirm_btn = ui.button('Rename').props('color=primary size=sm')
+            confirm_btn.disable()
+
+            def _update():
+                v = name_input.value.strip()
+                valid = bool(v) and v != old_name_part
+                mod = 'haybale_' + re.sub(r'[^a-zA-Z0-9_]', '_', v.lower()) if v else ''
+                preview.set_text(
+                    f'Package:  haybale-{v}\nModule:   {mod}' if v else ''
+                )
+                for inp in identity_inputs:
+                    inp.set_enabled(valid)
+                if valid:
+                    label_input.value = v.replace('-', ' ').replace('_', ' ').title()
+                    desc_input.value = f'Local library for {v} project'
+                confirm_btn.set_enabled(valid)
+
+            name_input.on('update:model-value', lambda _: _update())
+
+            async def _confirm_rename():
+                new_name = name_input.value.strip()
+                identity = {
+                    'label': label_input.value.strip(),
+                    'version': version_input.value.strip(),
+                    'description': desc_input.value.strip(),
+                    'url': url_input.value.strip(),
+                    'help_url': help_url_input.value.strip(),
+                    'author': author_input.value.strip(),
+                    'author_url': author_url_input.value.strip(),
+                }
+                dialog.close()
+                await self._do_rename(lib, new_name, identity)
+
+            with ui.row().classes('w-full justify-end gap-2 mt-2'):
+                ui.button('Cancel', on_click=dialog.close).props('flat size=sm')
+                confirm_btn.on('click', _confirm_rename)
+
+        return dialog
+
+    async def _do_rename(
+        self,
+        lib: InstalledLibrary,
+        new_name: str,
+        new_identity: dict[str, str] | None = None,
+    ):
+        """Perform rename with streaming log output."""
+        old_library_id = lib.library_id  # capture before rename
+        self._set_status(f'Renaming {lib.label}…', 'info')
+        log = self._create_log_in_card(
+            self._center_fixed, f'Renaming to haybale-{new_name}…'
+        )
+        workspace_root = str(Path(self.marketplace_path).parent.parent)
+
+        success, message = await self.manager.rename_project_library_streaming(
+            library_id=lib.library_id,
+            new_name=new_name,
+            workspace_root=workspace_root,
+            on_output=log.push,
+            new_identity=new_identity,
+        )
+
+        if success:
+            log.push(f'--- Renamed to haybale-{new_name} ---')
+            self._set_status(f'Renamed to haybale-{new_name}', 'success')
+        else:
+            log.push(f'--- ERROR: {message} ---')
+            self._set_status(message, 'error')
+
+        # Build the patch dialog NOW (while the slot context is still clean)
+        # so _render_* calls below don't interfere with dialog creation.
+        patch_dialog = (
+            self._build_graph_patch_dialog(old_library_id, new_name, workspace_root)
+            if success
+            else None
+        )
+
+        self._selected_id = None
+        self._render_right_placeholder()
+        self._render_center_placeholder()
+        self._render_left_list()
+
+        if patch_dialog is not None:
+            patch_dialog.open()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Graph file patching (post-rename)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _build_graph_patch_dialog(
+        self, old_library_id: str, new_library_id: str, workspace_root: str
+    ) -> 'ui.dialog | None':
+        """Build (but don't open) a dialog offering to patch graph files.
+
+        Returns None if there is nothing to patch.
+        """
+        graphs_dir = Path(workspace_root) / 'graphs'
+        if not graphs_dir.exists():
+            return None
+
+        old_prefix = old_library_id + ':'
+        matching = [
+            f for f in sorted(graphs_dir.glob('**/*.json'))
+            if old_prefix in f.read_text()
+        ]
+        if not matching:
+            return None
+
+        with ui.dialog() as dialog, ui.card().classes('max-w-lg gap-3'):
+            with ui.row().classes('items-center gap-2'):
+                ui.icon('find_replace', size='22px').classes('text-blue-500')
+                ui.label('Update graph files?').classes('text-lg font-bold')
+            ui.separator()
+            ui.label(
+                f'Found {len(matching)} graph file(s) in graphs/ that reference '
+                f'"{old_library_id}:…" registry keys. '
+                f'Replace them with "{new_library_id}:…"?'
+            ).classes('text-sm text-gray-600')
+            # File list (max 6 shown, then ellipsis)
+            with ui.column().classes('gap-0 max-h-28 overflow-y-auto'):
+                for f in matching[:6]:
+                    ui.label(f.name).classes('text-xs font-mono text-gray-400')
+                if len(matching) > 6:
+                    ui.label(f'… and {len(matching) - 6} more').classes(
+                        'text-xs text-gray-400 italic'
+                    )
+
+            async def _patch_and_close():
+                dialog.close()
+                count, errors = await asyncio.to_thread(
+                    self._patch_graph_files, graphs_dir, old_library_id, new_library_id
+                )
+                if errors:
+                    ui.notify(
+                        f'Patched {count} file(s); {len(errors)} error(s)',
+                        type='warning',
+                    )
+                else:
+                    ui.notify(f'Updated {count} graph file(s)', type='positive')
+
+            with ui.row().classes('w-full justify-end gap-2 mt-1'):
+                ui.button('Skip', on_click=dialog.close).props('flat size=sm')
+                ui.button(
+                    'Update files',
+                    icon='find_replace',
+                    on_click=_patch_and_close,
+                ).props('color=primary size=sm')
+
+        return dialog
+
+    @staticmethod
+    def _patch_graph_files(
+        graphs_dir: Path, old_id: str, new_id: str
+    ) -> tuple[int, list[str]]:
+        """Replace all occurrences of old_id: with new_id: in .json graph files."""
+        old_prefix = old_id + ':'
+        new_prefix = new_id + ':'
+        count = 0
+        errors: list[str] = []
+        for f in graphs_dir.glob('**/*.json'):
+            try:
+                text = f.read_text()
+                if old_prefix in text:
+                    f.write_text(text.replace(old_prefix, new_prefix))
+                    count += 1
+            except OSError as e:
+                errors.append(f'{f.name}: {e}')
+        return count, errors
 
     # ─────────────────────────────────────────────────────────────────────────
     # Install

@@ -40,6 +40,7 @@ my-project/
 ├── pyproject.toml              # project manifest (dependencies, workspace config)
 ├── uv.lock                     # pinned dependency versions
 ├── .haywire/                   # project settings
+│   ├── marketplace.toml        # marketplace library sources (cincluding the local one)
 │   └── config.toml
 ├── graphs/                     # saved graphs
 └── libs/
@@ -99,11 +100,11 @@ User-level settings are stored in `~/.haywire/`:
 
 ### For Developers
 
-the following will create a new project in /tmp/my-test-project with the haybale-my-test-project library scaffolded inside it:
+the following will create a new project in /tmp/myTestProject with the haybale-myTestProject library scaffolded inside it:
 
 ´´´
 cd /tmp
-uv run --project <absolute filepath to this repo folder> haywire init my-test-project --dev
+uv run --project <absolute filepath to this repo folder> haywire init myTestProject --dev
 ´´´
 ---
 

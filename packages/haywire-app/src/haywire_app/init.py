@@ -46,6 +46,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
         dev_repo: If set, absolute path to the haywire dev repo.
             Adds [tool.uv.sources] pointing to local editable packages.
     """
+    lib_name = f'haybale-{name}'
     data = {
         'project': {
             'name': name,
@@ -53,6 +54,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
             'requires-python': '>=3.10',
             'dependencies': [
                 'haywire-app>=0.1.0',
+                lib_name,
             ],
         },
         'tool': {
@@ -60,15 +62,18 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
                 'workspace': {
                     'members': ['libs/*'],
                 },
+                'sources': {
+                    lib_name: {'workspace': True},
+                },
             },
         },
     }
 
     if dev_repo:
-        data['tool']['uv']['sources'] = {
+        data['tool']['uv']['sources'].update({
             'haywire-app': {'path': f'{dev_repo}/packages/haywire-app', 'editable': True},
             'haywire-framework': {'path': f'{dev_repo}/packages/haywire-framework', 'editable': True},
-        }
+        })
 
     return toml.dumps(data)
 
@@ -140,6 +145,10 @@ from haywire.ui.widget.registry import WidgetRegistry
     id='{name}',
     version='0.1.0',
     description='Local library for {name} project',
+    url='',
+    help_url='',
+    author='',
+    author_url='',
     file_watcher=True,
 )
 class Library(BaseLibrary):
@@ -180,27 +189,64 @@ class Library(BaseLibrary):
 '''
 
 
-def _generate_dev_marketplace(dev_repo: str) -> str:
+def _project_lib_entry(name: str, module_name: str, project_dir: Path) -> dict:
+    """Build a marketplace entry for the project's own scaffolded library."""
+    lib_path = project_dir / 'libs' / f'haybale-{name}'
+    return {
+        'name': f'haybale-{name}',
+        'version': '0.1.0',
+        'description': f'Local library for the {name} project',
+        'source': 'local',
+        'install_spec': str(lib_path),
+        'docs_url': str(lib_path / module_name),
+    }
+
+
+def _generate_project_marketplace(name: str, module_name: str, project_dir: Path) -> str:
+    """Generate a minimal marketplace.toml for a regular (non-dev) project.
+
+    Contains only the project's own scaffolded library, plus a commented
+    template showing how to add more entries.
+    """
+    entry = _project_lib_entry(name, module_name, project_dir)
+    header = (
+        '# Project marketplace — add [[packages]] entries here to make libraries\n'
+        '# available in the Library Manager (Available section).\n'
+        '#\n'
+        '# source = "local"  →  install_spec is a local path (editable install)\n'
+        '# source = "pypi"   →  install_spec is a PyPI package name/specifier\n'
+        '# source = "git"    →  install_spec is a git URL (with optional #subdirectory=)\n'
+        '#\n'
+        '# To pull in a remote marketplace feed, add [[sources]] entries to\n'
+        '# ~/.haywire/marketplace.toml instead.\n\n'
+    )
+    return header + toml.dumps({'packages': [entry]})
+
+
+def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, project_dir: Path) -> str:
     """Generate a marketplace.toml pointing to dev repo libraries.
 
-    Lists all libraries in the dev repo so developers can install them
-    from the library manager UI.
+    Lists the project's own library first, followed by all libraries in the
+    dev repo, so developers can install any of them from the Library Manager.
     """
-    def _lib(name, version, description, author, tags):
-        module_name = name.replace('-', '_')
-        lib_path = f'{dev_repo}/libraries/{name}'
+    def _lib(lib_name, version, description, author, tags):
+        lib_module = lib_name.replace('-', '_')
+        lib_path = f'{dev_repo}/libraries/{lib_name}'
         return {
-            'name': name,
+            'name': lib_name,
             'version': version,
             'description': description,
             'author': author,
             'source': 'local',
             'install_spec': lib_path,
             'tags': tags,
-            'docs_url': f'{lib_path}/{module_name}',
+            'docs_url': f'{lib_path}/{lib_module}',
         }
 
     libraries = [
+        # Project's own library first
+        _project_lib_entry(name, module_name, project_dir),
+        # Dev repo libraries
         _lib('haybale-core', '1.0.0',
              'Core Haywire library with fundamental components',
              'maybites', ['core', 'types', 'widgets', 'renderers']),
@@ -217,8 +263,7 @@ def _generate_dev_marketplace(dev_repo: str) -> str:
              'Test library A for demonstrating multi-library support',
              'Haywire Team', ['testing', 'development']),
     ]
-    data = {'packages': libraries}
-    return toml.dumps(data)
+    return toml.dumps({'packages': libraries})
 
 
 def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None):
@@ -272,11 +317,12 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     # Project-level .haywire config
     ensure_project_config(project_dir)
 
-    # Dev marketplace manifest
+    # Marketplace manifest — always written; dev variant includes dev-repo libs
     if dev_repo:
-        (project_dir / '.haywire' / 'marketplace.toml').write_text(
-            _generate_dev_marketplace(dev_repo)
-        )
+        marketplace = _generate_dev_marketplace(dev_repo, name, module_name, project_dir)
+    else:
+        marketplace = _generate_project_marketplace(name, module_name, project_dir)
+    (project_dir / '.haywire' / 'marketplace.toml').write_text(marketplace)
 
     # Global ~/.haywire config
     ensure_global_config()

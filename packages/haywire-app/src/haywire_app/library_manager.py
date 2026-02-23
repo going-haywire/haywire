@@ -8,6 +8,8 @@ library registry operations into a single service API.
 import asyncio
 import importlib
 import importlib.metadata
+import os
+import re
 import subprocess
 import sys
 from collections.abc import Callable
@@ -15,6 +17,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import toml
+
+
+def _sanitize_name(name: str) -> str:
+    """Convert a name to a valid Python identifier suffix (mirrors init.py logic)."""
+    sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', name.lower())
+    if sanitized and sanitized[0].isdigit():
+        sanitized = '_' + sanitized
+    return sanitized
 
 
 @dataclass
@@ -47,6 +57,9 @@ class InstalledLibrary:
     source_path: str
     tags: list[str] = field(default_factory=list)
     distribution_name: str = ''  # Pip package name (e.g. "haybale-visiongraph")
+    url: str = ''
+    help_url: str = ''
+    author_url: str = ''
 
 
 class LibraryManager:
@@ -247,6 +260,195 @@ class LibraryManager:
         await asyncio.to_thread(self.registry.scan_for_libraries)
         return True, f"Uninstalled: {dist_name}"
 
+    async def rename_project_library_streaming(
+        self,
+        library_id: str,
+        new_name: str,
+        workspace_root: str,
+        on_output: Callable[[str], None],
+        new_identity: dict[str, str] | None = None,
+    ) -> tuple[bool, str]:
+        """Rename the project's local library to a new name.
+
+        Updates all affected files (lib pyproject.toml, __init__.py, project
+        pyproject.toml, marketplace.toml), renames directories, and runs
+        `uv sync` to register the new entry point.
+        """
+        workspace = Path(workspace_root)
+        marketplace_path = workspace / '.haywire' / 'marketplace.toml'
+
+        # --- 1. Validate new_name ---
+        new_name = new_name.strip()
+        if not new_name:
+            return False, 'New name cannot be empty.'
+        if '/' in new_name or '\\' in new_name or '..' in new_name:
+            return False, 'New name must not contain path separators.'
+        sanitized = _sanitize_name(new_name)
+        if not sanitized:
+            return False, f'"{new_name}" produces an empty module name.'
+
+        new_lib_name = f'haybale-{new_name}'
+        new_module = f'haybale_{sanitized}'
+
+        dist_name = self.registry.get_library_distribution_name(library_id) or ''
+        if new_lib_name.lower() == dist_name.lower():
+            return False, 'New name is the same as the current name.'
+
+        installed = self.list_installed()
+        if any(lib.distribution_name.lower() == new_lib_name.lower() for lib in installed):
+            return False, f'"{new_lib_name}" is already installed.'
+
+        marketplace_entries = (
+            self.load_marketplace(str(marketplace_path)) if marketplace_path.exists() else []
+        )
+        if any(
+            pkg.name.lower() == new_lib_name.lower()
+            and pkg.name.lower() != dist_name.lower()
+            for pkg in marketplace_entries
+        ):
+            return False, f'"{new_lib_name}" already exists in the marketplace.'
+
+        new_lib_dir = workspace / 'libs' / new_lib_name
+        if new_lib_dir.exists():
+            return False, f'Directory "{new_lib_dir}" already exists.'
+
+        # --- 2. Derive old paths ---
+        old_name_part = (
+            dist_name.removeprefix('haybale-') if dist_name.startswith('haybale-') else library_id
+        )
+        old_module = f'haybale_{_sanitize_name(old_name_part)}'
+        old_lib_dir = workspace / 'libs' / dist_name
+        old_pkg_dir = old_lib_dir / old_module
+        new_pkg_dir_tmp = old_lib_dir / new_module   # inside old lib dir before lib rename
+        new_label = new_name.replace('-', ' ').replace('_', ' ').title()
+
+        # Resolve all identity values (new_identity overrides auto-generated defaults)
+        _id = new_identity or {}
+        label_val = _id.get('label') or new_label
+        version_val = _id.get('version') or '0.1.0'
+        desc_val = _id.get('description') or f'Local library for {new_name} project'
+        url_val = _id.get('url', '')
+        help_url_val = _id.get('help_url', '')
+        author_val = _id.get('author', '')
+        author_url_val = _id.get('author_url', '')
+
+        # --- 3. Disable old library ---
+        on_output(f'Disabling {library_id}...')
+        self.registry.disable_library(library_id)
+
+        # --- 4. Rename module directory ---
+        on_output(f'Renaming module directory:  {old_module}  →  {new_module}')
+        try:
+            os.rename(old_pkg_dir, new_pkg_dir_tmp)
+        except OSError as e:
+            return False, f'Failed to rename module directory: {e}'
+
+        # --- 5. Update __init__.py ---
+        on_output('Updating __init__.py...')
+        try:
+            init_file = new_pkg_dir_tmp / '__init__.py'
+            content = init_file.read_text()
+            content = re.sub(r"(    id=')[^']*(')", rf'\g<1>{new_name}\2', content)
+            content = re.sub(r"(    label=')[^']*(')", rf'\g<1>{label_val}\2', content)
+            content = re.sub(r"(    version=')[^']*(')", rf'\g<1>{version_val}\2', content)
+            content = re.sub(r"(    description=')[^']*(')", rf'\g<1>{desc_val}\2', content)
+            content = re.sub(r"(    url=')[^']*(')", rf'\g<1>{url_val}\2', content)
+            content = re.sub(r"(    help_url=')[^']*(')", rf'\g<1>{help_url_val}\2', content)
+            content = re.sub(r"(    author=')[^']*(')", rf'\g<1>{author_val}\2', content)
+            content = re.sub(r"(    author_url=')[^']*(')", rf'\g<1>{author_url_val}\2', content)
+            content = re.sub(
+                r'(Local haybale library for the )[^\n]*(\.)',
+                rf'\g<1>{new_name} project\2',
+                content,
+            )
+            init_file.write_text(content)
+        except OSError as e:
+            return False, f'Failed to update __init__.py: {e}'
+
+        # --- 6. Update lib's pyproject.toml ---
+        on_output('Updating lib pyproject.toml...')
+        try:
+            lib_pyproject = old_lib_dir / 'pyproject.toml'
+            data = toml.loads(lib_pyproject.read_text())
+            data['project']['name'] = new_lib_name
+            data['project']['description'] = desc_val
+            ep = data.get('project', {}).get('entry-points', {}).get('haywire.libraries', {})
+            old_ep_key = next(iter(ep), None)
+            if old_ep_key:
+                del ep[old_ep_key]
+            ep[new_name] = f'{new_module}:Library'
+            data['tool']['hatch']['build']['targets']['wheel']['packages'] = [new_module]
+            lib_pyproject.write_text(toml.dumps(data))
+        except (OSError, KeyError) as e:
+            return False, f'Failed to update lib pyproject.toml: {e}'
+
+        # --- 7. Rename library directory ---
+        on_output(f'Renaming library directory:  {dist_name}  →  {new_lib_name}')
+        try:
+            os.rename(old_lib_dir, new_lib_dir)
+        except OSError as e:
+            return False, f'Failed to rename library directory: {e}'
+
+        # --- 8. Update project pyproject.toml ---
+        on_output('Updating project pyproject.toml...')
+        try:
+            project_pyproject = workspace / 'pyproject.toml'
+            data = toml.loads(project_pyproject.read_text())
+            deps = data.get('project', {}).get('dependencies', [])
+            data['project']['dependencies'] = [
+                new_lib_name if d.lower() == dist_name.lower() else d for d in deps
+            ]
+            sources = data.get('tool', {}).get('uv', {}).get('sources', {})
+            old_key = next((k for k in sources if k.lower() == dist_name.lower()), None)
+            if old_key:
+                del sources[old_key]
+            sources[new_lib_name] = {'workspace': True}
+            project_pyproject.write_text(toml.dumps(data))
+        except (OSError, KeyError) as e:
+            return False, f'Failed to update project pyproject.toml: {e}'
+
+        # --- 9. Update marketplace.toml ---
+        on_output('Updating marketplace.toml...')
+        try:
+            if marketplace_path.exists():
+                data = toml.loads(marketplace_path.read_text())
+                for pkg in data.get('packages', []):
+                    if pkg.get('name', '').lower() == dist_name.lower():
+                        pkg['name'] = new_lib_name
+                        pkg['description'] = desc_val
+                        pkg['install_spec'] = str(new_lib_dir)
+                        pkg['docs_url'] = str(new_lib_dir / new_module)
+                        break
+                marketplace_path.write_text(toml.dumps(data))
+        except (OSError, KeyError) as e:
+            return False, f'Failed to update marketplace.toml: {e}'
+
+        # --- 10. Run uv sync ---
+        on_output('Running uv sync...')
+        proc = await asyncio.create_subprocess_exec(
+            'uv', 'sync',
+            cwd=workspace_root,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        async for line in proc.stdout:
+            on_output(line.decode().rstrip())
+        await proc.wait()
+        if proc.returncode != 0:
+            return (
+                False,
+                f'uv sync failed — filesystem already renamed, '
+                f'run "uv sync" manually in {workspace_root}',
+            )
+
+        # --- 11. Rescan and re-enable ---
+        on_output('Rescanning libraries...')
+        self._invalidate_caches()
+        await asyncio.to_thread(self.registry.scan_for_libraries)
+        self.registry.enable_all_libraries()
+
+        return True, f'Renamed to haybale-{new_name}'
+
     def list_installed(self) -> list[InstalledLibrary]:
         """List all discovered libraries with their status."""
         libraries = []
@@ -269,6 +471,9 @@ class LibraryManager:
                 source_path=str(source) if source else '',
                 tags=identity.tags if identity and identity.tags else [],
                 distribution_name=dist_name or '',
+                url=identity.url if identity else '',
+                help_url=identity.help_url if identity else '',
+                author_url=identity.author_url if identity else '',
             ))
         return libraries
 
