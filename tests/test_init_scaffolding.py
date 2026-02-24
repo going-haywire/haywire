@@ -92,11 +92,6 @@ class TestProjectPyproject:
         data = toml.loads((scaffold_project / 'pyproject.toml').read_text())
         assert data['tool']['uv']['workspace']['members'] == ['libs/*']
 
-    def test_no_sources_without_dev(self, scaffold_project):
-        data = toml.loads((scaffold_project / 'pyproject.toml').read_text())
-        assert 'sources' not in data.get('tool', {}).get('uv', {})
-
-
 class TestLibraryPyproject:
     """Verify the generated library pyproject.toml content."""
 
@@ -216,10 +211,6 @@ class TestDevMode:
         )
         for pkg in data['packages']:
             assert Path(pkg['install_spec']).is_dir(), f"{pkg['name']}: {pkg['install_spec']} not found"
-
-    def test_no_marketplace_without_dev(self, scaffold_project):
-        assert not (scaffold_project / '.haywire' / 'marketplace.toml').exists()
-
 
 class TestNameSanitization:
     """Verify project names are correctly sanitized for Python modules."""

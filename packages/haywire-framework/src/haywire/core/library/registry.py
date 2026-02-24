@@ -128,6 +128,24 @@ class LibraryRegistry:
             logger.info(f"Library '{library.identity.label}': Disabled")
             return True
         return False
+
+    def remove_library(self, library_registry_id: str) -> bool:
+        """Disable, unregister, and fully remove a library from all tracking dicts.
+
+        After calling this, a subsequent scan_for_libraries() will rediscover
+        and reimport the library from scratch, picking up any changes made to
+        its source files (e.g. updated @library decorator values).
+        """
+        library = self._libraries.get(library_registry_id)
+        if not library:
+            return False
+        library.disable()
+        self._unregister(library_registry_id)
+        self._library_sources.pop(library_registry_id, None)
+        self._library_install_types.pop(library_registry_id, None)
+        self._library_distribution_names.pop(library_registry_id, None)
+        logger.info(f"Library '{library_registry_id}': Fully removed (ready for reload)")
+        return True
     
     def is_library_enabled(self, library_registry_id: str) -> bool:
         """Check if a library is enabled"""

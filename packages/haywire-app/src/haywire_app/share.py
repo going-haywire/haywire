@@ -52,6 +52,19 @@ def _ssh_to_https(url: str) -> str:
     return url
 
 
+def _read_library_label(module_dir: Path, fallback: str) -> str:
+    """Read the label from the @library decorator in module_dir/__init__.py.
+
+    Falls back to *fallback* if the file is missing or the field can't be found.
+    """
+    init_file = module_dir / '__init__.py'
+    if not init_file.exists():
+        return fallback
+    content = init_file.read_text()
+    match = re.search(r"label\s*=\s*['\"]([^'\"]+)['\"]", content)
+    return match.group(1) if match else fallback
+
+
 def _find_module_dir(lib_dir: Path) -> Path | None:
     """Return the Python package directory inside lib_dir.
 
@@ -147,10 +160,14 @@ def share_library(library_path: str | None):
         subdirectory = lib_dir.relative_to(Path.cwd()) if lib_dir.is_relative_to(Path.cwd()) else lib_dir.name
         install_spec = f'{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}'
 
+    # Read human-readable label from the @library decorator (falls back to derived name)
+    module_dir = _find_module_dir(lib_dir)
+    label_fallback = name.removeprefix('haybale-').replace('-', ' ').replace('_', ' ').title()
+    label = _read_library_label(module_dir, label_fallback) if module_dir else label_fallback
+
     # Build docs_url — raw URL pointing to the Python package directory
     # (where OVERVIEW.md and docs/ live).  Only meaningful for GitHub/GitLab.
     docs_url = ''
-    module_dir = _find_module_dir(lib_dir)
     if remote_url and module_dir:
         # https_url already computed above (stripped .git suffix)
         module_rel = module_dir.relative_to(git_root)
@@ -163,6 +180,7 @@ def share_library(library_path: str | None):
     # Build TOML snippet
     entry = {
         'name': name,
+        'label': label,
         'version': version,
         'description': description,
         'author': author,

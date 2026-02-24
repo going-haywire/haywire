@@ -149,6 +149,8 @@ from haywire.ui.widget.registry import WidgetRegistry
     help_url='',
     author='',
     author_url='',
+    dependencies=['haybale_core'],
+    tags=['experimental', 'project-local'],
     file_watcher=True,
 )
 class Library(BaseLibrary):
@@ -192,8 +194,10 @@ class Library(BaseLibrary):
 def _project_lib_entry(name: str, module_name: str, project_dir: Path) -> dict:
     """Build a marketplace entry for the project's own scaffolded library."""
     lib_path = project_dir / 'libs' / f'haybale-{name}'
+    label = name.replace('-', ' ').replace('_', ' ').title()
     return {
         'name': f'haybale-{name}',
+        'label': label,
         'version': '0.1.0',
         'description': f'Local library for the {name} project',
         'source': 'local',
@@ -230,10 +234,12 @@ def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, projec
     dev repo, so developers can install any of them from the Library Manager.
     """
     def _lib(lib_name, version, description, author, tags):
+        label = lib_name.removeprefix('haybale-').replace('-', ' ').replace('_', ' ').title()
         lib_module = lib_name.replace('-', '_')
         lib_path = f'{dev_repo}/libraries/{lib_name}'
         return {
             'name': lib_name,
+            'label': label,
             'version': version,
             'description': description,
             'author': author,

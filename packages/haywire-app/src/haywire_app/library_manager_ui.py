@@ -67,6 +67,9 @@ class LibraryManagerPage:
         # Async-populated entries from remote [[sources]] in ~/.haywire/marketplace.toml
         self._extra_marketplace_entries: list[MarketplaceEntry] = []
 
+        # Cache for local marketplace file reads; invalidated on refresh/install/rename
+        self._marketplace_cache: list[MarketplaceEntry] | None = None
+
     # ─────────────────────────────────────────────────────────────────────────
     # Page structure
     # ─────────────────────────────────────────────────────────────────────────
@@ -359,7 +362,7 @@ class LibraryManagerPage:
                 self._section_label('AVAILABLE')
                 for pkg in available:
                     self._left_item(
-                        pkg.name, pkg.version, 'teal', pkg.name, True,
+                        pkg.label or pkg.name, pkg.version, 'teal', pkg.name, True,
                         source_label=pkg.source_label,
                     )
 
@@ -479,9 +482,10 @@ class LibraryManagerPage:
             version = installed_lib.version
             description = installed_lib.description
             author = installed_lib.author
-            tags = installed_lib.tags or []
+            # Fall back to marketplace tags when the installed identity has none
+            tags = installed_lib.tags or (marketplace_pkg.tags if marketplace_pkg else []) or []
         else:
-            name = marketplace_pkg.name
+            name = marketplace_pkg.label or marketplace_pkg.name
             version = marketplace_pkg.version
             description = marketplace_pkg.description
             author = marketplace_pkg.author
@@ -515,9 +519,22 @@ class LibraryManagerPage:
                 # ── Header ────────────────────────────────────────────────────
                 with ui.row().classes('w-full items-start justify-between mb-2'):
                     with ui.column().classes('gap-0.5 min-w-0 flex-1'):
-                        ui.label(name).classes('text-2xl font-bold break-words')
+                        _title_url = (installed_lib.url if installed_lib else '') or ''
+                        if _title_url.startswith('http'):
+                            with ui.row().classes('items-center gap-1'):
+                                ui.label(name).classes('text-2xl font-bold')
+                                with ui.link(target=_title_url, new_tab=True).style('line-height:0'):
+                                    ui.icon('open_in_new', size='16px').classes('text-blue-400 opacity-60')
+                        else:
+                            ui.label(name).classes('text-2xl font-bold break-words')
                         with ui.row().classes('items-center gap-2 mt-1 flex-wrap'):
                             ui.label(f'v{version}').classes('text-sm text-gray-400')
+                            _dist_name = (
+                                (installed_lib.distribution_name if installed_lib else None)
+                                or (marketplace_pkg.name if marketplace_pkg else None)
+                            )
+                            if _dist_name:
+                                ui.label(_dist_name).classes('text-xs text-gray-300 font-mono')
                             if installed_lib:
                                 inst_color = {
                                     'EDITABLE': 'purple',
@@ -565,10 +582,10 @@ class LibraryManagerPage:
                             # Rename (project lib) or Uninstall (other removable installs)
                             if self._is_project_library(installed_lib):
                                 ui.button(
-                                    'Rename',
-                                    icon='drive_file_rename_outline',
+                                    'Edit',
+                                    icon='edit',
                                     on_click=lambda _lib=installed_lib: (
-                                        self._show_rename_warning(_lib)
+                                        self._build_edit_dialog(_lib).open()
                                     ),
                                 ).props('size=sm color=blue flat')
                             elif installed_lib.install_type in ('REGULAR', 'EDITABLE'):
@@ -618,13 +635,26 @@ class LibraryManagerPage:
                 if description:
                     ui.label(description).classes('text-gray-600 text-sm mb-1')
                 if author:
-                    ui.label(f'By {author}').classes('text-xs text-gray-400')
+                    _author_url = (installed_lib.author_url if installed_lib else '') or ''
+                    if _author_url.startswith('http'):
+                        with ui.row().classes('items-center gap-1'):
+                            ui.label('By').classes('text-xs text-gray-400')
+                            ui.link(author, _author_url, new_tab=True).classes('text-xs text-blue-400')
+                    else:
+                        ui.label(f'By {author}').classes('text-xs text-gray-400')
+                # Collect relevant links: source repo, docs (website is on the title icon)
+                _links: list[tuple[str, str]] = []
                 if marketplace_pkg and marketplace_pkg.source_url:
-                    ui.link(
-                        marketplace_pkg.source_url,
-                        marketplace_pkg.source_url,
-                        new_tab=True,
-                    ).classes('text-xs text-blue-500 mt-1')
+                    _links.append(('Source', marketplace_pkg.source_url))
+                if (marketplace_pkg and marketplace_pkg.docs_url
+                        and marketplace_pkg.docs_url.startswith('http')):
+                    _links.append(('Docs', marketplace_pkg.docs_url))
+                if _links:
+                    with ui.row().classes('items-center gap-3 mt-1 flex-wrap'):
+                        for _lbl, _href in _links:
+                            with ui.row().classes('items-center gap-0.5'):
+                                ui.link(_lbl, _href, new_tab=True).classes('text-xs text-blue-400')
+                                ui.icon('open_in_new', size='10px').classes('text-blue-300')
                 if tags:
                     with ui.row().classes('gap-1 mt-2 flex-wrap'):
                         for tag in tags:
@@ -673,13 +703,17 @@ class LibraryManagerPage:
                             self._render_widgets_tab(installed_lib)
                     with ui.tab_panel(t_types):
                         with ui.column().classes('w-full p-6 gap-1'):
-                            self._render_types_tab(installed_lib)
+                            self._render_generic_component_tab(installed_lib, self.type_registry, 'types')
                     with ui.tab_panel(t_adapters):
                         with ui.column().classes('w-full p-6 gap-1'):
-                            self._render_adapters_tab(installed_lib)
+                            self._render_generic_component_tab(
+                                installed_lib, self.adapter_registry, 'adapters'
+                            )
                     with ui.tab_panel(t_renderers):
                         with ui.column().classes('w-full p-6 gap-1'):
-                            self._render_renderers_tab(installed_lib)
+                            self._render_generic_component_tab(
+                                installed_lib, self.renderer_registry, 'renderers'
+                            )
 
             elif marketplace_pkg and not installed_lib:
                 # Marketplace-only: async-load OVERVIEW.md from source repo
@@ -850,18 +884,19 @@ class LibraryManagerPage:
                             with ui.column().classes('w-full items-center py-1'):
                                 ui.label('—').classes('text-xs text-gray-300 italic')
 
-    def _render_types_tab(self, lib: InstalledLibrary):
-        """Render the type list for this library."""
-        if not self.type_registry:
-            ui.label('Type registry not available.').classes(
+    def _render_generic_component_tab(self, lib: InstalledLibrary, registry, comp_type: str):
+        """Render a flat component list (types, adapters, renderers) for this library."""
+        comp_singular = comp_type.removesuffix('s')
+        if not registry:
+            ui.label(f'{comp_singular.title()} registry not available.').classes(
                 'text-gray-400 italic text-sm'
             )
             return
 
-        prefix = f'{lib.library_id}:type:'
+        prefix = f'{lib.library_id}:{comp_singular}:'
         items = [
-            (k, self.type_registry.get(k))
-            for k in self.type_registry.list_names()
+            (k, registry.get(k))
+            for k in registry.list_names()
             if k.startswith(prefix)
         ]
         items = [
@@ -871,124 +906,24 @@ class LibraryManagerPage:
         ]
 
         if not items:
-            ui.label('No types registered for this library.').classes(
+            ui.label(f'No {comp_type} registered for this library.').classes(
                 'text-gray-400 italic text-sm py-4'
             )
             return
 
-        for key, cls in sorted(
-            items, key=lambda x: x[1].class_identity.label or ''
-        ):
+        for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or ''):
             ident = cls.class_identity
             class_name = key.split(':')[-1]
             with ui.row().classes(
                 'w-full items-start gap-3 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer'
             ).on(
                 'click',
-                lambda cn=class_name, l=lib: self._select_component(l, cn, 'types'),
+                lambda cn=class_name, lib=lib, ct=comp_type: self._select_component(lib, cn, ct),
             ):
                 with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    ui.label(ident.label or class_name).classes(
-                        'text-sm font-medium'
-                    )
+                    ui.label(ident.label or class_name).classes('text-sm font-medium')
                     if ident.description:
-                        ui.label(ident.description).classes(
-                            'text-xs text-gray-400 truncate'
-                        )
-                    ui.label(key).classes('text-xs text-gray-300 font-mono')
-
-    def _render_adapters_tab(self, lib: InstalledLibrary):
-        """Render the adapter list for this library."""
-        if not self.adapter_registry:
-            ui.label('Adapter registry not available.').classes(
-                'text-gray-400 italic text-sm'
-            )
-            return
-
-        prefix = f'{lib.library_id}:adapter:'
-        items = [
-            (k, self.adapter_registry.get(k))
-            for k in self.adapter_registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [
-            (k, c)
-            for k, c in items
-            if c and hasattr(c, 'class_identity') and c.class_identity
-        ]
-
-        if not items:
-            ui.label('No adapters registered for this library.').classes(
-                'text-gray-400 italic text-sm py-4'
-            )
-            return
-
-        for key, cls in sorted(
-            items, key=lambda x: x[1].class_identity.label or ''
-        ):
-            ident = cls.class_identity
-            class_name = key.split(':')[-1]
-            with ui.row().classes(
-                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer'
-            ).on(
-                'click',
-                lambda cn=class_name, l=lib: self._select_component(l, cn, 'adapters'),
-            ):
-                with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    ui.label(ident.label or class_name).classes(
-                        'text-sm font-medium'
-                    )
-                    if ident.description:
-                        ui.label(ident.description).classes(
-                            'text-xs text-gray-400 truncate'
-                        )
-                    ui.label(key).classes('text-xs text-gray-300 font-mono')
-
-    def _render_renderers_tab(self, lib: InstalledLibrary):
-        """Render the renderer list for this library."""
-        if not self.renderer_registry:
-            ui.label('Renderer registry not available.').classes(
-                'text-gray-400 italic text-sm'
-            )
-            return
-
-        prefix = f'{lib.library_id}:renderer:'
-        items = [
-            (k, self.renderer_registry.get(k))
-            for k in self.renderer_registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [
-            (k, c)
-            for k, c in items
-            if c and hasattr(c, 'class_identity') and c.class_identity
-        ]
-
-        if not items:
-            ui.label('No renderers registered for this library.').classes(
-                'text-gray-400 italic text-sm py-4'
-            )
-            return
-
-        for key, cls in sorted(
-            items, key=lambda x: x[1].class_identity.label or ''
-        ):
-            ident = cls.class_identity
-            class_name = key.split(':')[-1]
-            with ui.row().classes(
-                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer'
-            ).on(
-                'click',
-                lambda cn=class_name, l=lib: self._select_component(l, cn, 'renderers'),
-            ):
-                with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    ui.label(ident.label or class_name).classes(
-                        'text-sm font-medium'
-                    )
-                    if ident.description:
-                        ui.label(ident.description).classes(
-                            'text-xs text-gray-400 truncate'
-                        )
+                        ui.label(ident.description).classes('text-xs text-gray-400 truncate')
                     ui.label(key).classes('text-xs text-gray-300 font-mono')
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -1423,6 +1358,7 @@ class LibraryManagerPage:
                         ui.notify('Saved.', type='positive')
                         dlg.close()
                         # Re-read local sources immediately; clear + re-fetch remote ones
+                        self._marketplace_cache = None
                         self._extra_marketplace_entries.clear()
                         self._render_left_list()
                         asyncio.ensure_future(self._load_remote_sources())
@@ -1459,6 +1395,13 @@ class LibraryManagerPage:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _get_marketplace_packages(self) -> list[MarketplaceEntry]:
+        if self._marketplace_cache is None:
+            self._marketplace_cache = self._load_local_marketplace_packages()
+        # Remote entries are appended separately (populated async by _load_remote_sources)
+        return self._marketplace_cache + self._extra_marketplace_entries
+
+    def _load_local_marketplace_packages(self) -> list[MarketplaceEntry]:
+        """Read and parse all local marketplace files (project + local-path sources)."""
         from .config import get_marketplace_sources
         entries: list[MarketplaceEntry] = []
 
@@ -1482,9 +1425,12 @@ class LibraryManagerPage:
                     e.source_file = str(p)
                     entries.append(e)
 
-        # 3. Remote-fetched entries (populated asynchronously by _load_remote_sources)
-        entries.extend(self._extra_marketplace_entries)
         return entries
+
+    @staticmethod
+    def _normalize_pkg_id(name: str) -> str:
+        """Normalize a package name to a comparable library ID (strips haybale- prefix)."""
+        return name.removeprefix('haybale-').lower()
 
     def _is_pkg_installed(
         self,
@@ -1499,7 +1445,7 @@ class LibraryManagerPage:
             for lib in libraries
             if lib.distribution_name
         }
-        pkg_id = pkg.name.replace('haybale-', '').lower()
+        pkg_id = self._normalize_pkg_id(pkg.name)
         return (
             pkg_id in installed_ids
             or pkg.name.lower() in installed_ids
@@ -1524,7 +1470,7 @@ class LibraryManagerPage:
     ) -> MarketplaceEntry | None:
         """Find the marketplace entry matching an installed library (if any)."""
         for pkg in self._get_marketplace_packages():
-            pkg_id = pkg.name.replace('haybale-', '').lower()
+            pkg_id = self._normalize_pkg_id(pkg.name)
             if (
                 pkg_id == lib.library_id.lower()
                 or pkg.name.lower() == lib.library_id.lower()
@@ -1544,7 +1490,7 @@ class LibraryManagerPage:
         """Find the installed library matching a marketplace package (if any)."""
         if libraries is None:
             libraries = self.manager.list_installed()
-        pkg_id = pkg.name.replace('haybale-', '').lower()
+        pkg_id = self._normalize_pkg_id(pkg.name)
         for lib in libraries:
             if (
                 lib.library_id.lower() == pkg_id
@@ -1573,6 +1519,7 @@ class LibraryManagerPage:
         ui.notify(message, type=color_map.get(msg_type, 'info'))
 
     def _refresh_all(self):
+        self._marketplace_cache = None
         if self._selected_id:
             self._select(self._selected_id, self._selected_is_marketplace)
         else:
@@ -1652,15 +1599,101 @@ class LibraryManagerPage:
         self._render_left_list()
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Rename (project library)
+    # Edit (project library identity + optional rename)
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _show_rename_warning(self, lib: InstalledLibrary):
-        """Show a safety warning before opening the rename dialog."""
-        # Build the rename dialog now while the page context is active.
-        # _proceed() only needs to call .open(), which never needs a slot context.
-        rename_dialog = self._build_rename_dialog(lib)
+    def _build_edit_dialog(self, lib: InstalledLibrary) -> 'ui.dialog':
+        """Build the Edit dialog — all identity fields are immediately editable.
 
+        The package name field is locked behind a padlock icon.  Clicking the
+        padlock shows a warning dialog; if the user confirms, the name field
+        becomes editable and saving triggers a full rename.  When only identity
+        fields are changed (name unchanged), a lightweight save is performed
+        without any directory rename or uv sync.
+        """
+        old_name_part = (
+            lib.distribution_name.removeprefix('haybale-')
+            if lib.distribution_name
+            else lib.library_id
+        )
+        _state = {'unlocked': False}
+
+        with ui.dialog() as edit_dialog, ui.card().style('width: 480px;').classes('gap-3'):
+            ui.label('Edit Library').classes('text-lg font-bold')
+            ui.label(f'haybale-{old_name_part}').classes('text-sm text-gray-500 font-mono')
+            ui.separator()
+
+            ui.label('Identity').classes(
+                'text-xs font-bold text-gray-400 uppercase tracking-wider'
+            )
+            label_input      = ui.input(label='Label',       value=lib.label).classes('w-full')
+            version_input    = ui.input(label='Version',     value=lib.version or '0.1.0').classes('w-full')
+            desc_input       = ui.input(label='Description', value=lib.description).classes('w-full')
+            author_input     = ui.input(label='Author',      value=lib.author).classes('w-full')
+            author_url_input = ui.input(label='Author URL',  value=lib.author_url).classes('w-full')
+            url_input        = ui.input(label='URL',         value=lib.url).classes('w-full')
+            tags_input = ui.input(
+                label='Tags (comma-separated)',
+                value=', '.join(lib.tags or []),
+            ).classes('w-full')
+            deps_input = ui.input(
+                label='Dependencies (comma-separated)',
+                value=', '.join(lib.dependencies or []),
+            ).classes('w-full')
+
+            ui.separator()
+
+            ui.label('Package Name').classes(
+                'text-xs font-bold text-gray-400 uppercase tracking-wider'
+            )
+            with ui.row().classes('w-full items-center gap-2'):
+                ui.label('haybale-').classes('text-sm font-mono text-gray-500 flex-shrink-0')
+                name_input = (
+                    ui.input(value=old_name_part)
+                    .classes('flex-1')
+                    .props('dense')
+                )
+                name_input.disable()
+                lock_btn = (
+                    ui.button(icon='lock')
+                    .props('flat round dense size=sm color=orange')
+                    .tooltip('Click to unlock — renaming breaks saved graph references')
+                )
+            preview_label = ui.label('').classes('text-xs text-gray-400 font-mono')
+
+            def _update_preview():
+                v = name_input.value.strip()
+                if _state['unlocked'] and v and v != old_name_part:
+                    mod = 'haybale_' + re.sub(r'[^a-zA-Z0-9_]', '_', v.lower())
+                    preview_label.set_text(f'Package: haybale-{v}  ·  Module: {mod}')
+                else:
+                    preview_label.set_text('')
+
+            name_input.on('update:model-value', lambda _: _update_preview())
+
+            async def _save():
+                new_name = name_input.value.strip()
+                identity = {
+                    'label':        label_input.value.strip(),
+                    'version':      version_input.value.strip().lstrip('vV'),
+                    'description':  desc_input.value.strip(),
+                    'url':          url_input.value.strip(),
+                    'author':       author_input.value.strip(),
+                    'author_url':   author_url_input.value.strip(),
+                    'tags':         [t.strip() for t in tags_input.value.split(',') if t.strip()],
+                    'dependencies': [d.strip() for d in deps_input.value.split(',') if d.strip()],
+                }
+                edit_dialog.close()
+                if _state['unlocked'] and new_name and new_name != old_name_part:
+                    await self._do_rename(lib, new_name, identity)
+                else:
+                    await self._do_update_identity(lib, identity)
+
+            with ui.row().classes('w-full justify-end gap-2 mt-2'):
+                ui.button('Cancel', on_click=edit_dialog.close).props('flat size=sm')
+                ui.button('Save Changes', on_click=_save).props('color=primary size=sm')
+
+        # ── Warning dialog (sibling to edit_dialog, opened by lock click) ──────
         with ui.dialog() as warn_dialog, ui.card().classes('max-w-md gap-3'):
             with ui.row().classes('items-center gap-2'):
                 ui.icon('warning', size='24px').classes('text-orange-500')
@@ -1676,116 +1709,66 @@ class LibraryManagerPage:
                 'those will also need to be updated.'
             ).classes('text-sm text-gray-600')
             ui.label(
-                "Only proceed if you have a backup of this project and this "
-                "project's graphs/ folder is the only place these nodes are "
-                "used — or if you really know what you're doing. Alternatively "
-                "be prepared to enter a world of pain."
+                "Only proceed if you have a backup of this project and this project's "
+                "graphs/ folder is the only place these nodes are used — or if you "
+                "really know what you're doing. Alternatively be prepared to enter a "
+                "world of pain."
             ).classes('text-sm text-gray-500 italic')
+
+            def _unlock_name():
+                warn_dialog.close()
+                _state['unlocked'] = True
+                name_input.enable()
+                lock_btn.props('icon=lock_open color=blue-grey')
+
             with ui.row().classes('w-full justify-end gap-2 mt-1'):
                 ui.button('Cancel', on_click=warn_dialog.close).props('flat size=sm')
-                def _proceed():
-                    warn_dialog.close()
-                    rename_dialog.open()
                 ui.button(
-                    'Proceed to Rename',
-                    icon='arrow_forward',
-                    on_click=_proceed,
+                    'Unlock Name Field', icon='lock_open', on_click=_unlock_name,
                 ).props('color=warning size=sm')
-        warn_dialog.open()
 
-    def _show_rename_dialog(self, lib: InstalledLibrary):
-        """Build and immediately open the rename dialog."""
-        self._build_rename_dialog(lib).open()
+        def _lock_clicked():
+            if _state['unlocked']:
+                _state['unlocked'] = False
+                name_input.value = old_name_part
+                name_input.disable()
+                lock_btn.props('icon=lock color=orange')
+                preview_label.set_text('')
+            else:
+                warn_dialog.open()
 
-    def _build_rename_dialog(self, lib: InstalledLibrary) -> 'ui.dialog':
-        """Build the rename dialog and return it without opening."""
-        old_name_part = (
-            lib.distribution_name.removeprefix('haybale-')
-            if lib.distribution_name
-            else lib.library_id
+        lock_btn.on('click', lambda: _lock_clicked())
+        return edit_dialog
+
+    async def _do_update_identity(self, lib: InstalledLibrary, identity: dict[str, str]):
+        """Save identity fields, then rescan so the in-memory identity is refreshed."""
+        if not self.marketplace_path:
+            self._set_status('No project workspace set.', 'error')
+            return
+        workspace_root = str(Path(self.marketplace_path).parent.parent)
+
+        # Write __init__.py + marketplace.toml; also disables lib + ejects module
+        success, message = await asyncio.to_thread(
+            self.manager.update_library_identity,
+            lib.library_id,
+            workspace_root,
+            identity,
         )
+        if not success:
+            self._set_status(message, 'error')
+            return
 
-        with ui.dialog() as dialog, ui.card().style('width: 480px; gap: 12px;'):
-            ui.label('Rename Library').classes('text-lg font-bold')
-            ui.label(f'Current: haybale-{old_name_part}').classes(
-                'text-sm text-gray-500'
-            )
-            ui.separator()
-            name_input = ui.input(
-                label='New name  (part after haybale-)',
-                value=old_name_part,
-            ).classes('w-full')
-            preview = ui.label('').classes(
-                'text-xs text-gray-400 font-mono whitespace-pre-line mb-1'
-            )
+        # Rescan so the updated @library decorator values are loaded into the registry
+        self.manager._invalidate_caches()
+        await asyncio.to_thread(self.manager.registry.scan_for_libraries)
+        self.manager.registry.enable_all_libraries()
 
-            ui.separator()
-            ui.label('Library Identity').classes(
-                'text-xs font-bold text-gray-400 uppercase tracking-wider'
-            )
-            label_input = ui.input(label='Label', value=lib.label).classes('w-full')
-            version_input = ui.input(
-                label='Version', value=lib.version or '0.1.0'
-            ).classes('w-full')
-            desc_input = ui.input(
-                label='Description', value=lib.description
-            ).classes('w-full')
-            url_input = ui.input(label='URL', value=lib.url).classes('w-full')
-            help_url_input = ui.input(
-                label='Help URL', value=lib.help_url
-            ).classes('w-full')
-            author_input = ui.input(
-                label='Author', value=lib.author
-            ).classes('w-full')
-            author_url_input = ui.input(
-                label='Author URL', value=lib.author_url
-            ).classes('w-full')
-
-            identity_inputs = [
-                label_input, version_input, desc_input,
-                url_input, help_url_input, author_input, author_url_input,
-            ]
-            for inp in identity_inputs:
-                inp.disable()
-
-            confirm_btn = ui.button('Rename').props('color=primary size=sm')
-            confirm_btn.disable()
-
-            def _update():
-                v = name_input.value.strip()
-                valid = bool(v) and v != old_name_part
-                mod = 'haybale_' + re.sub(r'[^a-zA-Z0-9_]', '_', v.lower()) if v else ''
-                preview.set_text(
-                    f'Package:  haybale-{v}\nModule:   {mod}' if v else ''
-                )
-                for inp in identity_inputs:
-                    inp.set_enabled(valid)
-                if valid:
-                    label_input.value = v.replace('-', ' ').replace('_', ' ').title()
-                    desc_input.value = f'Local library for {v} project'
-                confirm_btn.set_enabled(valid)
-
-            name_input.on('update:model-value', lambda _: _update())
-
-            async def _confirm_rename():
-                new_name = name_input.value.strip()
-                identity = {
-                    'label': label_input.value.strip(),
-                    'version': version_input.value.strip(),
-                    'description': desc_input.value.strip(),
-                    'url': url_input.value.strip(),
-                    'help_url': help_url_input.value.strip(),
-                    'author': author_input.value.strip(),
-                    'author_url': author_url_input.value.strip(),
-                }
-                dialog.close()
-                await self._do_rename(lib, new_name, identity)
-
-            with ui.row().classes('w-full justify-end gap-2 mt-2'):
-                ui.button('Cancel', on_click=dialog.close).props('flat size=sm')
-                confirm_btn.on('click', _confirm_rename)
-
-        return dialog
+        self._marketplace_cache = None
+        self._set_status(f'Saved: {identity.get("label", lib.label)}', 'success')
+        if self._selected_id:
+            self._select(self._selected_id, self._selected_is_marketplace)
+        else:
+            self._render_left_list()
 
     async def _do_rename(
         self,
@@ -1825,6 +1808,7 @@ class LibraryManagerPage:
         )
 
         self._selected_id = None
+        self._marketplace_cache = None
         self._render_right_placeholder()
         self._render_center_placeholder()
         self._render_left_list()
