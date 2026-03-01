@@ -21,7 +21,7 @@ from haywire.core.registry.lifecycle_event import (
     LifeCycleEvent,
     LifeCycleEventType
 )
-from haywire.ui.editor.event_definitions import (
+from haywire.ui.graph_canvas.event_definitions import (
     SyncConnectionAdditionEvent,
     BaseGraphEvent
 )

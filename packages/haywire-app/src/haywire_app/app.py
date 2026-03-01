@@ -30,7 +30,7 @@ from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.graph.utils.graph_to_python import graph_to_python_script
 
 from haywire.ui.console_bridge import ConsoleBridge
-from haywire.ui.editor.graph_canvas_manager import GraphCanvasManager
+from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
 from haywire.ui.themes import ThemePalette
 
@@ -192,6 +192,23 @@ class HaywireApp:
             except Exception as e:
                 print(f"    Error canceling console timer: {e}")
         
+        # Clean up new-style Haywire Session (editor instances, context subscribers)
+        haywire_session = session_data.get('haywire_session')
+        if haywire_session:
+            haywire_session_id = session_data.get('haywire_session_id')
+            if haywire_session_id and hasattr(self, 'session_manager'):
+                # Remove from SessionManager (which also calls session.cleanup())
+                try:
+                    self.session_manager.remove_session(haywire_session_id)
+                except Exception as e:
+                    print(f"    Error removing session from manager: {e}")
+            else:
+                # Fallback: cleanup directly
+                try:
+                    haywire_session.cleanup()
+                except Exception as e:
+                    print(f"    Error cleaning up haywire session: {e}")
+
         # Clear UI containers - skip if shutting down (clients already deleted)
         if not self._is_shutting_down:
             containers = session_data.get('ui_containers', {})
@@ -200,7 +217,7 @@ class HaywireApp:
                     container.clear()
                 except Exception as e:
                     pass  # Client likely deleted
-        
+
         # Remove from sessions dict
         del self.sessions[client_id]
         
@@ -254,6 +271,10 @@ class HaywireApp:
     
     def setup_shared_services(self):
         """Setup services and data shared across all sessions."""
+        # Session manager for tracking all active Haywire sessions
+        from haywire.ui.session_manager import SessionManager
+        self.session_manager = SessionManager()
+
         # Get services from the library system (shared)
         self.node_registry = self.library_service.get_node_registry()
         self.node_factory = self.library_service.get_node_factory()
@@ -304,6 +325,15 @@ class HaywireApp:
         )
         # Apply persisted disabled state from project config
         self.library_manager.apply_persisted_state()
+
+        # Register app-level editors (library browser suite) into the EditorTypeRegistry
+        from haywire.ui.editor.registry import EditorTypeRegistry
+        from .editors.library_browser import LibraryBrowser
+        from .editors.library_detail_editor import LibraryDetailEditor
+        from .editors.component_detail_editor import ComponentDetailEditor
+        _editor_registry = self.library_service.injector.get(EditorTypeRegistry)
+        for _cls in [LibraryBrowser, LibraryDetailEditor, ComponentDetailEditor]:
+            _editor_registry._register_class(_cls, library_identity=None)
 
         print(f"History manager available: {self.history_manager is not None}")
         print("Editor created with change callbacks")
@@ -362,7 +392,14 @@ class HaywireApp:
                         f"Error scheduling graph change for "
                         f"session {client_id[:8]}: {e}"
                     )
-                    
+
+        # Broadcast DATA_MUTATED to all Haywire sessions (new-style editors)
+        if hasattr(self, 'session_manager'):
+            try:
+                self.session_manager.broadcast_data_mutation()
+            except Exception as e:
+                print(f"Error broadcasting data mutation: {e}")
+
     def setup_library_system(self):
         """Initialize the library system service."""
         # Store undo config for UI access
@@ -414,32 +451,35 @@ class HaywireApp:
             )
             page.create_page()
 
-        @ui.page('/', title="Enhanced Haywire Test App with Canvas Manager")
+        @ui.page('/', title="Haywire")
         def main_page():
-            # Get session-specific data
+            from haywire.ui.session import Session
+            from haywire.ui.app_shell import AppShell
+            from haywire.ui.editor.registry import EditorTypeRegistry
+            from haywire.ui.panel.registry import PanelRegistry
+
+            # Get or create the legacy session_data (for backward-compat cleanup hooks)
             session_data, client_id = self.get_session_data()
-            
-            # Store current session in UI context
             self.current_session = session_data
             self.current_client_id = client_id
-            
+
             print(f"Creating UI for session: {client_id[:8]}")
-            
-            self.create_header()
-            
-            with ui.row().classes('w-full flex-grow gap-4 p-4').style(
-                'height: calc(100vh - 80px);'
-            ):
-                self.create_left_panel()
-                self.create_main_editor()
-            
-            # Set up periodic UI update timer for interpreter stats
-            # This runs on the main thread and safely updates UI
-            session_data['interpreter_timer'] = ui.timer(
-                    0.1,  # Update every 100ms
-                    lambda: self.update_interpreter_display(),
-                    active=True
-                )
+
+            # Create new-style Session (tracked by SessionManager) and AppShell
+            haywire_session = self.session_manager.create_session(
+                project_state=self,
+                project_path=Path(self.workspace_root),
+            )
+            # Make project_state, registries and session accessible to editors via context.metadata
+            haywire_session.context.metadata['project_state'] = self
+            haywire_session.context.metadata['panel_registry'] = self.library_service.injector.get(PanelRegistry)
+            haywire_session.context.metadata['haywire_session'] = haywire_session
+            session_data['haywire_session'] = haywire_session
+            session_data['haywire_session_id'] = haywire_session.session_id
+
+            editor_registry = self.library_service.injector.get(EditorTypeRegistry)
+            app_shell = AppShell(haywire_session, editor_registry=editor_registry)
+            app_shell.render()
 
     def create_header(self):
         """Create the application header with main controls."""

@@ -1,0 +1,86 @@
+{
+  "Graph Editing": {
+    "name": "Graph Editing",
+    "left_bar_active": "library_browser",
+    "left": {
+      "editor_key": "library_browser",
+      "visible": true,
+      "size": 250
+    },
+    "middle": {
+      "tabs": [
+        {
+          "editor_key": "graph_editor",
+          "label": "Graph",
+          "metadata": {}
+        }
+      ],
+      "active_tab_index": 0,
+      "bottom_visible": false,
+      "bottom_size": 200,
+      "bottom_editor_key": "console"
+    },
+    "right_bar_active": "properties",
+    "right": {
+      "editor_key": "properties",
+      "visible": true,
+      "size": 350
+    }
+  },
+  "Development": {
+    "name": "Development",
+    "left_bar_active": "library_browser",
+    "left": {
+      "editor_key": "library_browser",
+      "visible": true,
+      "size": 250
+    },
+    "middle": {
+      "tabs": [
+        {
+          "editor_key": "graph_editor",
+          "label": "Graph",
+          "metadata": {}
+        }
+      ],
+      "active_tab_index": 0,
+      "bottom_visible": true,
+      "bottom_size": 200,
+      "bottom_editor_key": "console"
+    },
+    "right_bar_active": "properties",
+    "right": {
+      "editor_key": "properties",
+      "visible": true,
+      "size": 350
+    }
+  },
+  "Debugging": {
+    "name": "Debugging",
+    "left_bar_active": "library_browser",
+    "left": {
+      "editor_key": "library_browser",
+      "visible": false,
+      "size": 250
+    },
+    "middle": {
+      "tabs": [
+        {
+          "editor_key": "graph_editor",
+          "label": "Graph",
+          "metadata": {}
+        }
+      ],
+      "active_tab_index": 0,
+      "bottom_visible": true,
+      "bottom_size": 300,
+      "bottom_editor_key": "console"
+    },
+    "right_bar_active": "properties",
+    "right": {
+      "editor_key": "properties",
+      "visible": true,
+      "size": 350
+    }
+  }
+}

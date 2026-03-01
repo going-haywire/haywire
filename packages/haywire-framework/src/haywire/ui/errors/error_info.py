@@ -4,7 +4,7 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.dataclasses import NodeErrorInfo
 
 from haywire.ui.errors.haywire_exception import render_error_details
-from haywire.ui.editor.popup import Popup
+from haywire.ui.graph_canvas.popup import Popup
 
 def error_render_detail(error: HaywireException) -> ui.element:
     """
