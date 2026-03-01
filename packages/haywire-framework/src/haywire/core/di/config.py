@@ -16,6 +16,10 @@ from ...ui.renderer.registry import RendererRegistry
 from ...ui.widget.registry import WidgetRegistry
 from ...ui.renderer.factory import RenderFactory
 from ...ui.themes.palette import ThemePalette
+from ...ui.editor.registry import EditorTypeRegistry
+from ...ui.panel.registry import PanelRegistry
+from ...ui.editors.builtins import register_builtin_editors
+from ...ui.panels.builtins import register_builtin_panels
 
 from ..library.registry import LibraryRegistry
 from ..node.registry import NodeRegistry
@@ -149,6 +153,30 @@ class HaywireModule(Module):
     def provide_type_registry(self) -> TypeRegistry:
         """Provide singleton TypeRegistry."""
         return TypeRegistry()
+
+    @provider
+    @singleton
+    def provide_editor_type_registry(self) -> EditorTypeRegistry:
+        """Provide singleton EditorTypeRegistry.
+
+        Built-in editors are registered via register_builtin_editors().
+        App-level editors (e.g. LibraryBrowser) are registered separately
+        in app.py after injector creation.
+        """
+        registry = EditorTypeRegistry()
+        register_builtin_editors(registry)  # stub in Phase 1; populated in Phase 4+
+        return registry
+
+    @provider
+    @singleton
+    def provide_panel_registry(self) -> PanelRegistry:
+        """Provide singleton PanelRegistry.
+
+        Built-in panels are registered via register_builtin_panels().
+        """
+        registry = PanelRegistry()
+        register_builtin_panels(registry)   # stub in Phase 1; populated in Phase 5+
+        return registry
                 
     @provider
     @singleton
