@@ -103,12 +103,17 @@ class HaywireApp:
             except Exception as e:
                 print(f"  Error cleaning up session {client_id[:8]}: {e}")
         
-        # 3. Unsubscribe from graph validation (app-level subscription)
+        # 3. Unsubscribe from graph validation and clean up graph manager
         print("  Unsubscribing from graph validation...")
         try:
             self.graph.unsubscribe_from_validation(self._on_global_graph_change)
         except Exception as e:
             print(f"  Error unsubscribing from validation: {e}")
+        try:
+            if hasattr(self, 'graph_manager'):
+                self.graph_manager.cleanup()
+        except Exception as e:
+            print(f"  Error cleaning up graph manager: {e}")
         
         # 4. Unregister theme observer
         print("  Unregistering theme observer...")
@@ -296,17 +301,23 @@ class HaywireApp:
         # Register as observer for theme changes
         ThemePalette.register_observer(self._on_theme_changed)
         
-        # Create ONE shared graph for all sessions
-        self.graph = BaseGraph(
-            "shared_graph", 
-            "Shared Graph Across Sessions"
-        )
-        
-        # Register global change listener for app-level updates
-        self.graph.subscribe_to_validation(self._on_global_graph_change)
+        # Create GraphManager + initial untitled graph
+        from .graph_manager import GraphManager
 
-        # Create shared Editor instance (graph-managed pattern)
-        self.editor = Editor(self.graph)
+        def _graph_factory(graph_id: str, name: str):
+            g = BaseGraph(graph_id, name)
+            e = Editor(g)
+            return g, e
+
+        self.graph_manager = GraphManager()
+        _untitled = self.graph_manager.create_untitled(_graph_factory)
+
+        # Backward-compat: self.graph / self.editor point to the untitled entry
+        self.graph = _untitled.graph
+        self.editor = _untitled.editor
+
+        # Register validation listener for the untitled graph
+        self.graph.subscribe_to_validation(self._on_global_graph_change)
                 
         # Global stats (shared across sessions)
         self.global_stats = {
@@ -326,13 +337,16 @@ class HaywireApp:
         # Apply persisted disabled state from project config
         self.library_manager.apply_persisted_state()
 
-        # Register app-level editors (library browser suite) into the EditorTypeRegistry
+        # Register app-level editors into the EditorTypeRegistry
         from haywire.ui.editor.registry import EditorTypeRegistry
         from .editors.library_browser import LibraryBrowser
         from .editors.library_detail_editor import LibraryDetailEditor
         from .editors.component_detail_editor import ComponentDetailEditor
+        from .editors.file_browser import FileBrowserEditor
+        from .editors.file_viewer import FileViewerEditor
         _editor_registry = self.library_service.injector.get(EditorTypeRegistry)
-        for _cls in [LibraryBrowser, LibraryDetailEditor, ComponentDetailEditor]:
+        for _cls in [LibraryBrowser, LibraryDetailEditor, ComponentDetailEditor,
+                     FileBrowserEditor, FileViewerEditor]:
             _editor_registry._register_class(_cls, library_identity=None)
 
         print(f"History manager available: {self.history_manager is not None}")
@@ -393,12 +407,49 @@ class HaywireApp:
                         f"session {client_id[:8]}: {e}"
                     )
 
-        # Broadcast DATA_MUTATED to all Haywire sessions (new-style editors)
+        # Broadcast DATA_MUTATED to sessions viewing the untitled graph
         if hasattr(self, 'session_manager'):
             try:
-                self.session_manager.broadcast_data_mutation()
+                self.session_manager.broadcast_data_mutation(graph_path=None)
             except Exception as e:
                 print(f"Error broadcasting data mutation: {e}")
+
+    def open_graph_file(self, path, session_id: str):
+        """
+        Open a .haywire file for a session, using GraphManager.
+
+        Reuses an existing GraphEntry if the file is already open (collaborative).
+        Subscribes the validation listener on first open.
+        Attaches the session to the entry.
+
+        Args:
+            path:       pathlib.Path to the .haywire file.
+            session_id: The Haywire session ID that is opening the file.
+
+        Returns:
+            The GraphEntry for the opened file.
+        """
+        def _factory(graph_id: str, name: str):
+            g = BaseGraph(graph_id, name)
+            e = Editor(g)
+            return g, e
+
+        entry = self.graph_manager.open_graph(path, _factory)
+
+        # Subscribe validation listener the first time this file is opened
+        if not entry.sessions:
+            def _handler(result, _path=path):
+                self._on_graph_validation_for_interpreter(result)
+                if hasattr(self, 'session_manager'):
+                    try:
+                        self.session_manager.broadcast_data_mutation(graph_path=_path)
+                    except Exception as exc:
+                        print(f"Error broadcasting for {_path.name}: {exc}")
+
+            entry.graph.subscribe_to_validation(_handler)
+
+        self.graph_manager.session_attach(entry, session_id)
+        return entry
 
     def setup_library_system(self):
         """Initialize the library system service."""
@@ -476,6 +527,13 @@ class HaywireApp:
             haywire_session.context.metadata['haywire_session'] = haywire_session
             session_data['haywire_session'] = haywire_session
             session_data['haywire_session_id'] = haywire_session.session_id
+
+            # Point new session at the untitled graph
+            _untitled = self.graph_manager.get_untitled()
+            if _untitled is not None:
+                haywire_session.context.active_graph = _untitled.graph
+                haywire_session.context.active_graph_path = None
+                self.graph_manager.session_attach(_untitled, haywire_session.session_id)
 
             editor_registry = self.library_service.injector.get(EditorTypeRegistry)
             app_shell = AppShell(haywire_session, editor_registry=editor_registry)

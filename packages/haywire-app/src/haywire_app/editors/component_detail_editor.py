@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 @editor(
     registry_id='component_detail',
     label='Component Detail',
-    icon='widgets',
+    icon='description',
     default_area='right',
     description='Detailed documentation for the selected node component.',
 )

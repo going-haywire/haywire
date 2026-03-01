@@ -21,6 +21,7 @@ class ContextChangeType(Enum):
     DATA_MUTATED = auto()             # graph data changed (node values, structure)
     ACTIVE_LIBRARY_CHANGED = auto()   # library selected in LibraryBrowser
     ACTIVE_COMPONENT_CHANGED = auto() # component (node/widget/renderer) selected in LibraryBrowser
+    FILE_SELECTED = auto()            # file selected in FileBrowserEditor
     CUSTOM = auto()                   # extensible
 
 

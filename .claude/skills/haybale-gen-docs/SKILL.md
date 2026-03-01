@@ -1,5 +1,5 @@
 ---
-name: haywire-docs
+name: haybale-gen-docs
 description: Generate OVERVIEW.md, QUICKREF.md, and per-component docs for a haybale library. Use when the user wants to generate or update library documentation.
 argument-hint: "[library-path]"
 ---

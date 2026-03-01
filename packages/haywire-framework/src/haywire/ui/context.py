@@ -56,4 +56,6 @@ class SessionContext:
     workspace_name: str = "default"
     active_library: Optional[Any] = None        # InstalledLibrary | MarketplaceEntry
     active_component: Optional[Any] = None      # node/widget/renderer class or metadata
+    active_file: Optional[Any] = None           # Path to the currently viewed file
+    active_graph_path: Optional[Any] = None     # Path to the currently active .haywire file
     metadata: Dict[str, Any] = field(default_factory=dict)

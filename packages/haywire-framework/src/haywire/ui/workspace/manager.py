@@ -10,7 +10,9 @@ import logging
 from pathlib import Path
 
 from haywire.ui.workspace.workspace_state import (
-    WorkspaceState, AreaState, MiddleAreaState, TabState
+    WorkspaceState, AreaState, MiddleAreaState, TabState,
+    _K_GRAPH_EDITOR, _K_LIBRARY_BROWSER, _K_LIBRARY_DETAIL,
+    _K_PROPERTIES, _K_CONSOLE, _K_FILE_VIEWER,
 )
 
 
@@ -34,52 +36,55 @@ class WorkspaceManager:
     DEFAULT_PRESETS: Dict[str, WorkspaceState] = {
         "Graph Editing": WorkspaceState(
             name="Graph Editing",
-            left_bar_active='library_browser',
-            left=AreaState(editor_key='library_browser', visible=True, size=250),
+            left_bar_active=_K_LIBRARY_BROWSER,
+            left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=True, size=250),
             middle=MiddleAreaState(
                 tabs=[
-                    TabState(editor_key='graph_editor', label='Graph'),
-                    TabState(editor_key='library_detail', label='Library'),
+                    TabState(editor_key=_K_GRAPH_EDITOR,   label='Graph'),
+                    TabState(editor_key=_K_LIBRARY_DETAIL, label='Library'),
+                    TabState(editor_key=_K_FILE_VIEWER,    label='File'),
                 ],
                 active_tab_index=0,
                 bottom_visible=False,
             ),
-            right_bar_active='properties',
-            right=AreaState(editor_key='properties', visible=True, size=350),
+            right_bar_active=_K_PROPERTIES,
+            right=AreaState(editor_key=_K_PROPERTIES, visible=True, size=350),
         ),
         "Development": WorkspaceState(
             name="Development",
-            left_bar_active='library_browser',
-            left=AreaState(editor_key='library_browser', visible=True, size=250),
+            left_bar_active=_K_LIBRARY_BROWSER,
+            left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=True, size=250),
             middle=MiddleAreaState(
                 tabs=[
-                    TabState(editor_key='graph_editor', label='Graph'),
-                    TabState(editor_key='library_detail', label='Library'),
+                    TabState(editor_key=_K_GRAPH_EDITOR,   label='Graph'),
+                    TabState(editor_key=_K_LIBRARY_DETAIL, label='Library'),
+                    TabState(editor_key=_K_FILE_VIEWER,    label='File'),
                 ],
                 active_tab_index=0,
                 bottom_visible=True,
                 bottom_size=200,
-                bottom_editor_key='console',
+                bottom_editor_key=_K_CONSOLE,
             ),
-            right_bar_active='properties',
-            right=AreaState(editor_key='properties', visible=True, size=350),
+            right_bar_active=_K_PROPERTIES,
+            right=AreaState(editor_key=_K_PROPERTIES, visible=True, size=350),
         ),
         "Debugging": WorkspaceState(
             name="Debugging",
-            left_bar_active='library_browser',
-            left=AreaState(editor_key='library_browser', visible=False, size=250),
+            left_bar_active=_K_LIBRARY_BROWSER,
+            left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=False, size=250),
             middle=MiddleAreaState(
                 tabs=[
-                    TabState(editor_key='graph_editor', label='Graph'),
-                    TabState(editor_key='library_detail', label='Library'),
+                    TabState(editor_key=_K_GRAPH_EDITOR,   label='Graph'),
+                    TabState(editor_key=_K_LIBRARY_DETAIL, label='Library'),
+                    TabState(editor_key=_K_FILE_VIEWER,    label='File'),
                 ],
                 active_tab_index=0,
                 bottom_visible=True,
                 bottom_size=300,
-                bottom_editor_key='console',
+                bottom_editor_key=_K_CONSOLE,
             ),
-            right_bar_active='properties',
-            right=AreaState(editor_key='properties', visible=True, size=350),
+            right_bar_active=_K_PROPERTIES,
+            right=AreaState(editor_key=_K_PROPERTIES, visible=True, size=350),
         ),
     }
 

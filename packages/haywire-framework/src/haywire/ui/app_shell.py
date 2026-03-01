@@ -58,7 +58,15 @@ class AppShell:
         self.session = session
         self._editor_registry = editor_registry
         self._area_containers: dict = {}  # area slot -> NiceGUI container ref
-        self._right_column = None  # stored for dynamic switching via _switch_right_area
+        self._left_column = None    # stored for dynamic switching via _switch_left_area
+        self._right_column = None   # stored for dynamic switching via _switch_right_area
+        self._left_divider = None   # drag handle between left and middle
+        self._right_divider = None  # drag handle between middle and right
+        self._bottom_container = None  # bottom split area column
+        self._bottom_divider = None    # horizontal drag handle above bottom panel
+        self._btn_left = None       # ActivityBar toggle button for left panel
+        self._btn_bottom = None     # Tab-bar toggle button for bottom panel
+        self._btn_right = None      # ContextBar toggle button for right panel
 
     def render(self) -> None:
         """Build the complete workspace layout into the current NiceGUI page."""
@@ -67,11 +75,100 @@ class AppShell:
         # Remove NiceGUI's default content padding so the shell fills the viewport.
         # Area-level tab panels must not scroll — editors own their scroll behaviour.
         ui.add_css(
-            '.nicegui-content { padding: 0 !important; max-width: none !important;'
+            # Page background — override NiceGUI/Quasar white default
+            ' body, .q-page, .q-tab-panels { background: #12121e !important; }'
+            # Layout
+            ' .nicegui-content { padding: 0 !important; max-width: none !important;'
             ' height: 100vh !important; overflow: hidden !important; }'
             ' .q-tab-panels > .q-panel-parent > .q-panel.scroll'
             ' { overflow: hidden !important; }'
+            # Middle-area tab bar — force white text on dark background
+            ' .hw-tabs .q-tab { color: rgba(255,255,255,0.55) !important; }'
+            ' .hw-tabs .q-tab--active { color: #ffffff !important; }'
+            ' .hw-tabs .q-tab__indicator { background: #4f8ef7 !important; }'
+            ' .hw-tabs .q-tab__label { font-size: 12px; }'
+            # All editor area containers and their child text
+            ' .hw-dark-panel, .hw-dark-panel * { color: rgba(255,255,255,0.87); }'
+            # Expansion items inside dark area editors (PropertiesEditor, etc.)
+            ' .hw-dark-panel .q-expansion-item { background: transparent; }'
+            ' .hw-dark-panel .q-expansion-item__header { color: rgba(255,255,255,0.8) !important; }'
+            ' .hw-dark-panel .q-icon { color: rgba(255,255,255,0.6) !important; }'
+            # Drag-resize handles between areas
+            ' .hw-area-divider { background: transparent; transition: background-color 0.15s; }'
+            ' .hw-area-divider:hover { background-color: #4f8ef7 !important; }'
+            ' .hw-area-vdivider { background: transparent; transition: background-color 0.15s; }'
+            ' .hw-area-vdivider:hover { background-color: #4f8ef7 !important; }'
         )
+        ui.add_head_html('''<script>
+(function () {
+  var drag = null;
+  // Use capture phase (true) so this handler runs before the graph canvas JS,
+  // which may call stopImmediatePropagation() on document-level mousedown events.
+  //
+  // Horizontal (.hw-area-divider): resizes the left or right panel; the middle
+  //   (flex:1) fills remaining space automatically.
+  // Vertical (.hw-area-vdivider): resizes the bottom panel; the tab area
+  //   (flex:1) fills remaining height automatically.
+  // After drag, flex:"0 1 Xpx" (horizontal) / "0 0 Xpx" (vertical) keeps the
+  // panel at its dragged size while still allowing window-resize compression.
+  document.addEventListener("mousedown", function (e) {
+    var hdiv = e.target.closest ? e.target.closest(".hw-area-divider") : null;
+    var vdiv = e.target.closest ? e.target.closest(".hw-area-vdivider") : null;
+    if (!hdiv && !vdiv) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (hdiv) {
+      var isLeft = hdiv.classList.contains("hw-area-divider-left");
+      var panel = document.getElementById(isLeft ? "hw-area-left" : "hw-area-right");
+      if (!panel) return;
+      var startW = panel.getBoundingClientRect().width;
+      panel.style.flex = "none";
+      panel.style.width = startW + "px";
+      drag = { panel: panel, vertical: false, isLeft: isLeft,
+               startPos: e.clientX, startSize: startW, minSize: 150 };
+      document.body.style.cursor = "col-resize";
+    } else {
+      var panel = document.getElementById("hw-area-bottom");
+      if (!panel) return;
+      var startH = panel.getBoundingClientRect().height;
+      panel.style.flex = "none";
+      panel.style.minHeight = "0";
+      panel.style.height = startH + "px";
+      drag = { panel: panel, vertical: true,
+               startPos: e.clientY, startSize: startH, minSize: 80 };
+      document.body.style.cursor = "row-resize";
+    }
+    document.body.style.userSelect = "none";
+  }, true);
+  document.addEventListener("mousemove", function (e) {
+    if (!drag) return;
+    if (drag.vertical) {
+      // Drag up → bottom panel grows (dy negative → bigger height)
+      var dy = e.clientY - drag.startPos;
+      var newH = Math.max(drag.minSize, drag.startSize - dy);
+      drag.panel.style.height = newH + "px";
+    } else {
+      var dx = e.clientX - drag.startPos;
+      // Left panel grows rightward (+dx); right panel grows leftward (-dx).
+      var newW = Math.max(drag.minSize, drag.startSize + (drag.isLeft ? dx : -dx));
+      drag.panel.style.width = newW + "px";
+    }
+  }, true);
+  document.addEventListener("mouseup", function () {
+    if (!drag) return;
+    if (drag.vertical) {
+      // flex: 0 0 keeps exact height; no shrink (avoids fighting the parent flex layout).
+      drag.panel.style.flex = "0 0 " + drag.panel.style.height;
+    } else {
+      // flex-shrink:1 lets the panel compress when the window gets smaller.
+      drag.panel.style.flex = "0 1 " + drag.panel.style.width;
+    }
+    drag = null;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, true);
+})();
+</script>''')
 
         with ui.column().classes('w-full gap-0').style('height: 100vh; overflow: hidden;'):
             # ----------------------------------------------------------------
@@ -81,34 +178,63 @@ class AppShell:
 
             # ----------------------------------------------------------------
             # Main content row (ActivityBar + Left + Middle + Right + ContextBar)
+            # flex-wrap: nowrap is critical for drag-resize: without it, panels
+            # wrap to the next line instead of shrinking when widths change.
             # ----------------------------------------------------------------
-            with ui.row().classes('w-full gap-0').style('flex: 1; overflow: hidden; min-height: 0;'):
+            with ui.row().classes('w-full gap-0 no-wrap').style(
+                'flex: 1; overflow: hidden; min-height: 0; flex-wrap: nowrap;'
+            ):
 
                 # ActivityBar — narrow left icon strip
                 self._render_activity_bar()
 
-                # Left Area (collapsible)
-                if ws.left.visible and ws.left.editor_key:
+                # Left Area — always rendered if an editor is assigned so the
+                # TopBar toggle can show/hide it without re-building the DOM.
+                # id="hw-area-left" lets the JS drag handler find this element.
+                if ws.left.editor_key:
                     with ui.column().classes('gap-0').style(
-                        f'width: {ws.left.size}px; min-width: {ws.left.size}px; '
+                        f'width: {ws.left.size}px; min-width: 150px; '
                         f'height: 100%; overflow: hidden; border-right: 1px solid #333;'
-                    ):
+                        ' background: #12121e;'
+                    ) as left_col:
+                        self._left_column = left_col
                         self._render_area('left', ws.left.editor_key)
+                    left_col._props['id'] = 'hw-area-left'
+                    left_col.set_visibility(ws.left.visible)
+
+                    # Drag handle — left panel ↔ middle area
+                    self._left_divider = ui.element('div').classes(
+                        'hw-area-divider hw-area-divider-left flex-shrink-0'
+                    ).style('width: 5px; height: 100%; cursor: col-resize;')
+                    self._left_divider.set_visibility(ws.left.visible)
 
                 # Middle + optional Bottom (takes remaining space)
+                # id="hw-area-middle" lets the JS find this element directly.
                 with ui.column().classes('gap-0').style(
                     'flex: 1; height: 100%; overflow: hidden; min-width: 0;'
-                ):
+                ) as middle_col:
                     self._render_middle_area()
+                middle_col._props['id'] = 'hw-area-middle'
 
-                # Right Area (collapsible)
-                if ws.right.visible and ws.right.editor_key:
+                # Right Area — always rendered if an editor is assigned so the
+                # TopBar toggle can show/hide it without re-building the DOM.
+                # id="hw-area-right" lets the JS drag handler find this element.
+                if ws.right.editor_key:
+                    # Drag handle — middle area ↔ right panel
+                    self._right_divider = ui.element('div').classes(
+                        'hw-area-divider hw-area-divider-right flex-shrink-0'
+                    ).style('width: 5px; height: 100%; cursor: col-resize;')
+                    self._right_divider.set_visibility(ws.right.visible)
+
                     with ui.column().classes('gap-0').style(
-                        f'width: {ws.right.size}px; min-width: {ws.right.size}px; '
+                        f'width: {ws.right.size}px; min-width: 150px; '
                         f'height: 100%; overflow: hidden; border-left: 1px solid #333;'
+                        ' background: #12121e;'
                     ) as right_col:
                         self._right_column = right_col
                         self._render_area('right', ws.right.editor_key)
+                    right_col._props['id'] = 'hw-area-right'
+                    right_col.set_visibility(ws.right.visible)
 
                 # ContextBar — narrow right icon strip
                 self._render_context_bar()
@@ -169,6 +295,19 @@ class AppShell:
             'width: 48px; min-width: 48px; height: 100%; '
             'background: #181825; border-right: 1px solid #333; overflow: hidden;'
         ):
+            # Left panel toggle at the top of the bar.
+            # Visible → mirrored login (fold in); hidden → plain logout (fold out).
+            if ws.left.editor_key:
+                fold_icon = 'login' if ws.left.visible else 'logout'
+                self._btn_left = (
+                    ui.button(icon=fold_icon, on_click=self._toggle_left_panel)
+                    .props('flat round dense size=sm color=grey')
+                    .tooltip('Toggle left panel')
+                )
+                if ws.left.visible:
+                    self._btn_left.style('transform: scaleX(-1);')
+                ui.separator().classes('w-full opacity-20')
+
             if left_editors:
                 for reg_key, editor_cls in left_editors.items():
                     icon = editor_cls.class_identity.icon
@@ -195,6 +334,19 @@ class AppShell:
             'width: 48px; min-width: 48px; height: 100%; '
             'background: #181825; border-left: 1px solid #333; overflow: hidden;'
         ):
+            # Right panel toggle at the top of the bar.
+            # Visible → plain login (fold in); hidden → mirrored logout (fold out).
+            if ws.right.editor_key:
+                fold_icon = 'login' if ws.right.visible else 'logout'
+                self._btn_right = (
+                    ui.button(icon=fold_icon, on_click=self._toggle_right_panel)
+                    .props('flat round dense size=sm color=grey')
+                    .tooltip('Toggle right panel')
+                )
+                if not ws.right.visible:
+                    self._btn_right.style('transform: scaleX(-1);')
+                ui.separator().classes('w-full opacity-20')
+
             if right_editors:
                 for reg_key, editor_cls in right_editors.items():
                     icon = editor_cls.class_identity.icon
@@ -213,12 +365,24 @@ class AppShell:
         ws = self.session.workspace_manager.active
 
         if ws.middle.tabs:
-            # Build tab bar
-            with ui.tabs().classes('w-full').style(
-                'background: #1e1e2e; min-height: 36px; border-bottom: 1px solid #333;'
-            ) as tabs:
-                for tab in ws.middle.tabs:
-                    ui.tab(name=tab.editor_key, label=tab.label)
+            # Tab bar row — tabs on the left, optional bottom-panel toggle on the right
+            with ui.row().classes('w-full items-center gap-0 flex-shrink-0').style(
+                'background: #1e1e2e; border-bottom: 1px solid #333; min-height: 36px;'
+            ):
+                with ui.tabs().props('dark dense align=left').classes('hw-tabs').style(
+                    'flex: 1; min-height: 36px;'
+                ) as tabs:
+                    for tab in ws.middle.tabs:
+                        ui.tab(name=tab.editor_key, label=tab.label).props('no-caps')
+
+                if ws.middle.bottom_editor_key:
+                    bottom_icon = 'expand_less' if ws.middle.bottom_visible else 'expand_more'
+                    self._btn_bottom = (
+                        ui.button(icon=bottom_icon, on_click=self._toggle_bottom_panel)
+                        .props('flat round dense size=sm color=grey')
+                        .tooltip('Toggle bottom panel')
+                        .classes('flex-shrink-0 mr-1')
+                    )
 
             # Store tab element in session metadata so editors can switch tabs
             self.session.context.metadata['middle_tabs'] = tabs
@@ -234,13 +398,23 @@ class AppShell:
             with ui.column().style('flex: 1; height: 100%; overflow: hidden;'):
                 self._render_area('middle', None)
 
-        # Bottom area split (optional)
-        if ws.middle.bottom_visible and ws.middle.bottom_editor_key:
+        # Bottom area split — always rendered when an editor is assigned so the
+        # TopBar toggle can show/hide it without re-building the DOM.
+        # id="hw-area-bottom" lets the JS vertical drag handler find this element.
+        if ws.middle.bottom_editor_key:
+            self._bottom_divider = ui.element('div').classes(
+                'hw-area-vdivider w-full flex-shrink-0'
+            ).style('height: 5px; cursor: row-resize;')
+            self._bottom_divider.set_visibility(ws.middle.bottom_visible)
+
             with ui.column().style(
                 f'height: {ws.middle.bottom_size}px; min-height: {ws.middle.bottom_size}px; '
-                'border-top: 1px solid #333; overflow: hidden;'
-            ):
+                'overflow: hidden;'
+            ) as bottom_col:
                 self._render_area('bottom', ws.middle.bottom_editor_key)
+            bottom_col._props['id'] = 'hw-area-bottom'
+            self._bottom_container = bottom_col
+            bottom_col.set_visibility(ws.middle.bottom_visible)
 
     def _render_statusbar(self) -> None:
         """Render the status bar at the bottom."""
@@ -262,8 +436,8 @@ class AppShell:
 
         editor_cls = None
         if self._editor_registry:
-            # WorkspaceState stores short registry_id values; look up by id not full key
-            editor_cls = self._editor_registry.get_by_id(editor_key)
+            # WorkspaceState stores full registry_key values (e.g. '__system__:editor:graph_editor')
+            editor_cls = self._editor_registry.get_by_key(editor_key)
 
         if editor_cls is None:
             # Placeholder — no editor registered for this key yet
@@ -281,27 +455,89 @@ class AppShell:
             # Subscribe editor to context changes
             self.session.subscribe_context_changes(editor_instance.on_context_changed)
             # Render into current NiceGUI context
-            container_div = ui.element('div').style('width: 100%; height: 100%;')
+            container_div = ui.element('div').classes('hw-dark-panel').style(
+                'width: 100%; height: 100%; background: #12121e; color: rgba(255,255,255,0.87);'
+            )
             editor_instance.render(container_div, self.session.context)
         except Exception as e:
             logging.error(f"AppShell: Failed to render editor '{editor_key}' in slot '{slot}': {e}")
             ui.label(f'Error loading editor: {editor_key}').classes('text-red-400 p-4')
 
+    def _toggle_left_panel(self) -> None:
+        """Toggle the left area panel visibility."""
+        ws = self.session.workspace_manager.active
+        ws.left.visible = not ws.left.visible
+        if self._left_column:
+            self._left_column.set_visibility(ws.left.visible)
+        if self._left_divider:
+            self._left_divider.set_visibility(ws.left.visible)
+        if self._btn_left:
+            # Visible → mirrored login (fold in); hidden → plain logout (fold out)
+            if ws.left.visible:
+                self._btn_left.props('icon=login')
+                self._btn_left.style('transform: scaleX(-1);')
+            else:
+                self._btn_left.props('icon=logout')
+                self._btn_left.style('transform: none;')
+
+    def _toggle_right_panel(self) -> None:
+        """Toggle the right area panel visibility."""
+        ws = self.session.workspace_manager.active
+        ws.right.visible = not ws.right.visible
+        if self._right_column:
+            self._right_column.set_visibility(ws.right.visible)
+        if self._right_divider:
+            self._right_divider.set_visibility(ws.right.visible)
+        if self._btn_right:
+            # Visible → plain login (fold in); hidden → mirrored logout (fold out)
+            if ws.right.visible:
+                self._btn_right.props('icon=login')
+                self._btn_right.style('transform: none;')
+            else:
+                self._btn_right.props('icon=logout')
+                self._btn_right.style('transform: scaleX(-1);')
+
+    def _toggle_bottom_panel(self) -> None:
+        """Toggle the bottom split panel visibility."""
+        ws = self.session.workspace_manager.active
+        ws.middle.bottom_visible = not ws.middle.bottom_visible
+        if self._bottom_divider:
+            self._bottom_divider.set_visibility(ws.middle.bottom_visible)
+        if self._bottom_container:
+            self._bottom_container.set_visibility(ws.middle.bottom_visible)
+        if self._btn_bottom:
+            self._btn_bottom.props(
+                f'icon={"expand_less" if ws.middle.bottom_visible else "expand_more"}'
+            )
+
     def _switch_left_area(self, editor_key: str) -> None:
-        """Switch the editor shown in the Left Area.
+        """Switch the editor shown in the Left Area, re-rendering the column.
 
         Args:
-            editor_key: Registry key of the editor to show.
+            editor_key: Full registry_key of the editor to show.
         """
         ws = self.session.workspace_manager.active
+        if ws.left.editor_key == editor_key:
+            return  # already showing this editor
+
+        # Unsubscribe and evict the old left-area editor instance.
+        old_editor = self.session._editors.pop('left', None)
+        if old_editor is not None:
+            self.session.unsubscribe_context_changes(old_editor.on_context_changed)
+
         ws.left.editor_key = editor_key
         ws.left_bar_active = editor_key
         logging.info(f"AppShell: Switching left area to '{editor_key}'")
-        # Notify context
+
+        # Re-render the left column with the new editor.
+        if self._left_column is not None:
+            self._left_column.clear()
+            with self._left_column:
+                self._render_area('left', editor_key)
+
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
-        ui.notify(f"Left panel: {editor_key}")
 
     def _switch_right_area(self, editor_key: str) -> None:
         """Switch the editor shown in the Right Area, re-rendering the column.

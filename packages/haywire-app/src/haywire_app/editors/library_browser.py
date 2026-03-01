@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 @editor(
     registry_id='library_browser',
     label='Libraries',
-    icon='library_books',
+    icon='widgets',
     default_area='left',
     description='Searchable list of installed and available libraries.',
 )
@@ -43,7 +43,7 @@ class LibraryBrowser(BaseEditor):
         self._search_query: str = ''
         self._filter_enabled: bool = True
         self._filter_disabled: bool = True
-        self._filter_available: bool = False  # off by default in workspace view
+        self._filter_available: bool = True
 
     def render(self, container, context: 'SessionContext') -> None:
         self._container = container
@@ -201,7 +201,7 @@ class LibraryBrowser(BaseEditor):
         version = getattr(lib, 'version', '')
 
         with ui.row().classes(
-            'w-full px-2 py-1.5 cursor-pointer hover:bg-gray-100 items-center gap-2 rounded'
+            'w-full px-2 py-1.5 cursor-pointer hover:bg-white/10 items-center gap-2 rounded'
         ).on('click', lambda entry=lib, ctx=context: self._select_library(entry, ctx)):
             ui.element('div').classes(f'w-2 h-2 rounded-full bg-{dot_color}-500 flex-shrink-0')
             with ui.column().classes('flex-1 gap-0 min-w-0'):
@@ -217,7 +217,7 @@ class LibraryBrowser(BaseEditor):
         middle_tabs = context.metadata.get('middle_tabs')
         if middle_tabs is not None:
             try:
-                middle_tabs.set_value('library_detail')
+                middle_tabs.set_value('__system__:editor:library_detail')
             except Exception:
                 pass
 
@@ -231,4 +231,5 @@ class LibraryBrowser(BaseEditor):
             )
 
     def on_context_changed(self, event: '_CE', context: 'SessionContext') -> None:
-        pass  # LibraryBrowser doesn't react to context changes
+        if event.change_type == ContextChangeType.ACTIVE_LIBRARY_CHANGED:
+            self._render_list(context)

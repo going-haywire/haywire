@@ -52,15 +52,15 @@ class TestWorkspaceStateSerialization:
         d = asdict(ws)
         # Reconstruct name only (partial roundtrip — nested dataclasses need manual reconstruction)
         assert d['name'] == 'My WS'
-        assert d['left']['editor_key'] == 'library_browser'
-        assert d['right']['editor_key'] == 'properties'
+        assert d['left']['editor_key'] == '__system__:editor:library_browser'
+        assert d['right']['editor_key'] == '__system__:editor:properties'
 
     def test_default_workspace_state(self):
         ws = WorkspaceState()
         assert ws.name == "default"
-        assert ws.left.editor_key == 'library_browser'
-        assert ws.right.editor_key == 'properties'
-        assert ws.middle.tabs[0].editor_key == 'graph_editor'
+        assert ws.left.editor_key == '__system__:editor:library_browser'
+        assert ws.right.editor_key == '__system__:editor:properties'
+        assert ws.middle.tabs[0].editor_key == '__system__:editor:graph_editor'
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +118,7 @@ class TestWorkspaceManager:
     def test_development_preset_has_bottom_visible(self):
         dev = self.manager.presets['Development']
         assert dev.middle.bottom_visible is True
-        assert dev.middle.bottom_editor_key == 'console'
+        assert dev.middle.bottom_editor_key == '__system__:editor:console'
 
     def test_debugging_preset_left_collapsed(self):
         dbg = self.manager.presets['Debugging']

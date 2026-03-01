@@ -37,28 +37,28 @@ Three design goals shape every decision in the UI layer:
 Every page rendered by Haywire is built by the `AppShell`, which divides the browser window into a fixed set of **named areas**:
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  TopBar  (workspace name, switcher, save)                    │
-├────┬──────────┬─────────────────────┬──────────────┬─────────┤
-│    │          │    Middle Area      │              │         │
-│    │          │  ┌────┬────┬──┐     │              │         │
-│    │          │  │Tab1│Tab2│+ │     │              │         │
-│    │          │  ├────┴────┴──┤     │              │         │
-│ A  │  Left    │  │            │     │    Right     │  C      │
-│ c  │  Area    │  │   Main     │     │    Area      │  o      │
-│ t  │          │  │  Editor    │     │              │  n      │
-│ i  │ (driven  │  │  (Graph)   │     │  (context-   │  t      │
-│ v  │  by      │  │            │     │   aware      │  e      │
-│ i  │  activ-  │  ├────────────┤     │   editors)   │  x      │
-│ t  │  ity     │  │  Bottom    │     │              │  t      │
-│ y  │  bar)    │  │  Area      │     │  (driven by  │         │
-│    │          │  │ (console,  │     │   context    │  B      │
-│ B  │          │  │  terminal, │     │   bar)       │  a      │
-│ a  │          │  │  logs)     │     │              │  r      │
-│ r  │          │  └────────────┘     │              │         │
-├────┴──────────┴─────────────────────┴──────────────┴─────────┤
-│                        StatusBar                             │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  TopBar  (workspace name, switcher, save)                │
+├────┬──────────┬─────────────────────┬──────────────┬─────┤
+│    │          │    Middle Area      │              │     │
+│    │          │  ┌────┬────┬─────┐  │              │     │
+│    │          │  │Tab1│Tab2│+    │  │              │     │
+│    │          │  ├────┴────┴─────┤  │              │     │
+│ A  │  Left    │  │               │  │    Right     │  C  │
+│ c  │  Area    │  │   Main        │  │    Area      │  o  │
+│ t  │          │  │  Editor       │  │              │  n  │
+│ i  │ (driven  │  │  (Graph)      │  │  (context-   │  t  │
+│ v  │  by      │  │               │  │   aware      │  e  │
+│ i  │  activ-  │  ├───────────────┤  │   editors)   │  x  │
+│ t  │  ity     │  │  Bottom       │  │              │  t  │
+│ y  │  bar)    │  │  Area         │  │  (driven by  │     │
+│    │          │  │ (console,     │  │   context    │  B  │
+│ B  │          │  │  terminal,    │  │   bar)       │  a  │
+│ a  │          │  │  logs)        │  │              │  r  │
+│ r  │          │  └───────────────┘  │              │     │
+├────┴──────────┴─────────────────────┴──────────────┴─────┤
+│                        StatusBar                         │
+└──────────────────────────────────────────────────────────┘
 ```
 
 | Area            | Description                                                     | Driven by                                       |
@@ -311,14 +311,18 @@ An **editor** is a self-contained UI component that occupies one area of the wor
 
 ### Built-in Editors
 
-| Registry ID        | Area   | Purpose                                          |
+from haywire.ui.workspace.workspace_state import _K_...
+
+| constants = Registry Key        | Area   | Purpose                                          |
 | ------------------ | ------ | ------------------------------------------------ |
-| `graph_editor`     | Middle | Visual node graph canvas                         |
-| `properties`       | Right  | Context-sensitive property panels                |
-| `console`          | Bottom | Execution log stream                             |
-| `library_browser`  | Left   | Searchable installed/marketplace library list    |
-| `library_detail`   | Middle | Full detail view for the selected library        |
-| `component_detail` | Right  | Documentation for the selected node/widget class |
+| _K_GRAPH_EDITOR    = '__system__:editor:graph_editor'     | Middle | Visual node graph canvas                         |
+| _K_PROPERTIES      = '__system__:editor:properties'       | Right  | Context-sensitive property panels                |
+| _K_CONSOLE         = '__system__:editor:console'          | Bottom | Execution log stream                             |
+| _K_LIBRARY_BROWSER = '__system__:editor:library_browser'  | Left   | Searchable installed/marketplace library list    |
+| _K_LIBRARY_DETAIL  = '__system__:editor:library_detail'   | Middle | Full detail view for the selected library        |
+| _K_COMPONENT_DETAIL = '__system__:editor:component_detail' | Right  | Documentation for the selected node/widget class |
+| _K_FILE_BROWSER    = '__system__:editor:file_browser'     | Left   | Searchable installed/marketplace file list       |
+| _K_FILE_VIEWER     = '__system__:editor:file_viewer'      | Middle | File content viewer                              |
 
 ### Editor Lifecycle
 

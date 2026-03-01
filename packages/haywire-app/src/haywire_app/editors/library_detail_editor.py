@@ -26,6 +26,8 @@ from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 from haywire_app.library_manager import InstalledLibrary, MarketplaceEntry
 
+from haywire.ui.workspace.workspace_state import _K_COMPONENT_DETAIL
+
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
@@ -204,7 +206,7 @@ class LibraryDetailEditor(BaseEditor):
         tabs = t_overview = t_nodes = t_widgets = None
         t_types = t_adapters = t_renderers = None
 
-        # ── Fixed section: header + metadata + tabs bar ───────────────────────
+        # ── header + metadata + tabs bar ───────────────────────
         self._fixed.clear()
         with self._fixed:
             with ui.column().classes('w-full px-6 pt-6 min-w-0 gap-1'):
@@ -508,7 +510,7 @@ class LibraryDetailEditor(BaseEditor):
                 class_name = key.split(':')[-1]
                 with ui.row().classes(
                     'w-full items-start gap-3 px-3 py-2 rounded'
-                    ' hover:bg-gray-50 cursor-pointer'
+                    ' hover:bg-white/10 cursor-pointer'
                 ).on(
                     'click',
                     lambda cn=class_name, entry=lib, ctx=context: self._select_component(
@@ -555,7 +557,7 @@ class LibraryDetailEditor(BaseEditor):
             class_name = key.split(':')[-1]
             with ui.row().classes(
                 'w-full items-center gap-4 px-3 py-2 rounded'
-                ' hover:bg-gray-50 cursor-pointer'
+                ' hover:bg-white/10 cursor-pointer'
             ).on(
                 'click',
                 lambda cn=class_name, entry=lib, ctx=context: self._select_component(
@@ -622,7 +624,7 @@ class LibraryDetailEditor(BaseEditor):
             ident = cls.class_identity
             class_name = key.split(':')[-1]
             with ui.row().classes(
-                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer'
+                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
             ).on(
                 'click',
                 lambda cn=class_name, entry=lib, ct=comp_type, ctx=context: (
@@ -658,7 +660,7 @@ class LibraryDetailEditor(BaseEditor):
         switch_right = context.metadata.get('switch_right_area')
         if switch_right is not None:
             try:
-                switch_right('component_detail')
+                switch_right(_K_COMPONENT_DETAIL)
             except Exception:
                 pass
 
@@ -678,17 +680,14 @@ class LibraryDetailEditor(BaseEditor):
     def _enable_library(self, library_id: str, manager, context: 'SessionContext'):
         manager.enable_library(library_id)
         ui.notify(f'Enabled: {library_id}', type='positive')
-        # Re-render with the updated installed lib
         context.active_library = self._reload_installed(library_id, manager)
-        self._container.clear()
-        self._rebuild(context)
+        self._notify_library_changed(context)
 
     def _disable_library(self, library_id: str, manager, context: 'SessionContext'):
         manager.disable_library(library_id)
         ui.notify(f'Disabled: {library_id}', type='warning')
         context.active_library = self._reload_installed(library_id, manager)
-        self._container.clear()
-        self._rebuild(context)
+        self._notify_library_changed(context)
 
     def _reload_installed(
         self, library_id: str, manager
@@ -699,6 +698,27 @@ class LibraryDetailEditor(BaseEditor):
             return next((lib for lib in libs if lib.library_id == library_id), None)
         except Exception:
             return None
+
+    def _find_installed_by_dist_name(
+        self, dist_name: str, manager
+    ) -> InstalledLibrary | None:
+        """Find a freshly installed library by distribution name."""
+        try:
+            libs = manager.list_installed()
+            return next((lib for lib in libs if lib.distribution_name == dist_name), None)
+        except Exception:
+            return None
+
+    def _notify_library_changed(self, context: 'SessionContext') -> None:
+        """Broadcast ACTIVE_LIBRARY_CHANGED so all editors (incl. LibraryBrowser) refresh."""
+        session = context.metadata.get('haywire_session')
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.ACTIVE_LIBRARY_CHANGED,
+                    source_editor='library_detail',
+                )
+            )
 
     # ─────────────────────────────────────────────────────────────────────────
     # Uninstall
@@ -761,10 +781,9 @@ class LibraryDetailEditor(BaseEditor):
             log.push(f'--- ERROR: {message} ---')
             ui.notify(message, type='negative')
 
-        # Clear the active library and re-render as placeholder
+        # Clear the active library and notify all editors
         context.active_library = None
-        self._container.clear()
-        self._rebuild(context)
+        self._notify_library_changed(context)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Edit dialog (project library identity + optional rename)
@@ -1121,13 +1140,15 @@ class LibraryDetailEditor(BaseEditor):
         if success:
             log.push(f'--- {name} installed successfully ---')
             ui.notify(f'Installed: {name}', type='positive')
+            # Point context at the newly installed library so the detail view
+            # shows the full installed header + tabs on rebuild.
+            installed = self._find_installed_by_dist_name(name, manager)
+            if installed:
+                context.active_library = installed
+            self._notify_library_changed(context)
         else:
             log.push(f'--- ERROR: {message} ---')
             ui.notify(message, type='negative')
-
-        # Reload the view after install so tabs appear
-        self._container.clear()
-        self._rebuild(context)
 
     def _open_version_picker(
         self, pkg: MarketplaceEntry, manager, context: 'SessionContext'

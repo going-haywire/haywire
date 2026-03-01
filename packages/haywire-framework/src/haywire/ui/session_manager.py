@@ -85,15 +85,22 @@ class SessionManager:
     # Broadcast helpers
     # ------------------------------------------------------------------
 
-    def broadcast_data_mutation(self, source_editor: Optional[str] = None) -> None:
+    def broadcast_data_mutation(
+        self,
+        source_editor: Optional[str] = None,
+        graph_path=None,
+    ) -> None:
         """
-        Notify all active sessions that the shared data has changed.
+        Notify sessions that graph data has changed.
 
-        Sends a DATA_MUTATED ContextChangedEvent to every session's
-        subscribers (e.g., to trigger canvas/properties panel refresh).
+        When graph_path is None, all sessions are notified (legacy behaviour).
+        When graph_path is provided, only sessions whose active_graph_path
+        matches are notified — enabling per-graph selective broadcast.
 
         Args:
             source_editor: Optional editor key identifying the mutation origin.
+            graph_path:    Optional Path (or str) of the graph that changed.
+                           Pass None to broadcast to every session.
         """
         event = ContextChangedEvent(
             change_type=ContextChangeType.DATA_MUTATED,
@@ -101,6 +108,10 @@ class SessionManager:
         )
         failed = []
         for session_id, session in list(self._sessions.items()):
+            if graph_path is not None:
+                session_path = getattr(session.context, 'active_graph_path', None)
+                if str(session_path) != str(graph_path):
+                    continue
             try:
                 session.notify_context_changed(event)
             except Exception as e:

@@ -53,22 +53,20 @@ class EditorTypeRegistry(BaseRegistry):
         """Unregister an editor class by its registry_key."""
         return super()._unregister(registry_key)
 
-    def get_by_id(self, registry_id: str) -> 'type | None':
-        """Find an editor class by its short registry_id (ignores library prefix).
+    def get_by_key(self, registry_key: str) -> 'type | None':
+        """Find an editor class by its full registry_key.
 
-        Used by AppShell to resolve workspace editor_key strings (short IDs)
-        to actual editor classes.
+        Used by AppShell to resolve workspace editor_key strings to actual
+        editor classes. WorkspaceState stores full registry_key values.
 
         Args:
-            registry_id: Short ID as set in @editor(registry_id=...).
+            registry_key: Full key as computed by the @editor decorator,
+                e.g. '__system__:editor:graph_editor'.
 
         Returns:
             The editor class, or None if not found.
         """
-        for cls in self._classes.values():
-            if cls.class_identity.registry_id == registry_id:
-                return cls
-        return None
+        return self._classes.get(registry_key)
 
     def get_by_default_area(self, area: str) -> Dict[str, type]:
         """Get all editor classes suggested for a given default area.

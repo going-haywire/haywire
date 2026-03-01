@@ -77,9 +77,11 @@ class PropertiesEditor(BaseEditor):
             active_contexts = self._resolve_contexts(context)
 
             if not active_contexts:
-                with ui.column().classes('w-full items-center justify-center p-4'):
-                    ui.icon('select_all').classes('text-gray-500 text-3xl')
-                    ui.label('Nothing selected').classes('text-gray-500 text-sm')
+                with ui.column().classes('w-full items-center justify-center p-4').style(
+                    'padding-top: 60px;'
+                ):
+                    ui.icon('select_all').classes('text-gray-600 text-3xl')
+                    ui.label('Nothing selected').classes('text-xs text-gray-600')
                 return
 
             has_panels = False
@@ -101,7 +103,9 @@ class PropertiesEditor(BaseEditor):
                         panel_cls.class_identity.label,
                         icon=icon,
                         value=default_open,
-                    ).classes('w-full'):
+                    ).props('dark').classes('w-full').style(
+                        'border-bottom: 1px solid #2a2a3e;'
+                    ):
                         panel_container = ui.column().classes('w-full gap-1 p-1')
                         layout = PanelLayout(panel_container)
                         try:
