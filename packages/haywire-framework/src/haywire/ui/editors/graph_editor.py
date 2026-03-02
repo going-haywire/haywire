@@ -62,6 +62,7 @@ class GraphEditor(BaseEditor):
         self._graph_name_label = None    # ui.label in the header
         self._save_as_dialog = None      # ui.dialog — Save As
         self._save_path_input = None     # ui.input inside the dialog
+        self._save_exists_warning = None # ui.label — "file already exists" warning
 
     # ------------------------------------------------------------------
     # render
@@ -90,7 +91,11 @@ class GraphEditor(BaseEditor):
                     ui.button(
                         icon='save',
                         on_click=lambda: self._save_graph(context),
-                    ).props('flat round dense size=xs color=grey').tooltip('Save graph')
+                    ).props('flat round dense size=xs color=grey').tooltip('Save (Ctrl+S)')
+                    ui.button(
+                        icon='drive_file_rename_outline',
+                        on_click=lambda: self._save_as_graph(context),
+                    ).props('flat round dense size=xs color=grey').tooltip('Save As…')
 
                 # ---- canvas area (swapped on ACTIVE_GRAPH_CHANGED) ----
                 self._canvas_wrapper = ui.element('div').style(
@@ -200,6 +205,12 @@ class GraphEditor(BaseEditor):
     # save
     # ------------------------------------------------------------------
 
+    def _default_save_dir(self, app) -> Path:
+        """Return workspace_root/graphs/ if it exists, else workspace_root/."""
+        root = Path(getattr(app, 'workspace_root', str(Path.home())))
+        graphs_dir = root / 'graphs'
+        return graphs_dir if graphs_dir.is_dir() else root
+
     def _save_graph(self, context: 'SessionContext') -> None:
         """Save the active graph; opens Save-As dialog if no path exists yet."""
         app = context.metadata.get('project_state')
@@ -222,15 +233,36 @@ class GraphEditor(BaseEditor):
                 ui.notify('Save failed', type='negative', position='top-right')
             return
 
-        # No path yet — pre-fill and open the Save-As dialog
+        # No path yet — open the Save-As dialog
+        self._open_save_as_dialog(app, entry)
+
+    def _save_as_graph(self, context: 'SessionContext') -> None:
+        """Always open the Save-As dialog, regardless of whether a path exists."""
+        app = context.metadata.get('project_state')
+        if app is None or not hasattr(app, 'graph_manager'):
+            ui.notify('Graph manager not available', type='warning')
+            return
+        entry = self._get_entry(context)
+        if entry is None:
+            ui.notify('No graph to save', type='warning')
+            return
+        self._open_save_as_dialog(app, entry)
+
+    def _open_save_as_dialog(self, app, entry) -> None:
+        """Pre-fill the Save-As dialog and open it."""
         if self._save_as_dialog is None or self._save_path_input is None:
             ui.notify('Save-As dialog not ready', type='warning')
             return
-
-        workspace_root = getattr(app, 'workspace_root', str(Path.home()))
-        graph_name = getattr(entry.graph, 'name', 'untitled')
-        safe_name = graph_name.lower().replace(' ', '_')
-        self._save_path_input.value = str(Path(workspace_root) / f'{safe_name}.haywire')
+        if entry.path is not None:
+            # Pre-fill with the current path so the user can rename/move easily
+            self._save_path_input.value = str(entry.path)
+        else:
+            save_dir = self._default_save_dir(app)
+            graph_name = getattr(entry.graph, 'name', 'untitled')
+            safe_name = graph_name.lower().replace(' ', '_')
+            self._save_path_input.value = str(save_dir / f'{safe_name}.haywire')
+        if self._save_exists_warning is not None:
+            self._save_exists_warning.set_visibility(False)
         self._save_as_dialog.open()
 
     def _build_save_as_dialog(self, context: 'SessionContext'):
@@ -245,7 +277,13 @@ class GraphEditor(BaseEditor):
                     ui.input(label='File path')
                     .classes('w-full')
                     .props('outlined dense')
+                    .on('update:model-value', lambda _: self._clear_exists_warning())
                 )
+                self._save_exists_warning = (
+                    ui.label('')
+                    .classes('text-xs text-red-400 -mt-1')
+                )
+                self._save_exists_warning.set_visibility(False)
                 with ui.row().classes('w-full justify-end gap-2'):
                     ui.button('Cancel', on_click=dialog.close).props('flat dense')
                     ui.button(
@@ -253,6 +291,10 @@ class GraphEditor(BaseEditor):
                         on_click=lambda: self._do_save_as(context, dialog),
                     ).props('color=primary dense')
         return dialog
+
+    def _clear_exists_warning(self) -> None:
+        if self._save_exists_warning is not None:
+            self._save_exists_warning.set_visibility(False)
 
     def _do_save_as(self, context: 'SessionContext', dialog) -> None:
         """Execute the Save-As from within the dialog."""
@@ -275,6 +317,16 @@ class GraphEditor(BaseEditor):
         save_path = Path(path_str)
         if not save_path.suffix:
             save_path = save_path.with_suffix('.haywire')
+
+        # Warn if the file already exists and the user would be overwriting a
+        # *different* graph (i.e. not the entry's own current path).
+        if save_path.exists() and save_path != entry.path:
+            if self._save_exists_warning is not None:
+                self._save_exists_warning.text = (
+                    f'"{save_path.name}" already exists — choose a different name.'
+                )
+                self._save_exists_warning.set_visibility(True)
+            return  # stay in the dialog
 
         success = app.graph_manager.save_graph(entry, save_as=save_path)
         if success:
@@ -306,3 +358,4 @@ class GraphEditor(BaseEditor):
             self._canvas_manager = None
         self._save_as_dialog = None
         self._save_path_input = None
+        self._save_exists_warning = None
