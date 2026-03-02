@@ -61,7 +61,9 @@ class GraphEditor(BaseEditor):
         self._canvas_wrapper = None      # ui.element — cleared on graph switch
         self._graph_name_label = None    # ui.label in the header
         self._save_as_dialog = None      # ui.dialog — Save As
-        self._save_path_input = None     # ui.input inside the dialog
+        self._save_base_dir: Optional[Path] = None   # fixed prefix (workspace root)
+        self._save_base_dir_label = None # ui.label showing the fixed prefix
+        self._save_path_input = None     # ui.input — relative path / filename only
         self._save_exists_warning = None # ui.label — "file already exists" warning
 
     # ------------------------------------------------------------------
@@ -120,17 +122,19 @@ class GraphEditor(BaseEditor):
         app = self._project_state
         entry = self._get_entry(context)
 
-        # Prefer the entry's editor; fall back to app.editor for untitled
-        if entry is not None:
-            graph_editor = entry.editor
-        elif hasattr(app, 'editor'):
-            graph_editor = app.editor
-        else:
-            ui.label('No graph loaded').classes('text-gray-500 p-4')
+        if entry is None:
+            # No graph is active — show a welcome/empty placeholder.
+            with ui.column().classes('w-full h-full items-center justify-center gap-3'):
+                ui.icon('account_tree', size='48px').classes('text-gray-600')
+                ui.label('No graph open').classes('text-gray-400 text-sm')
+                ui.label(
+                    'Use the Graphs panel ( layers ) to create a new graph,\n'
+                    'or open a .haywire file from the File Browser.'
+                ).classes('text-gray-600 text-xs text-center whitespace-pre-line')
             return
 
         self._canvas_manager = GraphCanvasManager(
-            editor=graph_editor,
+            editor=entry.editor,
             node_render_factory=app.node_render_factory,
             node_factory=app.node_factory,
             session_id=context.session_id[:8],
@@ -145,11 +149,10 @@ class GraphEditor(BaseEditor):
             return None
         if context.active_graph_path is not None:
             return app.graph_manager.get_by_path(context.active_graph_path)
-        # path is None — could be the '__untitled__' entry OR a '__new_N__' entry.
-        # Use graph-object identity so we always return the right entry.
+        # path is None — use graph-object identity for '__new_N__' entries.
         if context.active_graph is not None and hasattr(app.graph_manager, 'get_by_graph'):
             return app.graph_manager.get_by_graph(context.active_graph)
-        return app.graph_manager.get_untitled()
+        return None
 
     # ------------------------------------------------------------------
     # header
@@ -160,14 +163,17 @@ class GraphEditor(BaseEditor):
         if self._graph_name_label is None:
             return
         entry = self._get_entry(context)
-        if context.active_graph_path is not None:
+        if entry is None:
+            self._graph_name_label.text = 'No graph'
+            self._graph_name_label.classes(remove='text-gray-200', add='text-gray-600')
+        elif context.active_graph_path is not None:
             name = Path(context.active_graph_path).name
-            unsaved = entry.unsaved if entry else False
-            self._graph_name_label.text = ('● ' if unsaved else '') + name
-            self._graph_name_label.classes(remove='text-gray-400', add='text-gray-200')
+            self._graph_name_label.text = ('● ' if entry.unsaved else '') + name
+            self._graph_name_label.classes(remove='text-gray-400 text-gray-600', add='text-gray-200')
         else:
-            self._graph_name_label.text = 'Untitled'
-            self._graph_name_label.classes(remove='text-gray-200', add='text-gray-400')
+            # Unnamed / not-yet-saved graph
+            self._graph_name_label.text = '● ' + entry.display_name
+            self._graph_name_label.classes(remove='text-gray-200 text-gray-600', add='text-gray-400')
 
     # ------------------------------------------------------------------
     # context changes
@@ -179,8 +185,7 @@ class GraphEditor(BaseEditor):
         if event.change_type == ContextChangeType.ACTIVE_GRAPH_CHANGED:
             self._swap_canvas(context)
         elif event.change_type == ContextChangeType.DATA_MUTATED:
-            if self._canvas_manager:
-                self._canvas_manager.sync_with_graph()
+            self._update_header(context)
 
     def _swap_canvas(self, context: 'SessionContext') -> None:
         """Tear down the old canvas and build a fresh one for the new graph."""
@@ -229,6 +234,15 @@ class GraphEditor(BaseEditor):
             if success:
                 ui.notify(f'Saved: {entry.path.name}', type='positive', position='top-right')
                 self._update_header(context)
+                # Notify all sessions viewing this graph so GraphManagerEditor
+                # and other headers clear their dirty indicators.
+                if hasattr(app, 'session_manager'):
+                    try:
+                        app.session_manager.broadcast_data_mutation(
+                            graph_path=entry.path
+                        )
+                    except Exception:
+                        pass
             else:
                 ui.notify('Save failed', type='negative', position='top-right')
             return
@@ -253,28 +267,55 @@ class GraphEditor(BaseEditor):
         if self._save_as_dialog is None or self._save_path_input is None:
             ui.notify('Save-As dialog not ready', type='warning')
             return
+
+        workspace_root = Path(getattr(app, 'workspace_root', str(Path.home())))
+        self._save_base_dir = workspace_root
+
+        # Show the fixed, non-editable workspace prefix in the label
+        if self._save_base_dir_label is not None:
+            self._save_base_dir_label.text = str(workspace_root).rstrip('/') + '/'
+
+        # Editable portion: path relative to workspace_root
         if entry.path is not None:
-            # Pre-fill with the current path so the user can rename/move easily
-            self._save_path_input.value = str(entry.path)
+            try:
+                input_value = str(entry.path.relative_to(workspace_root))
+            except ValueError:
+                # File is outside the workspace — fall back to just the filename
+                input_value = entry.path.name
         else:
             save_dir = self._default_save_dir(app)
             graph_name = getattr(entry.graph, 'name', 'untitled')
             safe_name = graph_name.lower().replace(' ', '_')
-            self._save_path_input.value = str(save_dir / f'{safe_name}.haywire')
+            try:
+                rel_dir = save_dir.relative_to(workspace_root)
+                input_value = str(rel_dir / f'{safe_name}.haywire')
+            except ValueError:
+                input_value = f'{safe_name}.haywire'
+
+        self._save_path_input.value = input_value
         if self._save_exists_warning is not None:
             self._save_exists_warning.set_visibility(False)
         self._save_as_dialog.open()
 
     def _build_save_as_dialog(self, context: 'SessionContext'):
         """Create the Save-As dialog once during render(). Returns the dialog."""
-        with ui.dialog() as dialog, ui.card().style('min-width: 440px; max-width: 640px'):
-            with ui.column().classes('w-full gap-3'):
+        with ui.dialog() as dialog, ui.card().style('min-width: 460px; max-width: 640px'):
+            with ui.column().classes('w-full gap-2'):
                 ui.label('Save Graph As').classes('text-base font-semibold')
-                ui.label(
-                    'Enter the full path for the .haywire file.'
-                ).classes('text-xs text-gray-400 -mt-2')
+
+                # Read-only workspace prefix shown above the input
+                with ui.row().classes('w-full items-center gap-1 px-1').style(
+                    'background: rgba(255,255,255,0.04); border-radius: 4px;'
+                    ' border: 1px solid rgba(255,255,255,0.1);'
+                ):
+                    ui.icon('folder', size='14px').classes('text-gray-500 flex-shrink-0')
+                    self._save_base_dir_label = ui.label('').classes(
+                        'text-xs font-mono text-gray-400 truncate py-1'
+                    )
+
+                # Editable filename / relative path within the workspace
                 self._save_path_input = (
-                    ui.input(label='File path')
+                    ui.input(label='Path within workspace')
                     .classes('w-full')
                     .props('outlined dense')
                     .on('update:model-value', lambda _: self._clear_exists_warning())
@@ -284,7 +325,7 @@ class GraphEditor(BaseEditor):
                     .classes('text-xs text-red-400 -mt-1')
                 )
                 self._save_exists_warning.set_visibility(False)
-                with ui.row().classes('w-full justify-end gap-2'):
+                with ui.row().classes('w-full justify-end gap-2 mt-1'):
                     ui.button('Cancel', on_click=dialog.close).props('flat dense')
                     ui.button(
                         'Save',
@@ -311,10 +352,14 @@ class GraphEditor(BaseEditor):
 
         path_str = (self._save_path_input.value or '').strip()
         if not path_str:
-            ui.notify('Please enter a file path', type='warning')
+            ui.notify('Please enter a file name', type='warning')
             return
 
-        save_path = Path(path_str)
+        if self._save_base_dir is None:
+            ui.notify('Base directory not set', type='warning')
+            return
+
+        save_path = (self._save_base_dir / path_str).resolve()
         if not save_path.suffix:
             save_path = save_path.with_suffix('.haywire')
 
@@ -340,6 +385,15 @@ class GraphEditor(BaseEditor):
                         detail=entry,
                     )
                 )
+            # Broadcast to all sessions so their GraphManagerEditor and header
+            # also clear the dirty indicator.
+            if hasattr(app, 'session_manager'):
+                try:
+                    app.session_manager.broadcast_data_mutation(
+                        graph_path=save_path
+                    )
+                except Exception:
+                    pass
             ui.notify(f'Saved: {save_path.name}', type='positive', position='top-right')
             dialog.close()
         else:
@@ -357,5 +411,7 @@ class GraphEditor(BaseEditor):
                 logging.error(f"GraphEditor.cleanup(): {exc}")
             self._canvas_manager = None
         self._save_as_dialog = None
+        self._save_base_dir = None
+        self._save_base_dir_label = None
         self._save_path_input = None
         self._save_exists_warning = None

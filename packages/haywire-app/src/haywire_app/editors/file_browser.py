@@ -11,6 +11,7 @@ Clicking a file opens it in the appropriate middle-area tab:
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
+from haywire_app.app import HaywireApp
 from nicegui import ui
 
 from haywire.ui.editor.base import BaseEditor
@@ -147,7 +148,7 @@ class FileBrowserEditor(BaseEditor):
 
     def _open_graph_file(self, path: Path, context: 'SessionContext') -> None:
         """Load a .haywire graph file and switch to the graph editor tab."""
-        app = context.metadata.get('project_state')
+        app: 'HaywireApp' = context.metadata.get('project_state')
         session = context.metadata.get('haywire_session')
 
         if app is not None and hasattr(app, 'open_graph_file') and session is not None:

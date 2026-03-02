@@ -11,6 +11,7 @@ The list rebuilds on ACTIVE_GRAPH_CHANGED (to refresh the active highlight)
 and DATA_MUTATED (to reflect unsaved/modified state).
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from nicegui import ui
@@ -26,6 +27,16 @@ if TYPE_CHECKING:
 
 
 _GRAPH_EDITOR_KEY = '__system__:editor:graph_editor'
+
+
+def _workspace_rel_path(path: Path, workspace_root: 'Path | None') -> str:
+    """Return path relative to workspace_root when possible, else absolute path."""
+    if workspace_root is not None:
+        try:
+            return str(path.relative_to(workspace_root))
+        except ValueError:
+            pass
+    return str(path)
 
 
 @editor(
@@ -137,7 +148,13 @@ class GraphManagerEditor(BaseEditor):
                 ui.label(entry.display_name).classes(name_classes)
 
                 if entry.path is not None:
-                    ui.label(str(entry.path.parent)).classes(
+                    app = context.metadata.get('project_state')
+                    ws_root = (
+                        Path(app.workspace_root)
+                        if app and hasattr(app, 'workspace_root')
+                        else None
+                    )
+                    ui.label(_workspace_rel_path(entry.path, ws_root)).classes(
                         'text-xs text-gray-500 truncate'
                     )
                 else:

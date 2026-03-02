@@ -24,8 +24,11 @@ Usage in app.py::
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set, Tuple
 
+if TYPE_CHECKING:
+    from haywire.core.graph.base import HaywireGraph
+    from haywire.ui.editor.base import BaseEditor
 
 # Factory signature: (graph_id: str, name: str) -> (BaseGraph, Editor)
 GraphFactory = Callable[[str, str], Tuple[Any, Any]]
@@ -43,8 +46,8 @@ class GraphEntry:
         unsaved:  True if the graph has in-memory changes not yet written to disk.
         sessions: Session IDs currently viewing this graph.
     """
-    graph: Any
-    editor: Any
+    graph: 'HaywireGraph'
+    editor: 'BaseEditor'
     path: Optional[Path] = None
     unsaved: bool = False
     sessions: Set[str] = field(default_factory=set)
@@ -139,6 +142,11 @@ class GraphManager:
 
         graph, editor = factory(path.stem, str(path))
         graph.load_from_file(str(path))
+        # Flush any deferred NODE_ADDED/EDGE_ADDED validation events that
+        # load_from_file queues. This must happen BEFORE the entry is created
+        # and before any validation handler is subscribed, so that those events
+        # don't fire later and incorrectly mark the freshly loaded graph as unsaved.
+        graph.force_validation()
         entry = GraphEntry(graph=graph, editor=editor, path=path)
         self._entries[key] = entry
         return entry
@@ -163,8 +171,12 @@ class GraphManager:
         if success:
             entry.unsaved = False
             if save_as and save_as != entry.path:
-                # Re-key the entry under the new path
-                self._entries.pop(entry.key, None)
+                # Find and remove the entry's current registry key by identity
+                # (cannot use entry.key here — it returns '__untitled__' for any
+                # path-less entry, including '__new_N__' ones).
+                old_key = next((k for k, v in self._entries.items() if v is entry), None)
+                if old_key is not None:
+                    self._entries.pop(old_key)
                 entry.path = save_as
                 self._entries[entry.key] = entry
         return success

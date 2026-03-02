@@ -105,6 +105,11 @@ class GraphCanvasManager:
         }
         
         self._setup_canvas()
+
+        # Subscribe for incremental updates.  sync_with_graph() handles the
+        # initial state; every subsequent validation fires _on_validated().
+        self.graph.subscribe_to_validation(self._on_validated)
+
         logger.info(f"🔧 GraphCanvasManager for {self.session_id} is setup")
              
     def _auto_register_event_handlers(self):
@@ -849,17 +854,23 @@ class GraphCanvasManager:
     def cleanup(self):
         """Cleanup - unsubscribe from graph and clear resources."""
         logger.info(f"🔧 Shutting down GraphCanvasManager for {self.session_id} ...")
-        
+
+        # Stop receiving validation events before tearing down UI
+        try:
+            self.graph.unsubscribe_from_validation(self._on_validated)
+        except Exception as exc:
+            logger.warning(f"GraphCanvasManager: unsubscribe error: {exc}")
+
         # Cleanup canvas_vue first to prevent further client communication
         if self.canvas_vue:
             self.canvas_vue.cleanup()
-        
+
         # Clear local state
         self.node_panels.clear()
         self.connection_paths.clear()
         self.selected_nodes.clear()
         self.selected_connections.clear()
-        
+
         logger.info(f"🔧 GraphCanvasManager for {self.session_id} is shut down")
 
 

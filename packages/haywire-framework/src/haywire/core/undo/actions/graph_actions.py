@@ -182,18 +182,26 @@ class MoveNodesAction(ActionBase):
     def _execute_impl(self) -> None:
         """Move all nodes by their delta amounts."""
         for node_id in self.nodes:
-            node = self.graph.get_node_wrapper(node_id).node
-            if node:
-                node.ui.state.posX += self.deltaX
-                node.ui.state.posY += self.deltaY
-    
+            wrapper = self.graph.get_node_wrapper(node_id)
+            if wrapper and wrapper.node:
+                node = wrapper.node
+                self.graph.move_node(
+                    node_id,
+                    node.ui.state.posX + self.deltaX,
+                    node.ui.state.posY + self.deltaY,
+                )
+
     def _undo_impl(self) -> None:
         """Move all nodes back by subtracting the delta amounts."""
         for node_id in self.nodes:
-            node = self.graph.get_node_wrapper(node_id).node
-            if node:
-                node.ui.state.posX -= self.deltaX
-                node.ui.state.posY -= self.deltaY
+            wrapper = self.graph.get_node_wrapper(node_id)
+            if wrapper and wrapper.node:
+                node = wrapper.node
+                self.graph.move_node(
+                    node_id,
+                    node.ui.state.posX - self.deltaX,
+                    node.ui.state.posY - self.deltaY,
+                )
     
     def can_merge(self, other) -> bool:
         """Check if this move can be merged with another delta move of the same nodes."""

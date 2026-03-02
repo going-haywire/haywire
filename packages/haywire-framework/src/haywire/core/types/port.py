@@ -648,11 +648,12 @@ class DataPort(DataTypeIdentity):
 
         # Optionally serialize field data
         if include_data and self._data:
-            if StoreStrategy.NEVER not in self.store_strategy or \
-                (StoreStrategy.ALWAYS in self.store_strategy) or \
-                (StoreStrategy.WHEN_LINKED in self.store_strategy and self.is_linked()) or \
-                (StoreStrategy.HAS_WIDGET in self.store_strategy and self.widget_key is not None) or \
-                (StoreStrategy.NODE_SET in self.store_strategy and self._is_set_by_node):
+            ss = self.store_strategy
+            if not (ss & StoreStrategy.NEVER) or \
+                (ss & StoreStrategy.ALWAYS) or \
+                (ss & StoreStrategy.WHEN_LINKED and self.is_linked()) or \
+                (ss & StoreStrategy.HAS_WIDGET and self.widget_key is not None) or \
+                (ss & StoreStrategy.NODE_SET and self._is_set_by_node):
                     result['field_data'] = self._data.to_dict()
 
         return result
