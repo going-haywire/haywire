@@ -59,7 +59,7 @@ class GraphEntry:
         """Human-readable name for UI labels."""
         if self.path is not None:
             return self.path.name
-        return 'Untitled'
+        return getattr(self.graph, 'name', None) or 'Untitled'
 
 
 class GraphManager:
@@ -68,6 +68,7 @@ class GraphManager:
 
     Key design points:
     - One GraphEntry per unique file path; untitled graphs use key '__untitled__'.
+    - New unnamed graphs get auto-keyed as '__new_1__', '__new_2__', etc.
     - Sessions attach/detach to track which sessions view which graph.
     - broadcast_data_mutation() in SessionManager uses graph_path to selectively
       notify only the sessions that are viewing the changed graph.
@@ -75,6 +76,7 @@ class GraphManager:
 
     def __init__(self):
         self._entries: Dict[str, GraphEntry] = {}
+        self._new_counter: int = 0
 
     # ------------------------------------------------------------------
     # Graph lifecycle
@@ -95,6 +97,28 @@ class GraphManager:
         graph, editor = factory('untitled', 'Untitled Graph')
         entry = GraphEntry(graph=graph, editor=editor, path=None)
         self._entries['__untitled__'] = entry
+        return entry
+
+    def create_new(self, factory: GraphFactory) -> GraphEntry:
+        """
+        Create a new unnamed graph with a unique auto-generated key and name.
+
+        Unlike ``create_untitled`` this does NOT replace any existing entry.
+        Each call produces a fresh entry keyed as ``'__new_1__'``, ``'__new_2__'``, …
+        and named ``'Untitled 1'``, ``'Untitled 2'``, …
+
+        Args:
+            factory: Callable returning (BaseGraph, Editor) for given id/name.
+
+        Returns:
+            The new GraphEntry.
+        """
+        self._new_counter += 1
+        key = f'__new_{self._new_counter}__'
+        name = f'Untitled {self._new_counter}'
+        graph, editor = factory(key, name)
+        entry = GraphEntry(graph=graph, editor=editor, path=None)
+        self._entries[key] = entry
         return entry
 
     def open_graph(self, path: Path, factory: GraphFactory) -> GraphEntry:
@@ -162,6 +186,13 @@ class GraphManager:
     def get_by_key(self, key: str) -> Optional[GraphEntry]:
         """Return the entry for the given registry key."""
         return self._entries.get(key)
+
+    def get_by_graph(self, graph) -> Optional[GraphEntry]:
+        """Return the entry whose .graph attribute is the given object, or None."""
+        for entry in self._entries.values():
+            if entry.graph is graph:
+                return entry
+        return None
 
     def all_entries(self) -> Dict[str, GraphEntry]:
         """Return a snapshot dict of all entries."""

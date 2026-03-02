@@ -24,6 +24,7 @@ _K_PROPERTIES      = '__system__:editor:properties'
 _K_CONSOLE         = '__system__:editor:console'
 _K_FILE_BROWSER    = '__system__:editor:file_browser'
 _K_FILE_VIEWER     = '__system__:editor:file_viewer'
+_K_GRAPH_MANAGER   = '__system__:editor:graph_manager'
 
 
 @dataclass

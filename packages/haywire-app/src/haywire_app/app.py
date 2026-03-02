@@ -344,9 +344,10 @@ class HaywireApp:
         from .editors.component_detail_editor import ComponentDetailEditor
         from .editors.file_browser import FileBrowserEditor
         from .editors.file_viewer import FileViewerEditor
+        from .editors.graph_manager_editor import GraphManagerEditor
         _editor_registry = self.library_service.injector.get(EditorTypeRegistry)
         for _cls in [LibraryBrowser, LibraryDetailEditor, ComponentDetailEditor,
-                     FileBrowserEditor, FileViewerEditor]:
+                     FileBrowserEditor, FileViewerEditor, GraphManagerEditor]:
             _editor_registry._register_class(_cls, library_identity=None)
 
         print(f"History manager available: {self.history_manager is not None}")
@@ -448,6 +449,39 @@ class HaywireApp:
 
             entry.graph.subscribe_to_validation(_handler)
 
+        self.graph_manager.session_attach(entry, session_id)
+        return entry
+
+    def create_new_graph(self, session_id: str):
+        """
+        Create a brand-new unnamed graph and attach a session to it.
+
+        Each call produces a unique entry in the GraphManager (keyed as
+        '__new_1__', '__new_2__', …). The validation broadcast handler is
+        subscribed immediately so graph changes propagate to the UI.
+
+        Args:
+            session_id: The Haywire session ID that is creating the graph.
+
+        Returns:
+            The new GraphEntry.
+        """
+        def _factory(graph_id: str, name: str):
+            g = BaseGraph(graph_id, name)
+            e = Editor(g)
+            return g, e
+
+        entry = self.graph_manager.create_new(_factory)
+
+        def _handler(result, _entry=entry):
+            self._on_graph_validation_for_interpreter(result)
+            if hasattr(self, 'session_manager'):
+                try:
+                    self.session_manager.broadcast_data_mutation(graph_path=_entry.path)
+                except Exception as exc:
+                    print(f"Error broadcasting for new graph {_entry.key}: {exc}")
+
+        entry.graph.subscribe_to_validation(_handler)
         self.graph_manager.session_attach(entry, session_id)
         return entry
 

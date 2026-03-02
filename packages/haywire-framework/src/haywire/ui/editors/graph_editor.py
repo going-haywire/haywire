@@ -17,11 +17,10 @@ from nicegui import ui
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.ui.context_events import ContextChangeType
+from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
     from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
 
 
@@ -61,6 +60,8 @@ class GraphEditor(BaseEditor):
         self._project_state = None
         self._canvas_wrapper = None      # ui.element — cleared on graph switch
         self._graph_name_label = None    # ui.label in the header
+        self._save_as_dialog = None      # ui.dialog — Save As
+        self._save_path_input = None     # ui.input inside the dialog
 
     # ------------------------------------------------------------------
     # render
@@ -98,6 +99,9 @@ class GraphEditor(BaseEditor):
                 with self._canvas_wrapper:
                     self._build_canvas(context)
 
+            # ---- Save-As dialog (Quasar teleports it to <body>; slot doesn't matter) ----
+            self._save_as_dialog = self._build_save_as_dialog(context)
+
         self._update_header(context)
 
     # ------------------------------------------------------------------
@@ -134,7 +138,13 @@ class GraphEditor(BaseEditor):
         app = self._project_state
         if app is None or not hasattr(app, 'graph_manager'):
             return None
-        return app.graph_manager.get_by_path(context.active_graph_path)
+        if context.active_graph_path is not None:
+            return app.graph_manager.get_by_path(context.active_graph_path)
+        # path is None — could be the '__untitled__' entry OR a '__new_N__' entry.
+        # Use graph-object identity so we always return the right entry.
+        if context.active_graph is not None and hasattr(app.graph_manager, 'get_by_graph'):
+            return app.graph_manager.get_by_graph(context.active_graph)
+        return app.graph_manager.get_untitled()
 
     # ------------------------------------------------------------------
     # header
@@ -191,7 +201,7 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _save_graph(self, context: 'SessionContext') -> None:
-        """Save the active graph to its file path."""
+        """Save the active graph; opens Save-As dialog if no path exists yet."""
         app = context.metadata.get('project_state')
         if app is None or not hasattr(app, 'graph_manager'):
             ui.notify('Graph manager not available', type='warning')
@@ -202,19 +212,86 @@ class GraphEditor(BaseEditor):
             ui.notify('No graph to save', type='warning')
             return
 
-        if entry.path is None:
-            ui.notify(
-                'Graph is untitled — use Save As to choose a file location',
-                type='info',
-            )
+        if entry.path is not None:
+            # Already has a path — just overwrite it
+            success = app.graph_manager.save_graph(entry)
+            if success:
+                ui.notify(f'Saved: {entry.path.name}', type='positive', position='top-right')
+                self._update_header(context)
+            else:
+                ui.notify('Save failed', type='negative', position='top-right')
             return
 
-        success = app.graph_manager.save_graph(entry)
+        # No path yet — pre-fill and open the Save-As dialog
+        if self._save_as_dialog is None or self._save_path_input is None:
+            ui.notify('Save-As dialog not ready', type='warning')
+            return
+
+        workspace_root = getattr(app, 'workspace_root', str(Path.home()))
+        graph_name = getattr(entry.graph, 'name', 'untitled')
+        safe_name = graph_name.lower().replace(' ', '_')
+        self._save_path_input.value = str(Path(workspace_root) / f'{safe_name}.haywire')
+        self._save_as_dialog.open()
+
+    def _build_save_as_dialog(self, context: 'SessionContext'):
+        """Create the Save-As dialog once during render(). Returns the dialog."""
+        with ui.dialog() as dialog, ui.card().style('min-width: 440px; max-width: 640px'):
+            with ui.column().classes('w-full gap-3'):
+                ui.label('Save Graph As').classes('text-base font-semibold')
+                ui.label(
+                    'Enter the full path for the .haywire file.'
+                ).classes('text-xs text-gray-400 -mt-2')
+                self._save_path_input = (
+                    ui.input(label='File path')
+                    .classes('w-full')
+                    .props('outlined dense')
+                )
+                with ui.row().classes('w-full justify-end gap-2'):
+                    ui.button('Cancel', on_click=dialog.close).props('flat dense')
+                    ui.button(
+                        'Save',
+                        on_click=lambda: self._do_save_as(context, dialog),
+                    ).props('color=primary dense')
+        return dialog
+
+    def _do_save_as(self, context: 'SessionContext', dialog) -> None:
+        """Execute the Save-As from within the dialog."""
+        app = context.metadata.get('project_state')
+        if app is None:
+            ui.notify('App not available', type='warning')
+            return
+
+        entry = self._get_entry(context)
+        if entry is None:
+            ui.notify('No graph to save', type='warning')
+            dialog.close()
+            return
+
+        path_str = (self._save_path_input.value or '').strip()
+        if not path_str:
+            ui.notify('Please enter a file path', type='warning')
+            return
+
+        save_path = Path(path_str)
+        if not save_path.suffix:
+            save_path = save_path.with_suffix('.haywire')
+
+        success = app.graph_manager.save_graph(entry, save_as=save_path)
         if success:
-            ui.notify(f'Saved: {entry.path.name}', type='positive', position='top-right')
-            self._update_header(context)
+            context.active_graph_path = save_path
+            session = context.metadata.get('haywire_session')
+            if session:
+                session.notify_context_changed(
+                    ContextChangedEvent(
+                        change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                        source_editor='graph_editor',
+                        detail=entry,
+                    )
+                )
+            ui.notify(f'Saved: {save_path.name}', type='positive', position='top-right')
+            dialog.close()
         else:
-            ui.notify('Save failed', type='negative', position='top-right')
+            ui.notify('Save failed — check the path and try again', type='negative')
 
     # ------------------------------------------------------------------
     # cleanup
@@ -227,3 +304,5 @@ class GraphEditor(BaseEditor):
             except Exception as exc:
                 logging.error(f"GraphEditor.cleanup(): {exc}")
             self._canvas_manager = None
+        self._save_as_dialog = None
+        self._save_path_input = None
