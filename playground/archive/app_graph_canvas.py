@@ -699,7 +699,7 @@ class UndoRedoTestAppWithCanvasManager:
                 container.clear()
                 with container:
                     ui.label(f'Nodes Created: {self.global_stats["nodes_created"]}')
-                    ui.label(f'Connections Created: {self.global_stats["edges_created"]}')
+                    ui.label(f'Edges Created: {self.global_stats["edges_created"]}')
                     ui.label(f'Undo Operations: {self.global_stats["undo_operations"]}')
                     ui.label(f'Redo Operations: {self.global_stats["redo_operations"]}')
             
@@ -710,7 +710,7 @@ class UndoRedoTestAppWithCanvasManager:
                 with container:
                     ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
                     ui.label(f'Nodes: {len(self.graph.node_wrappers)}')
-                    ui.label(f'Connections: {len(self.graph.edge_wrappers)}')
+                    ui.label(f'Edges: {len(self.graph.edge_wrappers)}')
                     
                     if self.history_manager:
                         ui.label(f'Can Undo: {self.editor.can_undo()}')
@@ -727,7 +727,7 @@ class UndoRedoTestAppWithCanvasManager:
                         f'Visual Nodes: {len(canvas_manager.node_panels)}'
                     ).classes('text-sm')
                     ui.label(
-                        f'Visual Connections: {len(canvas_manager.connection_paths)}'
+                        f'Visual Edges: {len(canvas_manager.connection_paths)}'
                     ).classes('text-sm')
             
             # Update history display for this specific session
@@ -757,13 +757,13 @@ class UndoRedoTestAppWithCanvasManager:
                 container.clear()
                 with container:
                     # Get selection from shared graph instead of session-local state
-                    selected_nodes, selected_connections = self.graph.get_selection_state()
-                    total_selected = len(selected_nodes) + len(selected_connections)
+                    selected_nodes, selected_edges = self.graph.get_selection_state()
+                    total_selected = len(selected_nodes) + len(selected_edges)
                     
                     if total_selected > 0:
                         ui.label(
                             f'Selected: {len(selected_nodes)} nodes, '
-                            f'{len(selected_connections)} connections'
+                            f'{len(selected_edges)} connections'
                         ).classes('font-bold')
                         
                         # Show first 5 selected nodes
@@ -775,13 +775,13 @@ class UndoRedoTestAppWithCanvasManager:
                             ).classes('text-xs pl-2 text-gray-500')
                         
                         # Show first 3 selected connections
-                        for connection_id in list(selected_connections)[:3]:
+                        for connection_id in list(selected_edges)[:3]:
                             ui.label(
-                                f'• Connection: {connection_id[:30]}...'
+                                f'• Edge: {connection_id[:30]}...'
                             ).classes('text-xs pl-2')
-                        if len(selected_connections) > 3:
+                        if len(selected_edges) > 3:
                             ui.label(
-                                f'... and {len(selected_connections) - 3} more connections'
+                                f'... and {len(selected_edges) - 3} more connections'
                             ).classes('text-xs pl-2 text-gray-500')
                     else:
                         ui.label('No nodes selected').classes('text-gray-500')
@@ -1132,7 +1132,7 @@ class UndoRedoTestAppWithCanvasManager:
                         f'Visual Nodes: {len(self.canvas_manager.node_panels)}'
                     ).classes('text-sm')
                     ui.label(
-                        f'Visual Connections: {len(self.canvas_manager.connection_paths)}'
+                        f'Visual Edges: {len(self.canvas_manager.connection_paths)}'
                     ).classes('text-sm')
                     ui.label(
                         f'Zoom: {self.canvas_manager.current_zoom:.2f}x'
@@ -1152,7 +1152,7 @@ class UndoRedoTestAppWithCanvasManager:
                 self.stats_container.clear()
                 with self.stats_container:
                     ui.label(f'Nodes Created: {self.global_stats["nodes_created"]}')
-                    ui.label(f'Connections Created: {self.global_stats["edges_created"]}')
+                    ui.label(f'Edges Created: {self.global_stats["edges_created"]}')
                     ui.label(f'Undo Operations: {self.global_stats["undo_operations"]}')
                     ui.label(f'Redo Operations: {self.global_stats["redo_operations"]}')
     
@@ -1167,7 +1167,7 @@ class UndoRedoTestAppWithCanvasManager:
                 with self.info_container:
                     ui.label(f'Graph ID: {self.graph.graph_id}').classes('text-sm')
                     ui.label(f'Nodes: {len(self.graph.node_wrappers)}')
-                    ui.label(f'Connections: {len(self.graph.edge_wrappers)}')
+                    ui.label(f'Edges: {len(self.graph.edge_wrappers)}')
     
     def update_history_display(self):
         """Update the history display for current session."""

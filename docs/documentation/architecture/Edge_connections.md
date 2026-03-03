@@ -284,7 +284,7 @@ So the chains are: BOOL→INT (1), BOOL→FLOAT (2), BOOL→STRING (3), INT→FL
 - **`DataPort._linked_edges`**: `dict[edge_id, EdgeWrapper]` — active linked edges (used for pipes)
 - **`DataPort._all_edges`**: `dict[edge_id, EdgeWrapper]` — all tracked edges including displaced/non-functional
 - **`DataPort._pending_lazy_pipes`**: `set[(Pipes, edge_id)]` — lazy pipes needing resolution at execution time
-- **`DataPort.allow_multiple_connections`**: the connection limit flag
+- **`DataPort.allow_multiple_links`**: the connection limit flag
 - **`Edge.is_lazy`**: `bool` — per-edge lazy propagation flag (default `False`)
 - **`Edge.chain_adapter_keys`**: list of adapter registry keys (empty = ReturnAdapter)
 - **`EdgeWrapper._first_adapter`**: the head of the adapter chain (executable)
@@ -375,8 +375,8 @@ So the chains are: BOOL→INT (1), BOOL→FLOAT (2), BOOL→STRING (3), INT→FL
 - Valid edge state flags inspection
 - Invalid edge has error set
 - Scalar→array compound type mismatch rejected
-- Pooled port `allow_multiple_connections` flag verification
-- Standard data inlet `allow_multiple_connections = False` verification
+- Pooled port `allow_multiple_links` flag verification
+- Standard data inlet `allow_multiple_links = False` verification
 
 ### Two-Tier Storage and Re-enablement (6 tests)
 

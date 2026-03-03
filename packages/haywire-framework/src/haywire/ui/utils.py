@@ -9,7 +9,7 @@ from nicegui import ui
 
 def generate_pin_uuid(node_id: str, pin_id: str) -> str:
     """
-    Generate a unique pin identifier for UI and connection systems.
+    Generate a unique pin identifier for UI and edge systems.
 
     Args:
         node_id: The node's unique identifier
@@ -33,7 +33,7 @@ def generate_edge_uuid(
         inlet_node_id: str, 
         inlet_pin_id: str) -> str:
     """
-    Generate a unique connection identifier for UI and graph systems.
+    Generate a unique edge identifier for UI and graph systems.
 
     This uses Format 2: edge::outlet_pin_id@outlet_node_id>>inlet_node_id@inlet_pin_id
 
@@ -44,7 +44,7 @@ def generate_edge_uuid(
         inlet_pin_id: The destination pin's identifier within the node
 
     Returns:
-        Unique connection identifier
+        Unique edge identifier
 
     Example:
         generate_edge_id('node_123', 'output', 'node_456', 'input')
@@ -54,15 +54,15 @@ def generate_edge_uuid(
     inlet_uuid = generate_pin_uuid(inlet_node_id, inlet_pin_id)
     return f"edge::{outlet_uuid}>>{inlet_uuid}"
 
-class ConnectionComponents(NamedTuple):
-    """Components of a parsed connection ID."""
+class EdgeComponents(NamedTuple):
+    """Components of a parsed edge ID."""
     outlet_node_id: str
     outlet_pin_id: str
     inlet_node_id: str
     inlet_pin_id: str
 
 
-def parse_edge_id(edge_id: str) -> ConnectionComponents:
+def parse_edge_id(edge_id: str) -> EdgeComponents:
     """
     Parse an edge identifier back into its components.
 
@@ -70,14 +70,14 @@ def parse_edge_id(edge_id: str) -> ConnectionComponents:
         edge_id: Edge ID in format edge::outlet_node_id__outlet_pin_id>>inlet_node_id__inlet_pin_id
 
     Returns:
-        ConnectionComponents with outlet_node_id, outlet_pin_id, inlet_node_id, inlet_pin_id
+        EdgeComponents with outlet_node_id, outlet_pin_id, inlet_node_id, inlet_pin_id
 
     Raises:
         ValueError: If edge_id format is invalid
 
     Example:
         parse_edge_id('edge::output@node_123>>input@node_456')
-        -> ConnectionComponents(outlet_node_id='node_123', outlet_pin_id='output',
+        -> EdgeComponents(outlet_node_id='node_123', outlet_pin_id='output',
                                inlet_node_id='node_456', inlet_pin_id='input')
     """
     # Split by :: to get prefix and the rest
@@ -91,13 +91,13 @@ def parse_edge_id(edge_id: str) -> ConnectionComponents:
     
     if prefix != 'edge':
         raise ValueError(
-            f"Connection ID must start with 'edge', got: {prefix}"
+            f"Edge ID must start with 'edge', got: {prefix}"
         )
     
     # Split by >> to get outlet and inlet parts
     if '>>' not in rest:
         raise ValueError(
-            f"Invalid connection ID format: {edge_id}. "
+            f"Invalid edge ID format: {edge_id}. "
             f"Expected '>>' separator between outlet_uuid and inlet_uuid"
         )
     
@@ -107,7 +107,7 @@ def parse_edge_id(edge_id: str) -> ConnectionComponents:
     outlet_parts = outlet_part.split('@')
     if len(outlet_parts) != 2:
         raise ValueError(
-            f"Invalid outlet format in connection ID: {outlet_part}. "
+            f"Invalid outlet format in edge ID: {outlet_part}. "
             f"Expected pin_id@node_id"
         )
     outlet_pin_id, outlet_node_id = outlet_parts
@@ -116,12 +116,12 @@ def parse_edge_id(edge_id: str) -> ConnectionComponents:
     inlet_parts = inlet_part.split('@')
     if len(inlet_parts) != 2:
         raise ValueError(
-            f"Invalid inlet format in connection ID: {inlet_part}. "
+            f"Invalid inlet format in edge ID: {inlet_part}. "
             f"Expected pin_id@node_id"
         )
     inlet_pin_id, inlet_node_id = inlet_parts
     
-    return ConnectionComponents(
+    return EdgeComponents(
         outlet_node_id=outlet_node_id,
         outlet_pin_id=outlet_pin_id,
         inlet_node_id=inlet_node_id,

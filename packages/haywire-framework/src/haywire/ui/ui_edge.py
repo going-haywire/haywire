@@ -22,7 +22,7 @@ from haywire.core.registry.lifecycle_event import (
     LifeCycleEventType
 )
 from haywire.ui.graph_canvas.event_definitions import (
-    SyncConnectionAdditionEvent,
+    SyncEdgeAdditionEvent,
     BaseGraphEvent
 )
 
@@ -153,7 +153,7 @@ class UIEdge:
         """
         Synchronize current EdgeWrapper state to Vue component.
         
-        Emits SYNC_CONNECTION_ADDITION which handles both creation and updates.
+        Emits SYNC_EDGE_ADDITION which handles both creation and updates.
         Only updates when visual properties actually change.
         """
         new_state = self._calculate_visual_state()
@@ -168,7 +168,7 @@ class UIEdge:
         edge = self.wrapper
         
         # Emit sync event to Vue (handles both add and update)
-        event = SyncConnectionAdditionEvent(
+        event = SyncEdgeAdditionEvent(
             edge_id=new_state.edge_id,
             sourceNodeId=edge.source_node_id,
             outletPinId=edge.outlet_port_id,

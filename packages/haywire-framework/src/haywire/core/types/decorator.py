@@ -71,9 +71,9 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         color (str, optional): UI pin color (hex).
         icon (str, optional): UI pin icon.
         icon_in (str, optional): Icon for inlet pins.
-        icon_in_multi (str, optional): Icon for multi-connection inlet pins.
+        icon_in_multi (str, optional): Icon for multi-link inlet pins.
         icon_out (str, optional): Icon for outlet pins.
-        icon_out_multi (str, optional): Icon for multi-connection outlet pins.
+        icon_out_multi (str, optional): Icon for multi-link outlet pins.
         widget_key (str, optional): Widget for editing values. NOT RECOMENDED TO USE 
         widget_config (dict, optional): Additional widget configuration properties. NOT RECOMENDED TO USE
         container_type (ContainerType, optional): SINGLE, LIST, DICT, etc.

@@ -35,7 +35,7 @@ class DataField(ABC, Generic[T]):
     access patterns for different use cases:
     - Node-to-node data transfer
     - Worker method access
-    - Connection validation
+    - Edge validation
     
     Each IType declares which DataField class handles its storage.
     

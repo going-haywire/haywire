@@ -43,7 +43,7 @@ class NodeRenderer(BaseRenderer, ABC):
             ui.label(port.label).classes("text-xs zoom-pan-lod2")
 
         # Render inlet widget if it has a pin that does not allow multiple connections
-        if not port.allow_multiple_connections:
+        if not port.allow_multiple_links:
             if port.widget_key:
                 # Widget rendering adds UI element to current context automatically
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
@@ -57,8 +57,8 @@ class NodeRenderer(BaseRenderer, ABC):
             # only render pins for outlets that are actually involved in flows
             self._render_pin(port, wrapper, direction="right")
 
-        # Render inlet widget if it has a pin that does not allow multiple connections
-        if not port.allow_multiple_connections:
+        # Render outlet widget if it has a pin that does not allow multiple links
+        if not port.allow_multiple_links:
             if port.widget_key:
                 # Widget rendering adds UI element to current context automatically
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
@@ -69,8 +69,8 @@ class NodeRenderer(BaseRenderer, ABC):
             # Pin label
             ui.label(port.label).classes("text-xs")
 
-        # Render inlet widget if it has a pin that does not allow multiple connections
-        if not port.allow_multiple_connections:
+        # Render config widget if it has a pin that does not allow multiple links
+        if not port.allow_multiple_links:
             if port.widget_key:
                 # Widget rendering adds UI element to current context automatically
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
@@ -142,7 +142,7 @@ class NodeRenderer(BaseRenderer, ABC):
             pin_data_type = pin._data.get_stored_type().class_identity.registry_key
             # Get pin color: try data type specific, use pin.color as preference
             if pin.is_inlet():
-                if pin.allow_multiple_connections:
+                if pin.allow_multiple_links:
                     if issubclass(pin._data.get_stored_type(), CompoundType):
                         data_icon = ThemePalette.get(
                             ThemeKey.UI_PORT_ICON_IN_MULTI_COMPOUND,

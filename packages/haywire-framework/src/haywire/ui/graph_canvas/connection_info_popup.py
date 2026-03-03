@@ -21,7 +21,7 @@ from .popup import Popup
 from haywire.ui.errors.error_info import error_render_detail
 
 
-class ConnectionInfoPopup:
+class EdgeInfoPopup:
     """Dedicated popup for displaying detailed connection/edge information."""
     
     def __init__(self):
@@ -31,7 +31,7 @@ class ConnectionInfoPopup:
         self,
         x: float,
         y: float,
-        connection_id: str,
+        edge_id: str,
         edge: Edge,
         state: EdgeWrapperState
     ):

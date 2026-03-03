@@ -400,7 +400,7 @@ def example_callback_edge_based():
     print(f"  Listeners: {topology.get('listeners', 0)}")
     
     if topology.get('connections'):
-        print(f"\n  Connections (listener → emitter):")
+        print(f"\n  Edges (listener → emitter):")
         for source, targets in topology['connections'].items():
             print(f"    {source} → {targets}")
     

@@ -135,7 +135,7 @@ class Editor:
             print(f"❌ Editor: Error moving nodes by delta: {e}")
             return False
     
-    def remove_elements(self, nodes: List[str] = None, connections: List[str] = None) -> bool:
+    def remove_elements(self, nodes: List[str] = None, edges: List[str] = None) -> bool:
         """
         Remove multiple nodes and connections in a single operation.
         
@@ -147,9 +147,9 @@ class Editor:
             True if elements were removed, False otherwise
         """
         nodes = nodes or []
-        connections = connections or []
+        edges = edges or []
         
-        if not nodes and not connections:
+        if not nodes and not edges:
             return False
         
         # Validate nodes exist
@@ -159,23 +159,23 @@ class Editor:
             return False
         
         # Validate connections exist
-        missing_connections = [
-            conn_id for conn_id in connections 
+        missing_edges = [
+            conn_id for conn_id in edges 
             if not self.graph.get_edge_wrapper(conn_id)
         ]
-        if missing_connections:
-            print(f"⚠️ Editor: Connections not found for removal: {missing_connections}")
+        if missing_edges:
+            print(f"⚠️ Editor: Connections not found for removal: {missing_edges}")
             return False
         
         try:
             # Create and execute remove elements action
-            action = RemoveElementsAction(self.graph, nodes, connections)
+            action = RemoveElementsAction(self.graph, nodes, edges)
             self.history_manager.add_action(action)
                         
-            total_count = len(nodes) + len(connections)
+            total_count = len(nodes) + len(edges)
             print(
                 f"✅ Editor: Removed {total_count} elements "
-                f"({len(nodes)} nodes, {len(connections)} connections)"
+                f"({len(nodes)} nodes, {len(edges)} connections)"
             )
             return True
             
@@ -199,7 +199,7 @@ class Editor:
     # CONNECTION OPERATIONS
     # =============================================================================
     
-    def create_connection(
+    def create_edge(
         self, 
         source_node_id: str, 
         outlet_pin: str, 
@@ -239,7 +239,7 @@ class Editor:
             print(f"❌ Editor: Error creating connection: {e}")
             return False
     
-    def list_connections(self) -> List[EdgeWrapper]:
+    def list_edges(self) -> List[EdgeWrapper]:
         """Get a list of all connections in the graph."""
         return list(self.graph.edge_wrappers.values())
     
@@ -250,14 +250,14 @@ class Editor:
     def set_selection(
         self, 
         selected_nodes: Set[str] = None, 
-        selected_connections: Set[Tuple[str, str, str, str]] = None
+        selected_edges: Set[Tuple[str, str, str, str]] = None
     ) -> bool:
         """
         Set the current selection.
         
         Args:
             selected_nodes: Set of selected node IDs
-            selected_connections: Set of selected connection tuples 
+            selected_edges: Set of selected edge tuples 
                 (output_node, outlet_pin, input_node, inlet_pin)
             
         Returns:
@@ -265,12 +265,12 @@ class Editor:
         """
         try:
             selected_nodes = selected_nodes or set()
-            selected_connections = selected_connections or set()
+            selected_edges = selected_edges or set()
             
-            # Convert connection tuples to connection UUIDs
+            # Convert edge tuples to edge UUIDs
             from ...ui.utils import generate_edge_uuid
             selected_edge_ids = set()
-            for output_node, outlet_pin, input_node, inlet_pin in selected_connections:
+            for output_node, outlet_pin, input_node, inlet_pin in selected_edges:
                 edge_id = generate_edge_uuid(
                     output_node, outlet_pin, input_node, inlet_pin
                 )
@@ -282,7 +282,7 @@ class Editor:
                         
             print(
                 f"✅ Editor: Set selection to {len(selected_nodes)} nodes, "
-                f"{len(selected_connections)} connections"
+                f"{len(selected_edges)} connections"
             )
             return True
             
@@ -358,7 +358,7 @@ class Editor:
         return {
             'graph_id': self.graph.graph_id,
             'node_count': len(self.graph.node_wrappers),
-            'connection_count': len(self.graph.edge_wrappers),
+            'edge_count': len(self.graph.edge_wrappers),
             'can_undo': self.can_undo(),
             'can_redo': self.can_redo(),
             'history_size': len(self.history_manager.history) if self.history_manager else 0,

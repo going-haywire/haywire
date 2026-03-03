@@ -77,7 +77,7 @@ class ExternalEvent(EventSource):
     These events come from outside Haywire and are forwarded by
     the host application:
     - Input events (keyboard, mouse, gamepad)
-    - Network events (messages, connections)
+    - Network events (messages, edges)
     - File system events
     - Custom application events
     

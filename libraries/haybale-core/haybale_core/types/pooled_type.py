@@ -4,7 +4,7 @@ Pooled Compound Type - Final Simplified Version
 Key changes:
 1. Uses hooks from IType (_validate_port_type, _configure_port)
 2. _validate_port_type: Prevents outlet creation
-3. _configure_port: Sets allow_multiple_connections = True
+3. _configure_port: Sets allow_multiple_links = True
 4. Clean and focused - just overrides what's needed
 """
 
@@ -56,7 +56,7 @@ class PooledType(CompoundType[T]):
     
     Hooks:
     - _validate_port_type: Overridden to prevent outlets
-    - _configure_port: Overridden to set allow_multiple_connections
+    - _configure_port: Overridden to set allow_multiple_links
     """
     
     field_class = None  # Will be set to PooledField after it's defined
@@ -90,7 +90,7 @@ class PooledType(CompoundType[T]):
         This is the semantic purpose of pooled - to aggregate from
         multiple sources into one inlet.
         """
-        port.allow_multiple_connections = True
+        port.allow_multiple_links = True
 
         # pooled type's flow type is determined by its element type
         if not port.type_cls.element_type_cls:

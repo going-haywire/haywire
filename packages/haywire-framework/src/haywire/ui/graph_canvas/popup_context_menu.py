@@ -28,7 +28,7 @@ from .event_definitions import (
     UserPasteClipboardEvent
 )
 from .node_menu_builder import NodeMenuBuilder
-from .connection_info_popup import ConnectionInfoPopup
+from .connection_info_popup import EdgeInfoPopup
 
 
 class PopupContextMenu:
@@ -52,7 +52,7 @@ class PopupContextMenu:
         self._recent_nodes: List[str] = []  # Track recently created nodes
         
         # Connection info popup
-        self._connection_info_popup = ConnectionInfoPopup()
+        self._connection_info_popup = EdgeInfoPopup()
         
         # Setup hot reload listener
         self._setup_hot_reload_listener()
@@ -111,7 +111,7 @@ class PopupContextMenu:
         """Handle node deletion."""
         event = UserRemoveEvent(
             nodes = [node_id,],
-            connections=[]
+            edges=[]
             )
         self._on_emit_event(event)
         self._close_current_menu()
@@ -120,7 +120,7 @@ class PopupContextMenu:
         """Handle node deletion."""
         event = ElementRedrawEvent(
             nodes = [node_id,],
-            connections=[]
+            edges=[]
             )
         self._on_emit_event(event)
         self._close_current_menu()
@@ -129,7 +129,7 @@ class PopupContextMenu:
         """Handle node deletion."""
         event = ElementRevalidateEvent(
             nodes = [node_id,],
-            connections=[]
+            edges=[]
             )
         self._on_emit_event(event)
         self._close_current_menu()
@@ -138,7 +138,7 @@ class PopupContextMenu:
         """Handle node deletion."""
         event = ElementResetEvent(
             nodes = [node_id,],
-            connections=[]
+            edges=[]
             )
         self._on_emit_event(event)
         self._close_current_menu()
@@ -147,7 +147,7 @@ class PopupContextMenu:
         """Handle connection deletion."""
         event = UserRemoveEvent(
             nodes = [],
-            connections = [connection_id,]
+            edges = [connection_id,]
             )
         self._on_emit_event(event)
         self._close_current_menu()
@@ -163,7 +163,7 @@ class PopupContextMenu:
         """Handle single node copying."""
         event = UserCopySelectedEvent(
             selectedNodes=[node_id],
-            selectedConnections=[]
+            selectedEdges=[]
         )
         self._on_emit_event(event)
         self._close_current_menu()
@@ -298,20 +298,20 @@ class PopupContextMenu:
         popup.open()
         self._current_popup = popup
     
-    def show_connection_menu(
+    def show_edge_menu(
         self,
         x: float,
         y: float,
-        connection_id: str,
+        edge_id: str,
         edge: Edge,
         state: EdgeWrapperState
     ):
         """Show context menu for connection operations with detailed metrics."""
         self._close_current_menu()
         
-        # Store connection data for operations  
+        # Store edge data for operations  
         self._menu_data = {
-            'connection_id': connection_id,
+            'edge_id': edge_id,
             'edge': edge,
             'state': state,
             'x': x,
@@ -336,7 +336,7 @@ class PopupContextMenu:
                 # Actions
                 btn1 = ui.button(
                     '🔍 Inspect Connection',
-                    on_click=lambda e, cx=x, cy=y: self._inspect_connection_at(connection_id, cx, cy)
+                    on_click=lambda e, cx=x, cy=y: self._inspect_connection_at(edge_id, cx, cy)
                 )
                 btn1.props('flat align=left')
                 btn1.classes(
@@ -346,7 +346,7 @@ class PopupContextMenu:
                 
                 btn2 = ui.button(
                     '🗑️ Delete Connection',
-                    on_click=lambda: self._delete_connection(connection_id)
+                    on_click=lambda: self._delete_connection(edge_id)
                 )
                 btn2.props('flat align=left')
                 btn2.classes(
@@ -437,7 +437,7 @@ class PopupContextMenu:
 
         event = UserRemoveEvent(
             nodes = selected_nodes,
-            connections = selected_connections
+            edges = selected_connections
         )
         self._on_emit_event(event)
         
@@ -457,7 +457,7 @@ class PopupContextMenu:
         
         event = UserCopySelectedEvent(
             selectedNodes=selected_nodes,
-            selectedConnections=selected_connections
+            selectedEdges=selected_connections
         )
         self._on_emit_event(event)
         self._close_current_menu()

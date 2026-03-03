@@ -245,7 +245,7 @@ class RemoveElementsAction(ActionBase):
         self, 
         graph: BaseGraph, 
         nodes: List[str] = None, 
-        connections: List[str] = None,
+        edges: List[str] = None,
         description: Optional[str] = None
     ):
         """
@@ -254,16 +254,16 @@ class RemoveElementsAction(ActionBase):
         Args:
             graph: The graph to remove elements from
             nodes: List of node IDs to remove
-            connections: List of connection UUIDs to remove
+            edges: List of edge UUIDs to remove
             description: Optional description override
         """
         nodes = nodes or []
-        connections = connections or []
+        edges = edges or []
         
-        total_count = len(nodes) + len(connections)
+        total_count = len(nodes) + len(edges)
         if total_count == 0:
             raise ValueError(
-                "Must specify at least one node or connection to remove"
+                "Must specify at least one node or edge to remove"
             )
         elif total_count == 1:
             if nodes:
@@ -271,7 +271,7 @@ class RemoveElementsAction(ActionBase):
                     description or f"Remove node '{nodes[0]}'"
                 )
             else:
-                super().__init__(description or "Remove connection")
+                super().__init__(description or "Remove edge")
         else:
             super().__init__(
                 description or f"Remove {total_count} elements"
@@ -279,7 +279,7 @@ class RemoveElementsAction(ActionBase):
         
         self.graph = graph
         self.nodes = nodes
-        self.connections = connections
+        self.edges = edges
         
         # Store removed elements for restoration
         self.removed_node_wrappers: Dict[str, NodeWrapper] = {}
@@ -290,7 +290,7 @@ class RemoveElementsAction(ActionBase):
     def _execute_impl(self) -> None:
         """Remove all specified elements and store them for undo."""
         # First, store and remove connections
-        for edge_id in self.connections:
+        for edge_id in self.edges:
             edge_wrapper = self.graph.get_edge_wrapper(edge_id)
             if edge_wrapper:
                 self.removed_edge_wrappers[edge_id] = edge_wrapper
@@ -364,7 +364,7 @@ class RemoveElementsAction(ActionBase):
 class SelectionState:
     """Represents a selection state."""
     selected_nodes: set[str]
-    selected_connections: set[str]  # Connection UUIDs
+    selected_edges: set[str]  # Edge UUIDs
 
 
 class ChangeSelectionAction(ActionBase):
@@ -389,12 +389,12 @@ class ChangeSelectionAction(ActionBase):
     
     def _get_current_selection(self) -> SelectionState:
         """Get the current selection state from the graph."""
-        selected_nodes, selected_connections = self.graph.get_selection_state()
-        return SelectionState(selected_nodes, selected_connections)
+        selected_nodes, selected_edges = self.graph.get_selection_state()
+        return SelectionState(selected_nodes, selected_edges)
     
     def _apply_selection(self, selection: SelectionState) -> None:
         """Apply a selection state to the graph."""
-        self.graph.set_selection_state(selection.selected_nodes, selection.selected_connections)
+        self.graph.set_selection_state(selection.selected_nodes, selection.selected_edges)
     
     def _execute_impl(self) -> None:
         """Apply the new selection."""

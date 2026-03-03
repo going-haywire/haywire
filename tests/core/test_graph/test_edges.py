@@ -15,7 +15,7 @@ from haywire.core.graph.base import BaseGraph
 
 
 @pytest.mark.integration
-class TestEdgeConnections:
+class TestEdges:
     """Test edge connection behaviors using EdgeLinkTestNode."""
 
     # ------------------------------------------------------------------
@@ -62,7 +62,7 @@ class TestEdgeConnections:
     # DATA INLET: Many-to-One (single-connection replacement)
     # ==================================================================
 
-    def test_data_inlet_allows_single_connection(
+    def test_data_inlet_allows_single_edge(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """A standard data inlet should accept exactly one connection."""
@@ -81,7 +81,7 @@ class TestEdgeConnections:
         assert inlet_port.is_linked()
         assert len(inlet_port._linked_edges) == 1
 
-    def test_data_inlet_second_valid_connection_replaces_first(
+    def test_data_inlet_second_valid_edge_replaces_first(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """
@@ -119,7 +119,7 @@ class TestEdgeConnections:
         # The first edge should no longer be linked on the inlet side
         assert not edge_1.state.is_inlet_linked
 
-    def test_data_inlet_second_invalid_connection_does_not_replace_first(
+    def test_data_inlet_second_invalid_edge_does_not_replace_first(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """
@@ -155,7 +155,7 @@ class TestEdgeConnections:
         assert edge_valid.state.is_valid()
         assert not edge_invalid.state.is_valid()
 
-    def test_data_inlet_replacement_with_adapter_connection(
+    def test_data_inlet_replacement_with_adapter_edge(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """
@@ -190,7 +190,7 @@ class TestEdgeConnections:
     # DATA INLET: Many-to-Many (Pooled Inlets)
     # ==================================================================
 
-    def test_pooled_inlet_accepts_multiple_connections(
+    def test_pooled_inlet_accepts_multiple_edges(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """Pooled inlets should accept multiple connections simultaneously."""
@@ -212,10 +212,10 @@ class TestEdgeConnections:
         assert edge_2.state.is_valid()
 
         pooled_port = self._get_port(node_c, 'pooled_bool_inlet')
-        assert pooled_port.allow_multiple_connections is True
+        assert pooled_port.allow_multiple_links is True
         assert len(pooled_port._linked_edges) == 2
 
-    def test_pooled_inlet_with_adapter_connections(
+    def test_pooled_inlet_with_adapter_edges(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """
@@ -242,7 +242,7 @@ class TestEdgeConnections:
         pooled_port = self._get_port(node_c, 'pooled_int_inlet')
         assert len(pooled_port._linked_edges) == 2
 
-    def test_data_outlet_allows_multiple_connections(
+    def test_data_outlet_allows_multiple_edges(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """Data outlets should allow multiple outgoing connections."""
@@ -262,7 +262,7 @@ class TestEdgeConnections:
         assert edge_2.state.is_valid()
 
         outlet_port = self._get_port(node_a, 'bool_outlet')
-        assert outlet_port.allow_multiple_connections is True
+        assert outlet_port.allow_multiple_links is True
         assert len(outlet_port._linked_edges) == 2
 
     # ==================================================================
@@ -436,7 +436,7 @@ class TestEdgeConnections:
     # EXECUTE FLOW CONNECTIONS (CONTROL type)
     # ==================================================================
 
-    def test_exec_connection_valid(
+    def test_exec_edge_valid(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """Basic EXEC outlet → EXEC inlet should be valid."""
@@ -451,7 +451,7 @@ class TestEdgeConnections:
         assert edge is not None
         assert edge.state.is_formally_validated
 
-    def test_exec_outlet_single_connection_only(
+    def test_exec_outlet_single_edge_only(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """
@@ -471,7 +471,7 @@ class TestEdgeConnections:
         )
 
         outlet_port = self._get_port(node_a, 'execute_out')
-        assert outlet_port.allow_multiple_connections is False
+        assert outlet_port.allow_multiple_links is False
         assert len(outlet_port._linked_edges) == 1
 
         # The second edge should be the one linked
@@ -482,7 +482,7 @@ class TestEdgeConnections:
         assert not edge_1.state.is_valid()
         assert edge_2.state.is_valid()
 
-    def test_exec_inlet_single_connection_only(
+    def test_exec_inlet_single_edge_only(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """
@@ -510,7 +510,7 @@ class TestEdgeConnections:
     # CALLBACK FLOW CONNECTIONS
     # ==================================================================
 
-    def test_callback_connection_valid(
+    def test_callback_edge_valid(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """CALLBACK outlet → CALLBACK inlet should pass formal validation."""
@@ -677,7 +677,7 @@ class TestEdgeConnections:
     # SELF-CONNECTION
     # ==================================================================
 
-    def test_self_connection_data(
+    def test_self_edge_data(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """
@@ -876,10 +876,10 @@ class TestEdgeConnections:
     # POOLED PORT CONFIGURATION
     # ==================================================================
 
-    def test_pooled_port_allows_multiple_connections_flag(
+    def test_pooled_port_allows_multiple_edges_flag(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """All pooled inlets should have allow_multiple_connections set to True."""
+        """All pooled inlets should have allow_multiple_links set to True."""
         graph = graph_with_library_system
         node_a, _ = self._create_two_nodes(graph)
 
@@ -894,11 +894,11 @@ class TestEdgeConnections:
 
         for port_id in pooled_port_ids:
             port = self._get_port(node_a, port_id)
-            assert port.allow_multiple_connections is True, (
+            assert port.allow_multiple_links is True, (
                 f"Port {port_id} should allow multiple connections"
             )
 
-    def test_standard_data_inlet_disallows_multiple_connections(
+    def test_standard_data_inlet_disallows_multiple_edges(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """Standard data inlets should NOT allow multiple connections."""
@@ -915,7 +915,7 @@ class TestEdgeConnections:
 
         for port_id in single_port_ids:
             port = self._get_port(node_a, port_id)
-            assert port.allow_multiple_connections is False, (
+            assert port.allow_multiple_links is False, (
                 f"Port {port_id} should NOT allow multiple connections"
             )
 

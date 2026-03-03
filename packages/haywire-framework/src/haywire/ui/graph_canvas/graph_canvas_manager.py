@@ -28,12 +28,12 @@ from .event_definitions import (
     UserDragUpdateEvent,
     UserDragEndEvent,
     UserRemoveEvent,
-    ConnectionCreatedEvent,
-    ConnectionClickedEvent,
+    EdgeCreatedEvent,
+    EdgeClickedEvent,
     SelectionChangedEvent,
     ContextMenuCanvasEvent,
     ContextMenuNodeEvent,
-    ContextMenuConnectionEvent,
+    ContextMenuEdgeEvent,
     ContextMenuSelectedEvent,
     NodeCreateRequestEvent,
     UserCopySelectedEvent,
@@ -41,8 +41,8 @@ from .event_definitions import (
     SyncNodeObserverAddEvent,
     SyncNodeObserverRemoveEvent,
     SyncNodePositionEvent,
-    SyncConnectionAdditionEvent,
-    SyncConnectionRemovalEvent,
+    SyncEdgeAdditionEvent,
+    SyncEdgeRemovalEvent,
     SyncSelectionsEvent,
     SyncCanvasClearEvent,
     ElementRedrawEvent,
@@ -81,9 +81,9 @@ class GraphCanvasManager:
                       
         # Visual state
         self.node_panels: Dict[str, UINode] = {}  # node_id -> UINode
-        self.connection_paths: Dict[str, UIEdge] = {}  # edge_id -> UIEdge object
+        self.edge_paths: Dict[str, UIEdge] = {}  # edge_id -> UIEdge object
         self.selected_nodes: Set[str] = set()
-        self.selected_connections: Set[str] = set()
+        self.selected_edges: Set[str] = set()
         
         # Vue component for canvas interactions
         self.canvas_vue: Optional[GraphCanvasVue] = None
@@ -191,7 +191,7 @@ class GraphCanvasManager:
     @handles_event(
         ContextMenuCanvasEvent,
         ContextMenuNodeEvent,
-        ContextMenuConnectionEvent,
+        ContextMenuEdgeEvent,
         ContextMenuSelectedEvent
     )
     def process_context_menu(self, event):
@@ -211,16 +211,16 @@ class GraphCanvasManager:
             if self.context_menu:
                 self.context_menu.show_node_menu(event.screenX, event.screenY, event.nodeId)
             
-        elif isinstance(event, ContextMenuConnectionEvent):
+        elif isinstance(event, ContextMenuEdgeEvent):
             logger.debug(
                 f"Connection context menu for {event.edge_id} "
                 f"at ({event.screenX}, {event.screenY})"
             )
             if self.context_menu:
                 # Get metrics directly and pass to menu
-                ui_edge = self.connection_paths.get(event.edge_id)
+                ui_edge = self.edge_paths.get(event.edge_id)
                 if ui_edge and ui_edge.wrapper:
-                    self.context_menu.show_connection_menu(
+                    self.context_menu.show_edge_menu(
                         event.screenX,
                         event.screenY,
                         event.edge_id,
@@ -232,14 +232,14 @@ class GraphCanvasManager:
             logger.debug(
                 f"Selected context menu at ({event.screenX}, {event.screenY}) "
                 f"for {len(event.selectedNodes)} nodes, "
-                f"{len(event.selectedConnections)} connections"
+                f"{len(event.selectedEdges)} connections"
             )
             if self.context_menu:
                 self.context_menu.show_selected_menu(
                     event.screenX,
                     event.screenY,
                     event.selectedNodes,
-                    event.selectedConnections
+                    event.selectedEdges
                 )
 
     # =============================================================================
@@ -265,9 +265,9 @@ class GraphCanvasManager:
         self.editor.add_fence()
         
         
-    @handles_event(ConnectionClickedEvent)
-    def process_connection_click(self, event: ConnectionClickedEvent):
-        """Handle connection click events"""
+    @handles_event(EdgeClickedEvent)
+    def process_edge_click(self, event: EdgeClickedEvent):
+        """Handle edge click events"""
         try:
             logger.debug(f"Connection clicked: {event.edge_id}")
         except Exception as e:
@@ -281,19 +281,19 @@ class GraphCanvasManager:
         if isinstance(event, ElementRedrawEvent):
             for node_id in event.nodes:
                 self.graph.request_node_redraw(node_id)
-            for edge_id in event.connections:
+            for edge_id in event.edges:
                 self.graph.request_edge_redraw(edge_id)
 
         elif isinstance(event, ElementRevalidateEvent):
             for node_id in event.nodes:
                 self.graph.request_node_revalidation(node_id)
-            for edge_id in event.connections:
+            for edge_id in event.edges:
                 self.graph.request_edge_revalidation(edge_id)
 
         elif isinstance(event, ElementResetEvent):
             for node_id in event.nodes:
                 self.graph.request_node_reset(node_id)
-            for edge_id in event.connections:
+            for edge_id in event.edges:
                 self.graph.request_edge_reset(edge_id)
         
 
@@ -306,16 +306,16 @@ class GraphCanvasManager:
         """Handle selection changes"""
         logger.debug(
             f"Selection changed: nodes={event.selectedNodes}, "
-            f"connections={event.selectedConnections}"
+            f"connections={event.selectedEdges}"
         )
         
         # Create new selection state
         selected_nodes_set = set(event.selectedNodes)
-        selected_connections_set = set(event.selectedConnections)
+        selected_edges_set = set(event.selectedEdges)
         
         # Convert connection IDs to edge tuples for SelectionState format
         selected_edges = set()
-        for edge_id in selected_connections_set:
+        for edge_id in selected_edges_set:
             try:
                 components = parse_edge_id(edge_id)
                 selected_edges.add((components.outlet_node_id, components.outlet_pin_id, 
@@ -328,7 +328,7 @@ class GraphCanvasManager:
         
         # Update local state for fast access
         self.selected_nodes = selected_nodes_set
-        self.selected_connections = selected_connections_set
+        self.selected_edges = selected_edges_set
     
     # =============================================================================
     # COPY PASTE EVENTS
@@ -339,7 +339,7 @@ class GraphCanvasManager:
         """Handle copying selected elements to clipboard."""
         logger.info(
             f"📋 Copying {len(event.selectedNodes)} nodes and "
-            f"{len(event.selectedConnections)} connections"
+            f"{len(event.selectedEdges)} connections"
         )
         
         try:
@@ -349,7 +349,7 @@ class GraphCanvasManager:
             # Store in session clipboard
             self.clipboard = ClipboardData(
                 nodes=event.selectedNodes,
-                edges=event.selectedConnections,
+                edges=event.selectedEdges,
                 original_to_new_ids={},  # Not needed for copy
                 bounding_box=bounding_box,
                 timestamp=time.time(),
@@ -501,15 +501,15 @@ class GraphCanvasManager:
             logger.error(f"Error creating node: {e}")
             ui.notify(f"Error creating node: {e}", type='negative')
 
-    @handles_event(ConnectionCreatedEvent)
-    def process_connection_creation(self, event: ConnectionCreatedEvent):
+    @handles_event(EdgeCreatedEvent)
+    def process_edge_creation(self, event: EdgeCreatedEvent):
         """Handle connection creation"""
         logger.debug(
             f"Creating connection: {event.sourceNodeId}:{event.outletPinId} -> "
             f"{event.sinkNodeId}:{event.inletPinId}"
         )
 
-        if self.editor.create_connection(
+        if self.editor.create_edge(
             event.sourceNodeId,
             event.outletPinId,
             event.sinkNodeId,
@@ -522,14 +522,14 @@ class GraphCanvasManager:
     @handles_event(UserRemoveEvent)
     def process_element_removal(self, event: UserRemoveEvent):
         """Handle unified element removal"""
-        total_elements = len(event.nodes) + len(event.connections)
+        total_elements = len(event.nodes) + len(event.edges)
         logger.info(
             f"🗑️ Removing {total_elements} elements: "
-            f"{len(event.nodes)} nodes, {len(event.connections)} connections"
+            f"{len(event.nodes)} nodes, {len(event.edges)} connections"
         )
         
         # Use the new unified removal method
-        if self.editor.remove_elements(event.nodes, event.connections):
+        if self.editor.remove_elements(event.nodes, event.edges):
             ui.notify(f"Deleted {total_elements} element(s)", type='positive')
         else:
             ui.notify("Failed to delete elements", type='warning')
@@ -609,29 +609,29 @@ class GraphCanvasManager:
             if reason == ChangeReason.EDGE_ADDED:
                 # Create new UI edge
                 wrapper = self.graph.get_edge_wrapper(edge_uuid)
-                if wrapper and edge_uuid not in self.connection_paths:
-                    self.add_connection_visual(wrapper)
+                if wrapper and edge_uuid not in self.edge_paths:
+                    self.add_edge_visual(wrapper)
                     logger.debug(f"  + Added edge UI: {edge_uuid}")
             
             elif reason == ChangeReason.EDGE_REMOVED:
                 # Remove UI edge
-                if edge_uuid in self.connection_paths:
-                    self.remove_connection_visual(edge_uuid)
+                if edge_uuid in self.edge_paths:
+                    self.remove_edge_visual(edge_uuid)
                     logger.debug(f"  - Removed edge UI: {edge_uuid}")
                         
             elif reason in (ChangeReason.EDGE_SELECTED, ChangeReason.EDGE_DESELECTED):
                 # Handle selection/deselection without clearing entire set
                 is_selected = reason == ChangeReason.EDGE_SELECTED
                 if is_selected:
-                    self.selected_connections.add(edge_uuid)
+                    self.selected_edges.add(edge_uuid)
                 else:
-                    self.selected_connections.discard(edge_uuid)
+                    self.selected_edges.discard(edge_uuid)
                 selection_changed = True
                 logger.debug(f"  ✓ Selection changed: {edge_uuid}")
 
             elif reason.requires_redraw():
                 # Full redraw needed
-                ui_edge = self.connection_paths.get(edge_uuid)
+                ui_edge = self.edge_paths.get(edge_uuid)
                 if ui_edge:
                     ui_edge.refresh(reason)  # Full re-render
                     logger.debug(f"  🔄 Redrawn edge: {edge_uuid} ({reason.value})")
@@ -741,7 +741,7 @@ class GraphCanvasManager:
                 edges_to_remove.append(edge_id)
         
         for edge_id in edges_to_remove:
-            self.remove_connection_visual(edge_id)
+            self.remove_edge_visual(edge_id)
         
         # Remove node visual
         if node_id in self.node_panels:
@@ -781,12 +781,12 @@ class GraphCanvasManager:
         )
         self.canvas_vue.emit_sync_event(sync_event)
         
-    def add_connection_visual(self, edge_wrapper: EdgeWrapper) -> bool:
-        """Add a visual connection between two nodes."""
+    def add_edge_visual(self, edge_wrapper: EdgeWrapper) -> bool:
+        """Add a visual edge between two nodes."""
         edge_id = edge_wrapper.edge_id
         
         logger.debug(
-            f"🔗 Creating connection visual: "
+            f"🔗 Creating edge visual: "
             f"{edge_wrapper.source_node_id}:{edge_wrapper.outlet_port_id} -> "
             f"{edge_wrapper.sink_node_id}:{edge_wrapper.inlet_port_id}"
         )
@@ -798,54 +798,54 @@ class GraphCanvasManager:
         )
         
         # Store reference
-        self.connection_paths[edge_id] = ui_edge
+        self.edge_paths[edge_id] = ui_edge
         
         logger.debug(f"🔗 Created UIEdge and connection visual: {edge_id}")
         return True
    
-    def remove_connection_visual(self, edge_id: str) -> bool:
+    def remove_edge_visual(self, edge_id: str) -> bool:
         """Remove a connection's visual representation."""
-        if edge_id not in self.connection_paths:
+        if edge_id not in self.edge_paths:
             return False
         
         # Cleanup UIEdge instance
-        ui_edge = self.connection_paths.get(edge_id)
+        ui_edge = self.edge_paths.get(edge_id)
         if ui_edge:
             ui_edge.cleanup()
-            del self.connection_paths[edge_id]
+            del self.edge_paths[edge_id]
         
         # Emit removal sync event
-        sync_event = SyncConnectionRemovalEvent(edge_id=edge_id)
+        sync_event = SyncEdgeRemovalEvent(edge_id=edge_id)
         self.canvas_vue.emit_sync_event(sync_event)
 
         logger.debug(f"🔗 Removed UIEdge and connection visual: {edge_id}")
         return True
 
-    def remove_all_connection_visuals(self):
+    def remove_all_edge_visuals(self):
         """Remove all connection visuals from the canvas."""
-        edge_ids = list(self.connection_paths.keys())
+        edge_ids = list(self.edge_paths.keys())
         for edge_id in edge_ids:
-            self.remove_connection_visual(edge_id)
+            self.remove_edge_visual(edge_id)
 
     def sync_selections(self):
         """Helper method to emit the consolidated selection sync event."""
         sync_event = SyncSelectionsEvent(
             nodes=list(self.selected_nodes),
-            connections=list(self.selected_connections)
+            edges=list(self.selected_edges)
         )
         self.canvas_vue.emit_sync_event(sync_event)
 
     def clear_all_visuals(self):
         """Clear all visual representations."""
         
-        self.remove_all_connection_visuals()
+        self.remove_all_edge_visuals()
         self.remove_all_node_visuals()
 
         # Clear local state
         self.node_panels.clear()
-        self.connection_paths.clear()
+        self.edge_paths.clear()
         self.selected_nodes.clear()
-        self.selected_connections.clear()
+        self.selected_edges.clear()
 
         sync_event = SyncCanvasClearEvent()        
         self.canvas_vue.emit_sync_event(sync_event)
@@ -867,9 +867,9 @@ class GraphCanvasManager:
 
         # Clear local state
         self.node_panels.clear()
-        self.connection_paths.clear()
+        self.edge_paths.clear()
         self.selected_nodes.clear()
-        self.selected_connections.clear()
+        self.selected_edges.clear()
 
         logger.info(f"🔧 GraphCanvasManager for {self.session_id} is shut down")
 

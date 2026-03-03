@@ -21,7 +21,7 @@ class Edge:
     serialization.
     """
     
-    # Connection endpoints
+    # Edge endpoints
     source_node_id: str
     outlet_port_id: str
     sink_node_id: str

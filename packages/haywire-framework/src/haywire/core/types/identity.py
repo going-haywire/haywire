@@ -37,9 +37,9 @@ class DataTypeIdentity(BaseIdentity):
         color: UI pin color (hex)
         icon: UI pin icon
         icon_in: Icon for inlet pins
-        icon_in_multi: Icon for multi-connection inlet pins
+        icon_in_multi: Icon for multi-link inlet pins
         icon_out: Icon for outlet pins
-        icon_out_multi: Icon for multi-connection outlet pins
+        icon_out_multi: Icon for multi-link outlet pins
         widget: Widget for editing values
         default: Default value for this type
         store_strategy: when to serialize field values 

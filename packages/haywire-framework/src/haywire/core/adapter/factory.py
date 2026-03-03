@@ -96,7 +96,7 @@ class AdapterFactory:
         Args:
             source_type: Source IType (from outlet)
             sink_type: Sink IType (from inlet)
-            edge_id: Connection identifier for dependency tracking
+            edge_id: Edge identifier for dependency tracking
             max_depth: Maximum chain length (default 3)
             
         Returns:

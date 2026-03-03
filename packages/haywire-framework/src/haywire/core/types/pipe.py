@@ -9,9 +9,9 @@ if TYPE_CHECKING:
 
 
 class Pipe:
-    """Single connection from an outlet to an inlet.
+    """Single data connection from an outlet to an inlet.
 
-    Wraps the sink port, adapter chain, lazy flag, and connection UUID.
+    Wraps the sink port, adapter chain, lazy flag, and edge ID.
     Owns the pull operation (read outlet → transform → store in inlet).
     """
     __slots__ = ('sink', 'chain', 'is_lazy', '_outlet_port', '_edge_id')

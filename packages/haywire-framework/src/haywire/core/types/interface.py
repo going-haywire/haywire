@@ -193,7 +193,7 @@ class IType(ABC):
             class PooledType(CompoundType):
                 @classmethod
                 def _configure_port(cls, port, **context):
-                    port.allow_multiple_connections = True
+                    port.allow_multiple_links = True
         """
         pass  # Default: no extra configuration
     
@@ -241,9 +241,9 @@ class IType(ABC):
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
                 icon_in (str): Icon for inlet pin
-                icon_in_multi (str): Icon for multi-connection inlet pin
+                icon_in_multi (str): Icon for multi-link inlet pin
                 icon_out (str): Icon for outlet pin
-                icon_out_multi (str): Icon for multi-connection outlet pin
+                icon_out_multi (str): Icon for multi-link outlet pin
                 widget_key (str): Widget key for value editing (preferably use widget instead)
                 widget_config (dict): Widget configuration parameters (preferably use widget instead)
                 help_url (str): Documentation link
@@ -253,7 +253,7 @@ class IType(ABC):
                     optional 'config' fields. Decomposed into widget_key and
                     widget_config during port creation. Use
                     WidgetClass.config(**kwargs) to generate correct format
-                allow_multiple_connections (bool): Allow multiple incoming
+                allow_multiple_links (bool): Allow multiple incoming
                     connections (default: False)
                 use_mode (str): 'optional' or 'required' (default: 'optional')
 
@@ -297,7 +297,7 @@ class IType(ABC):
         Sets the store_strategy to STORE
         (stores when saving the graph)
 
-        Note: Data-flow outlets automatically get allow_multiple_connections=True.
+        Note: Data-flow outlets automatically get allow_multiple_links=True.
 
         Args:
             id: Port identifier
@@ -321,9 +321,9 @@ class IType(ABC):
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
                 icon_in (str): Icon for inlet pin
-                icon_in_multi (str): Icon for multi-connection inlet pin
+                icon_in_multi (str): Icon for multi-link inlet pin
                 icon_out (str): Icon for outlet pin
-                icon_out_multi (str): Icon for multi-connection outlet pin
+                icon_out_multi (str): Icon for multi-link outlet pin
                 widget_key (str): Widget key for value editing (preferably use widget instead)
                 widget_config (dict): Widget configuration parameters (preferably use widget instead)
                 help_url (str): Documentation link
@@ -333,7 +333,7 @@ class IType(ABC):
                     optional 'config' fields. Decomposed into widget_key and
                     widget_config during port creation. Use
                     WidgetClass.config(**kwargs) to generate correct format
-                allow_multiple_connections (bool): Allow multiple outgoing
+                allow_multiple_links (bool): Allow multiple outgoing
                     connections (default: True for DATA flow)
                 needs_loopback (bool): Set to True if the control flow from
                     this outlet needs to loop back to the node (default: False)

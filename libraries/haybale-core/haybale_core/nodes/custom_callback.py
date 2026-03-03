@@ -57,7 +57,7 @@ class CustomCallbackNode(BaseNode):
             'listen_callback',
             label='Listen',
             default=self.node_id,
-            allow_multiple_connections=True
+            allow_multiple_links=True
         ))
 
         # Control output

@@ -99,54 +99,54 @@ class NodeCreateRequestEvent(BaseGraphEvent):
     registryKey: str
     position: Dict[str, float]  # {x: float, y: float}
 
-@graph_event("connectionCreated", category="user", description="New connection created")
+@graph_event("edgeCreated", category="user", description="New connection created")
 @dataclass
-class ConnectionCreatedEvent(BaseGraphEvent):
+class EdgeCreatedEvent(BaseGraphEvent):
     sourceNodeId: str
     outletPinId: str
     sinkNodeId: str
     inletPinId: str
 
-@graph_event("connectionClicked", category="user", description="Connection clicked")
+@graph_event("edgeClicked", category="user", description="Connection clicked")
 @dataclass
-class ConnectionClickedEvent(BaseGraphEvent):
+class EdgeClickedEvent(BaseGraphEvent):
     edge_id: str
 
 @graph_event("elementRedraw", category="user", description="redraw selected element")
 @dataclass
 class ElementRedrawEvent(BaseGraphEvent):
     nodes: List[str]
-    connections: List[str]
+    edges: List[str]
 
 @graph_event("elementReset", category="user", description="reset selected element")
 @dataclass
 class ElementResetEvent(BaseGraphEvent):
     nodes: List[str]
-    connections: List[str]
+    edges: List[str]
 
 @graph_event("elementRevalidate", category="user", description="revalidate selected element")
 @dataclass
 class ElementRevalidateEvent(BaseGraphEvent):
     nodes: List[str]
-    connections: List[str]
+    edges: List[str]
 
 @graph_event("selectionChanged", category="user", description="Selection state changed")
 @dataclass
 class SelectionChangedEvent(BaseGraphEvent):
     selectedNodes: List[str]
-    selectedConnections: List[str]
+    selectedEdges: List[str]
 
 @graph_event("userRemove", category="user", description="User wants to remove elements")
 @dataclass
 class UserRemoveEvent(BaseGraphEvent):
     nodes: List[str]
-    connections: List[str]
+    edges: List[str]
 
 @graph_event("userCopySelected", category="user", description="Copy selected elements to clipboard")
 @dataclass
 class UserCopySelectedEvent(BaseGraphEvent):
     selectedNodes: List[str]
-    selectedConnections: List[str]
+    selectedEdges: List[str]
 
 @graph_event("contextMenuCanvas", category="user", description="Canvas context menu triggered")
 @dataclass
@@ -166,12 +166,12 @@ class ContextMenuNodeEvent(BaseGraphEvent):
     nodeId: str
 
 @graph_event(
-    "contextMenuConnection",
+    "contextMenuEdge",
     category="user",
     description="Connection context menu triggered"
 )
 @dataclass
-class ContextMenuConnectionEvent(BaseGraphEvent):
+class ContextMenuEdgeEvent(BaseGraphEvent):
     screenX: float
     screenY: float
     canvasX: float
@@ -190,7 +190,7 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
     canvasX: float
     canvasY: float
     selectedNodes: List[str]
-    selectedConnections: List[str]
+    selectedEdges: List[str]
 
 @graph_event("userPasteClipboard", category="user", description="Paste clipboard contents")
 @dataclass
@@ -220,13 +220,13 @@ class SyncNodePositionEvent(BaseGraphEvent):
     position: Dict[str, float]
 
 @graph_event(
-    "syncConnectionAddition",
+    "syncEdgeAddition",
     category="sync",
     description="Sync connection addition/update to UI with visual properties"
 )
 @dataclass
-class SyncConnectionAdditionEvent(BaseGraphEvent):
-    """Sync connection to UI - handles both creation and updates.
+class SyncEdgeAdditionEvent(BaseGraphEvent):
+    """Sync edge to UI - handles both creation and updates.
     
     Visual properties:
     - strokeColor: 'auto' uses gradient, otherwise solid color
@@ -251,29 +251,29 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
     opacity: float = 1.0
 
 @graph_event(
-    "syncConnectionRemoval",
+    "syncEdgeRemoval",
     category="sync",
     description="Sync connection removal from UI"
 )
 @dataclass
-class SyncConnectionRemovalEvent(BaseGraphEvent):
+class SyncEdgeRemovalEvent(BaseGraphEvent):
     edge_id: str
 
 @graph_event("syncSelections", category="sync", description="Sync selection state to UI")
 @dataclass
 class SyncSelectionsEvent(BaseGraphEvent):
     nodes: List[str]
-    connections: List[str]
+    edges: List[str]
 
 @graph_event("syncCanvasClear", category="sync", description="Clear entire canvas")
 @dataclass
 class SyncCanvasClearEvent(BaseGraphEvent):
     pass
 
-@graph_event("syncAllConnections", category="sync", description="Sync all connections to UI")
+@graph_event("syncAllEdges", category="sync", description="Sync all connections to UI")
 @dataclass
-class SyncAllConnectionsEvent(BaseGraphEvent):
-    connections: List[Dict[str, Any]]
+class SyncAllEdgesEvent(BaseGraphEvent):
+    edges: List[Dict[str, Any]]
 
 @graph_event("syncNodeObserverAdd", category="sync", description="Add node observer")
 @dataclass
@@ -285,7 +285,7 @@ class SyncNodeObserverAddEvent(BaseGraphEvent):
 class SyncNodeObserverRemoveEvent(BaseGraphEvent):
     nodeId: str
 
-@graph_event("syncConnectionsUpdate", category="sync", description="Update connections for node")
+@graph_event("syncEdgesUpdate", category="sync", description="Update connections for node")
 @dataclass
-class SyncConnectionsUpdateEvent(BaseGraphEvent):
+class SyncEdgesUpdateEvent(BaseGraphEvent):
     nodeId: str

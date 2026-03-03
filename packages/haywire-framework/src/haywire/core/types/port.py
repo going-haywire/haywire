@@ -38,7 +38,7 @@ class DataPort(DataTypeIdentity):
     - id: Port identifier within the node
     - flow_type: CTRL, DATA, CALLBACK, or NONE
     - data: Runtime data field for storing values (created by type)
-    - Connection state, element type, etc.
+    - Edge state, element type, etc.
     
     Key simplification: Field is created by type.create_field(), not factory.
     
@@ -68,7 +68,7 @@ class DataPort(DataTypeIdentity):
         metadata={'serialize': False}) 
     """The type class (FLOAT, ArrayType, etc.)"""
     
-    # Connection state — two-tier storage
+    # Edge state — two-tier storage
     _linked_edges: dict[str, EdgeWrapper] = field(
         default_factory=dict,
         repr=False,
@@ -89,8 +89,8 @@ class DataPort(DataTypeIdentity):
         metadata={'serialize': False}
     )
 
-    allow_multiple_connections: bool = False  
-    """Whether multiple connections are allowed"""
+    allow_multiple_links: bool = False  
+    """Whether multiple links are allowed"""
 
     # Inlet-specific
     use_mode: str = 'optional'
@@ -224,14 +224,14 @@ class DataPort(DataTypeIdentity):
         if self.is_outlet():
             if self.flow_type == FlowType.DATA:
                 # Data flow outlets allow multiple connections by design
-                self.allow_multiple_connections = True
+                self.allow_multiple_links = True
             if self.flow_type == FlowType.CONTROL:
                 # Control flow outlets do NOT allow multiple connections by design
-                self.allow_multiple_connections = False
+                self.allow_multiple_links = False
 
         if self.is_inlet() and self.flow_type == FlowType.CONTROL:
             # Control flow inlets do allow multiple connections by design
-            self.allow_multiple_connections = True
+            self.allow_multiple_links = True
 
         # contrary to data and control flow, callback flow does not have 
         # hardcoded connection rules and can be freely configured by the user
@@ -373,7 +373,7 @@ class DataPort(DataTypeIdentity):
         self._all_edges[edge_wrapper.edge_id] = edge_wrapper
 
         if edge_wrapper.edge_id not in self._linked_edges:
-            if not self.allow_multiple_connections:
+            if not self.allow_multiple_links:
                 old_wrapper_uuid = next(iter(self._linked_edges), None)
                 if old_wrapper_uuid:
                     displaced = self._linked_edges.pop(old_wrapper_uuid)
@@ -452,7 +452,7 @@ class DataPort(DataTypeIdentity):
             The re-enableable EdgeWrapper, or None if none found.
             Caller is responsible for calling candidate.link().
         """
-        if self.allow_multiple_connections:
+        if self.allow_multiple_links:
             return None
 
         if self._linked_edges:

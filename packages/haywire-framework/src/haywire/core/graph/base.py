@@ -97,7 +97,7 @@ class BaseGraph:
         
         # Selection state - shared across all sessions
         self.selected_nodes: Set[str] = set()
-        self.selected_connections: Set[str] = set()
+        self.selected_edges: Set[str] = set()
         
         # Metadata
         self.description: str = ""
@@ -554,7 +554,7 @@ class BaseGraph:
         Also detaches from ports and triggers validation.
 
         Args:
-            edge_id: Connection UUID to remove
+            edge_id: Edge UUID to remove
 
         Returns:
             Removed wrapper or None
@@ -583,10 +583,10 @@ class BaseGraph:
 
     def get_edge_wrapper(self, edge_id: str) -> Optional['EdgeWrapper']:
         """
-        Get EdgeWrapper by connection UUID.
+        Get EdgeWrapper by Edge ID.
         
         Args:
-            edge_id: Connection UUID
+            edge_id: Edge ID
             
         Returns:
             EdgeWrapper if found, None otherwise
@@ -842,21 +842,21 @@ class BaseGraph:
     def set_selection_state(
         self, 
         selected_nodes: Set[str], 
-        selected_connections: Set[str]
+        selected_edges: Set[str]
     ):
         """Set the complete selection state (backward compatibility)."""
         self.selected_nodes = selected_nodes.copy()
-        self.selected_connections = selected_connections.copy()
+        self.selected_edges = selected_edges.copy()
     
     def get_selection_state(self) -> Tuple[Set[str], Set[str]]:
         """Get the current selection state."""
-        return self.selected_nodes.copy(), self.selected_connections.copy()
+        return self.selected_nodes.copy(), self.selected_edges.copy()
     
     def select_node(self, node_id: str, multi_select: bool = False):
         """Select a node."""
         if not multi_select:
             self.selected_nodes.clear()
-            self.selected_connections.clear()
+            self.selected_edges.clear()
         
         if node_id in self.node_wrappers:
             self.selected_nodes.add(node_id)
@@ -865,30 +865,30 @@ class BaseGraph:
         """Deselect a node."""
         self.selected_nodes.discard(node_id)
     
-    def select_connection(self, edge_id: str, multi_select: bool = False):
-        """Select a connection."""
+    def select_edge(self, edge_id: str, multi_select: bool = False):
+        """Select an edge."""
         if not multi_select:
             self.selected_nodes.clear()
-            self.selected_connections.clear()
+            self.selected_edges.clear()
         
-        self.selected_connections.add(edge_id)
+        self.selected_edges.add(edge_id)
     
-    def deselect_connection(self, edge_id: str):
-        """Deselect a connection."""
-        self.selected_connections.discard(edge_id)
+    def deselect_edge(self, edge_id: str):
+        """Deselect an edge."""
+        self.selected_edges.discard(edge_id)
     
     def clear_selection(self):
         """Clear all selections."""
         self.selected_nodes.clear()
-        self.selected_connections.clear()
+        self.selected_edges.clear()
     
     def is_node_selected(self, node_id: str) -> bool:
         """Check if a node is selected."""
         return node_id in self.selected_nodes
     
-    def is_connection_selected(self, edge_id: str) -> bool:
-        """Check if a connection is selected."""
-        return edge_id in self.selected_connections
+    def is_edge_selected(self, edge_id: str) -> bool:
+        """Check if an edge is selected."""
+        return edge_id in self.selected_edges
 
     # =========================================================================
     # CLEANUP
@@ -929,7 +929,7 @@ class BaseGraph:
         self.edge_wrappers.clear()
         self.variables.clear()
         self.selected_nodes.clear()
-        self.selected_connections.clear()
+        self.selected_edges.clear()
         
         # Clear validation manager state after notifications
         self._validation.clear()

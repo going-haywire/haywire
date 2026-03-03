@@ -284,7 +284,7 @@ class FlowAssemblyManager:
         
         # Build callback connection map for statistics
         # Maps: source_node_id -> list of target_node_ids
-        callback_connections = {}
+        callback_edges = {}
         
         # Build reverse map: target_node_id -> source event subscription
         # This helps show which flows trigger which event nodes
@@ -295,9 +295,9 @@ class FlowAssemblyManager:
             target_id = edge.sink_node_id
             
             # Forward map (emitter -> listeners)
-            if source_id not in callback_connections:
-                callback_connections[source_id] = []
-            callback_connections[source_id].append(target_id)
+            if source_id not in callback_edges:
+                callback_edges[source_id] = []
+            callback_edges[source_id].append(target_id)
             
             # Reverse map (listener -> emitters)
             if target_id not in callback_triggers:
@@ -329,27 +329,27 @@ class FlowAssemblyManager:
                     )
         
         # Store for statistics
-        self._callback_connections = callback_connections
+        self._callback_edges = callback_edges
         self._callback_triggers = callback_triggers
         
         # Log summary
         logger.info(
-            f"Callback topology: {len(callback_connections)} emitters, "
+            f"Callback topology: {len(callback_edges)} emitters, "
             f"{len(callback_triggers)} listeners"
         )
     
-    def get_callback_connections(self) -> Dict[str, List[str]]:
+    def get_callback_edges(self) -> Dict[str, List[str]]:
         """
-        Get callback connection map.
+        Get callback edge map.
         
         Returns:
             Dictionary mapping source node IDs to lists of target node IDs
         """
-        return getattr(self, '_callback_connections', {})
+        return getattr(self, '_callback_edges', {})
     
     def get_callback_triggers(self) -> Dict[str, List[str]]:
         """
-        Get callback trigger map (reverse of connections).
+        Get callback trigger map (reverse of edges).
         
         Returns:
             Dictionary mapping target node IDs to lists of source node IDs
@@ -467,17 +467,17 @@ class FlowAssemblyManager:
         Returns:
             Dictionary with statistics including callback topology
         """
-        callback_connections = getattr(self, '_callback_connections', {})
+        callback_edges = getattr(self, '_callback_edges', {})
         callback_triggers = getattr(self, '_callback_triggers', {})
         
         return {
             'total_flows': len(self.assembled_flows),
             'dirty_flows': len(self.dirty_flows),
-            'callback_edges': sum(len(targets) for targets in callback_connections.values()),
+            'callback_edges': sum(len(targets) for targets in callback_edges.values()),
             'callback_topology': {
-                'emitters': len(callback_connections),
+                'emitters': len(callback_edges),
                 'listeners': len(callback_triggers),
-                'connections': callback_connections,
+                'edges': callback_edges,
                 'triggers': callback_triggers
             },
             'flows': [
@@ -488,7 +488,7 @@ class FlowAssemblyManager:
                     'assembled_at': metadata.timestamp.isoformat(),
                     'emits_callbacks': (
                         flow.entry_event_node.node_id 
-                        in callback_connections
+                        in callback_edges
                     ),
                     'receives_callbacks': (
                         flow.entry_event_node.node_id 

@@ -21,7 +21,7 @@
         <!-- Node container slot -->
         <div id="node-container" ref="nodeContainer" class="node-container" :style="nodeContainerTransform">
             <!-- Debug info to verify component is working -->
-            <div class="debug-info" v-if="!connectionState.hasNodes">
+            <div class="debug-info" v-if="!edgeState.hasNodes">
                 Canvas Ready - ID: {{ containerId }}
             </div>
             <slot></slot>
@@ -42,7 +42,7 @@ export default {
 
     data() {
         return {
-            connectionState: {
+            edgeState: {
                 isDragging: false,
                 startPin: null,
                 tempPath: null,
@@ -50,7 +50,7 @@ export default {
                 lastDragEndTime: null,
                 lockProximityRange: 150, 
                 suggestionProximityRange: 200,
-                suggestedConnections: new Map(),
+                suggestedEdges: new Map(),
                 nearestSuggestedPin: null
             },
             
@@ -71,7 +71,7 @@ export default {
             // Unified selection state
             selectionState: {
                 selectedNodes: new Set(),
-                selectedConnections: new Set(),
+                selectedEdges: new Set(),
                 lastClickTime: 0,
                 clickThreshold: 300
             },
@@ -84,8 +84,8 @@ export default {
                 selectionRect: null
             },
             
-            connectionPaths: new Map(),
-            updateConnectionsThrottled: false,
+            edgePaths: new Map(),
+            updateEdgesThrottled: false,
             resizeObserver: null,
             mutationObserver: null,
             
@@ -170,7 +170,7 @@ export default {
                         if (nodeId && nodeElement.hasAttribute('data-node-id')) {
                             const styleText = nodeElement.style.cssText;
                             if (styleText.includes('left:') || styleText.includes('top:') || styleText.includes('transform:')) {
-                                this._updateConnectionsForNode(nodeId);
+                                this._updateEdgesForNode(nodeId);
                             } 
                         }
                     }
@@ -185,20 +185,20 @@ export default {
             const nodeId = nodeElement.getAttribute('data-node-id');
             if (!nodeId) return;
 
-            const scheduleConnectionUpdates = () => {
-                this._scheduleConnectionUpdates(nodeId, nodeElement);
+            const scheduleEdgeUpdates = () => {
+                this._scheduleEdgeUpdates(nodeId, nodeElement);
             };
 
             // Listen for transform transitions (zoom scaling effects)
             lodElement.addEventListener('transitionstart', (e) => {
                 if (e.propertyName === 'transform') {
-                    this._scheduleConnectionUpdates(nodeId, nodeElement);
+                    this._scheduleEdgeUpdates(nodeId, nodeElement);
                 }
             });
         
             // Listen for hover enter/leave for size changes
-            lodElement.addEventListener('mouseenter', scheduleConnectionUpdates);
-            lodElement.addEventListener('mouseleave', scheduleConnectionUpdates);
+            lodElement.addEventListener('mouseenter', scheduleEdgeUpdates);
+            lodElement.addEventListener('mouseleave', scheduleEdgeUpdates);
         },
 
         _setupZoomPanListener() {
@@ -256,11 +256,11 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_NODE_POSITION:
                     this._syncNodePosition(data);
                     break;
-                case GraphEvents.SyncCommands.SYNC_CONNECTION_ADDITION:
-                    this._syncConnectionAddition(data);
+                case GraphEvents.SyncCommands.SYNC_EDGE_ADDITION:
+                    this._syncEdgeAddition(data);
                     break;
-                case GraphEvents.SyncCommands.SYNC_CONNECTION_REMOVAL:
-                    this._syncConnectionRemoval(data);
+                case GraphEvents.SyncCommands.SYNC_EDGE_REMOVAL:
+                    this._syncEdgeRemoval(data);
                     break;
                 case GraphEvents.SyncCommands.SYNC_SELECTIONS:
                     this._syncSelections(data);
@@ -274,8 +274,8 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_NODE_OBSERVER_REMOVE:
                     this._syncNodeObserverRemove(data);
                     break;
-                case GraphEvents.SyncCommands.SYNC_CONNECTIONS_UPDATE:
-                    this._syncConnectionsUpdate(data);
+                case GraphEvents.SyncCommands.SYNC_EDGES_UPDATE:
+                    this._syncEdgesUpdate(data);
                     break;
                 default:
                     console.warn(`Unknown sync event: ${event_type}`);
@@ -287,11 +287,11 @@ export default {
             const { nodeId, position } = data;
             const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
             if (nodeElement) {
-                this._updateConnectionsForNode(nodeId);
+                this._updateEdgesForNode(nodeId);
             }
         },
 
-        _syncConnectionAddition(data) {
+        _syncEdgeAddition(data) {
             const {
                 edge_id,
                 sourceNodeId,
@@ -309,19 +309,19 @@ export default {
             } = data;
             
             // Check if connection already exists
-            if (this.connectionPaths.has(edge_id)) {
+            if (this.edgePaths.has(edge_id)) {
                 // Update existing connection visual properties
-                const connectionInfo = this.connectionPaths.get(edge_id);
+                const edgeInfo = this.edgePaths.get(edge_id);
                 
-                connectionInfo.isValid = isValid;
-                connectionInfo.hasWarning = hasWarning;
-                connectionInfo.strokeColor = strokeColor;
-                connectionInfo.strokeWidth = strokeWidth;
-                connectionInfo.strokeDasharray = strokeDasharray;
-                connectionInfo.opacity = opacity;
+                edgeInfo.isValid = isValid;
+                edgeInfo.hasWarning = hasWarning;
+                edgeInfo.strokeColor = strokeColor;
+                edgeInfo.strokeWidth = strokeWidth;
+                edgeInfo.strokeDasharray = strokeDasharray;
+                edgeInfo.opacity = opacity;
                 
                 // Trigger visual update
-                this._updateConnection(edge_id);
+                this._updateEdge(edge_id);
                 
                 console.log(
                     `🔗 Vue updated connection: ${edge_id} -> ` +
@@ -331,7 +331,7 @@ export default {
             }
 
             // Create new connection with visual properties
-            const result = this._createConnection(
+            const result = this._createEdge(
                 edge_id,
                 sourceNodeId,
                 outletPinId,
@@ -348,18 +348,18 @@ export default {
             );
             
             if (result.success) {
-                console.log('🔗 Vue ✅ Connection added via sync:', edge_id);
+                console.log('🔗 Vue ✅ Edge added via sync:', edge_id);
             } else {
                 console.error('🔗 Vue ❌ Failed to add connection via sync:', edge_id);
             }
         },
 
-        _syncConnectionRemoval(data) {
+        _syncEdgeRemoval(data) {
             const { edge_id } = data;
-            const success = this._removeConnection(edge_id);
+            const success = this._removeEdge(edge_id);
             
             if (success) {
-                console.log('🔗 Vue ✅ Connection removed via sync:', edge_id);
+                console.log('🔗 Vue ✅ Edge removed via sync:', edge_id);
             } else {
                 console.error('🔗 Vue ❌ Failed to remove connection via sync:', edge_id);
             }
@@ -370,11 +370,11 @@ export default {
             
             // Get current selection sets
             const currentNodes = this.selectionState.selectedNodes;
-            const currentConnections = this.selectionState.selectedConnections;
+            const currentEdges = this.selectionState.selectedEdges;
             
             // Convert arrays to sets for comparison
             const newNodes = new Set(nodes || []);
-            const newConnections = new Set(connections || []);
+            const newEdges = new Set(connections || []);
             
             // only iterate connections if there's a change
             if (!this._setsAreEqual(currentNodes, newNodes)) {
@@ -382,7 +382,7 @@ export default {
                 currentNodes.forEach(nodeId => {
                     if (!newNodes.has(nodeId)) {
                         this._updateNodeVisualSelection(nodeId, false);
-                        this._scheduleConnectionUpdates(nodeId, null, 300);
+                        this._scheduleEdgeUpdates(nodeId, null, 300);
                     }
                 });
                 
@@ -390,7 +390,7 @@ export default {
                 newNodes.forEach(nodeId => {
                     if (!currentNodes.has(nodeId)) {
                         this._updateNodeVisualSelection(nodeId, true);
-                        this._scheduleConnectionUpdates(nodeId, null, 300);
+                        this._scheduleEdgeUpdates(nodeId, null, 300);
                     }
                 });
                 // Update internal state to match new selection
@@ -398,44 +398,44 @@ export default {
             }
             
             // only iterate connections if there's a change
-            if (!this._setsAreEqual(currentConnections, newConnections)) {
+            if (!this._setsAreEqual(currentEdges, newEdges)) {
                 // Find connections to deselect (in current but not in new)
-                currentConnections.forEach(edge_id => {
-                    if (!newConnections.has(edge_id)) {
-                        this._updateConnectionVisualSelection(edge_id, false);
+                currentEdges.forEach(edge_id => {
+                    if (!newEdges.has(edge_id)) {
+                        this._updateEdgeVisualSelection(edge_id, false);
                     }
                 });
                 
                 // Find connections to select (in new but not in current)
-                newConnections.forEach(edge_id => {
-                    if (!currentConnections.has(edge_id)) {
-                        this._updateConnectionVisualSelection(edge_id, true);
+                newEdges.forEach(edge_id => {
+                    if (!currentEdges.has(edge_id)) {
+                        this._updateEdgeVisualSelection(edge_id, true);
                     }
                 });
                 // Update internal state to match new selection
-                this.selectionState.selectedConnections = newConnections;
+                this.selectionState.selectedEdges = newEdges;
             }
             
             console.log(`🔄 Synced selections: ${(nodes || []).length} nodes, ${(connections || []).length} connections`);
         },
 
         _syncCanvasClear() {
-            // ENHANCED: Use connectionInfo for cleanup
-            this.connectionPaths.forEach((connectionInfo, edge_id) => {
-                connectionInfo.path.remove();
+            // ENHANCED: Use edgeInfo for cleanup
+            this.edgePaths.forEach((edgeInfo, edge_id) => {
+                edgeInfo.path.remove();
                 const hitArea = document.getElementById(edge_id + '_hitarea');
                 if (hitArea) hitArea.remove();
                 const gradient = document.getElementById(`gradient_${edge_id}`);
                 if (gradient) gradient.remove();
             });
             
-            this.connectionPaths.clear();
+            this.edgePaths.clear();
             const svg = this.$refs.svg;
             const paths = svg.querySelectorAll('path');
             paths.forEach(path => path.remove());
             
             this.selectionState.selectedNodes.clear();
-            this.selectionState.selectedConnections.clear();
+            this.selectionState.selectedEdges.clear();
         },
 
 
@@ -450,15 +450,15 @@ export default {
             this._removeNodeObserver(nodeId);
         },
 
-        _syncConnectionsUpdate(data) {
+        _syncEdgesUpdate(data) {
             const { nodeId } = data;
-            this._updateConnectionsForNode(nodeId);
+            this._updateEdgesForNode(nodeId);
         },
 
-        _setSelectionState(selectedNodes, selectedConnections) {
+        _setSelectionState(selectedNodes, selectedEdges) {
             this._clearSelection();
             selectedNodes.forEach(nodeId => this._selectElement('node', nodeId, true));
-            selectedConnections.forEach(edge_id => this._selectElement('connection', edge_id, true));
+            selectedEdges.forEach(edge_id => this._selectElement('edge', edge_id, true));
         },
 
         // =============================================================================
@@ -472,7 +472,7 @@ export default {
             // 1. Check for connection pin FIRST - before anything else
             const pin = e.target.closest('.connection-pin');
             if (pin) {
-                this._startConnectionDrag(e, pin);
+                this._startEdgeDrag(e, pin);
                 return;
             }
 
@@ -516,8 +516,8 @@ export default {
                 return;
             }
 
-            if (this.connectionState.isDragging && this.connectionState.tempPath) {
-                this._handleConnectionDragMove(e);
+            if (this.edgeState.isDragging && this.edgeState.tempPath) {
+                this._handleEdgeDragMove(e);
                 return;
             }
 
@@ -533,8 +533,8 @@ export default {
                 return;
             }
 
-            if (this.connectionState.isDragging) {
-                this._handleConnectionDragEnd(e);
+            if (this.edgeState.isDragging) {
+                this._handleEdgeDragEnd(e);
                 return;
             }
 
@@ -560,12 +560,12 @@ export default {
             }
 
             // Check for connection
-            const connectionElement = target.closest('path[data-connection-uuid]');
-            if (connectionElement) {
+            const edgeElement = target.closest('path[data-edge-id]');
+            if (edgeElement) {
                 return {
-                    type: 'connection',
-                    id: connectionElement.getAttribute('data-connection-uuid'),
-                    element: connectionElement
+                    type: 'edge',
+                    id: edgeElement.getAttribute('data-edge-id'),
+                    element: edgeElement
                 };
             }
 
@@ -638,7 +638,7 @@ export default {
                     elements.push(primaryElement);
                 }
             }
-            // Note: Connections can't be dragged, so we only handle nodes
+            // Note: Edges can't be dragged, so we only handle nodes
 
             return elements;
         },
@@ -687,7 +687,7 @@ export default {
 
                         element.element.style.left = `${newX}px`;
                         element.element.style.top = `${newY}px`;
-                        this._updateConnectionsForNode(element.id);
+                        this._updateEdgesForNode(element.id);
                     }
                 }
             });
@@ -785,10 +785,10 @@ export default {
             if (elementType === 'node') {
                 this.selectionState.selectedNodes.add(elementId);
                 this._updateNodeVisualSelection(elementId, true);
-                this._scheduleConnectionUpdates(elementId, null, 300);
-            } else if (elementType === 'connection') {
-                this.selectionState.selectedConnections.add(elementId);
-                this._updateConnectionVisualSelection(elementId, true);
+                this._scheduleEdgeUpdates(elementId, null, 300);
+            } else if (elementType === 'edge') {
+                this.selectionState.selectedEdges.add(elementId);
+                this._updateEdgeVisualSelection(elementId, true);
             }
 
             console.log(`🎯 Selected ${elementType}: ${elementId}`);
@@ -798,10 +798,10 @@ export default {
             if (elementType === 'node') {
                 this.selectionState.selectedNodes.delete(elementId);
                 this._updateNodeVisualSelection(elementId, false);
-                this._scheduleConnectionUpdates(elementId, null, 300);
-            } else if (elementType === 'connection') {
-                this.selectionState.selectedConnections.delete(elementId);
-                this._updateConnectionVisualSelection(elementId, false);
+                this._scheduleEdgeUpdates(elementId, null, 300);
+            } else if (elementType === 'edge') {
+                this.selectionState.selectedEdges.delete(elementId);
+                this._updateEdgeVisualSelection(elementId, false);
             }
 
             console.log(`🎯 Deselected ${elementType}: ${elementId}`);
@@ -810,8 +810,8 @@ export default {
         _isElementSelected(elementType, elementId) {
             if (elementType === 'node') {
                 return this.selectionState.selectedNodes.has(elementId);
-            } else if (elementType === 'connection') {
-                return this.selectionState.selectedConnections.has(elementId);
+            } else if (elementType === 'edge') {
+                return this.selectionState.selectedEdges.has(elementId);
             }
             return false;
         },
@@ -823,15 +823,15 @@ export default {
                 this._updateNodeVisualSelection(nodeId, false);
             });
 
-            this.selectionState.selectedConnections.forEach(edge_id => {
-                this._updateConnectionVisualSelection(edge_id, false);
+            this.selectionState.selectedEdges.forEach(edge_id => {
+                this._updateEdgeVisualSelection(edge_id, false);
             });
 
             this.selectionState.selectedNodes.clear();
-            this.selectionState.selectedConnections.clear();
+            this.selectionState.selectedEdges.clear();
 
             previouslySelectedNodes.forEach(nodeId => {
-                this._scheduleConnectionUpdates(nodeId, null, 300);
+                this._scheduleEdgeUpdates(nodeId, null, 300);
             });
 
             console.log('🎯 Cleared all selections');
@@ -840,7 +840,7 @@ export default {
         _emitSelectionChanged() {
             this.emitCanvasEvent(EventCreators.createSelectionChanged(
                 Array.from(this.selectionState.selectedNodes),
-                Array.from(this.selectionState.selectedConnections)
+                Array.from(this.selectionState.selectedEdges)
             ));
         },
 
@@ -894,7 +894,7 @@ export default {
             const selectionRect = this._getSelectionRectangle();
             
             const intersectingNodes = this._findNodesInRectangle(selectionRect);
-            const intersectingConnections = this._findConnectionsInRectangle(selectionRect);
+            const intersectingEdges = this._findEdgesInRectangle(selectionRect);
 
             if (multiSelect) {
                 intersectingNodes.forEach(nodeId => {
@@ -902,9 +902,9 @@ export default {
                     this._updateNodeVisualSelection(nodeId, true);
                 });
                 
-                intersectingConnections.forEach(edge_id => {
-                    this.selectionState.selectedConnections.add(edge_id);
-                    this._updateConnectionVisualSelection(edge_id, true);
+                intersectingEdges.forEach(edge_id => {
+                    this.selectionState.selectedEdges.add(edge_id);
+                    this._updateEdgeVisualSelection(edge_id, true);
                 });
             } else {
                 this.selectionState.selectedNodes.forEach(nodeId => {
@@ -913,23 +913,23 @@ export default {
                     }
                 });
                 
-                this.selectionState.selectedConnections.forEach(edge_id => {
-                    if (!intersectingConnections.includes(edge_id)) {
-                        this._updateConnectionVisualSelection(edge_id, false);
+                this.selectionState.selectedEdges.forEach(edge_id => {
+                    if (!intersectingEdges.includes(edge_id)) {
+                        this._updateEdgeVisualSelection(edge_id, false);
                     }
                 });
 
                 this.selectionState.selectedNodes.clear();
-                this.selectionState.selectedConnections.clear();
+                this.selectionState.selectedEdges.clear();
                 
                 intersectingNodes.forEach(nodeId => {
                     this.selectionState.selectedNodes.add(nodeId);
                     this._updateNodeVisualSelection(nodeId, true);
                 });
                 
-                intersectingConnections.forEach(edge_id => {
-                    this.selectionState.selectedConnections.add(edge_id);
-                    this._updateConnectionVisualSelection(edge_id, true);
+                intersectingEdges.forEach(edge_id => {
+                    this.selectionState.selectedEdges.add(edge_id);
+                    this._updateEdgeVisualSelection(edge_id, true);
                 });
             }
         },
@@ -966,28 +966,28 @@ export default {
             return intersectingNodes;
         },
 
-        _findConnectionsInRectangle(rect) {
-            const intersectingConnections = [];
+        _findEdgesInRectangle(rect) {
+            const intersectingEdges = [];
             
-            // ENHANCED: Use connectionInfo for more efficient bounds checking
-            this.connectionPaths.forEach((connectionInfo, edge_id) => {
+            // ENHANCED: Use edgeInfo for more efficient bounds checking
+            this.edgePaths.forEach((edgeInfo, edge_id) => {
                 try {
                     // Quick bounds check using connection positions
-                    const minX = Math.min(connectionInfo.outletPos.x, connectionInfo.inletPos.x);
-                    const maxX = Math.max(connectionInfo.outletPos.x, connectionInfo.inletPos.x);
-                    const minY = Math.min(connectionInfo.outletPos.y, connectionInfo.inletPos.y);
-                    const maxY = Math.max(connectionInfo.outletPos.y, connectionInfo.inletPos.y);
+                    const minX = Math.min(edgeInfo.outletPos.x, edgeInfo.inletPos.x);
+                    const maxX = Math.max(edgeInfo.outletPos.x, edgeInfo.inletPos.x);
+                    const minY = Math.min(edgeInfo.outletPos.y, edgeInfo.inletPos.y);
+                    const maxY = Math.max(edgeInfo.outletPos.y, edgeInfo.inletPos.y);
 
-                    const connectionBounds = {
+                    const edgeBounds = {
                         left: minX,
                         top: minY,
                         right: maxX,
                         bottom: maxY
                     };
 
-                    if (this._rectanglesIntersect(rect, connectionBounds)) {
+                    if (this._rectanglesIntersect(rect, edgeBounds)) {
                         // More precise check with actual path bounds if needed
-                        const pathBBox = connectionInfo.path.getBBox();
+                        const pathBBox = edgeInfo.path.getBBox();
                         const pathRect = {
                             left: pathBBox.x,
                             top: pathBBox.y,
@@ -996,7 +996,7 @@ export default {
                         };
 
                         if (this._rectanglesIntersect(rect, pathRect)) {
-                            intersectingConnections.push(edge_id);
+                            intersectingEdges.push(edge_id);
                         }
                     }
                 } catch (e) {
@@ -1004,7 +1004,7 @@ export default {
                 }
             });
 
-            return intersectingConnections;
+            return intersectingEdges;
         },
 
         _getNodeBoundingRect(nodeElement) {
@@ -1060,22 +1060,22 @@ export default {
             const nodeElement = target.closest('[data-node-id]');
             
             // Check for connection
-            let connectionElement = null;
+            let edgeElement = null;
             let edge_id = null;
 
             if (target.tagName === 'path') {
-                edge_id = target.getAttribute('data-connection-uuid') || target.id;
-                connectionElement = target;
+                edge_id = target.getAttribute('data-edge-id') || target.id;
+                edgeElement = target;
             } else {
                 const svgElement = target.closest('svg');
                 if (svgElement) {
-                    const paths = svgElement.querySelectorAll('path[data-connection-uuid]');
+                    const paths = svgElement.querySelectorAll('path[data-edge-id]');
                     const clickPoint = { x: clientX, y: clientY };
 
                     for (const path of paths) {
                         if (this._isPointNearPath(path, clickPoint)) {
-                            connectionElement = path;
-                            edge_id = path.getAttribute('data-connection-uuid') || path.id;
+                            edgeElement = path;
+                            edge_id = path.getAttribute('data-edge-id') || path.id;
                             break;
                         }
                     }
@@ -1087,31 +1087,31 @@ export default {
             if (nodeElement) {
                 const nodeId = nodeElement.dataset.nodeId;
                 const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
-                const hasMultipleSelected = this.selectionState.selectedNodes.size > 1 || this.selectionState.selectedConnections.size > 0;
+                const hasMultipleSelected = this.selectionState.selectedNodes.size > 1 || this.selectionState.selectedEdges.size > 0;
                 
                 if (isNodeSelected && hasMultipleSelected) {
                     this.emitCanvasEvent(EventCreators.createContextMenuSelected(
                         clientX, clientY, canvasCoords.x, canvasCoords.y,
                         Array.from(this.selectionState.selectedNodes),
-                        Array.from(this.selectionState.selectedConnections)
+                        Array.from(this.selectionState.selectedEdges)
                     ));
                 } else {
                     this.emitCanvasEvent(EventCreators.createContextMenuNode(
                         clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
                     ));
                 }
-            } else if (connectionElement && edge_id) {
-                const isConnectionSelected = this.selectionState.selectedConnections.has(edge_id);
-                const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedConnections.size > 1;
+            } else if (edgeElement && edge_id) {
+                const isEdgeSelected = this.selectionState.selectedEdges.has(edge_id);
+                const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedEdges.size > 1;
                 
-                if (isConnectionSelected && hasMultipleSelected) {
+                if (isEdgeSelected && hasMultipleSelected) {
                     this.emitCanvasEvent(EventCreators.createContextMenuSelected(
                         clientX, clientY, canvasCoords.x, canvasCoords.y,
                         Array.from(this.selectionState.selectedNodes),
-                        Array.from(this.selectionState.selectedConnections)
+                        Array.from(this.selectionState.selectedEdges)
                     ));
                 } else {
-                    this.emitCanvasEvent(EventCreators.createContextMenuConnection(
+                    this.emitCanvasEvent(EventCreators.createContextMenuEdge(
                         clientX, clientY, canvasCoords.x, canvasCoords.y, edge_id
                     ));
                 }
@@ -1146,8 +1146,8 @@ export default {
             });
             
             // Add selected connections
-            this.selectionState.selectedConnections.forEach(edge_id => {
-                elements.push({ type: 'connection', id: edge_id });
+            this.selectionState.selectedEdges.forEach(edge_id => {
+                elements.push({ type: 'edge', id: edge_id });
             });
             
             return elements;
@@ -1157,46 +1157,46 @@ export default {
         // CONNECTION DRAG SYSTEM (keeping as-is)
         // =============================================================================
 
-        _startConnectionDrag(e, pin) {
+        _startEdgeDrag(e, pin) {
             e.preventDefault();
             e.stopPropagation();
 
-            this.connectionState.isDragging = true;
-            this.connectionState.startPin = pin;
+            this.edgeState.isDragging = true;
+            this.edgeState.startPin = pin;
 
             const startPos = this._getPinPosition(pin);
-            const [dirX, dirY] = this._getPinDirectionVector(this.connectionState.startPin);
+            const [dirX, dirY] = this._getPinDirectionVector(this.edgeState.startPin);
 
             const pinColor = pin.dataset.pinColor || '#000000';
 
-            this.connectionState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            this.edgeState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             const initialPath = this._createBezierPath(startPos, startPos, [dirX, dirY], [-dirX, -dirY]);
 
-            this.connectionState.tempPath.setAttribute('d', initialPath);
-            this.connectionState.tempPath.setAttribute('stroke', pinColor);
-            this.connectionState.tempPath.setAttribute('stroke-width', '2');
-            this.connectionState.tempPath.setAttribute('fill', 'none');
-            this.connectionState.tempPath.setAttribute('stroke-dasharray', '4');
-            this.connectionState.tempPath.style.pointerEvents = 'none';
+            this.edgeState.tempPath.setAttribute('d', initialPath);
+            this.edgeState.tempPath.setAttribute('stroke', pinColor);
+            this.edgeState.tempPath.setAttribute('stroke-width', '2');
+            this.edgeState.tempPath.setAttribute('fill', 'none');
+            this.edgeState.tempPath.setAttribute('stroke-dasharray', '4');
+            this.edgeState.tempPath.style.pointerEvents = 'none';
             
-            this.$refs.svg.appendChild(this.connectionState.tempPath);
+            this.$refs.svg.appendChild(this.edgeState.tempPath);
 
             pin.style.boxShadow = '0 0 15px #4A90E2';
             pin.style.transform = 'scale(1.8)';
             pin.style.zIndex = '10003';
         },
 
-        _handleConnectionDragMove(e) {
-            if (!this.connectionState.tempPath) return;
+        _handleEdgeDragMove(e) {
+            if (!this.edgeState.tempPath) return;
             
-            const startPos = this._getPinPosition(this.connectionState.startPin);
+            const startPos = this._getPinPosition(this.edgeState.startPin);
             const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
-            const [dirX, dirY] = this._getPinDirectionVector(this.connectionState.startPin);
+            const [dirX, dirY] = this._getPinDirectionVector(this.edgeState.startPin);
 
             const pathData = this._createBezierPath(startPos, mousePos, [dirX, dirY], [-dirX, -dirY]);
-            this.connectionState.tempPath.setAttribute('d', pathData);
+            this.edgeState.tempPath.setAttribute('d', pathData);
 
-            this._clearConnectionSuggestions();
+            this._clearEdgeSuggestions();
 
             document.querySelectorAll('.connection-pin').forEach(pin => {
                 pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
@@ -1207,9 +1207,9 @@ export default {
             let nearestDistance = Infinity;
             
             document.querySelectorAll('.connection-pin').forEach(pin => {
-                if (pin === this.connectionState.startPin) return;
+                if (pin === this.edgeState.startPin) return;
 
-                const isValid = this._isValidConnection(this.connectionState.startPin, pin);
+                const isValid = this._isValidEdge(this.edgeState.startPin, pin);
                 
                 if (isValid) {
                     const pinPos = this._getPinPosition(pin);
@@ -1222,8 +1222,8 @@ export default {
                         pin.classList.add('connection-valid');
                         nearestCompatiblePin = pin;
                         nearestDistance = 0;
-                    } else if (distance <= this.connectionState.suggestionProximityRange) {
-                        if(this.connectionState.startPin.dataset.pinDataType === pin.dataset.pinDataType) {
+                    } else if (distance <= this.edgeState.suggestionProximityRange) {
+                        if(this.edgeState.startPin.dataset.pinDataType === pin.dataset.pinDataType) {
                             pin.classList.add('connection-compatible');
                             this._createSuggestionPath(pin, distance);
 
@@ -1238,76 +1238,76 @@ export default {
                 }
             });
 
-            this.connectionState.nearestSuggestedPin = nearestCompatiblePin;
+            this.edgeState.nearestSuggestedPin = nearestCompatiblePin;
             
-            if (nearestCompatiblePin && nearestDistance <= this.connectionState.suggestionProximityRange && nearestDistance > 0) {
-                const suggestionPath = this.connectionState.suggestedConnections.get(nearestCompatiblePin);
+            if (nearestCompatiblePin && nearestDistance <= this.edgeState.suggestionProximityRange && nearestDistance > 0) {
+                const suggestionPath = this.edgeState.suggestedEdges.get(nearestCompatiblePin);
                 if (suggestionPath) {
                     suggestionPath.classList.add('connection-suggestion-nearest');
                 }
             }
         },
 
-        _handleConnectionDragEnd(e) {
+        _handleEdgeDragEnd(e) {
             let endPin = e.target.closest('.connection-pin');
             
-            if (!endPin && this.connectionState.nearestSuggestedPin) {
-                endPin = this.connectionState.nearestSuggestedPin;
+            if (!endPin && this.edgeState.nearestSuggestedPin) {
+                endPin = this.edgeState.nearestSuggestedPin;
             }
 
-            if (this.connectionState.tempPath) {
-                this.connectionState.tempPath.remove();
-                this.connectionState.tempPath = null;
+            if (this.edgeState.tempPath) {
+                this.edgeState.tempPath.remove();
+                this.edgeState.tempPath = null;
             }
 
-            if (this.connectionState.startPin) {
-                this.connectionState.startPin.style.boxShadow = '';
-                this.connectionState.startPin.style.transform = '';
-                this.connectionState.startPin.style.zIndex = '';
+            if (this.edgeState.startPin) {
+                this.edgeState.startPin.style.boxShadow = '';
+                this.edgeState.startPin.style.transform = '';
+                this.edgeState.startPin.style.zIndex = '';
             }
 
-            this._clearConnectionSuggestions();
+            this._clearEdgeSuggestions();
 
             document.querySelectorAll('.connection-pin').forEach(pin => {
                 pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
             });
 
-            if (endPin && this._isValidConnection(this.connectionState.startPin, endPin)) {
-                let sourceData = this.connectionState.startPin.dataset;
+            if (endPin && this._isValidEdge(this.edgeState.startPin, endPin)) {
+                let sourceData = this.edgeState.startPin.dataset;
                 let sinkData = endPin.dataset;
 
                 if (endPin.dataset.pinDir === 'outlet') {
-                    sinkData = this.connectionState.startPin.dataset;
+                    sinkData = this.edgeState.startPin.dataset;
                     sourceData = endPin.dataset;
                 }
 
-                if (!this._connectionExists(sourceData.nodeId, sourceData.pinId, sinkData.nodeId, sinkData.pinId)) {
-                    this.emitCanvasEvent(EventCreators.createConnectionCreated(
+                if (!this._edgeExists(sourceData.nodeId, sourceData.pinId, sinkData.nodeId, sinkData.pinId)) {
+                    this.emitCanvasEvent(EventCreators.createEdgeCreated(
                         sourceData.nodeId, sourceData.pinId, sinkData.nodeId, sinkData.pinId
                     ));
                 }
             }
 
-            this.connectionState.isDragging = false;
-            this.connectionState.startPin = null;
-            this.connectionState.nearestSuggestedPin = null;
-            this.connectionState.lastDragEndTime = Date.now();
+            this.edgeState.isDragging = false;
+            this.edgeState.startPin = null;
+            this.edgeState.nearestSuggestedPin = null;
+            this.edgeState.lastDragEndTime = Date.now();
         },
 
         _createSuggestionPath(targetPin, distance) {
-            if (this.connectionState.suggestedConnections.has(targetPin)) {
+            if (this.edgeState.suggestedEdges.has(targetPin)) {
                 return;
             }
 
-            const startPos = this._getPinPosition(this.connectionState.startPin);
+            const startPos = this._getPinPosition(this.edgeState.startPin);
             const endPos = this._getPinPosition(targetPin);
-            const [dirX, dirY] = this._getPinDirectionVector(this.connectionState.startPin);
+            const [dirX, dirY] = this._getPinDirectionVector(this.edgeState.startPin);
 
             const pathData = this._createBezierPath(startPos, endPos, [dirX, dirY], [-dirX, -dirY]);
 
             const suggestionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             suggestionPath.setAttribute('d', pathData);
-            suggestionPath.setAttribute('stroke', this.connectionState.startPin.dataset.pinColor || '#4CAF50');
+            suggestionPath.setAttribute('stroke', this.edgeState.startPin.dataset.pinColor || '#4CAF50');
             suggestionPath.setAttribute('stroke-width', '2');
             suggestionPath.setAttribute('fill', 'none');
             suggestionPath.setAttribute('opacity', '0.6');
@@ -1315,21 +1315,21 @@ export default {
             suggestionPath.classList.add('connection-suggestion');
 
             this.$refs.svg.appendChild(suggestionPath);
-            this.connectionState.suggestedConnections.set(targetPin, suggestionPath);
+            this.edgeState.suggestedEdges.set(targetPin, suggestionPath);
         },
 
-        _clearConnectionSuggestions() {
-            this.connectionState.suggestedConnections.forEach((path, pin) => {
+        _clearEdgeSuggestions() {
+            this.edgeState.suggestedEdges.forEach((path, pin) => {
                 path.remove();
             });
-            this.connectionState.suggestedConnections.clear();
+            this.edgeState.suggestedEdges.clear();
         },
 
         // =============================================================================
         // CONNECTION MANAGEMENT (keeping connection visual methods as-is)
         // =============================================================================
 
-        _createConnection(
+        _createEdge(
             edge_id,
             sourceNodeId,
             outletPinId,
@@ -1369,13 +1369,13 @@ export default {
             
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.setAttribute('id', edge_id);
-            path.setAttribute('data-connection-uuid', edge_id);
+            path.setAttribute('data-edge-id', edge_id);
             path.setAttribute('fill', 'none');
             path.style.pointerEvents = 'stroke';
             path.style.cursor = 'pointer';
 
             // Store comprehensive connection info with visual properties
-            const connectionInfo = {
+            const edgeInfo = {
                 path: path,
                 outletNodeId: sourceNodeId,
                 outletPinUUID: outletPinUUID,
@@ -1402,7 +1402,7 @@ export default {
 
             const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             hitArea.setAttribute('id', edge_id + '_hitarea');
-            hitArea.setAttribute('data-connection-uuid', edge_id);
+            hitArea.setAttribute('data-edge-id', edge_id);
             hitArea.setAttribute('stroke', 'transparent');
             hitArea.setAttribute('stroke-width', '10');
             hitArea.setAttribute('fill', 'none');
@@ -1413,29 +1413,29 @@ export default {
             this.$refs.svg.appendChild(hitArea);
             
             // ENHANCED: Store the full connection info instead of just the path
-            this.connectionPaths.set(edge_id, connectionInfo);
+            this.edgePaths.set(edge_id, edgeInfo);
 
             const clickHandler = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.emitCanvasEvent(EventCreators.createConnectionClicked(edge_id));
+                this.emitCanvasEvent(EventCreators.createEdgeClicked(edge_id));
             };
 
             path.addEventListener('click', clickHandler);
             hitArea.addEventListener('click', clickHandler);
 
             this.$nextTick(() => {
-                this._updateConnection(edge_id);
+                this._updateEdge(edge_id);
             });
 
             return { success: true, pathElement: path };
         },
 
-        _removeConnection(edge_id) {
-            const connectionInfo = this.connectionPaths.get(edge_id);
+        _removeEdge(edge_id) {
+            const edgeInfo = this.edgePaths.get(edge_id);
 
-            if (connectionInfo) {
-                connectionInfo.path.remove();
+            if (edgeInfo) {
+                edgeInfo.path.remove();
 
                 const hitArea = document.getElementById(edge_id + '_hitarea');
                 if (hitArea) {
@@ -1447,7 +1447,7 @@ export default {
                     gradient.remove();
                 }
 
-                this.connectionPaths.delete(edge_id);
+                this.edgePaths.delete(edge_id);
                 return true;
             } else {
                 return false;
@@ -1504,76 +1504,76 @@ export default {
             return null;
         },
 
-        _updateConnection(edge_id) {
-            const connectionInfo = this.connectionPaths.get(edge_id);
-            if (!connectionInfo) {
-                console.error(`Connection not found: ${edge_id}`);
+        _updateEdge(edge_id) {
+            const edgeInfo = this.edgePaths.get(edge_id);
+            if (!edgeInfo) {
+                console.error(`Edge not found: ${edge_id}`);
                 return;
             }
 
-            const outletPin = document.getElementById(connectionInfo.outletPinUUID);
-            const inletPin = document.getElementById(connectionInfo.inletPinUUID);
+            const outletPin = document.getElementById(edgeInfo.outletPinUUID);
+            const inletPin = document.getElementById(edgeInfo.inletPinUUID);
 
             if (!outletPin || !inletPin) {
                 console.error(`Failed to find pins for connection: ${edge_id}`);
                 return;
             }
 
-            // Update positions in connectionInfo
-            connectionInfo.outletPos = this._getPinPosition(outletPin);
-            connectionInfo.inletPos = this._getPinPosition(inletPin);
+            // Update positions in edgeInfo
+            edgeInfo.outletPos = this._getPinPosition(outletPin);
+            edgeInfo.inletPos = this._getPinPosition(inletPin);
 
-            // Update colors in connectionInfo
-            connectionInfo.outletColor = outletPin.dataset.pinColor;
-            connectionInfo.inletColor = inletPin.dataset.pinColor;
+            // Update colors in edgeInfo
+            edgeInfo.outletColor = outletPin.dataset.pinColor;
+            edgeInfo.inletColor = inletPin.dataset.pinColor;
 
-            const pathData = this._createBezierPathForConnection(edge_id);
+            const pathData = this._createBezierPathForEdge(edge_id);
 
-            connectionInfo.path.setAttribute('d', pathData);
+            edgeInfo.path.setAttribute('d', pathData);
             const hitArea = document.getElementById(edge_id + '_hitarea');
             if (hitArea) {
                 hitArea.setAttribute('d', pathData);
             }
 
-            // Apply visual properties from connectionInfo
+            // Apply visual properties from edgeInfo
             const stroke = this._createBezierStroke(edge_id);
-            connectionInfo.path.setAttribute('stroke', stroke);
-            connectionInfo.path.setAttribute(
+            edgeInfo.path.setAttribute('stroke', stroke);
+            edgeInfo.path.setAttribute(
                 'stroke-width',
-                connectionInfo.strokeWidth
+                edgeInfo.strokeWidth
             );
-            connectionInfo.path.setAttribute(
+            edgeInfo.path.setAttribute(
                 'stroke-dasharray',
-                connectionInfo.strokeDasharray
+                edgeInfo.strokeDasharray
             );
-            connectionInfo.path.style.opacity = connectionInfo.opacity;
+            edgeInfo.path.style.opacity = edgeInfo.opacity;
             
             // Update CSS classes for additional styling
-            connectionInfo.path.classList.toggle(
+            edgeInfo.path.classList.toggle(
                 'connection-invalid',
-                !connectionInfo.isValid
+                !edgeInfo.isValid
             );
-            connectionInfo.path.classList.toggle(
+            edgeInfo.path.classList.toggle(
                 'connection-warning',
-                connectionInfo.hasWarning
+                edgeInfo.hasWarning
             );
             
             // Update hit area width
             if (hitArea) {
                 hitArea.setAttribute(
                     'stroke-width',
-                    connectionInfo.strokeWidth + 8
+                    edgeInfo.strokeWidth + 8
                 );
             }
         },
 
-        _updateConnectionsForNode(nodeId) {
+        _updateEdgesForNode(nodeId) {
             if (!nodeId) return;
             
-            // ENHANCED: More efficient iteration using connectionInfo
-            this.connectionPaths.forEach((connectionInfo, edge_id) => {
-                if (connectionInfo.outletNodeId === nodeId || connectionInfo.inletNodeId === nodeId) {
-                    this._updateConnection(edge_id);
+            // ENHANCED: More efficient iteration using edgeInfo
+            this.edgePaths.forEach((edgeInfo, edge_id) => {
+                if (edgeInfo.outletNodeId === nodeId || edgeInfo.inletNodeId === nodeId) {
+                    this._updateEdge(edge_id);
                 }
             });
         },
@@ -1622,15 +1622,15 @@ export default {
             }
         },
 
-        _updateConnectionVisualSelection(edge_id, selected) {
-            const connectionInfo = this.connectionPaths.get(edge_id);
-            if (connectionInfo && connectionInfo.path) {
+        _updateEdgeVisualSelection(edge_id, selected) {
+            const edgeInfo = this.edgePaths.get(edge_id);
+            if (edgeInfo && edgeInfo.path) {
                 if (selected) {
-                    connectionInfo.path.classList.add('connection-selected');
-                    connectionInfo.path.style.strokeWidth = '3';
+                    edgeInfo.path.classList.add('connection-selected');
+                    edgeInfo.path.style.strokeWidth = '3';
                 } else {
-                    connectionInfo.path.classList.remove('connection-selected');
-                    connectionInfo.path.style.strokeWidth = '2';
+                    edgeInfo.path.classList.remove('connection-selected');
+                    edgeInfo.path.style.strokeWidth = '2';
                 }
             }
         },
@@ -1640,32 +1640,32 @@ export default {
         // =============================================================================
 
         // ENHANCED: New helper method to get connection by node and pin
-        _getConnectionsByNode(nodeId) {
-            const connections = [];
-            this.connectionPaths.forEach((connectionInfo, edge_id) => {
-                if (connectionInfo.outletNodeId === nodeId || connectionInfo.inletNodeId === nodeId) {
-                    connections.push({ uuid: edge_id, info: connectionInfo });
+        _getEdgesByNode(nodeId) {
+            const edges = [];
+            this.edgePaths.forEach((edgeInfo, edge_id) => {
+                if (edgeInfo.outletNodeId === nodeId || edgeInfo.inletNodeId === nodeId) {
+                    edges.push({ uuid: edge_id, info: edgeInfo });
                 }
             });
-            return connections;
+            return edges;
         },
 
         // ENHANCED: New helper method to get connection by specific pin
-        _getConnectionsByPin(nodeId, pinId, pinType) {
-            const connections = [];
-            this.connectionPaths.forEach((connectionInfo, edge_id) => {
+        _getEdgesByPin(nodeId, pinId, pinType) {
+            const edges = [];
+            this.edgePaths.forEach((edgeInfo, edge_id) => {
                 const isOutletMatch = pinType === 'outlet' && 
-                    connectionInfo.outletNodeId === nodeId && 
-                    connectionInfo.outletPinId === pinId;
+                    edgeInfo.outletNodeId === nodeId && 
+                    edgeInfo.outletPinId === pinId;
                 const isInletMatch = pinType === 'inlet' && 
-                    connectionInfo.inletNodeId === nodeId && 
-                    connectionInfo.inletPinId === pinId;
+                    edgeInfo.inletNodeId === nodeId && 
+                    edgeInfo.inletPinId === pinId;
                     
                 if (isOutletMatch || isInletMatch) {
-                    connections.push({ uuid: edge_id, info: connectionInfo });
+                    edges.push({ uuid: edge_id, info: edgeInfo });
                 }
             });
-            return connections;
+            return edges;
         },
 
         _setsAreEqual(set1, set2) {
@@ -1681,7 +1681,7 @@ export default {
         },
 
         _isInteractiveWidgetElement(element) {
-            // Connection pins are NOT interactive widgets
+            // Edge pins are NOT interactive widgets
             if (element.closest('.connection-pin')) {
                 return false;
             }
@@ -1715,7 +1715,7 @@ export default {
             return isFormElement || isQuasarElement || isWidgetContainer || isMarkedInteractive;
         },
 
-        _parseconnectionUUID(edge_id) {
+        _parseEdgeID(edge_id) {
             // Split by :: to get prefix and the rest
             if (!edge_id.includes('::')) {
                 console.error(`Invalid connection ID format: ${edge_id}. Expected format: edge::outlet_pin_id@outlet_node_id>>inlet_pin_id@inlet_node_id`);
@@ -1725,7 +1725,7 @@ export default {
             const [prefix, rest] = edge_id.split('::', 2);
 
             if (prefix !== 'edge') {
-                console.error(`Connection ID must start with 'edge', got: ${prefix}`);
+                console.error(`Edge ID must start with 'edge', got: ${prefix}`);
                 return null;
             }
 
@@ -1763,7 +1763,7 @@ export default {
             };
         },
 
-        _buildconnectionUUID(sourceNodeId, outletPinId, sinkNodeId, inletPinId) {
+        _buildEdgeID(sourceNodeId, outletPinId, sinkNodeId, inletPinId) {
             const outletPin = this._buildPinUUID(sourceNodeId, outletPinId);
             const inletPin = this._buildPinUUID(sinkNodeId, inletPinId);
             return `edge::${outletPin}>>${inletPin}`;
@@ -1817,38 +1817,38 @@ export default {
         },
 
         // Wrapper method for established connections
-        _createBezierPathForConnection(edge_id) {
-            const connectionInfo = this.connectionPaths.get(edge_id);
-            if (!connectionInfo) {
-                console.error(`Connection info not found for: ${edge_id}`);
+        _createBezierPathForEdge(edge_id) {
+            const edgeInfo = this.edgePaths.get(edge_id);
+            if (!edgeInfo) {
+                console.error(`Edge info not found for: ${edge_id}`);
                 return 'M 0 0';
             }
 
             return this._createBezierPath(
-                connectionInfo.outletPos,
-                connectionInfo.inletPos,
-                connectionInfo.outletConnectDir,
-                connectionInfo.inletConnectDir
+                edgeInfo.outletPos,
+                edgeInfo.inletPos,
+                edgeInfo.outletConnectDir,
+                edgeInfo.inletConnectDir
             );
         },
 
         _createBezierStroke(edge_id) {
-            const connectionInfo = this.connectionPaths.get(edge_id);
-            if (!connectionInfo) {
-                console.error(`Connection not found: ${edge_id}`);
+            const edgeInfo = this.edgePaths.get(edge_id);
+            if (!edgeInfo) {
+                console.error(`Edge not found: ${edge_id}`);
                 return '#000000';
             }
             
             // If strokeColor is not 'auto', use the solid color directly
-            if (connectionInfo.strokeColor !== 'auto') {
-                return connectionInfo.strokeColor;
+            if (edgeInfo.strokeColor !== 'auto') {
+                return edgeInfo.strokeColor;
             }
             
             // Otherwise create gradient (existing logic)
-            const startPos = connectionInfo.outletPos;
-            const endPos = connectionInfo.inletPos;
-            const startColor = connectionInfo.outletColor;
-            const endColor = connectionInfo.inletColor;
+            const startPos = edgeInfo.outletPos;
+            const endPos = edgeInfo.inletPos;
+            const startColor = edgeInfo.outletColor;
+            const endColor = edgeInfo.inletColor;
             
             if (!endColor || !edge_id) {
                 return startColor || '#ff0000';
@@ -1900,7 +1900,7 @@ export default {
             return `url(#${gradientId})`;
         },
 
-        _isValidConnection(startPin, endPin) {
+        _isValidEdge(startPin, endPin) {
             if (!startPin || !endPin || startPin === endPin) return false;
 
             const startDir = startPin.dataset.pinDir;
@@ -1923,8 +1923,8 @@ export default {
             return valid;
         },
 
-        _scheduleConnectionUpdates(nodeId, nodeElement = null, animationDuration = 300) {
-            this._updateConnectionsForNode(nodeId);
+        _scheduleEdgeUpdates(nodeId, nodeElement = null, animationDuration = 300) {
+            this._updateEdgesForNode(nodeId);
 
             if (!nodeElement && nodeId) {
                 nodeElement = document.getElementById(nodeId);
@@ -1941,7 +1941,7 @@ export default {
             for (let i = 1; i <= updateCount; i++) {
                 const delay = interval * i;
                 const timer = setTimeout(() => {
-                    this._updateConnectionsForNode(nodeId);
+                    this._updateEdgesForNode(nodeId);
                 }, delay);
 
                 if (nodeElement) {
@@ -1953,9 +1953,9 @@ export default {
             }
         },
 
-        _connectionExists(sourceNodeId, outletPinId, sinkNodeId, inletPinId) {
-            const edge_id = this._buildconnectionUUID(sourceNodeId, outletPinId, sinkNodeId, inletPinId);
-            return this.connectionPaths.has(edge_id);
+        _edgeExists(sourceNodeId, outletPinId, sinkNodeId, inletPinId) {
+            const edge_id = this._buildEdgeID(sourceNodeId, outletPinId, sinkNodeId, inletPinId);
+            return this.edgePaths.has(edge_id);
         },
 
         _getPinDirectionVector(pinElement) {
@@ -2130,7 +2130,7 @@ path.connection-selected {
     filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }
 
-/* Connection state styles - UIEdge visual feedback */
+/* Edge state styles - UIEdge visual feedback */
 /* Specific to SVG path elements only */
 path.connection-invalid {
     filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5));

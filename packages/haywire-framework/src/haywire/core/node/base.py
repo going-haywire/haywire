@@ -468,7 +468,7 @@ class NodeData:
 
         Flags existing ports for potential removal, yields control for
         re-adding ports, then removes any ports that weren't refreshed.
-        Connections on refreshed ports are preserved automatically.
+        Edges on refreshed ports are preserved automatically.
 
         This is the recommended API over raw _push()/_pop() calls — it
         guarantees _pop() runs even if an exception occurs during
