@@ -259,7 +259,7 @@ class LibraryManager:
         ):
             return False, f'"{new_lib_name}" already exists in the marketplace.'
 
-        new_lib_dir = workspace / 'libs' / new_lib_name
+        new_lib_dir = workspace / 'barn' /new_lib_name
         if new_lib_dir.exists():
             return False, f'Directory "{new_lib_dir}" already exists.'
 
@@ -268,7 +268,7 @@ class LibraryManager:
             dist_name.removeprefix('haybale-') if dist_name.startswith('haybale-') else library_id
         )
         old_module = f'haybale_{_sanitize_name(old_name_part)}'
-        old_lib_dir = workspace / 'libs' / dist_name
+        old_lib_dir = workspace / 'barn' /dist_name
         old_pkg_dir = old_lib_dir / old_module
         new_pkg_dir_tmp = old_lib_dir / new_module   # inside old lib dir before lib rename
         new_label = new_name.replace('-', ' ').replace('_', ' ').title()
@@ -581,7 +581,7 @@ class LibraryManager:
         # Derive the package directory the same way rename does (most reliable)
         name_part = dist_name.removeprefix('haybale-') if dist_name.startswith('haybale-') else library_id
         module_name = f'haybale_{_sanitize_name(name_part)}'
-        pkg_dir = workspace / 'libs' / dist_name / module_name
+        pkg_dir = workspace / 'barn' /dist_name / module_name
 
         if not pkg_dir.exists():
             return False, f'Library package directory not found: {pkg_dir}'

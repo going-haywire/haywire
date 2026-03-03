@@ -195,3 +195,6 @@ cython_debug/
 
 .DS_Store
 saves/*.*
+
+# Dev-mode graphs (local testing only, not part of the repo)
+graphs/*.json

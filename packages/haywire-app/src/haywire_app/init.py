@@ -5,7 +5,7 @@ Creates a new haywire project with:
 - pyproject.toml (uv workspace with haywire-app dependency)
 - .haywire/ config directory
 - graphs/ directory
-- libs/ directory with auto-scaffolded local haybale library
+- barn/ directory with auto-scaffolded local haybale library
 """
 
 import os
@@ -60,7 +60,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
         'tool': {
             'uv': {
                 'workspace': {
-                    'members': ['libs/*'],
+                    'members': ['barn/*'],
                 },
                 'sources': {
                     lib_name: {'workspace': True},
@@ -193,7 +193,7 @@ class Library(BaseLibrary):
 
 def _project_lib_entry(name: str, module_name: str, project_dir: Path) -> dict:
     """Build a marketplace entry for the project's own scaffolded library."""
-    lib_path = project_dir / 'libs' / f'haybale-{name}'
+    lib_path = project_dir / 'barn' / f'haybale-{name}'
     label = name.replace('-', ' ').replace('_', ' ').title()
     return {
         'name': f'haybale-{name}',
@@ -236,7 +236,7 @@ def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, projec
     def _lib(lib_name, version, description, author, tags):
         label = lib_name.removeprefix('haybale-').replace('-', ' ').replace('_', ' ').title()
         lib_module = lib_name.replace('-', '_')
-        lib_path = f'{dev_repo}/libraries/{lib_name}'
+        lib_path = f'{dev_repo}/barn/{lib_name}'
         return {
             'name': lib_name,
             'label': label,
@@ -296,7 +296,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     project_dir.mkdir()
     (project_dir / 'graphs').mkdir()
 
-    lib_dir = project_dir / 'libs' / f'haybale-{name}'
+    lib_dir = project_dir / 'barn' / f'haybale-{name}'
     pkg_dir = lib_dir / module_name
     pkg_dir.mkdir(parents=True)
 

@@ -97,7 +97,7 @@ def test_library_discovery():
 
 def check_example_library():
     """Check if example library is installable"""
-    example_path = project_root / 'libraries' / 'haybale-example'
+    example_path = project_root / 'barn' / 'haybale-example'
     pyproject_path = example_path / 'pyproject.toml'
     
     print("\n" + "=" * 70)

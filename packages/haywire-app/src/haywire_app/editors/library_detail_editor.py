@@ -792,11 +792,11 @@ class LibraryDetailEditor(BaseEditor):
     def _is_project_library(
         self, lib: InstalledLibrary, marketplace_path: str | None
     ) -> bool:
-        """Return True if lib is the local project library (lives under workspace/libs/)."""
+        """Return True if lib is the local project library (lives under workspace/barn/)."""
         if not marketplace_path or not lib.source_path:
             return False
         workspace_root = Path(marketplace_path).parent.parent
-        return Path(lib.source_path).is_relative_to(workspace_root / 'libs')
+        return Path(lib.source_path).is_relative_to(workspace_root / 'barn')
 
     def _build_edit_dialog(
         self,

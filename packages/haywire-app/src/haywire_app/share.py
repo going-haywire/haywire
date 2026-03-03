@@ -81,32 +81,32 @@ def _find_module_dir(lib_dir: Path) -> Path | None:
 
 
 def _detect_library() -> Path:
-    """Auto-detect the library path from libs/ in the current directory.
+    """Auto-detect the library path from barn/ in the current directory.
 
     If exactly one library exists, return its path.
     If multiple exist, print them and exit with usage hint.
     If none exist, print an error and exit.
     """
-    libs_dir = Path.cwd() / 'libs'
-    if not libs_dir.is_dir():
-        print("Error: No libs/ directory found in the current project.")
+    barn_dir = Path.cwd() / 'barn'
+    if not barn_dir.is_dir():
+        print("Error: No barn/ directory found in the current project.")
         print("Are you running this from a haywire project root?")
         sys.exit(1)
 
     candidates = [
-        d for d in sorted(libs_dir.iterdir())
+        d for d in sorted(barn_dir.iterdir())
         if d.is_dir() and (d / 'pyproject.toml').exists()
     ]
 
     if not candidates:
-        print("Error: No libraries found in libs/.")
+        print("Error: No libraries found in barn/.")
         sys.exit(1)
 
     if len(candidates) == 1:
         return candidates[0]
 
     # Multiple libraries — list them for the user
-    print(f"Found {len(candidates)} libraries in libs/. Specify which one:\n")
+    print(f"Found {len(candidates)} libraries in barn/. Specify which one:\n")
     for lib in candidates:
         rel = lib.relative_to(Path.cwd())
         print(f"  haywire share {rel}")

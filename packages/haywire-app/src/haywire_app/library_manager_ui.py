@@ -1453,11 +1453,11 @@ class LibraryManagerPage:
         )
 
     def _is_project_library(self, lib: InstalledLibrary) -> bool:
-        """Return True if lib is the local project library (lives under workspace/libs/)."""
+        """Return True if lib is the local project library (lives under workspace/barn/)."""
         if not self.marketplace_path or not lib.source_path:
             return False
         workspace_root = Path(self.marketplace_path).parent.parent
-        return Path(lib.source_path).is_relative_to(workspace_root / 'libs')
+        return Path(lib.source_path).is_relative_to(workspace_root / 'barn')
 
     def _find_marketplace_pkg(self, name: str) -> MarketplaceEntry | None:
         return next(

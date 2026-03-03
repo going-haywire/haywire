@@ -48,13 +48,13 @@ class TestProjectStructure:
         assert (scaffold_project / 'pyproject.toml').is_file()
 
     def test_library_dir_exists(self, scaffold_project):
-        assert (scaffold_project / 'libs' / 'haybale-test-project').is_dir()
+        assert (scaffold_project / 'barn' /'haybale-test-project').is_dir()
 
     def test_library_pyproject_exists(self, scaffold_project):
-        assert (scaffold_project / 'libs' / 'haybale-test-project' / 'pyproject.toml').is_file()
+        assert (scaffold_project / 'barn' /'haybale-test-project' / 'pyproject.toml').is_file()
 
     def test_library_init_exists(self, scaffold_project):
-        assert (scaffold_project / 'libs' / 'haybale-test-project' / 'haybale_test_project' / '__init__.py').is_file()
+        assert (scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project' / '__init__.py').is_file()
 
 
 class TestComponentFolders:
@@ -62,12 +62,12 @@ class TestComponentFolders:
 
     @pytest.mark.parametrize('folder', ['nodes', 'types', 'widgets', 'renderers', 'adapters'])
     def test_component_folder_exists(self, scaffold_project, folder):
-        pkg_dir = scaffold_project / 'libs' / 'haybale-test-project' / 'haybale_test_project'
+        pkg_dir = scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project'
         assert (pkg_dir / folder).is_dir()
 
     @pytest.mark.parametrize('folder', ['nodes', 'types', 'widgets', 'renderers', 'adapters'])
     def test_component_folder_has_init(self, scaffold_project, folder):
-        pkg_dir = scaffold_project / 'libs' / 'haybale-test-project' / 'haybale_test_project'
+        pkg_dir = scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project'
         assert (pkg_dir / folder / '__init__.py').is_file()
 
 
@@ -90,39 +90,39 @@ class TestProjectPyproject:
 
     def test_workspace_members(self, scaffold_project):
         data = toml.loads((scaffold_project / 'pyproject.toml').read_text())
-        assert data['tool']['uv']['workspace']['members'] == ['libs/*']
+        assert data['tool']['uv']['workspace']['members'] == ['barn/*']
 
 class TestLibraryPyproject:
     """Verify the generated library pyproject.toml content."""
 
     def test_library_name(self, scaffold_project):
         data = toml.loads(
-            (scaffold_project / 'libs' / 'haybale-test-project' / 'pyproject.toml').read_text()
+            (scaffold_project / 'barn' /'haybale-test-project' / 'pyproject.toml').read_text()
         )
         assert data['project']['name'] == 'haybale-test-project'
 
     def test_library_dependency(self, scaffold_project):
         data = toml.loads(
-            (scaffold_project / 'libs' / 'haybale-test-project' / 'pyproject.toml').read_text()
+            (scaffold_project / 'barn' /'haybale-test-project' / 'pyproject.toml').read_text()
         )
         assert 'haywire-framework>=0.1.0' in data['project']['dependencies']
 
     def test_entry_point(self, scaffold_project):
         data = toml.loads(
-            (scaffold_project / 'libs' / 'haybale-test-project' / 'pyproject.toml').read_text()
+            (scaffold_project / 'barn' /'haybale-test-project' / 'pyproject.toml').read_text()
         )
         eps = data['project']['entry-points']['haywire.libraries']
         assert eps['test-project'] == 'haybale_test_project:Library'
 
     def test_hatchling_backend(self, scaffold_project):
         data = toml.loads(
-            (scaffold_project / 'libs' / 'haybale-test-project' / 'pyproject.toml').read_text()
+            (scaffold_project / 'barn' /'haybale-test-project' / 'pyproject.toml').read_text()
         )
         assert data['build-system']['build-backend'] == 'hatchling.build'
 
     def test_wheel_packages(self, scaffold_project):
         data = toml.loads(
-            (scaffold_project / 'libs' / 'haybale-test-project' / 'pyproject.toml').read_text()
+            (scaffold_project / 'barn' /'haybale-test-project' / 'pyproject.toml').read_text()
         )
         assert 'haybale_test_project' in data['tool']['hatch']['build']['targets']['wheel']['packages']
 
@@ -132,7 +132,7 @@ class TestLibraryInit:
 
     def test_imports_all_registries(self, scaffold_project):
         init_content = (
-            scaffold_project / 'libs' / 'haybale-test-project' / 'haybale_test_project' / '__init__.py'
+            scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project' / '__init__.py'
         ).read_text()
         assert 'from haywire.core.node.registry import NodeRegistry' in init_content
         assert 'from haywire.core.types.registry import TypeRegistry' in init_content
@@ -142,14 +142,14 @@ class TestLibraryInit:
 
     def test_registers_all_folders(self, scaffold_project):
         init_content = (
-            scaffold_project / 'libs' / 'haybale-test-project' / 'haybale_test_project' / '__init__.py'
+            scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project' / '__init__.py'
         ).read_text()
         for folder in ['nodes', 'types', 'adapters', 'widgets', 'renderers']:
             assert f"base_path / '{folder}'" in init_content
 
     def test_library_decorator(self, scaffold_project):
         init_content = (
-            scaffold_project / 'libs' / 'haybale-test-project' / 'haybale_test_project' / '__init__.py'
+            scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project' / '__init__.py'
         ).read_text()
         assert "@library(" in init_content
         assert "id='test-project'" in init_content
@@ -178,7 +178,7 @@ class TestDevMode:
 
     def test_library_has_framework_source(self, scaffold_project_dev):
         data = toml.loads(
-            (scaffold_project_dev / 'libs' / 'haybale-test-project-dev' / 'pyproject.toml').read_text()
+            (scaffold_project_dev / 'barn' /'haybale-test-project-dev' / 'pyproject.toml').read_text()
         )
         sources = data['tool']['uv']['sources']
         assert 'haywire-framework' in sources
@@ -219,7 +219,7 @@ class TestNameSanitization:
         monkeypatch.chdir(tmp_path)
         from haywire_app.init import init_project
         init_project('my-cool-project', auto_sync=False)
-        assert (tmp_path / 'my-cool-project' / 'libs' / 'haybale-my-cool-project' / 'haybale_my_cool_project').is_dir()
+        assert (tmp_path / 'my-cool-project' / 'barn' /'haybale-my-cool-project' / 'haybale_my_cool_project').is_dir()
 
     def test_existing_dir_exits(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)

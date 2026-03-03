@@ -43,7 +43,7 @@ my-project/
 │   ├── marketplace.toml        # marketplace library sources (cincluding the local one)
 │   └── config.toml
 ├── graphs/                     # saved graphs
-└── libs/
+└── barn/
     └── haybale-my-project/     # your local node library (auto-scaffolded)
         ├── pyproject.toml
         └── haybale_my_project/

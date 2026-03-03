@@ -613,7 +613,7 @@ wheels = [
 [[package]]
 name = "haybale-core"
 version = "1.0.0"
-source = { editable = "libraries/haybale-core" }
+source = { editable = "barn/haybale-core" }
 dependencies = [
     { name = "haywire-framework" },
 ]
@@ -624,7 +624,7 @@ requires-dist = [{ name = "haywire-framework", editable = "packages/haywire-fram
 [[package]]
 name = "haybale-example"
 version = "1.0.0"
-source = { editable = "libraries/haybale-example" }
+source = { editable = "barn/haybale-example" }
 dependencies = [
     { name = "haybale-core" },
     { name = "haywire-framework" },
@@ -632,14 +632,14 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "haybale-core", editable = "libraries/haybale-core" },
+    { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haywire-framework", editable = "packages/haywire-framework" },
 ]
 
 [[package]]
 name = "haybale-test-a"
 version = "1.0.0"
-source = { editable = "libraries/haybale-TEST_A" }
+source = { editable = "barn/haybale-TEST_A" }
 dependencies = [
     { name = "haywire-framework" },
 ]
@@ -650,7 +650,7 @@ requires-dist = [{ name = "haywire-framework", editable = "packages/haywire-fram
 [[package]]
 name = "haybale-testing"
 version = "1.0.0"
-source = { editable = "libraries/haybale-testing" }
+source = { editable = "barn/haybale-testing" }
 dependencies = [
     { name = "haywire-framework" },
 ]
@@ -661,7 +661,7 @@ requires-dist = [{ name = "haywire-framework", editable = "packages/haywire-fram
 [[package]]
 name = "haybale-visiongraph"
 version = "0.0.1"
-source = { editable = "libraries/haybale-visiongraph" }
+source = { editable = "barn/haybale-visiongraph" }
 dependencies = [
     { name = "haybale-core" },
     { name = "haywire-framework" },
@@ -670,7 +670,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "haybale-core", editable = "libraries/haybale-core" },
+    { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haywire-framework", editable = "packages/haywire-framework" },
     { name = "visiongraph", extras = ["all"] },
 ]
@@ -686,7 +686,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "haybale-core", editable = "libraries/haybale-core" },
+    { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haywire-framework", editable = "packages/haywire-framework" },
 ]
 
@@ -750,11 +750,11 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "haybale-core", editable = "libraries/haybale-core" },
-    { name = "haybale-example", editable = "libraries/haybale-example" },
-    { name = "haybale-test-a", editable = "libraries/haybale-TEST_A" },
-    { name = "haybale-testing", editable = "libraries/haybale-testing" },
-    { name = "haybale-visiongraph", editable = "libraries/haybale-visiongraph" },
+    { name = "haybale-core", editable = "barn/haybale-core" },
+    { name = "haybale-example", editable = "barn/haybale-example" },
+    { name = "haybale-test-a", editable = "barn/haybale-TEST_A" },
+    { name = "haybale-testing", editable = "barn/haybale-testing" },
+    { name = "haybale-visiongraph", editable = "barn/haybale-visiongraph" },
     { name = "haywire-app", editable = "packages/haywire-app" },
     { name = "haywire-framework", editable = "packages/haywire-framework" },
     { name = "mypy" },

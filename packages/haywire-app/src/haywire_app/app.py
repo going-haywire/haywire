@@ -205,7 +205,7 @@ class HaywireApp:
         self.undo_config = DEVELOPMENT_CONFIG
 
         library_paths = []
-        workspace_libs = os.path.join(self.workspace_root, 'libraries')
+        workspace_libs = os.path.join(self.workspace_root, 'barn')
         if os.path.isdir(workspace_libs):
             library_paths.append(workspace_libs)
 

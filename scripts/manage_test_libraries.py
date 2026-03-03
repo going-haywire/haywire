@@ -15,27 +15,27 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 LIBRARIES = {
     '1': {
         'name': 'haybale-core',
-        'path': PROJECT_ROOT / 'libraries' / 'haybale-core',
+        'path': PROJECT_ROOT / 'barn' /'haybale-core',
         'description': 'Core library with essential types, nodes, widgets, and renderers'
     },
     '2': {
         'name': 'haybale-example',
-        'path': PROJECT_ROOT / 'libraries' / 'haybale-example',
+        'path': PROJECT_ROOT / 'barn' /'haybale-example',
         'description': 'Example library with custom nodes, widgets, and renderers'
     },
     '3': {
         'name': 'haybale-visiongraph',
-        'path': PROJECT_ROOT / 'libraries' / 'haybale-visiongraph',
+        'path': PROJECT_ROOT / 'barn' /'haybale-visiongraph',
         'description': 'Visiongraph library for Haywire'
     },
     '4': {
         'name': 'haybale-testing',
-        'path': PROJECT_ROOT / 'libraries' / 'haybale-testing',
+        'path': PROJECT_ROOT / 'barn' /'haybale-testing',
         'description': 'Testing library for Haywire'
     },
     '5': {
         'name': 'haybale-TEST_A',
-        'path': PROJECT_ROOT / 'libraries' / 'haybale-TEST_A',
+        'path': PROJECT_ROOT / 'barn' /'haybale-TEST_A',
         'description': 'Test library A'
     },
 }
