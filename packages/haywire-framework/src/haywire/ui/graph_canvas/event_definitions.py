@@ -110,7 +110,7 @@ class ConnectionCreatedEvent(BaseGraphEvent):
 @graph_event("connectionClicked", category="user", description="Connection clicked")
 @dataclass
 class ConnectionClickedEvent(BaseGraphEvent):
-    connectionUUID: str
+    edge_id: str
 
 @graph_event("elementRedraw", category="user", description="redraw selected element")
 @dataclass
@@ -176,7 +176,7 @@ class ContextMenuConnectionEvent(BaseGraphEvent):
     screenY: float
     canvasX: float
     canvasY: float
-    connectionUUID: str
+    edge_id: str
 
 @graph_event(
     "contextMenuSelected",
@@ -236,7 +236,7 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
     - isValid: Connection validity state
     - hasWarning: Warning indicator
     """
-    connectionUUID: str
+    edge_id: str
     sourceNodeId: str
     outletPinId: str
     sinkNodeId: str
@@ -257,7 +257,7 @@ class SyncConnectionAdditionEvent(BaseGraphEvent):
 )
 @dataclass
 class SyncConnectionRemovalEvent(BaseGraphEvent):
-    connectionUUID: str
+    edge_id: str
 
 @graph_event("syncSelections", category="sync", description="Sync selection state to UI")
 @dataclass

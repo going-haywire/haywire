@@ -97,12 +97,12 @@ window.EventCreators = {
     };
   },
 
-  createConnectionClicked(connectionUUID, sessionId = 'default') {
+  createConnectionClicked(edge_id, sessionId = 'default') {
     return {
       event_type: 'connectionClicked',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { connectionUUID },
+      data: { edge_id },
       requires_broadcast: true
     };
   },
@@ -137,12 +137,12 @@ window.EventCreators = {
     };
   },
 
-  createContextMenuConnection(screenX, screenY, canvasX, canvasY, connectionUUID, sessionId = 'default') {
+  createContextMenuConnection(screenX, screenY, canvasX, canvasY, edge_id, sessionId = 'default') {
     return {
       event_type: 'contextMenuConnection',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { screenX, screenY, canvasX, canvasY, connectionUUID },
+      data: { screenX, screenY, canvasX, canvasY, edge_id },
       requires_broadcast: true
     };
   },
@@ -211,7 +211,7 @@ window.EventValidators = {
   },
 
   validateConnectionClicked(data) {
-    const requiredFields = ["connectionUUID"];
+    const requiredFields = ["edge_id"];
     return requiredFields.every(field => field in data);
   },
 
@@ -231,7 +231,7 @@ window.EventValidators = {
   },
 
   validateContextMenuConnection(data) {
-    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "connectionUUID"];
+    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "edge_id"];
     return requiredFields.every(field => field in data);
   },
 

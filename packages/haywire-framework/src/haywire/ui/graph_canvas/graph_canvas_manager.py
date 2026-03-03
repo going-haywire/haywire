@@ -213,17 +213,17 @@ class GraphCanvasManager:
             
         elif isinstance(event, ContextMenuConnectionEvent):
             logger.debug(
-                f"Connection context menu for {event.connectionUUID} "
+                f"Connection context menu for {event.edge_id} "
                 f"at ({event.screenX}, {event.screenY})"
             )
             if self.context_menu:
                 # Get metrics directly and pass to menu
-                ui_edge = self.connection_paths.get(event.connectionUUID)
+                ui_edge = self.connection_paths.get(event.edge_id)
                 if ui_edge and ui_edge.wrapper:
                     self.context_menu.show_connection_menu(
                         event.screenX,
                         event.screenY,
-                        event.connectionUUID,
+                        event.edge_id,
                         ui_edge.wrapper.edge,
                         ui_edge.wrapper.get_state()
                     )
@@ -269,7 +269,7 @@ class GraphCanvasManager:
     def process_connection_click(self, event: ConnectionClickedEvent):
         """Handle connection click events"""
         try:
-            logger.debug(f"Connection clicked: {event.connectionUUID}")
+            logger.debug(f"Connection clicked: {event.edge_id}")
         except Exception as e:
             logger.error(f"Connection click handling failed: {e}")
 
@@ -815,7 +815,7 @@ class GraphCanvasManager:
             del self.connection_paths[edge_id]
         
         # Emit removal sync event
-        sync_event = SyncConnectionRemovalEvent(connectionUUID=edge_id)
+        sync_event = SyncConnectionRemovalEvent(edge_id=edge_id)
         self.canvas_vue.emit_sync_event(sync_event)
 
         logger.debug(f"🔗 Removed UIEdge and connection visual: {edge_id}")
