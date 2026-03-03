@@ -268,15 +268,15 @@ class Editor:
             selected_connections = selected_connections or set()
             
             # Convert connection tuples to connection UUIDs
-            from ...ui.utils import generate_connection_uuid
-            selected_connection_uuids = set()
+            from ...ui.utils import generate_edge_uuid
+            selected_edge_ids = set()
             for output_node, outlet_pin, input_node, inlet_pin in selected_connections:
-                connection_uuid = generate_connection_uuid(
+                edge_id = generate_edge_uuid(
                     output_node, outlet_pin, input_node, inlet_pin
                 )
-                selected_connection_uuids.add(connection_uuid)
+                selected_edge_ids.add(edge_id)
             
-            new_selection = SelectionState(selected_nodes, selected_connection_uuids)
+            new_selection = SelectionState(selected_nodes, selected_edge_ids)
             action = ChangeSelectionAction(self.graph, new_selection)
             self.history_manager.add_action(action)
                         

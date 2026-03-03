@@ -441,7 +441,7 @@ class NodeData:
                     if port.is_inlet():
                         # Inlet destroyed → inform source outlet (needs pipe update)
                         if edge._outlet_port and edge._outlet_port is not port:
-                            edge._outlet_port._remove_edge(edge.connection_uuid)
+                            edge._outlet_port._remove_edge(edge.edge_id)
                             edge._update_link_state()
                             edge._outlet_port._housekeeping()
                     else:

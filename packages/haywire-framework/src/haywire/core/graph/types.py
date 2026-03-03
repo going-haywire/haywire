@@ -180,7 +180,7 @@ class ValidationResult:
     """Map of node_id -> reason for change"""
     
     edges: Dict[str, ChangeReason] = field(default_factory=dict)
-    """Map of connection_uuid -> reason for change"""
+    """Map of edge_id -> reason for change"""
     
     # Metadata
     validation_time_ms: float = 0.0

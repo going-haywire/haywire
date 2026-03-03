@@ -51,7 +51,7 @@ class ValidationManager:
         """node_id -> reason for being dirty"""
         
         self._dirty_edges: Dict[str, ChangeReason] = {}
-        """connection_uuid -> reason for being dirty"""
+        """edge_id -> reason for being dirty"""
         
         # Timer and synchronization
         self._validation_timer: Optional[threading.Timer] = None
@@ -112,7 +112,7 @@ class ValidationManager:
     
     def mark_edge_dirty(
         self,
-        connection_uuid: str,
+        edge_id: str,
         reason: ChangeReason
     ) -> None:
         """
@@ -121,11 +121,11 @@ class ValidationManager:
         Uses priority system - higher priority reasons override lower ones.
         """
         with self._validation_lock:
-            self._set_reason(id=connection_uuid, reason=reason, store=self._dirty_edges)
+            self._set_reason(id=edge_id, reason=reason, store=self._dirty_edges)
             self._schedule_validation()
             
             logger.info(
-                f"Marked edge dirty: {connection_uuid} "
+                f"Marked edge dirty: {edge_id} "
                 f"(reason: {reason.value})"
             )
 
@@ -306,7 +306,7 @@ class ValidationManager:
                                 # we need to be carefull and 
                                 # adhere to the reason priorities
                                 self._set_reason(
-                                    id=edge_wrapper.connection_uuid,
+                                    id=edge_wrapper.edge_id,
                                     reason=reason,
                                     store=dirty_edges)
                             # Always include in result with its reason
@@ -325,7 +325,7 @@ class ValidationManager:
                                 # we need to be carefull and 
                                 # adhere to the reason priorities
                                 self._set_reason(
-                                    id=edge_wrapper.connection_uuid,
+                                    id=edge_wrapper.edge_id,
                                     reason=reason,
                                     store=dirty_edges)
                             # Always include in result with its reason
@@ -346,21 +346,21 @@ class ValidationManager:
                     )
             
             # Validate edges
-            for connection_uuid, reason in dirty_edges.items():
+            for edge_id, reason in dirty_edges.items():
                 try:
                     # For removal, just track it
                     if reason.requires_removal():
-                        validated_edges[connection_uuid] = reason
+                        validated_edges[edge_id] = reason
                         validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
                     if reason.requires_adding():
                         # Update port links (needs to be done after registration)
-                        validated_edges[connection_uuid] = reason
+                        validated_edges[edge_id] = reason
                         validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
-                    edge_wrapper = self._graph.get_edge_wrapper(connection_uuid)
+                    edge_wrapper = self._graph.get_edge_wrapper(edge_id)
                     if reason.requires_rebuild() or \
                         reason.requires_validation():
                         # we play it safe - in case the node has changed the type of an
@@ -374,18 +374,18 @@ class ValidationManager:
                                 # Lost functionality during rebuild
                                 edge_wrapper.unlink()
                             # Always include in result with its reason
-                            validated_edges[connection_uuid] = reason
+                            validated_edges[edge_id] = reason
                             validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                             continue
                     
                     # For visual-only changes, skip validation
                     if reason.requires_redraw():
-                        validated_edges[connection_uuid] = reason
+                        validated_edges[edge_id] = reason
                         continue
 
                 except Exception as e:
                     logger.error(
-                        f"Edge validation failed: {connection_uuid}",
+                        f"Edge validation failed: {edge_id}",
                         exc_info=e
                     )
             

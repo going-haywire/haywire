@@ -85,7 +85,7 @@ AdapterFactory
    ↓
 5. EdgeWrapper.__init__()
    - Stores node/pin IDs
-   - Generates connection_uuid
+   - Generates edge_id
    - State = not initialized
    ↓
 6. EdgeWrapper.initialize(graph)
@@ -264,7 +264,7 @@ except ValueError as e:
 
 # Step 3: Create adapter chain (SINGLE registry access)
 chain, error_msg = self._adapter_factory.create_chain(
-    source_type, target_type, self.connection_uuid
+    source_type, target_type, self.edge_id
 )
 ```
 
@@ -406,7 +406,7 @@ history_manager.add_action(action)
 
 ```python
 # Get edge wrapper
-wrapper = graph.get_edge_wrapper(connection_uuid)
+wrapper = graph.get_edge_wrapper(edge_id)
 
 # Transform value
 temp_value = Temperature(25.0)  # Celsius
@@ -419,7 +419,7 @@ outlet_port.edge_transform = wrapper.transform
 **Checking Edge Status:**
 
 ```python
-wrapper = graph.get_edge_wrapper(connection_uuid)
+wrapper = graph.get_edge_wrapper(edge_id)
 
 # Validation
 errors = wrapper.validate()

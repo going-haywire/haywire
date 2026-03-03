@@ -14,7 +14,7 @@ class Pipe:
     Wraps the sink port, adapter chain, lazy flag, and connection UUID.
     Owns the pull operation (read outlet → transform → store in inlet).
     """
-    __slots__ = ('sink', 'chain', 'is_lazy', '_outlet_port', '_connection_uuid')
+    __slots__ = ('sink', 'chain', 'is_lazy', '_outlet_port', '_edge_id')
 
     def __init__(
         self,
@@ -22,13 +22,13 @@ class Pipe:
         sink: 'DataPort',
         chain: IAdapter,
         is_lazy: bool,
-        connection_uuid: str
+        edge_id: str
     ):
         self._outlet_port = outlet_port
         self.sink = sink
         self.chain = chain
         self.is_lazy = is_lazy
-        self._connection_uuid = connection_uuid
+        self._edge_id = edge_id
 
     def propagate(self):
         """Propagate outlet value through all pipe connections.
@@ -49,17 +49,17 @@ class Pipe:
 
         Reads the outlet's current value (always-latest semantics),
         transforms it, and stores it in the inlet via set_value.
-        The connection_uuid signals edge-driven update (defers on_change).
+        The edge_id signals edge-driven update (defers on_change).
         """
         value = self._outlet_port.get_value()
         if value is not None:
             converted_value = self.chain.execute(value)
             self.sink.set_value(
-                converted_value, connection_uuid=self._connection_uuid
+                converted_value, edge_id=self._edge_id
             )
         else:
             self.sink.set_value(
-                None, connection_uuid=self._connection_uuid
+                None, edge_id=self._edge_id
             )
 
 
@@ -74,18 +74,18 @@ class Pipes:
 
     def add_pipe(self, edge_wrapper: EdgeWrapper):
         """Add a pipe connection"""
-        uuid = edge_wrapper.connection_uuid
+        uuid = edge_wrapper.edge_id
         self._pipes[uuid] = Pipe(
             outlet_port=self._outlet_port,
             sink=edge_wrapper._inlet_port,
             chain=edge_wrapper.first_adapter,
             is_lazy=edge_wrapper.is_lazy,
-            connection_uuid=uuid,
+            edge_id=uuid,
         )
 
     def remove_pipe(self, edge_wrapper: EdgeWrapper):
         """Remove a pipe connection"""
-        self._pipes.pop(edge_wrapper.connection_uuid, None)
+        self._pipes.pop(edge_wrapper.edge_id, None)
 
     def propagate(self):
         """Propagate outlet value through all pipe connections."""

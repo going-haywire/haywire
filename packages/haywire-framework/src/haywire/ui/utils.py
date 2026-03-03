@@ -27,7 +27,7 @@ def generate_pin_uuid(node_id: str, pin_id: str) -> str:
 
 
 
-def generate_connection_uuid(
+def generate_edge_uuid(
         outlet_node_id: str, 
         outlet_pin_id: str, 
         inlet_node_id: str, 
@@ -47,7 +47,7 @@ def generate_connection_uuid(
         Unique connection identifier
 
     Example:
-        generate_connection_uuid('node_123', 'output', 'node_456', 'input')
+        generate_edge_id('node_123', 'output', 'node_456', 'input')
         -> 'edge::output@node_123>>input@node_456'
     """
     outlet_uuid = generate_pin_uuid(outlet_node_id, outlet_pin_id)
@@ -62,32 +62,32 @@ class ConnectionComponents(NamedTuple):
     inlet_pin_id: str
 
 
-def parse_connection_uuid(connection_uuid: str) -> ConnectionComponents:
+def parse_edge_id(edge_id: str) -> ConnectionComponents:
     """
-    Parse a connection identifier back into its components.
+    Parse an edge identifier back into its components.
 
     Args:
-        connection_uuid: Connection ID in format edge::outlet_node_id__outlet_pin_id>>inlet_node_id__inlet_pin_id
+        edge_id: Edge ID in format edge::outlet_node_id__outlet_pin_id>>inlet_node_id__inlet_pin_id
 
     Returns:
         ConnectionComponents with outlet_node_id, outlet_pin_id, inlet_node_id, inlet_pin_id
 
     Raises:
-        ValueError: If connection_uuid format is invalid
+        ValueError: If edge_id format is invalid
 
     Example:
-        parse_connection_uuid('edge::output@node_123>>input@node_456')
+        parse_edge_id('edge::output@node_123>>input@node_456')
         -> ConnectionComponents(outlet_node_id='node_123', outlet_pin_id='output',
                                inlet_node_id='node_456', inlet_pin_id='input')
     """
     # Split by :: to get prefix and the rest
-    if '::' not in connection_uuid:
+    if '::' not in edge_id:
         raise ValueError(
-            f"Invalid connection ID format: {connection_uuid}. "
+            f"Invalid connection ID format: {edge_id}. "
             f"Expected format: edge::outlet_pin_id@outlet_node_id>>inlet_node_id@inlet_pin_id"
         )
     
-    prefix, rest = connection_uuid.split('::', 1)
+    prefix, rest = edge_id.split('::', 1)
     
     if prefix != 'edge':
         raise ValueError(
@@ -97,7 +97,7 @@ def parse_connection_uuid(connection_uuid: str) -> ConnectionComponents:
     # Split by >> to get outlet and inlet parts
     if '>>' not in rest:
         raise ValueError(
-            f"Invalid connection ID format: {connection_uuid}. "
+            f"Invalid connection ID format: {edge_id}. "
             f"Expected '>>' separator between outlet_uuid and inlet_uuid"
         )
     

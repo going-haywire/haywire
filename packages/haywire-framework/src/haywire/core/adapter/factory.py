@@ -48,14 +48,14 @@ class AdapterFactory:
         self.adapter_registry = adapter_registry
         
         # Dependency tracking for hot reload
-        # Maps adapter registry_key → set of connection_uuids that use it
+        # Maps adapter registry_key → set of edge_ids that use it
         self._adapter_to_edges: Dict[str, Set[str]] = {}
         
-        # Maps connection_uuid → set of adapter registry_keys it uses
+        # Maps edge_id → set of adapter registry_keys it uses
         self._edge_to_adapters: Dict[str, Set[str]] = {}
         
         # EdgeWrapper callbacks for lifecycle events
-        # Maps connection_uuid → callback function
+        # Maps edge_id → callback function
         self._edge_callbacks: Dict[str, LifeCycleBatchCallback] = {}
         
         # Subscribe to adapter registry hot reload events
@@ -67,7 +67,7 @@ class AdapterFactory:
         self,
         source_type: type[IType],
         sink_type: type[IType],
-        connection_uuid: str,
+        edge_id: str,
         max_depth: int = 3
     ) -> tuple[Optional[IAdapter], Optional[str]]:
         """
@@ -96,7 +96,7 @@ class AdapterFactory:
         Args:
             source_type: Source IType (from outlet)
             sink_type: Sink IType (from inlet)
-            connection_uuid: Connection identifier for dependency tracking
+            edge_id: Connection identifier for dependency tracking
             max_depth: Maximum chain length (default 3)
             
         Returns:
@@ -171,10 +171,10 @@ class AdapterFactory:
         # Register dependencies ONLY at top level
         if first_adapter and error is None:
             # Unregister old dependencies
-            self._unregister_edge_dependencies(connection_uuid)
+            self._unregister_edge_dependencies(edge_id)
             # Register new dependencies
             self._register_edge_dependencies(
-                connection_uuid,
+                edge_id,
                 first_adapter._get_registry_keys()
             )
         
@@ -506,19 +506,19 @@ class AdapterFactory:
         
     def register_edge_callback(
         self,
-        connection_uuid: str,
+        edge_id: str,
         callback: LifeCycleBatchCallback
     ):
         """Register EdgeWrapper callback for lifecycle notifications"""
-        self._edge_callbacks[connection_uuid] = callback
+        self._edge_callbacks[edge_id] = callback
     
-    def unregister_edge_callback(self, connection_uuid: str):
+    def unregister_edge_callback(self, edge_id: str):
         """Unregister EdgeWrapper callback"""
-        if connection_uuid in self._edge_callbacks:
-            del self._edge_callbacks[connection_uuid]
+        if edge_id in self._edge_callbacks:
+            del self._edge_callbacks[edge_id]
         
         # Clean up dependency tracking
-        self._unregister_edge_dependencies(connection_uuid)
+        self._unregister_edge_dependencies(edge_id)
     
     # there is a good reason to separate the registration methods of the 
     # dependencies and the callback methods:
@@ -529,36 +529,36 @@ class AdapterFactory:
 
     def _register_edge_dependencies(
         self,
-        connection_uuid: str,
+        edge_id: str,
         adapter_keys: List[str]
     ):
         """Track which adapters an edge depends on"""
         # Store edge → adapters mapping
-        self._edge_to_adapters[connection_uuid] = set(adapter_keys)
+        self._edge_to_adapters[edge_id] = set(adapter_keys)
         
         # Store adapter → edges mapping
         for adapter_key in adapter_keys:
             if adapter_key not in self._adapter_to_edges:
                 self._adapter_to_edges[adapter_key] = set()
-            self._adapter_to_edges[adapter_key].add(connection_uuid)
+            self._adapter_to_edges[adapter_key].add(edge_id)
     
-    def _unregister_edge_dependencies(self, connection_uuid: str):
+    def _unregister_edge_dependencies(self, edge_id: str):
         """Remove dependency tracking for an edge"""
         # Get adapters this edge uses
-        adapter_keys = self._edge_to_adapters.get(connection_uuid, set())
+        adapter_keys = self._edge_to_adapters.get(edge_id, set())
         
         # Remove edge from adapter → edges mappings
         for adapter_key in adapter_keys:
             if adapter_key in self._adapter_to_edges:
-                self._adapter_to_edges[adapter_key].discard(connection_uuid)
+                self._adapter_to_edges[adapter_key].discard(edge_id)
                 
                 # Clean up empty sets
                 if not self._adapter_to_edges[adapter_key]:
                     del self._adapter_to_edges[adapter_key]
         
         # Remove edge → adapters mapping
-        if connection_uuid in self._edge_to_adapters:
-            del self._edge_to_adapters[connection_uuid]
+        if edge_id in self._edge_to_adapters:
+            del self._edge_to_adapters[edge_id]
     
     def _on_adapter_lifecycle_event(self, batch: List[LifeCycleEvent]):
         """
@@ -575,15 +575,15 @@ class AdapterFactory:
             adapter_key = event.registry_key
             if adapter_key in self._adapter_to_edges:
                 # This adapter affects some edges
-                for connection_uuid in self._adapter_to_edges[adapter_key]:
-                    if connection_uuid not in edge_to_events:
-                        edge_to_events[connection_uuid] = []
-                    edge_to_events[connection_uuid].append(event)
+                for edge_id in self._adapter_to_edges[adapter_key]:
+                    if edge_id not in edge_to_events:
+                        edge_to_events[edge_id] = []
+                    edge_to_events[edge_id].append(event)
         
         # Notify affected EdgeWrappers with filtered events
-        for connection_uuid, events in edge_to_events.items():
-            if connection_uuid in self._edge_callbacks:
-                callback = self._edge_callbacks[connection_uuid]
+        for edge_id, events in edge_to_events.items():
+            if edge_id in self._edge_callbacks:
+                callback = self._edge_callbacks[edge_id]
                 callback(events)
     
     def cleanup(self):

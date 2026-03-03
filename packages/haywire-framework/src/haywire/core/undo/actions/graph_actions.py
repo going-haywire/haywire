@@ -138,7 +138,7 @@ class AddEdgeAction(ActionBase):
     def _undo_impl(self) -> None:
         """Remove the edge from the graph."""
         if self.wrapper:
-            self.undo_wrapper = self.graph.remove_edge_wrapper(self.wrapper.connection_uuid)
+            self.undo_wrapper = self.graph.remove_edge_wrapper(self.wrapper.edge_id)
 
     def cleanup(self) -> None:
         """
@@ -290,11 +290,11 @@ class RemoveElementsAction(ActionBase):
     def _execute_impl(self) -> None:
         """Remove all specified elements and store them for undo."""
         # First, store and remove connections
-        for connection_uuid in self.connections:
-            edge_wrapper = self.graph.get_edge_wrapper(connection_uuid)
+        for edge_id in self.connections:
+            edge_wrapper = self.graph.get_edge_wrapper(edge_id)
             if edge_wrapper:
-                self.removed_edge_wrappers[connection_uuid] = edge_wrapper
-                self.graph.remove_edge_wrapper(connection_uuid)
+                self.removed_edge_wrappers[edge_id] = edge_wrapper
+                self.graph.remove_edge_wrapper(edge_id)
         
         # Then, store and remove nodes
         for node_id in self.nodes:
@@ -305,9 +305,9 @@ class RemoveElementsAction(ActionBase):
                 all_edges = self.graph._get_all_edges(node_id)
 
                 for edge in all_edges:
-                    self.node_connected_edge_wrappers[edge.connection_uuid] = edge
+                    self.node_connected_edge_wrappers[edge.edge_id] = edge
                     # Remove the connected edge wrapper
-                    self.graph.remove_edge_wrapper(edge.connection_uuid)
+                    self.graph.remove_edge_wrapper(edge.edge_id)
                 
                 # Remove the node wrapper
                 self.graph.remove_node_wrapper(node_wrapper)
@@ -319,13 +319,13 @@ class RemoveElementsAction(ActionBase):
             self.graph.add_node_wrapper(node_wrapper)
 
         # then, restore all edges connected to restored nodes
-        for connection_uuid, edge_wrapper in self.node_connected_edge_wrappers.items():
+        for edge_id, edge_wrapper in self.node_connected_edge_wrappers.items():
             # Re-add existing wrapper
             self.graph.add_edge_wrapper(edge_wrapper)
                 
         # Then, restore standalone connections
         # (that weren't connected to removed nodes)
-        for connection_uuid, edge_wrapper in self.removed_edge_wrappers.items():
+        for edge_id, edge_wrapper in self.removed_edge_wrappers.items():
             self.graph.add_edge_wrapper(edge_wrapper)
     
         # Clear away store after restoration otherwise
@@ -450,7 +450,7 @@ class ClipboardData:
     
     # Core data - actual instances, not serialized data
     nodes: Dict[str, BaseNode]  # new_node_id -> node_instance
-    edges: Dict[str, Edge]      # new_connection_uuid -> edge_instance
+    edges: Dict[str, Edge]      # new_edge_id -> edge_instance
     
     # Mapping for paste operations
     original_to_new_ids: Dict[str, str]  # original_node_id -> new_node_id
@@ -505,7 +505,7 @@ class PasteClipboardAction(CompositeAction):
             actions.append(AddNodeAction(graph, node, f"Paste node '{node.identity.label}'"))
         
         # Add edge actions
-        for connection_uuid, edge in clipboard_data.edges.items():
+        for edge_id, edge in clipboard_data.edges.items():
             actions.append(AddEdgeAction(graph, edge, "Paste connection"))
         
         # Determine description

@@ -190,25 +190,25 @@ class BaseGraph:
                 node_id, ChangeReason.NODE_RESET_REQUESTED
             )
 
-    def request_edge_redraw(self, connection_uuid: str) -> None:
+    def request_edge_redraw(self, edge_id: str) -> None:
         """Request visual refresh for an edge. Does not modify state."""
-        if connection_uuid in self.edge_wrappers:
+        if edge_id in self.edge_wrappers:
             self._validation.mark_edge_dirty(
-                connection_uuid, ChangeReason.EDGE_REDRAW_REQUESTED
+                edge_id, ChangeReason.EDGE_REDRAW_REQUESTED
             )
 
-    def request_edge_revalidation(self, connection_uuid: str) -> None:
+    def request_edge_revalidation(self, edge_id: str) -> None:
         """Request structural revalidation for an edge."""
-        if connection_uuid in self.edge_wrappers:
+        if edge_id in self.edge_wrappers:
             self._validation.mark_edge_dirty(
-                connection_uuid, ChangeReason.EDGE_VALIDATION_REQUESTED
+                edge_id, ChangeReason.EDGE_VALIDATION_REQUESTED
             )
 
-    def request_edge_reset(self, connection_uuid: str) -> None:
+    def request_edge_reset(self, edge_id: str) -> None:
         """Request full rebuild for an edge (re-runs build + port link update)."""
-        if connection_uuid in self.edge_wrappers:
+        if edge_id in self.edge_wrappers:
             self._validation.mark_edge_dirty(
-                connection_uuid, ChangeReason.EDGE_RESET_REQUESTED
+                edge_id, ChangeReason.EDGE_RESET_REQUESTED
             )
 
     def request_full_redraw(self) -> None:
@@ -369,7 +369,7 @@ class BaseGraph:
         
         # Remove all connected edges
         for edge_wrapper in connected_edges:
-            self.remove_edge_wrapper(edge_wrapper.connection_uuid)
+            self.remove_edge_wrapper(edge_wrapper.edge_id)
         
         logger.debug(
             f"Removed node wrapper: {node_id} "
@@ -522,16 +522,16 @@ class BaseGraph:
             The added wrapper
             
         Raises:
-            ValueError: If connection_uuid already exists
+            ValueError: If edge_id already exists
         """
-        if edge_wrapper.connection_uuid in self.edge_wrappers:
+        if edge_wrapper.edge_id in self.edge_wrappers:
             raise ValueError(
-                f"Edge wrapper with UUID '{edge_wrapper.connection_uuid}' "
+                f"Edge wrapper with UUID '{edge_wrapper.edge_id}' "
                 f"already exists in graph"
             )
 
         # Add to collection
-        self.edge_wrappers[edge_wrapper.connection_uuid] = edge_wrapper
+        self.edge_wrappers[edge_wrapper.edge_id] = edge_wrapper
         edge_wrapper.set_as_registered(True)
 
         # Edge drives its own linking to ports
@@ -539,33 +539,33 @@ class BaseGraph:
 
         # Trigger validation (delegates to manager)
         self._validation.mark_edge_dirty(
-            edge_wrapper.connection_uuid,
+            edge_wrapper.edge_id,
             ChangeReason.EDGE_ADDED
         )
 
-        logger.debug(f"Added edge wrapper: {edge_wrapper.connection_uuid}")
+        logger.debug(f"Added edge wrapper: {edge_wrapper.edge_id}")
 
         return edge_wrapper
 
-    def remove_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
+    def remove_edge_wrapper(self, edge_id: str) -> Optional['EdgeWrapper']:
         """
         Remove EdgeWrapper from graph.
 
         Also detaches from ports and triggers validation.
 
         Args:
-            connection_uuid: Connection UUID to remove
+            edge_id: Connection UUID to remove
 
         Returns:
             Removed wrapper or None
         """
-        if connection_uuid not in self.edge_wrappers:
+        if edge_id not in self.edge_wrappers:
             return None
 
-        edge_wrapper = self.edge_wrappers[connection_uuid]
+        edge_wrapper = self.edge_wrappers[edge_id]
 
         # Remove from collection
-        del self.edge_wrappers[connection_uuid]
+        del self.edge_wrappers[edge_id]
         edge_wrapper.set_as_registered(False)
 
         # Edge drives its own detachment from ports
@@ -573,25 +573,25 @@ class BaseGraph:
 
         # Trigger validation for removal
         self._validation.mark_edge_dirty(
-            connection_uuid,
+            edge_id,
             ChangeReason.EDGE_REMOVED
         )
 
-        logger.debug(f"Removed edge wrapper: {connection_uuid}")
+        logger.debug(f"Removed edge wrapper: {edge_id}")
 
         return edge_wrapper
 
-    def get_edge_wrapper(self, connection_uuid: str) -> Optional['EdgeWrapper']:
+    def get_edge_wrapper(self, edge_id: str) -> Optional['EdgeWrapper']:
         """
         Get EdgeWrapper by connection UUID.
         
         Args:
-            connection_uuid: Connection UUID
+            edge_id: Connection UUID
             
         Returns:
             EdgeWrapper if found, None otherwise
         """
-        return self.edge_wrappers.get(connection_uuid)
+        return self.edge_wrappers.get(edge_id)
     
     def list_edge_wrappers(self) -> List['EdgeWrapper']:
         """
@@ -780,15 +780,15 @@ class BaseGraph:
         errors = []
         
         # Existing formal validation (orphaned edges, etc.)
-        for connection_uuid, edge in self.edge_wrappers.items():
+        for edge_id, edge in self.edge_wrappers.items():
             if edge.source_node_id not in self.node_wrappers:
                 errors.append(
-                    f"Edge {connection_uuid} references non-existent "
+                    f"Edge {edge_id} references non-existent "
                     f"output node: {edge.source_node_id}"
                 )
             if edge.sink_node_id not in self.node_wrappers:
                 errors.append(
-                    f"Edge {connection_uuid} references non-existent "
+                    f"Edge {edge_id} references non-existent "
                     f"input node: {edge.sink_node_id}"
                 )
         
@@ -865,17 +865,17 @@ class BaseGraph:
         """Deselect a node."""
         self.selected_nodes.discard(node_id)
     
-    def select_connection(self, connection_uuid: str, multi_select: bool = False):
+    def select_connection(self, edge_id: str, multi_select: bool = False):
         """Select a connection."""
         if not multi_select:
             self.selected_nodes.clear()
             self.selected_connections.clear()
         
-        self.selected_connections.add(connection_uuid)
+        self.selected_connections.add(edge_id)
     
-    def deselect_connection(self, connection_uuid: str):
+    def deselect_connection(self, edge_id: str):
         """Deselect a connection."""
-        self.selected_connections.discard(connection_uuid)
+        self.selected_connections.discard(edge_id)
     
     def clear_selection(self):
         """Clear all selections."""
@@ -886,9 +886,9 @@ class BaseGraph:
         """Check if a node is selected."""
         return node_id in self.selected_nodes
     
-    def is_connection_selected(self, connection_uuid: str) -> bool:
+    def is_connection_selected(self, edge_id: str) -> bool:
         """Check if a connection is selected."""
-        return connection_uuid in self.selected_connections
+        return edge_id in self.selected_connections
 
     # =========================================================================
     # CLEANUP
@@ -901,9 +901,9 @@ class BaseGraph:
         Notifies validation listeners about all removed elements before clearing.
         """
         # Mark all edges as removed (must do edges before nodes to maintain refs)
-        for connection_uuid in list(self.edge_wrappers.keys()):
+        for edge_id in list(self.edge_wrappers.keys()):
             self._validation.mark_edge_dirty(
-                connection_uuid, 
+                edge_id, 
                 ChangeReason.EDGE_REMOVED
             )
         
@@ -962,8 +962,8 @@ class BaseGraph:
                 for node_id, wrapper in self.node_wrappers.items()
             },
             "edges": {
-                connection_uuid: wrapper.edge.to_dict()
-                for connection_uuid, wrapper in self.edge_wrappers.items()
+                edge_id: wrapper.edge.to_dict()
+                for edge_id, wrapper in self.edge_wrappers.items()
             },
             "variables": {
                 name: var.to_dict()
@@ -1037,7 +1037,7 @@ class BaseGraph:
                 from ..edge.edge_wrapper import EdgeWrapper
                 try:
                     
-                    for connection_uuid, edge_data in data["edges"].items():
+                    for edge_id, edge_data in data["edges"].items():
                         edge_wrapper = EdgeWrapper(
                             graph=self,
                             source_node_id=edge_data["source_node_id"],
@@ -1058,7 +1058,7 @@ class BaseGraph:
 
                 except Exception as e:
                     logger.error(
-                        f"Error loading edge {connection_uuid} from dictionary: {e}", 
+                        f"Error loading edge {edge_id} from dictionary: {e}", 
                         exc_info=True
                     )           
 

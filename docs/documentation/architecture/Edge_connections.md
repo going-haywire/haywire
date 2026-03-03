@@ -141,7 +141,7 @@ Both eager and lazy edges use the same deferred callback model. `on_change` call
 EAGER EDGE:
   outlet.set_value(value) → pipes.propagate(value)
     → adapter chain transforms value
-    → inlet.set_value(converted, connection_uuid=uuid)
+    → inlet.set_value(converted, edge_id=uuid)
       → stores value (NO on_change)
       → inlet._mark_as_data_dirty()
     → node marks port dirty
@@ -149,7 +149,7 @@ EAGER EDGE:
 LAZY EDGE:
   outlet.set_value(value) → pipes.propagate(value)
     → pipe sees lazy flag → skips transform
-    → inlet._mark_as_data_dirty(pipe=self, connection_uuid=uuid)
+    → inlet._mark_as_data_dirty(pipe=self, edge_id=uuid)
     → node marks port dirty
 
 AT EXECUTION TIME (both):
@@ -165,9 +165,9 @@ AT EXECUTION TIME (both):
 
 The `set_value()` method on DataPort distinguishes between edge-driven and widget/programmatic changes:
 
-- **Edge-driven inlet** (`connection_uuid` is set): Value stored, `_mark_as_data_dirty()` called. `on_change` fires later during `resolve_dirty_data()`.
-- **Widget/programmatic inlet** (`connection_uuid` is `None`, `on_change` exists): Value stored, `on_change` fires **immediately**. `_mark_as_data_dirty()` is NOT called (prevents double-fire).
-- **Widget/programmatic inlet** (`connection_uuid` is `None`, no `on_change`): Value stored, `_mark_as_data_dirty()` called. Node re-executes, `resolve_dirty_data()` skips callback (it's `None`).
+- **Edge-driven inlet** (`edge_id` is set): Value stored, `_mark_as_data_dirty()` called. `on_change` fires later during `resolve_dirty_data()`.
+- **Widget/programmatic inlet** (`edge_id` is `None`, `on_change` exists): Value stored, `on_change` fires **immediately**. `_mark_as_data_dirty()` is NOT called (prevents double-fire).
+- **Widget/programmatic inlet** (`edge_id` is `None`, no `on_change`): Value stored, `_mark_as_data_dirty()` called. Node re-executes, `resolve_dirty_data()` skips callback (it's `None`).
 - **Outlet** (any): `on_change` fires immediately. Pipes propagate to downstream inlets.
 
 ### `set_value_by_lazy_link()` — Pure Value Storage
@@ -179,11 +179,11 @@ The `set_value()` method on DataPort distinguishes between edge-driven and widge
 The `Pipes` class owns all data transport — both eager push (`propagate()`) and lazy pull (`pull_lazy()`). It stores:
 
 - `_outlet_port`: Reference to the source DataPort (for lazy reads)
-- `sinks`: `dict[connection_uuid, DataPort]` — target inlets
-- `chains`: `dict[connection_uuid, IAdapter]` — adapter chains per connection
-- `lazy_flags`: `dict[connection_uuid, bool]` — propagation mode per connection
+- `sinks`: `dict[edge_id, DataPort]` — target inlets
+- `chains`: `dict[edge_id, IAdapter]` — adapter chains per connection
+- `lazy_flags`: `dict[edge_id, bool]` — propagation mode per connection
 
-`pull_lazy(connection_uuid)` reads the outlet's **current** value (always-latest), transforms it through the adapter chain, and calls `set_value_by_lazy_link()` on the inlet.
+`pull_lazy(edge_id)` reads the outlet's **current** value (always-latest), transforms it through the adapter chain, and calls `set_value_by_lazy_link()` on the inlet.
 
 ### `resolve_dirty_data()` on DataPort
 
@@ -199,7 +199,7 @@ def resolve_dirty_data(self):
         self._trigger_callback('on_change', self.get_value())
 ```
 
-`_pending_lazy_pipes` stores `(Pipes, connection_uuid)` tuples for lazy edges needing resolution. Eager edges don't add entries here — they store their value at push time but still defer `on_change` to this method.
+`_pending_lazy_pipes` stores `(Pipes, edge_id)` tuples for lazy edges needing resolution. Eager edges don't add entries here — they store their value at push time but still defer `on_change` to this method.
 
 ### Dirty Port Resolution in `_execute()`
 
@@ -281,16 +281,16 @@ So the chains are: BOOL→INT (1), BOOL→FLOAT (2), BOOL→STRING (3), INT→FL
 ## Key State Locations
 
 - **`EdgeWrapper._state`** (`EdgeWrapperState` dataclass): all flags, errors, timing
-- **`DataPort._linked_edges`**: `dict[connection_uuid, EdgeWrapper]` — active linked edges (used for pipes)
-- **`DataPort._all_edges`**: `dict[connection_uuid, EdgeWrapper]` — all tracked edges including displaced/non-functional
-- **`DataPort._pending_lazy_pipes`**: `set[(Pipes, connection_uuid)]` — lazy pipes needing resolution at execution time
+- **`DataPort._linked_edges`**: `dict[edge_id, EdgeWrapper]` — active linked edges (used for pipes)
+- **`DataPort._all_edges`**: `dict[edge_id, EdgeWrapper]` — all tracked edges including displaced/non-functional
+- **`DataPort._pending_lazy_pipes`**: `set[(Pipes, edge_id)]` — lazy pipes needing resolution at execution time
 - **`DataPort.allow_multiple_connections`**: the connection limit flag
 - **`Edge.is_lazy`**: `bool` — per-edge lazy propagation flag (default `False`)
 - **`Edge.chain_adapter_keys`**: list of adapter registry keys (empty = ReturnAdapter)
 - **`EdgeWrapper._first_adapter`**: the head of the adapter chain (executable)
 - **`EdgeWrapper._outlet_port` / `_inlet_port`**: resolved DataPort references (set during formal validation)
 - **`Pipes._outlet_port`**: source DataPort reference (for lazy reads)
-- **`Pipes.lazy_flags`**: `dict[connection_uuid, bool]` — per-connection propagation mode
+- **`Pipes.lazy_flags`**: `dict[edge_id, bool]` — per-connection propagation mode
 
 ## Key Files
 
@@ -409,4 +409,4 @@ So the chains are: BOOL→INT (1), BOOL→FLOAT (2), BOOL→STRING (3), INT→FL
 - `resolve_dirty_data()` pulls lazy value through adapter chain (bool→int conversion)
 - Always-latest: outlet changes 10→20→30, lazy inlet gets 30 on resolve (skips intermediates)
 - Mixed pooled inlet (eager+lazy edges), `on_change` fires once during resolve (debounced)
-- Widget/programmatic change (no `connection_uuid`) fires `on_change` immediately, not deferred
+- Widget/programmatic change (no `edge_id`) fires `on_change` immediately, not deferred

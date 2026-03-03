@@ -16,7 +16,7 @@ from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
 from haywire.core.undo.actions.graph_actions import ClipboardData
 
-from ..utils import parse_connection_uuid
+from ..utils import parse_edge_id
 from ..ui_node import UINode
 from ..ui_edge import UIEdge
 from ..pan_zoom.zoom_pan_vue import ZoomPanContainer
@@ -81,7 +81,7 @@ class GraphCanvasManager:
                       
         # Visual state
         self.node_panels: Dict[str, UINode] = {}  # node_id -> UINode
-        self.connection_paths: Dict[str, UIEdge] = {}  # connection_uuid -> UIEdge object
+        self.connection_paths: Dict[str, UIEdge] = {}  # edge_id -> UIEdge object
         self.selected_nodes: Set[str] = set()
         self.selected_connections: Set[str] = set()
         
@@ -281,20 +281,20 @@ class GraphCanvasManager:
         if isinstance(event, ElementRedrawEvent):
             for node_id in event.nodes:
                 self.graph.request_node_redraw(node_id)
-            for connection_uuid in event.connections:
-                self.graph.request_edge_redraw(connection_uuid)
+            for edge_id in event.connections:
+                self.graph.request_edge_redraw(edge_id)
 
         elif isinstance(event, ElementRevalidateEvent):
             for node_id in event.nodes:
                 self.graph.request_node_revalidation(node_id)
-            for connection_uuid in event.connections:
-                self.graph.request_edge_revalidation(connection_uuid)
+            for edge_id in event.connections:
+                self.graph.request_edge_revalidation(edge_id)
 
         elif isinstance(event, ElementResetEvent):
             for node_id in event.nodes:
                 self.graph.request_node_reset(node_id)
-            for connection_uuid in event.connections:
-                self.graph.request_edge_reset(connection_uuid)
+            for edge_id in event.connections:
+                self.graph.request_edge_reset(edge_id)
         
 
     # =============================================================================
@@ -315,9 +315,9 @@ class GraphCanvasManager:
         
         # Convert connection IDs to edge tuples for SelectionState format
         selected_edges = set()
-        for connection_uuid in selected_connections_set:
+        for edge_id in selected_connections_set:
             try:
-                components = parse_connection_uuid(connection_uuid)
+                components = parse_edge_id(edge_id)
                 selected_edges.add((components.outlet_node_id, components.outlet_pin_id, 
                                   components.inlet_node_id, components.inlet_pin_id))
             except (ValueError, AttributeError):
@@ -419,7 +419,7 @@ class GraphCanvasManager:
             new_edges = {}
             for conn_uuid, edge in valid_edges:
                 if edge.output_node_id in id_mapping and edge.input_node_id in id_mapping:
-                    new_conn_uuid = generate_connection_uuid(
+                    new_conn_uuid = generate_edge_id(
                         id_mapping[edge.output_node_id], edge.outlet_pin_id,
                         id_mapping[edge.input_node_id], edge.inlet_pin_id
                     )
@@ -431,7 +431,7 @@ class GraphCanvasManager:
                         input_node_id=id_mapping[edge.input_node_id],
                         inlet_pin_id=edge.inlet_pin_id,
                         adapter_registry_keys=edge.adapter_registry_keys,
-                        connection_uuid=new_conn_uuid
+                        edge_id=new_conn_uuid
                     )
                     
                     new_edges[new_conn_uuid] = new_edge
@@ -736,12 +736,12 @@ class GraphCanvasManager:
             
         # Remove all connected edges visually first
         edges_to_remove = []
-        for connection_uuid, edge_wrapper in self.graph.edge_wrappers.items():
+        for edge_id, edge_wrapper in self.graph.edge_wrappers.items():
             if edge_wrapper.sink_node_id == node_id or edge_wrapper.source_node_id == node_id:
-                edges_to_remove.append(connection_uuid)
+                edges_to_remove.append(edge_id)
         
-        for connection_uuid in edges_to_remove:
-            self.remove_connection_visual(connection_uuid)
+        for edge_id in edges_to_remove:
+            self.remove_connection_visual(edge_id)
         
         # Remove node visual
         if node_id in self.node_panels:
@@ -783,7 +783,7 @@ class GraphCanvasManager:
         
     def add_connection_visual(self, edge_wrapper: EdgeWrapper) -> bool:
         """Add a visual connection between two nodes."""
-        connection_uuid = edge_wrapper.connection_uuid
+        edge_id = edge_wrapper.edge_id
         
         logger.debug(
             f"🔗 Creating connection visual: "
@@ -798,34 +798,34 @@ class GraphCanvasManager:
         )
         
         # Store reference
-        self.connection_paths[connection_uuid] = ui_edge
+        self.connection_paths[edge_id] = ui_edge
         
-        logger.debug(f"🔗 Created UIEdge and connection visual: {connection_uuid}")
+        logger.debug(f"🔗 Created UIEdge and connection visual: {edge_id}")
         return True
    
-    def remove_connection_visual(self, connection_uuid: str) -> bool:
+    def remove_connection_visual(self, edge_id: str) -> bool:
         """Remove a connection's visual representation."""
-        if connection_uuid not in self.connection_paths:
+        if edge_id not in self.connection_paths:
             return False
         
         # Cleanup UIEdge instance
-        ui_edge = self.connection_paths.get(connection_uuid)
+        ui_edge = self.connection_paths.get(edge_id)
         if ui_edge:
             ui_edge.cleanup()
-            del self.connection_paths[connection_uuid]
+            del self.connection_paths[edge_id]
         
         # Emit removal sync event
-        sync_event = SyncConnectionRemovalEvent(connectionUUID=connection_uuid)
+        sync_event = SyncConnectionRemovalEvent(connectionUUID=edge_id)
         self.canvas_vue.emit_sync_event(sync_event)
 
-        logger.debug(f"🔗 Removed UIEdge and connection visual: {connection_uuid}")
+        logger.debug(f"🔗 Removed UIEdge and connection visual: {edge_id}")
         return True
 
     def remove_all_connection_visuals(self):
         """Remove all connection visuals from the canvas."""
-        connection_uuids = list(self.connection_paths.keys())
-        for connection_uuid in connection_uuids:
-            self.remove_connection_visual(connection_uuid)
+        edge_ids = list(self.connection_paths.keys())
+        for edge_id in edge_ids:
+            self.remove_connection_visual(edge_id)
 
     def sync_selections(self):
         """Helper method to emit the consolidated selection sync event."""

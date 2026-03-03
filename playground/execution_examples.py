@@ -380,7 +380,7 @@ def example_callback_edge_based():
     
     graph.force_validation()
     
-    print(f"Created callback edge: {callback_edge.connection_uuid}")
+    print(f"Created callback edge: {callback_edge.edge_id}")
     print(f"  Event name will propagate: {callback_listener.node_id}")
     print(f"  From: CustomCallback.listen_callback → EmitCallback.edge_callback")
     

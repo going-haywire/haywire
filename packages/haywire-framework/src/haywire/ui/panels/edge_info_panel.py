@@ -31,7 +31,7 @@ class EdgeInfoPanel(BasePanel):
             return
         try:
             wrapper = edge.wrapper if hasattr(edge, 'wrapper') else edge
-            conn_uuid = getattr(wrapper, 'connection_uuid', getattr(edge, 'ui_edge_id', '?'))
+            conn_uuid = getattr(wrapper, 'edge_id', getattr(edge, 'ui_edge_id', '?'))
             source_node = getattr(wrapper, 'source_node_id', '?')
             outlet_pin = getattr(wrapper, 'outlet_port_id', '?')
             sink_node = getattr(wrapper, 'sink_node_id', '?')

@@ -108,7 +108,7 @@ class TestEdgeConnections:
 
         # Inlet should only have one linked edge — the second one
         assert len(inlet_port._linked_edges) == 1
-        assert edge_2.connection_uuid in inlet_port._linked_edges
+        assert edge_2.edge_id in inlet_port._linked_edges
 
         # The second edge should not be valid
         assert not edge_1.state.is_valid()
@@ -149,7 +149,7 @@ class TestEdgeConnections:
 
         inlet_port = self._get_port(node_c, 'bool_inlet')
         # The first valid edge should still be linked
-        assert edge_valid.connection_uuid in inlet_port._linked_edges
+        assert edge_valid.edge_id in inlet_port._linked_edges
         assert edge_valid.state.is_inlet_linked
 
         assert edge_valid.state.is_valid()
@@ -181,7 +181,7 @@ class TestEdgeConnections:
 
         inlet_port = self._get_port(node_c, 'int_inlet')
         assert len(inlet_port._linked_edges) == 1
-        assert edge_2.connection_uuid in inlet_port._linked_edges
+        assert edge_2.edge_id in inlet_port._linked_edges
         assert not edge_1.state.is_inlet_linked
 
         assert not edge_1.state.is_valid()
@@ -475,7 +475,7 @@ class TestEdgeConnections:
         assert len(outlet_port._linked_edges) == 1
 
         # The second edge should be the one linked
-        assert edge_2.connection_uuid in outlet_port._linked_edges
+        assert edge_2.edge_id in outlet_port._linked_edges
         # The first edge should no longer be linked on the outlet side
         assert not edge_1.state.is_outlet_linked
 
@@ -720,7 +720,7 @@ class TestEdgeConnections:
         assert outlet_port.is_linked()
         assert inlet_port.is_linked()
 
-        graph.remove_edge_wrapper(edge.connection_uuid)
+        graph.remove_edge_wrapper(edge.edge_id)
 
         assert not outlet_port.is_linked()
         assert not inlet_port.is_linked()
@@ -750,10 +750,10 @@ class TestEdgeConnections:
         pooled_port = self._get_port(node_c, 'pooled_bool_inlet')
         assert len(pooled_port._linked_edges) == 2
 
-        graph.remove_edge_wrapper(edge_1.connection_uuid)
+        graph.remove_edge_wrapper(edge_1.edge_id)
 
         assert len(pooled_port._linked_edges) == 1
-        assert edge_2.connection_uuid in pooled_port._linked_edges
+        assert edge_2.edge_id in pooled_port._linked_edges
         assert edge_2.state.is_valid()
 
     # ==================================================================
@@ -946,12 +946,12 @@ class TestEdgeConnections:
         inlet_port = self._get_port(node_c, 'bool_inlet')
 
         # Displaced edge leaves _linked_edges
-        assert edge_1.connection_uuid not in inlet_port._linked_edges
+        assert edge_1.edge_id not in inlet_port._linked_edges
         # But remains in _all_edges
-        assert edge_1.connection_uuid in inlet_port._all_edges
+        assert edge_1.edge_id in inlet_port._all_edges
         # Active edge is in both
-        assert edge_2.connection_uuid in inlet_port._linked_edges
-        assert edge_2.connection_uuid in inlet_port._all_edges
+        assert edge_2.edge_id in inlet_port._linked_edges
+        assert edge_2.edge_id in inlet_port._all_edges
 
     def test_reenable_after_active_edge_removed(
         self, graph_with_library_system: BaseGraph, library_system
@@ -978,12 +978,12 @@ class TestEdgeConnections:
         assert edge_2.state.is_linked
 
         # Remove the active edge
-        graph.remove_edge_wrapper(edge_2.connection_uuid)
+        graph.remove_edge_wrapper(edge_2.edge_id)
 
         inlet_port = self._get_port(node_c, 'bool_inlet')
 
         # edge_1 should be re-enabled
-        assert edge_1.connection_uuid in inlet_port._linked_edges
+        assert edge_1.edge_id in inlet_port._linked_edges
         assert edge_1.state.is_linked
         assert edge_1.state.is_inlet_linked
         assert edge_1.state.is_outlet_linked
@@ -1008,13 +1008,13 @@ class TestEdgeConnections:
         outlet_port = self._get_port(node_a, 'bool_outlet')
         inlet_port = self._get_port(node_b, 'bool_inlet')
 
-        graph.remove_edge_wrapper(edge.connection_uuid)
+        graph.remove_edge_wrapper(edge.edge_id)
 
         # Fully removed from both tiers on both ports
-        assert edge.connection_uuid not in inlet_port._linked_edges
-        assert edge.connection_uuid not in inlet_port._all_edges
-        assert edge.connection_uuid not in outlet_port._linked_edges
-        assert edge.connection_uuid not in outlet_port._all_edges
+        assert edge.edge_id not in inlet_port._linked_edges
+        assert edge.edge_id not in inlet_port._all_edges
+        assert edge.edge_id not in outlet_port._linked_edges
+        assert edge.edge_id not in outlet_port._all_edges
 
     def test_asymmetric_inlet_displacement(
         self, graph_with_library_system: BaseGraph, library_system
@@ -1043,7 +1043,7 @@ class TestEdgeConnections:
         inlet_port_c = self._get_port(node_c, 'bool_inlet')
 
         # edge_1 should be removed from the source outlet's linked set
-        assert edge_1.connection_uuid not in outlet_port_a._linked_edges
+        assert edge_1.edge_id not in outlet_port_a._linked_edges
         # edge_1 should not be linked on either side
         assert not edge_1.state.is_inlet_linked
         assert not edge_1.state.is_outlet_linked
@@ -1077,9 +1077,9 @@ class TestEdgeConnections:
         inlet_port_b = self._get_port(node_b, 'execute_inlet')
 
         # edge_1 should be removed from outlet
-        assert edge_1.connection_uuid not in outlet_port_a._linked_edges
+        assert edge_1.edge_id not in outlet_port_a._linked_edges
         # Sink inlet NOT informed — edge_1 remains in inlet's linked set
-        assert edge_1.connection_uuid in inlet_port_b._linked_edges
+        assert edge_1.edge_id in inlet_port_b._linked_edges
 
         # Edge state reflects asymmetry
         assert edge_1.state.is_inlet_linked  # Stale but harmless
@@ -1110,12 +1110,12 @@ class TestEdgeConnections:
         edge_1._state.is_built = False
 
         # Remove the active edge
-        graph.remove_edge_wrapper(edge_2.connection_uuid)
+        graph.remove_edge_wrapper(edge_2.edge_id)
 
         inlet_port = self._get_port(node_c, 'bool_inlet')
 
         # edge_1 is not functional, so it should NOT be re-enabled
-        assert edge_1.connection_uuid not in inlet_port._linked_edges
+        assert edge_1.edge_id not in inlet_port._linked_edges
         assert not inlet_port.is_linked()
 
     # ==================================================================
@@ -1165,8 +1165,8 @@ class TestEdgeConnections:
         # Ports should still have the edge
         outlet_port = self._get_port(node_a, 'bool_outlet')
         inlet_port = self._get_port(node_b, 'bool_inlet')
-        assert edge.connection_uuid in outlet_port._linked_edges
-        assert edge.connection_uuid in inlet_port._linked_edges
+        assert edge.edge_id in outlet_port._linked_edges
+        assert edge.edge_id in inlet_port._linked_edges
 
     def test_node_hot_reload_edges_survive_rebuild(
         self, graph_with_library_system: BaseGraph, library_system
@@ -1209,10 +1209,10 @@ class TestEdgeConnections:
         assert new_outlet is not old_outlet
 
         # Edge should be linked at the new port
-        assert edge.connection_uuid in new_outlet._linked_edges
+        assert edge.edge_id in new_outlet._linked_edges
 
         # Edge should be linked at the new port
-        assert edge.connection_uuid in new_outlet._linked_edges
+        assert edge.edge_id in new_outlet._linked_edges
 
     def test_node_hot_reload_adapter_chain_survives(
         self, graph_with_library_system: BaseGraph, library_system
@@ -1250,7 +1250,7 @@ class TestEdgeConnections:
 
         # Linked at new ports
         new_inlet = self._get_port(node_b, 'int_inlet')
-        assert edge.connection_uuid in new_inlet._linked_edges
+        assert edge.edge_id in new_inlet._linked_edges
 
     def test_node_hot_reload_displaced_edge_survives(
         self, graph_with_library_system: BaseGraph, library_system
@@ -1292,11 +1292,11 @@ class TestEdgeConnections:
         # After rebuild: both edges are rebuilt and link() is called
         # in order. edge_1 links first, then edge_2 displaces it.
         assert edge_2.state.is_valid()
-        assert edge_2.connection_uuid in new_inlet._linked_edges
+        assert edge_2.edge_id in new_inlet._linked_edges
 
         # edge_1 was displaced again — in _all_edges but not _linked_edges
-        assert edge_1.connection_uuid in new_inlet._all_edges
-        assert edge_1.connection_uuid not in new_inlet._linked_edges
+        assert edge_1.edge_id in new_inlet._all_edges
+        assert edge_1.edge_id not in new_inlet._linked_edges
 
     def test_dynamic_port_removal_detaches_edge(
         self, graph_with_library_system: BaseGraph, library_system
@@ -1619,8 +1619,8 @@ class TestEdgeConnections:
         pooled_port = self._get_port(node_c, 'pooled_bool_inlet')
 
         # Both edges should be linked
-        assert eager_edge.connection_uuid in pooled_port._linked_edges
-        assert lazy_edge.connection_uuid in pooled_port._linked_edges
+        assert eager_edge.edge_id in pooled_port._linked_edges
+        assert lazy_edge.edge_id in pooled_port._linked_edges
 
         # Change both outlets
         outlet_a = self._get_port(node_a, 'bool_outlet')
@@ -1644,7 +1644,7 @@ class TestEdgeConnections:
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """
-        Widget/programmatic change (no connection_uuid) with on_change
+        Widget/programmatic change (no edge_id) with on_change
         should fire on_change immediately, not deferred.
         """
         graph = graph_with_library_system
@@ -1658,7 +1658,7 @@ class TestEdgeConnections:
         assert 'dynamic_outlet_0' in dyn_node.node.ports
         assert 'dynamic_outlet_1' in dyn_node.node.ports
 
-        # Widget change (no connection_uuid) — should fire on_change immediately
+        # Widget change (no edge_id) — should fire on_change immediately
         config_port.set_value(3)
 
         # Reconfigure should have already happened (immediate on_change)

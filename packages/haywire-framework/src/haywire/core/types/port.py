@@ -278,29 +278,29 @@ class DataPort(DataTypeIdentity):
         
         return self._data.get_value()
     
-    def set_value(self, new_value: Any, connection_uuid: str | None = None) -> None:
+    def set_value(self, new_value: Any, edge_id: str | None = None) -> None:
         """
         Set port value. Single entry point for all value updates.
 
         For inlets:
-        - Widget/programmatic (no connection_uuid) with on_change: fire immediately
-        - Edge-driven (connection_uuid set) or no callback: defer to resolve_dirty_data()
+        - Widget/programmatic (no edge_id) with on_change: fire immediately
+        - Edge-driven (edge_id set) or no callback: defer to resolve_dirty_data()
 
         For outlets:
         - Fire on_change immediately, then propagate to downstream inlets
 
         Args:
             new_value: Value to set (can be IType instance or raw value)
-            connection_uuid: Source identifier (set when value comes via Pipe.pull())
+            edge_id: Source identifier (set when value comes via Pipe.pull())
         """
         if not self._data:
             return
 
-        self._data.set_value(new_value, source_id=connection_uuid)
+        self._data.set_value(new_value, source_id=edge_id)
         self._is_set_by_node = False
 
         if self.is_inlet():
-            if connection_uuid is None and self.on_change is not None:
+            if edge_id is None and self.on_change is not None:
                 # Widget/programmatic change → fire on_change immediately
                 self._trigger_callback('on_change', new_value)
             else:
@@ -370,9 +370,9 @@ class DataPort(DataTypeIdentity):
         displaced: EdgeWrapper | None = None
 
         # Always track in _all_edges
-        self._all_edges[edge_wrapper.connection_uuid] = edge_wrapper
+        self._all_edges[edge_wrapper.edge_id] = edge_wrapper
 
-        if edge_wrapper.connection_uuid not in self._linked_edges:
+        if edge_wrapper.edge_id not in self._linked_edges:
             if not self.allow_multiple_connections:
                 old_wrapper_uuid = next(iter(self._linked_edges), None)
                 if old_wrapper_uuid:
@@ -380,9 +380,9 @@ class DataPort(DataTypeIdentity):
                     self._data.remove_source(old_wrapper_uuid)
                     if self.on_disconnect and displaced:
                         self._trigger_callback('on_disconnect', displaced)
-                self._linked_edges = {edge_wrapper.connection_uuid: edge_wrapper}
+                self._linked_edges = {edge_wrapper.edge_id: edge_wrapper}
             else:
-                self._linked_edges[edge_wrapper.connection_uuid] = edge_wrapper
+                self._linked_edges[edge_wrapper.edge_id] = edge_wrapper
 
             if self.on_connect:
                 self._trigger_callback('on_connect', edge_wrapper)

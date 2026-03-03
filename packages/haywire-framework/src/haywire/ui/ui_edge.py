@@ -35,7 +35,7 @@ class EdgeVisualState:
     This determines how the connection appears in the UI.
     All visual feedback is conveyed through these properties only.
     """
-    connection_uuid: str
+    edge_id: str
     
     # Visual properties
     stroke_color: str
@@ -87,7 +87,7 @@ class UIEdge:
         self.sync_event_emitter = sync_event_emitter
         
         # Generate unique ID for this UIEdge
-        self.ui_edge_id = wrapper.connection_uuid
+        self.ui_edge_id = wrapper.edge_id
         
         # Track current visual state to detect changes
         self._current_visual_state: Optional[EdgeVisualState] = None
@@ -112,7 +112,7 @@ class UIEdge:
         # State: INVALID (highest priority)
         if not self.wrapper.is_valid():
             return EdgeVisualState(
-                connection_uuid=self.wrapper.connection_uuid,
+                edge_id=self.wrapper.edge_id,
                 stroke_color="#EF4444",  # Red
                 stroke_width=2,
                 stroke_dasharray="5,5",  # Dashed
@@ -124,7 +124,7 @@ class UIEdge:
         # State: WARNING (adapter chain changed)
         if self.wrapper.state.has_warning():
             return EdgeVisualState(
-                connection_uuid=self.wrapper.connection_uuid,
+                edge_id=self.wrapper.edge_id,
                 stroke_color="auto",  # Orange/Amber
                 stroke_width=2,
                 stroke_dasharray="2,2,2,2,2,5,5,5,5,5,5,5",  # Solid
@@ -135,7 +135,7 @@ class UIEdge:
         
         # State: VALID (default) - use 'auto' for gradient
         return EdgeVisualState(
-            connection_uuid=self.wrapper.connection_uuid,
+            edge_id=self.wrapper.edge_id,
             stroke_color="auto",  # Use gradient from pins
             stroke_width=2,
             stroke_dasharray=self.calculate_dasharray(len(self.wrapper.edge.chain_adapter_keys)),  # Solid
@@ -169,7 +169,7 @@ class UIEdge:
         
         # Emit sync event to Vue (handles both add and update)
         event = SyncConnectionAdditionEvent(
-            connectionUUID=new_state.connection_uuid,
+            connectionUUID=new_state.edge_id,
             sourceNodeId=edge.source_node_id,
             outletPinId=edge.outlet_port_id,
             sinkNodeId=edge.sink_node_id,
@@ -187,7 +187,7 @@ class UIEdge:
         self.sync_event_emitter(event)
         
         logging.debug(
-            f"🔗 UIEdge synced: {new_state.connection_uuid} -> "
+            f"🔗 UIEdge synced: {new_state.edge_id} -> "
             f"color={new_state.stroke_color}, "
             f"valid={new_state.is_valid}, "
             f"warning={new_state.has_warning}"
@@ -211,6 +211,6 @@ class UIEdge:
         """Check if connection is in valid state"""
         return self.wrapper.is_valid() if self.wrapper else False
 
-    def get_connection_uuid(self) -> str:
-        """Get the connection UUID"""
-        return self.wrapper.connection_uuid if self.wrapper else ""
+    def get_edge_id(self) -> str:
+        """Get the edge ID"""
+        return self.wrapper.edge_id if self.wrapper else ""
