@@ -13,34 +13,34 @@ from haywire.core.registry.identity import BaseIdentity
 
 from ..widget.base import BaseWidget
 from ..widget.factory_interface import IWidgetFactory
-from .interface import IBaseRenderer
+from .interface import IBaseSkin
 
 @dataclass
-class RendererIdentity(BaseIdentity):
-    """Core identifying attributes of a renderer"""
+class SkinIdentity(BaseIdentity):
+    """Core identifying attributes of a skin"""
     _is_default: bool = False
     _default_priority: int = 0
     _is_error: bool = False
     _error_priority: int = 0
 
 
-class BaseRenderer(IBaseRenderer, ABC):
+class BaseSkin(IBaseSkin, ABC):
     """
-    Abstract base class for all NodeRenderer classes.
+    Abstract base class for all NodeSkin classes.
 
-    NodeRenderer classes define the look and structure of nodes.
-    They are cached and reused by the NodeRenderFactory.
+    NodeSkin classes define the look and structure of nodes.
+    They are cached and reused by the SkinFactory.
     """
 
-    class_identity: RendererIdentity
+    class_identity: SkinIdentity
     class_library: LibraryIdentity
-    
+
     def __init__(self, widget_factory: IWidgetFactory):
         """
-        Initialize the renderer with a render factory.
+        Initialize the skin with a widget factory.
 
         Args:
-            render_factory: Factory for creating UINodeCard instances
+            widget_factory: Factory for creating widget instances
         """
         self._widget_factory: IWidgetFactory = widget_factory
         self._nodeids_widget_instances: Dict[str, Dict[str, BaseWidget]] = {}
@@ -60,7 +60,7 @@ class BaseRenderer(IBaseRenderer, ABC):
             self._nodeids_widget_instances[wrapper.node_id] = {}
 
             return ui_nodeCard
-        
+
         except Exception:
             # Clean up any partially created UI elements
             if ui_nodeCard is not None:
@@ -71,7 +71,7 @@ class BaseRenderer(IBaseRenderer, ABC):
                     ui_card.delete()
                 except Exception as cleanup_error:
                     logging.error(f"Error during UI cleanup: {cleanup_error}")
-            
+
             # Re-raise the original exception so the factory can handle it
             raise
 
@@ -84,7 +84,7 @@ class BaseRenderer(IBaseRenderer, ABC):
         ```
         # Set up main card appearance
         main_card.classes().style()
-    
+
         with main_card:
             # Add UI elements here
         ```
@@ -98,10 +98,10 @@ class BaseRenderer(IBaseRenderer, ABC):
     def render_widget(self, port: DataPort, node_id: str, classes: str = '') -> ui.element | None:
         """
         Render a widget for the given inlet and node ID.
-        
+
         Args:
             port: The data port inlet to render the widget for
-            node_id: The unique identifier of the node 
+            node_id: The unique identifier of the node
             classes: Additional CSS classes to apply to the widget ui_element container
         Returns:
             The rendered widget ui_element container, or None if no widget was rendered
@@ -120,8 +120,3 @@ class BaseRenderer(IBaseRenderer, ABC):
             self._nodeids_widget_instances.setdefault(node_id, {port.id, widget_instance})
 
         return ui_element
-
-
-
-
-

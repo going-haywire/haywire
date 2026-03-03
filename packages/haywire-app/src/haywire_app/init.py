@@ -124,7 +124,7 @@ Add your custom components in the corresponding folders:
 - nodes/      — node definitions
 - types/      — custom data types
 - widgets/    — UI widgets for data types
-- renderers/  — custom node renderers
+- skins/      — custom node skins
 - adapters/   — type-to-type conversion adapters
 """
 
@@ -136,7 +136,7 @@ from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.types.registry import TypeRegistry
 
-from haywire.ui.renderer.registry import RendererRegistry
+from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 
@@ -176,8 +176,8 @@ class Library(BaseLibrary):
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'renderers'),
-            registry_cls=RendererRegistry,
+            folder_path=str(base_path / 'skins'),
+            registry_cls=SkinRegistry,
         )
 
         self.add_folder_to_registry(
@@ -255,7 +255,7 @@ def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, projec
         # Dev repo libraries
         _lib('haybale-core', '1.0.0',
              'Core Haywire library with fundamental components',
-             'maybites', ['core', 'types', 'widgets', 'renderers']),
+             'maybites', ['core', 'types', 'widgets', 'skins']),
         _lib('haybale-example', '0.1.0',
              'Example library for demonstrating multi-library support',
              'Example Author', ['example', 'demo', 'tutorial']),
@@ -301,7 +301,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     pkg_dir.mkdir(parents=True)
 
     # Create all component folders
-    component_folders = ['nodes', 'types', 'widgets', 'renderers', 'adapters']
+    component_folders = ['nodes', 'types', 'widgets', 'skins', 'adapters']
     for folder in component_folders:
         folder_dir = pkg_dir / folder
         folder_dir.mkdir()

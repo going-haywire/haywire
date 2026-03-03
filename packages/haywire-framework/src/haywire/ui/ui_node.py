@@ -18,25 +18,25 @@ from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.graph_canvas.event_definitions import SyncNodePositionEvent
 from haywire.ui.ui_nodecard import UINodeCard
-from haywire.ui.renderer.factory import RenderFactory, NO_RENDERER_DEFINED
+from haywire.ui.skin.factory import SkinFactory, NO_SKIN_DEFINED
 
 class UINode:
     """
     Manages the lifecycle and rendering of a HaywireNode's UI representation.
-    
+
     This class:
-    - Holds references to HaywireNode and NodeRenderFactory
+    - Holds references to HaywireNode and SkinFactory
     - Uses container-slot approach for reliable cleanup during re-rendering
     - Delegates all rendering logic to the factory
-    - Has no knowledge of renderers or widgets (clean separation)
+    - Has no knowledge of skins or widgets (clean separation)
     - Subscribes to NodeWrapper for hot reload support
     """
 
     def __init__(
-            self, 
+            self,
             container: ui.element,
             wrapper: NodeWrapper,
-            factory: RenderFactory
+            factory: SkinFactory
             ):
         """
         Initialize UINode with node, factory, and parent component.
@@ -44,10 +44,10 @@ class UINode:
         Args:
             wrapper: NodeWrapper for hot reload support
             component: Parent NiceGUI component to render into
-            factory: NodeRenderFactory for creating UI representations
+            factory: SkinFactory for creating UI representations
         """
         self.wrapper: NodeWrapper = wrapper
-        self.factory: RenderFactory = factory
+        self.factory: SkinFactory = factory
         self.container: ui.element = container
 
         self._position: Optional[tuple[int, int]] = None
@@ -103,7 +103,7 @@ class UINode:
 
     def _listen_on_factory_lifecycle_event(self) -> None:
         """
-        Handle renderer hot reload notifications from NodeRenderFactory.        
+        Handle skin hot reload notifications from SkinFactory.
         """
         self.render()
 
@@ -129,12 +129,12 @@ class UINode:
         
         Note: Must be called within a valid NiceGUI client context.
         """
-        renderer_name = self.wrapper.node.settings.node.renderer
+        renderer_name = self.wrapper.node.settings.node.skin
 
         if renderer_name is None:
             renderer_name = (
-                self.factory._renderer_registry
-                .get_default_renderer_registry_key()
+                self.factory._skin_registry
+                .get_default_skin_registry_key()
             )
 
         try:
@@ -159,11 +159,11 @@ class UINode:
 
                 if renderer_name is None:
                     # this can happen if :
-                    # the node has no renderer assigned AND the registry has no default renderer available                        
-                    renderer_name = NO_RENDERER_DEFINED  # Fallback if no default renderer is set"
+                    # the node has no skin assigned AND the registry has no default skin available
+                    renderer_name = NO_SKIN_DEFINED  # Fallback if no default skin is set
                     logging.debug(
                         f"For node '{self.wrapper.node.identity.label}' - '{self.wrapper.node_id}' "
-                        f"no render or default defined. Using '{NO_RENDERER_DEFINED}' as renderer key"
+                        f"no skin or default defined. Using '{NO_SKIN_DEFINED}' as skin key"
                     )
 
                 # Subscribe to factory lifecycle events with the resolved renderer key
@@ -174,24 +174,24 @@ class UINode:
                     self._listen_on_factory_lifecycle_event
                 )
 
-                if renderer_name == NO_RENDERER_DEFINED:
+                if renderer_name == NO_SKIN_DEFINED:
                     error =  HaywireException.create(
-                        category="Renderer Lookup Error",
-                        operation="renderer_lookup",
+                        category="Skin Lookup Error",
+                        operation="skin_lookup",
                         message=(
                             f"For node '{self.wrapper.node.identity.label}' | '{self.wrapper.node_id}': "
-                            f" No renderer registry key provided and no default renderer "
-                            f"has been set in the renderer registry."
+                            f" No skin registry key provided and no default skin "
+                            f"has been set in the skin registry."
                         ),
                         suggestions=[
-                            "Provide a valid renderer registry key",
-                            "Set a default renderer for the registry",
-                            "Check if the default renderer has failed to load"
+                            "Provide a valid skin registry key",
+                            "Set a default skin for the registry",
+                            "Check if the default skin has failed to load"
                         ]
                     ).log()
                     _is_error_render = True
-                    # we fallback to error renderer and hope for the best
-                    renderer_name = self.factory._renderer_registry.get_error_renderer_registry_key()
+                    # we fallback to error skin and hope for the best
+                    renderer_name = self.factory._skin_registry.get_error_skin_registry_key()
 
                 self.current_ui_card = self.factory.render(
                     renderer_name,

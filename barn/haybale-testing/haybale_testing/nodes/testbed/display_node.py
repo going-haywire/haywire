@@ -14,7 +14,7 @@ class DisplayNode(BaseNode):
     def init(self):
         
         # Configure UI
-        self.settings.node.renderer = 'example:renderer:ExampleNodeRenderer'
+        self.settings.node.skin = 'example:skin:ExampleNodeSkin'
 
         # Using the new .as_inlet() API
         self.add(

@@ -67,12 +67,12 @@ class GraphCanvasManager:
     def __init__(
         self, 
         editor: Editor,
-        node_render_factory,
+        skin_factory,
         node_factory,
         session_id: Optional[str] = None,
     ):
         self.editor = editor
-        self.node_render_factory = node_render_factory
+        self.skin_factory = skin_factory
         self.node_factory = node_factory
         self.session_id = session_id or "default"
         
@@ -710,7 +710,7 @@ class GraphCanvasManager:
                 logger.debug(f"Created container for node {node_id}")
                 
                 # Create UINode with wrapper reference for hot reload support
-                ui_node = UINode(container, wrapper, self.node_render_factory)
+                ui_node = UINode(container, wrapper, self.skin_factory)
                 # Register sync event emitter for hot reload updates after 
                 # the refresh() call. we need to wait until the UI is rendered.
                 ui_node.register_sync_event_emitter(self.canvas_vue.emit_sync_event)

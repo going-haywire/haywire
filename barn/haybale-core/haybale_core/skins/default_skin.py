@@ -1,7 +1,7 @@
 """
-Default NodeRenderer with group support
+Default NodeSkin with group support
 
-This renderer provides the standard node appearance with collapsible groups
+This skin provides the standard node appearance with collapsible groups
 """
 
 from typing import List
@@ -11,19 +11,19 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types import DataPort
 
 from haywire.core.types.enums import PortType
-from haywire.ui.renderer.decorator import renderer
+from haywire.ui.skin.decorator import skin
 from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.themes import ThemePalette
 
-from ..renderers.node_renderer import NodeRenderer
+from ..skins.node_skin import NodeSkin
 
-@renderer(
-    description="Default renderer with collapsible group support", 
+@skin(
+    description="Default skin with collapsible group support",
     _is_default=True)
-class DefaultNodeRenderer(NodeRenderer):
+class DefaultNodeSkin(NodeSkin):
     """
-    Default renderer that provides the standard node appearance with group support.
-    
+    Default skin that provides the standard node appearance with group support.
+
     Features:
     - Two-column layout (inlets left, outlets right)
     - Collapsible groups with visual hierarchy

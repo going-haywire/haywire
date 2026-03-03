@@ -3,15 +3,15 @@ from nicegui import ui
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.base import BaseNode
 
-from haywire.ui.renderer.decorator import renderer
+from haywire.ui.skin.decorator import skin
 
-from haybale_core.renderers.node_renderer import NodeRenderer
+from haybale_core.skins.node_skin import NodeSkin
 
-@renderer(
-    description="Custom renderer for nodes with special styling"
+@skin(
+    description="Custom skin for nodes with special styling"
     )
-class ExampleNodeRenderer(NodeRenderer):
-    """Custom renderer for nodes with special styling."""
+class ExampleNodeSkin(NodeSkin):
+    """Custom skin for nodes with special styling."""
 
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
         

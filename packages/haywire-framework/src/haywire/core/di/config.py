@@ -12,9 +12,9 @@ from pathlib import Path
 from typing import Optional, List
 from injector import Injector, Module, provider, singleton
 
-from ...ui.renderer.registry import RendererRegistry
+from ...ui.skin.registry import SkinRegistry
 from ...ui.widget.registry import WidgetRegistry
-from ...ui.renderer.factory import RenderFactory
+from ...ui.skin.factory import SkinFactory
 from ...ui.themes.palette import ThemePalette
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
@@ -138,9 +138,9 @@ class HaywireModule(Module):
     
     @provider
     @singleton
-    def provide_renderer_registry(self) -> RendererRegistry:
-        """Provide singleton RendererRegistry."""
-        return RendererRegistry()
+    def provide_skin_registry(self) -> SkinRegistry:
+        """Provide singleton SkinRegistry."""
+        return SkinRegistry()
     
     @provider
     @singleton
@@ -204,13 +204,13 @@ class HaywireModule(Module):
     
     @provider
     @singleton
-    def provide_node_render_factory(
-        self, 
-        renderer_registry: RendererRegistry, 
+    def provide_skin_factory(
+        self,
+        skin_registry: SkinRegistry,
         widget_registry: WidgetRegistry
-    ) -> RenderFactory:
-        """Provide NodeRenderFactory."""
-        return RenderFactory(renderer_registry, widget_registry)
+    ) -> SkinFactory:
+        """Provide SkinFactory."""
+        return SkinFactory(skin_registry, widget_registry)
     
     @provider
     @singleton
@@ -276,15 +276,15 @@ class LibrarySystemService:
         library_registry = self.injector.get(LibraryRegistry)
         widget_registry = self.injector.get(WidgetRegistry)
         adapter_registry = self.injector.get(AdapterRegistry)
-        renderer_registry = self.injector.get(RendererRegistry)
+        skin_registry = self.injector.get(SkinRegistry)
         node_registry = self.injector.get(NodeRegistry)
         type_registry = self.injector.get(TypeRegistry)
         settings_registry = self.injector.get(GlobalSettingsRegistry)
-        
+
         # Link registries to library registry for management
         library_registry.add_class_registry(WidgetRegistry, widget_registry)
         library_registry.add_class_registry(AdapterRegistry, adapter_registry)
-        library_registry.add_class_registry(RendererRegistry, renderer_registry)
+        library_registry.add_class_registry(SkinRegistry, skin_registry)
         library_registry.add_class_registry(NodeRegistry, node_registry)
         library_registry.add_class_registry(TypeRegistry, type_registry)
         
@@ -427,43 +427,43 @@ class LibrarySystemService:
         """Print the status of all registries in a beautiful format."""
         adapter_registry = self.injector.get(AdapterRegistry)
         widget_registry = self.injector.get(WidgetRegistry)
-        renderer_registry = self.injector.get(RendererRegistry)
+        skin_registry = self.injector.get(SkinRegistry)
         node_registry = self.injector.get(NodeRegistry)
         type_registry = self.injector.get(TypeRegistry)
-        
+
         print("\n=== Registry Status ===")
-        
+
         # Print registered adapters
         print("\n🔗 Registered Adapters:")
         all_adapters = adapter_registry.list_names()
         for adapter_key in all_adapters:
             print(f"   • {adapter_key}")
-        
-        # Print registered widgets  
+
+        # Print registered widgets
         print("\n🔧 Registered Widgets:")
         all_widgets = widget_registry.list_names()
         for widget_key in all_widgets:
             print(f"   • {widget_key}")
-        
-        # Print registered renderers
-        print("\n🔨 Registered Renderers:")
-        all_renderers = renderer_registry.list_names()
-        for renderer_key in all_renderers:
-            print(f"   • {renderer_key}")
-        
+
+        # Print registered skins
+        print("\n🎨 Registered Skins:")
+        all_skins = skin_registry.list_names()
+        for skin_key in all_skins:
+            print(f"   • {skin_key}")
+
         # Print registered nodes
         print("\n🛠 Registered Nodes:")
         all_nodes = node_registry.list_names()
         for node_key in all_nodes:
             print(f"   • {node_key}")
-        
+
         # Print registered custom types
         print("\n📦 Registered Types:")
         all_types = type_registry.list_names()
         for type_key in all_types:
             print(f"   • {type_key}")
-        
-        print(f"\nTotal: {len(all_nodes)} nodes, {len(all_renderers)} renderers, "
+
+        print(f"\nTotal: {len(all_nodes)} nodes, {len(all_skins)} skins, "
               f"{len(all_widgets)} widgets, {len(all_adapters)} adapters, "
               f"{len(all_types)} types\n")
     
@@ -475,9 +475,9 @@ class LibrarySystemService:
         """Get the node registry."""
         return self.injector.get(NodeRegistry)
     
-    def get_renderer_registry(self) -> RendererRegistry:
-        """Get the renderer registry."""
-        return self.injector.get(RendererRegistry)
+    def get_skin_registry(self) -> SkinRegistry:
+        """Get the skin registry."""
+        return self.injector.get(SkinRegistry)
     
     def get_widget_registry(self) -> WidgetRegistry:
         """Get the widget registry."""
@@ -503,9 +503,9 @@ class LibrarySystemService:
         """Get the adapter factory."""
         return self.injector.get(AdapterFactory)
     
-    def get_node_render_factory(self) -> RenderFactory:
-        """Get the node render factory."""
-        return self.injector.get(RenderFactory)
+    def get_skin_factory(self) -> SkinFactory:
+        """Get the skin factory."""
+        return self.injector.get(SkinFactory)
     
     def get_history_manager(self) -> Optional[IHistoryManager]:
         """Get the history manager (None if no-op)."""

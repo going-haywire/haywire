@@ -55,8 +55,8 @@ class NodeUIConfig:
     is_condensable: bool = True
     default_color: str = '#FFFFFF'
     icon: str | None = None
-    node_renderer: str | None = None
-    props_renderer: str | None = None
+    node_skin: str | None = None
+    props_skin: str | None = None
     custom_gui: str | None = None
 
 

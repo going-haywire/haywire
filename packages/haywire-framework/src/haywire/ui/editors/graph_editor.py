@@ -51,7 +51,7 @@ class GraphEditor(BaseEditor):
     must expose:
         .graph_manager          (GraphManager)  — preferred
         .editor                 (Editor)        — fallback for untitled graph
-        .node_render_factory    (RenderFactory)
+        .skin_factory           (SkinFactory)
         .node_factory           (NodeFactory)
     """
 
@@ -135,7 +135,7 @@ class GraphEditor(BaseEditor):
 
         self._canvas_manager = GraphCanvasManager(
             editor=entry.editor,
-            node_render_factory=app.node_render_factory,
+            skin_factory=app.skin_factory,
             node_factory=app.node_factory,
             session_id=context.session_id[:8],
         )

@@ -6,7 +6,7 @@ from haywire.core.types import DataPort, CompoundType, FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.widget.factory import error_render_detail
-from haywire.ui.renderer.base import BaseRenderer
+from haywire.ui.skin.base import BaseSkin
 from haywire.ui.themes.icons import ICONS
 from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.utils import generate_pin_uuid
@@ -16,12 +16,12 @@ if TYPE_CHECKING:
     from haywire.core.errors import HaywireException
 
 
-class NodeRenderer(BaseRenderer, ABC):
+class NodeSkin(BaseSkin, ABC):
     """
-    Base class for all NiceGui NodeRenderer classes.
+    Base class for all NiceGui NodeSkin classes.
 
-    NodeRenderer classes are stateless and define the look and structure of nodes.
-    They are cached and reused by the NodeRenderFactory.
+    NodeSkin classes are stateless and define the look and structure of nodes.
+    They are cached and reused by the SkinFactory.
     """
 
     def render_port(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):

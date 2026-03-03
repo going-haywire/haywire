@@ -34,7 +34,7 @@ class LibraryManagerPage:
         widget_registry=None,
         type_registry=None,
         adapter_registry=None,
-        renderer_registry=None,
+        skin_registry=None,
     ):
         self.manager = library_manager
         self.marketplace_path = marketplace_path
@@ -42,7 +42,7 @@ class LibraryManagerPage:
         self.widget_registry = widget_registry
         self.type_registry = type_registry
         self.adapter_registry = adapter_registry
-        self.renderer_registry = renderer_registry
+        self.skin_registry = skin_registry
 
         # Selection state
         self._selected_id: str | None = None
@@ -510,7 +510,7 @@ class LibraryManagerPage:
 
         # Tab references — created in fixed section, used in scroll section
         tabs = t_overview = t_nodes = t_widgets = None
-        t_types = t_adapters = t_renderers = None
+        t_types = t_adapters = t_skins = None
 
         # ── Fixed section: header + metadata + tabs bar ───────────────────────
         with self._center_fixed:
@@ -684,7 +684,7 @@ class LibraryManagerPage:
                         t_widgets   = ui.tab('Widgets',   icon='widgets')
                         t_types     = ui.tab('Types',     icon='category')
                         t_adapters  = ui.tab('Adapters',  icon='swap_horiz')
-                        t_renderers = ui.tab('Renderers', icon='brush')
+                        t_skins = ui.tab('Skins', icon='brush')
 
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         with self._center_scroll:
@@ -709,10 +709,10 @@ class LibraryManagerPage:
                             self._render_generic_component_tab(
                                 installed_lib, self.adapter_registry, 'adapters'
                             )
-                    with ui.tab_panel(t_renderers):
+                    with ui.tab_panel(t_skins):
                         with ui.column().classes('w-full p-6 gap-1'):
                             self._render_generic_component_tab(
-                                installed_lib, self.renderer_registry, 'renderers'
+                                installed_lib, self.skin_registry, 'skins'
                             )
 
             elif marketplace_pkg and not installed_lib:
@@ -1064,7 +1064,7 @@ class LibraryManagerPage:
         # Look up the class from the appropriate registry
         comp_singular = {
             'nodes': 'node', 'widgets': 'widget', 'types': 'type',
-            'adapters': 'adapter', 'renderers': 'renderer',
+            'adapters': 'adapter', 'skins': 'skin',
         }.get(comp_type, comp_type)
         registry_key = f'{lib.library_id}:{comp_singular}:{class_name}'
         registry = {
@@ -1072,7 +1072,7 @@ class LibraryManagerPage:
             'widgets': self.widget_registry,
             'types': self.type_registry,
             'adapters': self.adapter_registry,
-            'renderers': self.renderer_registry,
+            'skins': self.skin_registry,
         }.get(comp_type)
         cls = registry.get(registry_key) if registry else None
 

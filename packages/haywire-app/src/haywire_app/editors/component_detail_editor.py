@@ -48,7 +48,7 @@ class ComponentDetailEditor(BaseEditor):
         'widgets': 'widgets',
         'types': 'category',
         'adapters': 'swap_horiz',
-        'renderers': 'brush',
+        'skins': 'brush',
     }
 
     def _rebuild(self, context: 'SessionContext') -> None:
@@ -118,7 +118,7 @@ class ComponentDetailEditor(BaseEditor):
                     'widgets': app.library_service.get_widget_registry,
                     'types': app.library_service.get_type_registry,
                     'adapters': app.library_service.get_adapter_registry,
-                    'renderers': app.library_service.get_renderer_registry,
+                    'skins': app.library_service.get_skin_registry,
                 }.get(comp_type, lambda: None)()
             else:
                 return None

@@ -60,12 +60,12 @@ class TestProjectStructure:
 class TestComponentFolders:
     """Verify that all 5 component folders are created with __init__.py."""
 
-    @pytest.mark.parametrize('folder', ['nodes', 'types', 'widgets', 'renderers', 'adapters'])
+    @pytest.mark.parametrize('folder', ['nodes', 'types', 'widgets', 'skins', 'adapters'])
     def test_component_folder_exists(self, scaffold_project, folder):
         pkg_dir = scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project'
         assert (pkg_dir / folder).is_dir()
 
-    @pytest.mark.parametrize('folder', ['nodes', 'types', 'widgets', 'renderers', 'adapters'])
+    @pytest.mark.parametrize('folder', ['nodes', 'types', 'widgets', 'skins', 'adapters'])
     def test_component_folder_has_init(self, scaffold_project, folder):
         pkg_dir = scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project'
         assert (pkg_dir / folder / '__init__.py').is_file()
@@ -138,13 +138,13 @@ class TestLibraryInit:
         assert 'from haywire.core.types.registry import TypeRegistry' in init_content
         assert 'from haywire.core.adapter.registry import AdapterRegistry' in init_content
         assert 'from haywire.ui.widget.registry import WidgetRegistry' in init_content
-        assert 'from haywire.ui.renderer.registry import RendererRegistry' in init_content
+        assert 'from haywire.ui.skin.registry import SkinRegistry' in init_content
 
     def test_registers_all_folders(self, scaffold_project):
         init_content = (
             scaffold_project / 'barn' /'haybale-test-project' / 'haybale_test_project' / '__init__.py'
         ).read_text()
-        for folder in ['nodes', 'types', 'adapters', 'widgets', 'renderers']:
+        for folder in ['nodes', 'types', 'adapters', 'widgets', 'skins']:
             assert f"base_path / '{folder}'" in init_content
 
     def test_library_decorator(self, scaffold_project):

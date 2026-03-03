@@ -156,8 +156,8 @@ class LibraryDetailEditor(BaseEditor):
             if app and hasattr(app, 'library_service')
             else None
         )
-        renderer_registry = (
-            app.library_service.get_renderer_registry()
+        skin_registry = (
+            app.library_service.get_skin_registry()
             if app and hasattr(app, 'library_service')
             else None
         )
@@ -204,7 +204,7 @@ class LibraryDetailEditor(BaseEditor):
 
         # Tab references — created in fixed section, used in scroll section
         tabs = t_overview = t_nodes = t_widgets = None
-        t_types = t_adapters = t_renderers = None
+        t_types = t_adapters = t_skins = None
 
         # ── header + metadata + tabs bar ───────────────────────
         self._fixed.clear()
@@ -390,7 +390,7 @@ class LibraryDetailEditor(BaseEditor):
                         t_widgets   = ui.tab('Widgets',   icon='widgets')
                         t_types     = ui.tab('Types',     icon='category')
                         t_adapters  = ui.tab('Adapters',  icon='swap_horiz')
-                        t_renderers = ui.tab('Renderers', icon='brush')
+                        t_skins = ui.tab('Skins', icon='brush')
 
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         self._scroll.clear()
@@ -421,11 +421,11 @@ class LibraryDetailEditor(BaseEditor):
                                 self._render_generic_component_tab(
                                     installed_lib, adapter_registry, 'adapters', context
                                 )
-                    with ui.tab_panel(t_renderers).style('height: 100%; padding: 0;'):
+                    with ui.tab_panel(t_skins).style('height: 100%; padding: 0;'):
                         with ui.scroll_area().classes('w-full').style('height: 100%;'):
                             with ui.column().classes('w-full p-6 gap-1'):
                                 self._render_generic_component_tab(
-                                    installed_lib, renderer_registry, 'renderers', context
+                                    installed_lib, skin_registry, 'skins', context
                                 )
 
             elif marketplace_pkg and not installed_lib:

@@ -229,7 +229,7 @@ class HaywireApp:
         # Registries and factories (from DI)
         self.node_registry = self.library_service.get_node_registry()
         self.node_factory = self.library_service.get_node_factory()
-        self.node_render_factory = self.library_service.get_node_render_factory()
+        self.skin_factory = self.library_service.get_skin_factory()
         self.adapter_factory = self.library_service.get_adapter_factory()
         self.history_manager = self.library_service.get_history_manager()
 
@@ -406,7 +406,7 @@ class HaywireApp:
                 widget_registry=self.library_service.get_widget_registry(),
                 type_registry=self.library_service.get_type_registry(),
                 adapter_registry=self.library_service.get_adapter_registry(),
-                renderer_registry=self.library_service.get_renderer_registry(),
+                skin_registry=self.library_service.get_skin_registry(),
             )
             page.create_page()
 

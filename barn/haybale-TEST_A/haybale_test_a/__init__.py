@@ -13,7 +13,7 @@ from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.types.registry import TypeRegistry
 
-from haywire.ui.renderer.registry import RendererRegistry
+from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 @library(
@@ -56,10 +56,10 @@ class Library(BaseLibrary):
             registry_cls=WidgetRegistry
         )
                 
-        # Register renderers (node renderers)
+        # Register skins (node skins)
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'renderers'),
-            registry_cls=RendererRegistry
+            folder_path=str(base_path / 'skins'),
+            registry_cls=SkinRegistry
         )
 
         # Register nodes

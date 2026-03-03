@@ -1,7 +1,7 @@
 """
-Error NodeRenderer - Based on the DefaultNodeRenderer
+Error NodeSkin - Based on the DefaultNodeSkin
 
-This renderer provides error styling for nodes.
+This skin provides error styling for nodes.
 """
 
 from nicegui import ui
@@ -9,22 +9,22 @@ from nicegui import ui
 from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 
-from haywire.ui.renderer.decorator import renderer
+from haywire.ui.skin.decorator import skin
 from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.themes.palette import ThemePalette
 from haywire.ui.errors.error_info import error_render_detail
 
 
-from ..renderers.node_renderer import NodeRenderer
+from ..skins.node_skin import NodeSkin
 
-@renderer(
-    description="Error renderer that provides error styling for nodes", 
+@skin(
+    description="Error skin that provides error styling for nodes",
     _is_error=True)
-class ErrorNodeRenderer(NodeRenderer):
+class ErrorNodeSkin(NodeSkin):
     """
-    Error renderer that provides error styling for nodes.
-    
-    This is a child class of DefaultNodeRenderer with different styling
+    Error skin that provides error styling for nodes.
+
+    This is a child class of NodeSkin with different styling
     to indicate rendering errors or fallback situations.
     """
     
