@@ -266,7 +266,7 @@ class NodeSkin(BaseSkin, ABC):
             .style(
                 'width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; '
                 'background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); '
-                'cursor: crosshair;'
+                'cursor: default; left: -16px;'
             )
             .props(
                 f'id="{inlet_uuid}" data-node-id="{node_id}" data-pin-id="root_in" '
@@ -281,7 +281,7 @@ class NodeSkin(BaseSkin, ABC):
             .style(
                 'order: 999; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; '
                 'background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); '
-                'cursor: crosshair;'
+                'cursor: default; right: -16px;'
             )
             .props(
                 f'id="{outlet_uuid}" data-node-id="{node_id}" data-pin-id="root_out" '

@@ -1,0 +1,1944 @@
+{
+  "graph_id": "__new_1__",
+  "name": "Untitled 1",
+  "description": "",
+  "version": "1.0.0",
+  "author": "",
+  "created_at": null,
+  "modified_at": "2026-03-04T10:41:20.509717",
+  "nodes": {
+    "begin_play_40a03729": {
+      "node_id": "begin_play_40a03729",
+      "registry_key": "core:node:begin_play",
+      "position": [
+        134,
+        201
+      ],
+      "node_data": {
+        "node_id": "begin_play_40a03729",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "outlet"
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Start Time",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          }
+        },
+        "settings": {
+          "local_values": {},
+          "local_definitions": {
+            "node.skin": {
+              "default": null,
+              "type": "NoneType",
+              "scope": "LOCAL_ONLY",
+              "label": "Skin",
+              "description": "Skin used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.muted": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Muted",
+              "description": "Skip this node during execution",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.collapsed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Collapsed",
+              "description": "Collapse node to show only header",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.condensed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Condensed",
+              "description": "Show node in condensed view",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.pinned": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Pinned",
+              "description": "Prevent auto-layout from moving this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.color_override": {
+              "default": null,
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Color Override",
+              "description": "Custom background color for this node (None = use global)",
+              "category": "node.appearance",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": "color",
+              "ui_order": 0
+            },
+            "node.comment": {
+              "default": "",
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Comment",
+              "description": "Comment displayed above the node",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.show_comment": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Show Comment",
+              "description": "Display the comment bubble",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.renderer": {
+              "default": null,
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Renderer",
+              "description": "Renderer used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            }
+          }
+        },
+        "store": {},
+        "ui": {
+          "state": {
+            "posX": 134,
+            "posY": 201,
+            "width": 0.0,
+            "height": 0.0,
+            "width_min": -1.0,
+            "height_min": -1.0
+          }
+        },
+        "identity": {
+          "registry_id": "begin_play",
+          "registry_key": "core:node:begin_play",
+          "label": "Begin Play",
+          "description": "Triggered once when execution starts",
+          "deprecation_warning": "",
+          "search_tags": [
+            "start",
+            "init",
+            "begin",
+            "event"
+          ],
+          "menu": "event/runtime",
+          "help_md": null,
+          "help_url": "https://haywire.io/docs/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Haywire Core",
+          "version": "1.0.0",
+          "description": "Core Haywire library with fundamental components",
+          "url": "https://github.com/maybites/haywire",
+          "help_url": "https://github.com/maybites/haywire",
+          "author": "maybites",
+          "author_url": "https://maybites.ch",
+          "id": "core",
+          "dependencies": [],
+          "tags": [
+            "core",
+            "types",
+            "widgets",
+            "skins"
+          ],
+          "file_watcher": false,
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core"
+        }
+      }
+    },
+    "StartWebcamStreamNode_f458e306": {
+      "node_id": "StartWebcamStreamNode_f458e306",
+      "registry_key": "visiongraph:node:StartWebcamStreamNode",
+      "position": [
+        510,
+        119
+      ],
+      "node_data": {
+        "node_id": "StartWebcamStreamNode_f458e306",
+        "ports": {
+          "start": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Start",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 2,
+              "color": "#004cff",
+              "id": "start",
+              "port_type": "inlet",
+              "allow_multiple_links": true
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "stop": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Stop",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 2,
+              "color": "#004cff",
+              "id": "stop",
+              "port_type": "inlet",
+              "allow_multiple_links": true,
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "camera_index": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Camera Index",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "widget_config": {
+                "properties": {
+                  "min": 0,
+                  "max": 10,
+                  "step": 1
+                }
+              },
+              "id": "camera_index",
+              "port_type": "config",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "width": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Width (0=auto)",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "widget_config": {
+                "properties": {
+                  "min": 0,
+                  "max": 3840,
+                  "step": 1
+                }
+              },
+              "id": "width",
+              "port_type": "config",
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "height": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Height (0=auto)",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "widget_config": {
+                "properties": {
+                  "min": 0,
+                  "max": 2160,
+                  "step": 1
+                }
+              },
+              "id": "height",
+              "port_type": "config",
+              "order": 4
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "fps": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "FPS (0=auto)",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "widget_config": {
+                "properties": {
+                  "min": 0,
+                  "max": 120,
+                  "step": 1
+                }
+              },
+              "id": "fps",
+              "port_type": "config",
+              "order": 5
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "frame_skip": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Frame Skip",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 1
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "widget_config": {
+                "properties": {
+                  "min": 1,
+                  "max": 60,
+                  "step": 1
+                }
+              },
+              "id": "frame_skip",
+              "port_type": "config",
+              "order": 6
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 1
+            }
+          },
+          "callback_names": {
+            "kwargs": {
+              "registry_id": "pooled",
+              "registry_key": "core:type:pooled",
+              "label": "Trigger",
+              "description": "Multi-source aggregation",
+              "flow_type": "callback",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 2,
+              "color": "#ff3c00",
+              "id": "callback_names",
+              "port_type": "inlet",
+              "allow_multiple_links": true,
+              "order": 7
+            },
+            "recipe": {
+              "registry_key": "core:type:pooled",
+              "element_type": {
+                "registry_key": "core:type:callback"
+              }
+            },
+            "field_data": {
+              "value": {}
+            }
+          },
+          "status": {
+            "kwargs": {
+              "registry_id": "string",
+              "registry_key": "core:type:string",
+              "label": "Status",
+              "description": "Text data",
+              "flow_type": "data",
+              "default": {
+                "value": "Idle"
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "widget_key": "core:widget:SimpleLabelWidget",
+              "id": "status",
+              "port_type": "config",
+              "order": 8
+            },
+            "recipe": {
+              "registry_key": "core:type:string"
+            },
+            "field_data": {
+              "value": "Idle"
+            }
+          },
+          "started": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Started",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "started",
+              "port_type": "outlet",
+              "order": 9
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "stopped": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Stopped",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "stopped",
+              "port_type": "outlet",
+              "order": 10
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          }
+        },
+        "settings": {
+          "local_values": {},
+          "local_definitions": {
+            "node.skin": {
+              "default": null,
+              "type": "NoneType",
+              "scope": "LOCAL_ONLY",
+              "label": "Skin",
+              "description": "Skin used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.muted": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Muted",
+              "description": "Skip this node during execution",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.collapsed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Collapsed",
+              "description": "Collapse node to show only header",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.condensed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Condensed",
+              "description": "Show node in condensed view",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.pinned": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Pinned",
+              "description": "Prevent auto-layout from moving this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.color_override": {
+              "default": null,
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Color Override",
+              "description": "Custom background color for this node (None = use global)",
+              "category": "node.appearance",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": "color",
+              "ui_order": 0
+            },
+            "node.comment": {
+              "default": "",
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Comment",
+              "description": "Comment displayed above the node",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.show_comment": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Show Comment",
+              "description": "Display the comment bubble",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.renderer": {
+              "default": null,
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Renderer",
+              "description": "Renderer used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            }
+          }
+        },
+        "store": {},
+        "ui": {
+          "state": {
+            "posX": 510,
+            "posY": 119,
+            "width": 0.0,
+            "height": 0.0,
+            "width_min": -1.0,
+            "height_min": -1.0
+          }
+        },
+        "identity": {
+          "registry_id": "StartWebcamStreamNode",
+          "registry_key": "visiongraph:node:StartWebcamStreamNode",
+          "label": "Start Webcam Stream",
+          "description": "Starts a webcam stream and emits frame callbacks",
+          "deprecation_warning": "",
+          "search_tags": [
+            "webcam",
+            "camera",
+            "video",
+            "capture",
+            "stream"
+          ],
+          "menu": "vision/input",
+          "help_md": null,
+          "help_url": "https://haywire.io/docs/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Visiongraph",
+          "version": "0.0.1",
+          "description": "Visiongraph library",
+          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
+          "help_url": "https://docs.github.io/haywire_library",
+          "author": "Florian Briggisser, Martin Fröhlich",
+          "author_url": "https://author_url",
+          "id": "visiongraph",
+          "dependencies": [
+            "haybale_core"
+          ],
+          "tags": [
+            "vision",
+            "camera",
+            "video",
+            "opencv"
+          ],
+          "file_watcher": false,
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-visiongraph/haybale_visiongraph",
+          "module_name": "haybale_visiongraph"
+        }
+      }
+    },
+    "WebcamFrameEventNode_ba0ed6bd": {
+      "node_id": "WebcamFrameEventNode_ba0ed6bd",
+      "registry_key": "visiongraph:node:WebcamFrameEventNode",
+      "position": [
+        128.47517297623006,
+        456.7517752140127
+      ],
+      "node_data": {
+        "node_id": "WebcamFrameEventNode_ba0ed6bd",
+        "ports": {
+          "callback_name": {
+            "kwargs": {
+              "registry_id": "callback",
+              "registry_key": "core:type:callback",
+              "label": "Listen",
+              "description": "Signal for callback execution between nodes",
+              "flow_type": "callback",
+              "default": {
+                "value": "WebcamFrameEventNode_ba0ed6bd"
+              },
+              "store_strategy": 14,
+              "color": "#ff3c00",
+              "id": "callback_name",
+              "port_type": "outlet"
+            },
+            "recipe": {
+              "registry_key": "core:type:callback"
+            },
+            "field_data": {
+              "value": "WebcamFrameEventNode_ba0ed6bd"
+            }
+          },
+          "frame_ready": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Frame Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "frame_ready",
+              "port_type": "outlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "frame": {
+            "kwargs": {
+              "registry_id": "frame",
+              "registry_key": "visiongraph:type:frame",
+              "label": "Frame",
+              "description": "Video frame data with metadata",
+              "flow_type": "data",
+              "default": {
+                "data": null,
+                "timestamp": 0.0,
+                "frame_number": 0,
+                "width": 0,
+                "height": 0,
+                "channels": 0
+              },
+              "store_strategy": 14,
+              "color": "#9c27b0",
+              "id": "frame",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "visiongraph:type:frame"
+            },
+            "field_data": {
+              "data": null,
+              "timestamp": 0.0,
+              "frame_number": 0,
+              "width": 0,
+              "height": 0,
+              "channels": 0
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Timestamp (s)",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "frame_number": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Frame Number",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "frame_number",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 4
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "width": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Width",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "width",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 5
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "height": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Height",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "height",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 6
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          }
+        },
+        "settings": {
+          "local_values": {},
+          "local_definitions": {
+            "node.skin": {
+              "default": null,
+              "type": "NoneType",
+              "scope": "LOCAL_ONLY",
+              "label": "Skin",
+              "description": "Skin used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.muted": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Muted",
+              "description": "Skip this node during execution",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.collapsed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Collapsed",
+              "description": "Collapse node to show only header",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.condensed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Condensed",
+              "description": "Show node in condensed view",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.pinned": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Pinned",
+              "description": "Prevent auto-layout from moving this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.color_override": {
+              "default": null,
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Color Override",
+              "description": "Custom background color for this node (None = use global)",
+              "category": "node.appearance",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": "color",
+              "ui_order": 0
+            },
+            "node.comment": {
+              "default": "",
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Comment",
+              "description": "Comment displayed above the node",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.show_comment": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Show Comment",
+              "description": "Display the comment bubble",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.renderer": {
+              "default": null,
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Renderer",
+              "description": "Renderer used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            }
+          }
+        },
+        "store": {},
+        "ui": {
+          "state": {
+            "posX": 128.47517297623006,
+            "posY": 456.7517752140127,
+            "width": 0.0,
+            "height": 0.0,
+            "width_min": -1.0,
+            "height_min": -1.0
+          }
+        },
+        "identity": {
+          "registry_id": "WebcamFrameEventNode",
+          "registry_key": "visiongraph:node:WebcamFrameEventNode",
+          "label": "Webcam Frame Event",
+          "description": "Triggered when a webcam frame is ready",
+          "deprecation_warning": "",
+          "search_tags": [
+            "webcam",
+            "frame",
+            "camera",
+            "event",
+            "video"
+          ],
+          "menu": "event/vision",
+          "help_md": null,
+          "help_url": "https://haywire.io/docs/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Visiongraph",
+          "version": "0.0.1",
+          "description": "Visiongraph library",
+          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
+          "help_url": "https://docs.github.io/haywire_library",
+          "author": "Florian Briggisser, Martin Fröhlich",
+          "author_url": "https://author_url",
+          "id": "visiongraph",
+          "dependencies": [
+            "haybale_core"
+          ],
+          "tags": [
+            "vision",
+            "camera",
+            "video",
+            "opencv"
+          ],
+          "file_watcher": false,
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-visiongraph/haybale_visiongraph",
+          "module_name": "haybale_visiongraph"
+        }
+      }
+    },
+    "WebcamFrameInfoDisplayNode_7a4a59be": {
+      "node_id": "WebcamFrameInfoDisplayNode_7a4a59be",
+      "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
+      "position": [
+        502.79711848609264,
+        480.0634426904429
+      ],
+      "node_data": {
+        "node_id": "WebcamFrameInfoDisplayNode_7a4a59be",
+        "ports": {
+          "execute": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Analyze Frame",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 2,
+              "color": "#004cff",
+              "id": "execute",
+              "port_type": "inlet",
+              "allow_multiple_links": true
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "frame": {
+            "kwargs": {
+              "registry_id": "frame",
+              "registry_key": "visiongraph:type:frame",
+              "label": "Frame",
+              "description": "Video frame data with metadata",
+              "flow_type": "data",
+              "default": {
+                "data": null,
+                "timestamp": 0.0,
+                "frame_number": 0,
+                "width": 0,
+                "height": 0,
+                "channels": 0
+              },
+              "store_strategy": 2,
+              "color": "#9c27b0",
+              "widget_key": "visiongraph:widget:OpencvViewerWidget",
+              "widget_config": {
+                "properties": {
+                  "quality": 85,
+                  "width": "100%",
+                  "height": "300px",
+                  "frame_queue_size": 1,
+                  "block_on_full": false
+                }
+              },
+              "id": "frame",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "visiongraph:type:frame"
+            },
+            "field_data": {
+              "data": null,
+              "timestamp": 0.0,
+              "frame_number": 0,
+              "width": 0,
+              "height": 0,
+              "channels": 0
+            }
+          },
+          "info_display": {
+            "kwargs": {
+              "registry_id": "string",
+              "registry_key": "core:type:string",
+              "label": "Frame Info",
+              "description": "Text data",
+              "flow_type": "data",
+              "default": {
+                "value": "No frame yet"
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "widget_key": "core:widget:SimpleLabelWidget",
+              "id": "info_display",
+              "port_type": "config",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "core:type:string"
+            },
+            "field_data": {
+              "value": "No frame yet"
+            }
+          },
+          "frame_ready": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Frame Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "frame_ready",
+              "port_type": "outlet",
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "frame_pass": {
+            "kwargs": {
+              "registry_id": "frame",
+              "registry_key": "visiongraph:type:frame",
+              "label": "Frame Pass",
+              "description": "Video frame data with metadata",
+              "flow_type": "data",
+              "default": {
+                "data": null,
+                "timestamp": 0.0,
+                "frame_number": 0,
+                "width": 0,
+                "height": 0,
+                "channels": 0
+              },
+              "store_strategy": 14,
+              "color": "#9c27b0",
+              "id": "frame_pass",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 4
+            },
+            "recipe": {
+              "registry_key": "visiongraph:type:frame"
+            },
+            "field_data": {
+              "data": null,
+              "timestamp": 0.0,
+              "frame_number": 0,
+              "width": 0,
+              "height": 0,
+              "channels": 0
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Timestamp (s)",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 5
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "frame_number": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Frame Number",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "frame_number",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 6
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "width": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Width",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "width",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 7
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "height": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Height",
+              "description": "Whole number",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "height",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 8
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 0
+            }
+          }
+        },
+        "settings": {
+          "local_values": {},
+          "local_definitions": {
+            "node.skin": {
+              "default": null,
+              "type": "NoneType",
+              "scope": "LOCAL_ONLY",
+              "label": "Skin",
+              "description": "Skin used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.muted": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Muted",
+              "description": "Skip this node during execution",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.collapsed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Collapsed",
+              "description": "Collapse node to show only header",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.condensed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Condensed",
+              "description": "Show node in condensed view",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.pinned": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Pinned",
+              "description": "Prevent auto-layout from moving this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.color_override": {
+              "default": null,
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Color Override",
+              "description": "Custom background color for this node (None = use global)",
+              "category": "node.appearance",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": "color",
+              "ui_order": 0
+            },
+            "node.comment": {
+              "default": "",
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Comment",
+              "description": "Comment displayed above the node",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.show_comment": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Show Comment",
+              "description": "Display the comment bubble",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.renderer": {
+              "default": null,
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Renderer",
+              "description": "Renderer used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            }
+          }
+        },
+        "store": {},
+        "ui": {
+          "state": {
+            "posX": 502.79711848609264,
+            "posY": 480.0634426904429,
+            "width": 0.0,
+            "height": 0.0,
+            "width_min": -1.0,
+            "height_min": -1.0
+          }
+        },
+        "identity": {
+          "registry_id": "WebcamFrameInfoDisplayNode",
+          "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
+          "label": "Webcam Frame Info Display",
+          "description": "Displays information about webcam frames with live preview",
+          "deprecation_warning": "",
+          "search_tags": [
+            "webcam",
+            "frame",
+            "camera",
+            "display",
+            "preview",
+            "video"
+          ],
+          "menu": "vision/info",
+          "help_md": null,
+          "help_url": "https://haywire.io/docs/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Visiongraph",
+          "version": "0.0.1",
+          "description": "Visiongraph library",
+          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
+          "help_url": "https://docs.github.io/haywire_library",
+          "author": "Florian Briggisser, Martin Fröhlich",
+          "author_url": "https://author_url",
+          "id": "visiongraph",
+          "dependencies": [
+            "haybale_core"
+          ],
+          "tags": [
+            "vision",
+            "camera",
+            "video",
+            "opencv"
+          ],
+          "file_watcher": false,
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-visiongraph/haybale_visiongraph",
+          "module_name": "haybale_visiongraph"
+        }
+      }
+    },
+    "PerformanceTester_9b8b677d": {
+      "node_id": "PerformanceTester_9b8b677d",
+      "registry_key": "testing:node:PerformanceTester",
+      "position": [
+        1054.454783175856,
+        515.2703954818411
+      ],
+      "node_data": {
+        "node_id": "PerformanceTester_9b8b677d",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 2,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "inlet",
+              "allow_multiple_links": true
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "port_count": {
+            "kwargs": {
+              "registry_id": "int",
+              "registry_key": "core:type:int",
+              "label": "Port Count",
+              "description": "Whole number",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "widget_config": {
+                "properties": {
+                  "min": 0,
+                  "max": 10,
+                  "step": 1
+                }
+              },
+              "id": "port_count",
+              "port_type": "config",
+              "order": 1,
+              "on_change": "my_change"
+            },
+            "recipe": {
+              "registry_key": "core:type:int"
+            },
+            "field_data": {
+              "value": 3
+            }
+          },
+          "trigger": {
+            "kwargs": {
+              "registry_id": "exec",
+              "registry_key": "core:type:exec",
+              "label": "Trigger",
+              "description": "Signal for controlling execution flow between nodes",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "trigger",
+              "port_type": "outlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "core:type:exec"
+            },
+            "field_data": {}
+          },
+          "float_inlet_0": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Input 0",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "id": "float_inlet_0",
+              "port_type": "inlet",
+              "order": 95
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "float_outlet_0": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Output 0",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "float_outlet_0",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 96
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "float_inlet_1": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Input 1",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 1
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "id": "float_inlet_1",
+              "port_type": "inlet",
+              "order": 97
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "float_outlet_1": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Output 1",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "float_outlet_1",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 98
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "float_inlet_2": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Input 2",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 2
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "core:widget:NumberWidget",
+              "id": "float_inlet_2",
+              "port_type": "inlet",
+              "order": 99
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "float_outlet_2": {
+            "kwargs": {
+              "registry_id": "float",
+              "registry_key": "core:type:float",
+              "label": "Output 2",
+              "description": "Decimal numberer",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "float_outlet_2",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 100
+            },
+            "recipe": {
+              "registry_key": "core:type:float"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          }
+        },
+        "settings": {
+          "local_values": {},
+          "local_definitions": {
+            "node.skin": {
+              "default": null,
+              "type": "NoneType",
+              "scope": "LOCAL_ONLY",
+              "label": "Skin",
+              "description": "Skin used for this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.muted": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Muted",
+              "description": "Skip this node during execution",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.collapsed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Collapsed",
+              "description": "Collapse node to show only header",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.condensed": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Condensed",
+              "description": "Show node in condensed view",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.pinned": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Pinned",
+              "description": "Prevent auto-layout from moving this node",
+              "category": "node.state",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.color_override": {
+              "default": null,
+              "type": "NoneType",
+              "scope": "LOCAL_ONLY",
+              "label": "Color Override",
+              "description": "Custom background color for this node (None = use global)",
+              "category": "node.appearance",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": "color",
+              "ui_order": 0
+            },
+            "node.comment": {
+              "default": "",
+              "type": "str",
+              "scope": "LOCAL_ONLY",
+              "label": "Comment",
+              "description": "Comment displayed above the node",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            },
+            "node.show_comment": {
+              "default": false,
+              "type": "bool",
+              "scope": "LOCAL_ONLY",
+              "label": "Show Comment",
+              "description": "Display the comment bubble",
+              "category": "node.annotation",
+              "min_value": null,
+              "max_value": null,
+              "choices": null,
+              "ui_widget": null,
+              "ui_order": 0
+            }
+          }
+        },
+        "store": {},
+        "ui": {
+          "state": {
+            "posX": 1054.454783175856,
+            "posY": 515.2703954818411,
+            "width": 0.0,
+            "height": 0.0,
+            "width_min": -1.0,
+            "height_min": -1.0
+          }
+        },
+        "identity": {
+          "registry_id": "PerformanceTester",
+          "registry_key": "testing:node:PerformanceTester",
+          "label": "Performance Testing Node",
+          "description": "Helps test performance of execution system",
+          "deprecation_warning": "",
+          "search_tags": [
+            "performance",
+            "control",
+            "flow",
+            "event"
+          ],
+          "menu": "testing/performance",
+          "help_md": null,
+          "help_url": "https://haywire.io/docs/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Testing",
+          "version": "1.0.0",
+          "description": "Test library for test support",
+          "url": "https://github.com/maybites/haywire",
+          "help_url": "https://github.com/maybites/haywire",
+          "author": "Haywire Team",
+          "author_url": "https://github.com/maybites/haywire",
+          "id": "testing",
+          "dependencies": [
+            "haybale_core",
+            "haybale_test_a"
+          ],
+          "tags": [
+            "testing",
+            "development",
+            "debug"
+          ],
+          "file_watcher": true,
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
+          "module_name": "haybale_testing"
+        }
+      }
+    }
+  },
+  "edges": {
+    "edge::exec@begin_play_40a03729>>start@StartWebcamStreamNode_f458e306": {
+      "source_node_id": "begin_play_40a03729",
+      "outlet_port_id": "exec",
+      "sink_node_id": "StartWebcamStreamNode_f458e306",
+      "inlet_port_id": "start",
+      "edge_type": "control",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::callback_name@WebcamFrameEventNode_ba0ed6bd>>callback_names@StartWebcamStreamNode_f458e306": {
+      "source_node_id": "WebcamFrameEventNode_ba0ed6bd",
+      "outlet_port_id": "callback_name",
+      "sink_node_id": "StartWebcamStreamNode_f458e306",
+      "inlet_port_id": "callback_names",
+      "edge_type": "callback",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::frame@WebcamFrameEventNode_ba0ed6bd>>frame@WebcamFrameInfoDisplayNode_7a4a59be": {
+      "source_node_id": "WebcamFrameEventNode_ba0ed6bd",
+      "outlet_port_id": "frame",
+      "sink_node_id": "WebcamFrameInfoDisplayNode_7a4a59be",
+      "inlet_port_id": "frame",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::frame_ready@WebcamFrameEventNode_ba0ed6bd>>execute@WebcamFrameInfoDisplayNode_7a4a59be": {
+      "source_node_id": "WebcamFrameEventNode_ba0ed6bd",
+      "outlet_port_id": "frame_ready",
+      "sink_node_id": "WebcamFrameInfoDisplayNode_7a4a59be",
+      "inlet_port_id": "execute",
+      "edge_type": "control",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::frame_ready@WebcamFrameInfoDisplayNode_7a4a59be>>exec@PerformanceTester_9b8b677d": {
+      "source_node_id": "WebcamFrameInfoDisplayNode_7a4a59be",
+      "outlet_port_id": "frame_ready",
+      "sink_node_id": "PerformanceTester_9b8b677d",
+      "inlet_port_id": "exec",
+      "edge_type": "control",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::width@WebcamFrameInfoDisplayNode_7a4a59be>>float_inlet_1@PerformanceTester_9b8b677d": {
+      "source_node_id": "WebcamFrameInfoDisplayNode_7a4a59be",
+      "outlet_port_id": "width",
+      "sink_node_id": "PerformanceTester_9b8b677d",
+      "inlet_port_id": "float_inlet_1",
+      "edge_type": "data",
+      "chain_adapter_keys": [
+        "core:adapter:IntToFloatAdapter"
+      ],
+      "is_lazy": false
+    },
+    "edge::height@WebcamFrameInfoDisplayNode_7a4a59be>>float_inlet_2@PerformanceTester_9b8b677d": {
+      "source_node_id": "WebcamFrameInfoDisplayNode_7a4a59be",
+      "outlet_port_id": "height",
+      "sink_node_id": "PerformanceTester_9b8b677d",
+      "inlet_port_id": "float_inlet_2",
+      "edge_type": "data",
+      "chain_adapter_keys": [
+        "core:adapter:IntToFloatAdapter"
+      ],
+      "is_lazy": false
+    }
+  },
+  "variables": {}
+}
