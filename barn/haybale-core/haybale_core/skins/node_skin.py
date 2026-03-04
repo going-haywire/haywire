@@ -244,6 +244,51 @@ class NodeSkin(BaseSkin, ABC):
             """,
             )
 
+    def _render_root_ghost_pins(self, wrapper: NodeWrapper):
+        """
+        Render inline ghost pins into the current flex-row context (the header row).
+
+        Both are regular flex items — no absolute positioning.
+        The inlet appears first (order 0, left side of the row).
+        The outlet uses `order: 999` so flexbox places it last (right side),
+        after the node title and any conditional hidden-port pins.
+
+        Using inline flex items means getBoundingClientRect() always returns
+        correct screen coordinates for the JavaScript edge-drawing code,
+        regardless of which element acts as the CSS positioning context.
+        """
+        node_id = wrapper.node_id
+
+        # Inlet ghost pin — left side (natural order in flex row)
+        inlet_uuid = generate_pin_uuid(node_id, 'root_in')
+        (ui.element('div')
+            .classes('connection-pin zoom-pan-lod0')
+            .style(
+                'width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; '
+                'background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); '
+                'cursor: crosshair;'
+            )
+            .props(
+                f'id="{inlet_uuid}" data-node-id="{node_id}" data-pin-id="root_in" '
+                f'data-pin-flow-type="ghost" data-pin-dir="inlet" '
+                f'data-pin-dir-x="-1" data-pin-dir-y="0" data-pin-color="#888888"'
+            ))
+
+        # Outlet ghost pin — right side (order: 999 pushes it after all other flex items)
+        outlet_uuid = generate_pin_uuid(node_id, 'root_out')
+        (ui.element('div')
+            .classes('connection-pin zoom-pan-lod0')
+            .style(
+                'order: 999; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; '
+                'background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); '
+                'cursor: crosshair;'
+            )
+            .props(
+                f'id="{outlet_uuid}" data-node-id="{node_id}" data-pin-id="root_out" '
+                f'data-pin-flow-type="ghost" data-pin-dir="outlet" '
+                f'data-pin-dir-x="1" data-pin-dir-y="0" data-pin-color="#888888"'
+            ))
+
     def _render_errors_button(self, errors: List["HaywireException"]):
         """
         Render a button that shows runtime errors count and opens a popup with details.

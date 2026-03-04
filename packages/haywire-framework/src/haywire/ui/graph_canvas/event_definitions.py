@@ -275,14 +275,9 @@ class SyncCanvasClearEvent(BaseGraphEvent):
 class SyncAllEdgesEvent(BaseGraphEvent):
     edges: List[Dict[str, Any]]
 
-@graph_event("syncNodeObserverAdd", category="sync", description="Add node observer")
+@graph_event("syncNodeRedraw", category="sync", description="Node DOM was rebuilt — re-attach observer and redraw edges")
 @dataclass
-class SyncNodeObserverAddEvent(BaseGraphEvent):
-    nodeId: str
-
-@graph_event("syncNodeObserverRemove", category="sync", description="Remove node observer")
-@dataclass
-class SyncNodeObserverRemoveEvent(BaseGraphEvent):
+class SyncNodeRedrawEvent(BaseGraphEvent):
     nodeId: str
 
 @graph_event("syncEdgesUpdate", category="sync", description="Update connections for node")

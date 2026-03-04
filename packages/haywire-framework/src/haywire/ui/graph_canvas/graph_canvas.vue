@@ -88,7 +88,8 @@ export default {
             updateEdgesThrottled: false,
             resizeObserver: null,
             mutationObserver: null,
-            
+            _pendingNodeWatcher: null,
+
             // Store current zoom/pan state from the zoom container
             zoomState: {
                 zoom: 1,
@@ -130,7 +131,8 @@ export default {
 
     mounted() {
         console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
-        
+        this._pendingNodeIds = new Set();
+
         // Initialize component
         this._setupEventListeners();
         this._setupObservers();
@@ -170,6 +172,7 @@ export default {
                         if (nodeId && nodeElement.hasAttribute('data-node-id')) {
                             const styleText = nodeElement.style.cssText;
                             if (styleText.includes('left:') || styleText.includes('top:') || styleText.includes('transform:')) {
+                                console.log(`-->  _setupObservers(): ${nodeId}`);
                                 this._updateEdgesForNode(nodeId);
                             } 
                         }
@@ -232,6 +235,10 @@ export default {
                 this.resizeObserver.disconnect();
                 this.resizeObserver = null;
             }
+            if (this._pendingNodeWatcher) {
+                this._pendingNodeWatcher.disconnect();
+                this._pendingNodeWatcher = null;
+            }
         },
 
         // =============================================================================
@@ -268,11 +275,8 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_CANVAS_CLEAR:
                     this._syncCanvasClear();
                     break;
-                case GraphEvents.SyncCommands.SYNC_NODE_OBSERVER_ADD:
-                    this._syncNodeObserverAdd(data);
-                    break;
-                case GraphEvents.SyncCommands.SYNC_NODE_OBSERVER_REMOVE:
-                    this._syncNodeObserverRemove(data);
+                case GraphEvents.SyncCommands.SYNC_NODE_REDRAW:
+                    this._syncNodeRedraw(data);
                     break;
                 case GraphEvents.SyncCommands.SYNC_EDGES_UPDATE:
                     this._syncEdgesUpdate(data);
@@ -321,7 +325,9 @@ export default {
                 edgeInfo.opacity = opacity;
                 
                 // Trigger visual update
-                this._updateEdge(edge_id);
+                this.$nextTick(() => {
+                    this._updateEdge(edge_id);
+                });
                 
                 console.log(
                     `🔗 Vue updated connection: ${edge_id} -> ` +
@@ -440,14 +446,9 @@ export default {
 
 
 
-        _syncNodeObserverAdd(data) {
+        _syncNodeRedraw(data) {
             const { nodeId } = data;
             this._addNodeObserver(nodeId);
-        },
-
-        _syncNodeObserverRemove(data) {
-            const { nodeId } = data;
-            this._removeNodeObserver(nodeId);
         },
 
         _syncEdgesUpdate(data) {
@@ -472,6 +473,8 @@ export default {
             // 1. Check for connection pin FIRST - before anything else
             const pin = e.target.closest('.connection-pin');
             if (pin) {
+                // Ghost pins are fallback visual anchors only — not user-connectable
+                if (pin.dataset.pinFlowType === 'ghost') return;
                 this._startEdgeDrag(e, pin);
                 return;
             }
@@ -1208,6 +1211,7 @@ export default {
             
             document.querySelectorAll('.connection-pin').forEach(pin => {
                 if (pin === this.edgeState.startPin) return;
+                if (pin.dataset.pinFlowType === 'ghost') return; // Ghost pins are not connectable
 
                 const isValid = this._isValidEdge(this.edgeState.startPin, pin);
                 
@@ -1347,8 +1351,15 @@ export default {
             const outletPinUUID = this._buildPinUUID(sourceNodeId, outletPinId);
             const inletPinUUID = this._buildPinUUID(sinkNodeId, inletPinId);
 
-            const outletPin = document.getElementById(outletPinUUID);
-            const inletPin = document.getElementById(inletPinUUID);
+            let outletPin = document.getElementById(outletPinUUID);
+            let inletPin = document.getElementById(inletPinUUID);
+
+            if (!outletPin) {
+                outletPin = this._findPinInHierarchy(sourceNodeId, outletPinFallback);
+            }
+            if (!inletPin) {
+                inletPin = this._findPinInHierarchy(sinkNodeId, inletPinFallback);
+            }
 
             if (!outletPin || !inletPin) {
                 console.error(`🔗 Vue could not find pins:`, {
@@ -1488,10 +1499,8 @@ export default {
                 const pinElement = document.getElementById(pinUUID);
                 
                 if (pinElement) {
-                    const isGhost = portId === 'root';
-                    console.log(
-                        `🔍 Found ${isGhost ? 'ghost' : 'fallback'} pin: ` +
-                        `${pinUUID} (hierarchy level ${i})`
+                    console.debug(
+                        `🔍 Found fallback pin: ${pinUUID} (hierarchy level ${i})`
                     );
                     return pinElement;
                 }
@@ -1511,8 +1520,21 @@ export default {
                 return;
             }
 
-            const outletPin = document.getElementById(edgeInfo.outletPinUUID);
-            const inletPin = document.getElementById(edgeInfo.inletPinUUID);
+            // If either endpoint node is pending (canvas detached), skip silently —
+            // _updateEdgesForNode will be called once the node appears in the live DOM.
+            if (this._pendingNodeIds.has(edgeInfo.outletNodeId) || this._pendingNodeIds.has(edgeInfo.inletNodeId)) {
+                return;
+            }
+
+            let outletPin = document.getElementById(edgeInfo.outletPinUUID);
+            let inletPin = document.getElementById(edgeInfo.inletPinUUID);
+
+            if (!outletPin) {
+                outletPin = this._findPinInHierarchy(edgeInfo.outletNodeId, edgeInfo.outletPinFallback);
+            }
+            if (!inletPin) {
+                inletPin = this._findPinInHierarchy(edgeInfo.inletNodeId, edgeInfo.inletPinFallback);
+            }
 
             if (!outletPin || !inletPin) {
                 console.error(`Failed to find pins for connection: ${edge_id}`);
@@ -1579,33 +1601,62 @@ export default {
         },
 
         _addNodeObserver(nodeId) {
-            const attemptAddObserver = (retryCount = 0) => {
-                const nodeElement = document.getElementById(nodeId);
-                if (nodeElement) {
-                    console.log(`[GraphCanvas] Adding observer for node ${nodeId}`, nodeElement);
-                    this._setupHoverObserver(nodeElement);
-                } else if (retryCount < 3) {
-                    setTimeout(() => attemptAddObserver(retryCount + 1), 100);
-                } else {
-                    console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found after 3 retries. Unable to observe.`);
-                }
-            };
-            attemptAddObserver();
-        },
-
-        _removeNodeObserver(nodeId) {
-            // Find the node element by ID
             const nodeElement = document.getElementById(nodeId);
             if (nodeElement) {
-                console.log(`[GraphCanvas] Removing observer for node ${nodeId}`);
-                // Note: MutationObserver doesn't have a way to unobserve specific elements
-                // This would require tracking observed elements separately if needed
-                // For now, we just log the removal
+                this._setupHoverObserver(nodeElement);
             } else {
-                console.warn(`[GraphCanvas] Node element with ID ${nodeId} not found for removal`);
+                // Element not in DOM yet (e.g. canvas editor is not the active panel).
+                // Park it in the pending set; _ensurePendingNodeWatcher will pick it up
+                // whenever the element appears, and also redraw its edges at that point.
+                console.log(`[PendingObserver] Node ${nodeId} not in DOM — parked for deferred observation. Pending count: ${this._pendingNodeIds.size + 1}`);
+                this._pendingNodeIds.add(nodeId);
+                this._ensurePendingNodeWatcher();
             }
         },
 
+        _ensurePendingNodeWatcher() {
+            if (this._pendingNodeWatcher) {
+                console.log(`[PendingObserver] Watcher already running, skipping setup.`);
+                return;
+            }
+
+            const container = this.$refs.nodeContainer;
+            if (!container) {
+                console.warn(`[PendingObserver] nodeContainer ref not available — cannot start watcher.`);
+                return;
+            }
+
+            // Watch document.body (not nodeContainer) so the observer fires even when the
+            // canvas editor is detached from the live document. When the user switches back
+            // to the graph editor, the canvas re-attaches to body and this fires immediately.
+            console.log(`[PendingObserver] Starting MutationObserver on document.body. nodeContainer.isConnected=${container.isConnected}`);
+            this._pendingNodeWatcher = new MutationObserver((mutations) => {
+                console.log(`[PendingObserver] MutationObserver fired (${mutations.length} mutations). Pending nodes: ${this._pendingNodeIds.size}`);
+                if (this._pendingNodeIds.size === 0) return;
+
+                for (const nodeId of [...this._pendingNodeIds]) {
+                    const nodeElement = document.getElementById(nodeId);
+                    if (nodeElement) {
+                        console.log(`[PendingObserver] Found pending node ${nodeId} — setting up observer and redrawing edges.`);
+                        this._pendingNodeIds.delete(nodeId);
+                        this._setupHoverObserver(nodeElement);
+                        this._updateEdgesForNode(nodeId);
+                    } else {
+                        console.log(`[PendingObserver] Still waiting for node ${nodeId}.`);
+                    }
+                }
+
+                // All pending nodes resolved — stop watching to save resources
+                if (this._pendingNodeIds.size === 0) {
+                    console.log(`[PendingObserver] All pending nodes resolved — disconnecting watcher.`);
+                    this._pendingNodeWatcher.disconnect();
+                    this._pendingNodeWatcher = null;
+                }
+            });
+
+            this._pendingNodeWatcher.observe(document.body, { childList: true, subtree: true });
+            console.log(`[PendingObserver] Watcher active on document.body.`);
+        },
 
         // =============================================================================
         // VISUAL SELECTION UPDATES
@@ -1938,6 +1989,7 @@ export default {
             const updateCount = Math.max(3, Math.min(8, Math.ceil(animationDuration / 50)));
             const interval = animationDuration / updateCount;
 
+            console.log(`-->  _scheduleEdgeUpdates(): ${nodeId}`);
             for (let i = 1; i <= updateCount; i++) {
                 const delay = interval * i;
                 const timer = setTimeout(() => {

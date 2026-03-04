@@ -38,8 +38,6 @@ from .event_definitions import (
     NodeCreateRequestEvent,
     UserCopySelectedEvent,
     UserPasteClipboardEvent,
-    SyncNodeObserverAddEvent,
-    SyncNodeObserverRemoveEvent,
     SyncNodePositionEvent,
     SyncEdgeAdditionEvent,
     SyncEdgeRemovalEvent,
@@ -600,7 +598,7 @@ class GraphCanvasManager:
                 # Full redraw needed
                 ui_node = self.node_panels.get(node_id)
                 if ui_node:
-                    ui_node.refresh(reason)  # Full re-render
+                    self.refresh_node_visual(ui_node, reason) 
                     logger.debug(f"  🔄 Redrawn node: {node_id} ({reason.value})")
 
         # Process edges by reason
@@ -721,14 +719,16 @@ class GraphCanvasManager:
                 ui_node.position = position
                 self.node_panels[node_id] = ui_node
                 
-                sync_event = SyncNodeObserverAddEvent(nodeId=node_id)
-                self.canvas_vue.emit_sync_event(sync_event)
-
                 logger.debug(f"Setup Vue observers for {node_id}")
         
         logger.debug(f"Successfully added node visual for {node_id}")
         return True
-            
+    
+    def refresh_node_visual(self, ui_node: UINode, reason: ChangeReason) -> bool:
+        """Refresh a node's visual representation."""
+        ui_node.refresh(reason)  # Full re-render
+
+        
     def remove_node_visual(self, node_id: str) -> bool:
         """Remove a node's visual representation."""
         if node_id not in self.node_panels:
@@ -751,9 +751,6 @@ class GraphCanvasManager:
         
         # Remove from selection
         self.selected_nodes.discard(node_id)
-        
-        sync_event = SyncNodeObserverRemoveEvent(nodeId=node_id)
-        self.canvas_vue.emit_sync_event(sync_event)
         
         return True
 

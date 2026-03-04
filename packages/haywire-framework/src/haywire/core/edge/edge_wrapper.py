@@ -153,10 +153,10 @@ class EdgeWrapper:
         )
 
         # the fallback port hierarchies for edge reconnection in case
-        # the ports are hidden inside groups
-        self.outletPinFallback: str = 'outlet_port_id>>root'
-        self.inletPinFallback: str = 'inlet_port_id>>root'
-        
+        # the ports are hidden inside groups or the skin failed to render them
+        self.outletPinFallback: str = f'{self.outlet_port_id}>>root_out'
+        self.inletPinFallback: str = f'{self.inlet_port_id}>>root_in'
+
         # Reference to parent graph
         self._graph: Optional['BaseGraph'] = graph
 
@@ -651,8 +651,6 @@ class EdgeWrapper:
             self._outlet_port = outlet_node.ports.get(self.outlet_port_id)
             self._inlet_port = inlet_node.ports.get(self.inlet_port_id)
 
-            self.outletPinFallback = self._source_wrapper.node.get_port_hierarchy(self.outlet_port_id)
-            self.inletPinFallback = self._sink_wrapper.node.get_port_hierarchy(self.inlet_port_id)
 
             # Determine edge type if not set
             if self._edge_type is None:

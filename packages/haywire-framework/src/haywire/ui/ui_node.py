@@ -16,7 +16,7 @@ from haywire.core.node.base import BaseNode
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.node_wrapper import NodeWrapper
 
-from haywire.ui.graph_canvas.event_definitions import SyncNodePositionEvent
+from haywire.ui.graph_canvas.event_definitions import SyncNodeRedrawEvent
 from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.skin.factory import SkinFactory, NO_SKIN_DEFINED
 
@@ -202,8 +202,8 @@ class UINode:
                 if error:
                     self.current_ui_card.append(error)  # Append error details if any
 
-                self._emit_sync_event()
-                
+                self._emit_sync_event_redraw()
+
                 return True  # Render successful
         except Exception as e:
             # Clean up old widgets before clearing UI
@@ -214,7 +214,7 @@ class UINode:
             if self.container_slot:
                 try:
                     self.container_slot.clear()
-                except:
+                except Exception:
                     pass  # Ignore errors during error cleanup
 
             self.container_slot = None
@@ -230,19 +230,16 @@ class UINode:
 
             return False    
 
-    def _emit_sync_event(self):
+    def _emit_sync_event_redraw(self):
         """
-        Emit a synchronization event for UI updates if emitter is registered.
-        This updateds the vue component position to match the HaywireNode position
-        but most importantly updates all the connection lines.
+        Emit a redraw event after the node DOM has been rebuilt.
+        Vue will re-attach the hover observer and redraw all connected edges,
+        using the pending-set / MutationObserver pattern if the canvas is not
+        currently the active panel.
         """
-        logging.debug(f"UINode {self.wrapper.node_id}: Emitting sync event for position update.")
+        logging.debug(f"UINode {self.wrapper.node_id}: Emitting sync redraw event.")
         if self.sync_event_emitter:
-            node = self.wrapper.node
-            sync_event = SyncNodePositionEvent(
-                nodeId=node.node_id,
-                position={'x': node.ui.state.posX, 'y': node.ui.state.posY}
-            )
+            sync_event = SyncNodeRedrawEvent(nodeId=self.wrapper.node_id)
             self.sync_event_emitter(sync_event)
 
     def get_widget_instance(self, element_id: str):

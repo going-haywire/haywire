@@ -1,5 +1,5 @@
 // Auto-generated from Python event definitions
-// DO NOT EDIT MANUALLY - Run `python generate_vue_events.py` to update
+// DO NOT EDIT MANUALLY - Run `python ./scripts/generate_vue_events.py` to update
 
 // Event type constants - Make available globally
 window.GraphEvents = {
@@ -7,16 +7,19 @@ window.GraphEvents = {
     USER_DRAG_START: 'userDragStart', // User started dragging nodes
     USER_DRAG_UPDATE: 'userDragUpdate', // User is dragging nodes
     USER_DRAG_END: 'userDragEnd', // User finished dragging nodes
-    USER_REMOVE: 'userRemove', // User wants to remove elements
     NODE_CREATE_REQUEST: 'nodeCreateRequest', // Request to create node from context menu
-    EDGE_CREATED: 'edgeCreated', // New edge created
-    EDGE_CLICKED: 'edgeClicked', // Edge clicked
+    EDGE_CREATED: 'edgeCreated', // New connection created
+    EDGE_CLICKED: 'edgeClicked', // Connection clicked
+    ELEMENT_REDRAW: 'elementRedraw', // redraw selected element
+    ELEMENT_RESET: 'elementReset', // reset selected element
+    ELEMENT_REVALIDATE: 'elementRevalidate', // revalidate selected element
     SELECTION_CHANGED: 'selectionChanged', // Selection state changed
+    USER_REMOVE: 'userRemove', // User wants to remove elements
+    USER_COPY_SELECTED: 'userCopySelected', // Copy selected elements to clipboard
     CONTEXT_MENU_CANVAS: 'contextMenuCanvas', // Canvas context menu triggered
     CONTEXT_MENU_NODE: 'contextMenuNode', // Node context menu triggered
-    CONTEXT_MENU_EDGE: 'contextMenuEdge', // Edge context menu triggered
+    CONTEXT_MENU_EDGE: 'contextMenuEdge', // Connection context menu triggered
     CONTEXT_MENU_SELECTED: 'contextMenuSelected', // Context menu triggered on selected elements
-    USER_COPY_SELECTED: 'userCopySelected', // Copy selected elements to clipboard
     USER_PASTE_CLIPBOARD: 'userPasteClipboard', // Paste clipboard contents
   },
   
@@ -24,14 +27,13 @@ window.GraphEvents = {
     SYNC_NODE_ADDITION: 'syncNodeAddition', // Sync node addition to UI
     SYNC_NODE_REMOVAL: 'syncNodeRemoval', // Sync node removal from UI
     SYNC_NODE_POSITION: 'syncNodePosition', // Sync node position to UI
-    SYNC_EDGE_ADDITION: 'syncEdgeAddition', // Sync edge addition/update to UI with visual properties
-    SYNC_EDGE_REMOVAL: 'syncEdgeRemoval', // Sync edge removal from UI
+    SYNC_EDGE_ADDITION: 'syncEdgeAddition', // Sync connection addition/update to UI with visual properties
+    SYNC_EDGE_REMOVAL: 'syncEdgeRemoval', // Sync connection removal from UI
     SYNC_SELECTIONS: 'syncSelections', // Sync selection state to UI
     SYNC_CANVAS_CLEAR: 'syncCanvasClear', // Clear entire canvas
-    SYNC_ALL_EDGES: 'syncAllEdges', // Sync all edges to UI
-    SYNC_NODE_OBSERVER_ADD: 'syncNodeObserverAdd', // Add node observer
-    SYNC_NODE_OBSERVER_REMOVE: 'syncNodeObserverRemove', // Remove node observer
-    SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update edges for node
+    SYNC_ALL_EDGES: 'syncAllEdges', // Sync all connections to UI
+    SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
+    SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
   }
 };
 
@@ -67,16 +69,6 @@ window.EventCreators = {
     };
   },
 
-  createUserRemove(nodes, edges, sessionId = 'default') {
-    return {
-      event_type: 'userRemove',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { nodes, edges },
-      requires_broadcast: true
-    };
-  },
-
   createNodeCreateRequest(registryKey, position, sessionId = 'default') {
     return {
       event_type: 'nodeCreateRequest',
@@ -107,9 +99,59 @@ window.EventCreators = {
     };
   },
 
+  createElementRedraw(nodes, edges, sessionId = 'default') {
+    return {
+      event_type: 'elementRedraw',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodes, edges },
+      requires_broadcast: true
+    };
+  },
+
+  createElementReset(nodes, edges, sessionId = 'default') {
+    return {
+      event_type: 'elementReset',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodes, edges },
+      requires_broadcast: true
+    };
+  },
+
+  createElementRevalidate(nodes, edges, sessionId = 'default') {
+    return {
+      event_type: 'elementRevalidate',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodes, edges },
+      requires_broadcast: true
+    };
+  },
+
   createSelectionChanged(selectedNodes, selectedEdges, sessionId = 'default') {
     return {
       event_type: 'selectionChanged',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { selectedNodes, selectedEdges },
+      requires_broadcast: true
+    };
+  },
+
+  createUserRemove(nodes, edges, sessionId = 'default') {
+    return {
+      event_type: 'userRemove',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodes, edges },
+      requires_broadcast: true
+    };
+  },
+
+  createUserCopySelected(selectedNodes, selectedEdges, sessionId = 'default') {
+    return {
+      event_type: 'userCopySelected',
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { selectedNodes, selectedEdges },
@@ -157,16 +199,6 @@ window.EventCreators = {
     };
   },
 
-  createUserCopySelected(selectedNodes, selectedEdges, sessionId = 'default') {
-    return {
-      event_type: 'userCopySelected',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { selectedNodes, selectedEdges },
-      requires_broadcast: true
-    };
-  },
-
   createUserPasteClipboard(canvasX, canvasY, sessionId = 'default') {
     return {
       event_type: 'userPasteClipboard',
@@ -195,18 +227,13 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
-  validateUserRemove(data) {
-    const requiredFields = ["nodes", "connections"];
-    return requiredFields.every(field => field in data);
-  },
-
   validateNodeCreateRequest(data) {
     const requiredFields = ["registryKey", "position"];
     return requiredFields.every(field => field in data);
   },
 
   validateEdgeCreated(data) {
-    const requiredFields = ["outputNodeId", "outletPinId", "inputNodeId", "inletPinId"];
+    const requiredFields = ["sourceNodeId", "outletPinId", "sinkNodeId", "inletPinId"];
     return requiredFields.every(field => field in data);
   },
 
@@ -215,7 +242,32 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
+  validateElementRedraw(data) {
+    const requiredFields = ["nodes", "edges"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateElementReset(data) {
+    const requiredFields = ["nodes", "edges"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateElementRevalidate(data) {
+    const requiredFields = ["nodes", "edges"];
+    return requiredFields.every(field => field in data);
+  },
+
   validateSelectionChanged(data) {
+    const requiredFields = ["selectedNodes", "selectedEdges"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateUserRemove(data) {
+    const requiredFields = ["nodes", "edges"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateUserCopySelected(data) {
     const requiredFields = ["selectedNodes", "selectedEdges"];
     return requiredFields.every(field => field in data);
   },
@@ -237,11 +289,6 @@ window.EventValidators = {
 
   validateContextMenuSelected(data) {
     const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "selectedNodes", "selectedEdges"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateUserCopySelected(data) {
-    const requiredFields = ["selectedNodes", "selectedEdges"];
     return requiredFields.every(field => field in data);
   },
 

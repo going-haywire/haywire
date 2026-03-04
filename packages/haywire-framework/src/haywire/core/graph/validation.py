@@ -262,14 +262,21 @@ class ValidationManager:
         start_time = time.perf_counter()
 
         with self._validation_lock:
-            # Snapshot dirty elements with their reasons        
+            # Snapshot dirty elements with their reasons
             dirty_nodes = dict(self._dirty_nodes)
             dirty_edges = dict(self._dirty_edges)
             dirty_graph = self._dirty_graph
-            
+
+            # Clear immediately so any dirty marks added during validation
+            # (re-entrant via RLock) are preserved for the next batch.
+            self._dirty_nodes.clear()
+            self._dirty_edges.clear()
+            self._dirty_graph = None
+
             logger.info(
                 f"Starting validation batch: "
-                f"{len(dirty_nodes)} nodes, {len(dirty_edges)} edges"
+                f"{len(dirty_nodes)} nodes, {len(dirty_edges)} edges, "
+                f"{dirty_graph.value if dirty_graph else 'no graph change'}"
             )
             
             # Result will contain all changed elements with their reasons
@@ -410,18 +417,13 @@ class ValidationManager:
                 validation_time_ms=validation_time_ms
             )
             
-            # Clear dirty tracking
-            self._dirty_nodes.clear()
-            self._dirty_edges.clear()
-            self._dirty_graph = None
-            
             # Update statistics
             self._validation_count += 1
             self._last_validation_time = time.time()
             self._total_validation_time_ms += validation_time_ms
             
             logger.info(
-                f"Validation complete: {result.total_changes} changes in "
+                f"Validation complete: {len(result.nodes)} nodes, {len(result.edges)} edges in "
                 f"{validation_time_ms:.2f}ms"
             )
             

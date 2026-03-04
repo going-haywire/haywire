@@ -53,6 +53,10 @@ class DefaultNodeSkin(NodeSkin):
 
             # Header with node label and ghost pins for hidden connected ports
             with ui.row().classes('drag-handle w-full items-center'):
+                # Root ghost pins — always-present fallback connection anchors,
+                # positioned at the left/right edges of the header row
+                self._render_root_ghost_pins(wrapper)
+
                 # Ghost pins for hidden inlet connections (left side)
                 hidden_inlets = node.get_hidden_connected_ports(is_inlet=True)
                 if hidden_inlets:
@@ -62,14 +66,14 @@ class DefaultNodeSkin(NodeSkin):
 
                 # Node title (centered/flexible)
                 ui.label(node.identity.label).classes('text-h6 flex-grow')
-               
+
                 # Ghost pins for hidden outlet connections (right side)
                 hidden_outlets = node.get_hidden_connected_ports(is_inlet=False)
                 if hidden_outlets:
                     with ui.column().classes('gap-0 items-center'):
                         for port in hidden_outlets:
                             self._render_pin(port, wrapper, direction='right')
-           
+
                 if runtime_errors:
                     if wrapper._alternate_registry_keys:
                         ui.label(
