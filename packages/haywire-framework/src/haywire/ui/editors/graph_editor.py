@@ -85,10 +85,10 @@ class GraphEditor(BaseEditor):
                 # ---- slim header bar ----
                 with ui.row().classes(
                     'w-full items-center px-3 gap-2 flex-shrink-0 border-b'
-                ).style('min-height: 32px; background: #1a1a2e;'):
-                    ui.icon('account_tree', size='14px').classes('text-gray-500')
+                ).style('min-height: 32px; background: var(--hw-bg-surface);'):
+                    ui.icon('account_tree', size='14px').classes('hw-text-dim')
                     self._graph_name_label = ui.label('Untitled').classes(
-                        'text-xs text-gray-400 truncate font-mono flex-1'
+                        'text-xs hw-text-muted truncate font-mono flex-1'
                     )
                     ui.button(
                         icon='save',
@@ -125,12 +125,12 @@ class GraphEditor(BaseEditor):
         if entry is None:
             # No graph is active — show a welcome/empty placeholder.
             with ui.column().classes('w-full h-full items-center justify-center gap-3'):
-                ui.icon('account_tree', size='48px').classes('text-gray-600')
-                ui.label('No graph open').classes('text-gray-400 text-sm')
+                ui.icon('account_tree', size='48px').classes('hw-text-dim')
+                ui.label('No graph open').classes('hw-text-muted text-sm')
                 ui.label(
                     'Use the Graphs panel ( layers ) to create a new graph,\n'
                     'or open a .haywire file from the File Browser.'
-                ).classes('text-gray-600 text-xs text-center whitespace-pre-line')
+                ).classes('hw-text-dim text-xs text-center whitespace-pre-line')
             return
 
         self._canvas_manager = GraphCanvasManager(
@@ -165,15 +165,15 @@ class GraphEditor(BaseEditor):
         entry = self._get_entry(context)
         if entry is None:
             self._graph_name_label.text = 'No graph'
-            self._graph_name_label.classes(remove='text-gray-200', add='text-gray-600')
+            self._graph_name_label.classes(remove='hw-text-body hw-text-muted', add='hw-text-dim')
         elif context.active_graph_path is not None:
             name = Path(context.active_graph_path).name
             self._graph_name_label.text = ('● ' if entry.unsaved else '') + name
-            self._graph_name_label.classes(remove='text-gray-400 text-gray-600', add='text-gray-200')
+            self._graph_name_label.classes(remove='hw-text-muted hw-text-dim', add='hw-text-body')
         else:
             # Unnamed / not-yet-saved graph
             self._graph_name_label.text = '● ' + entry.display_name
-            self._graph_name_label.classes(remove='text-gray-200 text-gray-600', add='text-gray-400')
+            self._graph_name_label.classes(remove='hw-text-body hw-text-dim', add='hw-text-muted')
 
     # ------------------------------------------------------------------
     # context changes
@@ -305,8 +305,8 @@ class GraphEditor(BaseEditor):
 
                 # Read-only workspace prefix shown above the input
                 with ui.row().classes('w-full items-center gap-1 px-1').style(
-                    'background: rgba(255,255,255,0.04); border-radius: 4px;'
-                    ' border: 1px solid rgba(255,255,255,0.1);'
+                    'background: var(--hw-bg-page); border-radius: 4px;'
+                    ' border: 1px solid var(--hw-border);'
                 ):
                     ui.icon('folder', size='14px').classes('text-gray-500 flex-shrink-0')
                     self._save_base_dir_label = ui.label('').classes(

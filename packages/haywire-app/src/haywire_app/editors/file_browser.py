@@ -106,7 +106,8 @@ class FileBrowserEditor(BaseEditor):
                 node_key='id',
                 on_select=lambda e: self._on_select(e.value, context),
             ).classes('w-full text-sm')
-            tree.expand()
+            #tree.collapse()
+            tree.expand(['graphs'])  # expand root level
 
     def _build_tree_nodes(self, path: Path, depth: int = 0) -> list:
         """Recursively build ui.tree node dicts from the filesystem."""

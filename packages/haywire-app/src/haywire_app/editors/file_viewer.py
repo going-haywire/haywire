@@ -67,10 +67,10 @@ class FileViewerEditor(BaseEditor):
                 # Slim header showing the open file path
                 with ui.row().classes(
                     'w-full items-center px-3 gap-2 flex-shrink-0 border-b'
-                ).style('min-height: 32px; background: #1a1a2e;'):
-                    ui.icon('description', size='14px').classes('text-gray-500')
+                ).style('min-height: 32px; background: var(--hw-bg-page);'):
+                    ui.icon('description', size='14px').classes('hw-text-dim')
                     self._header_label = ui.label('No file open').classes(
-                        'text-xs text-gray-500 truncate font-mono flex-1'
+                        'text-xs hw-text-muted truncate font-mono flex-1'
                     )
 
                 # Content area — cleared and rebuilt on every FILE_SELECTED event
@@ -83,8 +83,8 @@ class FileViewerEditor(BaseEditor):
         with ui.column().classes(
             'w-full items-center justify-center gap-3'
         ).style('padding: 80px 0;'):
-            ui.icon('folder_open', size='40px').classes('text-gray-700')
-            ui.label('Select a file from the Files panel').classes('text-sm text-gray-500')
+            ui.icon('folder_open', size='40px').classes('hw-text-dim')
+            ui.label('Select a file from the Files panel').classes('text-sm hw-text-muted')
 
     def on_context_changed(
         self, event: 'ContextChangedEvent', context: 'SessionContext'
@@ -100,7 +100,7 @@ class FileViewerEditor(BaseEditor):
         # Update header
         if self._header_label is not None:
             self._header_label.text = str(path)
-            self._header_label.classes(remove='text-gray-500', add='text-gray-300')
+            self._header_label.classes(remove='hw-text-muted', add='hw-text-body')
 
         if self._content_area is None:
             return
@@ -131,9 +131,9 @@ class FileViewerEditor(BaseEditor):
             content = path.read_text(encoding='utf-8')
         except UnicodeDecodeError:
             with ui.column().classes('w-full items-center gap-3').style('padding: 60px 0;'):
-                ui.icon('block', size='36px').classes('text-gray-600')
+                ui.icon('block', size='36px').classes('hw-text-dim')
                 ui.label('Binary file — cannot display as text').classes(
-                    'text-sm text-gray-400'
+                    'text-sm hw-text-muted'
                 )
             return
         except OSError as exc:
@@ -145,12 +145,12 @@ class FileViewerEditor(BaseEditor):
 
         # File info bar
         with ui.row().classes('w-full items-center gap-2 px-3 py-1 border-b flex-shrink-0').style(
-            'background: #12121e; min-height: 28px;'
+            'background: var(--hw-bg-surface); min-height: 28px;'
         ):
-            ui.label(path.name).classes('text-xs font-medium text-gray-300')
+            ui.label(path.name).classes('text-xs font-medium hw-text-body')
             if lang:
                 ui.badge(lang).props('color=blue-grey rounded outline').classes('text-xs')
-            ui.label(f'{size:,} B').classes('text-xs text-gray-600 ml-auto')
+            ui.label(f'{size:,} B').classes('text-xs hw-text-dim ml-auto')
 
         # Content
         if ext == '.md':

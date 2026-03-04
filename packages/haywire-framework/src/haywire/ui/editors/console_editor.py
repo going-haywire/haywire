@@ -56,8 +56,8 @@ class ConsoleEditor(BaseEditor):
     def render(self, container, context: 'SessionContext') -> None:
         with container:
             self._log_element = ui.log(max_lines=500).classes(
-                'w-full h-full font-mono text-xs bg-gray-900 text-green-400 p-2'
-            )
+                'w-full h-full font-mono text-xs p-2'
+            ).style('background: var(--hw-console-bg); color: var(--hw-console-text);')
         self._handler = _LogHandler(self._log_element)
         self._handler.setFormatter(
             logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s', datefmt='%H:%M:%S')

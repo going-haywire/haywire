@@ -75,29 +75,50 @@ class AppShell:
         # Remove NiceGUI's default content padding so the shell fills the viewport.
         # Area-level tab panels must not scroll — editors own their scroll behaviour.
         ui.add_css(
-            # Page background — override NiceGUI/Quasar white default
-            ' body, .q-page, .q-tab-panels { background: #12121e !important; }'
+            # Colour tokens — light defaults; overridden when Quasar dark mode is active
+            ' :root {'
+            '   --hw-bg-page: #f8f8fc; --hw-bg-surface: #e8e8f0; --hw-bg-sidebar: #f0f0f8;'
+            '   --hw-border: rgba(0,0,0,0.15);'
+            '   --hw-text: rgba(0,0,0,0.87); --hw-text-muted: rgba(0,0,0,0.55);'
+            '   --hw-text-icon: rgba(0,0,0,0.6); --hw-text-expansion: rgba(0,0,0,0.8);'
+            '   --hw-accent: #4f8ef7; --hw-statusbar-bg: #1565c0;'
+            '   --hw-console-bg: #f0f0f0; --hw-console-text: rgba(0,0,0,0.87);'
+            ' }'
+            ' body.body--dark {'
+            '   --hw-bg-page: #12121e; --hw-bg-surface: #1e1e2e; --hw-bg-sidebar: #181825;'
+            '   --hw-border: #333333;'
+            '   --hw-text: rgba(255,255,255,0.87); --hw-text-muted: rgba(255,255,255,0.55);'
+            '   --hw-text-icon: rgba(255,255,255,0.6); --hw-text-expansion: rgba(255,255,255,0.8);'
+            '   --hw-accent: #4f8ef7; --hw-statusbar-bg: #1e3a5f;'
+            '   --hw-console-bg: #0d1117; --hw-console-text: #4ade80;'
+            ' }'
+            # Page background
+            ' body, .q-page, .q-tab-panels { background: var(--hw-bg-page) !important; }'
             # Layout
             ' .nicegui-content { padding: 0 !important; max-width: none !important;'
             ' height: 100vh !important; overflow: hidden !important; }'
             ' .q-tab-panels > .q-panel-parent > .q-panel.scroll'
             ' { overflow: hidden !important; }'
-            # Middle-area tab bar — force white text on dark background
-            ' .hw-tabs .q-tab { color: rgba(255,255,255,0.55) !important; }'
-            ' .hw-tabs .q-tab--active { color: #ffffff !important; }'
-            ' .hw-tabs .q-tab__indicator { background: #4f8ef7 !important; }'
+            # Middle-area tab bar
+            ' .hw-tabs .q-tab { color: var(--hw-text-muted) !important; }'
+            ' .hw-tabs .q-tab--active { color: var(--hw-text) !important; }'
+            ' .hw-tabs .q-tab__indicator { background: var(--hw-accent) !important; }'
             ' .hw-tabs .q-tab__label { font-size: 12px; }'
             # All editor area containers and their child text
-            ' .hw-dark-panel, .hw-dark-panel * { color: rgba(255,255,255,0.87); }'
-            # Expansion items inside dark area editors (PropertiesEditor, etc.)
+            ' .hw-dark-panel, .hw-dark-panel * { color: var(--hw-text); }'
+            # Expansion items inside area editors (PropertiesEditor, etc.)
             ' .hw-dark-panel .q-expansion-item { background: transparent; }'
-            ' .hw-dark-panel .q-expansion-item__header { color: rgba(255,255,255,0.8) !important; }'
-            ' .hw-dark-panel .q-icon { color: rgba(255,255,255,0.6) !important; }'
+            ' .hw-dark-panel .q-expansion-item__header { color: var(--hw-text-expansion) !important; }'
+            ' .hw-dark-panel .q-icon:not(.connection-pin) { color: var(--hw-text-icon) !important; }'
+            # Semantic text helpers — use these instead of fixed Tailwind grays in UI chrome
+            ' .hw-text-body  { color: var(--hw-text) !important; }'
+            ' .hw-text-muted { color: var(--hw-text-muted) !important; }'
+            ' .hw-text-dim   { color: var(--hw-text-icon) !important; }'
             # Drag-resize handles between areas
             ' .hw-area-divider { background: transparent; transition: background-color 0.15s; }'
-            ' .hw-area-divider:hover { background-color: #4f8ef7 !important; }'
+            ' .hw-area-divider:hover { background-color: var(--hw-accent) !important; }'
             ' .hw-area-vdivider { background: transparent; transition: background-color 0.15s; }'
-            ' .hw-area-vdivider:hover { background-color: #4f8ef7 !important; }'
+            ' .hw-area-vdivider:hover { background-color: var(--hw-accent) !important; }'
         )
         ui.add_head_html('''<script>
 (function () {
@@ -194,8 +215,8 @@ class AppShell:
                 if ws.left.editor_key:
                     with ui.column().classes('gap-0').style(
                         f'width: {ws.left.size}px; min-width: 150px; '
-                        f'height: 100%; overflow: hidden; border-right: 1px solid #333;'
-                        ' background: #12121e;'
+                        f'height: 100%; overflow: hidden; border-right: 1px solid var(--hw-border);'
+                        ' background: var(--hw-bg-page);'
                     ) as left_col:
                         self._left_column = left_col
                         self._render_area('left', ws.left.editor_key)
@@ -228,8 +249,8 @@ class AppShell:
 
                     with ui.column().classes('gap-0').style(
                         f'width: {ws.right.size}px; min-width: 150px; '
-                        f'height: 100%; overflow: hidden; border-left: 1px solid #333;'
-                        ' background: #12121e;'
+                        f'height: 100%; overflow: hidden; border-left: 1px solid var(--hw-border);'
+                        ' background: var(--hw-bg-page);'
                     ) as right_col:
                         self._right_column = right_col
                         self._render_area('right', ws.right.editor_key)
@@ -252,9 +273,10 @@ class AppShell:
         wm = self.session.workspace_manager
         ws = wm.active
         with ui.row().classes('w-full items-center px-3 gap-3').style(
-            'height: 48px; min-height: 48px; background: #1e1e2e; border-bottom: 1px solid #333;'
+            'height: 48px; min-height: 48px;'
+            ' background: var(--hw-bg-surface); border-bottom: 1px solid var(--hw-border);'
         ):
-            ui.label('Haywire').classes('text-white font-bold text-lg')
+            ui.label('Haywire').classes('font-bold text-lg')
             ui.label('|').classes('text-gray-600')
 
             # Workspace switcher
@@ -263,7 +285,7 @@ class AppShell:
                 options=preset_names,
                 value=ws.name,
                 label=None,
-            ).props('dense dark outlined').classes('text-sm').style('min-width: 160px;')
+            ).props('dense outlined').classes('text-sm').style('min-width: 160px;')
 
             def _on_workspace_switch(e):
                 value = e.value if hasattr(e, 'value') else (e.args[0] if e.args else None)
@@ -282,6 +304,9 @@ class AppShell:
                 on_click=lambda: (wm.save_current(), ui.notify('Workspace saved', position='top-right')),
             ).props('flat round dense color=grey').tooltip('Save current workspace').classes('text-gray-400')
 
+            dark = ui.dark_mode(value=True)
+            ui.switch('Dark mode').bind_value(dark)
+            
     def _render_activity_bar(self) -> None:
         """Render the activity bar (left icon strip) that drives the Left Area."""
         ws = self.session.workspace_manager.active
@@ -293,7 +318,7 @@ class AppShell:
 
         with ui.column().classes('items-center justify-start gap-1 py-2').style(
             'width: 48px; min-width: 48px; height: 100%; '
-            'background: #181825; border-right: 1px solid #333; overflow: hidden;'
+            'background: var(--hw-bg-sidebar); border-right: 1px solid var(--hw-border); overflow: hidden;'
         ):
             # Left panel toggle at the top of the bar.
             # Visible → mirrored login (fold in); hidden → plain logout (fold out).
@@ -332,7 +357,7 @@ class AppShell:
 
         with ui.column().classes('items-center justify-start gap-1 py-2').style(
             'width: 48px; min-width: 48px; height: 100%; '
-            'background: #181825; border-left: 1px solid #333; overflow: hidden;'
+            'background: var(--hw-bg-sidebar); border-left: 1px solid var(--hw-border); overflow: hidden;'
         ):
             # Right panel toggle at the top of the bar.
             # Visible → plain login (fold in); hidden → mirrored logout (fold out).
@@ -367,9 +392,10 @@ class AppShell:
         if ws.middle.tabs:
             # Tab bar row — tabs on the left, optional bottom-panel toggle on the right
             with ui.row().classes('w-full items-center gap-0 flex-shrink-0').style(
-                'background: #1e1e2e; border-bottom: 1px solid #333; min-height: 36px;'
+                'background: var(--hw-bg-surface);'
+                ' border-bottom: 1px solid var(--hw-border); min-height: 36px;'
             ):
-                with ui.tabs().props('dark dense align=left').classes('hw-tabs').style(
+                with ui.tabs().props('dense align=left').classes('hw-tabs').style(
                     'flex: 1; min-height: 36px;'
                 ) as tabs:
                     for tab in ws.middle.tabs:
@@ -419,7 +445,8 @@ class AppShell:
     def _render_statusbar(self) -> None:
         """Render the status bar at the bottom."""
         with ui.row().classes('w-full items-center px-3 gap-2').style(
-            'height: 24px; min-height: 24px; background: #1e3a5f; border-top: 1px solid #333;'
+            'height: 24px; min-height: 24px; background: var(--hw-statusbar-bg);'
+            ' border-top: 1px solid var(--hw-border);'
         ):
             ui.label(f'Session: {self.session.session_id[:8]}...').classes('text-xs text-gray-300')
 
@@ -456,7 +483,7 @@ class AppShell:
             self.session.subscribe_context_changes(editor_instance.on_context_changed)
             # Render into current NiceGUI context
             container_div = ui.element('div').classes('hw-dark-panel').style(
-                'width: 100%; height: 100%; background: #12121e; color: rgba(255,255,255,0.87);'
+                'width: 100%; height: 100%; background: var(--hw-bg-page); color: var(--hw-text);'
             )
             editor_instance.render(container_div, self.session.context)
         except Exception as e:
