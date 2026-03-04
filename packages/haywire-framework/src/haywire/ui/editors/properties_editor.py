@@ -80,8 +80,8 @@ class PropertiesEditor(BaseEditor):
                 with ui.column().classes('w-full items-center justify-center p-4').style(
                     'padding-top: 60px;'
                 ):
-                    ui.icon('select_all').classes('text-gray-600 text-3xl')
-                    ui.label('Nothing selected').classes('text-xs text-gray-600')
+                    ui.icon('select_all').classes('hw-text-dim text-3xl')
+                    ui.label('Nothing selected').classes('text-xs hw-text-dim')
                 return
 
             has_panels = False
@@ -103,8 +103,8 @@ class PropertiesEditor(BaseEditor):
                         panel_cls.class_identity.label,
                         icon=icon,
                         value=default_open,
-                    ).props('dark').classes('w-full').style(
-                        'border-bottom: 1px solid #2a2a3e;'
+                    ).classes('w-full').style(
+                        'border-bottom: 1px solid var(--hw-border);'
                     ):
                         panel_container = ui.column().classes('w-full gap-1 p-1')
                         layout = PanelLayout(panel_container)
@@ -119,8 +119,8 @@ class PropertiesEditor(BaseEditor):
 
             if not has_panels:
                 with ui.column().classes('w-full items-center justify-center p-4'):
-                    ui.icon('info').classes('text-gray-500 text-3xl')
-                    ui.label('No properties available').classes('text-gray-500 text-sm')
+                    ui.icon('info').classes('hw-text-dim text-3xl')
+                    ui.label('No properties available').classes('hw-text-muted text-sm')
 
     def _resolve_contexts(self, context: 'SessionContext') -> List[str]:
         """Determine active context names based on selection state."""

@@ -308,9 +308,9 @@ class GraphEditor(BaseEditor):
                     'background: var(--hw-bg-page); border-radius: 4px;'
                     ' border: 1px solid var(--hw-border);'
                 ):
-                    ui.icon('folder', size='14px').classes('text-gray-500 flex-shrink-0')
+                    ui.icon('folder', size='14px').classes('hw-text-dim flex-shrink-0')
                     self._save_base_dir_label = ui.label('').classes(
-                        'text-xs font-mono text-gray-400 truncate py-1'
+                        'text-xs font-mono hw-text-dim truncate py-1'
                     )
 
                 # Editable filename / relative path within the workspace

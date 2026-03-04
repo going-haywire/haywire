@@ -5,14 +5,14 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-03-04T10:41:20.509717",
+  "modified_at": "2026-03-04T16:52:08.494024",
   "nodes": {
     "begin_play_40a03729": {
       "node_id": "begin_play_40a03729",
       "registry_key": "core:node:begin_play",
       "position": [
-        134,
-        201
+        132,
+        163
       ],
       "node_data": {
         "node_id": "begin_play_40a03729",
@@ -65,7 +65,7 @@
           "local_definitions": {
             "node.skin": {
               "default": null,
-              "type": "NoneType",
+              "type": "str",
               "scope": "LOCAL_ONLY",
               "label": "Skin",
               "description": "Skin used for this node",
@@ -185,8 +185,8 @@
         "store": {},
         "ui": {
           "state": {
-            "posX": 134,
-            "posY": 201,
+            "posX": 132,
+            "posY": 163,
             "width": 0.0,
             "height": 0.0,
             "width_min": -1.0,
@@ -532,7 +532,7 @@
           "local_definitions": {
             "node.skin": {
               "default": null,
-              "type": "NoneType",
+              "type": "str",
               "scope": "LOCAL_ONLY",
               "label": "Skin",
               "description": "Skin used for this node",
@@ -890,7 +890,7 @@
           "local_definitions": {
             "node.skin": {
               "default": null,
-              "type": "NoneType",
+              "type": "str",
               "scope": "LOCAL_ONLY",
               "label": "Skin",
               "description": "Skin used for this node",
@@ -1312,7 +1312,7 @@
           "local_definitions": {
             "node.skin": {
               "default": null,
-              "type": "NoneType",
+              "type": "str",
               "scope": "LOCAL_ONLY",
               "label": "Skin",
               "description": "Skin used for this node",
@@ -1519,6 +1519,7 @@
               "registry_key": "core:type:int",
               "label": "Port Count",
               "description": "Whole number",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -1713,7 +1714,7 @@
           "local_definitions": {
             "node.skin": {
               "default": null,
-              "type": "NoneType",
+              "type": "str",
               "scope": "LOCAL_ONLY",
               "label": "Skin",
               "description": "Skin used for this node",
@@ -1778,7 +1779,7 @@
             },
             "node.color_override": {
               "default": null,
-              "type": "NoneType",
+              "type": "str",
               "scope": "LOCAL_ONLY",
               "label": "Color Override",
               "description": "Custom background color for this node (None = use global)",

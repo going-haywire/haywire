@@ -58,8 +58,8 @@ class ComponentDetailEditor(BaseEditor):
         with self._container:
             if not component_info:
                 with ui.column().classes('w-full h-full items-center justify-center gap-2'):
-                    ui.icon('widgets').classes('text-gray-400 text-4xl')
-                    ui.label('Select a component to see details').classes('text-gray-400 text-sm')
+                    ui.icon('widgets').classes('hw-text-dim text-4xl')
+                    ui.label('Select a component to see details').classes('hw-text-muted text-sm')
                 return
 
             lib = component_info.get('lib')
@@ -83,14 +83,14 @@ class ComponentDetailEditor(BaseEditor):
                         ui.label(label).classes('text-lg font-bold')
 
                     ui.label(comp_type.removesuffix('s').title()).classes(
-                        'text-xs text-gray-400 uppercase tracking-wider'
+                        'text-xs hw-text-dim uppercase tracking-wider'
                     )
 
                     if registry_id:
-                        ui.label(registry_id).classes('text-xs text-gray-300 font-mono')
+                        ui.label(registry_id).classes('text-xs hw-text-dim font-mono')
 
                     if description:
-                        ui.label(description).classes('text-sm text-gray-600')
+                        ui.label(description).classes('text-sm hw-text-muted')
 
                     if tags:
                         with ui.row().classes('flex-wrap gap-1'):
@@ -100,7 +100,7 @@ class ComponentDetailEditor(BaseEditor):
                     if lib:
                         ui.separator()
                         lib_label = getattr(lib, 'label', None) or getattr(lib, 'library_id', '?')
-                        ui.label(f'Library: {lib_label}').classes('text-xs text-gray-500')
+                        ui.label(f'Library: {lib_label}').classes('text-xs hw-text-dim')
 
     @staticmethod
     def _lookup_class(app, lib, class_name: str, comp_type: str):

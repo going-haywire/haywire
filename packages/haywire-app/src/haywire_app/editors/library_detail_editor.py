@@ -117,8 +117,8 @@ class LibraryDetailEditor(BaseEditor):
             self._scroll.clear()
             with self._scroll:
                 with ui.column().classes('w-full items-center gap-2 py-32'):
-                    ui.icon('library_books', size='48px').classes('text-gray-300')
-                    ui.label('Select a library to view details').classes('text-gray-400 text-sm')
+                    ui.icon('library_books', size='48px').classes('hw-text-dim')
+                    ui.label('Select a library to view details').classes('hw-text-muted text-sm')
 
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
@@ -228,14 +228,14 @@ class LibraryDetailEditor(BaseEditor):
                             ui.label(name).classes('text-2xl font-bold break-words')
 
                         with ui.row().classes('items-center gap-2 mt-1 flex-wrap'):
-                            ui.label(f'v{version}').classes('text-sm text-gray-400')
+                            ui.label(f'v{version}').classes('text-sm hw-text-muted')
                             _dist_name = (
                                 (installed_lib.distribution_name if installed_lib else None)
                                 or (marketplace_pkg.name if marketplace_pkg else None)
                             )
                             if _dist_name:
                                 ui.label(_dist_name).classes(
-                                    'text-xs text-gray-300 font-mono'
+                                    'text-xs hw-text-muted font-mono'
                                 )
                             if installed_lib:
                                 inst_color = {
@@ -346,17 +346,17 @@ class LibraryDetailEditor(BaseEditor):
 
                 # ── Metadata ───────────────────────────────────────────────────
                 if description:
-                    ui.label(description).classes('text-gray-600 text-sm mb-1')
+                    ui.label(description).classes('hw-text-muted text-sm mb-1')
                 if author:
                     _author_url = (installed_lib.author_url if installed_lib else '') or ''
                     if _author_url.startswith('http'):
                         with ui.row().classes('items-center gap-1'):
-                            ui.label('By').classes('text-xs text-gray-400')
+                            ui.label('By').classes('text-xs hw-text-dim')
                             ui.link(author, _author_url, new_tab=True).classes(
                                 'text-xs text-blue-400'
                             )
                     else:
-                        ui.label(f'By {author}').classes('text-xs text-gray-400')
+                        ui.label(f'By {author}').classes('text-xs hw-text-dim')
 
                 # Collect relevant links
                 _links: list[tuple[str, str]] = []
@@ -435,7 +435,7 @@ class LibraryDetailEditor(BaseEditor):
                         loading_row = ui.row().classes('items-center gap-2')
                         with loading_row:
                             ui.spinner(size='sm')
-                            ui.label('Loading overview…').classes('text-sm text-gray-400')
+                            ui.label('Loading overview…').classes('text-sm hw-text-muted')
                         content_area = ui.column().classes('w-full')
                 asyncio.ensure_future(
                     self._load_marketplace_overview(
@@ -456,9 +456,9 @@ class LibraryDetailEditor(BaseEditor):
             ui.markdown(overview.read_text()).classes('w-full')
         else:
             with ui.column().classes('gap-2 py-4'):
-                ui.label('No OVERVIEW.md found.').classes('text-gray-400 italic text-sm')
+                ui.label('No OVERVIEW.md found.').classes('hw-text-muted italic text-sm')
                 ui.label('Run /docs to generate library documentation.').classes(
-                    'text-xs text-gray-400'
+                    'text-xs hw-text-dim'
                 )
 
     def _render_nodes_tab(
@@ -467,7 +467,7 @@ class LibraryDetailEditor(BaseEditor):
         """Render the node list grouped by menu category."""
         if not node_registry:
             ui.label('Node registry not available.').classes(
-                'text-gray-400 italic text-sm'
+                'hw-text-muted italic text-sm'
             )
             return
 
@@ -488,7 +488,7 @@ class LibraryDetailEditor(BaseEditor):
 
         if not items:
             ui.label('No nodes registered for this library.').classes(
-                'text-gray-400 italic text-sm py-4'
+                'hw-text-muted italic text-sm py-4'
             )
             return
 
@@ -500,7 +500,7 @@ class LibraryDetailEditor(BaseEditor):
 
         for cat in sorted(categories):
             ui.label(cat).classes(
-                'text-xs font-bold text-gray-500 mt-4 mb-1 uppercase tracking-wider'
+                'text-xs font-bold hw-text-dim mt-4 mb-1 uppercase tracking-wider'
             )
             for key, cls in sorted(
                 categories[cat],
@@ -521,7 +521,7 @@ class LibraryDetailEditor(BaseEditor):
                         ui.label(ident.label or class_name).classes('text-sm font-medium')
                         if ident.description:
                             ui.label(ident.description).classes(
-                                'text-xs text-gray-400 truncate'
+                                'text-xs hw-text-dim truncate'
                             )
 
     def _render_widgets_tab(
@@ -530,7 +530,7 @@ class LibraryDetailEditor(BaseEditor):
         """Render the widget list with a live preview of each widget."""
         if not widget_registry:
             ui.label('Widget registry not available.').classes(
-                'text-gray-400 italic text-sm'
+                'hw-text-muted italic text-sm'
             )
             return
 
@@ -548,7 +548,7 @@ class LibraryDetailEditor(BaseEditor):
 
         if not items:
             ui.label('No widgets registered for this library.').classes(
-                'text-gray-400 italic text-sm py-4'
+                'hw-text-muted italic text-sm py-4'
             )
             return
 
@@ -568,7 +568,7 @@ class LibraryDetailEditor(BaseEditor):
                     ui.label(ident.label or class_name).classes('text-sm font-medium')
                     if ident.description:
                         ui.label(ident.description).classes(
-                            'text-xs text-gray-400 truncate'
+                            'text-xs hw-text-dim truncate'
                         )
                 # Live widget preview — uniform fixed-width box
                 with ui.element('div').classes(
@@ -576,8 +576,8 @@ class LibraryDetailEditor(BaseEditor):
                 ).style('width: 11rem; min-height: 2.5rem; padding: 4px; overflow: hidden;'):
                     if not hasattr(cls, 'create_element'):
                         with ui.column().classes('w-full items-center py-1 gap-0.5'):
-                            ui.icon('videocam', size='18px').classes('text-gray-300')
-                            ui.label('live only').classes('text-xs text-gray-300 italic')
+                            ui.icon('videocam', size='18px').classes('text-gray-400')
+                            ui.label('live only').classes('text-xs text-gray-400 italic')
                     else:
                         try:
                             mock_port = _WidgetPreviewPort()
@@ -585,7 +585,7 @@ class LibraryDetailEditor(BaseEditor):
                             instance.create_element()
                         except Exception:
                             with ui.column().classes('w-full items-center py-1'):
-                                ui.label('—').classes('text-xs text-gray-300 italic')
+                                ui.label('—').classes('text-xs text-gray-400 italic')
 
     def _render_generic_component_tab(
         self,
@@ -598,7 +598,7 @@ class LibraryDetailEditor(BaseEditor):
         comp_singular = comp_type.removesuffix('s')
         if not registry:
             ui.label(f'{comp_singular.title()} registry not available.').classes(
-                'text-gray-400 italic text-sm'
+                'hw-text-muted italic text-sm'
             )
             return
 
@@ -616,7 +616,7 @@ class LibraryDetailEditor(BaseEditor):
 
         if not items:
             ui.label(f'No {comp_type} registered for this library.').classes(
-                'text-gray-400 italic text-sm py-4'
+                'hw-text-muted italic text-sm py-4'
             )
             return
 
@@ -635,9 +635,9 @@ class LibraryDetailEditor(BaseEditor):
                     ui.label(ident.label or class_name).classes('text-sm font-medium')
                     if ident.description:
                         ui.label(ident.description).classes(
-                            'text-xs text-gray-400 truncate'
+                            'text-xs hw-text-dim truncate'
                         )
-                    ui.label(key).classes('text-xs text-gray-300 font-mono')
+                    ui.label(key).classes('text-xs hw-text-dim font-mono')
 
     # ─────────────────────────────────────────────────────────────────────────
     # Component click → notify context
@@ -737,7 +737,7 @@ class LibraryDetailEditor(BaseEditor):
             ui.label(
                 'This will disable the library and remove it from the venv. '
                 'Any graph nodes using this library will show as errors.'
-            ).classes('text-gray-600 mb-4')
+            ).classes('hw-text-muted mb-4')
 
             async def confirm_and_uninstall():
                 dialog.close()

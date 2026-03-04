@@ -70,9 +70,9 @@ class FileBrowserEditor(BaseEditor):
                 with ui.row().classes(
                     'w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1'
                 ):
-                    ui.icon('folder_open', size='16px').classes('text-gray-400')
+                    ui.icon('folder_open', size='16px').classes('hw-text-dim')
                     name = self._root_path.name if self._root_path else 'No project'
-                    ui.label(name).classes('text-sm font-medium text-gray-200 truncate flex-1')
+                    ui.label(name).classes('text-sm font-medium hw-text-body truncate flex-1')
                     ui.button(
                         icon='refresh',
                         on_click=lambda: self._refresh(context),
@@ -90,13 +90,13 @@ class FileBrowserEditor(BaseEditor):
 
         if self._root_path is None or not self._root_path.exists():
             with self._tree_container:
-                ui.label('No project loaded').classes('text-xs text-gray-500 p-2')
+                ui.label('No project loaded').classes('text-xs hw-text-dim p-2')
             return
 
         nodes = self._build_tree_nodes(self._root_path)
         if not nodes:
             with self._tree_container:
-                ui.label('Project folder is empty').classes('text-xs text-gray-500 p-2')
+                ui.label('Project folder is empty').classes('text-xs hw-text-dim p-2')
             return
 
         with self._tree_container:

@@ -67,7 +67,7 @@ class LibraryBrowser(BaseEditor):
 
                 # Filter toggles
                 with ui.row().classes('items-center gap-0.5'):
-                    ui.label('Show:').classes('text-xs text-gray-400 mr-1')
+                    ui.label('Show:').classes('text-xs hw-text-dim mr-1')
                     self._make_toggle('enabled', 'green', 'check_circle', 'Enabled', context)
                     self._make_toggle('disabled', 'orange', 'pause_circle', 'Disabled', context)
                     self._make_toggle(
@@ -113,7 +113,7 @@ class LibraryBrowser(BaseEditor):
         app = context.metadata.get('project_state')
         if app is None or not hasattr(app, 'library_manager'):
             with self._list_container:
-                ui.label('Library manager not available').classes('text-xs text-gray-400 p-2')
+                ui.label('Library manager not available').classes('text-xs hw-text-dim p-2')
             return
 
         try:
@@ -172,29 +172,29 @@ class LibraryBrowser(BaseEditor):
         with self._list_container:
             if enabled:
                 ui.label('ENABLED').classes(
-                    'text-xs font-bold text-gray-400 px-2 pt-2 pb-1 tracking-wider'
+                    'text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider'
                 )
                 for lib in enabled:
                     self._library_item(lib, 'green', context)
 
             if disabled:
                 ui.label('DISABLED').classes(
-                    'text-xs font-bold text-gray-400 px-2 pt-2 pb-1 tracking-wider'
+                    'text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider'
                 )
                 for lib in disabled:
                     self._library_item(lib, 'orange', context)
 
             if available:
                 ui.label('AVAILABLE').classes(
-                    'text-xs font-bold text-gray-400 px-2 pt-2 pb-1 tracking-wider'
+                    'text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider'
                 )
                 for entry in available:
                     self._library_item(entry, 'gray', context)
 
             if not enabled and not disabled and not available:
                 with ui.column().classes('w-full items-center py-8 gap-2'):
-                    ui.icon('search_off', size='28px').classes('text-gray-300')
-                    ui.label('No libraries found').classes('text-xs text-gray-400 italic')
+                    ui.icon('search_off', size='28px').classes('hw-text-dim')
+                    ui.label('No libraries found').classes('text-xs hw-text-muted italic')
 
     def _library_item(self, lib, dot_color: str, context: 'SessionContext'):
         label = getattr(lib, 'label', None) or getattr(lib, 'name', '?')
@@ -207,7 +207,7 @@ class LibraryBrowser(BaseEditor):
             with ui.column().classes('flex-1 gap-0 min-w-0'):
                 ui.label(label).classes('text-sm font-medium truncate')
                 if version:
-                    ui.label(f'v{version}').classes('text-xs text-gray-400')
+                    ui.label(f'v{version}').classes('text-xs hw-text-dim')
 
     def _select_library(self, lib, context: 'SessionContext'):
         context.active_library = lib

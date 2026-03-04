@@ -84,9 +84,9 @@ class GraphManagerEditor(BaseEditor):
         with ui.row().classes(
             'w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1'
         ):
-            ui.icon('layers', size='16px').classes('text-gray-400')
+            ui.icon('layers', size='16px').classes('hw-text-dim')
             ui.label('GRAPHS').classes(
-                'text-xs font-bold tracking-wider text-gray-400 flex-1'
+                'text-xs font-bold tracking-wider hw-text-dim flex-1'
             )
             ui.button(
                 icon='add',
@@ -106,14 +106,14 @@ class GraphManagerEditor(BaseEditor):
         if app is None or not hasattr(app, 'graph_manager'):
             with self._list_container:
                 ui.label('Graph manager not available').classes(
-                    'text-xs text-gray-500 p-2 italic'
+                    'text-xs hw-text-dim p-2 italic'
                 )
             return
 
         entries = app.graph_manager.all_entries()
         if not entries:
             with self._list_container:
-                ui.label('No graphs open').classes('text-xs text-gray-500 p-2 italic')
+                ui.label('No graphs open').classes('text-xs hw-text-dim p-2 italic')
             return
 
         with self._list_container:
@@ -137,13 +137,13 @@ class GraphManagerEditor(BaseEditor):
             dot_color = 'bg-amber-400' if is_unsaved else 'bg-transparent'
             ui.element('div').classes(
                 f'w-2 h-2 rounded-full flex-shrink-0 {dot_color}'
-            ).style('border: 1px solid rgba(255,255,255,0.15);')
+            ).style('border: 1px solid var(--hw-border);')
 
             # Name + subtitle
             with ui.column().classes('flex-1 gap-0 min-w-0'):
                 name_classes = (
                     'text-sm truncate font-medium '
-                    + ('text-white' if is_active else 'text-gray-300')
+                    + ('hw-text-body' if is_active else 'hw-text-muted')
                 )
                 ui.label(entry.display_name).classes(name_classes)
 
@@ -155,7 +155,7 @@ class GraphManagerEditor(BaseEditor):
                         else None
                     )
                     ui.label(_workspace_rel_path(entry.path, ws_root)).classes(
-                        'text-xs text-gray-500 truncate'
+                        'text-xs hw-text-dim truncate'
                     )
                 else:
                     # No file path — always show the unsaved hint
