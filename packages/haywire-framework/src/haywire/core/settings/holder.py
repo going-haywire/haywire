@@ -1,634 +1,494 @@
 # haywire/core/settings/holder.py
 """
-SettingsHolder - provides dynaconf-style access to settings with caching.
+SettingsHolder — schema-driven settings access with caching and weakref subscriptions.
 """
 
 from __future__ import annotations
+import weakref
+import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Iterator, TYPE_CHECKING
+from typing import Any, Callable, Iterator, Optional, TYPE_CHECKING
 
 from .enums import SettingMode, SettingScope
 from .value import SettingValue
 from .definition import SettingDefinition
+from .chain import ResolutionChain
 
 if TYPE_CHECKING:
+    from .schema import _SettingsSchema
     from .registry import GlobalSettingsRegistry
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class SettingInfo:
     """
-    Full information about a resolved setting.
-    
-    Used for UI display to show resolution source, override status, etc.
+    Full information about a resolved setting, used for UI display.
     """
     name: str
-    """Setting name"""
-    
     value: Any
-    """Resolved value"""
-    
     source: str
-    """Resolution source: 'global_override', 'local', 'global', 'default'"""
-    
     is_overridden: bool
-    """True if global override is active (cannot be changed locally)"""
-    
     is_inherited: bool
-    """True if using global or default value (not locally set)"""
-    
     local_mode: SettingMode
-    """Current local mode"""
-    
-    local_value: Any | None
-    """Current local value (if SET)"""
-    
+    local_value: Optional[Any]
     global_mode: SettingMode
-    """Current global mode"""
-    
-    global_value: Any | None
-    """Current global value (if SET or OVERRIDE)"""
-    
+    global_value: Optional[Any]
     definition: SettingDefinition
-    """The setting definition with type, label, etc."""
-
-
-class _SettingsNamespace:
-    """
-    Proxy for nested namespace access.
-    
-    Allows: self.settings.ui.node.bg_color
-    When settings are defined as 'ui.node.bg_color'
-    """
-    
-    __slots__ = ('_holder', '_prefix')
-    
-    def __init__(self, holder: SettingsHolder, prefix: str):
-        object.__setattr__(self, '_holder', holder)
-        object.__setattr__(self, '_prefix', prefix)
-    
-    def __getattr__(self, name: str) -> Any:
-        if name.startswith('_'):
-            raise AttributeError(name)
-        
-        full_name = f"{self._prefix}.{name}".lower()
-        
-        # Try as direct setting
-        if self._holder._get_definition(full_name):
-            return self._holder[full_name]
-        
-        # Try as namespace
-        all_names = self._holder._all_setting_names()
-        prefix = full_name + '.'
-        if any(n.startswith(prefix) for n in all_names):
-            return _SettingsNamespace(self._holder, full_name)
-        
-        raise AttributeError(f"Setting '{full_name}' not found")
-    
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name.startswith('_'):
-            object.__setattr__(self, name, value)
-            return
-        
-        full_name = f"{self._prefix}.{name}".lower()
-        self._holder.set(full_name, value)
-    
-    def __repr__(self) -> str:
-        return f"SettingsNamespace('{self._prefix}')"
 
 
 class SettingsHolder:
     """
-    Provides dynaconf-style settings access for nodes and other objects.
-    
-    Features:
-    - Dot notation: self.settings.bg_color
-    - Dict access: self.settings['bg_color']
-    - Nested keys: self.settings['ui.node.bg'] or self.settings.ui.node.bg
-    - Case insensitive: self.settings.BG_COLOR == self.settings.bg_color
-    - Automatic resolution: global override > local > global > default
-    - Local-only settings: settings without global equivalent
-    - Value caching: resolved values are cached for fast repeated access
-    
-    Usage:
-        class MyNode(BaseNode):
-            def initialize(self):
-                # Local-only setting (no global equivalent)
-                self.settings.define('cache_size', 100, scope=SettingScope.LOCAL_ONLY)
-                
-            def worker(self, context):
-                # Access any global setting directly (no define needed)
-                color = self.settings.ui.node.bg_color
-                
-                # Or dict style
-                color = self.settings['ui.node.bg_color']
-                
-                # Check if overridden
-                if self.settings.get_info('ui.node.bg_color').is_overridden:
-                    # Handle override case
-                    pass
-                
-                # Local-only setting
-                cache = self.settings.cache_size
+    Provides schema-driven settings access for nodes.
+
+    Accepts one primary schema class (the node's inner ``Settings`` class) and
+    zero or more *extra* schema classes that are merged in before the primary
+    one.  ``NodeInstanceSettings`` is injected here by ``NodeData.__init__`` so
+    that every node automatically exposes the framework-level instance fields
+    (``skin``, ``muted``, ``collapsed``, …).
+
+    Merged field lookup order: extra schemas (first wins) then primary schema
+    (primary schema fields override any same-named field from extras).
+
+    Caching: resolved values are cached; cache is invalidated via weakref
+    namespace subscriptions when global settings change (Option B).
+
+    Usage from node code::
+
+        color    = self.settings.bg_color       # primary schema field
+        is_muted = self.settings.muted          # NodeInstanceSettings field
+        is_muted = self.settings['node.muted']  # via full_key — also works
     """
-    
+
     def __init__(
-        self, 
-        registry: GlobalSettingsRegistry,
-        owner: Any = None,
-        owner_name: str = ''
-    ):
-        """
-        Initialize a SettingsHolder.
-        
-        Args:
-            registry: The global settings registry
-            owner: Optional owner object (e.g., NodeWrapper) for change notifications
-            owner_name: Optional name for logging
-        """
-        object.__setattr__(self, '_registry', registry)
-        object.__setattr__(self, '_owner', owner)
-        object.__setattr__(self, '_owner_name', owner_name)
-        object.__setattr__(self, '_local_values', {})
-        object.__setattr__(self, '_local_definitions', {})
-        object.__setattr__(self, '_local_only_names', set())  # Fast lookup for local-only
-        object.__setattr__(self, '_change_callbacks', [])
-        
-        # Value cache for fast access
-        object.__setattr__(self, '_value_cache', {})
-        
-        # Subscribe to global changes
-        registry.add_listener(self._on_global_change)
-    
-    def _on_global_change(self, name: str, global_val: SettingValue) -> None:
-        """Handle global setting changes."""
-        name = name.lower()
-        
-        # Invalidate cache for this setting
-        self._value_cache.pop(name, None)
-        
-        # Only care about settings we might use
-        defn = self._get_definition(name)
-        if not defn:
-            return
-        
-        local = self._local_values.get(name, SettingValue())
-        
-        # Notify if we're affected
-        if local.mode == SettingMode.AUTO or global_val.mode == SettingMode.OVERRIDE:
-            resolved, source = self._resolve(name)
-            for cb in self._change_callbacks:
-                try:
-                    cb(name, resolved, source)
-                except Exception:
-                    pass
-    
-    # =========================================================================
-    # Cache Management
-    # =========================================================================
-    
-    def _invalidate_cache(self, name: str | None = None) -> None:
-        """
-        Invalidate cached values.
-        
-        Args:
-            name: Specific setting to invalidate, or None for all
-        """
-        if name is None:
-            self._value_cache.clear()
-        else:
-            self._value_cache.pop(name.lower(), None)
-    
-    def _cache_value(self, name: str, value: Any) -> Any:
-        """Cache and return a resolved value."""
-        self._value_cache[name] = value
-        return value
-    
-    # =========================================================================
-    # Definition
-    # =========================================================================
-    
-    def define(
         self,
-        name: str,
-        default: Any,
-        type_: type | None = None,
-        scope: SettingScope = SettingScope.GLOBAL_AWARE,
-        label: str | None = None,
-        description: str = "",
-        category: str = "local",
-        **kwargs
-    ) -> 'SettingsHolder':
-        """
-        Define a setting for this holder.
-        
-        For GLOBAL_AWARE settings:
-            - If already defined in registry, uses that definition
-            - If not, creates a new global definition
-        
-        For LOCAL_ONLY settings:
-            - Creates a local-only definition (not in global registry)
-        
-        Returns self for chaining.
-        """
-        name = name.lower()
-        
-        # Invalidate any cached value
-        self._invalidate_cache(name)
-        
-        if scope == SettingScope.LOCAL_ONLY:
-            self._local_definitions[name] = SettingDefinition(
-                name=name,
-                default=default,
-                type_=type_ or type(default),
-                scope=scope,
-                label=label,
-                description=description,
-                category=category,
-                **kwargs
-            )
-            self._local_values[name] = SettingValue(mode=SettingMode.AUTO)
-            self._local_only_names.add(name)
-        else:
-            if not self._registry.has_definition(name):
-                self._registry.define(
-                    name, default, type_, label, description, category, **kwargs
+        schema_cls: type['_SettingsSchema'],
+        registry: 'GlobalSettingsRegistry',
+        node_instance: Any,
+        extra_schemas: tuple[type['_SettingsSchema'], ...] = (),
+    ):
+        object.__setattr__(self, '_schema', schema_cls)
+        object.__setattr__(self, '_chain', ResolutionChain({}, registry))
+        object.__setattr__(self, '_node', node_instance)
+
+        # Merge fields: extras first, then primary; raise on collision
+        _all_fields: dict[str, Any] = {}
+        for extra in extra_schemas:
+            for name, descriptor in extra._fields.items():
+                if name in _all_fields:
+                    raise ValueError(
+                        f"Settings field '{name}' in {extra.__name__} collides with "
+                        f"a field already registered by another extra schema."
+                    )
+                _all_fields[name] = descriptor
+        for name, descriptor in schema_cls._fields.items():
+            if name in _all_fields:
+                raise ValueError(
+                    f"Settings field '{name}' collides with "
+                    f"a field from an extra schema. Rename to resolve the conflict."
                 )
-            self._local_values[name] = SettingValue(mode=SettingMode.AUTO)
-        
-        return self
-    
-    # =========================================================================
-    # Resolution
-    # =========================================================================
-    
-    def _all_setting_names(self) -> set[str]:
-        """Get all available setting names."""
-        names = set(self._local_definitions.keys())
-        names.update(self._registry.all_definitions().keys())
-        return names
-    
-    def _get_definition(self, name: str) -> SettingDefinition | None:
-        """Get definition from local or global."""
-        name = name.lower()
-        return (
-            self._local_definitions.get(name) or 
-            self._registry.get_definition(name)
-        )
-    
-    def _resolve_local_only(self, name: str) -> Any:
+            _all_fields[name] = descriptor
+        object.__setattr__(self, '_all_fields', _all_fields)
+
+        # Resolved-value cache: attr_name -> value
+        object.__setattr__(self, '_cache', {})
+
+        # attr_name -> full_key and full_key -> attr_name (for all schemas)
+        from .descriptors import shadow, watch as _watch_cls
+        _key_to_attr: dict[str, str] = {}
+        for name, d in _all_fields.items():
+            if d._full_key:
+                _key_to_attr[d._full_key] = name
+            if isinstance(d, (shadow, _watch_cls)) and getattr(d, '_global_key', ''):
+                _key_to_attr[d._global_key] = name
+        object.__setattr__(self, '_key_to_attr', _key_to_attr)
+
+        # on_change callbacks per attr name: attr_name -> bound method
+        object.__setattr__(self, '_callbacks', {})
+        for name, d in _all_fields.items():
+            if d._on_change:
+                method = getattr(node_instance, d._on_change, None) if node_instance else None
+                if method:
+                    self._callbacks[name] = method
+                elif d._on_change:
+                    logger.warning(
+                        f"Settings on_change handler '{d._on_change}' not found "
+                        f"on {type(node_instance).__name__ if node_instance else 'None'}"
+                    )
+
+        # General change callbacks (name, value, source) — for external subscribers
+        object.__setattr__(self, '_change_callbacks', [])
+
+        # WeakMethod refs we subscribed to the registry (kept so we can prune them)
+        object.__setattr__(self, '_subscribed_refs', [])
+
+        # Set to True by cleanup() — makes _invalidate a no-op after node removal
+        object.__setattr__(self, '_cleaned_up', False)
+
+        # Subscribe to global namespace changes for shadow/watch fields
+        self._subscribe_to_global_namespaces()
+
+    def _subscribe_to_global_namespaces(self) -> None:
         """
-        Optimized resolution for local-only settings.
-        
-        Skips global registry lookup entirely.
+        For each shadow/watch field across all schemas, subscribe a weakref to
+        the global registry so that when the referenced global key changes our
+        cache is invalidated.
         """
-        local = self._local_values.get(name)
-        if local and local.mode == SettingMode.SET:
-            return local.value
-        return self._local_definitions[name].default
-    
-    def _resolve(self, name: str) -> tuple[Any, str]:
-        """Resolve setting value with full hierarchy."""
-        name = name.lower()
-        
-        local = self._local_values.get(name)
-        
-        # Local-only setting (fast path)
-        if name in self._local_definitions:
-            defn = self._local_definitions[name]
-            if local and local.mode == SettingMode.SET:
-                return local.value, 'local'
-            return defn.default, 'default'
-        
-        # Global-aware setting
-        if self._registry.has_definition(name):
-            return self._registry.resolve(name, local)
-        
-        raise KeyError(f"Setting '{name}' not defined")
-    
+        from .descriptors import shadow, watch
+        registry: GlobalSettingsRegistry = self._chain._global
+        _all_fields = object.__getattribute__(self, '_all_fields')
+
+        for name, descriptor in _all_fields.items():
+            if isinstance(descriptor, (shadow, watch)):
+                ns = getattr(descriptor, '_global_key', '') or descriptor._full_key
+                if ns:
+                    cb_ref = weakref.WeakMethod(self._invalidate)
+                    registry.subscribe_namespace(ns, cb_ref)
+                    self._subscribed_refs.append(cb_ref)
+
     # =========================================================================
-    # Dynaconf-style API
+    # Cache invalidation (called by namespace subscriptions)
     # =========================================================================
-    
+
+    def _invalidate(self, full_key: str) -> None:
+        """Evict full_key from cache and fire on_change callbacks."""
+        if object.__getattribute__(self, '_cleaned_up'):
+            return
+        attr_name = self._key_to_attr.get(full_key)
+        if attr_name:
+            self._cache.pop(attr_name, None)
+            cb = self._callbacks.get(attr_name)
+            if cb:
+                try:
+                    new_val = getattr(self, attr_name)
+                    try:
+                        cb(new_val, attr_name)
+                    except TypeError:
+                        cb(new_val)
+                except Exception as e:
+                    logger.error(f"on_change callback error for {attr_name}: {e}")
+
+    # =========================================================================
+    # Schema field access (__getattr__)
+    # =========================================================================
+
+    def _resolve_descriptor(self, descriptor: Any) -> Any:
+        """Resolve the effective value for a descriptor through the chain."""
+        global_key = getattr(descriptor, '_global_key', '')
+        if global_key:
+            return self._chain.resolve_shadow(descriptor._full_key, global_key, descriptor._default)
+        return self._chain.resolve(descriptor._full_key, descriptor._default)
+
     def __getattr__(self, name: str) -> Any:
-        """Dot notation access: self.settings.bg_color"""
+        """Dot notation access: self.settings.threshold"""
         if name.startswith('_'):
             raise AttributeError(name)
-        
-        name_lower = name.lower()
-        
-        # Check cache first
-        if name_lower in self._value_cache:
-            return self._value_cache[name_lower]
-        
-        # Direct setting
-        if self._get_definition(name_lower):
-            # Fast path for local-only
-            if name_lower in self._local_only_names:
-                value = self._resolve_local_only(name_lower)
-            else:
-                value, _ = self._resolve(name_lower)
-            return self._cache_value(name_lower, value)
-        
-        # Namespace prefix
-        all_names = self._all_setting_names()
-        prefix = name_lower + '.'
-        if any(n.startswith(prefix) for n in all_names):
-            return _SettingsNamespace(self, name_lower)
-        
+
+        _all_fields = object.__getattribute__(self, '_all_fields')
+        cache = object.__getattribute__(self, '_cache')
+
+        if name in cache:
+            return cache[name]
+
+        if name in _all_fields:
+            value = self._resolve_descriptor(_all_fields[name])
+            cache[name] = value
+            return value
+
         raise AttributeError(f"Setting '{name}' not found")
-    
+
     def __setattr__(self, name: str, value: Any) -> None:
-        """Dot notation setting: self.settings.bg_color = '#000'"""
+        """Dot notation setting: self.settings.threshold = 0.8"""
         if name.startswith('_'):
             object.__setattr__(self, name, value)
             return
-        
         self.set(name, value)
-    
+
+    # =========================================================================
+    # Dict-style access
+    # =========================================================================
+
     def __getitem__(self, key: str) -> Any:
-        """Dict-style access: self.settings['ui.node.bg_color']"""
-        key = key.lower()
-        
-        # Check cache first
-        if key in self._value_cache:
-            return self._value_cache[key]
-        
-        # Fast path for local-only
-        if key in self._local_only_names:
-            value = self._resolve_local_only(key)
-            return self._cache_value(key, value)
-        
-        # Standard resolution
-        value, _ = self._resolve(key)
-        return self._cache_value(key, value)
-    
+        """Dict-style access by attr name or full key: self.settings['node.muted']"""
+        cache = object.__getattribute__(self, '_cache')
+        if key in cache:
+            return cache[key]
+
+        _all_fields = object.__getattribute__(self, '_all_fields')
+        _key_to_attr = object.__getattribute__(self, '_key_to_attr')
+
+        # Resolve to attr_name: direct attr name lookup, then full-key lookup
+        if key in _all_fields:
+            attr_name = key
+        elif key in _key_to_attr:
+            attr_name = _key_to_attr[key]
+        else:
+            raise KeyError(f"Setting '{key}' not found")
+
+        value = self._resolve_descriptor(_all_fields[attr_name])
+        cache[attr_name] = value
+        return value
+
     def __setitem__(self, key: str, value: Any) -> None:
-        """Dict-style setting: self.settings['bg_color'] = '#000'"""
         self.set(key, value)
-    
+
     def __contains__(self, key: str) -> bool:
-        """Check if setting exists: 'bg_color' in self.settings"""
-        return self._get_definition(key.lower()) is not None
-    
+        _all_fields = object.__getattribute__(self, '_all_fields')
+        if key in _all_fields:
+            return True
+        return any(d._full_key == key for d in _all_fields.values())
+
     def __iter__(self) -> Iterator[str]:
-        """Iterate over setting names."""
-        yield from self._all_setting_names()
-    
+        _all_fields = object.__getattribute__(self, '_all_fields')
+        yield from _all_fields
+
     def items(self) -> Iterator[tuple[str, Any]]:
-        """Iterate over (name, resolved_value) pairs."""
         for name in self:
-            yield name, self[name]
-    
+            try:
+                yield name, self[name]
+            except (KeyError, AttributeError):
+                pass
+
     def get(self, name: str, default: Any = None) -> Any:
-        """Get with default: self.settings.get('missing', 'fallback')"""
         try:
             return self[name]
-        except KeyError:
+        except (KeyError, AttributeError):
             return default
-    
+
     # =========================================================================
-    # Explicit Setting API
+    # set / reset
     # =========================================================================
-    
+
     def set(
-        self, 
-        name: str, 
-        value: Any, 
+        self,
+        name: str,
+        value: Any,
         mode: SettingMode = SettingMode.SET
     ) -> None:
-        """
-        Explicitly set a local value.
-        
-        Args:
-            name: Setting name
-            value: Value to set
-            mode: SET (explicit) or AUTO (inherit)
-        """
-        name = name.lower()
-        
-        defn = self._get_definition(name)
-        if not defn:
-            raise KeyError(f"Setting '{name}' not defined")
-        
-        # Validate
-        if mode == SettingMode.SET:
-            try:
-                value = defn.coerce(value)
-            except ValueError:
-                pass  # Use as-is if coercion fails
-            
-            if not defn.validate(value):
-                raise ValueError(f"Invalid value for '{name}': {value}")
-        
-        # Get old value for change detection
-        try:
-            old_resolved = self[name]
-        except KeyError:
-            old_resolved = None
-        
-        # Update local value
-        self._local_values[name] = SettingValue(mode=mode, value=value)
-        
-        # Invalidate cache
-        self._invalidate_cache(name)
-        
-        # Get new resolved value
-        new_resolved = self[name]
-        source = 'local' if mode == SettingMode.SET else 'default'
-        
-        # Notify if changed
-        if old_resolved != new_resolved:
-            for cb in self._change_callbacks:
-                try:
-                    cb(name, new_resolved, source)
-                except Exception:
-                    pass
-        
-        # Notify owner (e.g., trigger redraw)
-        if self._owner and hasattr(self._owner, 'redraw'):
-            self._owner.redraw()
-    
+        """Set a local value for a schema field (attr name or full key)."""
+        cache = object.__getattribute__(self, '_cache')
+        _all_fields = object.__getattribute__(self, '_all_fields')
+
+        # By attr name
+        if name in _all_fields:
+            descriptor = _all_fields[name]
+            if descriptor._read_only:
+                raise AttributeError(f"Setting '{name}' is read-only (watch descriptor)")
+            if mode == SettingMode.SET:
+                self._chain.set_local(descriptor._full_key, value)
+            elif mode == SettingMode.AUTO:
+                self._chain.clear_local(descriptor._full_key)
+            cache.pop(name, None)
+            resolved = self._resolve_descriptor(descriptor)
+            self._fire_change_callbacks(name, resolved)
+            return
+
+        # By full key
+        for attr_name, descriptor in _all_fields.items():
+            if descriptor._full_key == name:
+                self.set(attr_name, value, mode)
+                return
+
+        raise KeyError(f"Setting '{name}' not defined")
+
     def reset(self, name: str) -> None:
         """Reset setting to AUTO (inherit from global/default)."""
-        name = name.lower()
-        
-        if name not in self._local_values:
+        cache = object.__getattribute__(self, '_cache')
+        _all_fields = object.__getattribute__(self, '_all_fields')
+
+        if name in _all_fields:
+            descriptor = _all_fields[name]
+            self._chain.clear_local(descriptor._full_key)
+            cache.pop(name, None)
             return
-        
-        try:
-            old_resolved = self[name]
-        except KeyError:
-            old_resolved = None
-        
-        self._local_values[name] = SettingValue(mode=SettingMode.AUTO)
-        
-        # Invalidate cache
-        self._invalidate_cache(name)
-        
-        new_resolved = self[name]
-        source = self._resolve(name)[1]
-        
-        if old_resolved != new_resolved:
-            for cb in self._change_callbacks:
-                try:
-                    cb(name, new_resolved, source)
-                except Exception:
-                    pass
-        
-        if self._owner and hasattr(self._owner, 'redraw'):
-            self._owner.redraw()
-    
+
+        # By full key
+        for attr_name, descriptor in _all_fields.items():
+            if descriptor._full_key == name:
+                self._chain.clear_local(descriptor._full_key)
+                cache.pop(attr_name, None)
+                return
+
     def reset_all(self) -> None:
-        """Reset all local settings to AUTO."""
-        for name in list(self._local_values.keys()):
-            self.reset(name)
-    
+        """Reset all local overrides."""
+        _all_fields = object.__getattribute__(self, '_all_fields')
+        for descriptor in _all_fields.values():
+            if descriptor._full_key:
+                self._chain.clear_local(descriptor._full_key)
+        cache = object.__getattribute__(self, '_cache')
+        cache.clear()
+
+    # =========================================================================
+    # Change callbacks
+    # =========================================================================
+
+    def _fire_change_callbacks(self, name: str, value: Any) -> None:
+        """Notify general change callbacks."""
+        change_callbacks = object.__getattribute__(self, '_change_callbacks')
+        for cb in change_callbacks:
+            try:
+                cb(name, value, 'local')
+            except Exception as e:
+                logger.error(f"change callback error for '{name}': {e}")
+        node = object.__getattribute__(self, '_node')
+        if node and hasattr(node, 'redraw'):
+            node.redraw()
+
+    def on_change(self, callback: Callable[[str, Any, str], None]) -> None:
+        """Subscribe to setting changes. Callback: (name, value, source)."""
+        self._change_callbacks.append(callback)
+
+    def remove_callback(self, callback: Callable) -> None:
+        change_callbacks = object.__getattribute__(self, '_change_callbacks')
+        if callback in change_callbacks:
+            change_callbacks.remove(callback)
+
     # =========================================================================
     # Introspection
     # =========================================================================
-    
+
     def get_info(self, name: str) -> SettingInfo:
-        """
-        Get full resolution info for UI display.
-        
-        Returns SettingInfo with value, source, override status, etc.
-        
-        Note: This bypasses the cache intentionally to get fresh source info.
-        """
-        name = name.lower()
-        
-        defn = self._get_definition(name)
-        if not defn:
+        """Get full resolution info for UI display."""
+        _all_fields = object.__getattribute__(self, '_all_fields')
+        registry: GlobalSettingsRegistry = self._chain._global
+
+        # Resolve by attr name or full key
+        descriptor = _all_fields.get(name)
+        if descriptor is None:
+            for attr_name, d in _all_fields.items():
+                if d._full_key == name:
+                    descriptor = d
+                    name = attr_name
+                    break
+        if descriptor is None:
             raise KeyError(f"Setting '{name}' not defined")
-        
-        local = self._local_values.get(name, SettingValue())
-        
-        # Get global info
-        if name in self._local_definitions:
-            # Local-only setting
-            global_mode = SettingMode.AUTO
-            global_value = None
-        else:
-            global_sv = self._registry.get_global(name)
-            global_mode = global_sv.mode
-            global_value = global_sv.value
-        
-        value, source = self._resolve(name)
-        
+
+        full_key = descriptor._full_key
+        global_key = getattr(descriptor, '_global_key', '') or full_key
+        defn = registry.get_definition(global_key) or registry.get_definition(full_key)
+        if defn is None:
+            defn = SettingDefinition(
+                name=full_key,
+                default=descriptor._default,
+                type_=type(descriptor._default) if descriptor._default is not None else str,
+                scope=SettingScope.GLOBAL_AWARE,
+            )
+
+        has_local = self._chain.has_local(full_key)
+        local_val = self._chain.get_local(full_key) if has_local else None
+        local_mode = SettingMode.SET if has_local else SettingMode.AUTO
+
+        # Delegate resolution (including source) to the registry so tier priority
+        # is computed in one place.
+        local_sv = SettingValue(mode=SettingMode.SET, value=local_val) if has_local else None
+        try:
+            value, source = registry.resolve(global_key, local=local_sv)
+        except KeyError:
+            value = descriptor._default
+            source = 'default'
+
+        # Effective global value for panel display (workspace beats global)
+        effective_sv = registry.get_global(global_key)
+
         return SettingInfo(
             name=name,
             value=value,
             source=source,
-            is_overridden=source == 'global_override',
-            is_inherited=source in ('global', 'default'),
-            local_mode=local.mode,
-            local_value=local.value,
-            global_mode=global_mode,
-            global_value=global_value,
+            is_overridden=(source in ('global_override', 'workspace_override')),
+            is_inherited=(source in ('global', 'workspace', 'default')),
+            local_mode=local_mode,
+            local_value=local_val,
+            global_mode=effective_sv.mode,
+            global_value=effective_sv.value,
             definition=defn,
         )
-    
-    def get_all_info(self) -> dict[str, SettingInfo]:
-        """Get info for all available settings."""
-        return {name: self.get_info(name) for name in self}
-    
-    def get_local_settings(self) -> dict[str, SettingInfo]:
-        """Get info for settings that have local values (not AUTO)."""
-        result = {}
-        for name, sv in self._local_values.items():
-            if sv.mode != SettingMode.AUTO:
-                result[name] = self.get_info(name)
-        return result
-    
+
+    def is_locally_set(self, name: str) -> bool:
+        """Return True if name has a local instance override."""
+        _all_fields = object.__getattribute__(self, '_all_fields')
+        if name in _all_fields:
+            return self._chain.has_local(_all_fields[name]._full_key)
+        # Also accept full key
+        for descriptor in _all_fields.values():
+            if descriptor._full_key == name:
+                return self._chain.has_local(descriptor._full_key)
+        return False
+
     # =========================================================================
-    # Change Callbacks
+    # Serialization  (called by NodeData._to_dict / _initialize_from_dict)
     # =========================================================================
-    
-    def on_change(self, callback: Callable[[str, Any, str], None]) -> None:
-        """
-        Subscribe to setting changes.
-        
-        Callback receives: (name, resolved_value, source)
-        """
-        self._change_callbacks.append(callback)
-    
-    def remove_callback(self, callback: Callable) -> None:
-        """Remove a change callback."""
-        if callback in self._change_callbacks:
-            self._change_callbacks.remove(callback)
-    
-    # =========================================================================
-    # Serialization
-    # =========================================================================
-    
+
     def to_dict(self) -> dict:
         """
-        Serialize local settings state.
-        
-        Only serializes:
-        - Local-only definitions
-        - Local values that are explicitly SET
-        """
-        return {
-            'local_values': {
-                name: sv.to_dict() 
-                for name, sv in self._local_values.items()
-                if sv.mode != SettingMode.AUTO
-            },
-            'local_definitions': {
-                name: defn.to_dict()
-                for name, defn in self._local_definitions.items()
+        Serialize settings state for graph persistence.
+
+        Format::
+
+            {
+                'schema_values': {attr_name: value, ...},
             }
-        }
-    
+
+        Only locally-overridden fields are included.  Fields still at their
+        global or descriptor default are omitted.
+        """
+        _all_fields = object.__getattribute__(self, '_all_fields')
+
+        schema_values = {}
+        for attr_name, descriptor in _all_fields.items():
+            if descriptor._stored and descriptor._full_key:
+                if self._chain.has_local(descriptor._full_key):
+                    schema_values[attr_name] = self._chain.get_local(descriptor._full_key)
+
+        return {'schema_values': schema_values}
+
     def from_dict(self, data: dict) -> None:
-        """Restore local settings state."""
-        type_map = {'int': int, 'float': float, 'str': str, 'bool': bool, 
-                    'list': list, 'dict': dict}
-        
-        # Clear caches
-        self._invalidate_cache()
-        
-        # Restore local-only definitions
-        for name, defn_data in data.get('local_definitions', {}).items():
-            name = name.lower()
-            self._local_definitions[name] = SettingDefinition(
-                name=name,
-                default=defn_data['default'],
-                type_=type_map.get(defn_data.get('type', 'str'), str),
-                scope=SettingScope[defn_data.get('scope', 'LOCAL_ONLY')],
-                label=defn_data.get('label'),
-                description=defn_data.get('description', ''),
-                category=defn_data.get('category', 'local'),
-                min_value=defn_data.get('min_value'),
-                max_value=defn_data.get('max_value'),
-                choices=defn_data.get('choices'),
-                ui_widget=defn_data.get('ui_widget'),
-                ui_order=defn_data.get('ui_order', 0),
-            )
-            self._local_only_names.add(name)
-        
-        # Restore values
-        for name, sv_data in data.get('local_values', {}).items():
-            name = name.lower()
-            self._local_values[name] = SettingValue.from_dict(sv_data)
-    
+        """
+        Restore serialized settings state.
+
+        Handles the current format (``schema_values``) and migrates the previous
+        legacy-bridge format (``legacy_values`` with ``node.X`` keys).
+        """
+        cache = object.__getattribute__(self, '_cache')
+        _all_fields = object.__getattribute__(self, '_all_fields')
+
+        cache.clear()
+
+        # Callbacks are intentionally NOT fired during deserialization — the node
+        # is being reconstructed from a saved state, not responding to a user change.
+        # Current format: schema field overrides keyed by attr name
+        for attr_name, value in data.get('schema_values', {}).items():
+            if attr_name in _all_fields:
+                descriptor = _all_fields[attr_name]
+                if descriptor._stored and descriptor._full_key:
+                    self._chain.set_local(descriptor._full_key, value)
+
     # =========================================================================
     # Cleanup
     # =========================================================================
-    
+
     def cleanup(self) -> None:
-        """Cleanup when holder is destroyed."""
-        self._registry.remove_listener(self._on_global_change)
-        self._change_callbacks.clear()
-        self._local_values.clear()
-        self._local_definitions.clear()
-        self._local_only_names.clear()
-        self._value_cache.clear()
-    
+        """
+        Release namespace subscriptions and clear state.
+        Called by NodeWrapper when node is removed.
+        """
+        object.__setattr__(self, '_cleaned_up', True)
+
+        subscribed_refs = object.__getattribute__(self, '_subscribed_refs')
+        subscribed_refs.clear()
+
+        cache = object.__getattribute__(self, '_cache')
+        cache.clear()
+
+        change_callbacks = object.__getattribute__(self, '_change_callbacks')
+        change_callbacks.clear()
+
     def __repr__(self) -> str:
-        owner = self._owner_name or 'unknown'
-        local_count = sum(1 for sv in self._local_values.values() if sv.mode != SettingMode.AUTO)
-        cached_count = len(self._value_cache)
-        return f"SettingsHolder(owner={owner}, local_overrides={local_count}, cached={cached_count})"
+        _all_fields = object.__getattribute__(self, '_all_fields')
+        node = object.__getattribute__(self, '_node')
+        return (
+            f"SettingsHolder("
+            f"node={type(node).__name__ if node else 'None'}, "
+            f"fields={len(_all_fields)})"
+        )

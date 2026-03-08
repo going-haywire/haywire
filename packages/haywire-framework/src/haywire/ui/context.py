@@ -58,4 +58,6 @@ class SessionContext:
     active_component: Optional[Any] = None      # node/widget/renderer class or metadata
     active_file: Optional[Any] = None           # Path to the currently viewed file
     active_graph_path: Optional[Any] = None     # Path to the currently active .haywire file
+    active_workbench_theme_id: str = 'haywire-dark'   # Active WorkbenchTheme key
+    active_node_theme_id: str = 'default'              # Active NodeTheme key
     metadata: Dict[str, Any] = field(default_factory=dict)

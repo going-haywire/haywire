@@ -88,7 +88,7 @@ class SyncGraphRunner:
         project_root = self._find_project_root()
         
         self.library_service = create_library_system_service(
-            project_root=str(project_root),
+            workspace_root=str(project_root),
             enable_file_watching=False,
             watch_settings=False,
             undo_config=DEVELOPMENT_CONFIG

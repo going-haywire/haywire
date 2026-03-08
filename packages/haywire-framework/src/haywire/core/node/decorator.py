@@ -11,6 +11,29 @@ from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIO
 
 T = TypeVar('T')
 
+def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
+    """
+    Detect an inner ``Settings(NodeSettings)`` class on a node, store it as
+    ``_settings_schema``, and assign its namespace.
+
+    Namespace is derived directly from ``registry_key`` by replacing ``:`` with ``.``.
+    Example: 'haybale_core:node:transform' → 'haybale_core.node.transform'
+
+    Skipped if ``Settings._namespace`` was explicitly set by the user (via the
+    ``namespace=`` keyword on the inner class definition).
+    """
+    from haywire.core.settings.schema import NodeSettings
+    settings_cls = node_cls.__dict__.get('Settings')
+    if settings_cls is None or not isinstance(settings_cls, type) or not issubclass(settings_cls, NodeSettings):
+        return
+    node_cls._settings_schema = settings_cls
+    if settings_cls._namespace:
+        return  # explicitly set by the user, don't override
+    ns = registry_key.replace(':', '.')
+    settings_cls._namespace = ns
+    for field_name, d in settings_cls._fields.items():
+        d._full_key = f'{ns}.{field_name}'
+
 
 def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
@@ -190,7 +213,10 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         inner_cls.class_identity = NodeIdentity(**identity_kwargs)
         inner_cls.class_behavior = NodeBehaviorFlags(**behavior_kwargs)
         inner_cls.class_library = library_identity
-        
+
+        # Wire settings namespace using registry_key as the single source of truth
+        _wire_settings_namespace(inner_cls, identity_kwargs['registry_key'])
+
         return inner_cls
 
     return decorator if cls is None else decorator(cls)

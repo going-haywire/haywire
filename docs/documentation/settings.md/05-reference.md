@@ -6,503 +6,376 @@ Complete API documentation for the Haywire settings system.
 
 ## Enums
 
-### SettingMode
-
-Defines how a setting value is applied.
+### `SettingMode`
 
 ```python
 from haywire.core.settings import SettingMode
 
 class SettingMode(Enum):
-    AUTO = "auto"       # Inherit from parent level
-    SET = "set"         # Explicitly set at this level
-    OVERRIDE = "override"  # Force value on all children (global only)
+    AUTO     = "auto"      # No value set; inherit from global or use descriptor default
+    SET      = "set"       # Explicitly set at this level
+    OVERRIDE = "override"  # (Global only) Force this value on all instances
 ```
-
-| Mode | Description |
-|------|-------------|
-| `AUTO` | No value set; inherit from global or use default |
-| `SET` | Value explicitly set at this level |
-| `OVERRIDE` | (Global only) Force this value on all nodes |
-
-### SettingScope
-
-Defines whether a setting participates in the global hierarchy.
-
-```python
-from haywire.core.settings import SettingScope
-
-class SettingScope(Enum):
-    GLOBAL_AWARE = "global_aware"  # Participates in global/local hierarchy
-    LOCAL_ONLY = "local_only"      # Exists only at node level
-```
-
-| Scope | Description |
-|-------|-------------|
-| `GLOBAL_AWARE` | Can inherit from global settings, can be overridden |
-| `LOCAL_ONLY` | No global equivalent; purely local to node |
 
 ---
 
-## SettingValue
-
-Represents a setting's value and mode.
+## Type Aliases
 
 ```python
-from haywire.core.settings import SettingValue
+from haywire.core.settings import Color, Icon
 
-@dataclass
-class SettingValue:
-    mode: SettingMode = SettingMode.AUTO
-    value: Any = None
+Color = str  # hex/rgba string — implies color-picker widget
+Icon  = str  # material icon name — implies icon-picker widget
 ```
-
-### Methods
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `to_dict()` | `dict` | Serialize to `{'mode': str, 'value': Any}` |
-| `from_dict(data)` | `SettingValue` | Deserialize from dict |
 
 ---
 
-## SettingDefinition
+## Descriptors
 
-Defines a setting's schema, constraints, and metadata.
+Imported from `haywire.core.settings`.
+
+### `setting(default, *, min=None, max=None, choices=None, widget=None, label='', description='', category='', order=0, on_change='')`
+
+Local node setting. Stored in graph when set. Shown in properties panel.
 
 ```python
-from haywire.core.settings import SettingDefinition
-
-@dataclass
-class SettingDefinition:
-    name: str                    # Full setting name (e.g., 'ui.node.bg_color')
-    default: Any                 # Default value
-    type_: type = str            # Expected Python type
-    scope: SettingScope = GLOBAL_AWARE
-    
-    # Validation
-    min_value: float | None = None
-    max_value: float | None = None
-    choices: list | None = None
-    validator: Callable[[Any], bool] | None = None
-    
-    # UI Metadata
-    label: str | None = None
-    description: str = ""
-    category: str = "general"
-    ui_widget: str | None = None  # 'color', 'slider', 'textarea', etc.
-    ui_order: int = 0
+threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
+algorithm: str   = setting('fast', choices=['fast', 'accurate'])
+color:     Color = setting('#ffffff', label='Background')
+verbose:   bool  = setting(False, on_change='hb_on_verbose_change')
 ```
 
-### Fields
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `_default` | `Any` | Default value |
+| `_min` / `_max` | `Any` | Slider bounds |
+| `_choices` | `list \| None` | Dropdown options |
+| `_widget` | `str \| None` | Explicit widget hint |
+| `_label` | `str` | Panel display name |
+| `_description` | `str` | Tooltip text |
+| `_category` | `str` | Panel grouping |
+| `_order` | `int` | Sort order within category |
+| `_on_change` | `str` | Node method name to call on change |
+| `_panel_visible` | `bool` | `True` |
+| `_stored` | `bool` | `True` |
+| `_read_only` | `bool` | `False` |
+| `_full_key` | `str` | Set by `_SettingsSchema.__init_subclass__` |
+| `_attr_name` | `str` | Set by `__set_name__` |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | `str` | Full dotted name (e.g., `'ui.node.bg_color'`) |
-| `default` | `Any` | Default value when no override exists |
-| `type_` | `type` | Python type for validation/coercion |
-| `scope` | `SettingScope` | `GLOBAL_AWARE` or `LOCAL_ONLY` |
-| `min_value` | `float \| None` | Minimum allowed value (numeric) |
-| `max_value` | `float \| None` | Maximum allowed value (numeric) |
-| `choices` | `list \| None` | Allowed values (enum-like) |
-| `validator` | `Callable` | Custom validation function `(value) -> bool` |
-| `label` | `str` | Human-readable label for UI |
-| `description` | `str` | Tooltip/help text |
-| `category` | `str` | Category for grouping in UI |
-| `ui_widget` | `str` | Widget hint for UI rendering |
-| `ui_order` | `int` | Sort order within category |
+### `shadow(global_descriptor)`
 
-### Methods
+Mirrors a global setting. Inherits global value; per-node override shown with reset affordance. Target must be a `GlobalSettings` or `LibrarySettings` field accessed at class level (returns the descriptor object).
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `validate(value)` | `bool` | Check if value is valid |
-| `coerce(value)` | `Any` | Convert value to correct type |
-| `to_dict()` | `dict` | Serialize definition |
+```python
+from haywire.core.settings.builtins.ui_node import NodeUISettings
+
+bg_color: Color = shadow(NodeUISettings.bg_color)
+```
+
+Stores `global_descriptor._full_key` as a string immediately (object reference discarded for hot-reload safety). Inherits `_label`, `_description`, `_default`, `_category`, `_widget`, `_min`, `_max`, `_choices` from the target descriptor.
+
+| Attribute | Value |
+|-----------|-------|
+| `_global_key` | Copied from target descriptor `_full_key` |
+| `_panel_visible` | `True` |
+| `_stored` | `True` (when locally overridden) |
+| `_read_only` | `False` |
+
+### `watch(global_descriptor)`
+
+Read-only cached reference to a global setting. Invisible in panel. Never stored. Cache invalidated automatically via namespace subscription when the global value changes.
+
+```python
+from haywire.core.settings.builtins.debug import DebugSettings
+
+verbose: bool = watch(DebugSettings.verbose_logging)
+```
+
+| Attribute | Value |
+|-----------|-------|
+| `_global_key` | Copied from target descriptor `_full_key` |
+| `_panel_visible` | `False` |
+| `_stored` | `False` |
+| `_read_only` | `True` |
 
 ---
 
-## GlobalSettingsRegistry
+## Schema Classes
 
-Singleton registry for global settings definitions and values.
+### `NodeSettings`
 
-### Initialization
+Base class for node `Settings` inner classes.
+
+```python
+from haywire.core.settings import NodeSettings
+
+class Settings(NodeSettings):
+    threshold: float = setting(0.5)
+
+# Explicit namespace override:
+class Settings(NodeSettings, namespace='my_lib.my_node'):
+    threshold: float = setting(0.5)
+
+# Pull in extra schemas (flat merge, collision raises ValueError):
+class Settings(NodeSettings, extra_schemas=(LibVisualSettings,)):
+    threshold: float = setting(0.5)
+```
+
+`_namespace` and `_full_key` on each descriptor are set by the `@node` decorator. The namespace is derived from the node's `registry_key` by replacing `:` with `.` — e.g. `haybale_core:node:transform` → `haybale_core.node.transform`.
+
+### `LibrarySettings`
+
+Base class for library-wide settings.
+
+```python
+from haywire.core.settings import LibrarySettings
+from haywire.core.settings.decorators import library_settings
+
+@library_settings(namespace='my_lib', label='My Library')
+class MyLibSettings(LibrarySettings):
+    api_url: str = setting('https://api.example.com')
+```
+
+Must be decorated with `@library_settings`. `_full_key` is set at class definition time.
+
+### `GlobalSettings`
+
+Base class for built-in framework-wide settings.
+
+```python
+from haywire.core.settings import GlobalSettings
+
+class MyGlobalSettings(GlobalSettings, namespace='my_ns'):
+    some_option: bool = setting(False)
+```
+
+Registered explicitly via `registry.register_schema(cls)`.
+
+---
+
+## Decorators
+
+### `@library_settings(namespace, label='')`
+
+```python
+from haywire.core.settings.decorators import library_settings, SettingsClassIdentity
+
+@library_settings(namespace='my_lib', label='My Library')
+class MyLibSettings(LibrarySettings):
+    ...
+```
+
+Sets on the class:
+- `class_identity: SettingsClassIdentity` — `namespace`, `registry_key`, `label`
+- `_namespace: str`
+- `_auto_register: bool = True`
+- `_full_key` on each descriptor field
+
+---
+
+## `GlobalSettingsRegistry`
 
 ```python
 from haywire.core.settings import GlobalSettingsRegistry
 
-# Usually accessed via DI:
+# Via DI:
 from haywire.core.di.config import get_settings_registry
 registry = get_settings_registry()
-
-# Or create directly (testing):
-registry = GlobalSettingsRegistry()
 ```
 
-### Define Settings
+### `register_schema(schema_cls, library_identity=None) -> str | None`
 
-```python
-registry.define(
-    name: str,                    # Required: setting name
-    default: Any,                 # Required: default value
-    type_: type = None,           # Inferred from default if None
-    label: str = None,            # Defaults to name
-    description: str = "",
-    category: str = "general",
-    min_value: float = None,
-    max_value: float = None,
-    choices: list = None,
-    validator: Callable = None,
-    ui_widget: str = None,
-    ui_order: int = 0
-) -> GlobalSettingsRegistry      # Returns self for chaining
-```
+Register a `GlobalSettings` or `LibrarySettings` class. Creates a synthetic `class_identity` from `_namespace` if not present.
 
-### Get/Set Values
+### `define(name, default, type_=None, label=None, description='', category='general', **kwargs) -> GlobalSettingsRegistry`
 
-```python
-# Get global value (returns SettingValue)
-sv = registry.get_global(name: str) -> SettingValue
+Programmatically define a setting. Returns `self` for chaining.
 
-# Set global value
-registry.set_global(
-    name: str,
-    value: Any,
-    mode: SettingMode = SettingMode.SET
-) -> None
+### `has_definition(name) -> bool`
 
-# Reset to AUTO
-registry.reset_global(name: str) -> None
-```
+### `get_definition(name) -> SettingDefinition | None`
 
-### Resolution
+### `all_definitions() -> dict[str, SettingDefinition]`
 
-```python
-# Resolve with optional local value
-value, source = registry.resolve(
-    name: str,
-    local_value: SettingValue = None
-) -> tuple[Any, str]
+### `definitions_by_category() -> dict[str, list[SettingDefinition]]`
 
-# Source is one of: 'global_override', 'local', 'global', 'default'
-```
+### `get_global(name) -> SettingValue`
 
-### Introspection
+Returns `SettingValue(mode=AUTO)` if the key is unknown.
 
-```python
-# Check if defined
-registry.has_definition(name: str) -> bool
+### `set_global(name, value, mode=SettingMode.SET) -> None`
 
-# Get definition
-defn = registry.get_definition(name: str) -> SettingDefinition | None
+### `reset_global(name) -> None`
 
-# Get all definitions
-all_defs = registry.all_definitions() -> dict[str, SettingDefinition]
+Reset to `AUTO`.
 
-# Group by category
-by_cat = registry.definitions_by_category() -> dict[str, list[SettingDefinition]]
-```
+### `resolve(name) -> tuple[Any, str]`
 
-### Persistence
+Returns `(value, source)` where source is `'global'` or `'default'`.
 
-```python
-# Load from TOML file
-registry.load_from_toml(
-    path: Path | str,
-    watch: bool = False  # Enable hot-reload
-) -> None
+### `load_from_toml(path, tier='workspace', watch=False) -> None`
 
-# Save to TOML file
-registry.save_to_toml(path: Path | str = None) -> None
+Load values from a TOML file into the specified tier.
+- `tier='global'` — loads into the global tier (`~/.haywire/settings.toml`, hand-edited by user).
+- `tier='workspace'` — loads into the workspace tier (`<workspace>/.haywire/settings.toml`, written by UI).
 
-# Reload from file
-registry.reload_from_toml() -> None
-```
+### `save_to_toml(path=None) -> None`
 
-### Change Notifications
+### `subscribe_namespace(namespace, weakref_callback) -> None`
 
-```python
-# Subscribe to changes
-registry.add_listener(
-    callback: Callable[[str, SettingValue], None]
-) -> None
-
-# Unsubscribe
-registry.remove_listener(callback: Callable) -> None
-```
+Option B invalidation. Callback is called with `(full_key: str)` when any key under `namespace` changes.
 
 ---
 
-## SettingsHolder
+## `ResolutionChain`
 
-Per-instance container for settings with local values.
+```python
+from haywire.core.settings.chain import ResolutionChain
+```
 
-### Initialization
+Internal four-tier value resolver used by `SettingsHolder`.  Most code never needs to import this directly.
+
+### `resolve(full_key, default) -> Any`
+
+Resolution priority:
+
+1. Global `OVERRIDE` → return global value
+2. Local dict has key → return local value
+3. Global `SET` → return global value
+4. Return `default`
+
+### `has_local / get_local / set_local / clear_local`
+
+Direct access to the per-instance local store.
+
+---
+
+## `NodeInstanceSettings`
+
+```python
+from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
+```
+
+A `NodeSettings` subclass with `namespace='node'` that is automatically injected into every node's `SettingsHolder` as an extra schema.  Node developers never instantiate this directly — it is just always present.
+
+Fields: `skin`, `muted`, `collapsed`, `condensed`, `pinned`, `color_override`, `comment`, `show_comment`.
+Full keys: `node.skin`, `node.muted`, … (see Overview for full table).
+
+---
+
+## `SettingsHolder`
 
 ```python
 from haywire.core.settings import SettingsHolder
 
-holder = SettingsHolder(
-    registry: GlobalSettingsRegistry,
-    owner: Any = None,           # Optional owner for notifications
-    owner_name: str = ''         # For debugging
-)
+holder = SettingsHolder(schema_cls, registry, node_instance, extra_schemas=())
 ```
 
-### Define Local Settings
+`extra_schemas` is a tuple of additional `_SettingsSchema` subclasses whose fields are merged in before the primary `schema_cls`. `NodeData.__init__` always prepends `NodeInstanceSettings` and then appends any schemas declared via `extra_schemas=(...)` on the inner `Settings` class.
+
+Field merge order: extra schemas first (in declaration order), then primary `schema_cls`. A `ValueError` is raised on any attr-name collision — there is no silent overwrite.
+
+### Field access
 
 ```python
-holder.define(
-    name: str,
-    default: Any,
-    type_: type = None,
-    scope: SettingScope = GLOBAL_AWARE,
-    label: str = None,
-    description: str = "",
-    category: str = "local",
-    **kwargs  # Same as SettingDefinition
-) -> SettingsHolder  # Returns self for chaining
-```
+# By schema attr name (preferred) — works for fields from any merged schema
+value = holder.threshold        # node-class field
+value = holder.muted            # NodeInstanceSettings field
+value = holder['threshold']
 
-### Access Values
-
-```python
-# Dict-style
-value = holder['ui.node.bg_color']
-holder['ui.node.bg_color'] = '#ff0000'
-
-# Dot notation
-value = holder.ui.node.bg_color
+# By full key — also works
+value = holder['my_lib.my_node.threshold']
+value = holder['node.muted']
 
 # Get with default
-value = holder.get('missing', default=42)
+value = holder.get('threshold', 0.5)
 
-# Check existence
-if 'ui.node.bg_color' in holder:
-    ...
-
-# Iterate
-for name in holder:
-    print(name, holder[name])
-
-for name, value in holder.items():
-    print(name, value)
+# Check containment
+'threshold' in holder
+'node.muted' in holder   # by full key
 ```
 
-### Set Values
+### `set(name, value, mode=SettingMode.SET) -> None`
+
+`name` is the attr name or full key. Raises `AttributeError` if the field is `watch()` (read-only).
+
+### `reset(name) -> None`
+
+Reset to `AUTO` (inherit from global/default).
+
+### `reset_all() -> None`
+
+### `get_info(name) -> SettingInfo`
+
+`name` is the attr name or full key. Returns full resolution info for UI display.
+
+### `is_locally_set(name) -> bool`
+
+### `on_change(callback) -> None`
+
+`callback(name: str, value: Any, source: str)` — called when a local value is set.
+
+### `remove_callback(callback) -> None`
+
+### `to_dict() -> dict`
 
 ```python
-# Set with explicit mode
-holder.set(
-    name: str,
-    value: Any,
-    mode: SettingMode = SettingMode.SET
-) -> None
-
-# Reset to AUTO (inherit)
-holder.reset(name: str) -> None
-
-# Reset all
-holder.reset_all() -> None
+{
+    'schema_values': {attr_name: value, ...},   # all locally-overridden fields (both
+}                                               #   node-class and NodeInstanceSettings)
 ```
 
-### Introspection
+### `from_dict(data) -> None`
 
-```python
-# Get full info for UI
-info = holder.get_info(name: str) -> SettingInfo
+Restore serialized state.  Also handles migration from the previous legacy-bridge format
+(old `legacy_values` dict with `node.X` full-key entries is automatically mapped to the
+corresponding `NodeInstanceSettings` attr names).
 
-# Get all settings info
-all_info = holder.get_all_info() -> dict[str, SettingInfo]
+### `cleanup() -> None`
 
-# Get only locally-set settings
-local = holder.get_local_settings() -> dict[str, SettingInfo]
-```
-
-### Change Callbacks
-
-```python
-# Subscribe
-holder.on_change(
-    callback: Callable[[str, Any, str], None]  # (name, value, source)
-) -> None
-
-# Unsubscribe
-holder.remove_callback(callback: Callable) -> None
-```
-
-### Serialization
-
-```python
-# Serialize local state
-data = holder.to_dict() -> dict
-
-# Restore local state
-holder.from_dict(data: dict) -> None
-```
-
-### Cleanup
-
-```python
-# Clean up subscriptions
-holder.cleanup() -> None
-```
+Release namespace subscriptions. Call from `NodeWrapper` on node removal.
 
 ---
 
-## SettingInfo
+## `SettingInfo`
 
-Full information about a resolved setting (for UI).
+Returned by `holder.get_info(attr_name)`.
 
 ```python
-from haywire.core.settings import SettingInfo
-
 @dataclass
 class SettingInfo:
-    name: str              # Setting name
-    value: Any             # Resolved value
-    source: str            # 'global_override', 'local', 'global', 'default'
-    
-    is_overridden: bool    # True if global override is active
-    is_inherited: bool     # True if using global/default (not local)
-    
-    local_mode: SettingMode
+    name:        str           # attr name
+    value:       Any           # resolved value
+    source:      str           # 'global_override' | 'local' | 'global' | 'default'
+    is_overridden: bool        # True when global OVERRIDE is active
+    is_inherited:  bool        # True when source is 'global' or 'default'
+    local_mode:  SettingMode
     local_value: Any | None
     global_mode: SettingMode
     global_value: Any | None
-    
-    definition: SettingDefinition
+    definition:  SettingDefinition
 ```
-
----
-
-## NodeCache
-
-Transient runtime cache (not serialized).
-
-```python
-from haywire.core.node import NodeCache
-
-# It's a SimpleNamespace, use freely:
-cache = NodeCache()
-cache.my_data = {}
-cache.counter = 0
-
-# Clear all
-cache.clear()
-```
-
-### Properties
-
-- Attribute access: `cache.key = value`
-- Not serialized
-- Fast access (~50ns)
-
----
-
-## NodeStore
-
-Persistent user state (serialized, not GUI-visible).
-
-```python
-from haywire.core.node import NodeStore
-
-store = NodeStore()
-```
-
-### Attribute Access
-
-```python
-store.counter = 0
-store.data = {"key": "value"}
-value = store.counter
-```
-
-### Dict-Style Access
-
-```python
-store['counter'] = 0
-value = store['counter']
-del store['counter']
-```
-
-### Methods
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `has(key)` | `bool` | Check if key exists |
-| `get(key, default)` | `Any` | Get with default |
-| `setdefault(key, default)` | `Any` | Get or set default |
-| `keys()` | `Iterator` | All keys |
-| `values()` | `Iterator` | All values |
-| `items()` | `Iterator` | All (key, value) pairs |
-| `update(**kwargs)` | `None` | Set multiple values |
-| `clear()` | `None` | Clear all data |
-| `to_dict()` | `dict` | Serialize |
-| `from_dict(data)` | `None` | Deserialize |
-
-### Serialization
-
-Supports: `str`, `int`, `float`, `bool`, `None`, `list`, `dict`, `set`, `tuple`, and objects with `to_dict()` method.
 
 ---
 
 ## TOML Format
 
-### Simple Values (SET mode)
+### Simple values (SET mode)
 
 ```toml
 [ui.node]
-bg_color = "#ffffff"
+bg_color  = "#ffffff"
 font_size = 12
-show_labels = true
-
-[execution]
-timeout_seconds = 60
-max_parallel = 4
-```
-
-### Override Values
-
-```toml
-[ui.node]
-# Force this value on all nodes
-font_size = { override = true, value = 14 }
-```
-
-### Full Example
-
-```toml
-# ~/.haywire/settings.toml
-
-[ui.node]
-bg_color = "#f5f5f5"
-border_color = "#cccccc"
-font_size = { override = true, value = 13 }
-show_labels = true
-
-[ui.edge]
-color = "#666666"
-width = 2
-curve_style = "bezier"
-
-[ui.canvas]
-bg_color = "#1a1a1a"
-grid_enabled = true
-grid_size = 20
-
-[execution]
-auto_execute = true
-timeout_seconds = 120
-max_parallel = 8
 
 [debug]
 verbose_logging = false
-show_execution_time = false
+```
 
-[my_library]
-feature_x_enabled = true
-api_url = "https://api.example.com"
+### Override values
+
+```toml
+[ui.node]
+font_size = { override = true, value = 14 }
 ```
 
 ---
@@ -510,27 +383,25 @@ api_url = "https://api.example.com"
 ## Resolution Algorithm
 
 ```
-resolve(name, local_value):
-    1. If global mode is OVERRIDE:
-       → Return global value, source='global_override'
-    
-    2. If local mode is SET:
-       → Return local value, source='local'
-    
-    3. If global mode is SET:
-       → Return global value, source='global'
-    
-    4. Return definition default, source='default'
-```
-
-For LOCAL_ONLY settings:
-
-```
-resolve_local_only(name):
-    1. If local mode is SET:
-       → Return local value, source='local'
-    
-    2. Return definition default, source='default'
+self.settings.threshold
+    │
+    ▼
+1. Global tier OVERRIDE for full_key?    → return it (admin policy, hand-edited TOML)
+    │ No
+    ▼
+2. Workspace tier OVERRIDE for full_key? → return it (workspace-wide force)
+    │ No
+    ▼
+3. Local value in chain._local?          → return it (per-node override)
+    │ No
+    ▼
+4. Workspace tier SET for full_key?      → return it (set via UI, saved to workspace TOML)
+    │ No
+    ▼
+5. Global tier SET for full_key?         → return it (user global default)
+    │ No
+    ▼
+6. Descriptor _default                   → return it
 ```
 
 ---

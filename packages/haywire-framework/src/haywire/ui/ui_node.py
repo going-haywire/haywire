@@ -129,7 +129,7 @@ class UINode:
         
         Note: Must be called within a valid NiceGUI client context.
         """
-        renderer_name = self.wrapper.node.settings.node.skin
+        renderer_name = self.wrapper.node.settings.skin
 
         if renderer_name is None:
             renderer_name = (

@@ -7,16 +7,30 @@ Provides lightweight configurations for different test scenarios.
 
 import tempfile
 from pathlib import Path
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, Any, TYPE_CHECKING
 from injector import Injector
+
+from ..settings import (
+    GlobalSettingsRegistry, SettingsHolder, SettingMode, SettingValue,
+    NodeSettings, setting, Color,
+)
 
 if TYPE_CHECKING:
     from .config import LibrarySystemService
-    from ..settings import GlobalSettingsRegistry
+
+
+# ---------------------------------------------------------------------------
+# Reusable test schema — used by create_test_settings_holder and tests below
+# ---------------------------------------------------------------------------
+
+class _TestNodeSettings(NodeSettings, namespace='test.node'):
+    bg_color: Color = setting('#ffffff', label='Background Color')
+    font_size: int = setting(12, label='Font Size', min=8, max=72)
+    verbose: bool = setting(False, label='Verbose Mode')
 
 
 def create_test_injector(
-    project_root: Optional[str] = None,
+    workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = False,
     undo_config: Optional[object] = None,
@@ -27,31 +41,31 @@ def create_test_injector(
 ) -> Injector:
     """
     Create a test-specific DI injector with minimal overhead.
-    
+
     Args:
-        project_root: Root path (auto-detected if None)
-        library_paths: Additional library paths
-        enable_file_watching: Disable for faster tests
-        undo_config: Optional undo configuration
-        load_libraries: Whether to load libraries (slow, integration only)
-        settings_path: Path to settings TOML (default: temp file for isolation)
-        watch_settings: Disable for faster tests
-        use_temp_settings: If True and settings_path is None, use a temp file
-                          to isolate tests from user settings
-        
+        workspace_root:       Root path (auto-detected if None).
+        library_paths:        Additional library paths.
+        enable_file_watching: Disable for faster tests.
+        undo_config:          Optional undo configuration.
+        load_libraries:       Whether to load libraries (slow, integration only).
+        settings_path:        Path to global settings TOML (default: temp file for isolation).
+        watch_settings:       Disable for faster tests.
+        use_temp_settings:    If True and settings_path is None, use a temp file
+                              to isolate tests from user settings.
+
     Returns:
-        Configured test injector
+        Configured test injector.
     """
     # Import here to avoid circular imports at module level
     from .config import HaywireModule
-    
+
     # Use temp file for settings by default to isolate tests
     if settings_path is None and use_temp_settings:
         temp_dir = tempfile.mkdtemp(prefix='haywire_test_')
         settings_path = str(Path(temp_dir) / 'settings.toml')
-    
+
     module = HaywireModule(
-        project_root=project_root,
+        workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         undo_config=undo_config,
@@ -59,12 +73,12 @@ def create_test_injector(
         settings_path=settings_path,
         watch_settings=watch_settings
     )
-    
+
     return Injector([module])
 
 
 def create_test_library_system(
-    project_root: Optional[str] = None,
+    workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     load_libraries: bool = True,
     enable_file_watching: bool = False,
@@ -74,24 +88,24 @@ def create_test_library_system(
 ) -> 'LibrarySystemService':
     """
     Create library system for integration tests.
-    
+
     Args:
-        project_root: Root path (auto-detected if None)
-        library_paths: Additional library paths
-        load_libraries: Whether to initialize libraries
-        enable_file_watching: Usually False for tests
-        settings_path: Path to settings TOML (default: temp file for isolation)
-        watch_settings: Usually False for tests
-        use_temp_settings: If True, use temp file to isolate from user settings
-        
+        workspace_root:       Root path (auto-detected if None).
+        library_paths:        Additional library paths.
+        load_libraries:       Whether to initialize libraries.
+        enable_file_watching: Usually False for tests.
+        settings_path:        Path to global settings TOML (default: temp file for isolation).
+        watch_settings:       Usually False for tests.
+        use_temp_settings:    If True, use temp file to isolate from user settings.
+
     Returns:
-        LibrarySystemService (initialized if load_libraries=True)
+        LibrarySystemService (initialized if load_libraries=True).
     """
     # Import here to avoid circular imports
     from .config import LibrarySystemService
-    
+
     injector = create_test_injector(
-        project_root=project_root,
+        workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         load_libraries=load_libraries,
@@ -139,64 +153,64 @@ def create_test_settings_registry(
     if register_builtins:
         register_builtin_settings(registry)
     
-    # Apply predefined settings
+    # Apply predefined settings into the global tier (simulating hand-edited TOML)
     if predefined_settings:
         for name, value in predefined_settings.items():
             if registry.has_definition(name):
-                registry.set_global(name, value, SettingMode.SET)
+                registry.set_global(name, value, SettingMode.SET, tier='global')
             else:
                 # Auto-define if not a builtin
                 registry.define(name, value)
-                registry.set_global(name, value, SettingMode.SET)
+                registry.set_global(name, value, SettingMode.SET, tier='global')
     
     return registry
 
 
 def create_test_settings_holder(
-    predefined_local: Optional[dict] = None,
-    predefined_global: Optional[dict] = None,
-    register_builtins: bool = True
+    predefined_local: Optional[dict[str, Any]] = None,
+    predefined_global: Optional[dict[str, Any]] = None,
+    register_builtins: bool = True,
+    schema_cls: type = None,
 ) -> tuple['GlobalSettingsRegistry', 'SettingsHolder']:
     """
-    Create an isolated settings registry and holder for unit tests.
-    
-    Useful for testing node settings behavior without full DI setup.
-    
+    Create an isolated registry + SettingsHolder for unit tests.
+
+    Uses _TestNodeSettings (namespace='test.node') by default.
+    predefined_local keys are short attr names ('bg_color', 'font_size', ...).
+    predefined_global keys are full keys ('test.node.bg_color', ...).
+
     Args:
-        predefined_local: Optional dict of {name: value} for local settings
-        predefined_global: Optional dict of {name: value} for global settings
-        register_builtins: Whether to register built-in settings
-        
+        predefined_local:  {attr_name: value} applied as local instance values.
+        predefined_global: {full_key: value}  pre-set in the global registry.
+        register_builtins: Whether to register built-in GlobalSettings schemas.
+        schema_cls:        Override the NodeSettings schema class.
+
     Returns:
-        Tuple of (GlobalSettingsRegistry, SettingsHolder)
-        
-    Example:
-        registry, holder = create_test_settings_holder(
-            predefined_global={'ui.node.bg_color': '#ffffff'},
-            predefined_local={'ui.node.bg_color': '#ff0000'}
-        )
-        
-        # Local override wins
-        assert holder['ui.node.bg_color'] == '#ff0000'
-        
-        # Check resolution info
-        info = holder.get_info('ui.node.bg_color')
-        assert info.source == 'local'
+        (GlobalSettingsRegistry, SettingsHolder)
     """
-    from ..settings import SettingsHolder, SettingMode
-    
     registry = create_test_settings_registry(
         predefined_settings=predefined_global,
-        register_builtins=register_builtins
+        register_builtins=register_builtins,
     )
-    
-    holder = SettingsHolder(registry, owner=None, owner_name='test')
-    
-    # Apply predefined local settings
+
+    # Register schema fields in the global registry so set_global() works.
+    resolved_schema = schema_cls or _TestNodeSettings
+    for descriptor in resolved_schema._fields.values():
+        if descriptor._full_key and not registry.has_definition(descriptor._full_key):
+            registry.define(
+                descriptor._full_key,
+                descriptor._default,
+                label=descriptor._label,
+                description=descriptor._description,
+                category=descriptor._category or 'test',
+            )
+
+    holder = SettingsHolder(resolved_schema, registry, node_instance=None)
+
     if predefined_local:
         for name, value in predefined_local.items():
-            holder.set(name, value, SettingMode.SET)
-    
+            holder.set(name, value)
+
     return registry, holder
 
 
@@ -224,16 +238,15 @@ class SettingsTestContext:
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # Restore original values
+        # Restore original workspace-tier values
         from ..settings import SettingMode
-        
+
         for name, original in self._original_values.items():
-            if original is None:
-                # Was not set before, reset to AUTO
-                self.registry._global_values[name] = type(self.registry._global_values[name])()
+            if original is None or original.mode == SettingMode.AUTO:
+                self.registry.reset_global(name, tier='workspace')
             else:
-                self.registry._global_values[name] = original
-        
+                self.registry.set_global(name, original.value, original.mode, tier='workspace')
+
         return False
     
     def set(self, name: str, value: any) -> None:
@@ -254,7 +267,7 @@ class SettingsTestContext:
         self.registry.reset_global(name)
     
     def _save_original(self, name: str) -> None:
-        """Save original value if not already saved."""
+        """Save original effective global value if not already saved."""
         if name not in self._original_values:
-            sv = self.registry._global_values.get(name)
-            self._original_values[name] = type(sv)(mode=sv.mode, value=sv.value) if sv else None
+            sv = self.registry.get_global(name)
+            self._original_values[name] = SettingValue(mode=sv.mode, value=sv.value) if sv else None

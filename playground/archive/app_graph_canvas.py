@@ -364,7 +364,7 @@ class UndoRedoTestAppWithCanvasManager:
         
         # Create and initialize the library system service with undo support
         self.library_service = create_library_system_service(
-            project_root=project_root,
+            workspace_root=project_root,
             enable_file_watching=True,
             watch_settings=False,
             undo_config=self.undo_config

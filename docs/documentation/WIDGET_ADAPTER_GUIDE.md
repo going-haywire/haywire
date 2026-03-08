@@ -307,6 +307,8 @@ def _sync_to_model(self) -> None:
 
 ## Part 2: Adapter Chain Resolution
 
+TODO: Adapter Chain Resolution: This description is out of date. Update to reflect current design and implementation plan.
+
 ### Architecture Overview
 
 **Goal:** Automatically find adapter chains to enable connections between incompatible types

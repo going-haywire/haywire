@@ -68,30 +68,76 @@ class AppShell:
         self._btn_bottom = None     # Tab-bar toggle button for bottom panel
         self._btn_right = None      # ContextBar toggle button for right panel
 
+    def _build_initial_theme_css(self) -> str:
+        """
+        Build the :root CSS block from the active WorkbenchTheme.
+
+        Falls back to HaywireFallbackTheme if ThemeRegistry is unavailable.
+        """
+        try:
+            context = self.session.context
+            # Initialise from settings registry on first render; falls back to field default.
+            settings_registry = context.metadata.get('settings_registry')
+            if settings_registry is not None:
+                wb_theme, _ = settings_registry.resolve('workbench.theme')
+                if wb_theme:
+                    context.active_workbench_theme_id = wb_theme
+                node_theme, _ = settings_registry.resolve('node.theme')
+                if node_theme:
+                    context.active_node_theme_id = node_theme
+            theme_id = getattr(context, 'active_workbench_theme_id', 'haywire-dark')
+            theme_registry = context.metadata.get('theme_registry')
+            if theme_registry is not None:
+                theme = theme_registry.get_workbench(theme_id)
+            else:
+                from haywire.ui.themes.builtin import DefaultTheme
+                theme = DefaultTheme()
+            vars_str = ' '.join(f'{k}: {v};' for k, v in theme.to_css_vars().items())
+            return f' :root {{ {vars_str} }}'
+        except Exception:
+            # Minimal safe fallback
+            return (
+                ' :root {'
+                '   --hw-bg-page: #12121e; --hw-bg-surface: #1e1e2e; --hw-bg-sidebar: #181825;'
+                '   --hw-border: #333333;'
+                '   --hw-text-body: rgba(255,255,255,0.87); --hw-text-muted: rgba(255,255,255,0.55);'
+                '   --hw-text-dim: rgba(255,255,255,0.6); --hw-text-expansion: rgba(255,255,255,0.8);'
+                '   --hw-accent: #4f8ef7; --hw-statusbar-bg: #1e3a5f;'
+                '   --hw-console-bg: #0d1117; --hw-console-text: #4ade80;'
+                ' }'
+            )
+
+    async def apply_workbench_theme(self, theme_id: str) -> None:
+        """
+        Dynamically switch the active workbench theme by updating CSS variables.
+
+        Uses JavaScript setProperty on :root for zero-flash switching.
+        Also updates context.active_workbench_theme_id for persistence.
+        """
+        try:
+            context = self.session.context
+            theme_registry = context.metadata.get('theme_registry')
+            if theme_registry is None:
+                return
+            theme = theme_registry.get_workbench(theme_id)
+            context.active_workbench_theme_id = theme_id
+            for css_var, value in theme.to_css_vars().items():
+                safe_value = value.replace("'", "\\'")
+                await ui.run_javascript(
+                    f"document.documentElement.style.setProperty('{css_var}', '{safe_value}')"
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to apply workbench theme '{theme_id}': {e}")
+
     def render(self) -> None:
         """Build the complete workspace layout into the current NiceGUI page."""
         ws = self.session.workspace_manager.active
 
         # Remove NiceGUI's default content padding so the shell fills the viewport.
         # Area-level tab panels must not scroll — editors own their scroll behaviour.
-        ui.add_css(
-            # Colour tokens — light defaults; overridden when Quasar dark mode is active
-            ' :root {'
-            '   --hw-bg-page: #f8f8fc; --hw-bg-surface: #e8e8f0; --hw-bg-sidebar: #f0f0f8;'
-            '   --hw-border: rgba(0,0,0,0.15);'
-            '   --hw-text: rgba(0,0,0,0.87); --hw-text-muted: rgba(0,0,0,0.55);'
-            '   --hw-text-icon: rgba(0,0,0,0.6); --hw-text-expansion: rgba(0,0,0,0.8);'
-            '   --hw-accent: #4f8ef7; --hw-statusbar-bg: #1565c0;'
-            '   --hw-console-bg: #f0f0f0; --hw-console-text: rgba(0,0,0,0.87);'
-            ' }'
-            ' body.body--dark {'
-            '   --hw-bg-page: #12121e; --hw-bg-surface: #1e1e2e; --hw-bg-sidebar: #181825;'
-            '   --hw-border: #333333;'
-            '   --hw-text: rgba(255,255,255,0.87); --hw-text-muted: rgba(255,255,255,0.55);'
-            '   --hw-text-icon: rgba(255,255,255,0.6); --hw-text-expansion: rgba(255,255,255,0.8);'
-            '   --hw-accent: #4f8ef7; --hw-statusbar-bg: #1e3a5f;'
-            '   --hw-console-bg: #0d1117; --hw-console-text: #4ade80;'
-            ' }'
+        # CSS vars are injected from the active WorkbenchTheme (no body.body--dark block).
+        _static_css = (
             # Page background
             ' body, .q-page, .q-tab-panels { background: var(--hw-bg-page) !important; }'
             # Layout
@@ -101,25 +147,40 @@ class AppShell:
             ' { overflow: hidden !important; }'
             # Middle-area tab bar
             ' .hw-tabs .q-tab { color: var(--hw-text-muted) !important; }'
-            ' .hw-tabs .q-tab--active { color: var(--hw-text) !important; }'
+            ' .hw-tabs .q-tab--active { color: var(--hw-text-body) !important; }'
             ' .hw-tabs .q-tab__indicator { background: var(--hw-accent) !important; }'
             ' .hw-tabs .q-tab__label { font-size: 12px; }'
             # All editor area containers and their child text
-            ' .hw-dark-panel, .hw-dark-panel * { color: var(--hw-text); }'
+            ' .hw-panel, .hw-panel * { color: var(--hw-text-body); }'
             # Expansion items inside area editors (PropertiesEditor, etc.)
-            ' .hw-dark-panel .q-expansion-item { background: transparent; }'
-            ' .hw-dark-panel .q-expansion-item__header { color: var(--hw-text-expansion) !important; }'
-            ' .hw-dark-panel .q-icon:not(.connection-pin) { color: var(--hw-text-icon) !important; }'
+            ' .hw-panel .q-expansion-item { background: transparent; }'
+            ' .hw-panel .q-expansion-item__header { color: var(--hw-text-expansion) !important; }'
+            # hw-use-props-color opts a q-icon out of the dim rule so Quasar color= prop works freely
+            ' .hw-panel .q-icon:not(.connection-pin):not(.hw-use-props-color)'
+            ' { color: var(--hw-text-dim) !important; }'
             # Semantic text helpers — use these instead of fixed Tailwind grays in UI chrome
-            ' .hw-text-body  { color: var(--hw-text) !important; }'
+            ' .hw-text-body  { color: var(--hw-text-body) !important; }'
             ' .hw-text-muted { color: var(--hw-text-muted) !important; }'
-            ' .hw-text-dim   { color: var(--hw-text-icon) !important; }'
+            ' .hw-text-dim   { color: var(--hw-text-dim) !important; }'
             # Drag-resize handles between areas
             ' .hw-area-divider { background: transparent; transition: background-color 0.15s; }'
             ' .hw-area-divider:hover { background-color: var(--hw-accent) !important; }'
             ' .hw-area-vdivider { background: transparent; transition: background-color 0.15s; }'
             ' .hw-area-vdivider:hover { background-color: var(--hw-accent) !important; }'
+            # Outlined select borders — Quasar uses a pseudo-element, not color inheritance
+            ' .hw-panel .q-field--outlined .q-field__control:before'
+            ' { border-color: var(--hw-border) !important; }'
+            ' .hw-panel .q-field--outlined:hover .q-field__control:before'
+            ' { border-color: var(--hw-border-strong) !important; }'
+            ' .hw-panel .q-field__control { background: var(--hw-bg-input) !important; }'
+            # Dropdown menus — portal outside their parent, so must be targeted globally
+            ' .q-menu { background: var(--hw-bg-elevated) !important;'
+            ' border: 1px solid var(--hw-border-strong) !important; }'
+            ' .q-menu .q-item { color: var(--hw-text-body) !important; }'
+            ' .q-menu .q-item--active { color: var(--hw-accent) !important; }'
+            ' .q-menu .q-item:hover { background: var(--hw-bg-surface) !important; }'
         )
+        ui.add_css(self._build_initial_theme_css() + _static_css)
         ui.add_head_html('''<script>
 (function () {
   var drag = null;
@@ -272,12 +333,12 @@ class AppShell:
         """Render the top bar with workspace name and global controls."""
         wm = self.session.workspace_manager
         ws = wm.active
-        with ui.row().classes('w-full items-center px-3 gap-3').style(
+        with ui.row().classes('w-full items-center px-3 gap-3 hw-panel').style(
             'height: 48px; min-height: 48px;'
             ' background: var(--hw-bg-surface); border-bottom: 1px solid var(--hw-border);'
         ):
-            ui.label('Haywire').classes('font-bold text-lg')
-            ui.label('|').classes('text-gray-600')
+            ui.label('Haywire').classes('font-bold text-lg hw-text-body')
+            ui.label('|').classes('hw-text-muted')
 
             # Workspace switcher
             preset_names = wm.get_preset_names()
@@ -285,7 +346,7 @@ class AppShell:
                 options=preset_names,
                 value=ws.name,
                 label=None,
-            ).props('dense outlined').classes('text-sm').style('min-width: 160px;')
+            ).props('dense outlined').classes('text-sm hw-text-muted').style('min-width: 160px;')
 
             def _on_workspace_switch(e):
                 value = e.value if hasattr(e, 'value') else (e.args[0] if e.args else None)
@@ -304,8 +365,16 @@ class AppShell:
                 on_click=lambda: (wm.save_current(), ui.notify('Workspace saved', position='top-right')),
             ).props('flat round dense color=grey').tooltip('Save current workspace').classes('text-gray-400')
 
-            dark = ui.dark_mode(value=True)
-            ui.switch('Dark mode').bind_value(dark)
+            context = self.session.context
+            theme_registry = context.metadata.get('theme_registry')
+            if theme_registry is not None:
+                theme_options = {tid: lbl for tid, lbl in theme_registry.list_workbench_themes()}
+                current_theme = getattr(context, 'active_workbench_theme_id', 'haywire-dark')
+                theme_select = ui.select(
+                    options=theme_options,
+                    value=current_theme,
+                ).props('dense outlined').classes('text-sm hw-text-muted').style('min-width: 160px;')
+                theme_select.on_value_change(lambda e: self.apply_workbench_theme(e.value))
             
     def _render_activity_bar(self) -> None:
         """Render the activity bar (left icon strip) that drives the Left Area."""
@@ -482,8 +551,8 @@ class AppShell:
             # Subscribe editor to context changes
             self.session.subscribe_context_changes(editor_instance.on_context_changed)
             # Render into current NiceGUI context
-            container_div = ui.element('div').classes('hw-dark-panel').style(
-                'width: 100%; height: 100%; background: var(--hw-bg-page); color: var(--hw-text);'
+            container_div = ui.element('div').classes('hw-panel').style(
+                'width: 100%; height: 100%; background: var(--hw-bg-page); color: var(--hw-text-body);'
             )
             editor_instance.render(container_div, self.session.context)
         except Exception as e:

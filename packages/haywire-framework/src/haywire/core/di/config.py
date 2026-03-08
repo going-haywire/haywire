@@ -16,6 +16,7 @@ from ...ui.skin.registry import SkinRegistry
 from ...ui.widget.registry import WidgetRegistry
 from ...ui.skin.factory import SkinFactory
 from ...ui.themes.palette import ThemePalette
+from ...ui.themes.registry import ThemeRegistry
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
 from ...ui.editors.builtins import register_builtin_editors
@@ -44,8 +45,8 @@ class HaywireModule(Module):
     """
     
     def __init__(
-        self, 
-        project_root: Optional[str] = None, 
+        self,
+        workspace_root: Optional[str] = None,
         library_paths: Optional[List[str]] = None,
         enable_file_watching: bool = True,
         undo_config: Optional[UndoConfig] = None,
@@ -55,51 +56,57 @@ class HaywireModule(Module):
     ):
         """
         Initialize the DI module.
-        
+
         Args:
-            project_root: Root path of the project (auto-detected if None)
-            library_paths: Additional library paths to scan
-            enable_file_watching: Whether to enable file watching for hot reload
-            undo_config: Optional undo configuration (uses default if None)
-            default_theme: Default theme to set on initialization
-            settings_path: Path to settings TOML file (default: ~/.haywire/settings.toml)
-            watch_settings: Whether to watch settings file for hot reload
+            workspace_root:     Root path of the workspace (auto-detected if None).
+            library_paths:      Additional library paths to scan.
+            enable_file_watching: Whether to enable file watching for hot reload.
+            undo_config:        Optional undo configuration (uses default if None).
+            default_theme:      Default theme to set on initialization.
+            settings_path:      Path to the global settings TOML file
+                                (default: ~/.haywire/settings.toml, hand-edited by user).
+            watch_settings:     Whether to watch settings files for hot reload.
         """
-        self.project_root = project_root or self._detect_project_root()
+        self.workspace_root = workspace_root or self._detect_project_root()
         self.library_paths = library_paths or []
         self.enable_file_watching = enable_file_watching
         self.undo_config = undo_config
         self.default_theme = default_theme
         self.watch_settings = watch_settings
-        
-        # Settings path
+
+        # Global-tier settings path (hand-edited by user, never written by the app)
         if settings_path:
             self.settings_path = Path(settings_path).expanduser().resolve()
         else:
             self.settings_path = Path.home() / '.haywire' / 'settings.toml'
-        
+
         # Library paths must be explicitly provided by the app or test config.
-        # The framework does not assume a particular project layout.
+        # The framework does not assume a particular workspace layout.
     
     @provider
     @singleton
     def provide_settings_registry(self) -> GlobalSettingsRegistry:
         """
         Provide singleton GlobalSettingsRegistry.
-        
-        The registry is initialized with:
-        1. Built-in setting definitions (from modular builtin files)
-        2. User values loaded from TOML file
-        3. Optional file watching for hot-reload
+
+        Initialization order:
+        1. Register built-in setting definitions (schema only, no values).
+        2. Load global tier from ~/.haywire/settings.toml (hand-edited by user).
+        3. Load workspace tier from <workspace>/.haywire/settings.toml (written by UI).
+        4. Optionally watch both files for hot-reload.
         """
         registry = GlobalSettingsRegistry()
-        
-        # Register built-in settings from modular files
+
+        # Register built-in settings schema
         register_builtin_settings(registry)
-        
-        # Load user values from TOML (with optional hot-reload)
-        registry.load_from_toml(self.settings_path, watch=self.watch_settings)
-        
+
+        # Global tier — hand-edited by user, never overwritten by the app
+        registry.load_from_toml(self.settings_path, tier='global', watch=self.watch_settings)
+
+        # Workspace tier — managed by the UI, saved via registry.save_to_toml()
+        workspace_settings = Path(self.workspace_root) / '.haywire' / 'settings.toml'
+        registry.load_from_toml(workspace_settings, tier='workspace', watch=self.watch_settings)
+
         return registry
     
     @provider
@@ -214,14 +221,28 @@ class HaywireModule(Module):
     
     @provider
     @singleton
+    def provide_theme_registry(self) -> ThemeRegistry:
+        """Provide singleton ThemeRegistry.
+
+        HaywireFallbackTheme is registered immediately so the UI has at least
+        one workbench theme available before libraries load.  The canonical
+        Haywire themes (haywire-dark, haywire-light, default node theme) are
+        registered by haybale-core via register_components() when libraries load.
+        """
+        from ...ui.themes.builtin import DefaultTheme
+        registry = ThemeRegistry()
+        registry.register_workbench(DefaultTheme)
+        return registry
+
+    @provider
+    @singleton
     def provide_theme_palette(self) -> ThemePalette:
         """
-        Provide ThemePalette for theme management.
-        
+        Provide ThemePalette (shim — delegates to legacy ThemePalette for backward compat).
+
         Note: ThemePalette is a singleton class with class methods,
         so we return the class itself. The default theme is set during initialization.
         """
-        # Set the default theme on first initialization
         ThemePalette.set_theme(self.default_theme)
         return ThemePalette
     
@@ -280,6 +301,9 @@ class LibrarySystemService:
         node_registry = self.injector.get(NodeRegistry)
         type_registry = self.injector.get(TypeRegistry)
         settings_registry = self.injector.get(GlobalSettingsRegistry)
+        theme_registry = self.injector.get(ThemeRegistry)
+        editor_registry = self.injector.get(EditorTypeRegistry)
+        panel_registry  = self.injector.get(PanelRegistry)
 
         # Link registries to library registry for management
         library_registry.add_class_registry(WidgetRegistry, widget_registry)
@@ -287,13 +311,26 @@ class LibrarySystemService:
         library_registry.add_class_registry(SkinRegistry, skin_registry)
         library_registry.add_class_registry(NodeRegistry, node_registry)
         library_registry.add_class_registry(TypeRegistry, type_registry)
-        
+        library_registry.add_class_registry(PanelRegistry, panel_registry)
+        library_registry.add_class_registry(ThemeRegistry, theme_registry)
+        library_registry.add_class_registry(EditorTypeRegistry, editor_registry)
+        library_registry.add_class_registry(GlobalSettingsRegistry, settings_registry)
+
         # Set up registry subscribers for cross-registry updates
-        # this ensures that when new types are added, 
+        # this ensures that when new types are added,
         # nodes, widgets and adapters are updated accordingly
         type_registry.add_registry_subscriber(adapter_registry)
         type_registry.add_registry_subscriber(widget_registry)
         type_registry.add_registry_subscriber(node_registry)
+
+        # When a LibrarySettings file changes on disk (hot-reload), propagate the
+        # FileChangeEvent downstream so any module that imports from it gets reloaded.
+        # This mirrors the type_registry → node_registry pattern.
+
+        settings_registry.add_registry_subscriber(node_registry)
+        settings_registry.add_registry_subscriber(skin_registry)
+        settings_registry.add_registry_subscriber(panel_registry)
+        settings_registry.add_registry_subscriber(editor_registry)
 
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()
@@ -342,8 +379,11 @@ class LibrarySystemService:
         print(f"   Categories:         {len(categories)}")
         print(f"   Custom values:      {custom_values}")
         print(f"   Global overrides:   {overrides}")
-        print(f"   Config file:        {registry._config_path}")
-        print(f"   File watching:      {'enabled' if registry._file_watch_enabled else 'disabled'}")
+        print(f"   Global tier:        {registry._global_path}")
+        print(f"   Workspace tier:     {registry._workspace_path}")
+        print(f"   File watching:      "
+              f"global={'on' if registry._global_watch_enabled else 'off'}, "
+              f"workspace={'on' if registry._workspace_watch_enabled else 'off'}")
         
         # List categories
         print("\n   Categories:")
@@ -430,8 +470,31 @@ class LibrarySystemService:
         skin_registry = self.injector.get(SkinRegistry)
         node_registry = self.injector.get(NodeRegistry)
         type_registry = self.injector.get(TypeRegistry)
+        editor_registry = self.injector.get(EditorTypeRegistry)
+        panel_registry = self.injector.get(PanelRegistry)
+        theme_registry = self.injector.get(ThemeRegistry)
+        settings_registry = self.injector.get(GlobalSettingsRegistry)
+        library_registry = self.injector.get(LibraryRegistry)
 
         print("\n=== Registry Status ===")
+
+        # Print registered libraries
+        print("\n📚 Registered Libraries:")
+        all_libraries = library_registry.list_names()
+        for lib_key in all_libraries:
+            print(f"   • {lib_key}")
+
+        # Print registered nodes
+        print("\n🛠 Registered Nodes:")
+        all_nodes = node_registry.list_names()
+        for node_key in all_nodes:
+            print(f"   • {node_key}")
+
+        # Print registered custom types
+        print("\n📦 Registered Types:")
+        all_types = type_registry.list_names()
+        for type_key in all_types:
+            print(f"   • {type_key}")
 
         # Print registered adapters
         print("\n🔗 Registered Adapters:")
@@ -451,21 +514,34 @@ class LibrarySystemService:
         for skin_key in all_skins:
             print(f"   • {skin_key}")
 
-        # Print registered nodes
-        print("\n🛠 Registered Nodes:")
-        all_nodes = node_registry.list_names()
-        for node_key in all_nodes:
-            print(f"   • {node_key}")
+        # Print registered editors
+        print("\n🖥 Registered Editors:")
+        all_editors = editor_registry.list_names()
+        for editor_key in all_editors:
+            print(f"   • {editor_key}")
 
-        # Print registered custom types
-        print("\n📦 Registered Types:")
-        all_types = type_registry.list_names()
-        for type_key in all_types:
-            print(f"   • {type_key}")
+        # Print registered panels
+        print("\n📋 Registered Panels:")
+        all_panels = panel_registry.list_names()
+        for panel_key in all_panels:
+            print(f"   • {panel_key}")
 
-        print(f"\nTotal: {len(all_nodes)} nodes, {len(all_skins)} skins, "
-              f"{len(all_widgets)} widgets, {len(all_adapters)} adapters, "
-              f"{len(all_types)} types\n")
+        # Print registered themes
+        print("\n🌈 Registered Themes:")
+        all_workbench_themes = theme_registry.list_workbench_ids()
+        for theme_id in all_workbench_themes:
+            print(f"   • {theme_id} (workbench)")
+        all_node_themes = theme_registry.list_node_theme_ids()
+        for theme_id in all_node_themes:
+            print(f"   • {theme_id} (node)")
+
+        print(
+            f"\nTotal: {len(all_libraries)} libraries, {len(all_nodes)} nodes, "
+            f"{len(all_types)} types, {len(all_adapters)} adapters, "
+            f"{len(all_widgets)} widgets, {len(all_skins)} skins, "
+            f"{len(all_editors)} editors, {len(all_panels)} panels, "
+            f"{len(all_workbench_themes) + len(all_node_themes)} themes "
+        )
     
     # =========================================================================
     # Convenience methods for getting common services
@@ -512,8 +588,12 @@ class LibrarySystemService:
         manager = self.injector.get(IHistoryManager)
         return None if isinstance(manager, NoOpHistoryManager) else manager
     
+    def get_theme_registry(self) -> ThemeRegistry:
+        """Get the theme registry."""
+        return self.injector.get(ThemeRegistry)
+
     def get_theme_palette(self) -> ThemePalette:
-        """Get the theme palette."""
+        """Get the theme palette (legacy shim)."""
         return self.injector.get(ThemePalette)
     
     def get_settings_registry(self) -> GlobalSettingsRegistry:
@@ -558,14 +638,16 @@ class LibrarySystemService:
         registry.save_to_toml()
     
     def reload_settings(self) -> None:
-        """Reload settings from TOML file."""
+        """Reload settings from both TOML tiers."""
         registry = self.get_settings_registry()
-        if registry._config_path:
-            registry._reload_from_file(registry._config_path)
+        if registry._global_path and registry._global_path.exists():
+            registry._reload_from_file(registry._global_path, tier='global')
+        if registry._workspace_path and registry._workspace_path.exists():
+            registry._reload_from_file(registry._workspace_path, tier='workspace')
 
 
 def create_haywire_injector(
-    project_root: Optional[str] = None,
+    workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = True,
     undo_config: Optional[UndoConfig] = None,
@@ -575,21 +657,22 @@ def create_haywire_injector(
 ) -> Injector:
     """
     Create and configure a Haywire DI injector.
-    
+
     Args:
-        project_root: Root path of the project (auto-detected if None)
-        library_paths: Additional library paths to scan
-        enable_file_watching: Whether to enable file watching for hot reload
-        undo_config: Optional undo configuration for history manager
-        default_theme: Default theme to set on initialization
-        settings_path: Path to settings TOML file (default: ~/.haywire/settings.toml)
-        watch_settings: Whether to watch settings file for hot reload
-        
+        workspace_root:       Root path of the workspace (auto-detected if None).
+        library_paths:        Additional library paths to scan.
+        enable_file_watching: Whether to enable file watching for hot reload.
+        undo_config:          Optional undo configuration for history manager.
+        default_theme:        Default theme to set on initialization.
+        settings_path:        Path to the global settings TOML file
+                              (default: ~/.haywire/settings.toml).
+        watch_settings:       Whether to watch settings files for hot reload.
+
     Returns:
-        Configured DI injector
+        Configured DI injector.
     """
     module = HaywireModule(
-        project_root=project_root,
+        workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         undo_config=undo_config,
@@ -597,12 +680,12 @@ def create_haywire_injector(
         settings_path=settings_path,
         watch_settings=watch_settings
     )
-    
+
     return Injector([module])
 
 
 def create_library_system_service(
-    project_root: Optional[str] = None,
+    workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = True,
     undo_config: Optional[UndoConfig] = None,
@@ -612,24 +695,25 @@ def create_library_system_service(
 ) -> LibrarySystemService:
     """
     Create and initialize a complete library system service.
-    
-    This is a convenience function that creates the DI injector, creates the service,
+
+    Convenience function that creates the DI injector, creates the service,
     and initializes the library system in one call.
-    
+
     Args:
-        project_root: Root path of the project (auto-detected if None)
-        library_paths: Additional library paths to scan  
-        enable_file_watching: Whether to enable file watching for library class hot reload
-        undo_config: Optional undo configuration for history manager
-        default_theme: Default theme to set on initialization
-        settings_path: Path to settings TOML file (default: ~/.haywire/settings.toml)
-        watch_settings: Whether to watch settings file for hot reload
-        
+        workspace_root:       Root path of the workspace (auto-detected if None).
+        library_paths:        Additional library paths to scan.
+        enable_file_watching: Whether to enable file watching for library class hot reload.
+        undo_config:          Optional undo configuration for history manager.
+        default_theme:        Default theme to set on initialization.
+        settings_path:        Path to the global settings TOML file
+                              (default: ~/.haywire/settings.toml).
+        watch_settings:       Whether to watch settings files for hot reload.
+
     Returns:
-        Initialized LibrarySystemService
+        Initialized LibrarySystemService.
     """
     injector = create_haywire_injector(
-        project_root=project_root,
+        workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         undo_config=undo_config,

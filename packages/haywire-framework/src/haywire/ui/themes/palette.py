@@ -1,6 +1,8 @@
 """
-Theme palette manager - central access point for theming.
-Implements observer pattern for theme change notifications.
+Theme palette manager — thin shim kept for transition.
+
+New code should use ThemeRegistry + WorkbenchTheme (via DI).
+ThemePalette still works for legacy callers that read individual theme keys.
 """
 
 from typing import Optional, Callable, List, Dict, Any

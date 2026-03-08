@@ -58,7 +58,7 @@ def setup_library_system():
     
     # Create and initialize library system
     service = create_test_library_system(
-        project_root=str(project_root),
+        workspace_root=str(project_root),
         library_paths=[str(test_library_path)],
         load_libraries=True,
         enable_file_watching=False

@@ -9,10 +9,14 @@ from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
+from haywire.core.settings.registry import GlobalSettingsRegistry
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.types.registry import TypeRegistry
 
+from haywire.ui.panel.registry import PanelRegistry
+from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 from haywire.ui.skin.registry import SkinRegistry
 
@@ -37,6 +41,18 @@ class Library(BaseLibrary):
 
         """Register nodes and custom types"""
         base_path = Path(__file__).parent
+
+        # Register settings 
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'settings'),
+            registry_cls=GlobalSettingsRegistry
+        )
+ 
+        # Register themes (workbench and node themes)
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'themes'),
+            registry_cls=ThemeRegistry
+        )
 
         # Register types (both variants and custom types)
         self.add_folder_to_registry(
@@ -67,7 +83,19 @@ class Library(BaseLibrary):
             folder_path=str(base_path / 'nodes'),
             registry_cls=NodeRegistry
         )
-        
+
+        # Register nodes
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'panels'),
+            registry_cls=PanelRegistry
+        )
+
+        # Register nodes
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'editors'),
+            registry_cls=EditorTypeRegistry
+        )
+
 
     def validate(self) -> bool:
         """Validate that the core library is properly structured"""

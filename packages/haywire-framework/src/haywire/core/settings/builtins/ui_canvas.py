@@ -1,130 +1,31 @@
 # haywire/core/settings/builtins/ui_canvas.py
-"""
-UI Canvas/graph background settings.
-"""
+"""UI Canvas/graph background settings."""
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..registry import GlobalSettingsRegistry
+from ..schema import GlobalSettings
+from ..types import Color
+from ..descriptors import setting
 
 
-CATEGORY = 'ui.canvas'
+class CanvasUISettings(GlobalSettings, namespace='ui.canvas'):
+    """Global settings controlling the graph canvas appearance and behaviour."""
 
-
-def register(registry: 'GlobalSettingsRegistry') -> None:
-    """Register canvas appearance settings."""
-    
     # Background
-    registry.define(
-        'ui.canvas.bg_color', '#1e1e1e',
-        label='Canvas Background',
-        description='Background color of the graph canvas',
-        category=CATEGORY,
-        ui_widget='color',
-        ui_order=10
-    )
-    registry.define(
-        'ui.canvas.bg_pattern', 'dots',
-        label='Background Pattern',
-        description='Pattern style for canvas background',
-        category=CATEGORY,
-        choices=['none', 'dots', 'lines', 'cross'],
-        ui_order=11
-    )
-    
+    bg_color:   Color = setting('#1e1e1e', label='Canvas Background',  description='Background color of the graph canvas', category='ui.canvas', order=10, widget='color')
+    bg_pattern: str   = setting('dots',    label='Background Pattern', description='Pattern style for canvas background', category='ui.canvas', order=11, choices=['none', 'dots', 'lines', 'cross'])
+
     # Grid
-    registry.define(
-        'ui.canvas.grid_enabled', True,
-        label='Show Grid',
-        description='Display grid on canvas',
-        category=CATEGORY,
-        ui_order=20
-    )
-    registry.define(
-        'ui.canvas.grid_size', 20,
-        label='Grid Size',
-        description='Grid cell size in pixels',
-        category=CATEGORY,
-        min_value=5,
-        max_value=100,
-        ui_order=21
-    )
-    registry.define(
-        'ui.canvas.grid_color', '#2d2d2d',
-        label='Grid Color',
-        description='Color of grid lines',
-        category=CATEGORY,
-        ui_widget='color',
-        ui_order=22
-    )
-    registry.define(
-        'ui.canvas.grid_subdivisions', 5,
-        label='Grid Subdivisions',
-        description='Number of minor grid lines per major line',
-        category=CATEGORY,
-        min_value=1,
-        max_value=10,
-        ui_order=23
-    )
-    registry.define(
-        'ui.canvas.snap_to_grid', True,
-        label='Snap to Grid',
-        description='Snap nodes to grid when moving',
-        category=CATEGORY,
-        ui_order=24
-    )
-    
+    grid_enabled:     bool  = setting(True,     label='Show Grid',          description='Display grid on canvas',                   category='ui.canvas', order=20)
+    grid_size:        int   = setting(20,        label='Grid Size',          description='Grid cell size in pixels',                 category='ui.canvas', order=21, min=5,  max=100)
+    grid_color:       Color = setting('#2d2d2d', label='Grid Color',         description='Color of grid lines',                     category='ui.canvas', order=22, widget='color')
+    grid_subdivisions: int  = setting(5,         label='Grid Subdivisions',  description='Number of minor grid lines per major line', category='ui.canvas', order=23, min=1, max=10)
+    snap_to_grid:     bool  = setting(True,      label='Snap to Grid',       description='Snap nodes to grid when moving',           category='ui.canvas', order=24)
+
     # Zoom
-    registry.define(
-        'ui.canvas.zoom_min', 0.1,
-        label='Minimum Zoom',
-        description='Minimum zoom level',
-        category=CATEGORY,
-        min_value=0.05,
-        max_value=0.5,
-        ui_order=30
-    )
-    registry.define(
-        'ui.canvas.zoom_max', 4.0,
-        label='Maximum Zoom',
-        description='Maximum zoom level',
-        category=CATEGORY,
-        min_value=1.0,
-        max_value=10.0,
-        ui_order=31
-    )
-    registry.define(
-        'ui.canvas.zoom_speed', 0.1,
-        label='Zoom Speed',
-        description='Zoom sensitivity for scroll wheel',
-        category=CATEGORY,
-        min_value=0.01,
-        max_value=0.5,
-        ui_order=32
-    )
-    registry.define(
-        'ui.canvas.zoom_to_cursor', True,
-        label='Zoom to Cursor',
-        description='Zoom centered on cursor position',
-        category=CATEGORY,
-        ui_order=33
-    )
-    
+    zoom_min:      float = setting(0.1, label='Minimum Zoom',   description='Minimum zoom level',                   category='ui.canvas', order=30, min=0.05, max=0.5)
+    zoom_max:      float = setting(4.0, label='Maximum Zoom',   description='Maximum zoom level',                   category='ui.canvas', order=31, min=1.0,  max=10.0)
+    zoom_speed:    float = setting(0.1, label='Zoom Speed',     description='Zoom sensitivity for scroll wheel',    category='ui.canvas', order=32, min=0.01, max=0.5)
+    zoom_to_cursor: bool = setting(True, label='Zoom to Cursor', description='Zoom centered on cursor position',   category='ui.canvas', order=33)
+
     # Pan
-    registry.define(
-        'ui.canvas.pan_speed', 1.0,
-        label='Pan Speed',
-        description='Panning speed multiplier',
-        category=CATEGORY,
-        min_value=0.1,
-        max_value=3.0,
-        ui_order=40
-    )
-    registry.define(
-        'ui.canvas.inertia_enabled', True,
-        label='Enable Inertia',
-        description='Continue panning with momentum after release',
-        category=CATEGORY,
-        ui_order=41
-    )
+    pan_speed:       float = setting(1.0,  label='Pan Speed',      description='Panning speed multiplier',                       category='ui.canvas', order=40, min=0.1, max=3.0)
+    inertia_enabled: bool  = setting(True, label='Enable Inertia', description='Continue panning with momentum after release',   category='ui.canvas', order=41)

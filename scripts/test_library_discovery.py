@@ -27,7 +27,7 @@ def test_library_discovery():
     # Create library system with default configuration
     print("\n🔧 Creating library system service...")
     service = create_library_system_service(
-        project_root=str(project_root),
+        workspace_root=str(project_root),
         enable_file_watching=False,
         watch_settings=False
     )

@@ -81,20 +81,15 @@ class LibraryBrowser(BaseEditor):
 
     def _make_toggle(self, attr: str, color: str, icon: str, tooltip: str, context: 'SessionContext'):
         active = getattr(self, f'_filter_{attr}')
-        btn = (
-            ui.button(icon=icon)
-            .props(f'flat round dense size=sm color={"" if not active else color}')
-            .tooltip(tooltip)
-        )
-        if active:
-            btn.props(f'color={color}')
-        btn.on('click', lambda a=attr, b=btn, c=color, ctx=context: self._toggle(a, b, c, ctx))
+        with ui.button().props('flat round dense size=sm').tooltip(tooltip) as btn:
+            icon_el = ui.icon(icon).classes('hw-use-props-color')
+            icon_el.props(f'color={color if active else "grey"}')
+        btn.on('click', lambda a=attr, ie=icon_el, c=color, ctx=context: self._toggle(a, ie, c, ctx))
 
-    def _toggle(self, attr: str, btn, color: str, context: 'SessionContext'):
+    def _toggle(self, attr: str, icon_el, color: str, context: 'SessionContext'):
         current = getattr(self, f'_filter_{attr}')
         setattr(self, f'_filter_{attr}', not current)
-        new_color = color if not current else 'grey'
-        btn.props(f'color={new_color}')
+        icon_el.props(f'color={color if not current else "grey"}')
         self._render_list(context)
 
     def _on_search(self, args, context: 'SessionContext'):

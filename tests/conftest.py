@@ -92,7 +92,7 @@ def test_injector(
     This is for unit tests that need DI but not full library loading.
     """
     injector = create_test_injector(
-        project_root=str(project_root),
+        workspace_root=str(project_root),
         enable_file_watching=False,
         load_libraries=False
     )
@@ -115,7 +115,7 @@ def test_injector_with_undo(
     undo_config = UndoConfig(max_undo_steps=50)
     
     injector = create_test_injector(
-        project_root=str(project_root),
+        workspace_root=str(project_root),
         enable_file_watching=False,
         load_libraries=False,
         undo_config=undo_config
@@ -143,7 +143,7 @@ def library_system(
     )
     
     service = create_test_library_system(
-        project_root=str(project_root),
+        workspace_root=str(project_root),
         library_paths=[str(test_library_path)],
         load_libraries=True,
         enable_file_watching=False

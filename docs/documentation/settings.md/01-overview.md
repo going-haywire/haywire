@@ -1,312 +1,226 @@
 # Settings System Overview
 
-This document provides an architectural overview of Haywire's settings system, which manages configuration at multiple levels—from global application defaults to per-node customizations.
+Haywire's settings system manages configuration at three levels: global/workspace application defaults, per-node instance overrides, and transient runtime data.
 
-## Introduction
+## The Three Containers
 
-### The Problem
+Every node instance exposes three containers:
 
-Node-based applications need configuration at multiple levels:
+| Container | Serialized | GUI-visible | Hierarchical |
+|-----------|-----------|-------------|--------------|
+| `self.cache` | No | No | No |
+| `self.store` | Yes | No | No |
+| `self.settings` | Yes (local overrides only) | Yes | Yes |
 
-- **Global defaults** — Application-wide settings (colors, timeouts, behaviors)
-- **Per-node overrides** — Individual nodes may need different values
-- **Runtime state** — Temporary data during execution
-- **Persistent state** — Data that survives save/load cycles
-
-Without a unified system, developers end up with:
-- Scattered configuration files
-- Inconsistent APIs
-- No inheritance or override mechanism
-- Manual serialization for each data type
-
-### The Solution
-
-Haywire provides a **three-tier data model** with clear separation of concerns:
-
-| Container | Purpose | Serialized | GUI-Visible |
-|-----------|---------|------------|-------------|
-| `self.cache` | Transient runtime data | ❌ No | ❌ No |
-| `self.store` | Persistent internal state | ✅ Yes | ❌ No |
-| `self.settings` | User-configurable options | ✅ Yes | ✅ Yes |
+**Use `self.cache`** for transient computation data (lookup tables, buffers, memoization).
+**Use `self.store`** for persistent internal state users don't see (counters, accumulators, state machines).
+**Use `self.settings`** for anything users should be able to see and configure.
 
 ---
 
 ## Architecture
 
-### App Startup: Global Registry
+### Global Registry
 
-When the application starts, the `GlobalSettingsRegistry` is created and populated:
+At startup, `GlobalSettingsRegistry` is populated from class-based schema definitions:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     GlobalSettingsRegistry                       │
-├─────────────────────────────────────────────────────────────────┤
-│  1. Created as singleton via DI                                 │
-│                                                                  │
-│  2. Builtin modules register definitions (schema):              │
-│     - ui_node.py    → 'ui.node.bg_color', 'ui.node.font_size'  │
-│     - ui_edge.py    → 'ui.edge.color', 'ui.edge.width'         │
-│     - execution.py  → 'execution.timeout_seconds'               │
-│     - debug.py      → 'debug.verbose_logging'                   │
-│     - editor.py     → 'editor.undo_limit'                       │
-│                                                                  │
-│  3. Load settings.toml → applies user VALUES                    │
-│                                                                  │
-│  4. File watcher (optional) → hot-reload on file change         │
-└─────────────────────────────────────────────────────────────────┘
+GlobalSettingsRegistry
+├── Built-in GlobalSettings schemas (registered via register_schema() in DI)
+│   ├── NodeUISettings (namespace='ui.node')  → ui.node.bg_color, ui.node.font_size ...
+│   ├── EdgeUISettings (namespace='ui.edge')  → ui.edge.color, ui.edge.width ...
+│   ├── DebugSettings  (namespace='debug')    → debug.verbose_logging ...
+│   ├── ExecutionSettings (namespace='execution') → execution.auto_execute ...
+│   └── EditorSettings (namespace='editor')   → editor.undo_limit ...
+│
+├── Library LibrarySettings schemas (discovered via @library_settings decorator)
+│
+├── global settings.toml (~/.haywire/settings.toml)           — user VALUES, global tier (hand-edited)
+└── workspace settings.toml (<workspace>/.haywire/settings.toml) — workspace VALUES, set via UI
 ```
 
-The `settings.toml` file contains **values only**, not schema:
+Schema classes define the *shape* of settings. TOML files provide *values only*.
 
 ```toml
+# ~/.haywire/settings.toml
 [ui.node]
-bg_color = "#f0f0f0"                        # SET mode (implicit)
-font_size = { override = true, value = 14 } # OVERRIDE mode (explicit)
-
-[execution]
-timeout_seconds = 120
+bg_color = "#f0f0f0"
+font_size = { override = true, value = 14 }  # OVERRIDE mode
 
 [debug]
 verbose_logging = true
 ```
 
-### Node Creation: Local Holder
+### Node Settings Schema
 
-When a node instance is created, it gets its own `SettingsHolder`:
+Nodes declare their settings as an inner `Settings` class:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Node Instance Created                         │
-├─────────────────────────────────────────────────────────────────┤
-│  1. SettingsHolder created, linked to GlobalSettingsRegistry    │
-│                                                                  │
-│  2. Built-in LOCAL-ONLY settings registered:                    │
-│     - 'node.muted' (default: False)                             │
-│     - 'node.collapsed' (default: False)                         │
-│     - 'node.pinned' (default: False)                            │
-│     - 'node.color_override' (default: None)                     │
-│     These have NO global equivalent.                            │
-│                                                                  │
-│  3. Node developer can add more in initialize():                │
-│                                                                  │
-│     # Local-only (no global equivalent)                         │
-│     self.settings.define('my_node.cache_size', 100,             │
-│                          scope=SettingScope.LOCAL_ONLY)         │
-│                                                                  │
-│     # Override a global setting for this node                   │
-│     self.settings['ui.node.bg_color'] = '#e8f4e8'              │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```python
+from haywire.core.node import BaseNode, node
+from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
+
+@node(label="My Node")
+class MyNode(BaseNode):
+
+    class Settings(NodeSettings):
+        # Local setting — stored in graph, shown in properties panel
+        threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
+
+        # Shadow — inherits global default; per-node override shown with reset affordance
+        bg_color: Color = shadow(NodeUISettings.bg_color)
+
+        # Watch — read-only cache of a global; invisible in panel, never serialized
+        verbose: bool = watch(DebugSettings.verbose_logging)
 ```
 
-### Runtime Resolution
+`BaseNode.__init_subclass__` detects the inner `Settings` class, derives a namespace from the node class name (`my_lib.my` for `MyNode`), and sets `_full_key` on each descriptor (`my_lib.my.threshold`, etc.).
 
-When you access a setting, the system resolves it through a hierarchy:
+### NodeInstanceSettings — Framework-Provided Fields
+
+Every node automatically receives a set of framework-level instance settings via `NodeInstanceSettings` (namespace `'node'`). These are injected as an *extra schema* alongside the node's own `Settings` class and participate in the full resolution chain.
+
+| Field | Full key | Type | Default | Purpose |
+|-------|----------|------|---------|---------|
+| `skin` | `node.skin` | str or None | `None` | Skin used to render this node |
+| `muted` | `node.muted` | bool | `False` | Skip during execution |
+| `collapsed` | `node.collapsed` | bool | `False` | Collapse to header only |
+| `condensed` | `node.condensed` | bool | `False` | Condensed view |
+| `pinned` | `node.pinned` | bool | `False` | Prevent auto-layout movement |
+| `color_override` | `node.color_override` | Color or None | `None` | Per-node background colour |
+| `comment` | `node.comment` | str | `''` | Comment text |
+| `show_comment` | `node.show_comment` | bool | `False` | Show comment bubble |
+
+Access is via the short attr name (same as any other schema field):
+
+```python
+# In node code
+self.settings.skin = 'my_lib:skin:MyCustomSkin'
+self.settings.muted        # → bool
+self.settings.color_override  # → str | None
+
+# Dict-style via full key also works
+self.settings['node.muted']
+```
+
+Because they are proper schema fields, global defaults can be set in TOML:
+
+```toml
+# ~/.haywire/settings.toml
+[node]
+collapsed = true          # start all nodes collapsed by default
+```
+
+### Per-Node Resolution Chain
+
+Each node instance has a `ResolutionChain` that resolves values in priority order:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│              self.settings['ui.node.bg_color']                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Resolution Order:                                               │
-│                                                                  │
-│  1. Global OVERRIDE? ───────→ Return global value (forced)      │
-│         │                                                        │
-│         ↓ No                                                     │
-│  2. Local SET? ─────────────→ Return local value (node-specific)│
-│         │                                                        │
-│         ↓ No                                                     │
-│  3. Global SET? ────────────→ Return global value (app default) │
-│         │                                                        │
-│         ↓ No                                                     │
-│  4. Return definition default                                    │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-For **LOCAL-ONLY** settings (e.g., `node.muted`):
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  1. Local SET? ─────────────→ Return local value                │
-│         │                                                        │
-│         ↓ No                                                     │
-│  2. Return definition default                                    │
-│                                                                  │
-│  (No global lookup — these don't exist in GlobalRegistry)       │
-└─────────────────────────────────────────────────────────────────┘
+self.settings.threshold
+        │
+        ▼
+1. Global tier OVERRIDE for 'my_lib.my.threshold'?    → return it (admin policy, hand-edited)
+        │ No
+        ▼
+2. Workspace tier OVERRIDE for 'my_lib.my.threshold'? → return it (workspace-wide force)
+        │ No
+        ▼
+3. Local value in this instance?                      → return it (per-node override)
+        │ No
+        ▼
+4. Workspace tier SET for 'my_lib.my.threshold'?      → return it (set via UI, saved to workspace TOML)
+        │ No
+        ▼
+5. Global tier SET for 'my_lib.my.threshold'?         → return it (user global default)
+        │ No
+        ▼
+6. Descriptor _default                                → return it
 ```
 
 ---
 
-## Key Concepts
+## Descriptor Types
 
-### Modes
+| Descriptor | Panel visible | Stored in graph | Read-only |
+|------------|--------------|-----------------|-----------|
+| `setting()` | Yes | Yes, when locally set | No |
+| `shadow()` | Yes, with reset affordance | Yes, when locally overridden | No |
+| `watch()` | No | Never | Yes |
 
-Settings can be in one of three modes:
-
-| Mode | Meaning | Use Case |
-|------|---------|----------|
-| `AUTO` | Inherit from parent level | Default state, no override |
-| `SET` | Explicit value at this level | User customization |
-| `OVERRIDE` | Force value on all children | Global enforcement |
-
-### Scopes
-
-Settings are defined with one of two scopes:
-
-| Scope | Meaning | Example |
-|-------|---------|---------|
-| `GLOBAL_AWARE` | Participates in global/local hierarchy | `ui.node.bg_color` |
-| `LOCAL_ONLY` | Exists only at node level | `node.muted`, `node.collapsed` |
-
-### The Three Containers
-
-#### `self.cache` — Transient Runtime Data
+### `setting()` — Local node setting
 
 ```python
-# NOT serialized — lost on save/load or app restart
-self.cache.lookup_table = {}
-self.cache.last_result = None
-self.cache.temp_buffer = []
+class Settings(NodeSettings):
+    threshold:   float = setting(0.5, min=0.0, max=1.0, label='Threshold')
+    algorithm:   str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
+    bg_color:    Color = setting('#ffffff', label='Background Color', widget='color')
+    verbose:     bool  = setting(False, label='Verbose Output')
+    on_change_cb: float = setting(1.0, label='Scale', on_change='hb_on_scale_change')
 ```
 
-**Use for:**
-- Computation caches
-- Temporary buffers
-- Memoization
-- Runtime-only state that can be recomputed
+Widget is inferred from type: `bool` → toggle, `int`/`float` with range → slider, `Color` → color picker, `str` with `choices` → dropdown, plain `str` → text input.
 
-#### `self.store` — Persistent Internal State
+### `shadow()` — Mirror a global setting
 
 ```python
-# Serialized with node — survives save/load
-self.store.execution_count = 0
-self.store.accumulated_sum = 0.0
-self.store.history = []
+class Settings(NodeSettings):
+    # Inherits global value by default; user can override per-node
+    bg_color: Color = shadow(NodeUISettings.bg_color)
 ```
 
-**Use for:**
-- Counters and accumulators
-- State machines
-- Results that must persist
-- Internal data users don't need to see/edit
+`shadow(SomeGlobalSettings.field)` takes the descriptor at class-access time (returns the descriptor object itself) and stores its `_full_key` as a string. The `_label`, `_default`, and widget metadata are inherited from the global descriptor.
 
-#### `self.settings` — User-Configurable Options
+### `watch()` — Read-only cached global reference
 
 ```python
-# Serialized, GUI-visible, hierarchical resolution
-color = self.settings['ui.node.bg_color']      # Read global
-self.settings['ui.node.bg_color'] = '#ff0000'  # Local override
-self.settings.define('my_option', 42, scope=SettingScope.LOCAL_ONLY)
+class Settings(NodeSettings):
+    # Invisible in panel; cache invalidated automatically on global change
+    verbose: bool = watch(DebugSettings.verbose_logging)
 ```
 
-**Use for:**
-- Anything users should see in properties panel
-- Options that benefit from global defaults
-- Configuration that should be editable
+Useful for settings that control node behavior but shouldn't be per-node configurable.
 
 ---
 
-## Decision Guide: Which Container?
+## Accessing Settings in Node Code
 
-```
-                        ┌─────────────────────┐
-                        │ Do users need to    │
-                        │ see/edit this?      │
-                        └─────────┬───────────┘
-                                  │
-                    ┌─────────────┴─────────────┐
-                    │                           │
-                   YES                          NO
-                    │                           │
-                    ▼                           ▼
-           ┌───────────────┐         ┌─────────────────────┐
-           │ self.settings │         │ Must it persist     │
-           └───────────────┘         │ across save/load?   │
-                                     └──────────┬──────────┘
-                                                │
-                                  ┌─────────────┴─────────────┐
-                                  │                           │
-                                 YES                          NO
-                                  │                           │
-                                  ▼                           ▼
-                         ┌─────────────┐            ┌─────────────┐
-                         │ self.store  │            │ self.cache  │
-                         └─────────────┘            └─────────────┘
+```python
+def worker(self, context, value: float):
+    # Dot-notation access (preferred)
+    if self.settings.verbose:
+        context.log(f"Processing: {value}")
+
+    result = value * self.settings.threshold
+    self.out('result', result)
 ```
 
-### Quick Reference
-
-| Data Type | Container | Example |
-|-----------|-----------|---------|
-| User-editable option | `settings` | Background color, timeout |
-| Computation cache | `cache` | Lookup tables, memoization |
-| Accumulated result | `store` | Running totals, counters |
-| Temporary buffer | `cache` | Processing queue |
-| Node visual state | `settings` | Collapsed, muted, pinned |
-| Position/dimensions | `ui.state` | x, y, width, height |
-| User notes | `metadata` | Annotations, tags |
+Access is always by the **short attr name** (`threshold`, `bg_color`), not the full key.
 
 ---
 
 ## Serialization
 
-### What Gets Saved Where
-
-| Data | Serialized In | Format |
-|------|---------------|--------|
-| Global settings | `~/.haywire/settings.toml` | TOML |
-| Node settings (local overrides) | Node dict in graph file | JSON |
-| Node store | Node dict in graph file | JSON |
-| Node cache | **Not saved** | — |
-| Node UI state (position) | Node dict in graph file | JSON |
-| Node metadata | Node dict in graph file | JSON |
-
-### Node Serialization Example
+Only locally-overridden schema values are serialized with the node. Global values are **not** stored in the graph.
 
 ```json
 {
   "node_id": "abc123",
-  "ports": { ... },
   "settings": {
-    "local_values": {
-      "node.muted": {"mode": "SET", "value": true},
-      "ui.node.bg_color": {"mode": "SET", "value": "#ff0000"}
-    },
-    "local_definitions": {
-      "my_node.cache_size": {
-        "default": 100,
-        "type": "int",
-        "scope": "LOCAL_ONLY"
-      }
+    "schema_values": {
+      "threshold": 0.8,
+      "bg_color": "#ff0000"
     }
   },
-  "store": {
-    "execution_count": 42,
-    "accumulated_sum": 123.45
-  },
-  "ui": {
-    "state": {"pos_x": 100, "pos_y": 200}
-  },
-  "metadata": {
-    "notes": ["Remember to optimize this"],
-    "tags": ["important"]
-  }
+  "store": { "execution_count": 42 }
 }
 ```
 
-**Key points:**
-- Only non-`AUTO` local values are saved
-- Global definitions are **not** saved (they exist in code)
-- Global values are **not** saved in nodes (only the local overrides)
+`schema_values` maps attr name → locally set value. Fields still at their default (resolved from global or descriptor default) are omitted.
 
 ---
 
 ## Next Steps
 
-- **[Node Development Guide](02-node-development.md)** — Using cache, store, and settings in nodes
-- **[Library Development Guide](03-library-development.md)** — Creating custom global settings
-- **[UI Integration Guide](04-ui-integration.md)** — Building settings panels with NiceGUI
-- **[API Reference](05-reference.md)** — Complete API documentation
+- **[Node Development Guide](02-node-development.md)** — Defining and using settings in nodes
+- **[Library Development Guide](03-library-development.md)** — Creating `LibrarySettings` for your library
+- **[API Reference](05-reference.md)** — Complete descriptor and registry API
 - **[Testing Guide](06-testing.md)** — Testing settings-dependent code

@@ -1,0 +1,73 @@
+# haywire-dark.toml
+# User-editable partial overrides for the Haywire Dark workbench theme.
+# Copy any token you want to customise; tokens not listed here keep the
+# built-in default values from HaywireDarkTheme in builtin.py.
+#
+# All values are CSS colour strings (hex, rgba, named colour, etc.).
+
+# ── Backgrounds ──────────────────────────────────────────────────────────────
+bg_page     = '#12121e'
+bg_surface  = '#1e1e2e'
+bg_sidebar  = '#181825'
+bg_elevated = '#2a2a3e'
+bg_overlay  = 'rgba(0,0,0,0.5)'
+bg_input    = '#16162a'
+
+# ── Borders ───────────────────────────────────────────────────────────────────
+border       = '#333333'
+border_strong = '#4a4a6a'
+
+# ── Text ──────────────────────────────────────────────────────────────────────
+text_body      = 'rgba(255,255,255,0.87)'
+text_muted     = 'rgba(255,255,255,0.55)'
+text_dim       = 'rgba(255,255,255,0.6)'
+text_expansion = 'rgba(255,255,255,0.8)'
+text_on_accent = '#ffffff'
+
+# ── Accent ────────────────────────────────────────────────────────────────────
+accent        = '#4f8ef7'
+accent_hover  = '#7080ff'
+accent_active = '#3060d0'
+
+# ── Status ────────────────────────────────────────────────────────────────────
+danger  = '#f44336'
+warning = '#ff9800'
+success = '#4caf50'
+info    = '#2196f3'
+
+# ── Node ─────────────────────────────────────────────────────────────────────
+node_bg          = '#1e1e2e'
+node_border      = '#2e2e48'
+node_header_bg   = '#252540'
+node_header_text = 'rgba(255,255,255,0.87)'
+node_selected    = '#4f8ef7'
+node_shadow      = 'rgba(0,0,0,0.4)'
+
+# ── Edge ──────────────────────────────────────────────────────────────────────
+edge_default  = '#4a4a6a'
+edge_selected = '#4f8ef7'
+
+# ── Canvas ────────────────────────────────────────────────────────────────────
+canvas_bg   = '#0e0e1a'
+canvas_grid = '#1a1a2e'
+
+# ── TopBar ────────────────────────────────────────────────────────────────────
+topbar_bg   = '#12121e'
+topbar_text = 'rgba(255,255,255,0.87)'
+
+# ── Sidebar / ActivityBar ─────────────────────────────────────────────────────
+sidebar_bg          = '#0e0e1a'
+sidebar_icon        = '#6060a0'
+sidebar_icon_active = '#4f8ef7'
+
+# ── Panel ─────────────────────────────────────────────────────────────────────
+panel_bg   = '#1a1a2c'
+panel_text = '#c0c0e0'
+
+# ── StatusBar ─────────────────────────────────────────────────────────────────
+statusbar_bg   = '#1e3a5f'
+statusbar_text = 'rgba(255,255,255,0.7)'
+
+# ── Console ───────────────────────────────────────────────────────────────────
+console_bg   = '#0d1117'
+console_text = '#4ade80'

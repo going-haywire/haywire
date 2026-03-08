@@ -69,84 +69,84 @@ class NodeUI:
     - self.ui.collapse() / expand() - Convenience methods
     
     Note: Visual settings like colors and visibility toggles
-    are accessed via self.settings (e.g., self.settings['node.collapsed'])
+    are accessed via self.settings (e.g., self.settings.collapsed)
     """
-    
+
     def __init__(self, node: 'BaseNode'):
         self._node = node
         self.state = NodeUIState()
-    
+
     # =========================================================================
     # Position & Dimensions
     # =========================================================================
-    
+
     def set_position(self, pos: tuple[float, float]) -> None:
         """Set node position."""
         self.state.set_position(pos)
-    
+
     def get_position(self) -> tuple[float, float]:
         """Get node position."""
         return self.state.get_position()
-    
+
     @property
     def position(self) -> tuple[float, float]:
         """Node position as (x, y) tuple."""
         return self.state.get_position()
-    
+
     @position.setter
     def position(self, value: tuple[float, float]) -> None:
         self.state.set_position(value)
-    
+
     # =========================================================================
     # Collapse / Expand (delegates to settings)
     # =========================================================================
-    
+
     def collapse(self) -> None:
         """Collapse the node in the editor."""
-        self._node.settings['node.collapsed'] = True
-    
+        self._node.settings.collapsed = True
+
     def expand(self) -> None:
         """Expand the node in the editor."""
-        self._node.settings['node.collapsed'] = False
-    
+        self._node.settings.collapsed = False
+
     @property
     def is_collapsed(self) -> bool:
         """Whether the node is collapsed."""
-        return self._node.settings.get('node.collapsed', False)
-    
+        return self._node.settings.get('collapsed', False)
+
     # =========================================================================
     # Mute (delegates to settings)
     # =========================================================================
-    
+
     def mute(self) -> None:
         """Mute the node (skip during execution)."""
-        self._node.settings['node.muted'] = True
-    
+        self._node.settings.muted = True
+
     def unmute(self) -> None:
         """Unmute the node."""
-        self._node.settings['node.muted'] = False
-    
+        self._node.settings.muted = False
+
     @property
     def is_muted(self) -> bool:
         """Whether the node is muted."""
-        return self._node.settings.get('node.muted', False)
-    
+        return self._node.settings.get('muted', False)
+
     # =========================================================================
     # Pin (delegates to settings)
     # =========================================================================
-    
+
     def pin(self) -> None:
         """Pin the node (prevent auto-layout movement)."""
-        self._node.settings['node.pinned'] = True
-    
+        self._node.settings.pinned = True
+
     def unpin(self) -> None:
         """Unpin the node."""
-        self._node.settings['node.pinned'] = False
-    
+        self._node.settings.pinned = False
+
     @property
     def is_pinned(self) -> bool:
         """Whether the node is pinned."""
-        return self._node.settings.get('node.pinned', False)
+        return self._node.settings.get('pinned', False)
     
     # =========================================================================
     # Serialization

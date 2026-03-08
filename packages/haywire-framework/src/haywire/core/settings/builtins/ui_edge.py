@@ -1,130 +1,31 @@
 # haywire/core/settings/builtins/ui_edge.py
-"""
-UI Edge appearance settings.
-"""
+"""UI Edge appearance settings."""
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..registry import GlobalSettingsRegistry
+from ..schema import GlobalSettings
+from ..types import Color
+from ..descriptors import setting
 
 
-CATEGORY = 'ui.edge'
+class EdgeUISettings(GlobalSettings, namespace='ui.edge'):
+    """Global settings controlling edge (connection) appearance."""
 
-
-def register(registry: 'GlobalSettingsRegistry') -> None:
-    """Register edge appearance settings."""
-    
     # Colors
-    registry.define(
-        'ui.edge.color', '#666666',
-        label='Edge Color',
-        description='Default color for edges',
-        category=CATEGORY,
-        ui_widget='color',
-        ui_order=10
-    )
-    registry.define(
-        'ui.edge.color_selected', '#1976d2',
-        label='Selected Edge Color',
-        description='Color when edge is selected',
-        category=CATEGORY,
-        ui_widget='color',
-        ui_order=11
-    )
-    registry.define(
-        'ui.edge.color_invalid', '#f44336',
-        label='Invalid Edge Color',
-        description='Color for invalid connections',
-        category=CATEGORY,
-        ui_widget='color',
-        ui_order=12
-    )
-    registry.define(
-        'ui.edge.color_hover', '#42a5f5',
-        label='Hover Edge Color',
-        description='Color when hovering over edge',
-        category=CATEGORY,
-        ui_widget='color',
-        ui_order=13
-    )
-    registry.define(
-        'ui.edge.use_port_colors', True,
-        label='Use Port Colors',
-        description='Color edges based on connected port types',
-        category=CATEGORY,
-        ui_order=14
-    )
-    
+    color:          Color = setting('#666666', label='Edge Color',         description='Default color for edges',                   category='ui.edge', order=10, widget='color')
+    color_selected: Color = setting('#1976d2', label='Selected Edge Color', description='Color when edge is selected',             category='ui.edge', order=11, widget='color')
+    color_invalid:  Color = setting('#f44336', label='Invalid Edge Color',  description='Color for invalid connections',           category='ui.edge', order=12, widget='color')
+    color_hover:    Color = setting('#42a5f5', label='Hover Edge Color',    description='Color when hovering over edge',           category='ui.edge', order=13, widget='color')
+    use_port_colors: bool = setting(True,      label='Use Port Colors',     description='Color edges based on connected port types', category='ui.edge', order=14)
+
     # Line style
-    registry.define(
-        'ui.edge.width', 2,
-        label='Edge Width',
-        description='Default edge width in pixels',
-        category=CATEGORY,
-        min_value=1,
-        max_value=8,
-        ui_order=20
-    )
-    registry.define(
-        'ui.edge.width_selected', 3,
-        label='Selected Edge Width',
-        description='Edge width when selected',
-        category=CATEGORY,
-        min_value=1,
-        max_value=10,
-        ui_order=21
-    )
-    
+    width:          int = setting(2, label='Edge Width',          description='Default edge width in pixels', category='ui.edge', order=20, min=1, max=8)
+    width_selected: int = setting(3, label='Selected Edge Width', description='Edge width when selected',     category='ui.edge', order=21, min=1, max=10)
+
     # Curve
-    registry.define(
-        'ui.edge.curve_style', 'bezier',
-        label='Curve Style',
-        description='How edges are drawn between nodes',
-        category=CATEGORY,
-        choices=['bezier', 'straight', 'step', 'smoothstep'],
-        ui_order=30
-    )
-    registry.define(
-        'ui.edge.curve_tension', 0.5,
-        label='Curve Tension',
-        description='Tension for bezier curves (0-1)',
-        category=CATEGORY,
-        min_value=0.0,
-        max_value=1.0,
-        ui_order=31
-    )
-    registry.define(
-        'ui.edge.curve_offset', 50,
-        label='Curve Offset',
-        description='Control point offset for curves',
-        category=CATEGORY,
-        min_value=10,
-        max_value=200,
-        ui_order=32
-    )
-    
+    curve_style:   str   = setting('bezier', label='Curve Style',   description='How edges are drawn between nodes', category='ui.edge', order=30, choices=['bezier', 'straight', 'step', 'smoothstep'])
+    curve_tension: float = setting(0.5,      label='Curve Tension', description='Tension for bezier curves (0-1)',  category='ui.edge', order=31, min=0.0, max=1.0)
+    curve_offset:  int   = setting(50,       label='Curve Offset',  description='Control point offset for curves', category='ui.edge', order=32, min=10, max=200)
+
     # Animation
-    registry.define(
-        'ui.edge.animate_flow', False,
-        label='Animate Flow',
-        description='Show animated flow direction on edges',
-        category=CATEGORY,
-        ui_order=40
-    )
-    registry.define(
-        'ui.edge.animation_speed', 1.0,
-        label='Animation Speed',
-        description='Speed of flow animation',
-        category=CATEGORY,
-        min_value=0.1,
-        max_value=5.0,
-        ui_order=41
-    )
-    registry.define(
-        'ui.edge.animate_on_execute', True,
-        label='Animate on Execute',
-        description='Animate edges during execution',
-        category=CATEGORY,
-        ui_order=42
-    )
+    animate_flow:       bool  = setting(False, label='Animate Flow',       description='Show animated flow direction on edges', category='ui.edge', order=40)
+    animation_speed:    float = setting(1.0,   label='Animation Speed',    description='Speed of flow animation',              category='ui.edge', order=41, min=0.1, max=5.0)
+    animate_on_execute: bool  = setting(True,  label='Animate on Execute', description='Animate edges during execution',       category='ui.edge', order=42)

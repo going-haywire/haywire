@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
-from haywire.core.settings.builtins import register_node_instance_settings
+from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
 
 from ..types.enums import FlowType, PortType
 from ..execution.execution_context import ExecutionContext
@@ -72,13 +72,14 @@ class NodeData:
         """Single source of truth for all ports (inlets and outlets)."""
         
         # Settings (GUI-facing, serialized)
+        from haywire.core.settings.schema import _EmptyNodeSettings
+        schema_cls = getattr(type(self), '_settings_schema', _EmptyNodeSettings)
         self._settings: SettingsHolder = SettingsHolder(
+            schema_cls=schema_cls,
             registry=get_library_system().get_settings_registry(),
-            owner=wrapper,
-            owner_name=f"Node:{node_id}"
+            node_instance=self,
+            extra_schemas=(NodeInstanceSettings,) + schema_cls._extra_schemas,
         )
-        # Register node-instance-specific local settings
-        register_node_instance_settings(self._settings)
         
         # Cache (transient, NOT serialized)
         self._cache: NodeCache = NodeCache()
@@ -1040,6 +1041,8 @@ class NodeData:
         return True
         
 
+
+
 class BaseNode(NodeData, metaclass=NodeMeta):
     """
     Base class for all Haywire nodes.
@@ -1057,18 +1060,18 @@ class BaseNode(NodeData, metaclass=NodeMeta):
     be loaded and are available. 
     This is useful for nodes under development that should not yet be part of the library.
     """
-    
+
     def __init__(self, node_id: str, wrapper: 'NodeWrapper'):
         """
         Initialize node.
-        
+
         Args:
             node_id: Unique identifier for this node instance
             wrapper: NodeWrapper managing this node
         """
         super().__init__(node_id, wrapper)
 
-    
+
     @abstractmethod
     def init(self):
         """

@@ -1,134 +1,34 @@
 # haywire/core/settings/builtins/debug.py
-"""
-Debug and development settings.
-"""
+"""Debug and development settings."""
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..registry import GlobalSettingsRegistry
+from ..schema import GlobalSettings
+from ..descriptors import setting
 
 
-CATEGORY = 'debug'
+class DebugSettings(GlobalSettings, namespace='debug'):
+    """Global settings for debug and development features."""
 
-
-def register(registry: 'GlobalSettingsRegistry') -> None:
-    """Register debug settings."""
-    
     # Logging
-    registry.define(
-        'debug.verbose_logging', False,
-        label='Verbose Logging',
-        description='Enable detailed logging output',
-        category=CATEGORY,
-        ui_order=10
-    )
-    registry.define(
-        'debug.log_level', 'INFO',
-        label='Log Level',
-        description='Minimum log level to display',
-        category=CATEGORY,
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-        ui_order=11
-    )
-    registry.define(
-        'debug.log_to_file', False,
-        label='Log to File',
-        description='Write logs to file in addition to console',
-        category=CATEGORY,
-        ui_order=12
-    )
-    
+    verbose_logging: bool = setting(False, label='Verbose Logging',  description='Enable detailed logging output',      category='debug', order=10)
+    log_level:       str  = setting('INFO', label='Log Level',       description='Minimum log level to display',        category='debug', order=11, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'])
+    log_to_file:     bool = setting(False, label='Log to File',      description='Write logs to file in addition to console', category='debug', order=12)
+
     # Execution visibility
-    registry.define(
-        'debug.show_execution_time', False,
-        label='Show Execution Time',
-        description='Display execution time for each node',
-        category=CATEGORY,
-        ui_order=20
-    )
-    registry.define(
-        'debug.show_node_ids', False,
-        label='Show Node IDs',
-        description='Display internal node IDs',
-        category=CATEGORY,
-        ui_order=21
-    )
-    registry.define(
-        'debug.show_port_ids', False,
-        label='Show Port IDs',
-        description='Display internal port IDs',
-        category=CATEGORY,
-        ui_order=22
-    )
-    
+    show_execution_time: bool = setting(False, label='Show Execution Time',    description='Display execution time for each node', category='debug', order=20)
+    show_node_ids:       bool = setting(False, label='Show Node IDs',          description='Display internal node IDs',            category='debug', order=21)
+    show_port_ids:       bool = setting(False, label='Show Port IDs',          description='Display internal port IDs',            category='debug', order=22)
+
     # Visual debugging
-    registry.define(
-        'debug.highlight_dirty_nodes', False,
-        label='Highlight Dirty Nodes',
-        description='Visually indicate nodes that need re-execution',
-        category=CATEGORY,
-        ui_order=30
-    )
-    registry.define(
-        'debug.highlight_execution_order', False,
-        label='Highlight Execution Order',
-        description='Show execution order numbers on nodes',
-        category=CATEGORY,
-        ui_order=31
-    )
-    registry.define(
-        'debug.show_data_flow', False,
-        label='Show Data Flow',
-        description='Visualize data flowing through connections',
-        category=CATEGORY,
-        ui_order=32
-    )
-    
+    highlight_dirty_nodes:      bool = setting(False, label='Highlight Dirty Nodes',      description='Visually indicate nodes that need re-execution', category='debug', order=30)
+    highlight_execution_order:  bool = setting(False, label='Highlight Execution Order',  description='Show execution order numbers on nodes',          category='debug', order=31)
+    show_data_flow:             bool = setting(False, label='Show Data Flow',             description='Visualize data flowing through connections',      category='debug', order=32)
+
     # Data inspection
-    registry.define(
-        'debug.log_data_flow', False,
-        label='Log Data Flow',
-        description='Log data as it flows through nodes',
-        category=CATEGORY,
-        ui_order=40
-    )
-    registry.define(
-        'debug.inspect_on_click', False,
-        label='Inspect on Click',
-        description='Show data inspector when clicking ports',
-        category=CATEGORY,
-        ui_order=41
-    )
-    registry.define(
-        'debug.max_inspect_depth', 3,
-        label='Max Inspect Depth',
-        description='Maximum depth for data inspection',
-        category=CATEGORY,
-        min_value=1,
-        max_value=10,
-        ui_order=42
-    )
-    
+    log_data_flow:     bool = setting(False, label='Log Data Flow',     description='Log data as it flows through nodes',    category='debug', order=40)
+    inspect_on_click:  bool = setting(False, label='Inspect on Click',  description='Show data inspector when clicking ports', category='debug', order=41)
+    max_inspect_depth: int  = setting(3,     label='Max Inspect Depth', description='Maximum depth for data inspection',     category='debug', order=42, min=1, max=10)
+
     # Performance
-    registry.define(
-        'debug.show_fps', False,
-        label='Show FPS',
-        description='Display frames per second counter',
-        category=CATEGORY,
-        ui_order=50
-    )
-    registry.define(
-        'debug.show_memory_usage', False,
-        label='Show Memory Usage',
-        description='Display memory usage statistics',
-        category=CATEGORY,
-        ui_order=51
-    )
-    registry.define(
-        'debug.profile_execution', False,
-        label='Profile Execution',
-        description='Enable execution profiling',
-        category=CATEGORY,
-        ui_order=52
-    )
+    show_fps:          bool = setting(False, label='Show FPS',          description='Display frames per second counter',  category='debug', order=50)
+    show_memory_usage: bool = setting(False, label='Show Memory Usage', description='Display memory usage statistics',    category='debug', order=51)
+    profile_execution: bool = setting(False, label='Profile Execution', description='Enable execution profiling',         category='debug', order=52)
