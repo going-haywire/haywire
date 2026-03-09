@@ -18,7 +18,7 @@ Every node instance exposes three containers:
 
 ## Settings: Descriptor-Based Schema
 
-Settings are declared as an inner `class Settings(NodeSettings)` using three descriptor types:
+Settings are declared as an inner `class node(NodeSettings)` using three descriptor types:
 
 ```python
 from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
@@ -27,7 +27,7 @@ from haywire.core.settings.builtins.debug import DebugSettings
 
 class MyNode(BaseNode):
 
-    class Settings(NodeSettings):
+    class node(NodeSettings):
         # Local setting — stored in graph, shown in panel
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
 

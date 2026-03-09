@@ -15,12 +15,12 @@ from haywire.core.settings.builtins.ui_node import NodeUISettings
 @node(label="Quick Start")
 class QuickStartNode(BaseNode):
 
-    class Settings(NodeSettings):
+    class node(NodeSettings):
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
         bg_color:  Color = shadow(NodeUISettings.bg_color)
         verbose:   bool  = watch(DebugSettings.verbose_logging)
 
-    def initialize(self):
+    def init(self):
         self.add(FLOAT.as_inlet('value'))
         self.add(FLOAT.as_outlet('result'))
         self.cache.memo = {}
@@ -28,24 +28,25 @@ class QuickStartNode(BaseNode):
 
     def worker(self, context, value: float):
         self.store.call_count += 1
-        result = value * self.settings.threshold
+        result = value * self.settings.node.threshold   # accessor = inner class name
         self.cache.memo[value] = result
         self.out('result', result)
 ```
 
 ---
 
-## Declaring Settings: the Inner `Settings` Class
+## Declaring Settings: the Inner Settings Class
 
-Node settings are declared as an inner `class Settings(NodeSettings):`. The `@node` decorator detects it and wires up full keys automatically.
+Node settings are declared as an inner class that inherits from `NodeSettings`. The class name becomes the **accessor name** used to reach the settings from `self.settings`.
 
 ```python
 from haywire.core.settings import NodeSettings, setting, shadow, watch, Color, Icon
 
+@node(label="My Node")
 class MyNode(BaseNode):
 
-    class Settings(NodeSettings):
-        # Local setting — stored in graph, shown in properties panel
+    class node(NodeSettings):
+        # Local setting — stored in graph when set, shown in properties panel
         threshold:  float = setting(0.5, min=0.0, max=1.0, label='Threshold')
         algorithm:  str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
         bg_color:   Color = setting('#ffffff', label='Background Color')
@@ -59,11 +60,19 @@ class MyNode(BaseNode):
         debug_mode: bool  = watch(DebugSettings.verbose_logging)
 ```
 
+Access in worker code via the inner class name:
+
+```python
+def worker(self, context, value: float):
+    threshold = self.settings.node.threshold
+    verbose   = self.settings.node.debug_mode
+```
+
 ### Namespace Derivation
 
 The namespace is derived automatically from the node's `registry_key` by replacing `:` with `.`:
 
-```
+```text
 registry_key: haybale_core:node:transform
   → namespace: haybale_core.node.transform
   → full keys: haybale_core.node.transform.threshold, etc.
@@ -72,40 +81,69 @@ registry_key: haybale_core:node:transform
 You can override it explicitly:
 
 ```python
-class Settings(NodeSettings, namespace='my_lib.filter'):
+class node(NodeSettings, namespace='my_lib.filter'):
     threshold: float = setting(0.5)
 ```
 
 ---
 
-## Extra Schemas
+## Multiple Settings Schemas
 
-A node can pull in additional settings from a pre-defined schema class using `extra_schemas`. This is useful when a library provides a shared set of settings that multiple nodes should expose.
+A node can declare settings from multiple schemas. Each schema gets its own **accessor name** — the variable name in the class body.
+
+### Inner Class Form
 
 ```python
-from haybale_customlib.settings import LibVisualSettings
+@node(registry_id='image_filter')
+class ImageFilterNode(BaseNode):
 
-@node(registry_id='transform')
-class TransformNode(BaseNode):
+    class node(NodeSettings):          # accessor: 'Settings'
+        threshold: float = setting(0.5)
 
-    class Settings(NodeSettings, extra_schemas=(LibVisualSettings,)):
-        threshold: float = setting(0.5, label='Threshold')
+    def worker(self, context, img):
+        t = self.settings.node.threshold
 ```
 
-All fields from `LibVisualSettings` are merged into the flat `self.settings` namespace alongside `threshold`:
+### Direct Assignment Form
+
+Import a pre-defined schema class and assign it directly. The accessor name is the variable name you choose — the schema's own namespace and full keys are unchanged.
 
 ```python
-def worker(self, context, value: float):
-    color  = self.settings.bg_color    # from LibVisualSettings
-    factor = self.settings.threshold   # own field
+from haybale_imagelib.settings import ImageLibSettings
+
+@node(registry_id='image_filter')
+class ImageFilterNode(BaseNode):
+
+    image = ImageLibSettings               # accessor: 'image'
+
+    class node(NodeSettings):          # accessor: 'Settings'
+        threshold: float = setting(0.5)
+
+    def worker(self, context, img):
+        quality = self.settings.image.jpeg_quality   # from ImageLibSettings
+        t       = self.settings.node.threshold   # own field
 ```
 
 **Rules:**
 
-- Extra schemas are merged in before the primary `Settings` (extras first, primary last)
-- Access is flat — no sub-namespace; all fields from all schemas are at the same level
-- A `ValueError` is raised at node instantiation if any field name collides between schemas (including the framework-injected `NodeInstanceSettings`)
-- The framework's `NodeInstanceSettings` (`muted`, `skin`, `collapsed`, …) is always injected automatically and does not need to be listed in `extra_schemas`
+- The accessor name is the variable name in the class body (inner class name or direct assignment name)
+- `LibrarySettings` schemas already have their namespace and full keys set by `@library_settings` — no override happens
+- `_node` is a **reserved** accessor name (see below). Using it raises `ValueError` at decoration time
+
+---
+
+## The `_node` Accessor — NodeInstanceSettings
+
+`self.settings._node` is always injected by the `@node` decorator. It holds the framework-managed `NodeInstanceSettings` fields (`muted`, `skin`, `collapsed`, etc.).
+
+```python
+# Node developers can read these (advanced use):
+is_muted   = self.settings._node.muted
+skin_name  = self.settings._node.skin
+collapsed  = self.settings._node.collapsed
+```
+
+> **Reserved name:** using `_node` as the name of your own inner class or direct assignment raises `ValueError` at decoration time.
 
 ---
 
@@ -116,7 +154,7 @@ def worker(self, context, value: float):
 Stored in the graph when locally set. Shown in properties panel.
 
 ```python
-class Settings(NodeSettings):
+class node(NodeSettings):
     threshold:   float = setting(0.5, min=0.0, max=1.0, label='Threshold')
     algorithm:   str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
     bg_color:    Color = setting('#ffffff', label='Background Color')
@@ -125,6 +163,7 @@ class Settings(NodeSettings):
 ```
 
 Widget is inferred from type unless overridden:
+
 - `bool` → toggle
 - `int`/`float` with `min`/`max` → slider
 - `Color` → color picker
@@ -139,7 +178,7 @@ Inherits the global value by default. User can override per-node; shown with a r
 ```python
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 
-class Settings(NodeSettings):
+class node(NodeSettings):
     bg_color: Color = shadow(NodeUISettings.bg_color)
 ```
 
@@ -150,7 +189,7 @@ Invisible in panel. Never stored. Cache is invalidated automatically when the gl
 ```python
 from haywire.core.settings.builtins.debug import DebugSettings
 
-class Settings(NodeSettings):
+class node(NodeSettings):
     verbose: bool = watch(DebugSettings.verbose_logging)
 ```
 
@@ -158,23 +197,34 @@ class Settings(NodeSettings):
 
 ## Accessing Settings in Node Code
 
-Access is always by the **short attr name** — never the full key.
+Access is always via the **accessor name** (inner class name or direct assignment name), then the **short attr name** — never the full key.
 
 ```python
 def worker(self, context, value: float):
     # Dot notation (preferred)
-    if self.settings.verbose:
+    if self.settings.node.verbose:
         context.log(f"Processing: {value}")
 
-    result = value * self.settings.threshold
+    result = value * self.settings.node.threshold
     self.out('result', result)
 ```
 
-Dict-style access also works (by attr name or full key):
+Sub-holder methods:
 
 ```python
-color = self.settings['bg_color']
-color = self.settings['haybale_core.my_node.bg_color']  # by full key
+# Set a local override
+self.settings.node.threshold = 0.8
+self.settings.node.set('threshold', 0.8)
+
+# Reset to global/default
+self.settings.node.reset('threshold')
+
+# Check if locally overridden
+is_local = self.settings.node.is_locally_set('threshold')
+
+# Introspect for UI
+info = self.settings.node.get_info('threshold')
+print(info.source, info.is_overridden, info.value)
 ```
 
 ---
@@ -184,7 +234,7 @@ color = self.settings['haybale_core.my_node.bg_color']  # by full key
 Triggered when a setting value changes (local set or global cache invalidation):
 
 ```python
-class Settings(NodeSettings):
+class node(NodeSettings):
     scale: float = setting(1.0, label='Scale', on_change='hb_on_scale_change')
 
 def hb_on_scale_change(self, value: float, field: str = '') -> None:
@@ -204,7 +254,7 @@ def hb_on_scale_change(self, value: float, field: str = '') -> None:
 - Any Python object
 
 ```python
-def initialize(self):
+def init(self):
     self.cache.memo = {}
     self.cache.last_result = None
 
@@ -228,7 +278,7 @@ def worker(self, context, x: float):
 - JSON-serializable types only
 
 ```python
-def initialize(self):
+def init(self):
     self.store.execution_count = 0
     self.store.running_sum = 0.0
     self.store.history = []
@@ -249,9 +299,14 @@ Only locally-overridden schema values are serialized. Global defaults and `watch
 ```json
 {
   "settings": {
-    "schema_values": {
-      "threshold": 0.8,
-      "bg_color": "#ff0000"
+    "Settings": {
+      "schema_values": {
+        "threshold": 0.8,
+        "bg_color": "#ff0000"
+      }
+    },
+    "_node": {
+      "schema_values": {}
     }
   },
   "store": { "execution_count": 42 }
@@ -268,10 +323,10 @@ from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
-@node(label="Signal Processor", is_stateful=True, is_pure=False)
+@node(label="Signal Processor", is_stateful=True)
 class SignalProcessorNode(BaseNode):
 
-    class Settings(NodeSettings):
+    class node(NodeSettings):
         filter_strength: float = setting(0.5, min=0.0, max=1.0, label='Filter Strength',
                                          on_change='hb_on_filter_change')
         filter_type:     str   = setting('exponential',
@@ -281,7 +336,7 @@ class SignalProcessorNode(BaseNode):
         bg_color:        Color = shadow(NodeUISettings.bg_color)
         verbose:         bool  = watch(DebugSettings.verbose_logging)
 
-    def initialize(self):
+    def init(self):
         self.add(FLOAT.as_inlet('signal'))
         self.add(FLOAT.as_outlet('filtered'))
 
@@ -295,7 +350,8 @@ class SignalProcessorNode(BaseNode):
         self.cache.last_filtered = 0.0  # reset filter state on change
 
     def worker(self, context, signal: float):
-        if self.settings.verbose:
+        s = self.settings.node
+        if s.verbose:
             context.log(f"Signal: {signal}")
 
         filtered = self._apply_filter(signal)
@@ -304,18 +360,18 @@ class SignalProcessorNode(BaseNode):
         self.out('filtered', filtered)
 
     def _apply_filter(self, signal: float) -> float:
-        ft = self.settings.filter_type
-        if ft == 'none':
+        s = self.settings.node
+        if s.filter_type == 'none':
             return signal
-        elif ft == 'exponential':
-            alpha = self.settings.filter_strength
+        elif s.filter_type == 'exponential':
+            alpha = s.filter_strength
             result = alpha * self.cache.last_filtered + (1 - alpha) * signal
             self.cache.last_filtered = result
             return result
-        elif ft == 'moving_average':
+        elif s.filter_type == 'moving_average':
             buf = self.cache.history_buffer
             buf.append(signal)
-            w = self.settings.window_size
+            w = s.window_size
             if len(buf) > w:
                 self.cache.history_buffer = buf[-w:]
             return sum(self.cache.history_buffer) / len(self.cache.history_buffer)

@@ -205,11 +205,16 @@ def create_test_settings_holder(
                 category=descriptor._category or 'test',
             )
 
-    holder = SettingsHolder(resolved_schema, registry, node_instance=None)
+    from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
+    holder = SettingsHolder(
+        schemas={'test': resolved_schema, '_node': NodeInstanceSettings},
+        registry=registry,
+        node_instance=None,
+    )
 
     if predefined_local:
         for name, value in predefined_local.items():
-            holder.set(name, value)
+            holder.test.set(name, value)
 
     return registry, holder
 

@@ -24,7 +24,7 @@ class _SettingsSchema:
     """
     Shared base for all settings schema classes.
 
-    __init_subclass__ automatically collects _SettingDescriptor instances from
+    __init_subclass__ automatically collects SettingDescriptor instances from
     the class body into cls._fields. A fresh dict is created per class — never
     inherited from parent — so subclasses don't bleed fields into each other.
 
@@ -35,15 +35,12 @@ class _SettingsSchema:
 
     _fields: ClassVar[dict[str, SettingDescriptor]]
     _namespace: ClassVar[str] = ''
-    _extra_schemas: ClassVar[tuple[type, ...]] = ()
-    """Extra schemas specified by the extra_schemas parameter"""
 
-    def __init_subclass__(cls, namespace: str = '', extra_schemas: tuple[type, ...] = (), **kwargs: object) -> None:
+    def __init_subclass__(cls, namespace: str = '', **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
 
         # Fresh dict per class — NEVER inherit from parent
         cls._fields = {}
-        cls._extra_schemas = extra_schemas
 
         # Collect only this class's own descriptors (not inherited ones)
         for name, val in cls.__dict__.items():
@@ -65,7 +62,7 @@ class NodeSettings(_SettingsSchema):
 
     _namespace and _full_key are set by the @node decorator after the outer
     class is known. Explicit override is possible:
-        class Settings(NodeSettings, namespace='my.custom.ns'):
+        class node(NodeSettings, namespace='my.custom.ns'):
             ...
 
     NodeSettings are never registered with GlobalSettingsRegistry — they are purely

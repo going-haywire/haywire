@@ -65,7 +65,7 @@ from ..settings import MyLibSettings
 @node(label='API Fetch')
 class ApiFetchNode(BaseNode):
 
-    class Settings(NodeSettings):
+    class node(NodeSettings):
         # Shadow: user can override per-node; shows reset button in panel
         api_url:    str  = shadow(MyLibSettings.api_url)
         api_timeout: int = shadow(MyLibSettings.api_timeout)
@@ -158,7 +158,7 @@ from ..settings import ImageLibSettings
 @node(label='Resize Image')
 class ResizeNode(BaseNode):
 
-    class Settings(NodeSettings):
+    class node(NodeSettings):
         algorithm:   str = shadow(ImageLibSettings.resize_algorithm)
         width:       int = setting(512, min=1, max=8192, label='Width')
         height:      int = setting(512, min=1, max=8192, label='Height')

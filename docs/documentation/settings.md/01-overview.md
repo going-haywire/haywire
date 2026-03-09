@@ -53,7 +53,7 @@ verbose_logging = true
 
 ### Node Settings Schema
 
-Nodes declare their settings as an inner `Settings` class:
+Nodes declare settings as an inner class that inherits from `NodeSettings`. The class name becomes the **accessor name** used to reach the settings from `self.settings`.
 
 ```python
 from haywire.core.node import BaseNode, node
@@ -62,7 +62,7 @@ from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
 @node(label="My Node")
 class MyNode(BaseNode):
 
-    class Settings(NodeSettings):
+    class node(NodeSettings):
         # Local setting — stored in graph, shown in properties panel
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
 
@@ -71,16 +71,37 @@ class MyNode(BaseNode):
 
         # Watch — read-only cache of a global; invisible in panel, never serialized
         verbose: bool = watch(DebugSettings.verbose_logging)
+
+    def worker(self, context):
+        result = value * self.settings.node.threshold   # accessor = inner class name
+        self.out('result', result)
 ```
 
-`BaseNode.__init_subclass__` detects the inner `Settings` class, derives a namespace from the node class name (`my_lib.my` for `MyNode`), and sets `_full_key` on each descriptor (`my_lib.my.threshold`, etc.).
+The `@node` decorator scans the class body for all `_SettingsSchema` subclasses, assigns a namespace to each `NodeSettings` subclass (derived from the node's `registry_key` by replacing `:` with `.`), and sets `_full_key` on each descriptor.
+
+A library settings class can also be imported and assigned directly — the accessor name is then the variable name chosen by the developer:
+
+```python
+from haybale_imagelib.settings import ImageLibSettings
+
+@node(label="Image Filter")
+class ImageFilterNode(BaseNode):
+
+    image = ImageLibSettings           # accessor: 'image'
+    class node(NodeSettings):     # accessor: 'node'
+        threshold: float = setting(0.5)
+
+    def worker(self, context):
+        quality = self.settings.image.jpeg_quality   # from ImageLibSettings
+        threshold = self.settings.node.threshold   # own field
+```
 
 ### NodeInstanceSettings — Framework-Provided Fields
 
-Every node automatically receives a set of framework-level instance settings via `NodeInstanceSettings` (namespace `'node'`). These are injected as an *extra schema* alongside the node's own `Settings` class and participate in the full resolution chain.
+Every node automatically receives a set of framework-level instance settings via `NodeInstanceSettings` (namespace `'node'`). The `@node` decorator always injects it under the reserved accessor `'_node'`.
 
 | Field | Full key | Type | Default | Purpose |
-|-------|----------|------|---------|---------|
+| ----- | -------- | ---- | ------- | ------- |
 | `skin` | `node.skin` | str or None | `None` | Skin used to render this node |
 | `muted` | `node.muted` | bool | `False` | Skip during execution |
 | `collapsed` | `node.collapsed` | bool | `False` | Collapse to header only |
@@ -90,16 +111,12 @@ Every node automatically receives a set of framework-level instance settings via
 | `comment` | `node.comment` | str | `''` | Comment text |
 | `show_comment` | `node.show_comment` | bool | `False` | Show comment bubble |
 
-Access is via the short attr name (same as any other schema field):
+Access via the reserved `_node` accessor:
 
 ```python
-# In node code
-self.settings.skin = 'my_lib:skin:MyCustomSkin'
-self.settings.muted        # → bool
-self.settings.color_override  # → str | None
-
-# Dict-style via full key also works
-self.settings['node.muted']
+self.settings._node.muted           # → bool
+self.settings._node.skin = 'my_lib:skin:MyCustomSkin'
+self.settings._node.color_override  # → str | None
 ```
 
 Because they are proper schema fields, global defaults can be set in TOML:
@@ -149,7 +166,7 @@ self.settings.threshold
 ### `setting()` — Local node setting
 
 ```python
-class Settings(NodeSettings):
+class node(NodeSettings):
     threshold:   float = setting(0.5, min=0.0, max=1.0, label='Threshold')
     algorithm:   str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
     bg_color:    Color = setting('#ffffff', label='Background Color', widget='color')
@@ -162,7 +179,7 @@ Widget is inferred from type: `bool` → toggle, `int`/`float` with range → sl
 ### `shadow()` — Mirror a global setting
 
 ```python
-class Settings(NodeSettings):
+class node(NodeSettings):
     # Inherits global value by default; user can override per-node
     bg_color: Color = shadow(NodeUISettings.bg_color)
 ```
@@ -172,7 +189,7 @@ class Settings(NodeSettings):
 ### `watch()` — Read-only cached global reference
 
 ```python
-class Settings(NodeSettings):
+class node(NodeSettings):
     # Invisible in panel; cache invalidated automatically on global change
     verbose: bool = watch(DebugSettings.verbose_logging)
 ```
@@ -183,17 +200,17 @@ Useful for settings that control node behavior but shouldn't be per-node configu
 
 ## Accessing Settings in Node Code
 
+Access is via the **accessor name** (inner class name or direct assignment name), then the **short attr name**:
+
 ```python
 def worker(self, context, value: float):
-    # Dot-notation access (preferred)
-    if self.settings.verbose:
+    s = self.settings.node   # accessor = inner class name
+    if s.verbose:
         context.log(f"Processing: {value}")
 
-    result = value * self.settings.threshold
+    result = value * s.threshold
     self.out('result', result)
 ```
-
-Access is always by the **short attr name** (`threshold`, `bg_color`), not the full key.
 
 ---
 
@@ -205,16 +222,18 @@ Only locally-overridden schema values are serialized with the node. Global value
 {
   "node_id": "abc123",
   "settings": {
-    "schema_values": {
-      "threshold": 0.8,
-      "bg_color": "#ff0000"
+    "Settings": {
+      "schema_values": { "threshold": 0.8, "bg_color": "#ff0000" }
+    },
+    "_node": {
+      "schema_values": {}
     }
   },
   "store": { "execution_count": 42 }
 }
 ```
 
-`schema_values` maps attr name → locally set value. Fields still at their default (resolved from global or descriptor default) are omitted.
+The outer key is the **accessor name**. `schema_values` maps attr name → locally set value. Fields at their default (resolved from global or descriptor default) are omitted.
 
 ---
 

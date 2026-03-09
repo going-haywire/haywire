@@ -86,7 +86,7 @@ class HaywireDarkTheme(WorkbenchTheme):
 @node(label='My Node')
 class MyNode(BaseNode):
 
-    class Settings(NodeSettings):
+    class node(NodeSettings):
         # LOCAL — stored with graph, shown in properties panel
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
         mode: Literal['fast', 'accurate'] = setting('fast', label='Mode',
@@ -275,7 +275,7 @@ This ordering ensures `shadow(MyLibSettings.bg_color)` always works:
    → MyLibSettings.bg_color._full_key = 'my_lib.bg_color'  ✓ available now
 
 2. MyNode class body evaluated
-   → class Settings(NodeSettings): ... evaluated
+   → class node(NodeSettings): ... evaluated
      → NodeSettings.__init_subclass__ runs
      → _fields collected, __set_name__ called
      → shadow(MyLibSettings.bg_color) called:
@@ -315,7 +315,7 @@ def _derive_namespace(cls) -> str:
 
 Can be overridden explicitly:
 ```python
-class Settings(NodeSettings, namespace='my_custom.ns'):
+class node(NodeSettings, namespace='my_custom.ns'):
     ...
 ```
 

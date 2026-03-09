@@ -24,9 +24,9 @@ def test_local_overrides_global():
         predefined_local={'bg_color': '#ff0000'},
     )
 
-    assert holder.bg_color == '#ff0000'
+    assert holder.test.bg_color == '#ff0000'
 
-    info = holder.get_info('bg_color')
+    info = holder.test.get_info('bg_color')
     assert info.source == 'local'
     assert not info.is_overridden
 
@@ -40,9 +40,9 @@ def test_global_override_wins():
     # workspace-tier OVERRIDE (set via UI) forces value on all nodes
     registry.set_global('test.node.bg_color', '#000000', SettingMode.OVERRIDE, tier='workspace')
 
-    assert holder.bg_color == '#000000'
+    assert holder.test.bg_color == '#000000'
 
-    info = holder.get_info('bg_color')
+    info = holder.test.get_info('bg_color')
     assert info.is_overridden
     assert info.source == 'workspace_override'
 

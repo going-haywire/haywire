@@ -46,7 +46,7 @@ verbose:   bool  = setting(False, on_change='hb_on_verbose_change')
 ```
 
 | Attribute | Type | Description |
-|-----------|------|-------------|
+| --------- | ---- | ----------- |
 | `_default` | `Any` | Default value |
 | `_min` / `_max` | `Any` | Slider bounds |
 | `_choices` | `list \| None` | Dropdown options |
@@ -75,7 +75,7 @@ bg_color: Color = shadow(NodeUISettings.bg_color)
 Stores `global_descriptor._full_key` as a string immediately (object reference discarded for hot-reload safety). Inherits `_label`, `_description`, `_default`, `_category`, `_widget`, `_min`, `_max`, `_choices` from the target descriptor.
 
 | Attribute | Value |
-|-----------|-------|
+| --------- | ----- |
 | `_global_key` | Copied from target descriptor `_full_key` |
 | `_panel_visible` | `True` |
 | `_stored` | `True` (when locally overridden) |
@@ -92,7 +92,7 @@ verbose: bool = watch(DebugSettings.verbose_logging)
 ```
 
 | Attribute | Value |
-|-----------|-------|
+| --------- | ----- |
 | `_global_key` | Copied from target descriptor `_full_key` |
 | `_panel_visible` | `False` |
 | `_stored` | `False` |
@@ -104,24 +104,26 @@ verbose: bool = watch(DebugSettings.verbose_logging)
 
 ### `NodeSettings`
 
-Base class for node `Settings` inner classes.
+Base class for node settings inner classes. The class name (or direct assignment name) becomes the **accessor name** used to reach the sub-holder from `self.settings`.
 
 ```python
 from haywire.core.settings import NodeSettings
 
-class Settings(NodeSettings):
+# Inner class form — accessor name is 'Settings'
+class node(NodeSettings):
     threshold: float = setting(0.5)
 
 # Explicit namespace override:
-class Settings(NodeSettings, namespace='my_lib.my_node'):
+class node(NodeSettings, namespace='my_lib.my_node'):
     threshold: float = setting(0.5)
 
-# Pull in extra schemas (flat merge, collision raises ValueError):
-class Settings(NodeSettings, extra_schemas=(LibVisualSettings,)):
-    threshold: float = setting(0.5)
+# Direct assignment form — accessor name is 'vis'
+vis = LibVisualSettings
 ```
 
 `_namespace` and `_full_key` on each descriptor are set by the `@node` decorator. The namespace is derived from the node's `registry_key` by replacing `:` with `.` — e.g. `haybale_core:node:transform` → `haybale_core.node.transform`.
+
+`_node` is a reserved accessor name (always injected with `NodeInstanceSettings`). Using it raises `ValueError` at decoration time.
 
 ### `LibrarySettings`
 
@@ -166,6 +168,7 @@ class MyLibSettings(LibrarySettings):
 ```
 
 Sets on the class:
+
 - `class_identity: SettingsClassIdentity` — `namespace`, `registry_key`, `label`
 - `_namespace: str`
 - `_auto_register: bool = True`
@@ -216,6 +219,7 @@ Returns `(value, source)` where source is `'global'` or `'default'`.
 ### `load_from_toml(path, tier='workspace', watch=False) -> None`
 
 Load values from a TOML file into the specified tier.
+
 - `tier='global'` — loads into the global tier (`~/.haywire/settings.toml`, hand-edited by user).
 - `tier='workspace'` — loads into the workspace tier (`<workspace>/.haywire/settings.toml`, written by UI).
 
@@ -256,10 +260,15 @@ Direct access to the per-instance local store.
 from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
 ```
 
-A `NodeSettings` subclass with `namespace='node'` that is automatically injected into every node's `SettingsHolder` as an extra schema.  Node developers never instantiate this directly — it is just always present.
+A `NodeSettings` subclass with `namespace='node'` that is automatically injected into every node's `SettingsHolder` under the reserved accessor `'_node'`. Node developers never instantiate this directly.
 
 Fields: `skin`, `muted`, `collapsed`, `condensed`, `pinned`, `color_override`, `comment`, `show_comment`.
 Full keys: `node.skin`, `node.muted`, … (see Overview for full table).
+
+```python
+self.settings._node.muted
+self.settings._node.skin = 'my_lib:skin:rounded'
+```
 
 ---
 
@@ -268,31 +277,71 @@ Full keys: `node.skin`, `node.muted`, … (see Overview for full table).
 ```python
 from haywire.core.settings import SettingsHolder
 
-holder = SettingsHolder(schema_cls, registry, node_instance, extra_schemas=())
+holder = SettingsHolder(
+    schemas={'Settings': MyNodeSettings, '_node': NodeInstanceSettings},
+    registry=registry,
+    node_instance=self,
+)
 ```
 
-`extra_schemas` is a tuple of additional `_SettingsSchema` subclasses whose fields are merged in before the primary `schema_cls`. `NodeData.__init__` always prepends `NodeInstanceSettings` and then appends any schemas declared via `extra_schemas=(...)` on the inner `Settings` class.
+A namespaced hub that holds one `SubHolder` per schema. Access sub-holders by their accessor name:
 
-Field merge order: extra schemas first (in declaration order), then primary `schema_cls`. A `ValueError` is raised on any attr-name collision — there is no silent overwrite.
+```python
+holder.Settings          # → SubHolder
+holder._node             # → SubHolder (framework-reserved)
+holder.image             # → SubHolder (direct assignment form)
+
+'Settings' in holder     # → True
+list(holder)             # → ['Settings', '_node', ...]
+holder.sub_holders       # → dict[str, SubHolder]
+```
+
+### `to_dict() -> dict`
+
+```python
+{
+    'Settings': {'schema_values': {'threshold': 0.8}},
+    '_node':    {'schema_values': {}},
+}
+```
+
+### `from_dict(data) -> None`
+
+Restore all sub-holders from serialized data. Unknown accessor keys are silently ignored (forward compatibility).
+
+### `cleanup() -> None`
+
+Release all namespace subscriptions. Call from `NodeWrapper` on node removal.
+
+### `registered_schemas() -> list[type]` *(on GlobalSettingsRegistry)*
+
+All registered `GlobalSettings` / `LibrarySettings` schema classes in registration order. Useful for building workspace settings panels.
+
+### `definitions_for_schema(schema_cls) -> dict[str, SettingDescriptor]` *(on GlobalSettingsRegistry)*
+
+All definitions belonging to a specific schema class, keyed by full_key. Matched by namespace prefix.
+
+---
+
+## `SubHolder`
+
+```python
+sub = holder.Settings   # SubHolder instance
+```
+
+Wraps a single `_SettingsSchema` and provides field-level access, caching, callbacks, and serialization.
 
 ### Field access
 
 ```python
-# By schema attr name (preferred) — works for fields from any merged schema
-value = holder.threshold        # node-class field
-value = holder.muted            # NodeInstanceSettings field
-value = holder['threshold']
-
-# By full key — also works
-value = holder['my_lib.my_node.threshold']
-value = holder['node.muted']
-
-# Get with default
-value = holder.get('threshold', 0.5)
-
-# Check containment
-'threshold' in holder
-'node.muted' in holder   # by full key
+value = sub.threshold           # read (cached)
+sub.threshold = 0.8             # write local override
+value = sub['threshold']        # dict-style by attr name
+value = sub['my_lib.n.threshold']  # dict-style by full key
+sub.get('threshold', 0.5)       # with default
+'threshold' in sub              # containment
+list(sub)                       # iterate attr names
+list(sub.items())               # (attr_name, resolved_value) pairs
 ```
 
 ### `set(name, value, mode=SettingMode.SET) -> None`
@@ -305,6 +354,8 @@ Reset to `AUTO` (inherit from global/default).
 
 ### `reset_all() -> None`
 
+Reset all local overrides for this schema.
+
 ### `get_info(name) -> SettingInfo`
 
 `name` is the attr name or full key. Returns full resolution info for UI display.
@@ -313,27 +364,23 @@ Reset to `AUTO` (inherit from global/default).
 
 ### `on_change(callback) -> None`
 
-`callback(name: str, value: Any, source: str)` — called when a local value is set.
+`callback(name: str, value: Any, source: str)` — called when a local value is set or a global change invalidates the cache.
 
 ### `remove_callback(callback) -> None`
 
-### `to_dict() -> dict`
+### `SubHolder.to_dict() -> dict`
 
 ```python
-{
-    'schema_values': {attr_name: value, ...},   # all locally-overridden fields (both
-}                                               #   node-class and NodeInstanceSettings)
+{'schema_values': {attr_name: value, ...}}  # only locally-overridden fields
 ```
 
-### `from_dict(data) -> None`
+### `SubHolder.from_dict(data) -> None`
 
-Restore serialized state.  Also handles migration from the previous legacy-bridge format
-(old `legacy_values` dict with `node.X` full-key entries is automatically mapped to the
-corresponding `NodeInstanceSettings` attr names).
+Restore serialized state. Callbacks are not fired.
 
-### `cleanup() -> None`
+### `SubHolder.cleanup() -> None`
 
-Release namespace subscriptions. Call from `NodeWrapper` on node removal.
+Release namespace subscriptions and clear caches.
 
 ---
 
@@ -382,7 +429,7 @@ font_size = { override = true, value = 14 }
 
 ## Resolution Algorithm
 
-```
+```text
 self.settings.threshold
     │
     ▼

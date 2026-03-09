@@ -797,6 +797,29 @@ class GlobalSettingsRegistry(BaseRegistry):
     # Iteration
     # =========================================================================
 
+    def registered_schemas(self) -> list[type]:
+        """
+        All registered GlobalSettings / LibrarySettings schema classes, in
+        registration order.  Useful for building workspace settings panels that
+        enumerate settings grouped by schema.
+        """
+        return list(self._classes.values())
+
+    def definitions_for_schema(self, schema_cls: type) -> dict[str, SettingDescriptor]:
+        """
+        Return all definitions that belong to *schema_cls*, keyed by full_key.
+
+        Matching is done by namespace prefix — every definition whose full_key
+        starts with ``schema_cls._namespace + '.'`` is included.  Returns an
+        empty dict when the schema has no namespace (i.e. has not been
+        registered yet).
+        """
+        ns = getattr(schema_cls, '_namespace', '')
+        if not ns:
+            return {}
+        prefix = ns + '.'
+        return {key: defn for key, defn in self._definitions.items() if key.startswith(prefix)}
+
     def __iter__(self) -> Iterator[str]:
         return iter(self._definitions)
 

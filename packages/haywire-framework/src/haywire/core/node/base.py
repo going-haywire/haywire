@@ -72,13 +72,11 @@ class NodeData:
         """Single source of truth for all ports (inlets and outlets)."""
         
         # Settings (GUI-facing, serialized)
-        from haywire.core.settings.schema import _EmptyNodeSettings
-        schema_cls = getattr(type(self), '_settings_schema', _EmptyNodeSettings)
+        schemas = getattr(type(self), '_settings_schemas', {'_node': NodeInstanceSettings})
         self._settings: SettingsHolder = SettingsHolder(
-            schema_cls=schema_cls,
+            schemas=schemas,
             registry=get_library_system().get_settings_registry(),
             node_instance=self,
-            extra_schemas=(NodeInstanceSettings,) + schema_cls._extra_schemas,
         )
         
         # Cache (transient, NOT serialized)
@@ -129,28 +127,25 @@ class NodeData:
     @property
     def settings(self) -> SettingsHolder:
         """
-        Access node settings with dynaconf-style API.
-        
-        Examples:
-            # Read resolved value
-            color = self.settings.ui.node.bg_color
-            color = self.settings['ui.node.bg_color']
-            
-            # Write local override
-            self.settings.ui.node.bg_color = '#ff0000'
-            self.settings['ui.node.bg_color'] = '#ff0000'
-            
-            # Check if globally overridden
-            info = self.settings.get_info('ui.node.bg_color')
-            if info.is_overridden:
-                # Cannot change locally
-                pass
-            
-            # Reset to inherit from global
-            self.settings.reset('ui.node.bg_color')
-            
-            # Define local-only setting
-            self.settings.define('my_cache_size', 100)
+        Namespaced settings hub for this node.
+
+        Access is via the accessor name declared in the node class body::
+
+            # Inner class form
+            class node(NodeSettings):
+                threshold: float = setting(0.5)
+
+            self.settings.node.threshold         # read
+            self.settings.node.threshold = 0.8  # write local override
+            self.settings.node.reset('threshold')
+            self.settings.node.get_info('threshold')
+
+            # Direct assignment form
+            image = ImageLibSettings
+            self.settings.image.jpeg_quality
+
+            # Framework-reserved accessor
+            self.settings._node.muted
         """
         return self._settings
 

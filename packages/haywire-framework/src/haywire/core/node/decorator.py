@@ -13,26 +13,45 @@ T = TypeVar('T')
 
 def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
     """
-    Detect an inner ``Settings(NodeSettings)`` class on a node, store it as
-    ``_settings_schema``, and assign its namespace.
+    Scan the node class body for all ``_SettingsSchema`` subclasses, assign
+    namespaces to ``NodeSettings`` subclasses, and store the complete schemas
+    dict as ``cls._settings_schemas``.
 
-    Namespace is derived directly from ``registry_key`` by replacing ``:`` with ``.``.
-    Example: 'haybale_core:node:transform' → 'haybale_core.node.transform'
+    The accessor name is the variable name in the class body (inner class name
+    or direct assignment name). Reserved accessor ``'_node'`` is always
+    injected with ``NodeInstanceSettings``.
 
-    Skipped if ``Settings._namespace`` was explicitly set by the user (via the
-    ``namespace=`` keyword on the inner class definition).
+    Namespace is derived from ``registry_key`` by replacing ``':'`` with ``'.'``::
+
+        'haybale_core:node:transform' → 'haybale_core.node.transform'
+
+    Skipped for schemas whose ``_namespace`` is already set (explicitly via the
+    ``namespace=`` kwarg or by ``@library_settings``).
     """
-    from haywire.core.settings.schema import NodeSettings
-    settings_cls = node_cls.__dict__.get('Settings')
-    if settings_cls is None or not isinstance(settings_cls, type) or not issubclass(settings_cls, NodeSettings):
-        return
-    node_cls._settings_schema = settings_cls
-    if settings_cls._namespace:
-        return  # explicitly set by the user, don't override
-    ns = registry_key.replace(':', '.')
-    settings_cls._namespace = ns
-    for field_name, d in settings_cls._fields.items():
-        d._full_key = f'{ns}.{field_name}'
+    from haywire.core.settings.schema import _SettingsSchema, NodeSettings
+    from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
+
+    schemas: dict[str, type] = {}
+
+    for name, val in node_cls.__dict__.items():
+        if not (isinstance(val, type) and issubclass(val, _SettingsSchema) and val is not _SettingsSchema):
+            continue
+        # Assign namespace for NodeSettings subclasses only (LibrarySettings
+        # already have their namespace set by @library_settings).
+        if issubclass(val, NodeSettings) and not val._namespace:
+            ns = registry_key.replace(':', '.')
+            val._namespace = ns
+            for field_name, descriptor in val._fields.items():
+                descriptor._full_key = f'{ns}.{field_name}'
+        if name == '_node':
+            raise ValueError(
+                f"'_node' is a reserved accessor name for NodeInstanceSettings "
+                f"(found on {node_cls.__name__}). Rename your schema accessor."
+            )
+        schemas[name] = val
+
+    schemas['_node'] = NodeInstanceSettings
+    node_cls._settings_schemas = schemas
 
 
 def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:

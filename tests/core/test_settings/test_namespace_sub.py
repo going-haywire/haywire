@@ -111,7 +111,7 @@ class TestSubscribeNamespace:
 # ---------------------------------------------------------------------------
 
 def _make_shadow_holder(registry):
-    """Create a SettingsHolder whose fields are shadow() references to _SubGlobal."""
+    """Create a SubHolder whose fields are shadow() references to _SubGlobal."""
 
     class _ShadowSchema(NodeSettings, namespace='test.shadow.ns'):
         color: str = shadow(_SubGlobal.color)
@@ -120,8 +120,8 @@ def _make_shadow_holder(registry):
     # Register _SubGlobal so set_global() works
     registry.register_schema(_SubGlobal)
 
-    holder = SettingsHolder(_ShadowSchema, registry, node_instance=None)
-    return holder
+    holder = SettingsHolder({'shadow': _ShadowSchema}, registry, node_instance=None)
+    return holder.shadow
 
 
 class TestHolderCacheInvalidationViaSubscription:
@@ -164,10 +164,10 @@ class TestHolderCacheInvalidationViaSubscription:
         class _WatchSchema(NodeSettings, namespace='test.watch.ns'):
             count: int = watch(_SubGlobal.count)
 
-        holder = SettingsHolder(_WatchSchema, registry, node_instance=None)
+        sub = SettingsHolder({'watch': _WatchSchema}, registry, node_instance=None).watch
 
-        assert holder.count == 0   # prime cache
+        assert sub.count == 0   # prime cache
 
         registry.set_global('sub.global.count', 42, SettingMode.SET)
 
-        assert holder.count == 42
+        assert sub.count == 42
