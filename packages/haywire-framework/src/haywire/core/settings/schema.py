@@ -14,7 +14,7 @@ Hierarchy:
 from __future__ import annotations
 from typing import ClassVar, TYPE_CHECKING
 
-from .descriptors import _SettingDescriptor
+from .descriptors import SettingDescriptor
 
 if TYPE_CHECKING:
     pass
@@ -33,7 +33,7 @@ class _SettingsSchema:
     _namespace is set and _full_key is set on all collected descriptors immediately.
     """
 
-    _fields: ClassVar[dict[str, _SettingDescriptor]]
+    _fields: ClassVar[dict[str, SettingDescriptor]]
     _namespace: ClassVar[str] = ''
     _extra_schemas: ClassVar[tuple[type, ...]] = ()
     """Extra schemas specified by the extra_schemas parameter"""
@@ -47,7 +47,7 @@ class _SettingsSchema:
 
         # Collect only this class's own descriptors (not inherited ones)
         for name, val in cls.__dict__.items():
-            if isinstance(val, _SettingDescriptor):
+            if isinstance(val, SettingDescriptor):
                 # __set_name__ was already called by Python — _attr_name is set
                 cls._fields[name] = val
 

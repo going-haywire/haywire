@@ -13,7 +13,3 @@ class SettingMode(Enum):
     OVERRIDE = auto()  # Force this value on all children (global only)
 
 
-class SettingScope(Enum):
-    """Whether a setting participates in global resolution."""
-    LOCAL_ONLY = auto()   # No global equivalent, just local storage
-    GLOBAL_AWARE = auto() # Participates in global/local resolution

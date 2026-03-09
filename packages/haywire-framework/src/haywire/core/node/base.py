@@ -150,7 +150,7 @@ class NodeData:
             self.settings.reset('ui.node.bg_color')
             
             # Define local-only setting
-            self.settings.define('my_cache_size', 100, scope=SettingScope.LOCAL_ONLY)
+            self.settings.define('my_cache_size', 100)
         """
         return self._settings
 

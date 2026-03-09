@@ -9,9 +9,9 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Iterator, Optional, TYPE_CHECKING
 
-from .enums import SettingMode, SettingScope
+from .enums import SettingMode
 from .value import SettingValue
-from .definition import SettingDefinition
+from .descriptors import SettingDescriptor
 from .chain import ResolutionChain
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class SettingInfo:
     local_value: Optional[Any]
     global_mode: SettingMode
     global_value: Optional[Any]
-    definition: SettingDefinition
+    definition: SettingDescriptor
 
 
 class SettingsHolder:
@@ -98,23 +98,23 @@ class SettingsHolder:
         # attr_name -> full_key and full_key -> attr_name (for all schemas)
         from .descriptors import shadow, watch as _watch_cls
         _key_to_attr: dict[str, str] = {}
-        for name, d in _all_fields.items():
-            if d._full_key:
-                _key_to_attr[d._full_key] = name
-            if isinstance(d, (shadow, _watch_cls)) and getattr(d, '_global_key', ''):
-                _key_to_attr[d._global_key] = name
+        for name, descriptor in _all_fields.items():
+            if descriptor._full_key:
+                _key_to_attr[descriptor._full_key] = name
+            if isinstance(descriptor, (shadow, _watch_cls)) and getattr(descriptor, '_global_key', ''):
+                _key_to_attr[descriptor._global_key] = name
         object.__setattr__(self, '_key_to_attr', _key_to_attr)
 
         # on_change callbacks per attr name: attr_name -> bound method
         object.__setattr__(self, '_callbacks', {})
-        for name, d in _all_fields.items():
-            if d._on_change:
-                method = getattr(node_instance, d._on_change, None) if node_instance else None
+        for name, descriptor in _all_fields.items():
+            if descriptor._on_change:
+                method = getattr(node_instance, descriptor._on_change, None) if node_instance else None
                 if method:
                     self._callbacks[name] = method
-                elif d._on_change:
+                elif descriptor._on_change:
                     logger.warning(
-                        f"Settings on_change handler '{d._on_change}' not found "
+                        f"Settings on_change handler '{descriptor._on_change}' not found "
                         f"on {type(node_instance).__name__ if node_instance else 'None'}"
                     )
 
@@ -369,12 +369,7 @@ class SettingsHolder:
         global_key = getattr(descriptor, '_global_key', '') or full_key
         defn = registry.get_definition(global_key) or registry.get_definition(full_key)
         if defn is None:
-            defn = SettingDefinition(
-                name=full_key,
-                default=descriptor._default,
-                type_=type(descriptor._default) if descriptor._default is not None else str,
-                scope=SettingScope.GLOBAL_AWARE,
-            )
+            defn = descriptor
 
         has_local = self._chain.has_local(full_key)
         local_val = self._chain.get_local(full_key) if has_local else None

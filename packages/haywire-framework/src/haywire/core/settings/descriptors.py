@@ -9,10 +9,10 @@ Three descriptor types are provided:
 """
 
 from __future__ import annotations
-from typing import Any
+from typing import Any, Callable
 
 
-class _SettingDescriptor:
+class SettingDescriptor:
     """
     Base descriptor for all setting field types.
 
@@ -24,11 +24,13 @@ class _SettingDescriptor:
 
     # Set by __set_name__
     _attr_name: str = ''
-    # Set by _SettingsSchema.__init_subclass__ or BaseNode.__init_subclass__
+    # Set by _SettingsSchema.__init_subclass__ or @node decorator
     _full_key: str = ''
 
     # Set by constructor
     _default: Any = None
+    _type: type = object          # Python type for validation and coercion
+    _validator: Callable | None = None  # Optional custom validator
     _label: str = ''
     _description: str = ''
     _category: str = ''
@@ -61,6 +63,61 @@ class _SettingDescriptor:
             f"not self.{self._attr_name}"
         )
 
+    def validate(self, value: Any) -> bool:
+        """Validate a value against this descriptor's constraints."""
+        if value is not None and self._type not in (object, type(None)):
+            if self._type is float and isinstance(value, int):
+                pass  # int is valid for float
+            elif self._type is str and not isinstance(value, str):
+                return False
+            elif self._type is bool and not isinstance(value, bool):
+                return False
+            elif self._type is int and not isinstance(value, int):
+                return False
+        if self._choices is not None and value not in self._choices:
+            return False
+        if self._min is not None and value < self._min:
+            return False
+        if self._max is not None and value > self._max:
+            return False
+        if self._validator is not None:
+            try:
+                if not self._validator(value):
+                    return False
+            except Exception:
+                return False
+        return True
+
+    def coerce(self, value: Any) -> Any:
+        """Attempt to coerce a value to this descriptor's type."""
+        if value is None:
+            return self._default
+        if self._type in (object, type(None)) or isinstance(value, self._type):
+            return value
+        try:
+            if self._type is bool:
+                if isinstance(value, str):
+                    return value.lower() in ('true', '1', 'yes', 'on')
+                return bool(value)
+            return self._type(value)
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Cannot coerce {value!r} to {self._type.__name__}: {e}")
+
+    def to_dict(self) -> dict:
+        """Serialise descriptor metadata (for TOML-defined settings)."""
+        return {
+            'default': self._default,
+            'type': self._type.__name__ if self._type not in (object, type(None)) else 'str',
+            'label': self._label,
+            'description': self._description,
+            'category': self._category,
+            'min_value': self._min,
+            'max_value': self._max,
+            'choices': self._choices,
+            'ui_widget': self._widget,
+            'ui_order': self._order,
+        }
+
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}("
@@ -69,7 +126,7 @@ class _SettingDescriptor:
         )
 
 
-class setting(_SettingDescriptor):
+class setting(SettingDescriptor):
     """
     Local node setting — stored in graph, shown in properties panel.
 
@@ -90,6 +147,8 @@ class setting(_SettingDescriptor):
         self,
         default: Any,
         *,
+        type_: type | None = None,
+        validator: Callable | None = None,
         min: Any = None,
         max: Any = None,
         choices: list | None = None,
@@ -101,6 +160,8 @@ class setting(_SettingDescriptor):
         on_change: str = '',
     ) -> None:
         self._default = default
+        self._type = type_ if type_ is not None else (type(default) if default is not None else object)
+        self._validator = validator
         self._min = min
         self._max = max
         self._choices = choices
@@ -113,7 +174,7 @@ class setting(_SettingDescriptor):
         # _attr_name and _full_key set by __set_name__ / schema machinery
 
 
-class shadow(_SettingDescriptor):
+class shadow(SettingDescriptor):
     """
     Shadow a global setting — inherits global value; per-node override allowed.
 
@@ -131,7 +192,7 @@ class shadow(_SettingDescriptor):
     _stored = True
     _read_only = False
 
-    def __init__(self, global_descriptor: _SettingDescriptor) -> None:
+    def __init__(self, global_descriptor: SettingDescriptor) -> None:
         # Store the full_key as string — NOT the object reference
         self._global_key = global_descriptor._full_key
         # Inherit metadata from the global descriptor
@@ -147,7 +208,7 @@ class shadow(_SettingDescriptor):
         self._on_change = ''   # shadows don't inherit on_change
 
 
-class watch(_SettingDescriptor):
+class watch(SettingDescriptor):
     """
     Watch a global setting — read-only cached reference; never stored; invisible in panel.
 
@@ -159,7 +220,7 @@ class watch(_SettingDescriptor):
     _stored = False
     _read_only = True
 
-    def __init__(self, global_descriptor: _SettingDescriptor) -> None:
+    def __init__(self, global_descriptor: SettingDescriptor) -> None:
         self._global_key = global_descriptor._full_key
         self._default = global_descriptor._default
         self._label = global_descriptor._label

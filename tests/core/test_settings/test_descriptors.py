@@ -2,7 +2,7 @@
 """Tests for the setting(), shadow(), and watch() descriptor classes."""
 
 import pytest
-from haywire.core.settings.descriptors import setting, shadow, watch, _SettingDescriptor
+from haywire.core.settings.descriptors import setting, shadow, watch, SettingDescriptor
 from haywire.core.settings.schema import NodeSettings, GlobalSettings
 from haywire.core.settings.decorators import library_settings
 from haywire.core.settings.schema import LibrarySettings
@@ -63,7 +63,7 @@ class TestSettingDescriptor:
     def test_class_access_returns_descriptor(self):
         """Accessing the descriptor on the class returns the descriptor object."""
         d = _FakeGlobal.threshold
-        assert isinstance(d, _SettingDescriptor)
+        assert isinstance(d, SettingDescriptor)
 
     def test_instance_access_raises(self):
         """Accessing a setting on an instance raises AttributeError."""

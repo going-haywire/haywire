@@ -134,7 +134,7 @@ class TestHolderGetInfo:
         _, holder = create_test_settings_holder()
         info = holder.get_info('bg_color')
         assert info.definition is not None
-        assert info.definition.label == 'Background Color'
+        assert info.definition._label == 'Background Color'
 
     def test_value_correct_in_info(self):
         _, holder = create_test_settings_holder(

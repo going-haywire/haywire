@@ -24,9 +24,9 @@ try:
 except ImportError:
     toml = None
 
-from .enums import SettingMode, SettingScope
+from .enums import SettingMode
 from .value import SettingValue
-from .definition import SettingDefinition
+from .descriptors import SettingDescriptor, setting as _setting_cls
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 
@@ -98,7 +98,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         super().__init__()  # sets up BaseRegistry state: _classes, _dependency_graph, etc.
 
         self._lock = threading.RLock()
-        self._definitions: dict[str, SettingDefinition] = {}
+        self._definitions: dict[str, SettingDescriptor] = {}
 
         # Two-tier global value storage
         self._global_tier_values: dict[str, SettingValue] = {}
@@ -159,18 +159,19 @@ class GlobalSettingsRegistry(BaseRegistry):
         for _name, descriptor in schema_cls._fields.items():
             if not descriptor._full_key:
                 continue
-            self.define(
-                name=descriptor._full_key,
-                default=descriptor._default,
-                label=descriptor._label or '',
-                description=descriptor._description or '',
-                category=descriptor._category or 'general',
-                min_value=descriptor._min,
-                max_value=descriptor._max,
-                choices=descriptor._choices,
-                ui_widget=descriptor._widget,
-                ui_order=descriptor._order,
-            )
+            self._store_definition(descriptor._full_key, descriptor, category=descriptor._category or 'general')
+
+    def _store_definition(self, name: str, descriptor: SettingDescriptor, category: str = 'general') -> None:
+        """Store a descriptor in the definitions dict and initialize tier entries."""
+        self._definitions[name] = descriptor
+        if name not in self._global_tier_values:
+            self._global_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
+        if name not in self._workspace_tier_values:
+            self._workspace_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
+        if category not in self._categories:
+            self._categories[category] = []
+        if name not in self._categories[category]:
+            self._categories[category].append(name)
 
     def _unregister_schema_fields(self, schema_cls) -> None:
         """Remove all descriptor fields of a schema class from definitions."""
@@ -416,31 +417,23 @@ class GlobalSettingsRegistry(BaseRegistry):
             parts = name.split('.')
             category = '.'.join(parts[:-1]) if len(parts) > 1 else 'general'
 
-        defn = SettingDefinition(
-            name=name,
+        d = _setting_cls(
             default=default,
             type_=type_,
-            scope=SettingScope.GLOBAL_AWARE,
             label=label,
             description=parsed.get('description', ''),
             category=category,
-            min_value=parsed.get('min_value'),
-            max_value=parsed.get('max_value'),
+            min=parsed.get('min_value'),
+            max=parsed.get('max_value'),
             choices=parsed.get('choices'),
-            ui_widget=parsed.get('ui_widget'),
-            ui_order=parsed.get('ui_order', 0),
+            widget=parsed.get('ui_widget'),
+            order=parsed.get('ui_order', 0),
         )
+        d._attr_name = name.split('.')[-1]
+        d._full_key = name
 
-        self._definitions[name] = defn
         self._toml_defined.add(name)
-        self._global_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
-        self._workspace_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
-
-        if category not in self._categories:
-            self._categories[category] = []
-        if name not in self._categories[category]:
-            self._categories[category].append(name)
-
+        self._store_definition(name, d, category=category)
         logger.debug(f"Auto-defined setting from TOML: {name}")
 
     def _notify_changes(self, old_effective: dict[str, tuple]) -> None:
@@ -590,7 +583,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         validator: Callable[[Any], bool] | None = None,
         ui_widget: str | None = None,
         ui_order: int = 0,
-    ) -> SettingDefinition:
+    ) -> SettingDescriptor:
         """
         Define a setting from code (authoritative schema).
 
@@ -599,51 +592,40 @@ class GlobalSettingsRegistry(BaseRegistry):
         with self._lock:
             self._toml_defined.discard(name)
 
-            defn = SettingDefinition(
-                name=name,
+            d = _setting_cls(
                 default=default,
-                type_=type_ or type(default),
-                scope=SettingScope.GLOBAL_AWARE,
-                label=label,
+                type_=type_ or (type(default) if default is not None else str),
+                validator=validator,
+                label=label or name.split('.')[-1].replace('_', ' ').title(),
                 description=description,
                 category=category,
-                min_value=min_value,
-                max_value=max_value,
+                min=min_value,
+                max=max_value,
                 choices=choices,
-                validator=validator,
-                ui_widget=ui_widget,
-                ui_order=ui_order,
+                widget=ui_widget,
+                order=ui_order,
             )
+            d._attr_name = name.split('.')[-1]
+            d._full_key = name
 
-            self._definitions[name] = defn
-
-            if name not in self._global_tier_values:
-                self._global_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
-            if name not in self._workspace_tier_values:
-                self._workspace_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
-
-            if category not in self._categories:
-                self._categories[category] = []
-            if name not in self._categories[category]:
-                self._categories[category].append(name)
-
-            return defn
+            self._store_definition(name, d, category=category)
+            return d
 
     def has_definition(self, name: str) -> bool:
         return name in self._definitions
 
-    def get_definition(self, name: str) -> SettingDefinition | None:
+    def get_definition(self, name: str) -> SettingDescriptor | None:
         return self._definitions.get(name)
 
-    def all_definitions(self) -> dict[str, SettingDefinition]:
+    def all_definitions(self) -> dict[str, SettingDescriptor]:
         return dict(self._definitions)
 
-    def definitions_by_category(self) -> dict[str, list[SettingDefinition]]:
+    def definitions_by_category(self) -> dict[str, list[SettingDescriptor]]:
         result = {}
         for category, names in self._categories.items():
             defns = [self._definitions[n] for n in names if n in self._definitions]
             if defns:
-                result[category] = sorted(defns, key=lambda d: (d.ui_order, d.name))
+                result[category] = sorted(defns, key=lambda d: (d._order, d._full_key))
         return result
 
     # =========================================================================
@@ -798,7 +780,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         if global_sv.mode == SettingMode.SET:
             return global_sv.value, 'global'
 
-        return defn.default, 'default'
+        return defn._default, 'default'
 
     # =========================================================================
     # Listeners
