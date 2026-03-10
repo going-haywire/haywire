@@ -24,7 +24,7 @@ class ResolutionChain:
     This chain only owns the per-instance local store.
 
     Args:
-        local_store: Mutable dict mapping full_key -> raw value for this instance.
+        local_store: Mutable dict mapping field_key -> raw value for this instance.
         global_registry: The singleton GlobalSettingsRegistry.
     """
 
@@ -32,9 +32,9 @@ class ResolutionChain:
         self._local = local_store
         self._global = global_registry
 
-    def resolve(self, full_key: str, default: Any) -> Any:
+    def resolve(self, field_key: str, default: Any) -> Any:
         """
-        Resolve the effective value for full_key.
+        Resolve the effective value for field_key.
 
         Delegates to registry.resolve() with the local store value (if any)
         so all tier priority logic lives in one place.
@@ -46,52 +46,52 @@ class ResolutionChain:
         avoids coupling chain tests to schema state.
         """
         local_sv = (
-            SettingValue(mode=SettingMode.SET, value=self._local[full_key])
-            if full_key in self._local
+            SettingValue(mode=SettingMode.SET, value=self._local[field_key])
+            if field_key in self._local
             else None
         )
         try:
-            value, source = self._global.resolve(full_key, local=local_sv)
+            value, source = self._global.resolve(field_key, local=local_sv)
             return default if source == 'default' else value
         except KeyError:
             # Key not in registry (e.g. during hot-reload transition) — fall back to default
-            if full_key in self._local:
-                return self._local[full_key]
+            if field_key in self._local:
+                return self._local[field_key]
             return default
 
-    def resolve_shadow(self, local_key: str, global_key: str, default: Any) -> Any:
+    def resolve_shadow(self, field_key: str, mirror_key: str, default: Any) -> Any:
         """
         Resolve a shadow/watch field where the local store key and the global
         registry key differ.
 
-        The local override (if any) is looked up by local_key; the global tiers
-        are looked up by global_key.
+        The local override (if any) is looked up by field_key; the global tiers
+        are looked up by mirror_key.
         """
         local_sv = (
-            SettingValue(mode=SettingMode.SET, value=self._local[local_key])
-            if local_key and local_key in self._local
+            SettingValue(mode=SettingMode.SET, value=self._local[field_key])
+            if field_key and field_key in self._local
             else None
         )
         try:
-            value, source = self._global.resolve(global_key, local=local_sv)
+            value, source = self._global.resolve(mirror_key, local=local_sv)
             return default if source == 'default' else value
         except KeyError:
-            if local_key and local_key in self._local:
-                return self._local[local_key]
+            if field_key and field_key in self._local:
+                return self._local[field_key]
             return default
 
-    def has_local(self, full_key: str) -> bool:
-        """Return True if there is a local instance override for full_key."""
-        return full_key in self._local
+    def has_local(self, field_key: str) -> bool:
+        """Return True if there is a local instance override for field_key."""
+        return field_key in self._local
 
-    def get_local(self, full_key: str) -> Any:
-        """Return the local instance value for full_key (KeyError if not set)."""
-        return self._local[full_key]
+    def get_local(self, field_key: str) -> Any:
+        """Return the local instance value for field_key (KeyError if not set)."""
+        return self._local[field_key]
 
-    def set_local(self, full_key: str, value: Any) -> None:
-        """Store a local instance override for full_key."""
-        self._local[full_key] = value
+    def set_local(self, field_key: str, value: Any) -> None:
+        """Store a local instance override for field_key."""
+        self._local[field_key] = value
 
-    def clear_local(self, full_key: str) -> None:
-        """Remove local instance override for full_key (revert to global/default)."""
-        self._local.pop(full_key, None)
+    def clear_local(self, field_key: str) -> None:
+        """Remove local instance override for field_key (revert to global/default)."""
+        self._local.pop(field_key, None)

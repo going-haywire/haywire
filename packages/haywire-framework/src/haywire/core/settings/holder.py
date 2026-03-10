@@ -184,11 +184,12 @@ class SubHolder:
     # =========================================================================
 
     def _resolve_descriptor(self, descriptor: SettingDescriptor) -> Any:
+        chain: ResolutionChain = self._chain
         if descriptor._mirror_key:
-            return self._chain.resolve_shadow(
+            return chain.resolve_shadow(
                 descriptor._field_key, descriptor._mirror_key, descriptor._default
             )
-        return self._chain.resolve(descriptor._field_key, descriptor._default)
+        return chain.resolve(descriptor._field_key, descriptor._default)
 
     # =========================================================================
     # Attribute access
@@ -198,8 +199,8 @@ class SubHolder:
         if name.startswith('_'):
             raise AttributeError(name)
 
-        fields = object.__getattribute__(self, '_fields')
-        cache = object.__getattribute__(self, '_cache')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        cache: dict[str, Any] = object.__getattribute__(self, '_cache')
 
         if name in cache:
             return cache[name]
@@ -225,12 +226,12 @@ class SubHolder:
     # =========================================================================
 
     def __getitem__(self, key: str) -> Any:
-        cache = object.__getattribute__(self, '_cache')
+        cache: dict[str, Any] = object.__getattribute__(self, '_cache')
         if key in cache:
             return cache[key]
 
-        fields = object.__getattribute__(self, '_fields')
-        _key_to_attr = object.__getattribute__(self, '_key_to_attr')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        _key_to_attr: dict[str, str] = object.__getattribute__(self, '_key_to_attr')
 
         if key in fields:
             attr_name = key
@@ -247,13 +248,13 @@ class SubHolder:
         self.set(key, value)
 
     def __contains__(self, key: str) -> bool:
-        fields = object.__getattribute__(self, '_fields')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
         if key in fields:
             return True
         return any(d._field_key == key for d in fields.values())
 
     def __iter__(self) -> Iterator[str]:
-        fields = object.__getattribute__(self, '_fields')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
         yield from fields
 
     def items(self) -> Iterator[tuple[str, Any]]:
@@ -275,17 +276,18 @@ class SubHolder:
 
     def set(self, name: str, value: Any, mode: SettingMode = SettingMode.SET) -> None:
         """Set a local value for a field (attr name or full key)."""
-        cache = object.__getattribute__(self, '_cache')
-        fields = object.__getattribute__(self, '_fields')
+        cache: dict[str, Any] = object.__getattribute__(self, '_cache')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        chain: ResolutionChain = self._chain
 
         if name in fields:
             descriptor = fields[name]
             if descriptor._read_only:
                 raise AttributeError(f"Setting '{name}' is read-only (watch descriptor)")
             if mode == SettingMode.SET:
-                self._chain.set_local(descriptor._field_key, value)
+                chain.set_local(descriptor._field_key, value)
             elif mode == SettingMode.AUTO:
-                self._chain.clear_local(descriptor._field_key)
+                chain.clear_local(descriptor._field_key)
             cache.pop(name, None)
             resolved = self._resolve_descriptor(descriptor)
             self._fire_change_callbacks(name, resolved)
@@ -301,27 +303,30 @@ class SubHolder:
 
     def reset(self, name: str) -> None:
         """Reset a field to AUTO (inherit from global/default)."""
-        cache = object.__getattribute__(self, '_cache')
-        fields = object.__getattribute__(self, '_fields')
+        cache: dict[str, Any] = object.__getattribute__(self, '_cache')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        chain: ResolutionChain = self._chain
 
         if name in fields:
-            self._chain.clear_local(fields[name]._field_key)
+            chain.clear_local(fields[name]._field_key)
             cache.pop(name, None)
             return
 
         for attr_name, descriptor in fields.items():
             if descriptor._field_key == name:
-                self._chain.clear_local(descriptor._field_key)
+                chain.clear_local(descriptor._field_key)
                 cache.pop(attr_name, None)
                 return
 
     def reset_all(self) -> None:
         """Reset all local overrides for this schema."""
-        fields = object.__getattribute__(self, '_fields')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        chain: ResolutionChain = self._chain
+
         for descriptor in fields.values():
             if descriptor._field_key:
-                self._chain.clear_local(descriptor._field_key)
-        cache = object.__getattribute__(self, '_cache')
+                chain.clear_local(descriptor._field_key)
+        cache: dict[str, Any] = object.__getattribute__(self, '_cache')
         cache.clear()
 
     # =========================================================================
@@ -329,7 +334,7 @@ class SubHolder:
     # =========================================================================
 
     def _fire_change_callbacks(self, name: str, value: Any) -> None:
-        change_callbacks = object.__getattribute__(self, '_change_callbacks')
+        change_callbacks: list[Callable] = object.__getattribute__(self, '_change_callbacks')
         for cb in change_callbacks:
             try:
                 cb(name, value, 'local')
@@ -344,7 +349,7 @@ class SubHolder:
         self._change_callbacks.append(callback)
 
     def remove_callback(self, callback: Callable) -> None:
-        change_callbacks = object.__getattribute__(self, '_change_callbacks')
+        change_callbacks: list[Callable] = object.__getattribute__(self, '_change_callbacks')
         if callback in change_callbacks:
             change_callbacks.remove(callback)
 
@@ -354,8 +359,9 @@ class SubHolder:
 
     def get_info(self, name: str) -> SettingInfo:
         """Get full resolution info for UI display (by attr name or full key)."""
-        fields = object.__getattribute__(self, '_fields')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
         registry: GlobalSettingsRegistry = self._chain._global
+        chain: ResolutionChain = self._chain
 
         descriptor = fields.get(name)
         if descriptor is None:
@@ -367,24 +373,24 @@ class SubHolder:
         if descriptor is None:
             raise KeyError(f"Setting '{name}' not defined in '{self._accessor_name}'")
 
-        full_key = descriptor._field_key
-        global_key = getattr(descriptor, '_mirror_key', '') or full_key
-        defn = registry.get_definition(global_key) or registry.get_definition(full_key)
+        field_key = descriptor._field_key
+        mirror_key = getattr(descriptor, '_mirror_key', '') or field_key
+        defn = registry.get_definition(mirror_key) or registry.get_definition(field_key)
         if defn is None:
             defn = descriptor
 
-        has_local = self._chain.has_local(full_key)
-        local_val = self._chain.get_local(full_key) if has_local else None
+        has_local = chain.has_local(field_key)
+        local_val = chain.get_local(field_key) if has_local else None
         local_mode = SettingMode.SET if has_local else SettingMode.AUTO
 
         local_sv = SettingValue(mode=SettingMode.SET, value=local_val) if has_local else None
         try:
-            value, source = registry.resolve(global_key, local=local_sv)
+            value, source = registry.resolve(mirror_key, local=local_sv)
         except KeyError:
             value = descriptor._default
             source = 'default'
 
-        effective_sv = registry.get_global(global_key)
+        effective_sv = registry.get_global(mirror_key)
 
         return SettingInfo(
             name=name,
@@ -401,12 +407,14 @@ class SubHolder:
 
     def is_locally_set(self, name: str) -> bool:
         """Return True if name has a local instance override."""
-        fields = object.__getattribute__(self, '_fields')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        chain: ResolutionChain = self._chain
+
         if name in fields:
-            return self._chain.has_local(fields[name]._field_key)
+            return chain.has_local(fields[name]._field_key)
         for descriptor in fields.values():
             if descriptor._field_key == name:
-                return self._chain.has_local(descriptor._field_key)
+                return chain.has_local(descriptor._field_key)
         return False
 
     # =========================================================================
@@ -420,24 +428,28 @@ class SubHolder:
         Only locally-set fields are included. Global defaults and watch()
         values are never stored.
         """
-        fields = object.__getattribute__(self, '_fields')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        chain: ResolutionChain = self._chain
+
         schema_values = {}
         for attr_name, descriptor in fields.items():
             if descriptor._stored and descriptor._field_key:
-                if self._chain.has_local(descriptor._field_key):
-                    schema_values[attr_name] = self._chain.get_local(descriptor._field_key)
+                if chain.has_local(descriptor._field_key):
+                    schema_values[attr_name] = chain.get_local(descriptor._field_key)
         return {'schema_values': schema_values}
 
     def from_dict(self, data: dict) -> None:
         """Restore serialized field values. Callbacks are NOT fired."""
-        cache = object.__getattribute__(self, '_cache')
-        fields = object.__getattribute__(self, '_fields')
+        cache: dict[str, Any] = object.__getattribute__(self, '_cache')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        chain: ResolutionChain = self._chain
+
         cache.clear()
         for attr_name, value in data.get('schema_values', {}).items():
             if attr_name in fields:
                 descriptor = fields[attr_name]
                 if descriptor._stored and descriptor._field_key:
-                    self._chain.set_local(descriptor._field_key, value)
+                    chain.set_local(descriptor._field_key, value)
 
     # =========================================================================
     # Cleanup
@@ -451,9 +463,9 @@ class SubHolder:
         object.__getattribute__(self, '_change_callbacks').clear()
 
     def __repr__(self) -> str:
-        fields = object.__getattribute__(self, '_fields')
-        schema = object.__getattribute__(self, '_schema')
-        accessor = object.__getattribute__(self, '_accessor_name')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
+        schema: type = object.__getattribute__(self, '_schema')
+        accessor: str = object.__getattribute__(self, '_accessor_name')
         return f"SubHolder(accessor='{accessor}', schema={schema.__name__}, fields={len(fields)})"
 
 
