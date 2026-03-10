@@ -84,7 +84,7 @@ class TestInnerClassForm:
 class TestDirectAssignmentForm:
     """
     Simulates: image = ImageLibSettings (direct assignment in node body).
-    The accessor name ('image') is arbitrary; the schema's _full_key is set
+    The accessor name ('image') is arbitrary; the schema's _field_key is set
     by the schema class definition, independent of the accessor name.
     """
 

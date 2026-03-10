@@ -19,7 +19,7 @@ Read the following documentation files in order and use them as the authoritativ
 Summarise in 8–10 bullet points:
 - Three descriptor types: `setting()` (local, stored, panel-visible), `shadow(Global.field)` (overridable global ref, stored when set, reset affordance), `watch(Global.field)` (read-only, invisible, never stored)
 - Access pattern: `self.settings.field_name` — never `self.settings['full.key']` for schema fields
-- `_full_key` for `setting()` is derived automatically: `{pkg}.{snake_node_name}.{field}` — set by `BaseNode.__init_subclass__`; for `LibrarySettings` it is set immediately by `@library_settings`
+- `_field_key` for `setting()` is derived automatically: `{pkg}.{snake_node_name}.{field}` — set by `BaseNode.__init_subclass__`; for `LibrarySettings` it is set immediately by `@library_settings`
 - Resolution order: global OVERRIDE beats everything → local instance value → global SET / project TOML → schema default
 - `on_change='method_name'` callback signature: `method(self, value, field='')` — field param is optional
 - `shadow()` subscribes the holder to `GlobalSettingsRegistry` namespace changes — cache auto-invalidated; plain `setting()` fields do NOT auto-invalidate on global changes

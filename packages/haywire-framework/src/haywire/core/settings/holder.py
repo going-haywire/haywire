@@ -12,7 +12,7 @@ SubHolder wraps a single _SettingsSchema and handles all field-level
 resolution, caching, on_change callbacks, and weakref subscriptions.
 
 The ResolutionChain is shared across all SubHolders on the same node instance.
-The local store is keyed by _full_key, which is globally unique, so sharing
+The local store is keyed by _field_key, which is globally unique, so sharing
 is safe and avoids duplicating tier-resolution logic.
 """
 
@@ -111,24 +111,24 @@ class SubHolder:
         from .descriptors import shadow, watch as _watch_cls
         _key_to_attr: dict[str, str] = {}
         for name, descriptor in fields.items():
-            if descriptor._full_key:
-                _key_to_attr[descriptor._full_key] = name
-            if isinstance(descriptor, (shadow, _watch_cls)) and getattr(descriptor, '_global_key', ''):
-                _key_to_attr[descriptor._global_key] = name
+            if descriptor._field_key:
+                _key_to_attr[descriptor._field_key] = name
+            if isinstance(descriptor, (shadow, _watch_cls)):
+                _key_to_attr[descriptor._mirror_key] = name
         object.__setattr__(self, '_key_to_attr', _key_to_attr)
 
         # on_change callbacks: attr_name -> bound method on node instance
         object.__setattr__(self, '_callbacks', {})
-        for name, descriptor in fields.items():
-            if descriptor._on_change:
-                method = getattr(node_instance, descriptor._on_change, None) if node_instance else None
-                if method:
+        if node_instance is not None:
+            for name, descriptor in fields.items():
+                if descriptor._on_change:
+                    method = getattr(node_instance, descriptor._on_change, None)
+                    if method is None:
+                        raise AttributeError(
+                            f"Settings on_change handler '{descriptor._on_change}' not found "
+                            f"on {type(node_instance).__name__}"
+                        )
                     self._callbacks[name] = method
-                else:
-                    logger.warning(
-                        f"Settings on_change handler '{descriptor._on_change}' not found "
-                        f"on {type(node_instance).__name__ if node_instance else 'None'}"
-                    )
 
         # External change callbacks: (name, value, source)
         object.__setattr__(self, '_change_callbacks', [])
@@ -148,17 +148,14 @@ class SubHolder:
 
     def _subscribe_to_global_namespaces(self) -> None:
         """Subscribe cache-invalidation weakrefs for shadow/watch fields."""
-        from .descriptors import shadow, watch
         registry: GlobalSettingsRegistry = self._chain._global
-        fields = object.__getattribute__(self, '_fields')
+        fields: dict[str, SettingDescriptor] = object.__getattribute__(self, '_fields')
 
         for descriptor in fields.values():
-            if isinstance(descriptor, (shadow, watch)):
-                ns = getattr(descriptor, '_global_key', '') or descriptor._full_key
-                if ns:
-                    cb_ref = weakref.WeakMethod(self._invalidate)
-                    registry.subscribe_namespace(ns, cb_ref)
-                    self._subscribed_refs.append(cb_ref)
+            if descriptor._mirror_key:
+                cb_ref = weakref.WeakMethod(self._invalidate)
+                registry.subscribe_namespace(descriptor._mirror_key, cb_ref)
+                self._subscribed_refs.append(cb_ref)
 
     # =========================================================================
     # Cache invalidation
@@ -187,10 +184,11 @@ class SubHolder:
     # =========================================================================
 
     def _resolve_descriptor(self, descriptor: SettingDescriptor) -> Any:
-        global_key = getattr(descriptor, '_global_key', '')
-        if global_key:
-            return self._chain.resolve_shadow(descriptor._full_key, global_key, descriptor._default)
-        return self._chain.resolve(descriptor._full_key, descriptor._default)
+        if descriptor._mirror_key:
+            return self._chain.resolve_shadow(
+                descriptor._field_key, descriptor._mirror_key, descriptor._default
+            )
+        return self._chain.resolve(descriptor._field_key, descriptor._default)
 
     # =========================================================================
     # Attribute access
@@ -252,7 +250,7 @@ class SubHolder:
         fields = object.__getattribute__(self, '_fields')
         if key in fields:
             return True
-        return any(d._full_key == key for d in fields.values())
+        return any(d._field_key == key for d in fields.values())
 
     def __iter__(self) -> Iterator[str]:
         fields = object.__getattribute__(self, '_fields')
@@ -285,9 +283,9 @@ class SubHolder:
             if descriptor._read_only:
                 raise AttributeError(f"Setting '{name}' is read-only (watch descriptor)")
             if mode == SettingMode.SET:
-                self._chain.set_local(descriptor._full_key, value)
+                self._chain.set_local(descriptor._field_key, value)
             elif mode == SettingMode.AUTO:
-                self._chain.clear_local(descriptor._full_key)
+                self._chain.clear_local(descriptor._field_key)
             cache.pop(name, None)
             resolved = self._resolve_descriptor(descriptor)
             self._fire_change_callbacks(name, resolved)
@@ -295,7 +293,7 @@ class SubHolder:
 
         # By full key
         for attr_name, descriptor in fields.items():
-            if descriptor._full_key == name:
+            if descriptor._field_key == name:
                 self.set(attr_name, value, mode)
                 return
 
@@ -307,13 +305,13 @@ class SubHolder:
         fields = object.__getattribute__(self, '_fields')
 
         if name in fields:
-            self._chain.clear_local(fields[name]._full_key)
+            self._chain.clear_local(fields[name]._field_key)
             cache.pop(name, None)
             return
 
         for attr_name, descriptor in fields.items():
-            if descriptor._full_key == name:
-                self._chain.clear_local(descriptor._full_key)
+            if descriptor._field_key == name:
+                self._chain.clear_local(descriptor._field_key)
                 cache.pop(attr_name, None)
                 return
 
@@ -321,8 +319,8 @@ class SubHolder:
         """Reset all local overrides for this schema."""
         fields = object.__getattribute__(self, '_fields')
         for descriptor in fields.values():
-            if descriptor._full_key:
-                self._chain.clear_local(descriptor._full_key)
+            if descriptor._field_key:
+                self._chain.clear_local(descriptor._field_key)
         cache = object.__getattribute__(self, '_cache')
         cache.clear()
 
@@ -362,15 +360,15 @@ class SubHolder:
         descriptor = fields.get(name)
         if descriptor is None:
             for attr_name, d in fields.items():
-                if d._full_key == name:
+                if d._field_key == name:
                     descriptor = d
                     name = attr_name
                     break
         if descriptor is None:
             raise KeyError(f"Setting '{name}' not defined in '{self._accessor_name}'")
 
-        full_key = descriptor._full_key
-        global_key = getattr(descriptor, '_global_key', '') or full_key
+        full_key = descriptor._field_key
+        global_key = getattr(descriptor, '_mirror_key', '') or full_key
         defn = registry.get_definition(global_key) or registry.get_definition(full_key)
         if defn is None:
             defn = descriptor
@@ -405,10 +403,10 @@ class SubHolder:
         """Return True if name has a local instance override."""
         fields = object.__getattribute__(self, '_fields')
         if name in fields:
-            return self._chain.has_local(fields[name]._full_key)
+            return self._chain.has_local(fields[name]._field_key)
         for descriptor in fields.values():
-            if descriptor._full_key == name:
-                return self._chain.has_local(descriptor._full_key)
+            if descriptor._field_key == name:
+                return self._chain.has_local(descriptor._field_key)
         return False
 
     # =========================================================================
@@ -425,9 +423,9 @@ class SubHolder:
         fields = object.__getattribute__(self, '_fields')
         schema_values = {}
         for attr_name, descriptor in fields.items():
-            if descriptor._stored and descriptor._full_key:
-                if self._chain.has_local(descriptor._full_key):
-                    schema_values[attr_name] = self._chain.get_local(descriptor._full_key)
+            if descriptor._stored and descriptor._field_key:
+                if self._chain.has_local(descriptor._field_key):
+                    schema_values[attr_name] = self._chain.get_local(descriptor._field_key)
         return {'schema_values': schema_values}
 
     def from_dict(self, data: dict) -> None:
@@ -438,8 +436,8 @@ class SubHolder:
         for attr_name, value in data.get('schema_values', {}).items():
             if attr_name in fields:
                 descriptor = fields[attr_name]
-                if descriptor._stored and descriptor._full_key:
-                    self._chain.set_local(descriptor._full_key, value)
+                if descriptor._stored and descriptor._field_key:
+                    self._chain.set_local(descriptor._field_key, value)
 
     # =========================================================================
     # Cleanup
@@ -476,7 +474,7 @@ class SettingsHolder:
         self.settings._node.muted           # NodeInstanceSettings (framework)
 
     The ResolutionChain is shared across all SubHolders — the local store is
-    keyed by _full_key which is globally unique.
+    keyed by _field_key which is globally unique.
 
     ``schemas`` is built by the ``@node`` decorator from all ``_SettingsSchema``
     subclasses found in the node class body, with ``'_node': NodeInstanceSettings``

@@ -6,7 +6,7 @@ This guide covers how to define `LibrarySettings` for your haybale library and h
 
 ## Creating a `LibrarySettings` Class
 
-Decorate a `LibrarySettings` subclass with `@library_settings`. This sets `_namespace` and `_full_key` on every descriptor immediately.
+Decorate a `LibrarySettings` subclass with `@library_settings`. This sets `_namespace` and `_field_key` on every descriptor immediately.
 
 ```python
 # my_lib/settings.py
@@ -53,7 +53,7 @@ class MyLibrary(BaseLibrary):
 
 ## Referencing Library Settings from Nodes
 
-Once `MyLibSettings._full_key` is set (by the time node classes are defined), use `shadow()` and `watch()`:
+Once `MyLibSettings._field_key` is set (by the time node classes are defined), use `shadow()` and `watch()`:
 
 ```python
 # my_lib/nodes/fetch_node.py
@@ -83,7 +83,7 @@ class ApiFetchNode(BaseNode):
         ...
 ```
 
-**Important:** Node classes using `shadow(MyLibSettings.field)` must be defined *after* `MyLibSettings` is decorated. The `@library_settings` decorator sets `_full_key` at class evaluation time.
+**Important:** Node classes using `shadow(MyLibSettings.field)` must be defined *after* `MyLibSettings` is decorated. The `@library_settings` decorator sets `_field_key` at class evaluation time.
 
 ---
 

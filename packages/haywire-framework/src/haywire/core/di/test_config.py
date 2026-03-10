@@ -196,9 +196,9 @@ def create_test_settings_holder(
     # Register schema fields in the global registry so set_global() works.
     resolved_schema = schema_cls or _TestNodeSettings
     for descriptor in resolved_schema._fields.values():
-        if descriptor._full_key and not registry.has_definition(descriptor._full_key):
+        if descriptor._field_key and not registry.has_definition(descriptor._field_key):
             registry.define(
-                descriptor._full_key,
+                descriptor._field_key,
                 descriptor._default,
                 label=descriptor._label,
                 description=descriptor._description,

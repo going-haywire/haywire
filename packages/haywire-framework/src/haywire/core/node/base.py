@@ -72,7 +72,10 @@ class NodeData:
         """Single source of truth for all ports (inlets and outlets)."""
         
         # Settings (GUI-facing, serialized)
-        schemas = getattr(type(self), '_settings_schemas', {'_node': NodeInstanceSettings})
+        # Start from the class-level schema dict (set by @node), then always
+        # inject NodeInstanceSettings under the reserved '_node' accessor.
+        schemas: dict[str, type] = dict(getattr(type(self), '_settings_schemas', {}))
+        schemas['_node'] = NodeInstanceSettings
         self._settings: SettingsHolder = SettingsHolder(
             schemas=schemas,
             registry=get_library_system().get_settings_registry(),

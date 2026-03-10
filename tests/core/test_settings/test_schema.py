@@ -14,7 +14,7 @@ from haywire.core.settings.decorators import library_settings
 
 
 # ---------------------------------------------------------------------------
-# GlobalSettings — namespace kwarg wires _full_key immediately
+# GlobalSettings — namespace kwarg wires _field_key immediately
 # ---------------------------------------------------------------------------
 
 class _GS(GlobalSettings, namespace='gs.test'):
@@ -28,9 +28,9 @@ class TestGlobalSettings:
         assert 'alpha' in _GS._fields
         assert 'beta' in _GS._fields
 
-    def test_full_keys(self):
-        assert _GS._fields['alpha']._full_key == 'gs.test.alpha'
-        assert _GS._fields['beta']._full_key  == 'gs.test.beta'
+    def test_field_keys(self):
+        assert _GS._fields['alpha']._field_key == 'gs.test.alpha'
+        assert _GS._fields['beta']._field_key  == 'gs.test.beta'
 
     def test_namespace(self):
         assert _GS._namespace == 'gs.test'
@@ -67,12 +67,12 @@ class TestNodeSettings:
     def test_namespace_empty_by_default(self):
         assert _NS._namespace == ''
 
-    def test_full_key_empty_until_wired(self):
-        assert _NS._fields['width']._full_key == ''
+    def test_field_key_empty_until_wired(self):
+        assert _NS._fields['width']._field_key == ''
 
     def test_explicit_namespace_kwarg(self):
         assert _NSExplicit._namespace == 'explicit.ns'
-        assert _NSExplicit._fields['value']._full_key == 'explicit.ns.value'
+        assert _NSExplicit._fields['value']._field_key == 'explicit.ns.value'
 
     def test_fields_isolated_from_sibling(self):
         """Two sibling NodeSettings subclasses must not share fields."""
@@ -101,9 +101,9 @@ class TestLibrarySettings:
     def test_namespace_set_by_decorator(self):
         assert _LS._namespace == 'mylib'
 
-    def test_full_key_set_by_decorator(self):
-        assert _LS._fields['rate']._full_key  == 'mylib.rate'
-        assert _LS._fields['mode']._full_key  == 'mylib.mode'
+    def test_field_key_set_by_decorator(self):
+        assert _LS._fields['rate']._field_key  == 'mylib.rate'
+        assert _LS._fields['mode']._field_key  == 'mylib.mode'
 
     def test_class_identity_set(self):
         assert hasattr(_LS, 'class_identity')

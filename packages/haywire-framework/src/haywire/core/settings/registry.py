@@ -157,9 +157,9 @@ class GlobalSettingsRegistry(BaseRegistry):
     def _register_schema_fields(self, schema_cls) -> None:
         """Register all descriptor fields from a schema class into the definitions."""
         for _name, descriptor in schema_cls._fields.items():
-            if not descriptor._full_key:
+            if not descriptor._field_key:
                 continue
-            self._store_definition(descriptor._full_key, descriptor, category=descriptor._category or 'general')
+            self._store_definition(descriptor._field_key, descriptor, category=descriptor._category or 'general')
 
     def _store_definition(self, name: str, descriptor: SettingDescriptor, category: str = 'general') -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
@@ -178,9 +178,9 @@ class GlobalSettingsRegistry(BaseRegistry):
         changed_keys: set[str] = set()
         with self._lock:
             for descriptor in schema_cls._fields.values():
-                if not descriptor._full_key:
+                if not descriptor._field_key:
                     continue
-                key = descriptor._full_key
+                key = descriptor._field_key
                 self._definitions.pop(key, None)
                 self._global_tier_values.pop(key, None)
                 self._workspace_tier_values.pop(key, None)
@@ -430,7 +430,7 @@ class GlobalSettingsRegistry(BaseRegistry):
             order=parsed.get('ui_order', 0),
         )
         d._attr_name = name.split('.')[-1]
-        d._full_key = name
+        d._field_key = name
 
         self._toml_defined.add(name)
         self._store_definition(name, d, category=category)
@@ -606,7 +606,7 @@ class GlobalSettingsRegistry(BaseRegistry):
                 order=ui_order,
             )
             d._attr_name = name.split('.')[-1]
-            d._full_key = name
+            d._field_key = name
 
             self._store_definition(name, d, category=category)
             return d
@@ -625,7 +625,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         for category, names in self._categories.items():
             defns = [self._definitions[n] for n in names if n in self._definitions]
             if defns:
-                result[category] = sorted(defns, key=lambda d: (d._order, d._full_key))
+                result[category] = sorted(defns, key=lambda d: (d._order, d._field_key))
         return result
 
     # =========================================================================

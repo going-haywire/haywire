@@ -18,14 +18,33 @@ class SettingDescriptor:
 
     Python calls __set_name__ automatically when the class body is evaluated.
     Class-level __get__ returns self (the descriptor) — this enables:
-        shadow(MyLibSettings.bg_color)   ← class access returns descriptor with _full_key set
+        shadow(MyLibSettings.bg_color)   ← class access returns descriptor with _field_key set
     Instance-level __get__ raises AttributeError — values come through SettingsHolder.
     """
 
     # Set by __set_name__
     _attr_name: str = ''
-    # Set by _SettingsSchema.__init_subclass__ or @node decorator
-    _full_key: str = ''
+
+    _field_key: str = ''
+    """
+    Fully-qualified dotted key for this field within the node's settings namespace
+    (e.g. ``haybale_core.node.transform.bg_color``).
+
+    Set by the ``@node`` decorator.
+
+    Used as the storage key for per-node local overrides in the ``ResolutionChain``.
+    """
+
+    _mirror_key: str = ''
+    """
+    Key of the global setting this descriptor mirrors in the ``GlobalSettingsRegistry``
+    (e.g. ``ui.node.bg_color``).
+
+    Set by ``shadow``/``watch`` constructors; empty string on plain ``setting()``.
+
+    Used to look up the mirrored values during resolution.
+    """
+
 
     # Set by constructor
     _default: Any = None
@@ -49,10 +68,10 @@ class SettingDescriptor:
     _widget: str | None = None   # explicit override: 'color', 'slider', 'toggle', etc.
 
     def __set_name__(self, owner: type, name: str) -> None:
-        # Each instance must have its own copy of _attr_name and _full_key
+        # Each instance must have its own copy of _attr_name and _field_key
         # (descriptors are shared across the class hierarchy via class body)
         self._attr_name = name
-        # _full_key is set later by schema __init_subclass__ once namespace is known
+        # _field_key is set later by schema __init_subclass__ once namespace is known
 
     def __get__(self, obj: object | None, objtype: type | None = None) -> Any:
         if obj is None:
@@ -121,7 +140,7 @@ class SettingDescriptor:
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}("
-            f"full_key={self._full_key!r}, "
+            f"full_key={self._field_key!r}, "
             f"default={self._default!r})"
         )
 
@@ -171,7 +190,7 @@ class setting(SettingDescriptor):
         self._category = category
         self._order = order
         self._on_change = on_change
-        # _attr_name and _full_key set by __set_name__ / schema machinery
+        # _attr_name and _field_key set by __set_name__ / schema machinery
 
 
 class shadow(SettingDescriptor):
@@ -184,7 +203,7 @@ class shadow(SettingDescriptor):
     Usage:
         bg_color: Color = shadow(MyLibSettings.bg_color)
 
-    The global_descriptor._full_key is stored as a string immediately
+    The global_descriptor._field_key is stored as a string immediately
     (object reference discarded — robust to hot-reload).
     """
 
@@ -194,7 +213,7 @@ class shadow(SettingDescriptor):
 
     def __init__(self, global_descriptor: SettingDescriptor) -> None:
         # Store the full_key as string — NOT the object reference
-        self._global_key = global_descriptor._full_key
+        self._mirror_key = global_descriptor._field_key
         # Inherit metadata from the global descriptor
         self._default = global_descriptor._default
         self._label = global_descriptor._label
@@ -221,7 +240,7 @@ class watch(SettingDescriptor):
     _read_only = True
 
     def __init__(self, global_descriptor: SettingDescriptor) -> None:
-        self._global_key = global_descriptor._full_key
+        self._mirror_key = global_descriptor._field_key
         self._default = global_descriptor._default
         self._label = global_descriptor._label
         self._description = global_descriptor._description

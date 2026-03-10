@@ -29,9 +29,9 @@ class TestSettingDescriptor:
         """__set_name__ sets _attr_name to the field name."""
         assert _FakeGlobal._fields['threshold']._attr_name == 'threshold'
 
-    def test_full_key_set_by_schema(self):
-        """Schema __init_subclass__ sets _full_key = namespace.name."""
-        assert _FakeGlobal._fields['threshold']._full_key == 'test.global.threshold'
+    def test_field_key_set_by_schema(self):
+        """Schema __init_subclass__ sets _field_key = namespace.name."""
+        assert _FakeGlobal._fields['threshold']._field_key == 'test.global.threshold'
 
     def test_default_value_preserved(self):
         assert _FakeGlobal._fields['threshold']._default == 0.5
@@ -88,10 +88,10 @@ class _ShadowedNode(NodeSettings):
 
 class TestShadowDescriptor:
 
-    def test_global_key_stored_as_string(self):
+    def test_mirror_key_stored_as_string(self):
         """shadow() stores the global_key as a string, not a descriptor reference."""
         d = _ShadowedNode._fields['bg_color']
-        assert d._global_key == 'shadow_lib.bg_color'
+        assert d._mirror_key == 'shadow_lib.bg_color'
 
     def test_inherits_default(self):
         assert _ShadowedNode._fields['bg_color']._default == '#1e1e2e'
@@ -128,8 +128,8 @@ class _WatchedNode(NodeSettings):
 
 class TestWatchDescriptor:
 
-    def test_global_key(self):
-        assert _WatchedNode._fields['bg_color']._global_key == 'shadow_lib.bg_color'
+    def test_mirror_key(self):
+        assert _WatchedNode._fields['bg_color']._mirror_key == 'shadow_lib.bg_color'
 
     def test_flags(self):
         d = _WatchedNode._fields['bg_color']

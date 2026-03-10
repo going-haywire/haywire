@@ -18,8 +18,9 @@ def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
     dict as ``cls._settings_schemas``.
 
     The accessor name is the variable name in the class body (inner class name
-    or direct assignment name). Reserved accessor ``'_node'`` is always
-    injected with ``NodeInstanceSettings``.
+    or direct assignment name). The reserved accessor name ``'_node'`` is
+    rejected here; the actual injection of ``NodeInstanceSettings`` happens at
+    instance creation time in ``NodeData.__init__``.
 
     Namespace is derived from ``registry_key`` by replacing ``':'`` with ``'.'``::
 
@@ -29,7 +30,6 @@ def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
     ``namespace=`` kwarg or by ``@library_settings``).
     """
     from haywire.core.settings.schema import _SettingsSchema, NodeSettings
-    from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
 
     schemas: dict[str, type] = {}
 
@@ -42,7 +42,7 @@ def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
             ns = registry_key.replace(':', '.')
             val._namespace = ns
             for field_name, descriptor in val._fields.items():
-                descriptor._full_key = f'{ns}.{field_name}'
+                descriptor._field_key = f'{ns}.{field_name}'
         if name == '_node':
             raise ValueError(
                 f"'_node' is a reserved accessor name for NodeInstanceSettings "
@@ -50,7 +50,6 @@ def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
             )
         schemas[name] = val
 
-    schemas['_node'] = NodeInstanceSettings
     node_cls._settings_schemas = schemas
 
 

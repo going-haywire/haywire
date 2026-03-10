@@ -35,7 +35,7 @@ def library_settings(namespace: str, label: str = ''):
     Decorator for library-global settings classes.
 
     Sets class_identity (required by BaseRegistry), class_library (for hot-reload),
-    _namespace, and _full_key on all descriptor fields (namespace known at decoration time).
+    _namespace, and _field_key on all descriptor fields (namespace known at decoration time).
 
     Args:
         namespace: Dot-separated settings namespace (e.g. 'my_lib.ui').
@@ -70,9 +70,9 @@ def library_settings(namespace: str, label: str = ''):
         cls.class_library = library_identity
         cls._auto_register = True  # readable flag; registry uses class_identity for detection
 
-        # Set _full_key on all descriptors (namespace known at decoration time)
+        # Set _field_key on all descriptors (namespace known at decoration time)
         for name, descriptor in cls._fields.items():
-            descriptor._full_key = f'{namespace}.{name}'
+            descriptor._field_key = f'{namespace}.{name}'
 
         return cls
 

@@ -59,7 +59,7 @@ verbose:   bool  = setting(False, on_change='hb_on_verbose_change')
 | `_panel_visible` | `bool` | `True` |
 | `_stored` | `bool` | `True` |
 | `_read_only` | `bool` | `False` |
-| `_full_key` | `str` | Set by `_SettingsSchema.__init_subclass__` |
+| `_field_key` | `str` | Set by `_SettingsSchema.__init_subclass__` |
 | `_attr_name` | `str` | Set by `__set_name__` |
 
 ### `shadow(global_descriptor)`
@@ -72,11 +72,11 @@ from haywire.core.settings.builtins.ui_node import NodeUISettings
 bg_color: Color = shadow(NodeUISettings.bg_color)
 ```
 
-Stores `global_descriptor._full_key` as a string immediately (object reference discarded for hot-reload safety). Inherits `_label`, `_description`, `_default`, `_category`, `_widget`, `_min`, `_max`, `_choices` from the target descriptor.
+Stores `global_descriptor._field_key` as a string immediately (object reference discarded for hot-reload safety). Inherits `_label`, `_description`, `_default`, `_category`, `_widget`, `_min`, `_max`, `_choices` from the target descriptor.
 
 | Attribute | Value |
 | --------- | ----- |
-| `_global_key` | Copied from target descriptor `_full_key` |
+| `_mirror_key` | Copied from target descriptor `_field_key` |
 | `_panel_visible` | `True` |
 | `_stored` | `True` (when locally overridden) |
 | `_read_only` | `False` |
@@ -93,7 +93,7 @@ verbose: bool = watch(DebugSettings.verbose_logging)
 
 | Attribute | Value |
 | --------- | ----- |
-| `_global_key` | Copied from target descriptor `_full_key` |
+| `_mirror_key` | Copied from target descriptor `_field_key` |
 | `_panel_visible` | `False` |
 | `_stored` | `False` |
 | `_read_only` | `True` |
@@ -121,7 +121,7 @@ class node(NodeSettings, namespace='my_lib.my_node'):
 vis = LibVisualSettings
 ```
 
-`_namespace` and `_full_key` on each descriptor are set by the `@node` decorator. The namespace is derived from the node's `registry_key` by replacing `:` with `.` — e.g. `haybale_core:node:transform` → `haybale_core.node.transform`.
+`_namespace` and `_field_key` on each descriptor are set by the `@node` decorator. The namespace is derived from the node's `registry_key` by replacing `:` with `.` — e.g. `haybale_core:node:transform` → `haybale_core.node.transform`.
 
 `_node` is a reserved accessor name (always injected with `NodeInstanceSettings`). Using it raises `ValueError` at decoration time.
 
@@ -138,7 +138,7 @@ class MyLibSettings(LibrarySettings):
     api_url: str = setting('https://api.example.com')
 ```
 
-Must be decorated with `@library_settings`. `_full_key` is set at class definition time.
+Must be decorated with `@library_settings`. `_field_key` is set at class definition time.
 
 ### `GlobalSettings`
 
@@ -172,7 +172,7 @@ Sets on the class:
 - `class_identity: SettingsClassIdentity` — `namespace`, `registry_key`, `label`
 - `_namespace: str`
 - `_auto_register: bool = True`
-- `_full_key` on each descriptor field
+- `_field_key` on each descriptor field
 
 ---
 

@@ -77,7 +77,7 @@ class MyNode(BaseNode):
         self.out('result', result)
 ```
 
-The `@node` decorator scans the class body for all `_SettingsSchema` subclasses, assigns a namespace to each `NodeSettings` subclass (derived from the node's `registry_key` by replacing `:` with `.`), and sets `_full_key` on each descriptor.
+The `@node` decorator scans the class body for all `_SettingsSchema` subclasses, assigns a namespace to each `NodeSettings` subclass (derived from the node's `registry_key` by replacing `:` with `.`), and sets `_field_key` on each descriptor.
 
 A library settings class can also be imported and assigned directly — the accessor name is then the variable name chosen by the developer:
 
@@ -184,7 +184,7 @@ class node(NodeSettings):
     bg_color: Color = shadow(NodeUISettings.bg_color)
 ```
 
-`shadow(SomeGlobalSettings.field)` takes the descriptor at class-access time (returns the descriptor object itself) and stores its `_full_key` as a string. The `_label`, `_default`, and widget metadata are inherited from the global descriptor.
+`shadow(SomeGlobalSettings.field)` takes the descriptor at class-access time (returns the descriptor object itself) and stores its `_field_key` as a string. The `_label`, `_default`, and widget metadata are inherited from the global descriptor.
 
 ### `watch()` — Read-only cached global reference
 

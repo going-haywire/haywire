@@ -30,7 +30,7 @@ class _SettingsSchema:
 
     When a namespace= kwarg is provided at the class line:
         class MySettings(GlobalSettings, namespace='ui.node'):
-    _namespace is set and _full_key is set on all collected descriptors immediately.
+    _namespace is set and _field_key is set on all collected descriptors immediately.
     """
 
     _fields: ClassVar[dict[str, SettingDescriptor]]
@@ -48,19 +48,19 @@ class _SettingsSchema:
                 # __set_name__ was already called by Python — _attr_name is set
                 cls._fields[name] = val
 
-        # Set namespace and _full_key when namespace kwarg is provided.
+        # Set namespace and _field_key when namespace kwarg is provided.
         # class_identity is NOT set here — that is the decorator's job.
         if namespace:
             cls._namespace = namespace
             for name, descriptor in cls._fields.items():
-                descriptor._full_key = f'{namespace}.{name}'
+                descriptor._field_key = f'{namespace}.{name}'
 
 
 class NodeSettings(_SettingsSchema):
     """
     Marker base for node-local settings schemas (inner class on BaseNode subclasses).
 
-    _namespace and _full_key are set by the @node decorator after the outer
+    _namespace and _field_key are set by the @node decorator after the outer
     class is known. Explicit override is possible:
         class node(NodeSettings, namespace='my.custom.ns'):
             ...
