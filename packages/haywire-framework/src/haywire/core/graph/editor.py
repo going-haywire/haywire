@@ -16,13 +16,13 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.undo.interfaces import IHistoryManager
+from haywire.core.undo.history_manager import HistoryManager
+from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.actions.graph_actions import (
-    ChangeSelectionAction,
     AddNodeAction,
     MoveNodesAction,
     RemoveElementsAction,
     AddEdgeAction,
-    SelectionState
 )
 
 class Editor:
@@ -35,41 +35,22 @@ class Editor:
     """
     
     def __init__(
-        self, 
-        graph: BaseGraph
+        self,
+        graph: BaseGraph,
+        undo_config: Optional[UndoConfig] = None,
     ):
         """
         Initialize the editor with core components.
-        
+
         Args:
-            graph: The HaywireGraph instance to manipulate
+            graph:       The graph instance to manipulate.
+            undo_config: Optional undo configuration. Defaults to UndoConfig().
         """
         self.graph: BaseGraph = graph
+        self.history_manager: IHistoryManager = HistoryManager(undo_config or UndoConfig())
 
         from haywire.core.di.config import get_library_system
         self._node_factory = get_library_system().get_node_factory()
-        self.history_manager: IHistoryManager = get_library_system().get_history_manager()
-
-        # Hook into history manager for undo/redo notifications
-        if self.history_manager:
-            self._setup_history_hooks()
-    
- 
-    def _setup_history_hooks(self):
-        """Setup hooks to catch undo/redo operations."""
-        original_undo = self.history_manager.undo
-        original_redo = self.history_manager.redo
-        
-        def hooked_undo():
-            result = original_undo()
-            return result
-            
-        def hooked_redo():
-            result = original_redo()
-            return result
-        
-        self.history_manager.undo = hooked_undo
-        self.history_manager.redo = hooked_redo
     
     # =============================================================================
     # NODE OPERATIONS
@@ -244,66 +225,12 @@ class Editor:
         return list(self.graph.edge_wrappers.values())
     
     # =============================================================================
-    # SELECTION OPERATIONS  
-    # =============================================================================
-    
-    def set_selection(
-        self, 
-        selected_nodes: Set[str] = None, 
-        selected_edges: Set[Tuple[str, str, str, str]] = None
-    ) -> bool:
-        """
-        Set the current selection.
-        
-        Args:
-            selected_nodes: Set of selected node IDs
-            selected_edges: Set of selected edge tuples 
-                (output_node, outlet_pin, input_node, inlet_pin)
-            
-        Returns:
-            True if selection was updated, False otherwise
-        """
-        try:
-            selected_nodes = selected_nodes or set()
-            selected_edges = selected_edges or set()
-            
-            # Convert edge tuples to edge UUIDs
-            from ...ui.utils import generate_edge_uuid
-            selected_edge_ids = set()
-            for output_node, outlet_pin, input_node, inlet_pin in selected_edges:
-                edge_id = generate_edge_uuid(
-                    output_node, outlet_pin, input_node, inlet_pin
-                )
-                selected_edge_ids.add(edge_id)
-            
-            new_selection = SelectionState(selected_nodes, selected_edge_ids)
-            action = ChangeSelectionAction(self.graph, new_selection)
-            self.history_manager.add_action(action)
-                        
-            print(
-                f"✅ Editor: Set selection to {len(selected_nodes)} nodes, "
-                f"{len(selected_edges)} connections"
-            )
-            return True
-            
-        except Exception as e:
-            print(f"❌ Editor: Error setting selection: {e}")
-            return False
-    
-    
-
-    # =============================================================================
     # HISTORY OPERATIONS
     # =============================================================================
     
     def undo(self) -> bool:
-        """
-        Perform an undo operation.
-        
-        Returns:
-            True if undo was performed, False otherwise
-        """
-        if self.history_manager and self.history_manager.can_undo():
+        """Perform an undo operation. Returns True if undo was performed."""
+        if self.history_manager.can_undo():
             try:
                 result = self.history_manager.undo()
                 if result:
@@ -312,18 +239,12 @@ class Editor:
             except Exception as e:
                 print(f"❌ Editor: Error during undo: {e}")
                 return False
-        else:
-            print("⚠️ Editor: Nothing to undo")
-            return False
-    
+        print("⚠️ Editor: Nothing to undo")
+        return False
+
     def redo(self) -> bool:
-        """
-        Perform a redo operation.
-        
-        Returns:
-            True if redo was performed, False otherwise
-        """
-        if self.history_manager and self.history_manager.can_redo():
+        """Perform a redo operation. Returns True if redo was performed."""
+        if self.history_manager.can_redo():
             try:
                 result = self.history_manager.redo()
                 if result:
@@ -332,22 +253,20 @@ class Editor:
             except Exception as e:
                 print(f"❌ Editor: Error during redo: {e}")
                 return False
-        else:
-            print("⚠️ Editor: Nothing to redo")
-            return False
-    
+        print("⚠️ Editor: Nothing to redo")
+        return False
+
     def can_undo(self) -> bool:
         """Check if undo is available."""
-        return self.history_manager and self.history_manager.can_undo()
-    
+        return self.history_manager.can_undo()
+
     def can_redo(self) -> bool:
         """Check if redo is available."""
-        return self.history_manager and self.history_manager.can_redo()
-    
+        return self.history_manager.can_redo()
+
     def add_fence(self) -> None:
         """Add a fence to group operations."""
-        if self.history_manager:
-            self.history_manager.add_fence()
+        self.history_manager.add_fence()
     
     # =============================================================================
     # GRAPH STATE
@@ -361,14 +280,10 @@ class Editor:
             'edge_count': len(self.graph.edge_wrappers),
             'can_undo': self.can_undo(),
             'can_redo': self.can_redo(),
-            'history_size': len(self.history_manager.history) if self.history_manager else 0,
-            'current_history_index': (
-                self.history_manager.current_index 
-                if self.history_manager else -1
-            )
+            'history_size': len(self.history_manager.history),
+            'current_history_index': self.history_manager.current_index,
         }
-    
+
     def is_valid(self) -> bool:
         """Check if the editor is in a valid state."""
-        return (self.graph is not None and 
-                self.history_manager is not None)
+        return self.graph is not None

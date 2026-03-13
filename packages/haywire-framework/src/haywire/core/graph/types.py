@@ -35,9 +35,7 @@ class ChangeReason(Enum):
     
     # Node reasons - visual only (no redraw needed)
     NODE_MOVED = "node_moved"
-    NODE_SELECTED = "node_selected"
-    NODE_DESELECTED = "node_deselected"
-    
+
     # Edge reasons - structural changes (require redraw)
     EDGE_ADDED = "edge_added"
     EDGE_REMOVED = "edge_removed"
@@ -48,8 +46,6 @@ class ChangeReason(Enum):
     
     # Edge reasons - visual only (no redraw needed)
     EDGE_PORT_CHANGED = "edge_port_changed"
-    EDGE_SELECTED = "edge_selected"
-    EDGE_DESELECTED = "edge_deselected"
     EDGE_REDRAW_REQUESTED = "edge_redraw_requested"
 
     def requires_adding(self) -> bool:
@@ -89,14 +85,10 @@ class ChangeReason(Enum):
             ChangeReason.NODE_HOT_RELOADED,
             ChangeReason.NODE_HOT_RELOAD_ERROR,
             ChangeReason.NODE_MOVED,
-            ChangeReason.NODE_SELECTED,
-            ChangeReason.NODE_DESELECTED,
             ChangeReason.NODE_REDRAW_REQUESTED,
             ChangeReason.NODE_VALIDATION_REQUESTED,
             ChangeReason.EDGE_ADAPTERS_RELOADED,
             ChangeReason.EDGE_HOT_RELOAD_ERROR,
-            ChangeReason.EDGE_SELECTED,
-            ChangeReason.EDGE_DESELECTED,
             ChangeReason.EDGE_REDRAW_REQUESTED,
             ChangeReason.EDGE_VALIDATION_REQUESTED,
         }

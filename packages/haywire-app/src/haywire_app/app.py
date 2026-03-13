@@ -19,7 +19,7 @@ from nicegui import ui, app
 # Core imports
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
-from haywire.core.graph.types import ValidationResult, ChangeReason
+from haywire.core.graph.types import ValidationResult
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.execution import Interpreter
 from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
@@ -29,21 +29,13 @@ from haywire.core.di.config import create_library_system_service, set_library_sy
 from haywire.ui.console_bridge import ConsoleBridge
 from haywire.ui.themes import ThemePalette
 
-# Change reasons that are pure UI state — they do NOT dirty the graph data.
-_SELECTION_ONLY_REASONS = frozenset({
-    ChangeReason.NODE_SELECTED,
-    ChangeReason.NODE_DESELECTED,
-    ChangeReason.EDGE_SELECTED,
-    ChangeReason.EDGE_DESELECTED,
-})
-
-
 def _result_mutates_data(result: ValidationResult) -> bool:
-    """Return True if the validation result contains changes that affect saved graph data."""
-    return (
-        any(r not in _SELECTION_ONLY_REASONS for r in result.nodes.values())
-        or any(r not in _SELECTION_ONLY_REASONS for r in result.edges.values())
-    )
+    """Return True if the validation result contains any graph data changes.
+
+    Selection is now per-session and never enters the validation pipeline,
+    so every ValidationResult that arrives here is a real data mutation.
+    """
+    return bool(result.nodes or result.edges)
 
 
 class HaywireApp:
@@ -214,7 +206,6 @@ class HaywireApp:
             library_paths=library_paths if library_paths else None,
             enable_file_watching=True,
             watch_settings=False,
-            undo_config=self.undo_config,
         )
         set_library_system(self.library_service)
         set_global_injector(self.library_service.injector)
@@ -231,7 +222,6 @@ class HaywireApp:
         self.node_factory = self.library_service.get_node_factory()
         self.skin_factory = self.library_service.get_skin_factory()
         self.adapter_factory = self.library_service.get_adapter_factory()
-        self.history_manager = self.library_service.get_history_manager()
 
         # Interpreter
         self.interpreter = Interpreter()
@@ -312,7 +302,7 @@ class HaywireApp:
         """
         def _factory(graph_id: str, name: str):
             g = BaseGraph(graph_id, name)
-            e = Editor(g)
+            e = Editor(g, undo_config=self.undo_config)
             return g, e
 
         entry = self.graph_manager.open_graph(path, _factory)
@@ -341,7 +331,7 @@ class HaywireApp:
         """
         def _factory(graph_id: str, name: str):
             g = BaseGraph(graph_id, name)
-            e = Editor(g)
+            e = Editor(g, undo_config=self.undo_config)
             return g, e
 
         entry = self.graph_manager.create_new(_factory)

@@ -6,7 +6,7 @@ Manages collections of nodes, edges, and variables, and coordinates
 with internal managers for validation, etc.
 """
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 import uuid
 import logging
@@ -94,10 +94,6 @@ class BaseGraph:
         self.node_wrappers: Dict[str, 'NodeWrapper'] = {}
         self.edge_wrappers: Dict[str, 'EdgeWrapper'] = {}
         self.variables: Dict[str, Variable] = {}
-        
-        # Selection state - shared across all sessions
-        self.selected_nodes: Set[str] = set()
-        self.selected_edges: Set[str] = set()
         
         # Metadata
         self.description: str = ""
@@ -836,61 +832,6 @@ class BaseGraph:
         return components
 
     # =========================================================================
-    # SELECTION MANAGEMENT
-    # =========================================================================
-        
-    def set_selection_state(
-        self, 
-        selected_nodes: Set[str], 
-        selected_edges: Set[str]
-    ):
-        """Set the complete selection state (backward compatibility)."""
-        self.selected_nodes = selected_nodes.copy()
-        self.selected_edges = selected_edges.copy()
-    
-    def get_selection_state(self) -> Tuple[Set[str], Set[str]]:
-        """Get the current selection state."""
-        return self.selected_nodes.copy(), self.selected_edges.copy()
-    
-    def select_node(self, node_id: str, multi_select: bool = False):
-        """Select a node."""
-        if not multi_select:
-            self.selected_nodes.clear()
-            self.selected_edges.clear()
-        
-        if node_id in self.node_wrappers:
-            self.selected_nodes.add(node_id)
-    
-    def deselect_node(self, node_id: str):
-        """Deselect a node."""
-        self.selected_nodes.discard(node_id)
-    
-    def select_edge(self, edge_id: str, multi_select: bool = False):
-        """Select an edge."""
-        if not multi_select:
-            self.selected_nodes.clear()
-            self.selected_edges.clear()
-        
-        self.selected_edges.add(edge_id)
-    
-    def deselect_edge(self, edge_id: str):
-        """Deselect an edge."""
-        self.selected_edges.discard(edge_id)
-    
-    def clear_selection(self):
-        """Clear all selections."""
-        self.selected_nodes.clear()
-        self.selected_edges.clear()
-    
-    def is_node_selected(self, node_id: str) -> bool:
-        """Check if a node is selected."""
-        return node_id in self.selected_nodes
-    
-    def is_edge_selected(self, edge_id: str) -> bool:
-        """Check if an edge is selected."""
-        return edge_id in self.selected_edges
-
-    # =========================================================================
     # CLEANUP
     # =========================================================================
 
@@ -928,9 +869,7 @@ class BaseGraph:
         self.node_wrappers.clear()
         self.edge_wrappers.clear()
         self.variables.clear()
-        self.selected_nodes.clear()
-        self.selected_edges.clear()
-        
+
         # Clear validation manager state after notifications
         self._validation.clear()
 

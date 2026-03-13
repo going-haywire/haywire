@@ -26,6 +26,8 @@ from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.adapter.factory import AdapterFactory
 from haywire.core.types.registry import TypeRegistry
 from haywire.core.undo.interfaces import IHistoryManager
+from haywire.core.undo.history_manager import HistoryManager
+from haywire.core.undo.config import UndoConfig
 
 
 # ==============================================================================
@@ -108,19 +110,14 @@ def test_injector_with_undo(
     project_root: Path
 ) -> Generator[Injector, None, None]:
     """
-    Provide test injector with undo system enabled.
+    Provide test injector (kept for backwards-compat; undo is now per-graph).
     """
-    from haywire.core.undo.config import UndoConfig
-    
-    undo_config = UndoConfig(max_undo_steps=50)
-    
     injector = create_test_injector(
         workspace_root=str(project_root),
         enable_file_watching=False,
         load_libraries=False,
-        undo_config=undo_config
     )
-    
+
     yield injector
 
 
@@ -209,11 +206,9 @@ def adapter_factory(test_injector: Injector) -> AdapterFactory:
 # ==============================================================================
 
 @pytest.fixture
-def history_manager(
-    test_injector_with_undo: Injector
-) -> IHistoryManager:
-    """Get history manager from DI."""
-    return test_injector_with_undo.get(IHistoryManager)
+def history_manager() -> IHistoryManager:
+    """Provide a fresh per-graph HistoryManager (no longer from DI)."""
+    return HistoryManager(UndoConfig(max_actions=50))
 
 
 # ==============================================================================

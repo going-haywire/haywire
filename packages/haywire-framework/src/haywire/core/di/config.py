@@ -28,10 +28,6 @@ from ..adapter.registry import AdapterRegistry
 from ..adapter.factory import AdapterFactory
 from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
-from ..undo.interfaces import IHistoryManager
-from ..undo.history_manager import HistoryManager
-from ..undo.config import UndoConfig
-from ..undo.no_op_history_manager import NoOpHistoryManager
 from ..settings import GlobalSettingsRegistry
 from ..settings.builtins import register_all as register_builtin_settings
 
@@ -49,7 +45,6 @@ class HaywireModule(Module):
         workspace_root: Optional[str] = None,
         library_paths: Optional[List[str]] = None,
         enable_file_watching: bool = True,
-        undo_config: Optional[UndoConfig] = None,
         default_theme: str = 'default',
         settings_path: Optional[str] = None,
         watch_settings: bool = True
@@ -61,7 +56,6 @@ class HaywireModule(Module):
             workspace_root:     Root path of the workspace (auto-detected if None).
             library_paths:      Additional library paths to scan.
             enable_file_watching: Whether to enable file watching for hot reload.
-            undo_config:        Optional undo configuration (uses default if None).
             default_theme:      Default theme to set on initialization.
             settings_path:      Path to the global settings TOML file
                                 (default: ~/.haywire/settings.toml, hand-edited by user).
@@ -70,7 +64,6 @@ class HaywireModule(Module):
         self.workspace_root = workspace_root or self._detect_project_root()
         self.library_paths = library_paths or []
         self.enable_file_watching = enable_file_watching
-        self.undo_config = undo_config
         self.default_theme = default_theme
         self.watch_settings = watch_settings
 
@@ -185,15 +178,6 @@ class HaywireModule(Module):
         register_builtin_panels(registry)   # stub in Phase 1; populated in Phase 5+
         return registry
                 
-    @provider
-    @singleton
-    def provide_history_manager(self) -> IHistoryManager:
-        """Provide HistoryManager for undo/redo operations."""
-        if self.undo_config is not None:
-            return HistoryManager(self.undo_config)
-        # Return a no-op history manager if none configured
-        return NoOpHistoryManager()
-    
     @provider
     @singleton
     def provide_node_factory(self, node_registry: NodeRegistry) -> NodeFactory:
@@ -583,11 +567,6 @@ class LibrarySystemService:
         """Get the skin factory."""
         return self.injector.get(SkinFactory)
     
-    def get_history_manager(self) -> Optional[IHistoryManager]:
-        """Get the history manager (None if no-op)."""
-        manager = self.injector.get(IHistoryManager)
-        return None if isinstance(manager, NoOpHistoryManager) else manager
-    
     def get_theme_registry(self) -> ThemeRegistry:
         """Get the theme registry."""
         return self.injector.get(ThemeRegistry)
@@ -650,7 +629,6 @@ def create_haywire_injector(
     workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = True,
-    undo_config: Optional[UndoConfig] = None,
     default_theme: str = 'default',
     settings_path: Optional[str] = None,
     watch_settings: bool = True
@@ -662,7 +640,6 @@ def create_haywire_injector(
         workspace_root:       Root path of the workspace (auto-detected if None).
         library_paths:        Additional library paths to scan.
         enable_file_watching: Whether to enable file watching for hot reload.
-        undo_config:          Optional undo configuration for history manager.
         default_theme:        Default theme to set on initialization.
         settings_path:        Path to the global settings TOML file
                               (default: ~/.haywire/settings.toml).
@@ -675,7 +652,6 @@ def create_haywire_injector(
         workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
-        undo_config=undo_config,
         default_theme=default_theme,
         settings_path=settings_path,
         watch_settings=watch_settings
@@ -688,7 +664,6 @@ def create_library_system_service(
     workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = True,
-    undo_config: Optional[UndoConfig] = None,
     default_theme: str = 'default',
     settings_path: Optional[str] = None,
     watch_settings: bool = True
@@ -703,7 +678,6 @@ def create_library_system_service(
         workspace_root:       Root path of the workspace (auto-detected if None).
         library_paths:        Additional library paths to scan.
         enable_file_watching: Whether to enable file watching for library class hot reload.
-        undo_config:          Optional undo configuration for history manager.
         default_theme:        Default theme to set on initialization.
         settings_path:        Path to the global settings TOML file
                               (default: ~/.haywire/settings.toml).
@@ -716,7 +690,6 @@ def create_library_system_service(
         workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
-        undo_config=undo_config,
         default_theme=default_theme,
         settings_path=settings_path,
         watch_settings=watch_settings

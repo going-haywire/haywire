@@ -33,7 +33,6 @@ def create_test_injector(
     workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = False,
-    undo_config: Optional[object] = None,
     load_libraries: bool = False,
     settings_path: Optional[str] = None,
     watch_settings: bool = False,
@@ -46,7 +45,6 @@ def create_test_injector(
         workspace_root:       Root path (auto-detected if None).
         library_paths:        Additional library paths.
         enable_file_watching: Disable for faster tests.
-        undo_config:          Optional undo configuration.
         load_libraries:       Whether to load libraries (slow, integration only).
         settings_path:        Path to global settings TOML (default: temp file for isolation).
         watch_settings:       Disable for faster tests.
@@ -68,7 +66,6 @@ def create_test_injector(
         workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
-        undo_config=undo_config,
         default_theme='default',
         settings_path=settings_path,
         watch_settings=watch_settings

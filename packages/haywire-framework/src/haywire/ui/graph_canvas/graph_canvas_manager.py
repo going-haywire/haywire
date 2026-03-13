@@ -16,7 +16,7 @@ from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
 from haywire.core.undo.actions.graph_actions import ClipboardData
 
-from ..utils import parse_edge_id
+
 from ..ui_node import UINode
 from ..ui_edge import UIEdge
 from ..pan_zoom.zoom_pan_vue import ZoomPanContainer
@@ -309,28 +309,15 @@ class GraphCanvasManager:
             f"connections={event.selectedEdges}"
         )
         
-        # Create new selection state
         selected_nodes_set = set(event.selectedNodes)
         selected_edges_set = set(event.selectedEdges)
-        
-        # Convert connection IDs to edge tuples for SelectionState format
-        selected_edges = set()
-        for edge_id in selected_edges_set:
-            try:
-                components = parse_edge_id(edge_id)
-                selected_edges.add((components.outlet_node_id, components.outlet_pin_id, 
-                                  components.inlet_node_id, components.inlet_pin_id))
-            except (ValueError, AttributeError):
-                continue
-        
-        # Use Editor to set selection
-        self.editor.set_selection(selected_nodes_set, selected_edges)
 
-        # Update local state for fast access
+        # Update local state for fast canvas access
         self.selected_nodes = selected_nodes_set
         self.selected_edges = selected_edges_set
 
-        # Notify session so context-aware editors (e.g. PropertiesEditor) can rebuild
+        # Notify session — GraphEditor._handle_selection_changed writes
+        # the new selection into SessionContext (the canonical per-session store).
         if self._on_selection_changed is not None:
             self._on_selection_changed(selected_nodes_set, selected_edges_set)
     
@@ -554,11 +541,10 @@ class GraphCanvasManager:
         )
 
         node_has_moved = False
-        selection_changed = False
 
         # Process nodes by reason
         for node_id, reason in result.nodes.items():
-            
+
             if reason == ChangeReason.NODE_ADDED:
                 # Create new UI node
                 wrapper = self.graph.get_node_wrapper(node_id)
@@ -590,16 +576,6 @@ class GraphCanvasManager:
                         node_has_moved = True
                         logger.debug(f"  ↔ Moved node: {node_id}")
             
-            elif reason in (ChangeReason.NODE_SELECTED, ChangeReason.NODE_DESELECTED):
-                # Handle selection/deselection without clearing entire set
-                is_selected = reason == ChangeReason.NODE_SELECTED
-                if is_selected:
-                    self.selected_nodes.add(node_id)
-                else:
-                    self.selected_nodes.discard(node_id)
-                selection_changed = True
-                logger.debug(f"  ✓ Selection changed: {node_id}")
-
             elif reason.requires_redraw():
                 # Full redraw needed
                 ui_node = self.node_panels.get(node_id)
@@ -623,16 +599,6 @@ class GraphCanvasManager:
                     self.remove_edge_visual(edge_uuid)
                     logger.debug(f"  - Removed edge UI: {edge_uuid}")
                         
-            elif reason in (ChangeReason.EDGE_SELECTED, ChangeReason.EDGE_DESELECTED):
-                # Handle selection/deselection without clearing entire set
-                is_selected = reason == ChangeReason.EDGE_SELECTED
-                if is_selected:
-                    self.selected_edges.add(edge_uuid)
-                else:
-                    self.selected_edges.discard(edge_uuid)
-                selection_changed = True
-                logger.debug(f"  ✓ Selection changed: {edge_uuid}")
-
             elif reason.requires_redraw():
                 # Full redraw needed
                 ui_edge = self.edge_paths.get(edge_uuid)
@@ -640,15 +606,11 @@ class GraphCanvasManager:
                     ui_edge.refresh(reason)  # Full re-render
                     logger.debug(f"  🔄 Redrawn edge: {edge_uuid} ({reason.value})")
 
-        # Emit single consolidated sync events
         if node_has_moved:
             #self._update_connection_paths()
             pass
 
-        if selection_changed:
-            self.sync_selections()
-
-        self.canvas_vue.update() 
+        self.canvas_vue.update()
 
     def sync_with_graph(self):
         """

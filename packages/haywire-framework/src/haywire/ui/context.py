@@ -61,3 +61,45 @@ class SessionContext:
     active_workbench_theme_id: str = 'haywire-dark'   # Active WorkbenchTheme key
     active_node_theme_id: str = 'default'              # Active NodeTheme key
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    # ------------------------------------------------------------------
+    # Selection helpers — per-session, never shared across sessions.
+    # For future collaborative multi-cursor, add a separate
+    # peer_selections: Dict[str, Set[str]] alongside these fields.
+    # ------------------------------------------------------------------
+
+    def set_selection(self, nodes: Set[str], edges: Set[str]) -> None:
+        """Replace the current selection entirely."""
+        self.selected_nodes = set(nodes)
+        self.selected_edges = set(edges)
+
+    def clear_selection(self) -> None:
+        """Deselect everything."""
+        self.selected_nodes.clear()
+        self.selected_edges.clear()
+
+    def select_node(self, node_id: str, multi: bool = False) -> None:
+        """Select a node, optionally extending the current selection."""
+        if not multi:
+            self.selected_nodes.clear()
+            self.selected_edges.clear()
+        self.selected_nodes.add(node_id)
+
+    def deselect_node(self, node_id: str) -> None:
+        self.selected_nodes.discard(node_id)
+
+    def select_edge(self, edge_id: str, multi: bool = False) -> None:
+        """Select an edge, optionally extending the current selection."""
+        if not multi:
+            self.selected_nodes.clear()
+            self.selected_edges.clear()
+        self.selected_edges.add(edge_id)
+
+    def deselect_edge(self, edge_id: str) -> None:
+        self.selected_edges.discard(edge_id)
+
+    def is_node_selected(self, node_id: str) -> bool:
+        return node_id in self.selected_nodes
+
+    def is_edge_selected(self, edge_id: str) -> bool:
+        return edge_id in self.selected_edges

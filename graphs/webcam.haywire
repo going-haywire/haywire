@@ -5,14 +5,14 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-03-09T15:34:46.842222",
+  "modified_at": "2026-03-13T19:29:42.886846",
   "nodes": {
     "begin_play_f465f325": {
       "node_id": "begin_play_f465f325",
       "registry_key": "core:node:begin_play",
       "position": [
-        193,
-        176
+        153,
+        261
       ],
       "node_data": {
         "node_id": "begin_play_f465f325",
@@ -61,13 +61,15 @@
           }
         },
         "settings": {
-          "schema_values": {}
+          "_node": {
+            "schema_values": {}
+          }
         },
         "store": {},
         "ui": {
           "state": {
-            "posX": 193,
-            "posY": 176,
+            "posX": 153,
+            "posY": 261,
             "width": 0.0,
             "height": 0.0,
             "width_min": -1.0,
@@ -118,8 +120,8 @@
       "node_id": "StartWebcamStreamNode_2d74351f",
       "registry_key": "visiongraph:node:StartWebcamStreamNode",
       "position": [
-        550,
-        116
+        680,
+        66
       ],
       "node_data": {
         "node_id": "StartWebcamStreamNode_2d74351f",
@@ -169,6 +171,7 @@
               "registry_key": "core:type:int",
               "label": "Camera Index",
               "description": "Whole number",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -199,6 +202,7 @@
               "registry_key": "core:type:int",
               "label": "Width (0=auto)",
               "description": "Whole number",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -229,6 +233,7 @@
               "registry_key": "core:type:int",
               "label": "Height (0=auto)",
               "description": "Whole number",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -259,6 +264,7 @@
               "registry_key": "core:type:int",
               "label": "FPS (0=auto)",
               "description": "Whole number",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -289,6 +295,7 @@
               "registry_key": "core:type:int",
               "label": "Frame Skip",
               "description": "Whole number",
+              "flow_type": "data",
               "default": {
                 "value": 1
               },
@@ -346,6 +353,7 @@
               "registry_key": "core:type:string",
               "label": "Status",
               "description": "Text data",
+              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -403,13 +411,15 @@
           }
         },
         "settings": {
-          "schema_values": {}
+          "_node": {
+            "schema_values": {}
+          }
         },
         "store": {},
         "ui": {
           "state": {
-            "posX": 550,
-            "posY": 116,
+            "posX": 680,
+            "posY": 66,
             "width": 0.0,
             "height": 0.0,
             "width_min": -1.0,
@@ -642,7 +652,9 @@
           }
         },
         "settings": {
-          "schema_values": {}
+          "_node": {
+            "schema_values": {}
+          }
         },
         "store": {},
         "ui": {
@@ -776,6 +788,7 @@
               "registry_key": "core:type:string",
               "label": "Frame Info",
               "description": "Text data",
+              "flow_type": "data",
               "default": {
                 "value": "No frame yet"
               },
@@ -944,7 +957,9 @@
           }
         },
         "settings": {
-          "schema_values": {}
+          "_node": {
+            "schema_values": {}
+          }
         },
         "store": {},
         "ui": {

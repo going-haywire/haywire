@@ -362,47 +362,15 @@ class RemoveElementsAction(ActionBase):
 
 @dataclass
 class SelectionState:
-    """Represents a selection state."""
+    """
+    Snapshot of a selection (node IDs + edge UUIDs).
+
+    Not used in the undo stack — selection is per-session and non-undoable.
+    Kept as a plain data-transfer object for copy/paste, context panels, and
+    future collaborative multi-cursor features.
+    """
     selected_nodes: set[str]
     selected_edges: set[str]  # Edge UUIDs
-
-
-class ChangeSelectionAction(ActionBase):
-    """Action for changing the selection state."""
-    
-    def __init__(self, graph: BaseGraph, new_selection: SelectionState, 
-                 description: Optional[str] = None):
-        """
-        Initialize the change selection action.
-        
-        Args:
-            graph: The graph
-            new_selection: The new selection state
-            description: Optional description override
-        """
-        super().__init__(description or "Change selection")
-        self.graph = graph
-        self.new_selection = new_selection
-        
-        # Store current selection for undo
-        self.old_selection = self._get_current_selection()
-    
-    def _get_current_selection(self) -> SelectionState:
-        """Get the current selection state from the graph."""
-        selected_nodes, selected_edges = self.graph.get_selection_state()
-        return SelectionState(selected_nodes, selected_edges)
-    
-    def _apply_selection(self, selection: SelectionState) -> None:
-        """Apply a selection state to the graph."""
-        self.graph.set_selection_state(selection.selected_nodes, selection.selected_edges)
-    
-    def _execute_impl(self) -> None:
-        """Apply the new selection."""
-        self._apply_selection(self.new_selection)
-    
-    def _undo_impl(self) -> None:
-        """Restore the old selection."""
-        self._apply_selection(self.old_selection)
 
 
 class DuplicateNodeAction(CompositeAction):
