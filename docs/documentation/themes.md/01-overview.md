@@ -108,18 +108,6 @@ the `workbench.theme` global setting.
 
 ---
 
-## TOML Data Files
-
-`haywire/ui/themes/data/` contains user-editable reference files:
-
-- `haywire-dark.toml` — all tokens for the dark theme with comments
-- `haywire-light.toml` — all tokens for the light theme with comments
-
-These are **not loaded automatically**. They serve as copy-paste templates for customising
-built-in themes or documenting available tokens.
-
----
-
 ## Next Steps
 
 - **[02-workbench-themes.md](02-workbench-themes.md)** — Creating WorkbenchTheme subclasses

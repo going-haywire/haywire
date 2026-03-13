@@ -56,7 +56,7 @@ Node types (DATA, CONTROL, EVENT, OUTPUT, LOOPBACK) are determined by control po
 
 The DI container uses the `injector` library. The main module is `HaywireModule` in [packages/haywire-framework/src/haywire/core/di/config.py](packages/haywire-framework/src/haywire/core/di/config.py).
 
-Key singletons provided: `LibraryRegistry`, `NodeRegistry`, `TypeRegistry`, `RendererRegistry`, `WidgetRegistry`, `AdapterRegistry`, `NodeFactory`, `IHistoryManager`, `GlobalSettingsRegistry`, `ThemePalette`.
+Key singletons provided: `LibraryRegistry`, `NodeRegistry`, `TypeRegistry`, `RendererRegistry`, `WidgetRegistry`, `AdapterRegistry`, `NodeFactory`, `IHistoryManager`, `GlobalSettingsRegistry`, `ThemeRegistry`.
 
 Entry points: `create_haywire_injector()` and `create_library_system_service()`.
 
