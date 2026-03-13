@@ -1,40 +1,24 @@
 """
 Haywire Theme System
 
-Provides theming support with built-in and user-defined themes.
-Features:
-- Built-in themes with IDE color preview
-- TOML-based user themes
-- Theme inheritance
-- Hot-reload via observer pattern
-- Unified get() API with preference and fallback support
-- Color utilities
+Provides theming support via WorkbenchTheme and NodeTheme Python classes,
+registered through the ThemeRegistry DI singleton.
+
+The canonical Haywire themes (haywire-dark, haywire-light) are defined in
+haybale-core and registered via register_components().  A minimal fallback
+theme (haywire-default) is registered by the framework before libraries load.
 """
 
-from haywire.ui.themes.keys import ThemeKey
-from haywire.ui.themes.colors import Colors
-from haywire.ui.themes.palette import ThemePalette
-from haywire.ui.themes.base import ThemeMetadata
-from haywire.ui.themes.utils import ColorUtils
-from haywire.ui.themes.loader import ThemeValidationError
+from haywire.ui.themes.workbench import WorkbenchTheme
+from haywire.ui.themes.node_theme import NodeTheme
+from haywire.ui.themes.registry import ThemeRegistry
+from haywire.ui.themes.decorator import theme
+from haywire.ui.themes.icons import ICONS
 
 __all__ = [
-    # Keys
-    'ThemeKey',
-
-    # Named color constants
-    'Colors',
-    
-    # Theme management
-    'ThemePalette',
-    
-    # Types and enums
-    'ThemeMetadata',
-    'ThemeKey',
-    
-    # Utilities
-    'ColorUtils',
-    
-    # Exceptions
-    'ThemeValidationError',
+    'WorkbenchTheme',
+    'NodeTheme',
+    'ThemeRegistry',
+    'theme',
+    'ICONS',
 ]

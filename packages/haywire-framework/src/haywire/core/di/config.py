@@ -15,7 +15,6 @@ from injector import Injector, Module, provider, singleton
 from ...ui.skin.registry import SkinRegistry
 from ...ui.widget.registry import WidgetRegistry
 from ...ui.skin.factory import SkinFactory
-from ...ui.themes.palette import ThemePalette
 from ...ui.themes.registry import ThemeRegistry
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
@@ -45,7 +44,6 @@ class HaywireModule(Module):
         workspace_root: Optional[str] = None,
         library_paths: Optional[List[str]] = None,
         enable_file_watching: bool = True,
-        default_theme: str = 'default',
         settings_path: Optional[str] = None,
         watch_settings: bool = True
     ):
@@ -56,7 +54,6 @@ class HaywireModule(Module):
             workspace_root:     Root path of the workspace (auto-detected if None).
             library_paths:      Additional library paths to scan.
             enable_file_watching: Whether to enable file watching for hot reload.
-            default_theme:      Default theme to set on initialization.
             settings_path:      Path to the global settings TOML file
                                 (default: ~/.haywire/settings.toml, hand-edited by user).
             watch_settings:     Whether to watch settings files for hot reload.
@@ -64,7 +61,6 @@ class HaywireModule(Module):
         self.workspace_root = workspace_root or self._detect_project_root()
         self.library_paths = library_paths or []
         self.enable_file_watching = enable_file_watching
-        self.default_theme = default_theme
         self.watch_settings = watch_settings
 
         # Global-tier settings path (hand-edited by user, never written by the app)
@@ -218,18 +214,6 @@ class HaywireModule(Module):
         registry.register_workbench(DefaultTheme)
         return registry
 
-    @provider
-    @singleton
-    def provide_theme_palette(self) -> ThemePalette:
-        """
-        Provide ThemePalette (shim — delegates to legacy ThemePalette for backward compat).
-
-        Note: ThemePalette is a singleton class with class methods,
-        so we return the class itself. The default theme is set during initialization.
-        """
-        ThemePalette.set_theme(self.default_theme)
-        return ThemePalette
-    
     def _detect_project_root(self) -> str:
         """Auto-detect project root by looking for pyproject.toml."""
         current_dir = Path(__file__).parent
@@ -571,10 +555,6 @@ class LibrarySystemService:
         """Get the theme registry."""
         return self.injector.get(ThemeRegistry)
 
-    def get_theme_palette(self) -> ThemePalette:
-        """Get the theme palette (legacy shim)."""
-        return self.injector.get(ThemePalette)
-    
     def get_settings_registry(self) -> GlobalSettingsRegistry:
         """Get the global settings registry."""
         return self.injector.get(GlobalSettingsRegistry)
@@ -629,7 +609,6 @@ def create_haywire_injector(
     workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = True,
-    default_theme: str = 'default',
     settings_path: Optional[str] = None,
     watch_settings: bool = True
 ) -> Injector:
@@ -640,7 +619,6 @@ def create_haywire_injector(
         workspace_root:       Root path of the workspace (auto-detected if None).
         library_paths:        Additional library paths to scan.
         enable_file_watching: Whether to enable file watching for hot reload.
-        default_theme:        Default theme to set on initialization.
         settings_path:        Path to the global settings TOML file
                               (default: ~/.haywire/settings.toml).
         watch_settings:       Whether to watch settings files for hot reload.
@@ -652,7 +630,6 @@ def create_haywire_injector(
         workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
-        default_theme=default_theme,
         settings_path=settings_path,
         watch_settings=watch_settings
     )
@@ -664,7 +641,6 @@ def create_library_system_service(
     workspace_root: Optional[str] = None,
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = True,
-    default_theme: str = 'default',
     settings_path: Optional[str] = None,
     watch_settings: bool = True
 ) -> LibrarySystemService:
@@ -678,7 +654,6 @@ def create_library_system_service(
         workspace_root:       Root path of the workspace (auto-detected if None).
         library_paths:        Additional library paths to scan.
         enable_file_watching: Whether to enable file watching for library class hot reload.
-        default_theme:        Default theme to set on initialization.
         settings_path:        Path to the global settings TOML file
                               (default: ~/.haywire/settings.toml).
         watch_settings:       Whether to watch settings files for hot reload.
@@ -690,7 +665,6 @@ def create_library_system_service(
         workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
-        default_theme=default_theme,
         settings_path=settings_path,
         watch_settings=watch_settings
     )

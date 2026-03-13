@@ -12,8 +12,6 @@ from haywire.core.types import DataPort
 
 from haywire.core.types.enums import PortType
 from haywire.ui.skin.decorator import skin
-from haywire.ui.themes.keys import ThemeKey
-from haywire.ui.themes import ThemePalette
 
 from ..skins.node_skin import NodeSkin
 
@@ -35,14 +33,10 @@ class DefaultNodeSkin(NodeSkin):
         """Render the complete node UI with groups."""
         node = wrapper.node
 
-        node_bg = ThemePalette.get(
-            ThemeKey.UI_NODE_BACKGROUND,
-            fallback='rgba(255, 255, 255, 0.3)'
-        )
         main_card.classes(
             'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
         ).style(
-            f'background-color: {node_bg}; backdrop-filter: blur(10px);'
+            'background-color: var(--hw-node-bg); backdrop-filter: blur(10px);'
         )        
 
         with main_card:

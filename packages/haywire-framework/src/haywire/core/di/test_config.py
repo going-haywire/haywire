@@ -66,7 +66,6 @@ def create_test_injector(
         workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
-        default_theme='default',
         settings_path=settings_path,
         watch_settings=watch_settings
     )

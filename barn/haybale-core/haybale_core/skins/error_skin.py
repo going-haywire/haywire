@@ -10,8 +10,6 @@ from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.decorator import skin
-from haywire.ui.themes.keys import ThemeKey
-from haywire.ui.themes.palette import ThemePalette
 from haywire.ui.errors.error_info import error_render_detail
 
 
@@ -64,14 +62,10 @@ class ErrorNodeSkin(NodeSkin):
         </style>
         ''')
 
-        node_bg = ThemePalette.get(
-            ThemeKey.UI_WARNING,
-            fallback='rgba(255, 255, 255, 0.3)'
-        )
         main_card.classes(
             f'w-full min-w-64 max-w-sm error-node-card {node_id} zoom-pan-lod0'
         ).style(
-            f'background-color: {node_bg}; backdrop-filter: blur(10px);'
+            'background-color: var(--hw-warning); backdrop-filter: blur(10px);'
         )        
 
         with main_card:

@@ -8,9 +8,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.ui.widget.factory import error_render_detail
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.themes.icons import ICONS
-from haywire.ui.themes.keys import ThemeKey
 from haywire.ui.utils import generate_pin_uuid
-from haywire.ui.themes import ThemePalette
 
 if TYPE_CHECKING:
     from haywire.core.errors import HaywireException
@@ -104,9 +102,9 @@ class NodeSkin(BaseSkin, ABC):
             ctrl_color = pin.color
             # Pin connector
             if pin.is_inlet():
-                ctrl_icon = ThemePalette.get(ThemeKey.UI_PORT_ICON_IN_CTRL, pin.icon_in, ICONS.JOIN_LEFT)
+                ctrl_icon = pin.icon_in or ICONS.JOIN_LEFT
             else:
-                ctrl_icon = ThemePalette.get(ThemeKey.UI_PORT_ICON_OUT_CTRL, pin.icon_out, ICONS.JOIN_RIGHT)
+                ctrl_icon = pin.icon_out or ICONS.JOIN_RIGHT
             with (
                 ui.icon(ctrl_icon, color=ctrl_color, size="xs")
                 .classes("text-4xl port input-port connection-pin zoom-pan-lod0")
@@ -120,13 +118,9 @@ class NodeSkin(BaseSkin, ABC):
             # Get callback flow color from theme
             callback_color = pin.color
             if pin.is_inlet():
-                callback_icon = ThemePalette.get(
-                    ThemeKey.UI_PORT_ICON_IN_CALLBACK, pin.icon_in, ICONS.SWIPE_LEFT_ALT
-                )
+                callback_icon = pin.icon_in or ICONS.SWIPE_LEFT_ALT
             else:
-                callback_icon = ThemePalette.get(
-                    ThemeKey.UI_PORT_ICON_OUT_CALLBACK, pin.icon_out, ICONS.SWIPE_RIGHT_ALT
-                )
+                callback_icon = pin.icon_out or ICONS.SWIPE_RIGHT_ALT
             # Pin connector
             with (
                 ui.icon(callback_icon, color=callback_color, size="20px")
@@ -144,43 +138,19 @@ class NodeSkin(BaseSkin, ABC):
             if pin.is_inlet():
                 if pin.allow_multiple_links:
                     if issubclass(pin._data.get_stored_type(), CompoundType):
-                        data_icon = ThemePalette.get(
-                            ThemeKey.UI_PORT_ICON_IN_MULTI_COMPOUND,
-                            pin._data.get_stored_type().class_identity.icon_in_multi,
-                            fallback=ICONS.WEB_STORIES,
-                        )
+                        data_icon = pin._data.get_stored_type().class_identity.icon_in_multi or ICONS.WEB_STORIES
                     else:
-                        data_icon = ThemePalette.get(
-                            ThemeKey.UI_PORT_ICON_IN_MULTI_SINGLE,
-                            pin._data.get_stored_type().class_identity.icon_in_multi,
-                            fallback=ICONS.FIBER_SMART_RECORD,
-                        )
+                        data_icon = pin._data.get_stored_type().class_identity.icon_in_multi or ICONS.FIBER_SMART_RECORD
                 else:
                     if issubclass(pin.type_cls, CompoundType):
-                        data_icon = ThemePalette.get(
-                            ThemeKey.UI_PORT_ICON_IN_COMPOUND,
-                            pin._data.get_stored_type().class_identity.icon_in,
-                            fallback=ICONS.VIEW_DAY,
-                        )
+                        data_icon = pin._data.get_stored_type().class_identity.icon_in or ICONS.VIEW_DAY
                     else:
-                        data_icon = ThemePalette.get(
-                            ThemeKey.UI_PORT_ICON_IN_SINGLE,
-                            pin._data.get_stored_type().class_identity.icon_in,
-                            fallback=ICONS.MY_LOCATION,
-                        )
+                        data_icon = pin._data.get_stored_type().class_identity.icon_in or ICONS.MY_LOCATION
             else:
                 if issubclass(pin.type_cls, CompoundType):
-                    data_icon = ThemePalette.get(
-                        ThemeKey.UI_PORT_ICON_OUT_MULTI_COMPOUND,
-                        pin._data.get_stored_type().class_identity.icon_out_multi,
-                        fallback=ICONS.VIEW_DAY,
-                    )
+                    data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.VIEW_DAY
                 else:
-                    data_icon = ThemePalette.get(
-                        ThemeKey.UI_PORT_ICON_OUT_MULTI_SINGLE,
-                        pin._data.get_stored_type().class_identity.icon_out_multi,
-                        fallback=ICONS.CIRCLE,
-                    )
+                    data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.CIRCLE
             with (
                 ui.icon(data_icon, color=pin_color, size="15px")
                 .classes("text-4xl port connection-pin zoom-pan-lod0")

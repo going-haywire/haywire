@@ -27,7 +27,7 @@ from haywire.core.di.config import create_library_system_service, set_library_sy
 
 # UI imports
 from haywire.ui.console_bridge import ConsoleBridge
-from haywire.ui.themes import ThemePalette
+
 
 def _result_mutates_data(result: ValidationResult) -> bool:
     """Return True if the validation result contains any graph data changes.
@@ -87,13 +87,7 @@ class HaywireApp:
         except Exception as e:
             print(f"  Error cleaning up graph manager: {e}")
 
-        # 4. Unregister theme observer
-        try:
-            ThemePalette.unregister_observer(self._on_theme_changed)
-        except Exception as e:
-            print(f"  Error unregistering theme observer: {e}")
-
-        # 5. Clean up console bridge
+        # 4. Clean up console bridge
         try:
             bridge = ConsoleBridge.get_instance()
             bridge.log_elements.clear()
@@ -230,10 +224,6 @@ class HaywireApp:
             target_fps=60.0,
         )
 
-        # Theme
-        self.theme_palette = self.library_service.get_theme_palette()
-        ThemePalette.register_observer(self._on_theme_changed)
-
         # Graph manager — starts empty; graphs are created/opened on demand
         from .graph_manager import GraphManager
         self.graph_manager = GraphManager()
@@ -263,31 +253,6 @@ class HaywireApp:
             _editor_registry._register_class(_cls, library_identity=None)
 
         print("Shared services configured successfully.")
-
-    # ------------------------------------------------------------------
-    # Theme
-    # ------------------------------------------------------------------
-
-    def _on_theme_changed(self, theme_name: str, theme):
-        """Handle theme change — new-style sessions update themselves."""
-        print(f"Theme changed to: {theme_name}")
-
-    def switch_theme(self, theme_name: str):
-        """Switch to a named theme."""
-        ui.notify(f"Switching to {theme_name} theme...", type='info')
-        def _do():
-            if not ThemePalette.set_theme(theme_name):
-                ui.notify(f"Failed to load {theme_name} theme", type='negative')
-        ui.timer(0.05, _do, once=True)
-
-    def reload_theme(self):
-        """Reload the current theme from disk."""
-        current_name = ThemePalette.get_theme_name()
-        ui.notify(f"Reloading {current_name} theme...", type='info')
-        def _do():
-            if not ThemePalette.reload_current_theme():
-                ui.notify("Failed to reload theme", type='negative')
-        ui.timer(0.05, _do, once=True)
 
     # ------------------------------------------------------------------
     # Graph management (called by editors)
