@@ -63,16 +63,18 @@ class GraphCanvasManager:
     """
 
     def __init__(
-        self, 
+        self,
         editor: Editor,
         skin_factory,
         node_factory,
         session_id: Optional[str] = None,
+        on_selection_changed: Optional[Callable] = None,
     ):
         self.editor = editor
         self.skin_factory = skin_factory
         self.node_factory = node_factory
         self.session_id = session_id or "default"
+        self._on_selection_changed = on_selection_changed
         
         # Access graph for read operations
         self.graph = editor.graph
@@ -323,10 +325,14 @@ class GraphCanvasManager:
         
         # Use Editor to set selection
         self.editor.set_selection(selected_nodes_set, selected_edges)
-        
+
         # Update local state for fast access
         self.selected_nodes = selected_nodes_set
         self.selected_edges = selected_edges_set
+
+        # Notify session so context-aware editors (e.g. PropertiesEditor) can rebuild
+        if self._on_selection_changed is not None:
+            self._on_selection_changed(selected_nodes_set, selected_edges_set)
     
     # =============================================================================
     # COPY PASTE EVENTS

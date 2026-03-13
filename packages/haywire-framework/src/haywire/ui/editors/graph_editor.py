@@ -58,6 +58,7 @@ class GraphEditor(BaseEditor):
     def __init__(self):
         self._canvas_manager: Optional['GraphCanvasManager'] = None
         self._project_state = None
+        self._context: Optional['SessionContext'] = None
         self._canvas_wrapper = None      # ui.element — cleared on graph switch
         self._graph_name_label = None    # ui.label in the header
         self._save_as_dialog = None      # ui.dialog — Save As
@@ -71,6 +72,7 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def render(self, container, context: 'SessionContext') -> None:
+        self._context = context
         self._project_state = context.metadata.get('project_state')
         if self._project_state is None:
             with container:
@@ -138,6 +140,7 @@ class GraphEditor(BaseEditor):
             skin_factory=app.skin_factory,
             node_factory=app.node_factory,
             session_id=context.session_id[:8],
+            on_selection_changed=self._handle_selection_changed,
         )
         self._canvas_manager.sync_with_graph()
         logging.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
@@ -153,6 +156,57 @@ class GraphEditor(BaseEditor):
         if context.active_graph is not None and hasattr(app.graph_manager, 'get_by_graph'):
             return app.graph_manager.get_by_graph(context.active_graph)
         return None
+
+    # ------------------------------------------------------------------
+    # selection → context bridge
+    # ------------------------------------------------------------------
+
+    def _handle_selection_changed(self, selected_node_ids: set, selected_edge_ids: set) -> None:
+        """Translate canvas selection into SessionContext and fire SELECTION_CHANGED."""
+        if self._context is None:
+            return
+
+        entry = self._get_entry(self._context)
+        graph = entry.editor.graph if entry is not None else None
+
+        active_node = None
+        if selected_node_ids and graph is not None:
+            active_node = graph.get_node_wrapper(next(iter(selected_node_ids)))
+
+        active_edge = None
+        if selected_edge_ids and graph is not None:
+            active_edge = graph.get_edge_wrapper(next(iter(selected_edge_ids)))
+
+        self._context.active_node = active_node
+        self._context.active_edge = active_edge
+        self._context.selected_nodes = selected_node_ids
+        self._context.selected_edges = selected_edge_ids
+
+        session = self._context.metadata.get('haywire_session')
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.SELECTION_CHANGED,
+                    source_editor='graph_editor',
+                )
+            )
+
+    def _clear_selection_context(self) -> None:
+        """Reset selection fields and notify session (e.g. on graph switch)."""
+        if self._context is None:
+            return
+        self._context.active_node = None
+        self._context.active_edge = None
+        self._context.selected_nodes = set()
+        self._context.selected_edges = set()
+        session = self._context.metadata.get('haywire_session')
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.SELECTION_CHANGED,
+                    source_editor='graph_editor',
+                )
+            )
 
     # ------------------------------------------------------------------
     # header
@@ -191,6 +245,9 @@ class GraphEditor(BaseEditor):
         """Tear down the old canvas and build a fresh one for the new graph."""
         if self._canvas_wrapper is None:
             return
+
+        # Clear selection so PropertiesEditor resets to the graph panel
+        self._clear_selection_context()
 
         # Clean up existing canvas manager
         if self._canvas_manager:
