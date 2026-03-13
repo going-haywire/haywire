@@ -61,6 +61,8 @@ class GraphEditor(BaseEditor):
         self._context: Optional['SessionContext'] = None
         self._canvas_wrapper = None      # ui.element — cleared on graph switch
         self._graph_name_label = None    # ui.label in the header
+        self._undo_button = None         # ui.button — undo
+        self._redo_button = None         # ui.button — redo
         self._save_as_dialog = None      # ui.dialog — Save As
         self._save_base_dir: Optional[Path] = None   # fixed prefix (workspace root)
         self._save_base_dir_label = None # ui.label showing the fixed prefix
@@ -92,6 +94,14 @@ class GraphEditor(BaseEditor):
                     self._graph_name_label = ui.label('Untitled').classes(
                         'text-xs hw-text-muted truncate font-mono flex-1'
                     )
+                    self._undo_button = ui.button(
+                        icon='undo',
+                        on_click=lambda: self._do_undo(context),
+                    ).props('flat round dense size=xs color=grey').tooltip('Undo')
+                    self._redo_button = ui.button(
+                        icon='redo',
+                        on_click=lambda: self._do_redo(context),
+                    ).props('flat round dense size=xs color=grey').tooltip('Redo')
                     ui.button(
                         icon='save',
                         on_click=lambda: self._save_graph(context),
@@ -213,7 +223,7 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _update_header(self, context: 'SessionContext') -> None:
-        """Refresh the name label to reflect the current graph."""
+        """Refresh the name label and undo/redo buttons to reflect the current graph."""
         if self._graph_name_label is None:
             return
         entry = self._get_entry(context)
@@ -228,6 +238,46 @@ class GraphEditor(BaseEditor):
             # Unnamed / not-yet-saved graph
             self._graph_name_label.text = '● ' + entry.display_name
             self._graph_name_label.classes(remove='hw-text-body hw-text-dim', add='hw-text-muted')
+        self._update_undo_redo_buttons(entry)
+
+    def _update_undo_redo_buttons(self, entry) -> None:
+        """Enable/disable undo and redo buttons based on history state."""
+        can_undo = entry is not None and entry.editor.can_undo()
+        can_redo = entry is not None and entry.editor.can_redo()
+        if self._undo_button is not None:
+            self._undo_button.set_enabled(can_undo)
+        if self._redo_button is not None:
+            self._redo_button.set_enabled(can_redo)
+
+    def _do_undo(self, context: 'SessionContext') -> None:
+        """Undo the last action on the active graph."""
+        entry = self._get_entry(context)
+        if entry is None or not entry.editor.can_undo():
+            return
+        entry.editor.undo()
+        session = context.metadata.get('haywire_session')
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.DATA_MUTATED,
+                    source_editor='graph_editor',
+                )
+            )
+
+    def _do_redo(self, context: 'SessionContext') -> None:
+        """Redo the last undone action on the active graph."""
+        entry = self._get_entry(context)
+        if entry is None or not entry.editor.can_redo():
+            return
+        entry.editor.redo()
+        session = context.metadata.get('haywire_session')
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.DATA_MUTATED,
+                    source_editor='graph_editor',
+                )
+            )
 
     # ------------------------------------------------------------------
     # context changes
