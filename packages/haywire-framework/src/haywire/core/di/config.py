@@ -554,6 +554,14 @@ class LibrarySystemService:
     def get_settings_registry(self) -> GlobalSettingsRegistry:
         """Get the global settings registry."""
         return self.injector.get(GlobalSettingsRegistry)
+
+    def get_panel_registry(self) -> PanelRegistry:
+        """Get the panel registry."""
+        return self.injector.get(PanelRegistry)
+
+    def get_editor_registry(self) -> EditorTypeRegistry:
+        """Get the editor type registry."""
+        return self.injector.get(EditorTypeRegistry)
     
     # =========================================================================
     # Settings convenience methods

@@ -45,9 +45,10 @@ class Session:
             project_path: Optional path to the project folder for workspace persistence.
         """
         self.session_id = str(uuid.uuid4())
-        self.context = SessionContext(session_id=self.session_id)
-        self.workspace_manager = WorkspaceManager(project_path=project_path)
         self.project_state = project_state
+        self.context = SessionContext(session_id=self.session_id, app=project_state)
+        self.context.session = self
+        self.workspace_manager = WorkspaceManager(project_path=project_path)
 
         # Active editor instances (keyed by area slot: 'left', 'middle', 'right', 'bottom')
         self._editors: Dict[str, 'BaseEditor'] = {}

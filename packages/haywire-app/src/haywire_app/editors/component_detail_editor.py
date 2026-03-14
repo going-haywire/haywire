@@ -62,6 +62,10 @@ class ComponentDetailEditor(BaseEditor):
         'types': 'category',
         'adapters': 'swap_horiz',
         'skins': 'brush',
+        'settings': 'tune',
+        'themes': 'palette',
+        'panels': 'view_sidebar',
+        'editors': 'tab',
     }
 
     def _rebuild(self, context: 'SessionContext') -> None:
@@ -80,8 +84,9 @@ class ComponentDetailEditor(BaseEditor):
             class_name = component_info.get('class_name', '')
             comp_type = component_info.get('comp_type', 'nodes')
 
-            app = context.metadata.get('project_state')
-            cls = self._lookup_class(app, lib, class_name, comp_type)
+            app = context.app
+            registry_key = component_info.get('registry_key')
+            cls = self._lookup_class(app, lib, class_name, comp_type, registry_key)
             identity = getattr(cls, 'class_identity', None) if cls else None
 
             comp_singular = comp_type.removesuffix('s')
@@ -233,7 +238,7 @@ class ComponentDetailEditor(BaseEditor):
         """Clear active component and notify listeners."""
         self._code_editor = None
         context.active_component = None
-        session = context.metadata.get('haywire_session')
+        session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
@@ -282,25 +287,28 @@ class ComponentDetailEditor(BaseEditor):
         ui.label(text).classes('text-xs font-bold hw-text-dim uppercase tracking-wider mt-3 mb-1')
 
     @staticmethod
-    def _lookup_class(app, lib, class_name: str, comp_type: str):
+    def _lookup_class(
+        app, lib, class_name: str, comp_type: str, registry_key: str | None = None
+    ):
         """Look up the component class from the appropriate registry."""
         lib_id = getattr(lib, 'library_id', None)
         if not lib_id or not app:
             return None
         comp_singular = comp_type.removesuffix('s')
-        key = f'{lib_id}:{comp_singular}:{class_name}'
+        key = registry_key or f'{lib_id}:{comp_singular}:{class_name}'
         try:
-            if comp_type == 'nodes':
-                reg = getattr(app, 'node_registry', None)
-            elif hasattr(app, 'library_service'):
-                reg = {
-                    'widgets': app.library_service.get_widget_registry,
-                    'types': app.library_service.get_type_registry,
-                    'adapters': app.library_service.get_adapter_registry,
-                    'skins': app.library_service.get_skin_registry,
-                }.get(comp_type, lambda: None)()
-            else:
-                return None
+            svc = app.library_service
+            reg = {
+                'nodes':    svc.get_node_registry,
+                'widgets':  svc.get_widget_registry,
+                'types':    svc.get_type_registry,
+                'adapters': svc.get_adapter_registry,
+                'skins':    svc.get_skin_registry,
+                'themes':   svc.get_theme_registry,
+                'settings': svc.get_settings_registry,
+                'panels':   svc.get_panel_registry,
+                'editors':  svc.get_editor_registry,
+            }.get(comp_type, lambda: None)()
             return reg.get(key) if reg else None
         except Exception:
             return None

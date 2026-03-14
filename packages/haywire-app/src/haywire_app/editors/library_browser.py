@@ -34,7 +34,7 @@ class LibraryBrowser(BaseEditor):
 
     On selection, updates context.active_library and notifies subscribers
     via ACTIVE_LIBRARY_CHANGED. The library_manager is retrieved from
-    context.metadata['project_state'].library_manager.
+    context.app.library_manager.
     """
 
     def __init__(self):
@@ -105,7 +105,7 @@ class LibraryBrowser(BaseEditor):
             return
         self._list_container.clear()
 
-        app = context.metadata.get('project_state')
+        app = context.app
         if app is None or not hasattr(app, 'library_manager'):
             with self._list_container:
                 ui.label('Library manager not available').classes('text-xs hw-text-dim p-2')
@@ -216,7 +216,7 @@ class LibraryBrowser(BaseEditor):
             except Exception:
                 pass
 
-        session = context.metadata.get('haywire_session')
+        session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(

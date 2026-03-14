@@ -6,9 +6,15 @@ SessionContext is the central state object that flows through the entire UI hier
 Each browser session has its own instance. Analogous to Blender's bContext.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Optional, Set, Any, Dict
+from typing import Optional, Set, Any, Dict, TYPE_CHECKING
 from enum import Enum
+
+if TYPE_CHECKING:
+    from haywire.ui.session import Session
+    from haywire.ui.protocols import IProjectState
 
 
 class InteractionMode(Enum):
@@ -31,6 +37,8 @@ class SessionContext:
 
     Attributes:
         session_id: Unique identifier for this browser session.
+        app: The host application implementing IProjectState.
+        session: The owning Session object (set by Session.__init__ immediately after construction).
         active_graph: The currently viewed graph (if any).
         active_node: The currently selected/focused node wrapper (if any).
         active_edge: The currently selected edge (if any).
@@ -46,6 +54,8 @@ class SessionContext:
         metadata: Extensible dict for editor-specific state.
     """
     session_id: str
+    app: IProjectState                          # host application (HaywireApp)
+    session: Session = field(init=False)        # set by Session.__init__ immediately after construction
     active_graph: Optional[Any] = None          # HaywireGraph
     active_node: Optional[Any] = None           # NodeWrapper
     active_edge: Optional[Any] = None           # Edge

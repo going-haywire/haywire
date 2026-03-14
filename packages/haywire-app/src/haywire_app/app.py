@@ -373,8 +373,6 @@ class HaywireApp:
         def main_page():
             from haywire.ui.app_shell import AppShell
             from haywire.ui.editor.registry import EditorTypeRegistry
-            from haywire.ui.panel.registry import PanelRegistry
-            from haywire.ui.themes.registry import ThemeRegistry
 
             session_data, client_id = self.get_session_data()
             print(f"Creating UI for session: {client_id[:8]}")
@@ -383,14 +381,6 @@ class HaywireApp:
                 project_state=self,
                 project_path=Path(self.workspace_root),
             )
-            haywire_session.context.metadata['project_state'] = self
-            haywire_session.context.metadata['panel_registry'] = (
-                self.library_service.injector.get(PanelRegistry)
-            )
-            haywire_session.context.metadata['theme_registry'] = (
-                self.library_service.injector.get(ThemeRegistry)
-            )
-            haywire_session.context.metadata['haywire_session'] = haywire_session
 
             session_data['haywire_session'] = haywire_session
             session_data['haywire_session_id'] = haywire_session.session_id

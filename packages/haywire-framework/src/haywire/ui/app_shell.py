@@ -77,16 +77,15 @@ class AppShell:
         try:
             context = self.session.context
             # Initialise from settings registry on first render; falls back to field default.
-            settings_registry = context.metadata.get('settings_registry')
-            if settings_registry is not None:
-                wb_theme, _ = settings_registry.resolve('workbench.theme')
-                if wb_theme:
-                    context.active_workbench_theme_id = wb_theme
-                node_theme, _ = settings_registry.resolve('node.theme')
-                if node_theme:
-                    context.active_node_theme_id = node_theme
-            theme_id = getattr(context, 'active_workbench_theme_id', 'haywire-dark')
-            theme_registry = context.metadata.get('theme_registry')
+            settings_registry = context.app.library_service.get_settings_registry()
+            wb_theme, _ = settings_registry.resolve('workbench.theme')
+            if wb_theme:
+                context.active_workbench_theme_id = wb_theme
+            node_theme, _ = settings_registry.resolve('node.theme')
+            if node_theme:
+                context.active_node_theme_id = node_theme
+            theme_id = context.active_workbench_theme_id
+            theme_registry = context.app.library_service.get_theme_registry()
             if theme_registry is not None:
                 theme = theme_registry.get_workbench(theme_id)
             else:
@@ -116,9 +115,7 @@ class AppShell:
         """
         try:
             context = self.session.context
-            theme_registry = context.metadata.get('theme_registry')
-            if theme_registry is None:
-                return
+            theme_registry = context.app.library_service.get_theme_registry()
             theme = theme_registry.get_workbench(theme_id)
             context.active_workbench_theme_id = theme_id
             for css_var, value in theme.to_css_vars().items():
@@ -376,10 +373,10 @@ class AppShell:
             ).props('flat round dense color=grey').tooltip('Save current workspace').classes('text-gray-400')
 
             context = self.session.context
-            theme_registry = context.metadata.get('theme_registry')
+            theme_registry = context.app.library_service.get_theme_registry()
             if theme_registry is not None:
                 theme_options = {tid: lbl for tid, lbl in theme_registry.list_workbench_themes()}
-                current_theme = getattr(context, 'active_workbench_theme_id', 'haywire-dark')
+                current_theme = context.active_workbench_theme_id
                 theme_select = ui.select(
                     options=theme_options,
                     value=current_theme,

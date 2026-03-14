@@ -5,7 +5,7 @@ LibraryDetailEditor — full center-panel port from LibraryManagerPage.
 Renders in the middle area and reacts to ACTIVE_LIBRARY_CHANGED events.
 Receives the active library via context.active_library (InstalledLibrary or
 MarketplaceEntry). All services are retrieved from
-context.metadata['project_state'] (= HaywireApp).
+context.app (= HaywireApp).
 
 When a component (node/widget/type/adapter/renderer) is clicked, the editor
 sets context.active_component and fires ACTIVE_COMPONENT_CHANGED so that the
@@ -20,8 +20,12 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 
 from haywire.core.node.registry import NodeRegistry
+from haywire.core.settings import GlobalSettingsRegistry
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
+from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.panel.registry import PanelRegistry
+from haywire.ui.themes import ThemeRegistry
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 from haywire_app.library_manager import InstalledLibrary, LibraryManager, MarketplaceEntry
@@ -138,35 +142,19 @@ class LibraryDetailEditor(BaseEditor):
         - pkg only            → marketplace header + Install button, no tabs
         """
         # Resolve registries from context
-        app = context.metadata.get('project_state')
-        manager = getattr(app, 'library_manager', None) if app else None
-        node_registry = getattr(app, 'node_registry', None) if app else None
-        widget_registry = (
-            app.library_service.get_widget_registry()
-            if app and hasattr(app, 'library_service')
-            else None
-        )
-        type_registry = (
-            app.library_service.get_type_registry()
-            if app and hasattr(app, 'library_service')
-            else None
-        )
-        adapter_registry = (
-            app.library_service.get_adapter_registry()
-            if app and hasattr(app, 'library_service')
-            else None
-        )
-        skin_registry = (
-            app.library_service.get_skin_registry()
-            if app and hasattr(app, 'library_service')
-            else None
-        )
-        workspace_root = getattr(app, 'workspace_root', None) if app else None
-        marketplace_path = (
-            str(Path(workspace_root) / '.haywire' / 'marketplace.toml')
-            if workspace_root
-            else None
-        )
+        app = context.app
+        svc = app.library_service
+        manager = app.library_manager
+        node_registry = svc.get_node_registry()
+        widget_registry = svc.get_widget_registry()
+        type_registry = svc.get_type_registry()
+        adapter_registry = svc.get_adapter_registry()
+        skin_registry = svc.get_skin_registry()
+        settings_registry: GlobalSettingsRegistry = svc.get_settings_registry()
+        theme_registry: ThemeRegistry = svc.get_theme_registry()
+        panel_registry: PanelRegistry = svc.get_panel_registry()
+        editor_registry: EditorTypeRegistry = svc.get_editor_registry()
+        marketplace_path = str(Path(app.workspace_root) / '.haywire' / 'marketplace.toml')
 
         # Determine display properties
         if installed_lib:
@@ -205,6 +193,15 @@ class LibraryDetailEditor(BaseEditor):
         # Tab references — created in fixed section, used in scroll section
         tabs = t_overview = t_nodes = t_widgets = None
         t_types = t_adapters = t_skins = None
+        t_settings = t_themes = t_panels = t_editors = None
+
+        # Pre-compute component counts (for tab disable state)
+        def _count(registry, prefix: str) -> int:
+            if not registry:
+                return 0
+            return sum(1 for k in registry.list_names() if k.startswith(prefix))
+
+        lib_id = installed_lib.library_id if installed_lib else None
 
         # ── header + metadata + tabs bar ───────────────────────
         self._fixed.clear()
@@ -396,14 +393,46 @@ class LibraryDetailEditor(BaseEditor):
 
                 # ── Tabs bar (only when library is installed) ──────────────────
                 if installed_lib:
+                    n_nodes    = _count(node_registry,     f'{lib_id}:node:')
+                    n_widgets  = _count(widget_registry,   f'{lib_id}:widget:')
+                    n_types    = _count(type_registry,     f'{lib_id}:type:')
+                    n_adapters = _count(adapter_registry,  f'{lib_id}:adapter:')
+                    n_skins    = _count(skin_registry,     f'{lib_id}:skin:')
+                    n_settings = _count(settings_registry, f'{lib_id}:settings:')
+                    n_themes   = _count(theme_registry,    f'{lib_id}:theme:')
+                    n_panels   = _count(panel_registry,    f'{lib_id}:panel:')
+                    n_editors  = _count(editor_registry,   f'{lib_id}:editor:')
+
                     ui.separator().classes('mt-4')
                     with ui.tabs().classes('w-full').props('dense') as tabs:
-                        t_overview  = ui.tab('Overview',  icon='description')
-                        t_nodes     = ui.tab('Nodes',     icon='account_tree')
-                        t_widgets   = ui.tab('Widgets',   icon='widgets')
-                        t_types     = ui.tab('Types',     icon='category')
-                        t_adapters  = ui.tab('Adapters',  icon='swap_horiz')
-                        t_skins = ui.tab('Skins', icon='brush')
+                        t_overview = ui.tab('Overview',  icon='description')
+                        t_nodes    = ui.tab('Nodes',     icon='account_tree')
+                        t_widgets  = ui.tab('Widgets',   icon='widgets')
+                        t_types    = ui.tab('Types',     icon='category')
+                        t_adapters = ui.tab('Adapters',  icon='swap_horiz')
+                        t_skins    = ui.tab('Skins',     icon='brush')
+                        t_settings = ui.tab('Settings',  icon='tune')
+                        t_themes   = ui.tab('Themes',    icon='palette')
+                        t_panels   = ui.tab('Panels',    icon='view_sidebar')
+                        t_editors  = ui.tab('Editors',   icon='tab')
+                        if not n_nodes:
+                            t_nodes.props('disable')
+                        if not n_widgets:
+                            t_widgets.props('disable')
+                        if not n_types:
+                            t_types.props('disable')
+                        if not n_adapters:
+                            t_adapters.props('disable')
+                        if not n_skins:
+                            t_skins.props('disable')
+                        if not n_settings:
+                            t_settings.props('disable')
+                        if not n_themes:
+                            t_themes.props('disable')
+                        if not n_panels:
+                            t_panels.props('disable')
+                        if not n_editors:
+                            t_editors.props('disable')
 
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         self._scroll.clear()
@@ -440,6 +469,22 @@ class LibraryDetailEditor(BaseEditor):
                                 self._render_generic_component_tab(
                                     installed_lib, skin_registry, 'skins', context
                                 )
+                    with ui.tab_panel(t_settings).style('height: 100%; padding: 0;'):
+                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
+                            with ui.column().classes('w-full p-6 gap-1'):
+                                self._render_settings_tab(installed_lib, settings_registry, context)
+                    with ui.tab_panel(t_themes).style('height: 100%; padding: 0;'):
+                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
+                            with ui.column().classes('w-full p-6 gap-1'):
+                                self._render_themes_tab(installed_lib, theme_registry, context)
+                    with ui.tab_panel(t_panels).style('height: 100%; padding: 0;'):
+                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
+                            with ui.column().classes('w-full p-6 gap-1'):
+                                self._render_panels_tab(installed_lib, panel_registry, context)
+                    with ui.tab_panel(t_editors).style('height: 100%; padding: 0;'):
+                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
+                            with ui.column().classes('w-full p-6 gap-1'):
+                                self._render_editors_tab(installed_lib, editor_registry, context)
 
             elif marketplace_pkg and not installed_lib:
                 # Marketplace-only: async-load OVERVIEW.md from source repo
@@ -652,6 +697,180 @@ class LibraryDetailEditor(BaseEditor):
                         )
                     ui.label(key).classes('text-xs hw-text-dim font-mono')
 
+    def _render_settings_tab(
+        self, lib: InstalledLibrary, settings_registry: GlobalSettingsRegistry | None,
+        context: 'SessionContext',
+    ):
+        """Render library settings schemas."""
+        if not settings_registry:
+            ui.label('Settings registry not available.').classes('hw-text-muted italic text-sm')
+            return
+
+        prefix = f'{lib.library_id}:settings:'
+        items = [
+            (k, settings_registry.get(k))
+            for k in settings_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [(k, c) for k, c in items if c]
+
+        if not items:
+            ui.label('No settings registered for this library.').classes(
+                'hw-text-muted italic text-sm py-4'
+            )
+            return
+
+        for key, cls in sorted(items, key=lambda x: x[0]):
+            ident = getattr(cls, 'class_identity', None)
+            label = getattr(ident, 'namespace', None) or key.split(':')[-1]
+            description = getattr(ident, 'description', None) or ''
+            with ui.row().classes(
+                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
+            ).on(
+                'click',
+                lambda k=key, entry=lib, ctx=context: self._select_component(
+                    entry, k.split(':')[-1], 'settings', ctx, registry_key=k
+                ),
+            ):
+                ui.icon('tune', size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
+                with ui.column().classes('gap-0 flex-1 min-w-0'):
+                    ui.label(label).classes('text-sm font-medium')
+                    if description:
+                        ui.label(description).classes('text-xs hw-text-dim truncate')
+                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+
+    def _render_themes_tab(
+        self, lib: InstalledLibrary, theme_registry: ThemeRegistry | None, context: 'SessionContext',
+    ):
+        """Render library themes (workbench and node)."""
+        if not theme_registry:
+            ui.label('Theme registry not available.').classes('hw-text-muted italic text-sm')
+            return
+
+        prefix = f'{lib.library_id}:theme:'
+        items = [
+            (k, theme_registry.get(k))
+            for k in theme_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [(k, c) for k, c in items if c]
+
+        if not items:
+            ui.label('No themes registered for this library.').classes(
+                'hw-text-muted italic text-sm py-4'
+            )
+            return
+
+        for key, cls in sorted(items, key=lambda x: x[0]):
+            ident = getattr(cls, 'class_identity', None)
+            label = getattr(ident, 'label', None) or key.split(':')[-1]
+            theme_type = getattr(ident, 'theme_type', '') or ''
+            type_icon = 'palette' if theme_type == 'workbench' else 'brush'
+            with ui.row().classes(
+                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
+            ).on(
+                'click',
+                lambda k=key, entry=lib, ctx=context: self._select_component(
+                    entry, k.split(':')[-1], 'themes', ctx, registry_key=k
+                ),
+            ):
+                ui.icon(type_icon, size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
+                with ui.column().classes('gap-0 flex-1 min-w-0'):
+                    with ui.row().classes('items-center gap-2'):
+                        ui.label(label).classes('text-sm font-medium')
+                        if theme_type:
+                            ui.badge(theme_type).props('outline color=grey')
+                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+
+    def _render_panels_tab(
+        self, lib: InstalledLibrary, panel_registry: PanelRegistry | None, context: 'SessionContext',
+    ):
+        """Render panels registered by this library."""
+        if not panel_registry:
+            ui.label('Panel registry not available.').classes('hw-text-muted italic text-sm')
+            return
+
+        prefix = f'{lib.library_id}:panel:'
+        items = [
+            (k, panel_registry.get(k))
+            for k in panel_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [(k, c) for k, c in items if c and hasattr(c, 'class_identity') and c.class_identity]
+
+        if not items:
+            ui.label('No panels registered for this library.').classes(
+                'hw-text-muted italic text-sm py-4'
+            )
+            return
+
+        for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or x[0]):
+            ident = cls.class_identity
+            with ui.row().classes(
+                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
+            ).on(
+                'click',
+                lambda k=key, entry=lib, ctx=context: self._select_component(
+                    entry, k.split(':')[-1], 'panels', ctx, registry_key=k
+                ),
+            ):
+                ui.icon('view_sidebar', size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
+                with ui.column().classes('gap-0 flex-1 min-w-0'):
+                    ui.label(ident.label or key.split(':')[-1]).classes('text-sm font-medium')
+                    with ui.row().classes('items-center gap-2 flex-wrap'):
+                        editor_key = getattr(ident, 'editor_key', '') or ''
+                        context_str = getattr(ident, 'context', '') or ''
+                        if editor_key:
+                            ui.label(f'editor: {editor_key}').classes('text-xs hw-text-dim font-mono')
+                        if context_str:
+                            ui.badge(context_str).props('outline color=grey')
+                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+
+    def _render_editors_tab(
+        self, lib: InstalledLibrary, editor_registry: EditorTypeRegistry | None,
+        context: 'SessionContext',
+    ):
+        """Render editors registered by this library."""
+        if not editor_registry:
+            ui.label('Editor registry not available.').classes('hw-text-muted italic text-sm')
+            return
+
+        prefix = f'{lib.library_id}:editor:'
+        items = [
+            (k, editor_registry.get(k))
+            for k in editor_registry.list_names()
+            if k.startswith(prefix)
+        ]
+        items = [(k, c) for k, c in items if c and hasattr(c, 'class_identity') and c.class_identity]
+
+        if not items:
+            ui.label('No editors registered for this library.').classes(
+                'hw-text-muted italic text-sm py-4'
+            )
+            return
+
+        for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or x[0]):
+            ident = cls.class_identity
+            default_area = getattr(ident, 'default_area', '') or ''
+            description = getattr(ident, 'description', '') or ''
+            with ui.row().classes(
+                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
+            ).on(
+                'click',
+                lambda k=key, entry=lib, ctx=context: self._select_component(
+                    entry, k.split(':')[-1], 'editors', ctx, registry_key=k
+                ),
+            ):
+                ui.icon('tab', size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
+                with ui.column().classes('gap-0 flex-1 min-w-0'):
+                    with ui.row().classes('items-center gap-2'):
+                        ui.label(ident.label or key.split(':')[-1]).classes('text-sm font-medium')
+                        if default_area:
+                            ui.badge(default_area).props('outline color=grey')
+                    if description:
+                        ui.label(description).classes('text-xs hw-text-dim truncate')
+                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+
     # ─────────────────────────────────────────────────────────────────────────
     # Component click → notify context
     # ─────────────────────────────────────────────────────────────────────────
@@ -662,12 +881,14 @@ class LibraryDetailEditor(BaseEditor):
         class_name: str,
         comp_type: str,
         context: 'SessionContext',
+        registry_key: str | None = None,
     ):
         """Set context.active_component and fire ACTIVE_COMPONENT_CHANGED."""
         context.active_component = {
             'lib': lib,
             'class_name': class_name,
             'comp_type': comp_type,
+            'registry_key': registry_key,
         }
         # Ensure the right area shows the ComponentDetailEditor.
         switch_right = context.metadata.get('switch_right_area')
@@ -677,7 +898,7 @@ class LibraryDetailEditor(BaseEditor):
             except Exception:
                 pass
 
-        session = context.metadata.get('haywire_session')
+        session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
@@ -724,7 +945,7 @@ class LibraryDetailEditor(BaseEditor):
 
     def _notify_library_changed(self, context: 'SessionContext') -> None:
         """Broadcast ACTIVE_LIBRARY_CHANGED so all editors (incl. LibraryBrowser) refresh."""
-        session = context.metadata.get('haywire_session')
+        session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(

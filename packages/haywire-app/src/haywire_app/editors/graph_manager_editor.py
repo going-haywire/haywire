@@ -102,7 +102,7 @@ class GraphManagerEditor(BaseEditor):
             return
         self._list_container.clear()
 
-        app = context.metadata.get('project_state')
+        app = context.app
         if app is None or not hasattr(app, 'graph_manager'):
             with self._list_container:
                 ui.label('Graph manager not available').classes(
@@ -148,7 +148,7 @@ class GraphManagerEditor(BaseEditor):
                 ui.label(entry.display_name).classes(name_classes)
 
                 if entry.path is not None:
-                    app = context.metadata.get('project_state')
+                    app = context.app
                     ws_root = (
                         Path(app.workspace_root)
                         if app and hasattr(app, 'workspace_root')
@@ -173,8 +173,8 @@ class GraphManagerEditor(BaseEditor):
 
     def _on_new(self, context: 'SessionContext') -> None:
         """Create a new unnamed graph and activate it."""
-        app = context.metadata.get('project_state')
-        session = context.metadata.get('haywire_session')
+        app = context.app
+        session = context.session
         if app is None or not hasattr(app, 'create_new_graph') or session is None:
             ui.notify('Graph manager not available', type='warning')
             return
@@ -198,8 +198,8 @@ class GraphManagerEditor(BaseEditor):
             self._switch_to_graph_editor(context)
             return
 
-        app = context.metadata.get('project_state')
-        session = context.metadata.get('haywire_session')
+        app = context.app
+        session = context.session
         if app is None or session is None:
             return
 

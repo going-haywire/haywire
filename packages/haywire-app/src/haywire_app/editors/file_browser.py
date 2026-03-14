@@ -60,7 +60,7 @@ class FileBrowserEditor(BaseEditor):
         self._tree_container = None
 
     def render(self, container, context: 'SessionContext') -> None:
-        app = context.metadata.get('project_state')
+        app = context.app
         if app and hasattr(app, 'workspace_root'):
             self._root_path = Path(app.workspace_root)
 
@@ -149,8 +149,8 @@ class FileBrowserEditor(BaseEditor):
 
     def _open_graph_file(self, path: Path, context: 'SessionContext') -> None:
         """Load a .haywire graph file and switch to the graph editor tab."""
-        app: 'HaywireApp' = context.metadata.get('project_state')
-        session = context.metadata.get('haywire_session')
+        app: 'HaywireApp' = context.app
+        session = context.session
 
         if app is not None and hasattr(app, 'open_graph_file') and session is not None:
             # Detach from whichever graph this session is currently viewing
@@ -185,7 +185,7 @@ class FileBrowserEditor(BaseEditor):
     def _open_in_file_viewer(self, path: Path, context: 'SessionContext') -> None:
         """Switch to the file_viewer tab and broadcast FILE_SELECTED."""
         self._switch_middle_tab('__system__:editor:file_viewer', context)
-        session = context.metadata.get('haywire_session')
+        session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(

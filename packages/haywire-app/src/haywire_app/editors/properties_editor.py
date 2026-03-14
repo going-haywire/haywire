@@ -54,7 +54,7 @@ class PropertiesEditor(BaseEditor):
     def render(self, container, context: 'SessionContext') -> None:
         """Build the properties panel UI."""
         self._container = container
-        self._panel_registry = context.metadata.get('panel_registry')
+        self._panel_registry = context.app.library_service.get_panel_registry()
         self._rebuild_panels(context)
 
     def on_context_changed(self, event: 'ContextChangedEvent', context: 'SessionContext') -> None:

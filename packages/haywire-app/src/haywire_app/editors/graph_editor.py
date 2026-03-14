@@ -75,10 +75,10 @@ class GraphEditor(BaseEditor):
 
     def render(self, container, context: 'SessionContext') -> None:
         self._context = context
-        self._project_state = context.metadata.get('project_state')
+        self._project_state = context.app
         if self._project_state is None:
             with container:
-                ui.label('GraphEditor: no project_state in context.metadata').classes(
+                ui.label('GraphEditor: no app in context').classes(
                     'text-red-400 p-4'
                 )
             logging.warning("GraphEditor.render(): project_state not found in context.metadata")
@@ -192,7 +192,7 @@ class GraphEditor(BaseEditor):
         self._context.selected_nodes = selected_node_ids
         self._context.selected_edges = selected_edge_ids
 
-        session = self._context.metadata.get('haywire_session')
+        session = self._context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
@@ -209,7 +209,7 @@ class GraphEditor(BaseEditor):
         self._context.active_edge = None
         self._context.selected_nodes = set()
         self._context.selected_edges = set()
-        session = self._context.metadata.get('haywire_session')
+        session = self._context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
@@ -255,7 +255,7 @@ class GraphEditor(BaseEditor):
         if entry is None or not entry.editor.can_undo():
             return
         entry.editor.undo()
-        session = context.metadata.get('haywire_session')
+        session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
@@ -270,7 +270,7 @@ class GraphEditor(BaseEditor):
         if entry is None or not entry.editor.can_redo():
             return
         entry.editor.redo()
-        session = context.metadata.get('haywire_session')
+        session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
@@ -325,7 +325,7 @@ class GraphEditor(BaseEditor):
 
     def _save_graph(self, context: 'SessionContext') -> None:
         """Save the active graph; opens Save-As dialog if no path exists yet."""
-        app = context.metadata.get('project_state')
+        app = context.app
         if app is None or not hasattr(app, 'graph_manager'):
             ui.notify('Graph manager not available', type='warning')
             return
@@ -359,7 +359,7 @@ class GraphEditor(BaseEditor):
 
     def _save_as_graph(self, context: 'SessionContext') -> None:
         """Always open the Save-As dialog, regardless of whether a path exists."""
-        app = context.metadata.get('project_state')
+        app = context.app
         if app is None or not hasattr(app, 'graph_manager'):
             ui.notify('Graph manager not available', type='warning')
             return
@@ -446,7 +446,7 @@ class GraphEditor(BaseEditor):
 
     def _do_save_as(self, context: 'SessionContext', dialog) -> None:
         """Execute the Save-As from within the dialog."""
-        app = context.metadata.get('project_state')
+        app = context.app
         if app is None:
             ui.notify('App not available', type='warning')
             return
@@ -483,7 +483,7 @@ class GraphEditor(BaseEditor):
         success = app.graph_manager.save_graph(entry, save_as=save_path)
         if success:
             context.active_graph_path = save_path
-            session = context.metadata.get('haywire_session')
+            session = context.session
             if session:
                 session.notify_context_changed(
                     ContextChangedEvent(
