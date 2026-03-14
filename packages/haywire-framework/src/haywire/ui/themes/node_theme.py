@@ -21,7 +21,6 @@ class NodeTheme:
 
     _fields: ClassVar[dict[str, _FieldProxy]] = {}
     _namespace: ClassVar[str] = ''
-    _theme_id: ClassVar[str] = ''
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
@@ -38,6 +37,3 @@ class NodeTheme:
         proxy = self._fields.get(token)
         return proxy._default if proxy is not None else ''
 
-    @classmethod
-    def theme_id(cls) -> str:
-        return cls._theme_id

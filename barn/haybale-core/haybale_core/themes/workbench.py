@@ -10,7 +10,7 @@ from haywire.ui.themes.workbench import WorkbenchTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(id='haywire-dark', label='Haywire Dark')
+@theme(registry_id='haywire-dark', label='Haywire Dark')
 class HaywireDarkTheme(WorkbenchTheme):
     """Default dark workbench theme."""
 
@@ -82,7 +82,7 @@ class HaywireDarkTheme(WorkbenchTheme):
     console_text = '#4ade80'
 
 
-@theme(id='haywire-light', label='Haywire Light')
+@theme(registry_id='haywire-light', label='Haywire Light')
 class HaywireLightTheme(WorkbenchTheme):
     """Default light workbench theme."""
 

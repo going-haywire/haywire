@@ -2,7 +2,7 @@
 """
 Decorators for registering WorkbenchTheme and NodeTheme classes.
 
-@theme(id=...) — marks a WorkbenchTheme or NodeTheme subclass for auto-discovery
+@theme(registry_id=...) — marks a WorkbenchTheme or NodeTheme subclass for auto-discovery
 by ThemeRegistry when a library calls add_folder().
 
 Consistent with @node, @editor, @panel, @library_settings pattern:
@@ -16,18 +16,21 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.registry.identity import BaseIdentity
 
 
 @dataclass
-class ThemeClassIdentity:
+class ThemeClassIdentity(BaseIdentity):
     """Identity metadata stored on decorated theme classes."""
-    theme_id:     str
-    theme_type:   str         # 'workbench' or 'node'
-    registry_key: str
-    label:        str = ''
+    theme_type: str = ''  # 'workbench' or 'node'
 
 
-def theme(cls=None, /, *, id: str, label: str = ''):
+def theme(
+    cls=None, /, *,
+    registry_id: str | None = None,
+    label: str = '',
+    description: str = '',
+):
     """
     Decorator that registers a WorkbenchTheme or NodeTheme subclass.
 
@@ -35,16 +38,19 @@ def theme(cls=None, /, *, id: str, label: str = ''):
     no need to specify it explicitly.
 
     Args:
-        id:    Unique theme identifier (e.g. 'haywire-dark', 'default').
-        label: Human-readable display name. Defaults to id.
+        registry_id:  Unique theme identifier (e.g. 'haywire-dark', 'default').
+                      Defaults to the class name. Used as the final segment of the
+                      registry_key, which is the canonical lookup key.
+        label:        Human-readable display name. Defaults to registry_id.
+        description:  Human-readable description. Defaults to ''.
 
     Usage:
-        @theme(id='haywire-dark', label='Haywire Dark')
+        @theme(registry_id='haywire-dark', label='Haywire Dark')
         class HaywireDarkTheme(WorkbenchTheme):
             bg_page = '#12121e'
             ...
 
-        @theme(id='default', label='Default Node Theme')
+        @theme(registry_id='default', label='Default Node Theme')
         class DefaultNodeTheme(NodeTheme):
             header_bg = '#252540'
             ...
@@ -64,18 +70,21 @@ def theme(cls=None, /, *, id: str, label: str = ''):
                 f"got {inner_cls}"
             )
 
+        _registry_id = registry_id or inner_cls.__name__
+        _label = label or _registry_id
+
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id if library_identity else None
-        registry_key = reg_key(library_id, f'theme:{theme_type}', id)
+        _registry_key = reg_key(library_id, f'theme:{theme_type}', _registry_id)
 
         inner_cls.class_identity = ThemeClassIdentity(
-            theme_id=id,
+            registry_id=_registry_id,
             theme_type=theme_type,
-            registry_key=registry_key,
-            label=label or id,
+            registry_key=_registry_key,
+            label=_label,
+            description=description,
         )
         inner_cls.class_library = library_identity
-        inner_cls._theme_id = id
         inner_cls._auto_register = True
         return inner_cls
 

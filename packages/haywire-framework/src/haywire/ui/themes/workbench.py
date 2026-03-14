@@ -40,7 +40,6 @@ class WorkbenchTheme:
 
     _fields: ClassVar[dict[str, _FieldProxy]] = {}
     _namespace: ClassVar[str] = ''
-    _theme_id: ClassVar[str] = ''
 
     # Maps field_name -> CSS variable name.
     # These names match the --hw-* vars used throughout app_shell.py and other CSS.
@@ -126,6 +125,3 @@ class WorkbenchTheme:
                 result[css_var] = proxy._default
         return result
 
-    @classmethod
-    def theme_id(cls) -> str:
-        return cls._theme_id

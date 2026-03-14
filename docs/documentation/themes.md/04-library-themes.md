@@ -29,10 +29,10 @@ my-haybale/
 ```python
 # haybale_mylib/themes/workbench.py
 from haywire.ui.themes.workbench import WorkbenchTheme
-from haywire.ui.themes.theme_decorators import workbench_theme
+from haywire.ui.themes.decorator import theme
 
 
-@workbench_theme(id='mylib-dark', label='My Library — Dark')
+@theme(registry_id='mylib-dark', label='My Library — Dark')
 class MyLibDarkTheme(WorkbenchTheme):
     bg_page    = '#0e0e18'
     bg_surface = '#18182a'
@@ -46,10 +46,10 @@ class MyLibDarkTheme(WorkbenchTheme):
 ```python
 # haybale_mylib/themes/node.py
 from haywire.ui.themes.node_theme import NodeTheme
-from haywire.ui.themes.theme_decorators import node_theme
+from haywire.ui.themes.decorator import theme
 
 
-@node_theme(id='mylib-nodes', label='My Library — Nodes')
+@theme(registry_id='mylib-nodes', label='My Library — Nodes')
 class MyLibNodeTheme(NodeTheme):
     header_bg   = '#1a0a2e'
     header_text = '#d8b4fe'
@@ -165,22 +165,22 @@ def theme_registry():
 
 
 def test_workbench_theme_registered(theme_registry):
-    assert 'mylib-dark' in theme_registry.list_workbench_ids()
+    assert MyLibDarkTheme.class_identity.registry_key in theme_registry.list_workbench_keys()
 
 
 def test_node_theme_registered(theme_registry):
-    assert 'mylib-nodes' in theme_registry.list_node_theme_ids()
+    assert MyLibNodeTheme.class_identity.registry_key in theme_registry.list_node_theme_keys()
 
 
 def test_workbench_css_vars(theme_registry):
-    theme = theme_registry.get_workbench('mylib-dark')
+    theme = theme_registry.get_workbench(MyLibDarkTheme.class_identity.registry_key)
     css = theme.to_css_vars()
     assert css.get('--hw-bg-page') == '#0e0e18'
     assert all(k.startswith('--hw-') for k in css)
 
 
 def test_node_colors(theme_registry):
-    theme = theme_registry.get_node_theme('mylib-nodes')
+    theme = theme_registry.get_node_theme(MyLibNodeTheme.class_identity.registry_key)
     assert theme.get_color('header_bg') == '#1a0a2e'
     assert theme.get_color('port_inlet') == '#9b59b6'
 ```
@@ -189,11 +189,11 @@ def test_node_colors(theme_registry):
 
 ## Checklist
 
-- [ ] `@workbench_theme(id=..., label=...)` decorator applied
-- [ ] `@node_theme(id=..., label=...)` decorator applied
+- [ ] `@theme(registry_id=..., label=...)` decorator applied to WorkbenchTheme subclass
+- [ ] `@theme(registry_id=..., label=...)` decorator applied to NodeTheme subclass
 - [ ] All tokens defined (or explicitly inherited from a base class)
 - [ ] `register_components()` calls `theme_registry.register_workbench()` / `register_node_theme()`
-- [ ] Theme ids are globally unique (prefix with library name, e.g. `mylib-dark`)
+- [ ] `registry_id` values are unique within the library (prefix with library name, e.g. `mylib-dark`)
 - [ ] Tests pass: `uv run pytest tests/`
 - [ ] Reference TOML file provided in docs
 

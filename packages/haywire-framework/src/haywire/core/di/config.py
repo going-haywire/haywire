@@ -492,12 +492,12 @@ class LibrarySystemService:
 
         # Print registered themes
         print("\n🌈 Registered Themes:")
-        all_workbench_themes = theme_registry.list_workbench_ids()
-        for theme_id in all_workbench_themes:
-            print(f"   • {theme_id} (workbench)")
-        all_node_themes = theme_registry.list_node_theme_ids()
-        for theme_id in all_node_themes:
-            print(f"   • {theme_id} (node)")
+        all_workbench_themes = theme_registry.list_workbench_keys()
+        for theme_key in all_workbench_themes:
+            print(f"   • {theme_key} (workbench)")
+        all_node_themes = theme_registry.list_node_theme_keys()
+        for theme_key in all_node_themes:
+            print(f"   • {theme_key} (node)")
 
         print(
             f"\nTotal: {len(all_libraries)} libraries, {len(all_nodes)} nodes, "

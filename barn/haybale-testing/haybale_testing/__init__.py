@@ -13,6 +13,7 @@ from haywire.core.node.registry import NodeRegistry
 from haywire.core.types.registry import TypeRegistry
 
 from haywire.ui.skin.registry import SkinRegistry
+from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 @library(
@@ -49,6 +50,12 @@ class Library(BaseLibrary):
             registry_cls=AdapterRegistry
         )
         
+        # Register themes
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'themes'),
+            registry_cls=ThemeRegistry
+        )
+
         # Register widgets
         self.add_folder_to_registry(
             folder_path=str(base_path / 'widgets'),

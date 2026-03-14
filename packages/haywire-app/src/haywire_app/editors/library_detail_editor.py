@@ -13,13 +13,14 @@ right-panel ComponentDetailEditor can react.
 """
 
 import asyncio
+import dataclasses
 import re
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings import GlobalSettingsRegistry
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
@@ -34,6 +35,27 @@ from haywire.ui.workspace.workspace_state import _K_COMPONENT_DETAIL
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TabConfig — per-component-type display descriptor
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclasses.dataclass
+class TabConfig:
+    comp_type: str       # plural label for empty/error messages
+    prefix_segment: str  # registry key segment (e.g. 'node', 'widget')
+
+
+_CFG_NODES    = TabConfig('nodes',    'node')
+_CFG_WIDGETS  = TabConfig('widgets',  'widget')
+_CFG_TYPES    = TabConfig('types',    'type')
+_CFG_ADAPTERS = TabConfig('adapters', 'adapter')
+_CFG_SKINS    = TabConfig('skins',    'skin')
+_CFG_SETTINGS = TabConfig('settings', 'settings')
+_CFG_THEMES   = TabConfig('themes',   'theme')
+_CFG_PANELS   = TabConfig('panels',   'panel')
+_CFG_EDITORS  = TabConfig('editors',  'editor')
 
 
 @editor(
@@ -432,39 +454,40 @@ class LibraryDetailEditor(BaseEditor):
                 with ui.tab_panels(tabs, value=t_overview).classes('w-full').style('height: 100%;'):
                     self._make_tab_panel(t_overview, self._render_overview, installed_lib)
                     self._make_tab_panel(
-                        t_nodes, self._render_nodes_tab, installed_lib, node_registry, context
+                        t_nodes, self._render_component_tab,
+                        installed_lib, node_registry, _CFG_NODES, context,
                     )
                     self._make_tab_panel(
-                        t_widgets, self._render_generic_component_tab,
-                        installed_lib, widget_registry, 'widgets', context,
+                        t_widgets, self._render_component_tab,
+                        installed_lib, widget_registry, _CFG_WIDGETS, context,
                     )
                     self._make_tab_panel(
-                        t_types, self._render_generic_component_tab,
-                        installed_lib, type_registry, 'types', context,
+                        t_types, self._render_component_tab,
+                        installed_lib, type_registry, _CFG_TYPES, context,
                     )
                     self._make_tab_panel(
-                        t_adapters, self._render_generic_component_tab,
-                        installed_lib, adapter_registry, 'adapters', context,
+                        t_adapters, self._render_component_tab,
+                        installed_lib, adapter_registry, _CFG_ADAPTERS, context,
                     )
                     self._make_tab_panel(
-                        t_skins, self._render_generic_component_tab,
-                        installed_lib, skin_registry, 'skins', context,
+                        t_skins, self._render_component_tab,
+                        installed_lib, skin_registry, _CFG_SKINS, context,
                     )
                     self._make_tab_panel(
-                        t_settings, self._render_settings_tab,
-                        installed_lib, settings_registry, context,
+                        t_settings, self._render_component_tab,
+                        installed_lib, settings_registry, _CFG_SETTINGS, context,
                     )
                     self._make_tab_panel(
-                        t_themes, self._render_themes_tab,
-                        installed_lib, theme_registry, context,
+                        t_themes, self._render_component_tab,
+                        installed_lib, theme_registry, _CFG_THEMES, context,
                     )
                     self._make_tab_panel(
-                        t_panels, self._render_panels_tab,
-                        installed_lib, panel_registry, context,
+                        t_panels, self._render_component_tab,
+                        installed_lib, panel_registry, _CFG_PANELS, context,
                     )
                     self._make_tab_panel(
-                        t_editors, self._render_editors_tab,
-                        installed_lib, editor_registry, context,
+                        t_editors, self._render_component_tab,
+                        installed_lib, editor_registry, _CFG_EDITORS, context,
                     )
 
             elif marketplace_pkg and not installed_lib:
@@ -487,53 +510,20 @@ class LibraryDetailEditor(BaseEditor):
     # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _registry_items(registry, prefix: str, require_class_identity: bool = True):
+    def _registry_items(registry, prefix: str):
         """Return [(key, cls)] from registry whose keys start with prefix."""
         if not registry:
             return []
-        items = [(k, registry.get(k)) for k in registry.list_names() if k.startswith(prefix)]
-        if require_class_identity:
-            return [(k, c) for k, c in items if c and hasattr(c, 'class_identity') and c.class_identity]
-        return [(k, c) for k, c in items if c]
+        return [(k, registry.get(k)) for k in registry.list_names() if k.startswith(prefix)]
 
-    def _component_row(
-        self,
-        key: str,
-        label: str,
-        on_click,
-        *,
-        icon: str | None = None,
-        description: str = '',
-        label_extra=None,
-        extra=None,
-    ):
-        """Render a standard clickable component row with optional icon, description, and extras.
-
-        Args:
-            key: Registry key — always shown as a monospace sub-label.
-            label: Primary display label.
-            on_click: Callable passed to .on('click', ...).
-            icon: Material icon name (shown left of text column).
-            description: Secondary descriptive text.
-            label_extra: Optional callable rendered alongside label (wrapped in a row).
-            extra: Optional callable rendered inside the text column after description.
-        """
+    def _component_row(self, key: str, label: str, description: str, handler):
         with ui.row().classes(
-            'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
-        ).on('click', on_click):
-            if icon:
-                ui.icon(icon, size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
-            with ui.column().classes('gap-0 flex-1 min-w-0'):
-                if label_extra:
-                    with ui.row().classes('items-center gap-2'):
-                        ui.label(label).classes('text-sm font-medium')
-                        label_extra()
-                else:
-                    ui.label(label).classes('text-sm font-medium')
+            'w-full px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
+        ).on('click', handler):
+            with ui.column().classes('gap-0 min-w-0'):
+                ui.label(label).classes('text-sm font-medium')
                 if description:
                     ui.label(description).classes('text-xs hw-text-dim truncate')
-                if extra:
-                    extra()
                 ui.label(key).classes('text-xs hw-text-dim font-mono')
 
     def _render_overview(self, lib: InstalledLibrary):
@@ -550,231 +540,33 @@ class LibraryDetailEditor(BaseEditor):
                     'text-xs hw-text-dim'
                 )
 
-    def _render_nodes_tab(
-        self, lib: InstalledLibrary, node_registry: NodeRegistry, context: 'SessionContext'
-    ):
-        """Render the node list grouped by menu category."""
-        if not node_registry:
-            ui.label('Node registry not available.').classes(
-                'hw-text-muted italic text-sm'
-            )
-            return
-
-        items = self._registry_items(node_registry, f'{lib.library_id}:node:')
-        items = [
-            (k, c) for k, c in items
-            if not getattr(c.class_identity, '_is_error', False)
-        ]
-
-        if not items:
-            ui.label('No nodes registered for this library.').classes(
-                'hw-text-muted italic text-sm py-4'
-            )
-            return
-
-        categories: dict[str, list] = {}
-        for key, cls in items:
-            menu = getattr(cls.class_identity, 'menu', '') or ''
-            cat = menu.split('/')[0].title() if menu else 'Other'
-            categories.setdefault(cat, []).append((key, cls))
-
-        for cat in sorted(categories):
-            ui.label(cat).classes(
-                'text-xs font-bold hw-text-dim mt-4 mb-1 uppercase tracking-wider'
-            )
-            for key, cls in sorted(
-                categories[cat],
-                key=lambda x: x[1].class_identity.label or '',
-            ):
-                ident = cls.class_identity
-                class_name = key.split(':')[-1]
-                with ui.row().classes(
-                    'w-full items-start gap-3 px-3 py-2 rounded'
-                    ' hover:bg-white/10 cursor-pointer'
-                ).on(
-                    'click',
-                    lambda cn=class_name, entry=lib, ctx=context: self._select_component(
-                        entry, cn, 'nodes', ctx
-                    ),
-                ):
-                    with ui.column().classes('gap-0 flex-1 min-w-0'):
-                        ui.label(ident.label or class_name).classes('text-sm font-medium')
-                        if ident.description:
-                            ui.label(ident.description).classes(
-                                'text-xs hw-text-dim truncate'
-                            )
-
-    def _render_generic_component_tab(
+    def _render_component_tab(
         self,
         lib: InstalledLibrary,
         registry,
-        comp_type: str,
+        config: 'TabConfig',
         context: 'SessionContext',
     ):
-        """Render a flat component list (types, adapters, renderers) for this library."""
-        comp_singular = comp_type.removesuffix('s')
         if not registry:
-            ui.label(f'{comp_singular.title()} registry not available.').classes(
+            ui.label(f'{config.comp_type.title()} registry not available.').classes(
                 'hw-text-muted italic text-sm'
             )
             return
 
-        items = self._registry_items(registry, f'{lib.library_id}:{comp_singular}:')
+        items = self._registry_items(registry, f'{lib.library_id}:{config.prefix_segment}:')
 
         if not items:
-            ui.label(f'No {comp_type} registered for this library.').classes(
+            ui.label(f'No {config.comp_type} registered for this library.').classes(
                 'hw-text-muted italic text-sm py-4'
             )
             return
 
-        for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or ''):
-            ident = cls.class_identity
-            class_name = key.split(':')[-1]
+        for key, cls in sorted(items, key=lambda x: x[1].class_identity.label):
             self._component_row(
                 key,
-                ident.label or class_name,
-                lambda cn=class_name, entry=lib, ct=comp_type, ctx=context: (
-                    self._select_component(entry, cn, ct, ctx)
-                ),
-                description=ident.description or '',
-            )
-
-    def _render_settings_tab(
-        self, lib: InstalledLibrary, settings_registry: GlobalSettingsRegistry | None,
-        context: 'SessionContext',
-    ):
-        """Render library settings schemas."""
-        if not settings_registry:
-            ui.label('Settings registry not available.').classes('hw-text-muted italic text-sm')
-            return
-
-        items = self._registry_items(
-            settings_registry, f'{lib.library_id}:settings:', require_class_identity=False
-        )
-
-        if not items:
-            ui.label('No settings registered for this library.').classes(
-                'hw-text-muted italic text-sm py-4'
-            )
-            return
-
-        for key, cls in sorted(items, key=lambda x: x[0]):
-            ident = getattr(cls, 'class_identity', None)
-            label = getattr(ident, 'namespace', None) or key.split(':')[-1]
-            description = getattr(ident, 'description', None) or ''
-            self._component_row(
-                key,
-                label,
-                lambda k=key, entry=lib, ctx=context: self._select_component(
-                    entry, k.split(':')[-1], 'settings', ctx, registry_key=k
-                ),
-                icon='tune',
-                description=description,
-            )
-
-    def _render_themes_tab(
-        self, lib: InstalledLibrary, theme_registry: ThemeRegistry | None, context: 'SessionContext',
-    ):
-        """Render library themes (workbench and node)."""
-        if not theme_registry:
-            ui.label('Theme registry not available.').classes('hw-text-muted italic text-sm')
-            return
-
-        items = self._registry_items(
-            theme_registry, f'{lib.library_id}:theme:', require_class_identity=False
-        )
-
-        if not items:
-            ui.label('No themes registered for this library.').classes(
-                'hw-text-muted italic text-sm py-4'
-            )
-            return
-
-        for key, cls in sorted(items, key=lambda x: x[0]):
-            ident = getattr(cls, 'class_identity', None)
-            label = getattr(ident, 'label', None) or key.split(':')[-1]
-            theme_type = getattr(ident, 'theme_type', '') or ''
-            type_icon = 'palette' if theme_type == 'workbench' else 'brush'
-            self._component_row(
-                key,
-                label,
-                lambda k=key, entry=lib, ctx=context: self._select_component(
-                    entry, k.split(':')[-1], 'themes', ctx, registry_key=k
-                ),
-                icon=type_icon,
-                label_extra=(lambda tt=theme_type: ui.badge(tt).props('outline color=grey'))
-                if theme_type else None,
-            )
-
-    def _render_panels_tab(
-        self, lib: InstalledLibrary, panel_registry: PanelRegistry | None, context: 'SessionContext',
-    ):
-        """Render panels registered by this library."""
-        if not panel_registry:
-            ui.label('Panel registry not available.').classes('hw-text-muted italic text-sm')
-            return
-
-        items = self._registry_items(panel_registry, f'{lib.library_id}:panel:')
-
-        if not items:
-            ui.label('No panels registered for this library.').classes(
-                'hw-text-muted italic text-sm py-4'
-            )
-            return
-
-        for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or x[0]):
-            ident = cls.class_identity
-            editor_key = getattr(ident, 'editor_key', '') or ''
-            context_str = getattr(ident, 'context', '') or ''
-
-            def _panel_extra(ek=editor_key, cs=context_str):
-                with ui.row().classes('items-center gap-2 flex-wrap'):
-                    if ek:
-                        ui.label(f'editor: {ek}').classes('text-xs hw-text-dim font-mono')
-                    if cs:
-                        ui.badge(cs).props('outline color=grey')
-
-            self._component_row(
-                key,
-                ident.label or key.split(':')[-1],
-                lambda k=key, entry=lib, ctx=context: self._select_component(
-                    entry, k.split(':')[-1], 'panels', ctx, registry_key=k
-                ),
-                icon='view_sidebar',
-                extra=_panel_extra,
-            )
-
-    def _render_editors_tab(
-        self, lib: InstalledLibrary, editor_registry: EditorTypeRegistry | None,
-        context: 'SessionContext',
-    ):
-        """Render editors registered by this library."""
-        if not editor_registry:
-            ui.label('Editor registry not available.').classes('hw-text-muted italic text-sm')
-            return
-
-        items = self._registry_items(editor_registry, f'{lib.library_id}:editor:')
-
-        if not items:
-            ui.label('No editors registered for this library.').classes(
-                'hw-text-muted italic text-sm py-4'
-            )
-            return
-
-        for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or x[0]):
-            ident = cls.class_identity
-            default_area = getattr(ident, 'default_area', '') or ''
-            description = getattr(ident, 'description', '') or ''
-            self._component_row(
-                key,
-                ident.label or key.split(':')[-1],
-                lambda k=key, entry=lib, ctx=context: self._select_component(
-                    entry, k.split(':')[-1], 'editors', ctx, registry_key=k
-                ),
-                icon='tab',
-                description=description,
-                label_extra=(lambda da=default_area: ui.badge(da).props('outline color=grey'))
-                if default_area else None,
+                cls.class_identity.label,
+                cls.class_identity.description or '',
+                partial(self._select_component, lib, key, config.comp_type, context),
             )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -784,15 +576,14 @@ class LibraryDetailEditor(BaseEditor):
     def _select_component(
         self,
         lib: InstalledLibrary,
-        class_name: str,
+        registry_key: str,
         comp_type: str,
         context: 'SessionContext',
-        registry_key: str | None = None,
     ):
         """Set context.active_component and fire ACTIVE_COMPONENT_CHANGED."""
         context.active_component = {
             'lib': lib,
-            'class_name': class_name,
+            'class_name': registry_key.split(':')[-1],
             'comp_type': comp_type,
             'registry_key': registry_key,
         }

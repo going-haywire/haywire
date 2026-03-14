@@ -80,40 +80,40 @@ class ThemeRegistry(BaseRegistry):
     # Typed accessors
     # =========================================================================
 
-    def get_workbench(self, theme_id: str) -> WorkbenchTheme:
-        """Instantiate and return a WorkbenchTheme by ID."""
-        for cls in self._classes.values():
-            if issubclass(cls, WorkbenchTheme) and cls.class_identity.theme_id == theme_id:
-                return cls()
-        raise KeyError(f"Unknown workbench theme: '{theme_id}'")
+    def get_workbench(self, registry_key: str) -> WorkbenchTheme:
+        """Instantiate and return a WorkbenchTheme by registry_key."""
+        cls = self._classes.get(registry_key)
+        if cls is not None and issubclass(cls, WorkbenchTheme):
+            return cls()
+        raise KeyError(f"Unknown workbench theme: '{registry_key}'")
 
-    def get_node_theme(self, theme_id: str) -> NodeTheme:
-        """Instantiate and return a NodeTheme by ID."""
-        for cls in self._classes.values():
-            if issubclass(cls, NodeTheme) and cls.class_identity.theme_id == theme_id:
-                return cls()
-        raise KeyError(f"Unknown node theme: '{theme_id}'")
+    def get_node_theme(self, registry_key: str) -> NodeTheme:
+        """Instantiate and return a NodeTheme by registry_key."""
+        cls = self._classes.get(registry_key)
+        if cls is not None and issubclass(cls, NodeTheme):
+            return cls()
+        raise KeyError(f"Unknown node theme: '{registry_key}'")
 
-    def list_workbench_ids(self) -> list[str]:
-        """Return sorted list of registered workbench theme IDs."""
+    def list_workbench_keys(self) -> list[str]:
+        """Return sorted list of registered workbench theme registry_keys."""
         return sorted(
-            cls.class_identity.theme_id
+            cls.class_identity.registry_key
             for cls in self._classes.values()
             if issubclass(cls, WorkbenchTheme)
         )
 
     def list_workbench_themes(self) -> list[tuple[str, str]]:
-        """Return sorted list of (theme_id, label) pairs for all workbench themes."""
+        """Return sorted list of (registry_key, label) pairs for all workbench themes."""
         return sorted(
-            (cls.class_identity.theme_id, cls.class_identity.label)
+            (cls.class_identity.registry_key, cls.class_identity.label)
             for cls in self._classes.values()
             if issubclass(cls, WorkbenchTheme)
         )
 
-    def list_node_theme_ids(self) -> list[str]:
-        """Return sorted list of registered node theme IDs."""
+    def list_node_theme_keys(self) -> list[str]:
+        """Return sorted list of registered node theme registry_keys."""
         return sorted(
-            cls.class_identity.theme_id
+            cls.class_identity.registry_key
             for cls in self._classes.values()
             if issubclass(cls, NodeTheme)
         )

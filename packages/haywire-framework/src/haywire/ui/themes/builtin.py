@@ -18,7 +18,7 @@ from haywire.ui.themes.decorator import theme
 # theme) are registered by haybale-core via its register_components().
 # ============================================================================
 
-@theme(id='haywire-default', label='Default Theme')
+@theme(registry_id='haywire-default', label='Default Theme')
 class DefaultTheme(WorkbenchTheme):
     """
     Minimal dark fallback used by app_shell when ThemeRegistry is not yet

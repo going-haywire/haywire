@@ -78,12 +78,12 @@ from haywire.ui.themes.theme_registry import ThemeRegistry
 # Accessing the registry (inside a panel or editor)
 theme_registry: ThemeRegistry = context.metadata.get('theme_registry')
 
-# List available themes
-workbench_ids = theme_registry.list_workbench_ids()   # ['haywire-dark', 'haywire-light', ...]
-node_ids      = theme_registry.list_node_theme_ids()  # ['default', ...]
+# List available themes (returns registry_keys)
+workbench_keys = theme_registry.list_workbench_keys()   # ['core:theme:workbench:haywire-dark', ...]
+node_keys      = theme_registry.list_node_theme_keys()  # ['core:theme:node:default', ...]
 
-# Instantiate a theme (returns fresh instance each call — stateless)
-theme = theme_registry.get_workbench('haywire-dark')
+# Instantiate a theme by registry_key (returns fresh instance each call — stateless)
+theme = theme_registry.get_workbench('core:theme:workbench:haywire-dark')
 css   = theme.to_css_vars()   # {--hw-bg-page: '#12121e', ...}
 ```
 
@@ -94,9 +94,9 @@ css   = theme.to_css_vars()   # {--hw-bg-page: '#12121e', ...}
 `AppShell` calls `apply_workbench_theme()` when the user switches themes:
 
 ```python
-async def apply_workbench_theme(self, theme_id: str, context):
-    theme = self._theme_registry.get_workbench(theme_id)
-    context.active_workbench_theme_id = theme_id
+async def apply_workbench_theme(self, registry_key: str):
+    theme = self._theme_registry.get_workbench(registry_key)
+    context.active_workbench_theme_key = registry_key
     for token, value in theme.to_css_vars().items():
         await ui.run_javascript(
             f"document.documentElement.style.setProperty('{token}', '{value}')"

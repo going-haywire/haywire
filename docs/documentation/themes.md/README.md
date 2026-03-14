@@ -15,10 +15,10 @@ rendering. Two independent theme types are supported:
 ```python
 from haywire.ui.themes.workbench import WorkbenchTheme
 from haywire.ui.themes.node_theme import NodeTheme
-from haywire.ui.themes.theme_decorators import workbench_theme, node_theme
+from haywire.ui.themes.decorator import theme
 
 
-@workbench_theme(id='my-dark', label='My Dark Theme')
+@theme(registry_id='my-dark', label='My Dark Theme')
 class MyDarkTheme(WorkbenchTheme):
     bg_page    = '#0d0d17'
     bg_surface = '#1a1a2e'
@@ -27,7 +27,7 @@ class MyDarkTheme(WorkbenchTheme):
     # ... other tokens
 
 
-@node_theme(id='my-nodes', label='My Node Theme')
+@theme(registry_id='my-nodes', label='My Node Theme')
 class MyNodeTheme(NodeTheme):
     header_bg   = '#1a1a2e'
     header_text = '#e0e0f0'
@@ -57,10 +57,10 @@ The active theme is controlled by two global settings:
 ```toml
 # ~/.haywire/settings.toml
 [workbench]
-theme = "my-dark"   # workbench theme id
+theme = "mylib:theme:workbench:my-dark"   # workbench theme registry_key
 
 [node]
-theme = "my-nodes"  # node theme id
+theme = "mylib:theme:node:my-nodes"       # node theme registry_key
 ```
 
 Users can switch themes at runtime via the Settings panel — changes apply immediately

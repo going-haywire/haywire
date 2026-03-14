@@ -9,7 +9,7 @@ from haywire.ui.themes.node_theme import NodeTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(id='default', label='Default Node Theme')
+@theme(registry_id='default', label='Default Node Theme')
 class DefaultNodeTheme(NodeTheme):
     """Default node rendering theme — works on both dark and light backgrounds."""
 

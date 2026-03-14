@@ -5,7 +5,7 @@ import pytest
 from haywire.ui.themes.node_theme import NodeTheme
 from haywire.ui.themes.workbench import _FieldProxy
 from haywire.ui.themes.decorator import theme
-from haybale_core.themes.node import DefaultNodeTheme
+from haybale_testing.themes.node import TestNodeTheme
 
 
 # ---------------------------------------------------------------------------
@@ -58,20 +58,20 @@ class TestNodeThemeFieldCollection:
 class TestGetColor:
 
     def test_get_color_known_token(self):
-        t = DefaultNodeTheme()
-        assert t.get_color('header_bg') == '#252540'
+        t = TestNodeTheme()
+        assert t.get_color('header_bg') == '#abcdef'
 
     def test_get_color_unknown_returns_empty(self):
-        t = DefaultNodeTheme()
+        t = TestNodeTheme()
         assert t.get_color('nonexistent_token') == ''
 
-    def test_default_node_theme_has_port_colors(self):
-        t = DefaultNodeTheme()
+    def test_node_theme_has_port_colors(self):
+        t = TestNodeTheme()
         assert t.get_color('port_inlet')  != ''
         assert t.get_color('port_outlet') != ''
 
-    def test_default_node_theme_has_error_colors(self):
-        t = DefaultNodeTheme()
+    def test_node_theme_has_error_colors(self):
+        t = TestNodeTheme()
         assert t.get_color('error_bg')     != ''
         assert t.get_color('error_border') != ''
 
@@ -83,25 +83,22 @@ class TestGetColor:
 class TestThemeDecorator:
 
     def test_class_identity_set(self):
-        assert hasattr(DefaultNodeTheme, 'class_identity')
-        assert DefaultNodeTheme.class_identity.theme_id   == 'default'
-        assert DefaultNodeTheme.class_identity.theme_type == 'node'
+        assert hasattr(TestNodeTheme, 'class_identity')
+        assert TestNodeTheme.class_identity.registry_id == 'test-node'
+        assert TestNodeTheme.class_identity.theme_type  == 'node'
 
     def test_registry_key_format(self):
-        expected = 'core:theme:node:default'
-        assert DefaultNodeTheme.class_identity.registry_key == expected
+        expected = 'testing:theme:node:test-node'
+        assert TestNodeTheme.class_identity.registry_key == expected
 
     def test_label(self):
-        assert DefaultNodeTheme.class_identity.label == 'Default Node Theme'
-
-    def test_theme_id_classmethod(self):
-        assert DefaultNodeTheme.theme_id() == 'default'
+        assert TestNodeTheme.class_identity.label == 'Test Node'
 
     def test_custom_decorator(self):
-        @theme(id='_test_custom_node', label='Custom')
+        @theme(registry_id='_test_custom_node', label='Custom')
         class _T(NodeTheme):
             header_bg = '#ffffff'
 
-        assert _T.class_identity.theme_id   == '_test_custom_node'
-        assert _T.class_identity.theme_type == 'node'
-        assert _T.class_identity.label      == 'Custom'
+        assert _T.class_identity.registry_id == '_test_custom_node'
+        assert _T.class_identity.theme_type  == 'node'
+        assert _T.class_identity.label       == 'Custom'

@@ -272,8 +272,8 @@ class ComponentDetailEditor(BaseEditor):
     @staticmethod
     def _codemirror_theme(context: 'SessionContext') -> str:
         """Return a CodeMirror theme name that matches the active Haywire workbench theme."""
-        theme_id = getattr(context, 'active_workbench_theme_id', 'haywire-dark')
-        return 'vscodeLight' if 'light' in theme_id else 'vscodeDark'
+        theme_key = getattr(context, 'active_workbench_theme_key', 'core:theme:workbench:haywire-dark')
+        return 'vscodeLight' if 'light' in theme_key else 'vscodeDark'
 
     def _close(self, context: 'SessionContext') -> None:
         """Clear active component and notify listeners."""

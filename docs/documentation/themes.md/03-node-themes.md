@@ -8,10 +8,10 @@ This guide covers creating and registering custom node rendering themes.
 
 ```python
 from haywire.ui.themes.node_theme import NodeTheme
-from haywire.ui.themes.theme_decorators import node_theme
+from haywire.ui.themes.decorator import theme
 
 
-@node_theme(id='blueprint', label='Blueprint')
+@theme(registry_id='blueprint', label='Blueprint')
 class BlueprintNodeTheme(NodeTheme):
     """Blueprint-style node rendering — dark blue with cyan ports."""
 
@@ -76,8 +76,8 @@ missing_tok  = theme.get_color('nonexistent')  # ''  — empty string, no error
 
 | Rule | Detail |
 |------|--------|
-| **Decorator required** | `@node_theme(id=...)` must appear before the class |
-| **Unique `id`** | Must not clash with `'default'` or other registered ids |
+| **Decorator required** | `@theme(registry_id=...)` must appear before the class |
+| **Unique `registry_id`** | Must not clash with other ids within the same library |
 | **Plain string attributes** | Values are plain class attributes, not `setting()` descriptors |
 | **Undefined tokens** | `get_color()` returns `''` for missing tokens — safe to call unconditionally |
 
@@ -91,7 +91,7 @@ Subclass an existing theme and override only the tokens you need:
 from haywire.ui.themes.builtin import DefaultNodeTheme
 
 
-@node_theme(id='high-contrast-nodes', label='High Contrast Nodes')
+@theme(registry_id='high-contrast-nodes', label='High Contrast Nodes')
 class HighContrastNodeTheme(DefaultNodeTheme):
     """Default node theme with high-contrast borders."""
     border          = '#ffffff'
@@ -145,7 +145,7 @@ def test_blueprint_node_theme():
     r = ThemeRegistry()
     r.register_node_theme(BlueprintNodeTheme)
 
-    theme = r.get_node_theme('blueprint')
+    theme = r.get_node_theme(BlueprintNodeTheme.class_identity.registry_key)
 
     assert theme.get_color('header_bg')    == '#0d2137'
     assert theme.get_color('port_inlet')   == '#00aaff'

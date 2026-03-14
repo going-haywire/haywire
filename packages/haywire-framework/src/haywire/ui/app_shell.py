@@ -80,14 +80,14 @@ class AppShell:
             settings_registry = context.app.library_service.get_settings_registry()
             wb_theme, _ = settings_registry.resolve('workbench.theme')
             if wb_theme:
-                context.active_workbench_theme_id = wb_theme
+                context.active_workbench_theme_key = wb_theme
             node_theme, _ = settings_registry.resolve('node.theme')
             if node_theme:
-                context.active_node_theme_id = node_theme
-            theme_id = context.active_workbench_theme_id
+                context.active_node_theme_key = node_theme
+            theme_key = context.active_workbench_theme_key
             theme_registry = context.app.library_service.get_theme_registry()
             if theme_registry is not None:
-                theme = theme_registry.get_workbench(theme_id)
+                theme = theme_registry.get_workbench(theme_key)
             else:
                 from haywire.ui.themes.builtin import DefaultTheme
                 theme = DefaultTheme()
@@ -106,18 +106,18 @@ class AppShell:
                 ' }'
             )
 
-    async def apply_workbench_theme(self, theme_id: str) -> None:
+    async def apply_workbench_theme(self, registry_key: str) -> None:
         """
         Dynamically switch the active workbench theme by updating CSS variables.
 
         Uses JavaScript setProperty on :root for zero-flash switching.
-        Also updates context.active_workbench_theme_id for persistence.
+        Also updates context.active_workbench_theme_key for persistence.
         """
         try:
             context = self.session.context
             theme_registry = context.app.library_service.get_theme_registry()
-            theme = theme_registry.get_workbench(theme_id)
-            context.active_workbench_theme_id = theme_id
+            theme = theme_registry.get_workbench(registry_key)
+            context.active_workbench_theme_key = registry_key
             for css_var, value in theme.to_css_vars().items():
                 safe_value = value.replace("'", "\\'")
                 await ui.run_javascript(
@@ -375,8 +375,8 @@ class AppShell:
             context = self.session.context
             theme_registry = context.app.library_service.get_theme_registry()
             if theme_registry is not None:
-                theme_options = {tid: lbl for tid, lbl in theme_registry.list_workbench_themes()}
-                current_theme = context.active_workbench_theme_id
+                theme_options = {key: lbl for key, lbl in theme_registry.list_workbench_themes()}
+                current_theme = context.active_workbench_theme_key
                 theme_select = ui.select(
                     options=theme_options,
                     value=current_theme,

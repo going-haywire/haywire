@@ -4,7 +4,7 @@
 import pytest
 from haywire.ui.themes.workbench import WorkbenchTheme, _FieldProxy
 from haywire.ui.themes.decorator import theme
-from haybale_core.themes.workbench import HaywireDarkTheme, HaywireLightTheme
+from haybale_testing.themes.workbench import TestDarkTheme, TestLightTheme
 
 
 # ---------------------------------------------------------------------------
@@ -58,23 +58,23 @@ class TestWorkbenchThemeFieldCollection:
 class TestToCssVars:
 
     def test_returns_dict_with_hw_prefix(self):
-        theme = HaywireDarkTheme()
-        css = theme.to_css_vars()
+        t = TestDarkTheme()
+        css = t.to_css_vars()
         for key in css:
             assert key.startswith('--hw-'), f"CSS var {key!r} should start with '--hw-'"
 
     def test_dark_bg_page(self):
-        theme = HaywireDarkTheme()
-        css = theme.to_css_vars()
-        assert css['--hw-bg-page'] == '#12121e'
+        t = TestDarkTheme()
+        css = t.to_css_vars()
+        assert css['--hw-bg-page'] == '#111111'
 
     def test_light_bg_page(self):
-        theme = HaywireLightTheme()
-        css = theme.to_css_vars()
-        assert css['--hw-bg-page'] == '#f8f8fc'
+        t = TestLightTheme()
+        css = t.to_css_vars()
+        assert css['--hw-bg-page'] == '#ffffff'
 
     def test_custom_theme_values(self):
-        @theme(id='_test_css_vars')
+        @theme(registry_id='_test_css_vars')
         class _T(WorkbenchTheme):
             bg_page = '#aabbcc'
             accent  = '#112233'
@@ -85,8 +85,8 @@ class TestToCssVars:
         assert css.get('--hw-accent')  == '#112233'
 
     def test_dark_theme_has_all_major_tokens(self):
-        theme = HaywireDarkTheme()
-        css = theme.to_css_vars()
+        t = TestDarkTheme()
+        css = t.to_css_vars()
         for token in ('--hw-bg-page', '--hw-accent', '--hw-text-body',
                       '--hw-node-bg', '--hw-canvas-bg', '--hw-topbar-bg',
                       '--hw-statusbar-bg', '--hw-console-bg'):
@@ -98,8 +98,8 @@ class TestToCssVars:
             bg_page = '#ffffff'
             # nothing else
 
-        theme = _Sparse()
-        css = theme.to_css_vars()
+        t = _Sparse()
+        css = t.to_css_vars()
         assert '--hw-bg-page' in css
         assert '--hw-accent' not in css   # not defined in _Sparse
 
@@ -111,12 +111,9 @@ class TestToCssVars:
 class TestThemeDecorator:
 
     def test_class_identity_set(self):
-        assert hasattr(HaywireDarkTheme, 'class_identity')
-        assert HaywireDarkTheme.class_identity.theme_id    == 'haywire-dark'
-        assert HaywireDarkTheme.class_identity.theme_type  == 'workbench'
+        assert hasattr(TestDarkTheme, 'class_identity')
+        assert TestDarkTheme.class_identity.registry_id == 'test-dark'
+        assert TestDarkTheme.class_identity.theme_type  == 'workbench'
 
     def test_registry_key_format(self):
-        assert HaywireDarkTheme.class_identity.registry_key == 'core:theme:workbench:haywire-dark'
-
-    def test_theme_id_classmethod(self):
-        assert HaywireDarkTheme.theme_id() == 'haywire-dark'
+        assert TestDarkTheme.class_identity.registry_key == 'testing:theme:workbench:test-dark'
