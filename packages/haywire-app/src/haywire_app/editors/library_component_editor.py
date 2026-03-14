@@ -36,9 +36,9 @@ class _WidgetPreviewPort:
     default_area='right',
     description='Detailed documentation for the selected node component.',
 )
-class ComponentDetailEditor(BaseEditor):
+class LibraryComponentEditor(BaseEditor):
     """
-    Displays documentation and port information for the active component.
+    Displays documentation and port information for the selected library component.
     Rebuilds on ACTIVE_COMPONENT_CHANGED context events.
     """
 

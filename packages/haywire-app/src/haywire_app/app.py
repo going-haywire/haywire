@@ -242,16 +242,16 @@ class HaywireApp:
         from .editors.graph_editor import GraphEditor
         from .editors.properties_editor import PropertiesEditor
         from .editors.console_editor import ConsoleEditor
-        from .editors.library_browser import LibraryBrowser
-        from .editors.library_detail_editor import LibraryDetailEditor
-        from .editors.component_detail_editor import ComponentDetailEditor
+        from .editors.library_browser_editor import LibraryBrowserEditor
+        from .editors.library_overview_editor import LibraryOverviewEditor
+        from .editors.library_component_editor import LibraryComponentEditor
         from .editors.file_browser import FileBrowserEditor
         from .editors.file_viewer import FileViewerEditor
         from .editors.graph_manager_editor import GraphManagerEditor
         _editor_registry = self.library_service.injector.get(EditorTypeRegistry)
         for _cls in [
             GraphEditor, PropertiesEditor, ConsoleEditor,
-            LibraryBrowser, LibraryDetailEditor, ComponentDetailEditor,
+            LibraryBrowserEditor, LibraryOverviewEditor, LibraryComponentEditor,
             FileBrowserEditor, FileViewerEditor, GraphManagerEditor,
         ]:
             _editor_registry._register_class(_cls, library_identity=None)

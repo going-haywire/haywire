@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     default_area='left',
     description='Searchable list of installed and available libraries.',
 )
-class LibraryBrowser(BaseEditor):
+class LibraryBrowserEditor(BaseEditor):
     """
     Shows a searchable list of installed (enabled/disabled) libraries.
 

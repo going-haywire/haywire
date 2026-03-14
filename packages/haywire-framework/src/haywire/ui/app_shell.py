@@ -79,13 +79,19 @@ class AppShell:
             # Initialise from settings registry on first render; falls back to field default.
             settings_registry = context.app.library_service.get_settings_registry()
             wb_theme, _ = settings_registry.resolve('workbench.theme')
-            if wb_theme:
-                context.active_workbench_theme_key = wb_theme
+            theme_registry = context.app.library_service.get_theme_registry()
+            if wb_theme and theme_registry is not None:
+                full_keys = theme_registry.list_workbench_keys()
+                if wb_theme in full_keys:
+                    context.active_workbench_theme_key = wb_theme
+                else:
+                    matched = next((k for k in full_keys if k.endswith(f':{wb_theme}')), None)
+                    if matched:
+                        context.active_workbench_theme_key = matched
             node_theme, _ = settings_registry.resolve('node.theme')
             if node_theme:
                 context.active_node_theme_key = node_theme
             theme_key = context.active_workbench_theme_key
-            theme_registry = context.app.library_service.get_theme_registry()
             if theme_registry is not None:
                 theme = theme_registry.get_workbench(theme_key)
             else:
@@ -132,7 +138,7 @@ class AppShell:
             )
         except Exception as e:
             import logging
-            logging.getLogger(__name__).error(f"Failed to apply workbench theme '{theme_id}': {e}")
+            logging.getLogger(__name__).error(f"Failed to apply workbench theme '{theme_registry}': {e}")
 
     def render(self) -> None:
         """Build the complete workspace layout into the current NiceGUI page."""
@@ -377,6 +383,8 @@ class AppShell:
             if theme_registry is not None:
                 theme_options = {key: lbl for key, lbl in theme_registry.list_workbench_themes()}
                 current_theme = context.active_workbench_theme_key
+                if current_theme not in theme_options:
+                    current_theme = next(iter(theme_options), None)
                 theme_select = ui.select(
                     options=theme_options,
                     value=current_theme,

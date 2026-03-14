@@ -1,6 +1,6 @@
-# packages/haywire-app/src/haywire_app/editors/library_detail_editor.py
+# packages/haywire-app/src/haywire_app/editors/library_overview_editor.py
 """
-LibraryDetailEditor — full center-panel port from LibraryManagerPage.
+LibraryOverviewEditor — full center-panel port from LibraryManagerPage.
 
 Renders in the middle area and reacts to ACTIVE_LIBRARY_CHANGED events.
 Receives the active library via context.active_library (InstalledLibrary or
@@ -21,16 +21,21 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.adapter.registry import AdapterRegistry
+from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings import GlobalSettingsRegistry
+from haywire.core.types.registry import TypeRegistry
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.panel.registry import PanelRegistry
+from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 from haywire_app.library_manager import InstalledLibrary, LibraryManager, MarketplaceEntry
 
+from haywire.ui.widget.registry import WidgetRegistry
 from haywire.ui.workspace.workspace_state import _K_COMPONENT_DETAIL
 
 if TYPE_CHECKING:
@@ -65,7 +70,7 @@ _CFG_EDITORS  = TabConfig('editors',  'editor')
     default_area='middle',
     description='Detailed information for the selected library.',
 )
-class LibraryDetailEditor(BaseEditor):
+class LibraryOverviewEditor(BaseEditor):
     """
     Full center-panel port of LibraryManagerPage.
 
@@ -140,12 +145,7 @@ class LibraryDetailEditor(BaseEditor):
                     ui.icon('library_books', size='48px').classes('hw-text-dim')
                     ui.label('Select a library to view details').classes('hw-text-muted text-sm')
 
-    def _make_tab_panel(self, tab, render_fn, *args):
-        """Wrap render_fn in the standard scroll-area + column scaffold."""
-        with ui.tab_panel(tab).style('height: 100%; padding: 0;'):
-            with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                with ui.column().classes('w-full p-6 gap-1'):
-                    render_fn(*args)
+
 
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
@@ -168,15 +168,16 @@ class LibraryDetailEditor(BaseEditor):
         app = context.app
         svc = app.library_service
         manager = app.library_manager
-        node_registry = svc.get_node_registry()
-        widget_registry = svc.get_widget_registry()
-        type_registry = svc.get_type_registry()
-        adapter_registry = svc.get_adapter_registry()
-        skin_registry = svc.get_skin_registry()
+        node_registry: NodeRegistry = svc.get_node_registry()
+        widget_registry: WidgetRegistry = svc.get_widget_registry()
+        type_registry: TypeRegistry = svc.get_type_registry()
+        adapter_registry: AdapterRegistry = svc.get_adapter_registry()
+        skin_registry: SkinRegistry = svc.get_skin_registry()
         settings_registry: GlobalSettingsRegistry = svc.get_settings_registry()
         theme_registry: ThemeRegistry = svc.get_theme_registry()
         panel_registry: PanelRegistry = svc.get_panel_registry()
         editor_registry: EditorTypeRegistry = svc.get_editor_registry()
+
         marketplace_path = str(Path(app.workspace_root) / '.haywire' / 'marketplace.toml')
 
         # Determine display properties
@@ -341,29 +342,29 @@ class LibraryDetailEditor(BaseEditor):
                                                     ui.menu_item(
                                                         f'Update to v{marketplace_pkg.version}',
                                                         on_click=lambda e,
-                                                        spec=marketplace_pkg.install_spec,
-                                                        n=marketplace_pkg.name,
-                                                        m=manager, ctx=context: (
-                                                            self._install_package(
-                                                                spec, n, e.sender, m, ctx
-                                                            )
-                                                        ),
+                                                            spec=marketplace_pkg.install_spec,
+                                                            n=marketplace_pkg.name,
+                                                            m=manager, ctx=context: (
+                                                                self._install_package(
+                                                                    spec, n, e.sender, m, ctx
+                                                                )
+                                                            ),
                                                     )
                                                 if marketplace_pkg:
                                                     ui.menu_item(
                                                         'Install specific version…',
                                                         on_click=lambda p=marketplace_pkg,
-                                                        m=manager, ctx=context: (
-                                                            self._open_version_picker(p, m, ctx)
-                                                        ),
-                                                    )
+                                                            m=manager, ctx=context: (
+                                                                self._open_version_picker(p, m, ctx)
+                                                            ),
+                                                        )
                                                 ui.separator()
                                                 ui.menu_item(
                                                     'Uninstall permanently',
                                                     on_click=lambda lid=installed_lib.library_id,
-                                                    ln=installed_lib.label, m=manager, ctx=context: (
-                                                        self._confirm_uninstall(lid, ln, m, ctx)
-                                                    ),
+                                                        ln=installed_lib.label, m=manager, ctx=context: (
+                                                            self._confirm_uninstall(lid, ln, m, ctx)
+                                                        ),
                                                 )
                         elif not installed_lib and marketplace_pkg and manager:
                             # Not installed — simple Install button
@@ -371,10 +372,10 @@ class LibraryDetailEditor(BaseEditor):
                                 'Install',
                                 icon='download',
                                 on_click=lambda e,
-                                spec=marketplace_pkg.install_spec,
-                                n=marketplace_pkg.name, m=manager, ctx=context: (
-                                    self._install_package(spec, n, e.sender, m, ctx)
-                                ),
+                                    spec=marketplace_pkg.install_spec,
+                                    n=marketplace_pkg.name, m=manager, ctx=context: (
+                                        self._install_package(spec, n, e.sender, m, ctx)
+                                    ),
                             ).props('color=primary size=sm')
 
                 # ── Metadata ───────────────────────────────────────────────────
@@ -505,9 +506,17 @@ class LibraryDetailEditor(BaseEditor):
                     )
                 )
 
+
     # ─────────────────────────────────────────────────────────────────────────
     # Tab content renderers
     # ─────────────────────────────────────────────────────────────────────────
+
+    def _make_tab_panel(self, tab, render_fn, *args):
+        """Wrap render_fn in the standard scroll-area + column scaffold."""
+        with ui.tab_panel(tab).style('height: 100%; padding: 0;'):
+            with ui.scroll_area().classes('w-full').style('height: 100%;'):
+                with ui.column().classes('w-full p-6 gap-1'):
+                    render_fn(*args)
 
     @staticmethod
     def _registry_items(registry, prefix: str):
