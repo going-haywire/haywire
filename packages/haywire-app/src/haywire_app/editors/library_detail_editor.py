@@ -118,6 +118,13 @@ class LibraryDetailEditor(BaseEditor):
                     ui.icon('library_books', size='48px').classes('hw-text-dim')
                     ui.label('Select a library to view details').classes('hw-text-muted text-sm')
 
+    def _make_tab_panel(self, tab, render_fn, *args):
+        """Wrap render_fn in the standard scroll-area + column scaffold."""
+        with ui.tab_panel(tab).style('height: 100%; padding: 0;'):
+            with ui.scroll_area().classes('w-full').style('height: 100%;'):
+                with ui.column().classes('w-full p-6 gap-1'):
+                    render_fn(*args)
+
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
     # ─────────────────────────────────────────────────────────────────────────
@@ -409,76 +416,56 @@ class LibraryDetailEditor(BaseEditor):
                         t_themes   = ui.tab('Themes',    icon='palette')
                         t_panels   = ui.tab('Panels',    icon='view_sidebar')
                         t_editors  = ui.tab('Editors',   icon='tab')
-                        if not n_nodes:
-                            t_nodes.props('disable')
-                        if not n_widgets:
-                            t_widgets.props('disable')
-                        if not n_types:
-                            t_types.props('disable')
-                        if not n_adapters:
-                            t_adapters.props('disable')
-                        if not n_skins:
-                            t_skins.props('disable')
-                        if not n_settings:
-                            t_settings.props('disable')
-                        if not n_themes:
-                            t_themes.props('disable')
-                        if not n_panels:
-                            t_panels.props('disable')
-                        if not n_editors:
-                            t_editors.props('disable')
+                        for _tab, _n in [
+                            (t_nodes, n_nodes), (t_widgets, n_widgets), (t_types, n_types),
+                            (t_adapters, n_adapters), (t_skins, n_skins),
+                            (t_settings, n_settings), (t_themes, n_themes),
+                            (t_panels, n_panels), (t_editors, n_editors),
+                        ]:
+                            if not _n:
+                                _tab.props('disable')
 
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         self._scroll.clear()
         with self._scroll:
             if installed_lib and tabs is not None:
                 with ui.tab_panels(tabs, value=t_overview).classes('w-full').style('height: 100%;'):
-                    with ui.tab_panel(t_overview).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_overview(installed_lib)
-                    with ui.tab_panel(t_nodes).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_nodes_tab(installed_lib, node_registry, context)
-                    with ui.tab_panel(t_widgets).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_widgets_tab(installed_lib, widget_registry, context)
-                    with ui.tab_panel(t_types).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_generic_component_tab(
-                                    installed_lib, type_registry, 'types', context
-                                )
-                    with ui.tab_panel(t_adapters).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_generic_component_tab(
-                                    installed_lib, adapter_registry, 'adapters', context
-                                )
-                    with ui.tab_panel(t_skins).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_generic_component_tab(
-                                    installed_lib, skin_registry, 'skins', context
-                                )
-                    with ui.tab_panel(t_settings).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_settings_tab(installed_lib, settings_registry, context)
-                    with ui.tab_panel(t_themes).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_themes_tab(installed_lib, theme_registry, context)
-                    with ui.tab_panel(t_panels).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_panels_tab(installed_lib, panel_registry, context)
-                    with ui.tab_panel(t_editors).style('height: 100%; padding: 0;'):
-                        with ui.scroll_area().classes('w-full').style('height: 100%;'):
-                            with ui.column().classes('w-full p-6 gap-1'):
-                                self._render_editors_tab(installed_lib, editor_registry, context)
+                    self._make_tab_panel(t_overview, self._render_overview, installed_lib)
+                    self._make_tab_panel(
+                        t_nodes, self._render_nodes_tab, installed_lib, node_registry, context
+                    )
+                    self._make_tab_panel(
+                        t_widgets, self._render_generic_component_tab,
+                        installed_lib, widget_registry, 'widgets', context,
+                    )
+                    self._make_tab_panel(
+                        t_types, self._render_generic_component_tab,
+                        installed_lib, type_registry, 'types', context,
+                    )
+                    self._make_tab_panel(
+                        t_adapters, self._render_generic_component_tab,
+                        installed_lib, adapter_registry, 'adapters', context,
+                    )
+                    self._make_tab_panel(
+                        t_skins, self._render_generic_component_tab,
+                        installed_lib, skin_registry, 'skins', context,
+                    )
+                    self._make_tab_panel(
+                        t_settings, self._render_settings_tab,
+                        installed_lib, settings_registry, context,
+                    )
+                    self._make_tab_panel(
+                        t_themes, self._render_themes_tab,
+                        installed_lib, theme_registry, context,
+                    )
+                    self._make_tab_panel(
+                        t_panels, self._render_panels_tab,
+                        installed_lib, panel_registry, context,
+                    )
+                    self._make_tab_panel(
+                        t_editors, self._render_editors_tab,
+                        installed_lib, editor_registry, context,
+                    )
 
             elif marketplace_pkg and not installed_lib:
                 # Marketplace-only: async-load OVERVIEW.md from source repo
@@ -498,6 +485,56 @@ class LibraryDetailEditor(BaseEditor):
     # ─────────────────────────────────────────────────────────────────────────
     # Tab content renderers
     # ─────────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _registry_items(registry, prefix: str, require_class_identity: bool = True):
+        """Return [(key, cls)] from registry whose keys start with prefix."""
+        if not registry:
+            return []
+        items = [(k, registry.get(k)) for k in registry.list_names() if k.startswith(prefix)]
+        if require_class_identity:
+            return [(k, c) for k, c in items if c and hasattr(c, 'class_identity') and c.class_identity]
+        return [(k, c) for k, c in items if c]
+
+    def _component_row(
+        self,
+        key: str,
+        label: str,
+        on_click,
+        *,
+        icon: str | None = None,
+        description: str = '',
+        label_extra=None,
+        extra=None,
+    ):
+        """Render a standard clickable component row with optional icon, description, and extras.
+
+        Args:
+            key: Registry key — always shown as a monospace sub-label.
+            label: Primary display label.
+            on_click: Callable passed to .on('click', ...).
+            icon: Material icon name (shown left of text column).
+            description: Secondary descriptive text.
+            label_extra: Optional callable rendered alongside label (wrapped in a row).
+            extra: Optional callable rendered inside the text column after description.
+        """
+        with ui.row().classes(
+            'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
+        ).on('click', on_click):
+            if icon:
+                ui.icon(icon, size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
+            with ui.column().classes('gap-0 flex-1 min-w-0'):
+                if label_extra:
+                    with ui.row().classes('items-center gap-2'):
+                        ui.label(label).classes('text-sm font-medium')
+                        label_extra()
+                else:
+                    ui.label(label).classes('text-sm font-medium')
+                if description:
+                    ui.label(description).classes('text-xs hw-text-dim truncate')
+                if extra:
+                    extra()
+                ui.label(key).classes('text-xs hw-text-dim font-mono')
 
     def _render_overview(self, lib: InstalledLibrary):
         """Render OVERVIEW.md from lib.source_path or show a fallback."""
@@ -523,19 +560,10 @@ class LibraryDetailEditor(BaseEditor):
             )
             return
 
-        prefix = f'{lib.library_id}:node:'
+        items = self._registry_items(node_registry, f'{lib.library_id}:node:')
         items = [
-            (k, node_registry.get(k))
-            for k in node_registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [
-            (k, c)
-            for k, c in items
-            if c
-            and hasattr(c, 'class_identity')
-            and c.class_identity
-            and not getattr(c.class_identity, '_is_error', False)
+            (k, c) for k, c in items
+            if not getattr(c.class_identity, '_is_error', False)
         ]
 
         if not items:
@@ -576,53 +604,6 @@ class LibraryDetailEditor(BaseEditor):
                                 'text-xs hw-text-dim truncate'
                             )
 
-    def _render_widgets_tab(
-        self, lib: InstalledLibrary, widget_registry, context: 'SessionContext'
-    ):
-        """Render the widget list with a live preview of each widget."""
-        if not widget_registry:
-            ui.label('Widget registry not available.').classes(
-                'hw-text-muted italic text-sm'
-            )
-            return
-
-        prefix = f'{lib.library_id}:widget:'
-        items = [
-            (k, widget_registry.get(k))
-            for k in widget_registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [
-            (k, c)
-            for k, c in items
-            if c and hasattr(c, 'class_identity') and c.class_identity
-        ]
-
-        if not items:
-            ui.label('No widgets registered for this library.').classes(
-                'hw-text-muted italic text-sm py-4'
-            )
-            return
-
-        for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or ''):
-            ident = cls.class_identity
-            class_name = key.split(':')[-1]
-            with ui.row().classes(
-                'w-full items-center px-3 py-2 rounded'
-                ' hover:bg-white/10 cursor-pointer'
-            ).on(
-                'click',
-                lambda cn=class_name, entry=lib, ctx=context: self._select_component(
-                    entry, cn, 'widgets', ctx
-                ),
-            ):
-                with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    ui.label(ident.label or class_name).classes('text-sm font-medium')
-                    if ident.description:
-                        ui.label(ident.description).classes(
-                            'text-xs hw-text-dim truncate'
-                        )
-
     def _render_generic_component_tab(
         self,
         lib: InstalledLibrary,
@@ -638,17 +619,7 @@ class LibraryDetailEditor(BaseEditor):
             )
             return
 
-        prefix = f'{lib.library_id}:{comp_singular}:'
-        items = [
-            (k, registry.get(k))
-            for k in registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [
-            (k, c)
-            for k, c in items
-            if c and hasattr(c, 'class_identity') and c.class_identity
-        ]
+        items = self._registry_items(registry, f'{lib.library_id}:{comp_singular}:')
 
         if not items:
             ui.label(f'No {comp_type} registered for this library.').classes(
@@ -659,21 +630,14 @@ class LibraryDetailEditor(BaseEditor):
         for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or ''):
             ident = cls.class_identity
             class_name = key.split(':')[-1]
-            with ui.row().classes(
-                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
-            ).on(
-                'click',
+            self._component_row(
+                key,
+                ident.label or class_name,
                 lambda cn=class_name, entry=lib, ct=comp_type, ctx=context: (
                     self._select_component(entry, cn, ct, ctx)
                 ),
-            ):
-                with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    ui.label(ident.label or class_name).classes('text-sm font-medium')
-                    if ident.description:
-                        ui.label(ident.description).classes(
-                            'text-xs hw-text-dim truncate'
-                        )
-                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+                description=ident.description or '',
+            )
 
     def _render_settings_tab(
         self, lib: InstalledLibrary, settings_registry: GlobalSettingsRegistry | None,
@@ -684,13 +648,9 @@ class LibraryDetailEditor(BaseEditor):
             ui.label('Settings registry not available.').classes('hw-text-muted italic text-sm')
             return
 
-        prefix = f'{lib.library_id}:settings:'
-        items = [
-            (k, settings_registry.get(k))
-            for k in settings_registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [(k, c) for k, c in items if c]
+        items = self._registry_items(
+            settings_registry, f'{lib.library_id}:settings:', require_class_identity=False
+        )
 
         if not items:
             ui.label('No settings registered for this library.').classes(
@@ -702,20 +662,15 @@ class LibraryDetailEditor(BaseEditor):
             ident = getattr(cls, 'class_identity', None)
             label = getattr(ident, 'namespace', None) or key.split(':')[-1]
             description = getattr(ident, 'description', None) or ''
-            with ui.row().classes(
-                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
-            ).on(
-                'click',
+            self._component_row(
+                key,
+                label,
                 lambda k=key, entry=lib, ctx=context: self._select_component(
                     entry, k.split(':')[-1], 'settings', ctx, registry_key=k
                 ),
-            ):
-                ui.icon('tune', size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
-                with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    ui.label(label).classes('text-sm font-medium')
-                    if description:
-                        ui.label(description).classes('text-xs hw-text-dim truncate')
-                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+                icon='tune',
+                description=description,
+            )
 
     def _render_themes_tab(
         self, lib: InstalledLibrary, theme_registry: ThemeRegistry | None, context: 'SessionContext',
@@ -725,13 +680,9 @@ class LibraryDetailEditor(BaseEditor):
             ui.label('Theme registry not available.').classes('hw-text-muted italic text-sm')
             return
 
-        prefix = f'{lib.library_id}:theme:'
-        items = [
-            (k, theme_registry.get(k))
-            for k in theme_registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [(k, c) for k, c in items if c]
+        items = self._registry_items(
+            theme_registry, f'{lib.library_id}:theme:', require_class_identity=False
+        )
 
         if not items:
             ui.label('No themes registered for this library.').classes(
@@ -744,21 +695,16 @@ class LibraryDetailEditor(BaseEditor):
             label = getattr(ident, 'label', None) or key.split(':')[-1]
             theme_type = getattr(ident, 'theme_type', '') or ''
             type_icon = 'palette' if theme_type == 'workbench' else 'brush'
-            with ui.row().classes(
-                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
-            ).on(
-                'click',
+            self._component_row(
+                key,
+                label,
                 lambda k=key, entry=lib, ctx=context: self._select_component(
                     entry, k.split(':')[-1], 'themes', ctx, registry_key=k
                 ),
-            ):
-                ui.icon(type_icon, size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
-                with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    with ui.row().classes('items-center gap-2'):
-                        ui.label(label).classes('text-sm font-medium')
-                        if theme_type:
-                            ui.badge(theme_type).props('outline color=grey')
-                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+                icon=type_icon,
+                label_extra=(lambda tt=theme_type: ui.badge(tt).props('outline color=grey'))
+                if theme_type else None,
+            )
 
     def _render_panels_tab(
         self, lib: InstalledLibrary, panel_registry: PanelRegistry | None, context: 'SessionContext',
@@ -768,13 +714,7 @@ class LibraryDetailEditor(BaseEditor):
             ui.label('Panel registry not available.').classes('hw-text-muted italic text-sm')
             return
 
-        prefix = f'{lib.library_id}:panel:'
-        items = [
-            (k, panel_registry.get(k))
-            for k in panel_registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [(k, c) for k, c in items if c and hasattr(c, 'class_identity') and c.class_identity]
+        items = self._registry_items(panel_registry, f'{lib.library_id}:panel:')
 
         if not items:
             ui.label('No panels registered for this library.').classes(
@@ -784,25 +724,25 @@ class LibraryDetailEditor(BaseEditor):
 
         for key, cls in sorted(items, key=lambda x: x[1].class_identity.label or x[0]):
             ident = cls.class_identity
-            with ui.row().classes(
-                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
-            ).on(
-                'click',
+            editor_key = getattr(ident, 'editor_key', '') or ''
+            context_str = getattr(ident, 'context', '') or ''
+
+            def _panel_extra(ek=editor_key, cs=context_str):
+                with ui.row().classes('items-center gap-2 flex-wrap'):
+                    if ek:
+                        ui.label(f'editor: {ek}').classes('text-xs hw-text-dim font-mono')
+                    if cs:
+                        ui.badge(cs).props('outline color=grey')
+
+            self._component_row(
+                key,
+                ident.label or key.split(':')[-1],
                 lambda k=key, entry=lib, ctx=context: self._select_component(
                     entry, k.split(':')[-1], 'panels', ctx, registry_key=k
                 ),
-            ):
-                ui.icon('view_sidebar', size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
-                with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    ui.label(ident.label or key.split(':')[-1]).classes('text-sm font-medium')
-                    with ui.row().classes('items-center gap-2 flex-wrap'):
-                        editor_key = getattr(ident, 'editor_key', '') or ''
-                        context_str = getattr(ident, 'context', '') or ''
-                        if editor_key:
-                            ui.label(f'editor: {editor_key}').classes('text-xs hw-text-dim font-mono')
-                        if context_str:
-                            ui.badge(context_str).props('outline color=grey')
-                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+                icon='view_sidebar',
+                extra=_panel_extra,
+            )
 
     def _render_editors_tab(
         self, lib: InstalledLibrary, editor_registry: EditorTypeRegistry | None,
@@ -813,13 +753,7 @@ class LibraryDetailEditor(BaseEditor):
             ui.label('Editor registry not available.').classes('hw-text-muted italic text-sm')
             return
 
-        prefix = f'{lib.library_id}:editor:'
-        items = [
-            (k, editor_registry.get(k))
-            for k in editor_registry.list_names()
-            if k.startswith(prefix)
-        ]
-        items = [(k, c) for k, c in items if c and hasattr(c, 'class_identity') and c.class_identity]
+        items = self._registry_items(editor_registry, f'{lib.library_id}:editor:')
 
         if not items:
             ui.label('No editors registered for this library.').classes(
@@ -831,23 +765,17 @@ class LibraryDetailEditor(BaseEditor):
             ident = cls.class_identity
             default_area = getattr(ident, 'default_area', '') or ''
             description = getattr(ident, 'description', '') or ''
-            with ui.row().classes(
-                'w-full items-start gap-3 px-3 py-2 rounded hover:bg-white/10 cursor-pointer'
-            ).on(
-                'click',
+            self._component_row(
+                key,
+                ident.label or key.split(':')[-1],
                 lambda k=key, entry=lib, ctx=context: self._select_component(
                     entry, k.split(':')[-1], 'editors', ctx, registry_key=k
                 ),
-            ):
-                ui.icon('tab', size='18px').classes('hw-text-dim mt-0.5 flex-shrink-0')
-                with ui.column().classes('gap-0 flex-1 min-w-0'):
-                    with ui.row().classes('items-center gap-2'):
-                        ui.label(ident.label or key.split(':')[-1]).classes('text-sm font-medium')
-                        if default_area:
-                            ui.badge(default_area).props('outline color=grey')
-                    if description:
-                        ui.label(description).classes('text-xs hw-text-dim truncate')
-                    ui.label(key).classes('text-xs hw-text-dim font-mono')
+                icon='tab',
+                description=description,
+                label_extra=(lambda da=default_area: ui.badge(da).props('outline color=grey'))
+                if default_area else None,
+            )
 
     # ─────────────────────────────────────────────────────────────────────────
     # Component click → notify context
