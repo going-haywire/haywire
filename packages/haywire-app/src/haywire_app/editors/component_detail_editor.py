@@ -23,6 +23,12 @@ if TYPE_CHECKING:
     from haywire.ui.context_events import ContextChangedEvent
 
 
+class _WidgetPreviewPort:
+    """Minimal mock port used to render a live widget preview without a real binding."""
+    id = 'preview'
+    widget_config = {}
+
+
 @editor(
     registry_id='component_detail',
     label='Component Detail',
@@ -169,9 +175,14 @@ class ComponentDetailEditor(BaseEditor):
                     self._section('Import')
                     self._code_row(f'from {module_path} import {actual_name}')
 
-                # ── Phases 3 & 4: Docs / Source tabs ─────────────────────
+                # ── Tabs: View (widgets only) / Docs / Source ─────────────
                 ui.separator().classes('mt-3')
                 with ui.tabs().classes('w-full').props('dense') as tabs:
+                    t_view = (
+                        ui.tab('View', icon='visibility')
+                        if comp_type == 'widgets'
+                        else None
+                    )
                     t_docs = ui.tab('Docs', icon='description')
                     t_source = (
                         ui.tab('Source', icon='code')
@@ -179,10 +190,17 @@ class ComponentDetailEditor(BaseEditor):
                         else None
                     )
 
+                default_tab = t_view if t_view else t_docs
                 # flex:1 fills remaining vertical space; panels handle their own scroll
-                with ui.tab_panels(tabs, value=t_docs).classes('w-full').style(
+                with ui.tab_panels(tabs, value=default_tab).classes('w-full').style(
                     'flex: 1; min-height: 0; overflow: hidden;'
                 ):
+                    if t_view:
+                        with ui.tab_panel(t_view).style(
+                            'height: 100%; overflow-y: auto; padding: 1rem;'
+                        ):
+                            self._render_widget_view(cls)
+
                     with ui.tab_panel(t_docs).style('height: 100%; overflow-y: auto; padding: 0;'):
                         if doc_file and doc_file.exists():
                             doc_text = doc_file.read_text()
@@ -227,6 +245,29 @@ class ComponentDetailEditor(BaseEditor):
                                 ui.button('Save', icon='save', on_click=_save).props(
                                     'color=primary size=sm'
                                 ).style('flex-shrink: 0; margin-top: 8px;')
+
+    @staticmethod
+    def _render_widget_view(cls) -> None:
+        """Render a live preview of the widget class in the View tab."""
+        if cls is None:
+            ui.label('Widget class not found.').classes('hw-text-muted text-sm italic')
+            return
+        if not hasattr(cls, 'create_element'):
+            with ui.column().classes('items-center gap-2 py-6'):
+                ui.icon('videocam_off').classes('text-3xl hw-text-dim')
+                ui.label('Live preview only').classes('hw-text-muted text-sm italic')
+                ui.label('This widget renders only when bound to a live port.').classes(
+                    'hw-text-dim text-xs'
+                )
+            return
+        try:
+            mock_port = _WidgetPreviewPort()
+            instance = cls(mock_port)
+            instance.create_element()
+        except Exception as exc:
+            with ui.column().classes('gap-1'):
+                ui.label('Preview failed').classes('text-sm hw-text-muted')
+                ui.label(str(exc)).classes('text-xs font-mono hw-text-dim')
 
     @staticmethod
     def _codemirror_theme(context: 'SessionContext') -> str:

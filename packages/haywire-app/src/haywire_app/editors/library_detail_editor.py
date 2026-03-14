@@ -36,12 +36,6 @@ if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 
-class _WidgetPreviewPort:
-    """Minimal mock port used to render a live widget preview without binding."""
-    id = 'preview'
-    widget_config = {}
-
-
 @editor(
     registry_id='library_detail',
     label='Library Detail',
@@ -614,7 +608,7 @@ class LibraryDetailEditor(BaseEditor):
             ident = cls.class_identity
             class_name = key.split(':')[-1]
             with ui.row().classes(
-                'w-full items-center gap-4 px-3 py-2 rounded'
+                'w-full items-center px-3 py-2 rounded'
                 ' hover:bg-white/10 cursor-pointer'
             ).on(
                 'click',
@@ -628,22 +622,6 @@ class LibraryDetailEditor(BaseEditor):
                         ui.label(ident.description).classes(
                             'text-xs hw-text-dim truncate'
                         )
-                # Live widget preview — uniform fixed-width box
-                with ui.element('div').classes(
-                    'flex-shrink-0 border rounded-sm bg-white'
-                ).style('width: 11rem; min-height: 2.5rem; padding: 4px; overflow: hidden;'):
-                    if not hasattr(cls, 'create_element'):
-                        with ui.column().classes('w-full items-center py-1 gap-0.5'):
-                            ui.icon('videocam', size='18px').classes('text-gray-400')
-                            ui.label('live only').classes('text-xs text-gray-400 italic')
-                    else:
-                        try:
-                            mock_port = _WidgetPreviewPort()
-                            instance = cls(mock_port)
-                            instance.create_element()
-                        except Exception:
-                            with ui.column().classes('w-full items-center py-1'):
-                                ui.label('—').classes('text-xs text-gray-400 italic')
 
     def _render_generic_component_tab(
         self,
