@@ -478,6 +478,26 @@ class LibraryManager:
         except importlib.metadata.PackageNotFoundError:
             return None
 
+    @staticmethod
+    def is_required_by_another_package(dist_name: str) -> str | None:
+        """Return the name of the first installed distribution that requires dist_name, or None.
+
+        Walks all installed distributions and checks their Requires-Dist metadata.
+        This catches both direct and transitive requirements — e.g. haybale-core
+        is protected because haywire-app lists it, even if the user's own
+        pyproject.toml only mentions haywire-app.
+        """
+        target = re.sub(r'[-_.]+', '_', dist_name).lower()
+        for dist in importlib.metadata.distributions():
+            owner_name = dist.metadata.get('Name', '')
+            if re.sub(r'[-_.]+', '_', owner_name).lower() == target:
+                continue  # skip self
+            for req in (dist.metadata.get_all('Requires-Dist') or []):
+                req_name = re.split(r'[>=<!;\s\[]', req)[0]
+                if re.sub(r'[-_.]+', '_', req_name).lower() == target:
+                    return owner_name
+        return None
+
     async def fetch_versions(self, pkg: 'MarketplaceEntry') -> list[str]:
         """Fetch available versions for a marketplace package.
 

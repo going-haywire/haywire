@@ -24,7 +24,7 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
-from haywire_app.library_manager import InstalledLibrary, MarketplaceEntry
+from haywire_app.library_manager import InstalledLibrary, LibraryManager, MarketplaceEntry
 
 from haywire.ui.workspace.workspace_state import _K_COMPONENT_DETAIL
 
@@ -292,46 +292,59 @@ class LibraryDetailEditor(BaseEditor):
                                     ),
                                 ).props('size=sm color=blue flat')
                             elif installed_lib.install_type in ('REGULAR', 'EDITABLE'):
-                                with ui.row().classes('gap-0 items-center'):
-                                    ui.button(
-                                        'Uninstall',
-                                        on_click=lambda lid=installed_lib.library_id,
-                                        ln=installed_lib.label, m=manager, ctx=context: (
-                                            self._confirm_uninstall(lid, ln, m, ctx)
-                                        ),
-                                    ).props('size=sm color=negative flat')
-                                    with ui.button(icon='arrow_drop_down').props(
-                                        'size=sm color=negative flat'
+                                _required_by = LibraryManager.is_required_by_another_package(
+                                    installed_lib.distribution_name or installed_lib.library_id
+                                )
+                                if _required_by:
+                                    with ui.element('span').props(
+                                        f'title="Required by {_required_by} — '
+                                        f'remove {_required_by} first to uninstall this one."'
                                     ):
-                                        with ui.menu():
-                                            if update_available and marketplace_pkg:
+                                        ui.button(
+                                            'Uninstall',
+                                            icon='lock',
+                                        ).props('size=sm color=grey flat').props('disable')
+                                else:
+                                    with ui.row().classes('gap-0 items-center'):
+                                        ui.button(
+                                            'Uninstall',
+                                            on_click=lambda lid=installed_lib.library_id,
+                                            ln=installed_lib.label, m=manager, ctx=context: (
+                                                self._confirm_uninstall(lid, ln, m, ctx)
+                                            ),
+                                        ).props('size=sm color=negative flat')
+                                        with ui.button(icon='arrow_drop_down').props(
+                                            'size=sm color=negative flat'
+                                        ):
+                                            with ui.menu():
+                                                if update_available and marketplace_pkg:
+                                                    ui.menu_item(
+                                                        f'Update to v{marketplace_pkg.version}',
+                                                        on_click=lambda e,
+                                                        spec=marketplace_pkg.install_spec,
+                                                        n=marketplace_pkg.name,
+                                                        m=manager, ctx=context: (
+                                                            self._install_package(
+                                                                spec, n, e.sender, m, ctx
+                                                            )
+                                                        ),
+                                                    )
+                                                if marketplace_pkg:
+                                                    ui.menu_item(
+                                                        'Install specific version…',
+                                                        on_click=lambda p=marketplace_pkg,
+                                                        m=manager, ctx=context: (
+                                                            self._open_version_picker(p, m, ctx)
+                                                        ),
+                                                    )
+                                                ui.separator()
                                                 ui.menu_item(
-                                                    f'Update to v{marketplace_pkg.version}',
-                                                    on_click=lambda e,
-                                                    spec=marketplace_pkg.install_spec,
-                                                    n=marketplace_pkg.name,
-                                                    m=manager, ctx=context: (
-                                                        self._install_package(
-                                                            spec, n, e.sender, m, ctx
-                                                        )
+                                                    'Uninstall permanently',
+                                                    on_click=lambda lid=installed_lib.library_id,
+                                                    ln=installed_lib.label, m=manager, ctx=context: (
+                                                        self._confirm_uninstall(lid, ln, m, ctx)
                                                     ),
                                                 )
-                                            if marketplace_pkg:
-                                                ui.menu_item(
-                                                    'Install specific version…',
-                                                    on_click=lambda p=marketplace_pkg,
-                                                    m=manager, ctx=context: (
-                                                        self._open_version_picker(p, m, ctx)
-                                                    ),
-                                                )
-                                            ui.separator()
-                                            ui.menu_item(
-                                                'Uninstall permanently',
-                                                on_click=lambda lid=installed_lib.library_id,
-                                                ln=installed_lib.label, m=manager, ctx=context: (
-                                                    self._confirm_uninstall(lid, ln, m, ctx)
-                                                ),
-                                            )
                         elif not installed_lib and marketplace_pkg and manager:
                             # Not installed — simple Install button
                             ui.button(
