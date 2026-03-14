@@ -126,6 +126,13 @@ class AppShell:
                 await ui.run_javascript(
                     f"document.documentElement.style.setProperty('{css_var}', '{safe_value}')"
                 )
+            # Notify editors that care about theme changes (e.g. CodeMirror source viewer).
+            self.session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.WORKBENCH_THEME_CHANGED,
+                    source_editor='app_shell',
+                )
+            )
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Failed to apply workbench theme '{theme_id}': {e}")
@@ -150,8 +157,11 @@ class AppShell:
             ' .hw-tabs .q-tab--active { color: var(--hw-text-body) !important; }'
             ' .hw-tabs .q-tab__indicator { background: var(--hw-accent) !important; }'
             ' .hw-tabs .q-tab__label { font-size: 12px; }'
-            # All editor area containers and their child text
-            ' .hw-panel, .hw-panel * { color: var(--hw-text-body); }'
+            # All editor area containers and their child text.
+            # .hw-cm-isolate wrappers (CodeMirror editors) are excluded so that
+            # the CodeMirror theme controls all token colours uncontested.
+            ' .hw-panel, .hw-panel *:not(.hw-cm-isolate):not(.hw-cm-isolate *)'
+            ' { color: var(--hw-text-body); }'
             # Expansion items inside area editors (PropertiesEditor, etc.)
             ' .hw-panel .q-expansion-item { background: transparent; }'
             ' .hw-panel .q-expansion-item__header { color: var(--hw-text-expansion) !important; }'

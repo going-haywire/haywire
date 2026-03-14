@@ -1,4 +1,4 @@
-# packages/haywire-framework/src/haywire/ui/editors/console_editor.py
+# packages/haywire-app/src/haywire_app/editors/console_editor.py
 """
 ConsoleEditor — scrollable log output panel.
 

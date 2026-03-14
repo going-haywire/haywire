@@ -237,8 +237,11 @@ class HaywireApp:
         )
         self.library_manager.apply_persisted_state()
 
-        # Register app-level editors into the shared EditorTypeRegistry
+        # Register all editors into the shared EditorTypeRegistry
         from haywire.ui.editor.registry import EditorTypeRegistry
+        from .editors.graph_editor import GraphEditor
+        from .editors.properties_editor import PropertiesEditor
+        from .editors.console_editor import ConsoleEditor
         from .editors.library_browser import LibraryBrowser
         from .editors.library_detail_editor import LibraryDetailEditor
         from .editors.component_detail_editor import ComponentDetailEditor
@@ -247,6 +250,7 @@ class HaywireApp:
         from .editors.graph_manager_editor import GraphManagerEditor
         _editor_registry = self.library_service.injector.get(EditorTypeRegistry)
         for _cls in [
+            GraphEditor, PropertiesEditor, ConsoleEditor,
             LibraryBrowser, LibraryDetailEditor, ComponentDetailEditor,
             FileBrowserEditor, FileViewerEditor, GraphManagerEditor,
         ]:

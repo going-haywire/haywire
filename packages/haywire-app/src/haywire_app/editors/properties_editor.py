@@ -1,4 +1,4 @@
-# packages/haywire-framework/src/haywire/ui/editors/properties_editor.py
+# packages/haywire-app/src/haywire_app/editors/properties_editor.py
 """
 PropertiesEditor — context-sensitive properties sidebar.
 

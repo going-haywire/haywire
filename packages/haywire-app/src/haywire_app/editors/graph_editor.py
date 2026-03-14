@@ -1,4 +1,4 @@
-# packages/haywire-framework/src/haywire/ui/editors/graph_editor.py
+# packages/haywire-app/src/haywire_app/editors/graph_editor.py
 """
 GraphEditor — wraps GraphCanvasManager as a BaseEditor.
 

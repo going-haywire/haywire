@@ -22,6 +22,7 @@ class ContextChangeType(Enum):
     ACTIVE_LIBRARY_CHANGED = auto()   # library selected in LibraryBrowser
     ACTIVE_COMPONENT_CHANGED = auto() # component (node/widget/renderer) selected in LibraryBrowser
     FILE_SELECTED = auto()            # file selected in FileBrowserEditor
+    WORKBENCH_THEME_CHANGED = auto()  # active workbench theme switched
     CUSTOM = auto()                   # extensible
 
 

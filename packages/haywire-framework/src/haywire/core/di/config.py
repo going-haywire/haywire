@@ -18,7 +18,6 @@ from ...ui.skin.factory import SkinFactory
 from ...ui.themes.registry import ThemeRegistry
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
-from ...ui.editors.builtins import register_builtin_editors
 from ...ui.panels.builtins import register_builtin_panels
 
 from ..library.registry import LibraryRegistry
@@ -155,12 +154,9 @@ class HaywireModule(Module):
     def provide_editor_type_registry(self) -> EditorTypeRegistry:
         """Provide singleton EditorTypeRegistry.
 
-        Built-in editors are registered via register_builtin_editors().
-        App-level editors (e.g. LibraryBrowser) are registered separately
-        in app.py after injector creation.
+        All editors are registered in haywire-app/app.py after injector creation.
         """
         registry = EditorTypeRegistry()
-        register_builtin_editors(registry)  # stub in Phase 1; populated in Phase 4+
         return registry
 
     @provider
