@@ -430,23 +430,15 @@ class LibraryOverviewEditor(BaseEditor):
                     ui.separator().classes('mt-4')
                     with ui.tabs().classes('w-full').props('dense') as tabs:
                         t_overview = ui.tab('Overview',  icon='description')
-                        t_nodes    = ui.tab('Nodes',     icon='account_tree')
-                        t_widgets  = ui.tab('Widgets',   icon='widgets')
-                        t_types    = ui.tab('Types',     icon='category')
-                        t_adapters = ui.tab('Adapters',  icon='swap_horiz')
-                        t_skins    = ui.tab('Skins',     icon='brush')
-                        t_settings = ui.tab('Settings',  icon='tune')
-                        t_themes   = ui.tab('Themes',    icon='palette')
-                        t_panels   = ui.tab('Panels',    icon='view_sidebar')
-                        t_editors  = ui.tab('Editors',   icon='tab')
-                        for _tab, _n in [
-                            (t_nodes, n_nodes), (t_widgets, n_widgets), (t_types, n_types),
-                            (t_adapters, n_adapters), (t_skins, n_skins),
-                            (t_settings, n_settings), (t_themes, n_themes),
-                            (t_panels, n_panels), (t_editors, n_editors),
-                        ]:
-                            if not _n:
-                                _tab.props('disable')
+                        t_nodes    = ui.tab('Nodes',     icon='account_tree') if n_nodes    else None
+                        t_widgets  = ui.tab('Widgets',   icon='widgets')      if n_widgets  else None
+                        t_types    = ui.tab('Types',     icon='category')     if n_types    else None
+                        t_adapters = ui.tab('Adapters',  icon='swap_horiz')   if n_adapters else None
+                        t_skins    = ui.tab('Skins',     icon='brush')        if n_skins    else None
+                        t_settings = ui.tab('Settings',  icon='tune')         if n_settings else None
+                        t_themes   = ui.tab('Themes',    icon='palette')      if n_themes   else None
+                        t_panels   = ui.tab('Panels',    icon='view_sidebar') if n_panels   else None
+                        t_editors  = ui.tab('Editors',   icon='tab')          if n_editors  else None
 
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         self._scroll.clear()
@@ -454,42 +446,51 @@ class LibraryOverviewEditor(BaseEditor):
             if installed_lib and tabs is not None:
                 with ui.tab_panels(tabs, value=t_overview).classes('w-full').style('height: 100%;'):
                     self._make_tab_panel(t_overview, self._render_overview, installed_lib)
-                    self._make_tab_panel(
-                        t_nodes, self._render_component_tab,
-                        installed_lib, node_registry, _CFG_NODES, context,
-                    )
-                    self._make_tab_panel(
-                        t_widgets, self._render_component_tab,
-                        installed_lib, widget_registry, _CFG_WIDGETS, context,
-                    )
-                    self._make_tab_panel(
-                        t_types, self._render_component_tab,
-                        installed_lib, type_registry, _CFG_TYPES, context,
-                    )
-                    self._make_tab_panel(
-                        t_adapters, self._render_component_tab,
-                        installed_lib, adapter_registry, _CFG_ADAPTERS, context,
-                    )
-                    self._make_tab_panel(
-                        t_skins, self._render_component_tab,
-                        installed_lib, skin_registry, _CFG_SKINS, context,
-                    )
-                    self._make_tab_panel(
-                        t_settings, self._render_component_tab,
-                        installed_lib, settings_registry, _CFG_SETTINGS, context,
-                    )
-                    self._make_tab_panel(
-                        t_themes, self._render_component_tab,
-                        installed_lib, theme_registry, _CFG_THEMES, context,
-                    )
-                    self._make_tab_panel(
-                        t_panels, self._render_component_tab,
-                        installed_lib, panel_registry, _CFG_PANELS, context,
-                    )
-                    self._make_tab_panel(
-                        t_editors, self._render_component_tab,
-                        installed_lib, editor_registry, _CFG_EDITORS, context,
-                    )
+                    if t_nodes:
+                        self._make_tab_panel(
+                            t_nodes, self._render_component_tab,
+                            installed_lib, node_registry, _CFG_NODES, context,
+                        )
+                    if t_widgets:
+                        self._make_tab_panel(
+                            t_widgets, self._render_component_tab,
+                            installed_lib, widget_registry, _CFG_WIDGETS, context,
+                        )
+                    if t_types:
+                        self._make_tab_panel(
+                            t_types, self._render_component_tab,
+                            installed_lib, type_registry, _CFG_TYPES, context,
+                        )
+                    if t_adapters:
+                        self._make_tab_panel(
+                            t_adapters, self._render_component_tab,
+                            installed_lib, adapter_registry, _CFG_ADAPTERS, context,
+                        )
+                    if t_skins:
+                        self._make_tab_panel(
+                            t_skins, self._render_component_tab,
+                            installed_lib, skin_registry, _CFG_SKINS, context,
+                        )
+                    if t_settings:
+                        self._make_tab_panel(
+                            t_settings, self._render_component_tab,
+                            installed_lib, settings_registry, _CFG_SETTINGS, context,
+                        )
+                    if t_themes:
+                        self._make_tab_panel(
+                            t_themes, self._render_component_tab,
+                            installed_lib, theme_registry, _CFG_THEMES, context,
+                        )
+                    if t_panels:
+                        self._make_tab_panel(
+                            t_panels, self._render_component_tab,
+                            installed_lib, panel_registry, _CFG_PANELS, context,
+                        )
+                    if t_editors:
+                        self._make_tab_panel(
+                            t_editors, self._render_component_tab,
+                            installed_lib, editor_registry, _CFG_EDITORS, context,
+                        )
 
             elif marketplace_pkg and not installed_lib:
                 # Marketplace-only: async-load OVERVIEW.md from source repo
