@@ -18,7 +18,6 @@ from ...ui.skin.factory import SkinFactory
 from ...ui.themes.registry import ThemeRegistry
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
-from ...ui.panels.builtins import register_builtin_panels
 
 from ..library.registry import LibraryRegistry
 from ..node.registry import NodeRegistry
@@ -162,13 +161,8 @@ class HaywireModule(Module):
     @provider
     @singleton
     def provide_panel_registry(self) -> PanelRegistry:
-        """Provide singleton PanelRegistry.
-
-        Built-in panels are registered via register_builtin_panels().
-        """
-        registry = PanelRegistry()
-        register_builtin_panels(registry)   # stub in Phase 1; populated in Phase 5+
-        return registry
+        """Provide singleton PanelRegistry."""
+        return PanelRegistry()
                 
     @provider
     @singleton
