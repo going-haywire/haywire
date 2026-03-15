@@ -126,6 +126,10 @@ Add your custom components in the corresponding folders:
 - widgets/    — UI widgets for data types
 - skins/      — custom node skins
 - adapters/   — type-to-type conversion adapters
+- settings/   — library settings definitions
+- themes/     — workbench and node themes
+- panels/     — custom UI panels
+- editors/    — custom UI editors
 """
 
 from pathlib import Path
@@ -134,9 +138,13 @@ from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
+from haywire.core.settings.registry import GlobalSettingsRegistry
 from haywire.core.types.registry import TypeRegistry
 
+from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
+from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 
@@ -161,6 +169,16 @@ class Library(BaseLibrary):
         base_path = Path(__file__).parent
 
         self.add_folder_to_registry(
+            folder_path=str(base_path / 'settings'),
+            registry_cls=GlobalSettingsRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'themes'),
+            registry_cls=ThemeRegistry,
+        )
+
+        self.add_folder_to_registry(
             folder_path=str(base_path / 'types'),
             registry_cls=TypeRegistry,
         )
@@ -183,6 +201,16 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / 'nodes'),
             registry_cls=NodeRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'panels'),
+            registry_cls=PanelRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'editors'),
+            registry_cls=EditorTypeRegistry,
         )
 
     def validate(self) -> bool:
@@ -301,7 +329,10 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     pkg_dir.mkdir(parents=True)
 
     # Create all component folders
-    component_folders = ['nodes', 'types', 'widgets', 'skins', 'adapters']
+    component_folders = [
+        'nodes', 'types', 'widgets', 'skins', 'adapters',
+        'settings', 'themes', 'panels', 'editors',
+    ]
     for folder in component_folders:
         folder_dir = pkg_dir / folder
         folder_dir.mkdir()
