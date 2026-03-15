@@ -6,7 +6,7 @@ WorkspaceState is serializable to JSON for persistence. Each named workspace
 is a saved instance of this class.
 
 All editor_key values are full registry_key strings
-(e.g. '__system__:editor:graph_editor'), not short registry_id values.
+(e.g. 'studio:editor:graph_editor'), not short registry_id values.
 This avoids collisions between editors from different libraries that share
 the same short id.
 """
@@ -16,15 +16,15 @@ from typing import Optional, List, Dict, Any
 
 # Canonical registry keys for all built-in editors.
 # Using constants avoids scattered hardcoded strings.
-_K_GRAPH_EDITOR    = '__system__:editor:graph_editor'
-_K_LIBRARY_BROWSER = '__system__:editor:library_browser'
-_K_LIBRARY_DETAIL  = '__system__:editor:library_detail'
-_K_COMPONENT_DETAIL = '__system__:editor:component_detail'
-_K_PROPERTIES      = '__system__:editor:properties'
-_K_CONSOLE         = '__system__:editor:console'
-_K_FILE_BROWSER    = '__system__:editor:file_browser'
-_K_FILE_VIEWER     = '__system__:editor:file_viewer'
-_K_GRAPH_MANAGER   = '__system__:editor:graph_manager'
+_K_GRAPH_EDITOR    = 'studio:editor:graph_editor'
+_K_LIBRARY_BROWSER = 'studio:editor:library_browser'
+_K_LIBRARY_DETAIL  = 'studio:editor:library_detail'
+_K_COMPONENT_DETAIL = 'studio:editor:component_detail'
+_K_PROPERTIES      = 'studio:editor:properties'
+_K_CONSOLE         = 'studio:editor:console'
+_K_FILE_BROWSER    = 'studio:editor:file_browser'
+_K_FILE_VIEWER     = 'studio:editor:file_viewer'
+_K_GRAPH_MANAGER   = 'studio:editor:graph_manager'
 
 
 @dataclass

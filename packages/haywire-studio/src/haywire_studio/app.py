@@ -237,25 +237,6 @@ class HaywireApp:
         )
         self.library_manager.apply_persisted_state()
 
-        # Register all editors into the shared EditorTypeRegistry
-        from haywire.ui.editor.registry import EditorTypeRegistry
-        from .editors.graph_editor import GraphEditor
-        from .editors.properties_editor import PropertiesEditor
-        from .editors.console_editor import ConsoleEditor
-        from .editors.library_browser_editor import LibraryBrowserEditor
-        from .editors.library_overview_editor import LibraryOverviewEditor
-        from .editors.library_component_editor import LibraryComponentEditor
-        from .editors.file_browser import FileBrowserEditor
-        from .editors.file_viewer import FileViewerEditor
-        from .editors.graph_manager_editor import GraphManagerEditor
-        _editor_registry = self.library_service.injector.get(EditorTypeRegistry)
-        for _cls in [
-            GraphEditor, PropertiesEditor, ConsoleEditor,
-            LibraryBrowserEditor, LibraryOverviewEditor, LibraryComponentEditor,
-            FileBrowserEditor, FileViewerEditor, GraphManagerEditor,
-        ]:
-            _editor_registry._register_class(_cls, library_identity=None)
-
         print("Shared services configured successfully.")
 
     # ------------------------------------------------------------------

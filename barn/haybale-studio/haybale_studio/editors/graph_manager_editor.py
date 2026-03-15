@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from haywire_studio.graph_manager import GraphEntry
 
 
-_GRAPH_EDITOR_KEY = '__system__:editor:graph_editor'
+_GRAPH_EDITOR_KEY = 'studio:editor:graph_editor'
 
 
 def _workspace_rel_path(path: Path, workspace_root: 'Path | None') -> str:

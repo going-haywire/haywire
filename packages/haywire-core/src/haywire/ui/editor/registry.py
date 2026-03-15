@@ -61,7 +61,7 @@ class EditorTypeRegistry(BaseRegistry):
 
         Args:
             registry_key: Full key as computed by the @editor decorator,
-                e.g. '__system__:editor:graph_editor'.
+                e.g. 'studio:editor:graph_editor'.
 
         Returns:
             The editor class, or None if not found.

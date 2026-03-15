@@ -315,14 +315,14 @@ from haywire.ui.workspace.workspace_state import _K_...
 
 | constants = Registry Key        | Area   | Purpose                                          |
 | ------------------ | ------ | ------------------------------------------------ |
-| _K_GRAPH_EDITOR    = '__system__:editor:graph_editor'     | Middle | Visual node graph canvas                         |
-| _K_PROPERTIES      = '__system__:editor:properties'       | Right  | Context-sensitive property panels                |
-| _K_CONSOLE         = '__system__:editor:console'          | Bottom | Execution log stream                             |
-| _K_LIBRARY_BROWSER = '__system__:editor:library_browser'  | Left   | Searchable installed/marketplace library list    |
-| _K_LIBRARY_DETAIL  = '__system__:editor:library_detail'   | Middle | Full detail view for the selected library        |
-| _K_COMPONENT_DETAIL = '__system__:editor:component_detail' | Right  | Documentation for the selected node/widget class |
-| _K_FILE_BROWSER    = '__system__:editor:file_browser'     | Left   | Searchable installed/marketplace file list       |
-| _K_FILE_VIEWER     = '__system__:editor:file_viewer'      | Middle | File content viewer                              |
+| _K_GRAPH_EDITOR    = 'studio:editor:graph_editor'     | Middle | Visual node graph canvas                         |
+| _K_PROPERTIES      = 'studio:editor:properties'       | Right  | Context-sensitive property panels                |
+| _K_CONSOLE         = 'studio:editor:console'          | Bottom | Execution log stream                             |
+| _K_LIBRARY_BROWSER = 'studio:editor:library_browser'  | Left   | Searchable installed/marketplace library list    |
+| _K_LIBRARY_DETAIL  = 'studio:editor:library_detail'   | Middle | Full detail view for the selected library        |
+| _K_COMPONENT_DETAIL = 'studio:editor:component_detail' | Right  | Documentation for the selected node/widget class |
+| _K_FILE_BROWSER    = 'studio:editor:file_browser'     | Left   | Searchable installed/marketplace file list       |
+| _K_FILE_VIEWER     = 'studio:editor:file_viewer'      | Middle | File content viewer                              |
 
 ### Editor Lifecycle
 

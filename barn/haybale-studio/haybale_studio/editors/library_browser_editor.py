@@ -239,7 +239,7 @@ class LibraryBrowserEditor(BaseEditor):
         middle_tabs = context.metadata.get('middle_tabs')
         if middle_tabs is not None:
             try:
-                middle_tabs.set_value('__system__:editor:library_detail')
+                middle_tabs.set_value('studio:editor:library_detail')
             except Exception:
                 pass
 

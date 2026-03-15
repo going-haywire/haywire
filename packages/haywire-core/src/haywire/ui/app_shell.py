@@ -549,7 +549,7 @@ class AppShell:
 
         editor_cls = None
         if self._editor_registry:
-            # WorkspaceState stores full registry_key values (e.g. '__system__:editor:graph_editor')
+            # WorkspaceState stores full registry_key values (e.g. 'studio:editor:graph_editor')
             editor_cls = self._editor_registry.get_by_key(editor_key)
 
         if editor_cls is None:

@@ -180,11 +180,11 @@ class FileBrowserEditor(BaseEditor):
             # Fallback for backward compat (loads into shared untitled graph)
             app._do_load_graph(str(path))
 
-        self._switch_middle_tab('__system__:editor:graph_editor', context)
+        self._switch_middle_tab('studio:editor:graph_editor', context)
 
     def _open_in_file_viewer(self, path: Path, context: 'SessionContext') -> None:
         """Switch to the file_viewer tab and broadcast FILE_SELECTED."""
-        self._switch_middle_tab('__system__:editor:file_viewer', context)
+        self._switch_middle_tab('studio:editor:file_viewer', context)
         session = context.session
         if session is not None:
             session.notify_context_changed(
