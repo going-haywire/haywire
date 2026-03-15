@@ -41,6 +41,7 @@ class LibraryBrowserEditor(BaseEditor):
         self._container = None
         self._list_container = None
         self._search_query: str = ''
+        self._filter_required: bool = True
         self._filter_enabled: bool = True
         self._filter_disabled: bool = True
         self._filter_available: bool = True
@@ -68,6 +69,7 @@ class LibraryBrowserEditor(BaseEditor):
                 # Filter toggles
                 with ui.row().classes('items-center gap-0.5'):
                     ui.label('Show:').classes('text-xs hw-text-dim mr-1')
+                    self._make_toggle('required', 'purple', 'lock', 'Required (cannot be disabled)', context)
                     self._make_toggle('enabled', 'green', 'check_circle', 'Enabled', context)
                     self._make_toggle('disabled', 'orange', 'pause_circle', 'Disabled', context)
                     self._make_toggle(
@@ -121,6 +123,8 @@ class LibraryBrowserEditor(BaseEditor):
 
         q = self._search_query.lower().strip()
 
+        from haywire_studio.library_manager import LibraryManager
+
         def matches(lib) -> bool:
             if not q:
                 return True
@@ -133,14 +137,31 @@ class LibraryBrowserEditor(BaseEditor):
                 or any(q in t.lower() for t in tags)
             )
 
+        def is_required(lib) -> bool:
+            dist = getattr(lib, 'distribution_name', '')
+            return bool(dist and LibraryManager.is_required_by_another_package(dist))
+
+        # Always compute the exclusion set so required libs never bleed into ENABLED,
+        # even when the required filter toggle is off.
+        _all_required = [
+            lib for lib in libraries if getattr(lib, 'enabled', True) and is_required(lib)
+        ]
+        required_set = {id(lib) for lib in _all_required}
+        required = (
+            [lib for lib in _all_required if matches(lib)]
+            if self._filter_required else []
+        )
         enabled = (
-            [lib for lib in libraries if getattr(lib, 'enabled', True) and matches(lib)]
+            [lib for lib in libraries
+             if id(lib) not in required_set and getattr(lib, 'enabled', True) and matches(lib)]
             if self._filter_enabled else []
         )
         disabled = (
-            [lib for lib in libraries if not getattr(lib, 'enabled', True) and matches(lib)]
+            [lib for lib in libraries
+             if not getattr(lib, 'enabled', True) and matches(lib)]
             if self._filter_disabled else []
         )
+        required.sort(key=lambda x: getattr(x, 'label', ''))
         enabled.sort(key=lambda x: getattr(x, 'label', ''))
         disabled.sort(key=lambda x: getattr(x, 'label', ''))
 
@@ -154,7 +175,6 @@ class LibraryBrowserEditor(BaseEditor):
             )
             if marketplace_path:
                 try:
-                    from haywire_studio.library_manager import LibraryManager
                     installed_names = {
                         lib.distribution_name for lib in libraries if lib.distribution_name
                     }
@@ -165,6 +185,13 @@ class LibraryBrowserEditor(BaseEditor):
                     logging.warning(f'LibraryBrowser: failed to load marketplace: {e}')
 
         with self._list_container:
+            if required:
+                ui.label('REQUIRED').classes(
+                    'text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider'
+                )
+                for lib in required:
+                    self._library_item(lib, 'purple', context)
+
             if enabled:
                 ui.label('ENABLED').classes(
                     'text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider'
@@ -186,7 +213,7 @@ class LibraryBrowserEditor(BaseEditor):
                 for entry in available:
                     self._library_item(entry, 'gray', context)
 
-            if not enabled and not disabled and not available:
+            if not required and not enabled and not disabled and not available:
                 with ui.column().classes('w-full items-center py-8 gap-2'):
                     ui.icon('search_off', size='28px').classes('hw-text-dim')
                     ui.label('No libraries found').classes('text-xs hw-text-muted italic')

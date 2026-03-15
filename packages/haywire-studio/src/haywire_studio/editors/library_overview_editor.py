@@ -284,15 +284,29 @@ class LibraryOverviewEditor(BaseEditor):
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes('gap-1 flex-shrink-0 items-center'):
                         if installed_lib and manager:
+                            _is_project = self._is_project_library(installed_lib, marketplace_path)
+                            _required_by = (
+                                LibraryManager.is_required_by_another_package(
+                                    installed_lib.distribution_name or installed_lib.library_id
+                                )
+                                if not _is_project
+                                and installed_lib.install_type in ('REGULAR', 'EDITABLE')
+                                else None
+                            )
+
                             # Enable / Disable toggle
                             if installed_lib.enabled:
-                                ui.button(
+                                _btn = ui.button(
                                     'Disable',
                                     icon='pause',
                                     on_click=lambda lid=installed_lib.library_id, ctx=context: (
                                         self._disable_library(lid, manager, ctx)
                                     ),
                                 ).props('size=sm color=orange flat')
+                                if _required_by:
+                                    _btn.props('disable').tooltip(
+                                        f'Required by {_required_by} — cannot be disabled'
+                                    )
                             else:
                                 ui.button(
                                     'Enable',
@@ -303,7 +317,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 ).props('size=sm color=green flat')
 
                             # Edit (project library) or Uninstall dropdown
-                            if self._is_project_library(installed_lib, marketplace_path):
+                            if _is_project:
                                 ui.button(
                                     'Edit',
                                     icon='edit',
@@ -313,9 +327,6 @@ class LibraryOverviewEditor(BaseEditor):
                                     ),
                                 ).props('size=sm color=blue flat')
                             elif installed_lib.install_type in ('REGULAR', 'EDITABLE'):
-                                _required_by = LibraryManager.is_required_by_another_package(
-                                    installed_lib.distribution_name or installed_lib.library_id
-                                )
                                 if _required_by:
                                     with ui.element('span').props(
                                         f'title="Required by {_required_by} — '

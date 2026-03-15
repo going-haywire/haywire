@@ -30,10 +30,10 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    label='Studio',
+    label='Haywire Studio',
     id='studio',
     version='0.1.0',
-    description='Local library for studio project',
+    description='Required library for haywire studio',
     url='',
     help_url='',
     author='',
