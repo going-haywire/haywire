@@ -734,12 +734,14 @@ version = "0.1.0"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
     { name = "haybale-core" },
+    { name = "haybale-studio" },
     { name = "haywire-core" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
+    { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
 ]
 
