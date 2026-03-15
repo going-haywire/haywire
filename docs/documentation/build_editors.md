@@ -168,12 +168,12 @@ def get_tab_label(self, context) -> str:
 
 Registration is separate from decoration by design. Choose the level that matches where your editor lives:
 
-### Framework-level (ships with haywire-framework)
+### Framework-level (ships with haywire-core)
 
 Add the class to the `register_builtin_editors()` function:
 
 ```python
-# packages/haywire-framework/src/haywire/ui/editors/builtins.py
+# packages/haywire-core/src/haywire/ui/editors/builtins.py
 from haywire.ui.editors.my_info import MyInfoEditor
 
 def register_builtin_editors(registry: EditorTypeRegistry) -> None:

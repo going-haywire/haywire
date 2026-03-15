@@ -10,9 +10,10 @@ members = [
 ]
 
 [tool.uv.sources]
-haywire-framework = { workspace = true }
-haywire-app = { workspace = true }
+haywire-core = { workspace = true }
+haywire-studio = { workspace = true }
 haybale-core = { workspace = true }
+haybale-studio = { workspace = true }
 haybale-example = { workspace = true }
 haybale-testing = { workspace = true }
 haybale-visiongraph = { workspace = true }
@@ -25,9 +26,10 @@ dev = [
     "mypy",
     "ruff",
     "pyinstaller>=6.14.1",
-    "haywire-framework",
-    "haywire-app",
+    "haywire-core",
+    "haywire-studio",
     "haybale-core",
+    "haybale-studio",
     "haybale-example",
     "haybale-testing",
     "haybale-visiongraph",

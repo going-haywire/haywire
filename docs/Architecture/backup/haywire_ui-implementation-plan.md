@@ -8,14 +8,14 @@ You are implementing a multi-editor workspace system for the Haywire visual node
 
 **Key codebase locations (uv workspace monorepo):**
 
-- Framework source: `packages/haywire-framework/src/haywire/`
-- Framework UI code: `packages/haywire-framework/src/haywire/ui/`
-- Existing graph canvas: `packages/haywire-framework/src/haywire/ui/editor/` (will be renamed to `graph_canvas/` in Phase 2)
-- Existing renderers: `packages/haywire-framework/src/haywire/ui/renderer/`
-- Existing widgets: `packages/haywire-framework/src/haywire/ui/widget/`
-- Core node system / DI: `packages/haywire-framework/src/haywire/core/`
-- Base registry: `packages/haywire-framework/src/haywire/core/registry/base.py`
-- DI config: `packages/haywire-framework/src/haywire/core/di/config.py`
+- Framework source: `packages/haywire-core/src/haywire/`
+- Framework UI code: `packages/haywire-core/src/haywire/ui/`
+- Existing graph canvas: `packages/haywire-core/src/haywire/ui/editor/` (will be renamed to `graph_canvas/` in Phase 2)
+- Existing renderers: `packages/haywire-core/src/haywire/ui/renderer/`
+- Existing widgets: `packages/haywire-core/src/haywire/ui/widget/`
+- Core node system / DI: `packages/haywire-core/src/haywire/core/`
+- Base registry: `packages/haywire-core/src/haywire/core/registry/base.py`
+- DI config: `packages/haywire-core/src/haywire/core/di/config.py`
 - App source: `packages/haywire-app/src/haywire_app/`
 - Prototypical library UI reference: `packages/haywire-app/src/haywire_app/library_manager_ui.py`
 - Tests: `tests/`
@@ -53,7 +53,7 @@ Execute phases in order. Each phase should result in a working (or at least non-
 
 Create the core abstractions. No UI rendering yet — just classes, registries, decorators, and DI wiring.
 
-**Step 1.1: Create `packages/haywire-framework/src/haywire/ui/context.py`**
+**Step 1.1: Create `packages/haywire-core/src/haywire/ui/context.py`**
 
 Implement:
 
@@ -68,7 +68,7 @@ Implement:
 
 See spec Section 2.1 for the complete class definition.
 
-**Step 1.2: Create `packages/haywire-framework/src/haywire/ui/context_events.py`**
+**Step 1.2: Create `packages/haywire-core/src/haywire/ui/context_events.py`**
 
 Implement:
 
@@ -79,13 +79,13 @@ Implement:
 
 #### Step 1.3: Create editor framework — temporary location
 
-**IMPORTANT:** There is an existing `packages/haywire-framework/src/haywire/ui/editor/` folder containing graph canvas code. Do NOT touch it. Phase 2 handles the rename. For now, create the editor framework in a temporary location:
+**IMPORTANT:** There is an existing `packages/haywire-core/src/haywire/ui/editor/` folder containing graph canvas code. Do NOT touch it. Phase 2 handles the rename. For now, create the editor framework in a temporary location:
 
-`packages/haywire-framework/src/haywire/ui/editor_framework/`
+`packages/haywire-core/src/haywire/ui/editor_framework/`
 
 Phase 2 will move it to its final location (`editor/`) after the canvas code is renamed to `graph_canvas/`.
 
-Create these files in `packages/haywire-framework/src/haywire/ui/editor_framework/`:
+Create these files in `packages/haywire-core/src/haywire/ui/editor_framework/`:
 
 - **`identity.py`** — `EditorIdentity` dataclass with fields: `registry_id`, `label`, `icon`, `default_area`, `description`, `registry_key`. See spec Section 2.3.
 - **`base.py`** — `BaseEditor` ABC. Single class attribute: `class_identity: ClassVar[EditorIdentity]`. Abstract methods: `render(container, context)`, `on_context_changed(event, context)`. Non-abstract: `cleanup()`, `get_tab_label(context)`. See spec Section 2.3 for complete class definition.
@@ -93,7 +93,7 @@ Create these files in `packages/haywire-framework/src/haywire/ui/editor_framewor
 - **`registry.py`** — `EditorTypeRegistry(BaseRegistry)`. Implements `_class_filter()` (checks `issubclass(cls, BaseEditor)` and `hasattr(cls, 'class_identity')`), `_register_class()` (reads `cls.class_identity.registry_key`, calls `super()._register()`), `_unregister_class()` (calls `super()._unregister()`). Extra method: `get_by_default_area(area)`. See spec Section 2.3.
 - **`__init__.py`** — export BaseEditor, EditorIdentity, editor decorator, EditorTypeRegistry
 
-**Step 1.4: Create panel framework — `packages/haywire-framework/src/haywire/ui/panel/`**
+**Step 1.4: Create panel framework — `packages/haywire-core/src/haywire/ui/panel/`**
 
 Can go in its final location immediately (no naming conflict with existing code).
 
@@ -105,7 +105,7 @@ Create:
 - **`registry.py`** — `PanelRegistry(BaseRegistry)`. Extends BaseRegistry. Maintains a secondary index `_index: Dict[tuple, List[type]]` keyed by `(editor_key, context)`. `_register_class()` calls `_index_panel()` after `super()._register()`. `_unregister_class()` calls `_deindex_panel()` before `super()._unregister()`. Methods: `get_panels(editor_key, context)`, `get_all_for_editor(editor_key)`. See spec Section 2.4.
 - **`__init__.py`** — export BasePanel, PanelLayout, PanelIdentity, panel decorator, PanelRegistry
 
-**Step 1.5: Create workspace system — `packages/haywire-framework/src/haywire/ui/workspace/`**
+**Step 1.5: Create workspace system — `packages/haywire-core/src/haywire/ui/workspace/`**
 
 Create:
 
@@ -113,11 +113,11 @@ Create:
 - **`workspace_state.py`** — Dataclasses: `AreaState(editor_key, visible, size)`, `TabState(editor_key, label, metadata)`, `MiddleAreaState(tabs, active_tab_index, bottom_visible, bottom_size, bottom_editor_key)`, `WorkspaceState(name, left_bar_active, left, middle, right, right_bar_active)`. See spec Section 2.5.
 - **`manager.py`** — `WorkspaceManager`. Import all four dataclasses at top of file (needed for DEFAULT_PRESETS). Holds `presets` dict and `active` workspace. Methods: `switch(name)`, `save_current(name)`, `get_preset_names()`, `_load_user_presets(project_path)`, `_persist_presets()`. See spec Section 2.5.
 
-**Step 1.6: Create session — `packages/haywire-framework/src/haywire/ui/session.py`**
+**Step 1.6: Create session — `packages/haywire-core/src/haywire/ui/session.py`**
 
 Implement `Session` class. Holds session_id (uuid), `SessionContext`, `WorkspaceManager`, dict of active editor instances keyed by area slot, list of context change subscriber callbacks. Methods: `notify_context_changed(event)`, `subscribe_context_changes(callback)`, `unsubscribe_context_changes(callback)`, `cleanup()`. See spec Section 2.6.
 
-**Step 1.7: Wire into DI — update `packages/haywire-framework/src/haywire/core/di/config.py`**
+**Step 1.7: Wire into DI — update `packages/haywire-core/src/haywire/core/di/config.py`**
 
 Add two providers to `HaywireModule`:
 
@@ -142,8 +142,8 @@ def provide_panel_registry(self) -> PanelRegistry:
 
 Create stub files:
 
-- `packages/haywire-framework/src/haywire/ui/editors/builtins.py` — empty `register_builtin_editors(registry)` function
-- `packages/haywire-framework/src/haywire/ui/panels/builtins.py` — empty `register_builtin_panels(registry)` function
+- `packages/haywire-core/src/haywire/ui/editors/builtins.py` — empty `register_builtin_editors(registry)` function
+- `packages/haywire-core/src/haywire/ui/panels/builtins.py` — empty `register_builtin_panels(registry)` function
 
 **Step 1.8: Create `__init__.py` files**
 
@@ -184,13 +184,13 @@ Create `tests/ui/test_workspace_state.py`:
 #### Step 2.1: Rename canvas folder
 
 ```
-packages/haywire-framework/src/haywire/ui/editor/
-  → packages/haywire-framework/src/haywire/ui/graph_canvas/
+packages/haywire-core/src/haywire/ui/editor/
+  → packages/haywire-core/src/haywire/ui/graph_canvas/
 ```
 
 Use `git mv` to preserve history:
 ```
-git mv packages/haywire-framework/src/haywire/ui/editor packages/haywire-framework/src/haywire/ui/graph_canvas
+git mv packages/haywire-core/src/haywire/ui/editor packages/haywire-core/src/haywire/ui/graph_canvas
 ```
 
 **Step 2.2: Update all imports**
@@ -209,8 +209,8 @@ Do a project-wide search for `haywire.ui.editor.` and replace with `haywire.ui.g
 **Step 2.3: Move editor framework to final location**
 
 ```
-packages/haywire-framework/src/haywire/ui/editor_framework/
-  → packages/haywire-framework/src/haywire/ui/editor/
+packages/haywire-core/src/haywire/ui/editor_framework/
+  → packages/haywire-core/src/haywire/ui/editor/
 ```
 
 Update the temporary DI import in `config.py`:
@@ -234,7 +234,7 @@ Run all existing tests. Verify the application starts and the graph editor works
 
 **Goal:** Implement the workspace layout using NiceGUI. Editors are placeholders at this stage.
 
-**Step 3.1: Create `packages/haywire-framework/src/haywire/ui/app_shell.py`**
+**Step 3.1: Create `packages/haywire-core/src/haywire/ui/app_shell.py`**
 
 Implement the `AppShell` class that renders the full layout:
 
@@ -321,7 +321,7 @@ Layout renders correctly. Areas visible/hidden per workspace state. Tabs work. A
 
 **Goal:** Make the existing graph canvas work as a proper BaseEditor inside the new layout.
 
-**Step 4.1: Create `packages/haywire-framework/src/haywire/ui/editors/graph_editor.py`**
+**Step 4.1: Create `packages/haywire-core/src/haywire/ui/editors/graph_editor.py`**
 
 Implement `GraphEditor(BaseEditor)` using the `@editor` decorator:
 
@@ -382,7 +382,7 @@ The graph editor works exactly as before, now rendered inside the AppShell layou
 
 **Step 5.1: Flesh out PanelLayout**
 
-Implement PanelLayout methods in `packages/haywire-framework/src/haywire/ui/panel/base.py`:
+Implement PanelLayout methods in `packages/haywire-core/src/haywire/ui/panel/base.py`:
 
 ```python
 class PanelLayout:
@@ -414,7 +414,7 @@ class PanelLayout:
         return ui.expansion(title, icon=icon)
 ```
 
-**Step 5.2: Create `packages/haywire-framework/src/haywire/ui/editors/properties_editor.py`**
+**Step 5.2: Create `packages/haywire-core/src/haywire/ui/editors/properties_editor.py`**
 
 ```python
 @editor(
@@ -454,7 +454,7 @@ class PropertiesEditor(BaseEditor):
         return contexts
 ```
 
-**Step 5.3: Create built-in panels in `packages/haywire-framework/src/haywire/ui/panels/`**
+**Step 5.3: Create built-in panels in `packages/haywire-core/src/haywire/ui/panels/`**
 
 Create `__init__.py` and these panels. Note: use `registry_id=` (not `key=`) in the decorator.
 
@@ -555,7 +555,7 @@ Select a node → Properties Editor shows node panels. Select an edge → edge p
 
 ### PHASE 6: Console Editor
 
-**Step 6.1: Create `packages/haywire-framework/src/haywire/ui/editors/console_editor.py`**
+**Step 6.1: Create `packages/haywire-core/src/haywire/ui/editors/console_editor.py`**
 
 ```python
 @editor(
@@ -687,7 +687,7 @@ Clicking a library in the left panel → LibraryDetailEditor updates in the midd
 
 ### PHASE 8: Multi-Session Support
 
-**Step 8.1: Create `packages/haywire-framework/src/haywire/ui/session_manager.py`**
+**Step 8.1: Create `packages/haywire-core/src/haywire/ui/session_manager.py`**
 
 ```python
 class SessionManager:

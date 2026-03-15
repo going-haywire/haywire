@@ -125,7 +125,7 @@ haywire-repo/
 ├── saves/
 │
 ├── packages/
-│   ├── haywire-framework/          # core framework (publishable to PyPI)
+│   ├── haywire-core/          # core framework (publishable to PyPI)
 │   │   ├── pyproject.toml
 │   │   └── src/haywire/
 │   │       ├── core/               # graph engine, DI, nodes, edges, ports
@@ -253,4 +253,4 @@ uv run mypy .                    # type checking
 
 - VS Code: add `code` to PATH for source-link navigation (Cmd+Shift+P > "Shell Command: Install 'code' command in PATH")
 - `create_node_wrapper()` leaves pending `NODE_ADDED` in the dirty queue — tests must call `force_immediate_validation()` after setup
-- Build individual packages: `uv build --package haywire-framework`
+- Build individual packages: `uv build --package haywire-core`

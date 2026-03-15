@@ -1,6 +1,6 @@
 [project]
 name = "haybale-testing"
-version = "1.0.0"
+version = "0.1.0"
 description = "Testing library for Haywire node system"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -10,7 +10,7 @@ authors = [
 ]
 keywords = ["haywire", "node-editor", "visual-programming", "test"]
 
-dependencies = ["haywire-framework>=0.1.0"]
+dependencies = ["haywire-core>=0.1.0"]
 
 # Entry point for Haywire library discovery
 [project.entry-points."haywire.libraries"]
@@ -24,7 +24,7 @@ build-backend = "hatchling.build"
 packages = ["haybale_testing"]
 
 [tool.uv.sources]
-haywire-framework = { workspace = true }
+haywire-core = { workspace = true }
 
 [tool.hatch.build.targets.sdist]
 include = [

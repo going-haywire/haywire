@@ -311,10 +311,10 @@ class GraphMetricsPanel(_MetricsBase):
 
 ## 7. Registering a Panel
 
-### Framework-level (ships with haywire-framework)
+### Framework-level (ships with haywire-core)
 
 ```python
-# packages/haywire-framework/src/haywire/ui/panels/builtins.py
+# packages/haywire-core/src/haywire/ui/panels/builtins.py
 from haywire.ui.panels.my_panel import MyNodeInfoPanel
 
 def register_builtin_panels(registry: PanelRegistry) -> None:

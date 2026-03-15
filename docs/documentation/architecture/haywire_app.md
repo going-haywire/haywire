@@ -485,7 +485,7 @@ class MyLibrary(BaseLibrary):
 
 | Level         | When to use                                                     | Registration call                                                 |
 | ------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Framework** | Editors/panels that ship with `haywire-framework` itself        | `register_builtin_editors(registry)`                              |
+| **Framework** | Editors/panels that ship with `haywire-core` itself        | `register_builtin_editors(registry)`                              |
 | **App**       | Editors tightly coupled to `haywire-app` (LibraryBrowser, etc.) | `registry._register_class(MyEditor)` in `setup_shared_services()` |
 | **Library**   | Editors/panels shipped inside a haybale library package         | `registry.add_folder(...)` in `register_components()`             |
 

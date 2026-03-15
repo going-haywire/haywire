@@ -10,7 +10,12 @@
       "Bash(grep:*)",
       "WebFetch(domain:nicegui.io)",
       "WebFetch(domain:github.com)",
-      "Bash(uv lock)"
+      "Bash(uv lock)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(sed -i '' 's/haywire-core/haywire-core/g' \"$f\")",
+      "Bash(done)",
+      "Bash(xargs sed:*)"
     ]
   }
 }

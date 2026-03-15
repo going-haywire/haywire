@@ -33,7 +33,7 @@ The library management system has three distinct layers that work together.
 └──────────────────────────┬──────────────────────────────────┘
                            │ importlib.metadata.entry_points()
 ┌──────────────────────────▼──────────────────────────────────┐
-│  Layer 2 — Registry layer  (haywire-framework)              │
+│  Layer 2 — Registry layer  (haywire-core)              │
 │  LibraryRegistry scans entry points, loads Library classes, │
 │  and populates NodeRegistry / WidgetRegistry / etc.         │
 └──────────────────────────┬──────────────────────────────────┘
@@ -87,7 +87,7 @@ When multiple sources provide a library with the same ID, the first one found wi
 
 | Priority | Source | Description |
 | --- | --- | --- |
-| 1 | Core libraries | Bundled with `haywire-framework` (not user-facing) |
+| 1 | Core libraries | Bundled with `haywire-core` (not user-facing) |
 | 2 | Regular pip installs | Packages in site-packages |
 | 3 | Editable pip installs | `pip install -e` pointing to source directories |
 | 4 | Folder paths | Extra directories added via `library_paths` config |
@@ -441,7 +441,7 @@ name    = "haybale-mylib"
 version = "0.1.0"
 description = "My custom Haywire library"
 requires-python = ">=3.10"
-dependencies = ["haywire-framework>=0.1.0"]
+dependencies = ["haywire-core>=0.1.0"]
 
 [project.entry-points."haywire.libraries"]
 mylib = "haybale_mylib:Library"

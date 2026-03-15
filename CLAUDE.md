@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```sh
 # Run the app
 uv run haywire
-uv run python -m haywire_app
+uv run python -m haywire_studio
 
 # Tests
 uv run pytest                    # all tests
@@ -20,7 +20,7 @@ uv run ruff check .              # lint (line-length = 109)
 uv run mypy .                    # type checking
 
 # Build a package
-uv build --package haywire-framework
+uv build --package haywire-core
 
 # Init a dev test project
 cd /tmp && uv run --project <repo-root> haywire init my-test-project --dev
@@ -41,7 +41,7 @@ Node types (DATA, CONTROL, EVENT, OUTPUT, LOOPBACK) are determined by control po
 
 ### Package Layout
 
-- **`packages/haywire-framework/`** — publishable core (`import haywire`)
+- **`packages/haywire-core/`** — publishable core (`import haywire`)
   - `haywire/core/` — graph engine, DI, nodes, edges, ports, types, execution, settings
   - `haywire/ui/` — NiceGUI renderers, widgets, canvas, themes
   - `haywire/undo/` — undo/redo history management
@@ -54,7 +54,7 @@ Node types (DATA, CONTROL, EVENT, OUTPUT, LOOPBACK) are determined by control po
 
 ### Dependency Injection
 
-The DI container uses the `injector` library. The main module is `HaywireModule` in [packages/haywire-framework/src/haywire/core/di/config.py](packages/haywire-framework/src/haywire/core/di/config.py).
+The DI container uses the `injector` library. The main module is `HaywireModule` in [packages/haywire-core/src/haywire/core/di/config.py](packages/haywire-core/src/haywire/core/di/config.py).
 
 Key singletons provided: `LibraryRegistry`, `NodeRegistry`, `TypeRegistry`, `RendererRegistry`, `WidgetRegistry`, `AdapterRegistry`, `NodeFactory`, `IHistoryManager`, `GlobalSettingsRegistry`, `ThemeRegistry`.
 

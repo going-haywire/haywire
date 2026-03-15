@@ -18,14 +18,14 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 haywire-repo/
 ├── pyproject.toml                          # workspace root (NOT a package)
 ├── uv.lock
-├── tests/                                  # tests for haywire-framework
+├── tests/                                  # tests for haywire-core
 ├── playground/                             # scratch/experiment scripts
 ├── docs/
 ├── scripts/
 ├── saves/
 │
 ├── packages/
-│   ├── haywire-framework/                  # core framework (publishable)
+│   ├── haywire-core/                  # core framework (publishable)
 │   │   ├── pyproject.toml
 │   │   └── src/haywire/                    # import as `haywire`
 │   │       ├── core/                       # graph engine, DI, nodes, edges, ports
@@ -57,7 +57,7 @@ haywire-repo/
 - **Package manager**: `uv` (not pip/poetry)
 - **Build backend**: hatchling (all packages)
 - **Library discovery**: `importlib.metadata.entry_points(group='haywire.libraries')`
-- **DI container**: `injector` library; config at `packages/haywire-framework/src/haywire/core/di/config.py`
+- **DI container**: `injector` library; config at `packages/haywire-core/src/haywire/core/di/config.py`
 - **UI framework**: NiceGUI for web-based interface
 - **Testing**: pytest with coverage
 - **Code quality**: mypy, ruff (line-length = 109)
@@ -183,8 +183,8 @@ uv run python playground/app_graph_canvas.py # playground script (still works)
 ### Adding New Features
 
 1. **Nodes**: Create in `libraries/[library]/nodes/`
-2. **UI Components**: Add to `packages/haywire-framework/src/haywire/ui/`
-3. **Core Logic**: Extend `packages/haywire-framework/src/haywire/core/`
+2. **UI Components**: Add to `packages/haywire-core/src/haywire/ui/`
+3. **Core Logic**: Extend `packages/haywire-core/src/haywire/core/`
 4. **Tests**: Add to `tests/`
 
 ### Testing Notes

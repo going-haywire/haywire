@@ -98,7 +98,7 @@ Server (one per project, shared across all sessions):
 
 All registries are global singletons provided by the DI container (`HaywireModule`). `EditorTypeRegistry` and `PanelRegistry` extend `BaseRegistry` — the same base used by `RendererRegistry`, `NodeRegistry`, `WidgetRegistry`, etc. — gaining hot-reload support via folder scanning, lifecycle events, dependency tracking, and snapshot rollback.
 
-Editors and panels contributed by libraries are registered via `add_folder()` in `register_components()`, following the identical pattern as nodes and renderers. Built-in framework editors and panels (those that ship inside `haywire-framework` itself) are bootstrapped directly in the DI provider via `register_builtin_editors()` and `register_builtin_panels()`, analogous to `register_builtin_settings()`.
+Editors and panels contributed by libraries are registered via `add_folder()` in `register_components()`, following the identical pattern as nodes and renderers. Built-in framework editors and panels (those that ship inside `haywire-core` itself) are bootstrapped directly in the DI provider via `register_builtin_editors()` and `register_builtin_panels()`, analogous to `register_builtin_settings()`.
 
 ```
 Global Registries (shared infrastructure, all DI-managed, all extending BaseRegistry):
@@ -134,7 +134,7 @@ GraphEditor
 The central state object that flows through the entire UI hierarchy. Each browser session has its own instance. This is the equivalent of Blender's `bContext`.
 
 ```python
-# packages/haywire-framework/src/haywire/ui/context.py
+# packages/haywire-core/src/haywire/ui/context.py
 
 from dataclasses import dataclass, field
 from typing import Optional, Set, Any, Dict
@@ -194,7 +194,7 @@ class SessionContext:
 When the SessionContext changes, a notification is broadcast so all editors in that session can re-evaluate their panels.
 
 ```python
-# packages/haywire-framework/src/haywire/ui/context_events.py
+# packages/haywire-core/src/haywire/ui/context_events.py
 
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -239,7 +239,7 @@ Editor types follow the same registration pattern as nodes and renderers: the `@
 **Identity dataclass:**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/editor/identity.py
+# packages/haywire-core/src/haywire/ui/editor/identity.py
 
 from dataclasses import dataclass, field
 
@@ -263,7 +263,7 @@ class EditorIdentity:
 **Base class:**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/editor/base.py
+# packages/haywire-core/src/haywire/ui/editor/base.py
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, ClassVar
@@ -343,7 +343,7 @@ class BaseEditor(ABC):
 **Decorator (sets class_identity only — no registration):**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/editor/decorator.py
+# packages/haywire-core/src/haywire/ui/editor/decorator.py
 
 from haywire.core.library.utils import derive_library_identity, reg_key
 
@@ -410,7 +410,7 @@ def editor(
 **Registry (extends BaseRegistry):**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/editor/registry.py
+# packages/haywire-core/src/haywire/ui/editor/registry.py
 
 import inspect
 import logging
@@ -471,7 +471,7 @@ Panels are collapsible sections that render inside editors. They follow the same
 **Identity dataclass:**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/panel/identity.py
+# packages/haywire-core/src/haywire/ui/panel/identity.py
 
 from dataclasses import dataclass
 from typing import Optional
@@ -498,7 +498,7 @@ class PanelIdentity:
 **Base class:**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/panel/base.py
+# packages/haywire-core/src/haywire/ui/panel/base.py
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, ClassVar
@@ -612,7 +612,7 @@ class BasePanel(ABC):
 **Decorator (sets class_identity only — no registration):**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/panel/decorator.py
+# packages/haywire-core/src/haywire/ui/panel/decorator.py
 
 from typing import Optional
 
@@ -691,7 +691,7 @@ def panel(
 **Registry (extends BaseRegistry):**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/panel/registry.py
+# packages/haywire-core/src/haywire/ui/panel/registry.py
 
 import inspect
 import logging
@@ -779,7 +779,7 @@ class PanelRegistry(BaseRegistry):
 ### 2.5 Workspace System
 
 ```python
-# packages/haywire-framework/src/haywire/ui/workspace/workspace_state.py
+# packages/haywire-core/src/haywire/ui/workspace/workspace_state.py
 
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
@@ -865,7 +865,7 @@ class WorkspaceState:
 **Workspace Manager:**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/workspace/manager.py
+# packages/haywire-core/src/haywire/ui/workspace/manager.py
 
 from typing import Dict, Optional, List
 import json
@@ -967,7 +967,7 @@ class WorkspaceManager:
 ### 2.6 Session & App Shell
 
 ```python
-# packages/haywire-framework/src/haywire/ui/session.py
+# packages/haywire-core/src/haywire/ui/session.py
 
 from typing import Dict, Optional, List, Callable
 import uuid
@@ -1047,7 +1047,7 @@ class Session:
 **App Shell (the main NiceGUI page):**
 
 ```python
-# packages/haywire-framework/src/haywire/ui/app_shell.py
+# packages/haywire-core/src/haywire/ui/app_shell.py
 
 """
 AppShell renders the workspace layout using NiceGUI.
@@ -1113,7 +1113,7 @@ class AppShell:
 `EditorTypeRegistry` and `PanelRegistry` are added to `HaywireModule` as DI singletons, following the same pattern as `RendererRegistry` and `NodeRegistry`. Built-in framework editors/panels are bootstrapped in the provider.
 
 ```python
-# Addition to packages/haywire-framework/src/haywire/core/di/config.py
+# Addition to packages/haywire-core/src/haywire/core/di/config.py
 
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
@@ -1154,14 +1154,14 @@ from ...ui.panels.builtins import register_builtin_panels
 
 ## 3. Initial Editor Types
 
-**Note on folder rename (prerequisite for all editors below):** The existing `packages/haywire-framework/src/haywire/ui/editor/` folder contains graph canvas code. Before adding the new editor framework, this folder must be renamed to `graph_canvas/`. This is Phase 2 of the implementation plan. All editors below assume this rename has occurred.
+**Note on folder rename (prerequisite for all editors below):** The existing `packages/haywire-core/src/haywire/ui/editor/` folder contains graph canvas code. Before adding the new editor framework, this folder must be renamed to `graph_canvas/`. This is Phase 2 of the implementation plan. All editors below assume this rename has occurred.
 
 ### 3.1 GraphEditor
 
 Wraps the existing `GraphCanvasManager` and graph canvas Vue component. This is largely a refactor of existing code into the new editor abstraction.
 
 ```python
-# packages/haywire-framework/src/haywire/ui/editors/graph_editor.py
+# packages/haywire-core/src/haywire/ui/editors/graph_editor.py
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
@@ -1214,7 +1214,7 @@ class GraphEditor(BaseEditor):
 A new editor that displays context-sensitive panels based on the current selection.
 
 ```python
-# packages/haywire-framework/src/haywire/ui/editors/properties_editor.py
+# packages/haywire-core/src/haywire/ui/editors/properties_editor.py
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
@@ -1261,7 +1261,7 @@ class PropertiesEditor(BaseEditor):
 ### 3.3 ConsoleEditor
 
 ```python
-# packages/haywire-framework/src/haywire/ui/editors/console_editor.py
+# packages/haywire-core/src/haywire/ui/editors/console_editor.py
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
@@ -1448,14 +1448,14 @@ class ComponentDetailEditor(BaseEditor):
 
 ## 4. File Structure
 
-All new framework files live under `packages/haywire-framework/src/haywire/ui/`. All new app-specific files live under `packages/haywire-app/src/haywire_app/`. Existing files are preserved; the refactoring wraps them rather than replacing them.
+All new framework files live under `packages/haywire-core/src/haywire/ui/`. All new app-specific files live under `packages/haywire-app/src/haywire_app/`. Existing files are preserved; the refactoring wraps them rather than replacing them.
 
-### 4.1 haywire-framework
+### 4.1 haywire-core
 
 **Prerequisite rename:** The existing `haywire/ui/editor/` folder (graph canvas code) must be renamed to `haywire/ui/graph_canvas/` before the new `editor/` framework folder is created. All imports from `haywire.ui.editor.*` must be updated to `haywire.ui.graph_canvas.*`. This is an atomic operation (Phase 2).
 
 ```
-packages/haywire-framework/src/haywire/ui/
+packages/haywire-core/src/haywire/ui/
 ├── __init__.py
 ├── context.py                          # NEW: SessionContext, InteractionMode
 ├── context_events.py                   # NEW: ContextChangedEvent, ContextChangeType
@@ -1587,19 +1587,19 @@ When Session A mutates graph data:
 **Goal:** Create the abstract framework — registries, base classes, decorators, context system. Nothing renders yet, but the infrastructure is testable.
 
 **Files to create:**
-1. `packages/haywire-framework/src/haywire/ui/context.py` — SessionContext, InteractionMode
-2. `packages/haywire-framework/src/haywire/ui/context_events.py` — ContextChangedEvent, ContextChangeType
-3. `packages/haywire-framework/src/haywire/ui/editor/identity.py` — EditorIdentity
-4. `packages/haywire-framework/src/haywire/ui/editor/base.py` — BaseEditor
-5. `packages/haywire-framework/src/haywire/ui/editor/decorator.py` — @editor
-6. `packages/haywire-framework/src/haywire/ui/editor/registry.py` — EditorTypeRegistry (extends BaseRegistry)
-7. `packages/haywire-framework/src/haywire/ui/panel/identity.py` — PanelIdentity
-8. `packages/haywire-framework/src/haywire/ui/panel/base.py` — BasePanel, PanelLayout
-9. `packages/haywire-framework/src/haywire/ui/panel/decorator.py` — @panel
-10. `packages/haywire-framework/src/haywire/ui/panel/registry.py` — PanelRegistry (extends BaseRegistry)
-11. `packages/haywire-framework/src/haywire/ui/workspace/workspace_state.py` — dataclasses
-12. `packages/haywire-framework/src/haywire/ui/workspace/manager.py` — WorkspaceManager
-13. `packages/haywire-framework/src/haywire/ui/session.py` — Session
+1. `packages/haywire-core/src/haywire/ui/context.py` — SessionContext, InteractionMode
+2. `packages/haywire-core/src/haywire/ui/context_events.py` — ContextChangedEvent, ContextChangeType
+3. `packages/haywire-core/src/haywire/ui/editor/identity.py` — EditorIdentity
+4. `packages/haywire-core/src/haywire/ui/editor/base.py` — BaseEditor
+5. `packages/haywire-core/src/haywire/ui/editor/decorator.py` — @editor
+6. `packages/haywire-core/src/haywire/ui/editor/registry.py` — EditorTypeRegistry (extends BaseRegistry)
+7. `packages/haywire-core/src/haywire/ui/panel/identity.py` — PanelIdentity
+8. `packages/haywire-core/src/haywire/ui/panel/base.py` — BasePanel, PanelLayout
+9. `packages/haywire-core/src/haywire/ui/panel/decorator.py` — @panel
+10. `packages/haywire-core/src/haywire/ui/panel/registry.py` — PanelRegistry (extends BaseRegistry)
+11. `packages/haywire-core/src/haywire/ui/workspace/workspace_state.py` — dataclasses
+12. `packages/haywire-core/src/haywire/ui/workspace/manager.py` — WorkspaceManager
+13. `packages/haywire-core/src/haywire/ui/session.py` — Session
 
 **DI config additions:**
 
@@ -1614,7 +1614,7 @@ When Session A mutates graph data:
 
 **Steps:**
 
-1. `git mv packages/haywire-framework/src/haywire/ui/editor packages/haywire-framework/src/haywire/ui/graph_canvas`
+1. `git mv packages/haywire-core/src/haywire/ui/editor packages/haywire-core/src/haywire/ui/graph_canvas`
 2. Global search-and-replace all imports from `haywire.ui.editor.` → `haywire.ui.graph_canvas.`
 3. Verify all tests pass
 4. Update `__init__.py` exports if needed
@@ -1625,7 +1625,7 @@ When Session A mutates graph data:
 
 **Files to create:**
 
-1. `packages/haywire-framework/src/haywire/ui/app_shell.py` — full NiceGUI layout implementation
+1. `packages/haywire-core/src/haywire/ui/app_shell.py` — full NiceGUI layout implementation
 
 **NiceGUI approach:**
 
@@ -1643,7 +1643,7 @@ When Session A mutates graph data:
 
 **Files to create:**
 
-1. `packages/haywire-framework/src/haywire/ui/editors/graph_editor.py`
+1. `packages/haywire-core/src/haywire/ui/editors/graph_editor.py`
 
 **Changes to existing code:**
 
@@ -1660,13 +1660,13 @@ When Session A mutates graph data:
 
 **Files to create:**
 
-1. `packages/haywire-framework/src/haywire/ui/editors/properties_editor.py`
-2. `packages/haywire-framework/src/haywire/ui/panels/node_properties_panel.py`
-3. `packages/haywire-framework/src/haywire/ui/panels/node_ports_panel.py`
-4. `packages/haywire-framework/src/haywire/ui/panels/node_settings_panel.py`
-5. `packages/haywire-framework/src/haywire/ui/panels/graph_info_panel.py`
-6. `packages/haywire-framework/src/haywire/ui/panels/edge_info_panel.py`
-7. `packages/haywire-framework/src/haywire/ui/panels/builtins.py` (register all built-in panels)
+1. `packages/haywire-core/src/haywire/ui/editors/properties_editor.py`
+2. `packages/haywire-core/src/haywire/ui/panels/node_properties_panel.py`
+3. `packages/haywire-core/src/haywire/ui/panels/node_ports_panel.py`
+4. `packages/haywire-core/src/haywire/ui/panels/node_settings_panel.py`
+5. `packages/haywire-core/src/haywire/ui/panels/graph_info_panel.py`
+6. `packages/haywire-core/src/haywire/ui/panels/edge_info_panel.py`
+7. `packages/haywire-core/src/haywire/ui/panels/builtins.py` (register all built-in panels)
 
 **PanelLayout implementation:** Flesh out the PanelLayout class to wrap NiceGUI primitives (ui.label, ui.row, ui.column, ui.expansion, etc.) and support the WidgetFactory for rendering port widgets.
 
@@ -1676,7 +1676,7 @@ When Session A mutates graph data:
 
 **Files to create:**
 
-1. `packages/haywire-framework/src/haywire/ui/editors/console_editor.py`
+1. `packages/haywire-core/src/haywire/ui/editors/console_editor.py`
 
 ### Phase 7: Library Browser & Detail Editors
 

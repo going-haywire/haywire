@@ -4,7 +4,7 @@ v0.0.1 | By Florian Briggisser, Martin Fröhlich
 Visiongraph library for Haywire node system demonstrating custom types, nodes, widgets, and renderers
 
 **Source:** https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph
-**Dependencies:** haywire-framework>=0.1.0, haybale-core>=1.0.0, visiongraph[all]
+**Dependencies:** haywire-core>=0.1.0, haybale-core>=1.0.0, visiongraph[all]
 **Tags:** vision, camera, video, opencv
 
 ---

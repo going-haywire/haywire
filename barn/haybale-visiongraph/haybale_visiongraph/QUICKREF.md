@@ -2,7 +2,7 @@
 # Library ID: visiongraph
 # Module: haybale_visiongraph
 # Source: https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph
-# Dependencies: haywire-framework>=0.1.0, haybale-core>=1.0.0, visiongraph[all]
+# Dependencies: haywire-core>=0.1.0, haybale-core>=1.0.0, visiongraph[all]
 # Description: Visiongraph library for Haywire node system demonstrating custom types, nodes, widgets, and renderers
 
 ## Nodes

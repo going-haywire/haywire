@@ -12,7 +12,7 @@ def scaffold_project(tmp_path, monkeypatch):
     """Scaffold a project in a temp directory and return the project path."""
     monkeypatch.chdir(tmp_path)
 
-    from haywire_app.init import init_project
+    from haywire_studio.init import init_project
     init_project('test-project', auto_sync=False)
 
     return tmp_path / 'test-project'
@@ -23,7 +23,7 @@ def scaffold_project_dev(tmp_path, monkeypatch):
     """Scaffold a project with --dev pointing to this repo."""
     monkeypatch.chdir(tmp_path)
 
-    from haywire_app.init import init_project, _get_dev_repo_root
+    from haywire_studio.init import init_project, _get_dev_repo_root
     init_project('test-project-dev', auto_sync=False, dev_repo=_get_dev_repo_root())
 
     return tmp_path / 'test-project-dev'
@@ -85,7 +85,7 @@ class TestProjectPyproject:
     def test_dependencies(self, scaffold_project):
         data = toml.loads((scaffold_project / 'pyproject.toml').read_text())
         deps = data['project']['dependencies']
-        assert 'haywire-app>=0.1.0' in deps
+        assert 'haywire-studio>=0.1.0' in deps
         assert 'haybale-core>=1.0.0' not in deps
 
     def test_workspace_members(self, scaffold_project):
@@ -105,7 +105,7 @@ class TestLibraryPyproject:
         data = toml.loads(
             (scaffold_project / 'barn' /'haybale-test-project' / 'pyproject.toml').read_text()
         )
-        assert 'haywire-framework>=0.1.0' in data['project']['dependencies']
+        assert 'haywire-core>=0.1.0' in data['project']['dependencies']
 
     def test_entry_point(self, scaffold_project):
         data = toml.loads(
@@ -162,18 +162,18 @@ class TestDevMode:
     def test_project_has_sources(self, scaffold_project_dev):
         data = toml.loads((scaffold_project_dev / 'pyproject.toml').read_text())
         sources = data['tool']['uv']['sources']
-        assert 'haywire-app' in sources
-        assert 'haywire-framework' in sources
+        assert 'haywire-studio' in sources
+        assert 'haywire-core' in sources
         assert 'haybale-core' not in sources
 
     def test_sources_are_editable(self, scaffold_project_dev):
         data = toml.loads((scaffold_project_dev / 'pyproject.toml').read_text())
-        for pkg in ['haywire-app', 'haywire-framework']:
+        for pkg in ['haywire-studio', 'haywire-core']:
             assert data['tool']['uv']['sources'][pkg]['editable'] is True
 
     def test_source_paths_exist(self, scaffold_project_dev):
         data = toml.loads((scaffold_project_dev / 'pyproject.toml').read_text())
-        for pkg in ['haywire-app', 'haywire-framework']:
+        for pkg in ['haywire-studio', 'haywire-core']:
             assert Path(data['tool']['uv']['sources'][pkg]['path']).is_dir()
 
     def test_library_has_framework_source(self, scaffold_project_dev):
@@ -181,8 +181,8 @@ class TestDevMode:
             (scaffold_project_dev / 'barn' /'haybale-test-project-dev' / 'pyproject.toml').read_text()
         )
         sources = data['tool']['uv']['sources']
-        assert 'haywire-framework' in sources
-        assert sources['haywire-framework']['editable'] is True
+        assert 'haywire-core' in sources
+        assert sources['haywire-core']['editable'] is True
 
     def test_dev_marketplace_exists(self, scaffold_project_dev):
         assert (scaffold_project_dev / '.haywire' / 'marketplace.toml').is_file()
@@ -217,13 +217,13 @@ class TestNameSanitization:
 
     def test_hyphens_become_underscores(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
-        from haywire_app.init import init_project
+        from haywire_studio.init import init_project
         init_project('my-cool-project', auto_sync=False)
         assert (tmp_path / 'my-cool-project' / 'barn' /'haybale-my-cool-project' / 'haybale_my_cool_project').is_dir()
 
     def test_existing_dir_exits(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         (tmp_path / 'existing').mkdir()
-        from haywire_app.init import init_project
+        from haywire_studio.init import init_project
         with pytest.raises(SystemExit):
             init_project('existing', auto_sync=False)

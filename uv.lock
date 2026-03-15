@@ -20,11 +20,12 @@ resolution-markers = [
 members = [
     "haybale-core",
     "haybale-example",
+    "haybale-studio",
     "haybale-test-a",
     "haybale-testing",
     "haybale-visiongraph",
-    "haywire-app",
-    "haywire-framework",
+    "haywire-core",
+    "haywire-studio",
     "haywire-workspace",
 ]
 
@@ -612,88 +613,90 @@ wheels = [
 
 [[package]]
 name = "haybale-core"
-version = "1.0.0"
+version = "0.1.0"
 source = { editable = "barn/haybale-core" }
 dependencies = [
-    { name = "haywire-framework" },
+    { name = "haywire-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "haywire-framework", editable = "packages/haywire-framework" }]
+requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
 
 [[package]]
 name = "haybale-example"
-version = "1.0.0"
+version = "0.1.0"
 source = { editable = "barn/haybale-example" }
 dependencies = [
     { name = "haybale-core" },
-    { name = "haywire-framework" },
+    { name = "haywire-core" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
-    { name = "haywire-framework", editable = "packages/haywire-framework" },
+    { name = "haywire-core", editable = "packages/haywire-core" },
+]
+
+[[package]]
+name = "haybale-studio"
+version = "0.1.0"
+source = { editable = "barn/haybale-studio" }
+dependencies = [
+    { name = "haybale-core" },
+    { name = "haywire-core" },
+    { name = "haywire-studio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "haybale-core", editable = "barn/haybale-core" },
+    { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "haywire-studio", editable = "packages/haywire-studio" },
 ]
 
 [[package]]
 name = "haybale-test-a"
-version = "1.0.0"
+version = "0.1.0"
 source = { editable = "barn/haybale-TEST_A" }
 dependencies = [
-    { name = "haywire-framework" },
+    { name = "haywire-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "haywire-framework", editable = "packages/haywire-framework" }]
+requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
 
 [[package]]
 name = "haybale-testing"
-version = "1.0.0"
+version = "0.1.0"
 source = { editable = "barn/haybale-testing" }
 dependencies = [
-    { name = "haywire-framework" },
+    { name = "haywire-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "haywire-framework", editable = "packages/haywire-framework" }]
+requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
 
 [[package]]
 name = "haybale-visiongraph"
-version = "0.0.1"
+version = "0.1.0"
 source = { editable = "barn/haybale-visiongraph" }
 dependencies = [
     { name = "haybale-core" },
-    { name = "haywire-framework" },
+    { name = "haywire-core" },
     { name = "visiongraph" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
-    { name = "haywire-framework", editable = "packages/haywire-framework" },
+    { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "visiongraph", extras = ["all"] },
 ]
 
 [[package]]
-name = "haywire-app"
+name = "haywire-core"
 version = "0.1.0"
-source = { editable = "packages/haywire-app" }
-dependencies = [
-    { name = "haybale-core" },
-    { name = "haywire-framework" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "haybale-core", editable = "barn/haybale-core" },
-    { name = "haywire-framework", editable = "packages/haywire-framework" },
-]
-
-[[package]]
-name = "haywire-framework"
-version = "0.1.0"
-source = { editable = "packages/haywire-framework" }
+source = { editable = "packages/haywire-core" }
 dependencies = [
     { name = "attrs" },
     { name = "cattrs" },
@@ -726,6 +729,21 @@ requires-dist = [
 ]
 
 [[package]]
+name = "haywire-studio"
+version = "0.1.0"
+source = { editable = "packages/haywire-studio" }
+dependencies = [
+    { name = "haybale-core" },
+    { name = "haywire-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "haybale-core", editable = "barn/haybale-core" },
+    { name = "haywire-core", editable = "packages/haywire-core" },
+]
+
+[[package]]
 name = "haywire-workspace"
 version = "0.0.1"
 source = { virtual = "." }
@@ -734,11 +752,12 @@ source = { virtual = "." }
 dev = [
     { name = "haybale-core" },
     { name = "haybale-example" },
+    { name = "haybale-studio" },
     { name = "haybale-test-a" },
     { name = "haybale-testing" },
     { name = "haybale-visiongraph" },
-    { name = "haywire-app" },
-    { name = "haywire-framework" },
+    { name = "haywire-core" },
+    { name = "haywire-studio" },
     { name = "mypy" },
     { name = "pyinstaller" },
     { name = "pytest" },
@@ -752,11 +771,12 @@ dev = [
 dev = [
     { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haybale-example", editable = "barn/haybale-example" },
+    { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haybale-test-a", editable = "barn/haybale-TEST_A" },
     { name = "haybale-testing", editable = "barn/haybale-testing" },
     { name = "haybale-visiongraph", editable = "barn/haybale-visiongraph" },
-    { name = "haywire-app", editable = "packages/haywire-app" },
-    { name = "haywire-framework", editable = "packages/haywire-framework" },
+    { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "haywire-studio", editable = "packages/haywire-studio" },
     { name = "mypy" },
     { name = "pyinstaller", specifier = ">=6.14.1" },
     { name = "pytest" },
