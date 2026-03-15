@@ -234,7 +234,7 @@ class LibraryComponentEditor(BaseEditor):
                                     src_file.read_text(),
                                     language='Python',
                                     theme=self._codemirror_theme(context),
-                                ).style('flex: 1; min-height: 0; width: 100%;')
+                                ).style('flex: 1; min-height: 0; width: 100%; height: 100%;')
                             if is_editable:
                                 def _save(p=src_file, ed=self._code_editor):
                                     try:

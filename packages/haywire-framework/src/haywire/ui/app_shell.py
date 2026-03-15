@@ -165,6 +165,8 @@ class AppShell:
             # the CodeMirror theme controls all token colours uncontested.
             ' .hw-panel, .hw-panel *:not(.hw-cm-isolate):not(.hw-cm-isolate *)'
             ' { color: var(--hw-text-body); }'
+            # Make CodeMirror fill its flex container so height is flexible.
+            ' .hw-cm-isolate .cm-editor { height: 100%; }'
             # Expansion items inside area editors (PropertiesEditor, etc.)
             ' .hw-panel .q-expansion-item { background: transparent; }'
             ' .hw-panel .q-expansion-item__header { color: var(--hw-text-expansion) !important; }'
