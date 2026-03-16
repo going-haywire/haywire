@@ -8,7 +8,6 @@ or as rendered markdown for .md files. Binary files and oversized files
 show an appropriate message instead.
 """
 
-import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 

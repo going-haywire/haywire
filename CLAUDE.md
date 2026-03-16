@@ -142,3 +142,25 @@ Both use TOML files. Settings have `SettingMode` and `SettingScope` (global vs. 
 - **Library paths**: Default to `[]` — must be explicitly provided in app or test DI config.
 - **Port rules** are hardcoded in `DataPort.__post_init__` — don't set `allow_multiple` manually for DATA/EXEC ports.
 - Line length is **109** (not the ruff default of 88).
+
+### Scoped Panel System
+
+Panels are grouped into **scopes** — named navigation tabs in a panel-consuming editor (e.g. PropertiesEditor's left icon strip). This replaces the old flat `context=` string on `@panel`.
+
+Core types (haywire-core):
+
+- `ScopeDescriptor` (`haywire/ui/panel/scope.py`) — metadata for one tab: `scope_id`, `label`, `icon`, `order`, `poll(ctx) -> bool`
+- `PanelIdentity.scope: list[str]` — panels can declare multiple scopes; decorator normalises `str` to `[str]`
+- `PanelRegistry.register_scope(editor_id, descriptor)` — registers a scope tab; call before scanning panels folder
+- `PanelRegistry.get_scopes(editor_id)` — returns `List[ScopeDescriptor]` sorted by `order`
+- `@panel(scope='node')` or `@panel(scope=['node', 'graph'])` — replaces old `context=` parameter
+
+haybale-studio contributions:
+
+- `haybale_studio/editors/scopes.py` — `PROPERTIES_SCOPES` list: `app` (10), `execution` (20), `canvas` (30), `debug` (40), `graph` (50), `node` (60), `edge` (70)
+- `haybale_studio/__init__.py` — `register_components()` registers all `PROPERTIES_SCOPES` into `PanelRegistry` before scanning the panels folder
+- `haybale_studio/editors/properties_editor.py` — fully rewritten: left 36 px toolbar (one icon button per scope) + content area; scope state stored in `context.metadata['properties_scope']`; auto-falls-back to first available scope when current scope's `poll()` returns False
+
+Architecture principle: haywire-core contains only framework machinery (base classes, registries, decorators). All concrete UI contributions — editors, panels, scope registrations — live in haybale-studio or the node library that defines those nodes.
+
+Multi-scope panels: A panel registered with `scope=['node', 'graph']` appears under both scope tabs. Deregistration removes it from all scopes.

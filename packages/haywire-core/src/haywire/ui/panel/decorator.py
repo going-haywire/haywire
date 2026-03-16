@@ -7,7 +7,7 @@ registration happens when the library calls add_folder() in
 register_components(), following the same pattern as @renderer and @widget.
 """
 
-from typing import Optional
+from typing import Optional, Union
 
 from haywire.core.library.utils import derive_library_identity, reg_key
 
@@ -19,7 +19,7 @@ def panel(
     cls=None, /, *,
     registry_id: Optional[str] = None,
     editor: str,
-    context: str,
+    scope: Union[str, list[str]],
     label: Optional[str] = None,
     icon: Optional[str] = None,
     order: int = 100,
@@ -34,21 +34,23 @@ def panel(
     register_components(), following the same pattern as @renderer and @widget.
 
     Args:
-        registry_id: Unique ID for this panel, e.g. 'node_transform'.
-            Defaults to the class name if not provided.
-        editor: Registry key of the editor this panel belongs to, e.g. 'properties'.
-        context: Context filter string, e.g. 'node', 'graph', 'edge'.
-        label: Human-readable display label. Defaults to class name.
-        icon: Optional Material Design icon name.
-        order: Sort priority (lower = higher in the panel list). Defaults to 100.
+        registry_id:  Unique ID for this panel, e.g. 'node_transform'.
+                      Defaults to the class name if not provided.
+        editor:       Registry key of the editor this panel belongs to,
+                      e.g. 'properties'.
+        scope:        Scope ID or list of scope IDs this panel appears under,
+                      e.g. 'node' or ['my_lib', 'node'].
+        label:        Human-readable display label. Defaults to class name.
+        icon:         Optional Material Design icon name.
+        order:        Sort priority (lower = higher in the panel list). Default 100.
         default_open: Whether the panel starts expanded. Defaults to True.
-        description: Human-readable description.
+        description:  Human-readable description.
 
     Usage:
         @panel(
             registry_id='node_transform',
             editor='properties',
-            context='node',
+            scope='node',
             label='Transform',
             icon='open_with',
             order=10,
@@ -69,6 +71,7 @@ def panel(
 
         _registry_id = registry_id or inner_cls.__name__
         _label = label or inner_cls.__name__
+        _scope = [scope] if isinstance(scope, str) else list(scope)
 
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id if library_identity else None
@@ -77,7 +80,7 @@ def panel(
         inner_cls.class_identity = PanelIdentity(
             registry_id=_registry_id,
             editor_key=editor,
-            context=context,
+            scope=_scope,
             label=_label,
             icon=icon,
             order=order,

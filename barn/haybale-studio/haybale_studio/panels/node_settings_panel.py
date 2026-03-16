@@ -13,7 +13,7 @@ if False:  # TYPE_CHECKING
 @panel(
     registry_id='node_settings',
     editor='properties',
-    context='node',
+    scope='node',
     label='Status',
     icon='check_circle',
     order=30,

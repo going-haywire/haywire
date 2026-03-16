@@ -1,4 +1,4 @@
-# packages/haywire-core/src/haywire/ui/panels/node_properties_panel.py
+# barn/haybale-studio/haybale_studio/panels/node_properties_panel.py
 """
 NodePropertiesPanel — shows basic node identity information.
 """
@@ -13,7 +13,7 @@ if False:  # TYPE_CHECKING
 @panel(
     registry_id='node_properties',
     editor='properties',
-    context='node',
+    scope='node',
     label='Node Properties',
     icon='info',
     order=10,

@@ -11,7 +11,7 @@ For background on how panels fit into the larger UI architecture, see [haywire_a
 3. [The @panel Decorator](#3-the-panel-decorator)
 4. [Implementing BasePanel](#4-implementing-basepanel)
 5. [The PanelLayout API](#5-the-panellayout-api)
-6. [Context Strings](#6-context-strings)
+6. [Scopes](#6-scopes)
 7. [Registering a Panel](#7-registering-a-panel)
 8. [Panel Ordering and Grouping](#8-panel-ordering-and-grouping)
 9. [Building a Custom Panel-Aware Editor](#9-building-a-custom-panel-aware-editor)
@@ -24,7 +24,7 @@ For background on how panels fit into the larger UI architecture, see [haywire_a
 
 A panel is a class that:
 
-- Is decorated with `@panel(...)`, which stamps it with a `PanelIdentity` including the target editor and context string
+- Is decorated with `@panel(...)`, which stamps it with a `PanelIdentity` including the target editor and scope(s)
 - Inherits from `BasePanel`
 - Implements `poll(context) → bool` to declare when it should be visible
 - Implements `draw(context, layout)` to render its content
@@ -51,7 +51,7 @@ from haywire.ui.panel.decorator import panel
 @panel(
     registry_id='my_node_info',
     editor='properties',   # target editor registry_id
-    context='node',        # visible when a node is active
+    scope='node',          # visible when a node is active
     label='My Node Info',
     icon='info',
     order=50,
@@ -67,12 +67,10 @@ class MyNodeInfoPanel(BasePanel):
         layout.label(f'Name: {getattr(node, "name", "?")}')
         layout.label(f'ID:   {getattr(node, "node_id", "?")}')
         layout.separator()
-        layout.label(
-            f'Class: {type(node).__name__}',
-        )
+        layout.label(f'Class: {type(node).__name__}')
 ```
 
-After [registering it](#7-registering-a-panel), the panel appears automatically in the Properties sidebar whenever a node is selected.
+After [registering it](#7-registering-a-panel), the panel appears automatically in the Properties sidebar whenever a node is selected and the **Node** scope tab is active.
 
 ---
 
@@ -80,14 +78,14 @@ After [registering it](#7-registering-a-panel), the panel appears automatically 
 
 ```python
 @panel(
-    registry_id:   str | None = None,     # unique short ID, defaults to class name
-    editor:        str,                   # REQUIRED — target editor registry_id
-    context:       str,                   # REQUIRED — context filter string
-    label:         str | None = None,     # display label in expansion header
-    icon:          str | None = None,     # Material Design icon for expansion header
-    order:         int        = 100,      # sort order (lower = higher position)
-    default_open:  bool       = True,     # whether expansion starts open
-    description:   str        = '',
+    registry_id:   str | None            = None,   # unique short ID, defaults to class name
+    editor:        str,                            # REQUIRED — target editor registry_id
+    scope:         str | list[str],                # REQUIRED — scope ID or list of scope IDs
+    label:         str | None            = None,   # display label in expansion header
+    icon:          str | None            = None,   # Material Design icon for expansion header
+    order:         int                   = 100,    # sort order (lower = higher position)
+    default_open:  bool                  = True,   # whether expansion starts open
+    description:   str                   = '',
 )
 ```
 
@@ -96,14 +94,23 @@ After [registering it](#7-registering-a-panel), the panel appears automatically 
 **`editor`** is the `registry_id` (short form) of the editor that will host this panel.
 For the built-in Properties sidebar use `'properties'`. For a custom panel-aware editor, use its own `registry_id`.
 
-**`context`** is a string that groups panels by what is currently selected. The built-in
-contexts are `'node'`, `'edge'`, and `'graph'`. You can define custom context strings for your own editors (see [Section 6](#6-context-strings)).
+**`scope`** is a scope ID string (or list of IDs) that determines which toolbar tab(s) this
+panel appears under. The built-in scopes for the Properties editor are listed in
+[Section 6](#6-scopes). Pass a list to make the panel appear in multiple tabs:
+
+```python
+scope='node'                     # single scope
+scope=['my_lib', 'node']         # appears in both tabs
+```
+
+The `scope` value is always stored internally as `list[str]` regardless of whether a string or list is passed.
 
 ### What the decorator does
 
 - Sets `MyPanel.class_identity` (a `PanelIdentity` dataclass) containing all metadata
 - Sets `MyPanel.class_library` derived from the module
 - Computes the full `registry_key` as `{library_id}:panel:{registry_id}`
+- Normalises `scope` to `list[str]`
 - Validates that the class is a `BasePanel` subclass
 
 The decorator does **not** register the class. Registration is always explicit.
@@ -145,6 +152,21 @@ def poll(cls, context) -> bool:
 Expensive operations (database lookups, file reads) do not belong in `poll()`. If your
 panel requires data that takes time to load, always show the panel and display a loading state inside `draw()`.
 
+When a panel is registered under multiple scopes, `poll()` receives the full `SessionContext`
+including `context.metadata['properties_scope']` (the active scope ID), which lets you
+vary visibility per scope:
+
+```python
+@classmethod
+def poll(cls, context) -> bool:
+    active_scope = context.metadata.get('properties_scope')
+    if active_scope == 'node':
+        return context.active_node is not None and isinstance(
+            context.active_node.node, MyLibNode
+        )
+    return True   # always visible in other scopes
+```
+
 ### `draw(context, layout) → None`
 
 Called when `poll()` returned `True`. Use the `PanelLayout` helper to build content.
@@ -159,6 +181,17 @@ def draw(self, context, layout: PanelLayout) -> None:
             with layout.row():
                 layout.label(outlet.id)
                 layout.label(outlet.flow_type.name).classes('text-xs text-gray-400')
+```
+
+When a panel appears in multiple scopes it can also branch its content on the active scope:
+
+```python
+def draw(self, context, layout: PanelLayout) -> None:
+    active_scope = context.metadata.get('properties_scope')
+    if active_scope == 'node':
+        self._draw_node_overrides(context, layout)
+    else:
+        self._draw_library_defaults(context, layout)
 ```
 
 ### `on_context_changed(context, layout) → None`
@@ -263,89 +296,149 @@ def draw(self, context, layout: PanelLayout) -> None:
 
 ---
 
-## 6. Context Strings
+## 6. Scopes
 
-The `context` parameter in `@panel` determines when the panel is offered to the host editor. The host resolves one or more active context strings from `SessionContext` and queries the registry for matching panels.
+A **scope** is a top-level navigation tab in a panel-aware editor. In the Properties editor
+it appears as an icon button in the left toolbar. Each scope has a unique `scope_id` string
+that panels reference via `@panel(scope=...)`.
 
-### Built-in contexts (used by PropertiesEditor)
+Scopes are defined by `ScopeDescriptor` objects and registered into `PanelRegistry` via
+`register_scope()`. The host editor queries the registry to build its toolbar and to know
+which panels belong to each tab.
 
-| Context string | When active                                                              |
-| -------------- | ------------------------------------------------------------------------ |
-| `'node'`       | `context.active_node` is not `None`                                      |
-| `'edge'`       | `context.active_edge` is not `None`                                      |
-| `'graph'`      | `context.active_graph` is not `None` and neither node nor edge is active |
+### Built-in scopes (Properties editor)
 
-A panel registered with `context='node'` is only *offered* when a node is selected. The
-panel's `poll()` method then makes the final determination of visibility.
+Registered by `haybale-studio` in its `register_components()`:
 
-### Custom contexts for app-level editors
+| scope_id    | Icon            | Label          | Available when                     |
+| ----------- | --------------- | -------------- | ---------------------------------- |
+| `app`       | `settings`      | Application    | always                             |
+| `execution` | `play_circle`   | Execution      | always                             |
+| `canvas`    | `grid_on`       | Canvas & Nodes | always                             |
+| `debug`     | `bug_report`    | Debug          | always                             |
+| `graph`     | `account_tree`  | Graph          | `context.active_graph` is not None |
+| `node`      | `widgets`       | Node           | `context.active_node` is not None  |
+| `edge`      | `cable`         | Edge           | `context.active_edge` is not None  |
 
-Editors outside the framework can define their own context strings. For example, an
-`AssetEditor` might use `context='asset'` and resolve it from its own SessionContext field. Custom context strings do not require any framework-level registration — the host editor resolves them however it chooses (see [Section 9](#9-building-a-custom-panel-aware-editor)).
+The PropertiesEditor only auto-switches scope when the current scope becomes unavailable
+(e.g. the user deselects a node while on the `node` tab). Manual navigation always takes
+priority.
 
-### Writing multi-context panels
+### Registering a custom scope
 
-A single panel class can only target one `context` string. To show the same content in
-multiple contexts, create a base class with shared logic and two thin decorated subclasses:
+To add a new tab to the Properties editor, register a `ScopeDescriptor` before scanning
+the panels folder:
 
 ```python
-class _MetricsBase(BasePanel):
-    def draw(self, context, layout):
-        layout.label(f'FPS: {get_fps()}')
-        layout.label(f'RAM: {get_ram()}')
+from haywire.ui.panel.registry import PanelRegistry
+from haywire.ui.panel.scope import ScopeDescriptor
 
-@panel(registry_id='node_metrics', editor='properties', context='node',  order=60)
-class NodeMetricsPanel(_MetricsBase):
-    @classmethod
-    def poll(cls, context):
-        return context.active_node is not None
+class MyLibrary(BaseLibrary):
+    def register_components(self):
+        base_path = Path(__file__).parent
 
-@panel(registry_id='graph_metrics', editor='properties', context='graph', order=60)
-class GraphMetricsPanel(_MetricsBase):
+        # 1. Register the scope tab first
+        panel_registry = self.get_registry(PanelRegistry)
+        panel_registry.register_scope('properties', ScopeDescriptor(
+            scope_id='my_lib',
+            label='My Library',
+            icon='extension',
+            order=80,
+            poll=lambda ctx: True,   # always visible once library is loaded
+        ))
+
+        # 2. Then register the panels that reference it
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'panels'),
+            registry_cls=PanelRegistry,
+        )
+```
+
+`ScopeDescriptor.poll` is a callable `(SessionContext) -> bool` that controls whether the
+tab is available (shown at full opacity and clickable) or unavailable (dimmed, not
+clickable). Use it to hide the tab when the library has nothing meaningful to show.
+
+### Multi-scope panels
+
+A panel can appear in more than one scope tab by passing a list to `scope=`:
+
+```python
+@panel(
+    registry_id='my_lib_render_settings',
+    editor='properties',
+    scope=['my_lib', 'node'],   # appears under both tabs
+    label='Render Settings',
+    order=50,
+)
+class MyLibRenderSettingsPanel(BasePanel):
+
     @classmethod
-    def poll(cls, context):
-        return context.active_graph is not None
+    def poll(cls, context) -> bool:
+        active_scope = context.metadata.get('properties_scope')
+        if active_scope == 'node':
+            # Only show for nodes that belong to this library
+            return context.active_node is not None and isinstance(
+                context.active_node.node, MyLibNode
+            )
+        return True   # always visible in the my_lib tab
+
+    def draw(self, context, layout: PanelLayout) -> None:
+        active_scope = context.metadata.get('properties_scope')
+        if active_scope == 'node':
+            self._draw_node_overrides(context, layout)
+        else:
+            self._draw_library_defaults(context, layout)
 ```
 
 ---
 
 ## 7. Registering a Panel
 
-### Framework-level (ships with haywire-core)
-
-```python
-# packages/haywire-core/src/haywire/ui/panels/builtins.py
-from haywire.ui.panels.my_panel import MyNodeInfoPanel
-
-def register_builtin_panels(registry: PanelRegistry) -> None:
-    registry._register_class(MyNodeInfoPanel)
-```
-
 ### Library-level (ships inside a haybale library)
 
-Place decorated panel classes in a folder and scan it in `register_components()`:
+Place decorated panel classes in a folder and scan it in `register_components()`. If your
+panels reference a custom scope, register that scope first:
 
 ```python
 from haywire.ui.panel.registry import PanelRegistry
 
 class MyLibrary(BaseLibrary):
     def register_components(self):
-        """Register nodes and custom types"""
         base_path = Path(__file__).parent
-        ...
-        # Register panels
+
+        # Register custom scopes before panels
+        panel_registry = self.get_registry(PanelRegistry)
+        panel_registry.register_scope('properties', ScopeDescriptor(
+            scope_id='my_lib',
+            label='My Library',
+            icon='extension',
+            order=80,
+        ))
+
+        # Register panels (folder scan picks up all @panel-decorated classes)
         self.add_folder_to_registry(
             folder_path=str(base_path / 'panels'),
-            registry_cls=PanelRegistry
+            registry_cls=PanelRegistry,
         )
-
 ```
 
 Any `@panel`-decorated `BasePanel` subclass found in the folder (recursively) is registered. Non-decorated classes are silently ignored.
 
+### Panels that only use built-in scopes
+
+If your panels only reference built-in scopes (`node`, `edge`, `graph`, `app`, etc.) there
+is no need to call `register_scope()` — just scan the folder:
+
+```python
+self.add_folder_to_registry(
+    folder_path=str(base_path / 'panels'),
+    registry_cls=PanelRegistry,
+)
+```
+
 ### Hot-reload behaviour
 
-When a library is hot-reloaded, its panels are unregistered and re-registered automatically. The `PanelRegistry` secondary index (keyed by `(editor_key, context)`) is updated in place, so the next time the host editor rebuilds it picks up the new panel implementation. There is no need to navigate away or restart the server.
+When a library is hot-reloaded, its panels are unregistered and re-registered automatically. The `PanelRegistry` index (keyed by `(editor_key, scope_id)`) is updated in place, so the next time the host editor rebuilds it picks up the new panel implementation. There is no need to navigate away or restart the server.
 
 ---
 
@@ -353,7 +446,7 @@ When a library is hot-reloaded, its panels are unregistered and re-registered au
 
 ### Order
 
-The `order` parameter controls the top-to-bottom position of the panel within a context group. Panels with the same `order` value are sorted alphabetically by `registry_id`.
+The `order` parameter controls the top-to-bottom position of the panel within a scope. Panels with the same `order` value are sorted alphabetically by `registry_id`.
 
 Recommended convention:
 
@@ -390,27 +483,34 @@ This avoids very long single panels and lets users collapse sections they don't 
 
 ## 9. Building a Custom Panel-Aware Editor
 
-If the built-in `PropertiesEditor` doesn't fit your use case — for example, you want panels to appear in the Left area for a specific tool — you can build your own panel-aware editor.
+If the built-in `PropertiesEditor` doesn't fit your use case — for example, you want panels
+to appear in the Left area for a specific tool — you can build your own panel-aware editor.
 
 ### Querying the registry
 
-Get the `PanelRegistry` from `context.metadata` and call `get_panels()` with your editor's `registry_id` and the active context string:
+Get the `PanelRegistry` and call `get_panels()` with your editor's `registry_id` and the
+active scope ID:
 
 ```python
-panel_registry = context.metadata.get('panel_registry')
-if panel_registry is None:
-    return
+panel_registry = context.app.library_service.get_panel_registry()
 
 panels = panel_registry.get_panels(
     editor_key='my_tool',   # your editor's registry_id
-    context='node',         # whichever context is currently active
+    scope_id='node',        # whichever scope is currently active
 )
+```
+
+To build a scope toolbar, query `get_scopes()` and filter by `poll()`:
+
+```python
+all_scopes = panel_registry.get_scopes('my_tool')   # sorted by order
+available  = [s for s in all_scopes if s.poll(context)]
 ```
 
 ### Calling poll() and draw()
 
-For each panel class returned, call `poll()` and, if it returns `True`, instantiate the class
-and call `draw()` with a `PanelLayout` wrapping your container:
+For each panel class returned, call `poll()` and, if it returns `True`, instantiate the
+class and call `draw()` with a `PanelLayout` wrapping your container:
 
 ```python
 from haywire.ui.panel.base import PanelLayout
@@ -445,21 +545,6 @@ def on_context_changed(self, event, context) -> None:
                 self._render_panels(context)
 ```
 
-### Resolving context strings
-
-Implement whatever context resolution logic makes sense for your editor:
-
-```python
-def _resolve_context(self, context) -> str | None:
-    if context.active_node:
-        return 'node'
-    if context.active_edge:
-        return 'edge'
-    if context.active_graph:
-        return 'graph'
-    return None
-```
-
 ---
 
 ## 10. Best Practices
@@ -488,10 +573,18 @@ def poll(cls, context) -> bool:
     return node is not None and hasattr(node, 'config_ports') and bool(node.config_ports)
 ```
 
-**Test panels in isolation.** Because `poll()` and `draw()` only depend on `SessionContext` and `PanelLayout`, you can instantiate a panel and call these methods directly in unit tests without standing up the full NiceGUI server.
+**Register scopes before panels.** If your library introduces a custom scope, always call
+`panel_registry.register_scope()` before `add_folder_to_registry()`. Panels that reference
+an unregistered scope ID are still indexed and queryable, but the scope will not appear in
+the toolbar until it is registered.
+
+**Test panels in isolation.** Because `poll()` and `draw()` only depend on `SessionContext`
+and `PanelLayout`, you can instantiate a panel and call these methods directly in unit tests
+without standing up the full NiceGUI server.
 
 **Use `order` intentionally.** Don't leave every library panel at the default `order=100`.
-Think about where your panel belongs in the natural reading order (identity first, details second, actions last) and choose a value accordingly.
+Think about where your panel belongs in the natural reading order (identity first, details
+second, actions last) and choose a value accordingly.
 
 ---
 
@@ -512,7 +605,7 @@ if TYPE_CHECKING:
 @panel(
     registry_id='node_metrics',
     editor='properties',
-    context='node',
+    scope='node',
     label='Execution Metrics',
     icon='speed',
     order=90,
@@ -583,15 +676,12 @@ from haywire.ui.panel.registry import PanelRegistry
 
 class MyLibrary(BaseLibrary):
     def register_components(self):
-        """Register nodes and custom types"""
         base_path = Path(__file__).parent
-        ...
-        # Register panels
+        # Register panels — no custom scope needed, 'node' is built-in
         self.add_folder_to_registry(
             folder_path=str(base_path / 'panels'),
-            registry_cls=PanelRegistry
+            registry_cls=PanelRegistry,
         )
 ```
-```
 
-Place `node_metrics_panel.py` (containing `NodeMetricsPanel`) inside the `panels/` folder and it will be discovered and registered automatically. No further wiring is required — the `PropertiesEditor` will find it via the `PanelRegistry` the next time a node is selected.
+Place `node_metrics_panel.py` (containing `NodeMetricsPanel`) inside the `panels/` folder and it will be discovered and registered automatically. No further wiring is required — the `PropertiesEditor` will find it via the `PanelRegistry` the next time a node is selected and the **Node** scope tab is active.

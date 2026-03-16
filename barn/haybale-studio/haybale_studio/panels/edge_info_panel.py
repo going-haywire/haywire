@@ -13,7 +13,7 @@ if False:  # TYPE_CHECKING
 @panel(
     registry_id='edge_info',
     editor='properties',
-    context='edge',
+    scope='edge',
     label='Edge Info',
     icon='linear_scale',
     order=10,

@@ -478,11 +478,28 @@ class LibrarySystemService:
         for editor_key in all_editors:
             print(f"   • {editor_key}")
 
+        # Print registered scopes (grouped by editor)
+        print("\n🗂 Registered Scopes:")
+        editor_ids = {
+            panel_registry.get(k).class_identity.editor_key
+            for k in panel_registry.list_names()
+            if panel_registry.get(k)
+        }
+        for editor_id in sorted(editor_ids):
+            scopes = panel_registry.get_scopes(editor_id)
+            if not scopes:
+                continue
+            print(f"   {editor_id}:")
+            for scope in scopes:
+                print(f"      • {scope.scope_id}  ({scope.label})")
+
         # Print registered panels
         print("\n📋 Registered Panels:")
         all_panels = panel_registry.list_names()
         for panel_key in all_panels:
-            print(f"   • {panel_key}")
+            cls = panel_registry.get(panel_key)
+            scope_str = ', '.join(cls.class_identity.scope) if cls else '?'
+            print(f"   • {panel_key}  [{scope_str}]")
 
         # Print registered themes
         print("\n🌈 Registered Themes:")

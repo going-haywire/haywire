@@ -15,22 +15,24 @@ class PanelIdentity:
     Set once at class-definition time; survives hot-reload.
 
     Attributes:
-        registry_id: Short unique ID, e.g. 'node_transform'.
-        editor_key: Registry key of the editor this panel belongs to.
-        context: Context filter string, e.g. 'node', 'graph', 'edge'.
-        label: Display label shown in the panel header.
-        icon: Optional Material Design icon name.
-        order: Sort priority (lower = higher in the panel list).
+        registry_id:  Short unique ID, e.g. 'node_transform'.
+        editor_key:   Registry key of the editor this panel belongs to.
+        scope:        One or more scope IDs this panel appears under,
+                      e.g. ['node'] or ['my_lib', 'node'].
+                      Always stored as a list (normalised by the decorator).
+        label:        Display label shown in the panel header.
+        icon:         Optional Material Design icon name.
+        order:        Sort priority (lower = higher in the panel list).
         default_open: Whether the panel starts expanded.
-        description: Human-readable description.
+        description:  Human-readable description.
         registry_key: Fully-qualified key; set by decorator via reg_key().
     """
     registry_id: str
     editor_key: str
-    context: str
+    scope: list[str]
     label: str
     icon: Optional[str] = None
     order: int = 100
     default_open: bool = True
     description: str = ''
-    registry_key: str = ''      # fully-qualified key; set by decorator via reg_key()
+    registry_key: str = ''

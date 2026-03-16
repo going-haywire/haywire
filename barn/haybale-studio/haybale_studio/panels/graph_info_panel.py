@@ -13,7 +13,7 @@ if False:  # TYPE_CHECKING
 @panel(
     registry_id='graph_info',
     editor='properties',
-    context='graph',
+    scope='graph',
     label='Graph Info',
     icon='account_tree',
     order=10,

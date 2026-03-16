@@ -13,7 +13,7 @@ if False:  # TYPE_CHECKING
 @panel(
     registry_id='node_ports',
     editor='properties',
-    context='node',
+    scope='node',
     label='Ports',
     icon='device_hub',
     order=20,
