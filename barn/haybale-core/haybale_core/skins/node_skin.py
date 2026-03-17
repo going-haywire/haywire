@@ -13,14 +13,22 @@ from haywire.ui.utils import generate_pin_uuid
 if TYPE_CHECKING:
     from haywire.core.errors import HaywireException
 
-
 class NodeSkin(BaseSkin, ABC):
     """
     Base class for all NiceGui NodeSkin classes.
 
     NodeSkin classes are stateless and define the look and structure of nodes.
     They are cached and reused by the SkinFactory.
+
+    Layout constants (override in subclasses to tune spacing):
+        PIN_GUTTER      — width of the pin column and the pin's outward offset (px)
+        CONTENT_GAP     — horizontal gap between the pin gutter edge and the label/widget (px)
+        PIN_ROW_HEIGHT  — height of the pin cell, sets vertical centering target (px)
     """
+
+    PIN_GUTTER: int = 20
+    CONTENT_GAP: int = 0
+    PIN_ROW_HEIGHT: int = 24
 
     def render_port(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render a port according to its ort type"""
@@ -32,45 +40,58 @@ class NodeSkin(BaseSkin, ABC):
             self._render_config(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
 
     def _render_inlet(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
-        """Render an inlet with its pin and widget."""
-        with ui.row().classes("w-full items-center justify-start gap-0"):
-            # only render pins for inlets that are actually involved in flows
-            self._render_pin(port, wrapper, direction="left")
+        """Render an inlet port as a two-column grid: fixed PIN_GUTTER pin column | flex content."""
+        g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
+        with ui.element('div').style(
+            f'display: grid; grid-template-columns: {g}px 1fr; width: 100%; align-items: start;'
+        ):
+            # Pin gutter — fixed-width column, overflow visible so pin straddles card edge
+            with ui.element('div').style(
+                f'width: {g}px; height: {h}px; display: flex; align-items: center; '
+                'justify-content: center; overflow: visible; flex-shrink: 0;'
+            ):
+                self._render_pin(port, wrapper, direction='left')
 
-            # Pin label
-            ui.label(port.label).classes("text-xs zoom-pan-lod2")
-
-        # Render inlet widget if it has a pin that does not allow multiple connections
-        if not port.allow_multiple_links:
-            if port.widget_key:
-                # Widget rendering adds UI element to current context automatically
-                self.render_widget(port, wrapper.node_id, classes=widget_classes)
+            # Content column — label and optional widget stacked vertically
+            with ui.element('div').style(
+                f'display: flex; flex-direction: column; '
+                f'padding-left: {gap}px; padding-right: {g}px; min-width: 0;'
+            ):
+                ui.label(port.label).classes('text-xs zoom-pan-lod2')
+                if not port.allow_multiple_links and port.widget_key:
+                    self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
     def _render_outlet(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
-        """Render an outlet with its pin and widget."""
-        with ui.row().classes("w-full items-center justify-end gap-0"):
-            # Pin label
-            ui.label(port.label).classes("text-xs")
+        """Render an outlet port as a two-column grid: flex content | fixed PIN_GUTTER pin column."""
+        g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
+        with ui.element('div').style(
+            f'display: grid; grid-template-columns: 1fr {g}px; width: 100%; align-items: start;'
+        ):
+            # Content column — label right-aligned and optional widget
+            with ui.element('div').style(
+                f'display: flex; flex-direction: column; align-items: flex-end; '
+                f'padding-right: {gap}px; min-width: 0;'
+            ):
+                ui.label(port.label).classes('text-xs')
+                if not port.allow_multiple_links and port.widget_key:
+                    self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
-            # only render pins for outlets that are actually involved in flows
-            self._render_pin(port, wrapper, direction="right")
-
-        # Render outlet widget if it has a pin that does not allow multiple links
-        if not port.allow_multiple_links:
-            if port.widget_key:
-                # Widget rendering adds UI element to current context automatically
-                self.render_widget(port, wrapper.node_id, classes=widget_classes)
+            # Pin gutter — fixed-width column on the right
+            with ui.element('div').style(
+                f'width: {g}px; height: {h}px; display: flex; align-items: center; '
+                'justify-content: center; overflow: visible; flex-shrink: 0;'
+            ):
+                self._render_pin(port, wrapper, direction='right')
 
     def _render_config(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
-        """Render an config with its widget."""
-        with ui.row().classes("w-full items-center justify-start gap-0"):
-            # Pin label
-            ui.label(port.label).classes("text-xs")
-
-        # Render config widget if it has a pin that does not allow multiple links
-        if not port.allow_multiple_links:
-            if port.widget_key:
-                # Widget rendering adds UI element to current context automatically
+        """Render a config port — no pin, indented symmetrically to align with inlet/outlet labels."""
+        indent = self.PIN_GUTTER + self.CONTENT_GAP
+        with ui.element('div').style(
+            f'display: flex; flex-direction: column; width: 100%; '
+            f'padding-left: {indent}px; padding-right: {indent}px;'
+        ):
+            ui.label(port.label).classes('text-xs')
+            if not port.allow_multiple_links and port.widget_key:
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
     def _render_pin(self, pin: DataPort, wrapper: NodeWrapper, direction: str = "left"):
@@ -97,35 +118,34 @@ class NodeSkin(BaseSkin, ABC):
             f'data-pin-dir-y="{dir_y}"'
         )
 
+        pin_size = f"{self.PIN_GUTTER}px"
+        pin_offset = f"position: relative; {direction}: -{self.PIN_GUTTER}px; cursor: crosshair;"
+
         if pin.flow_type == FlowType.CONTROL:
-            # Get control flow color from theme
             ctrl_color = pin.color
-            # Pin connector
             if pin.is_inlet():
                 ctrl_icon = pin.icon_in or ICONS.JOIN_LEFT
             else:
                 ctrl_icon = pin.icon_out or ICONS.JOIN_RIGHT
             with (
-                ui.icon(ctrl_icon, color=ctrl_color, size="xs")
-                .classes("text-4xl port input-port connection-pin zoom-pan-lod0")
-                .style(f"position: absolute; {direction}: -20px; cursor: crosshair;")
+                ui.icon(ctrl_icon, color=ctrl_color, size=pin_size)
+                .classes("port input-port connection-pin zoom-pan-lod0")
+                .style(pin_offset)
                 .props(f'{common_props} data-pin-color="{ctrl_color}"')
             ):
                 with ui.tooltip().classes(ctrl_color):
                     self._tooltip_for_port(pin)
 
         elif pin.flow_type == FlowType.CALLBACK:
-            # Get callback flow color from theme
             callback_color = pin.color
             if pin.is_inlet():
                 callback_icon = pin.icon_in or ICONS.SWIPE_LEFT_ALT
             else:
                 callback_icon = pin.icon_out or ICONS.SWIPE_RIGHT_ALT
-            # Pin connector
             with (
-                ui.icon(callback_icon, color=callback_color, size="20px")
-                .classes("text-4xl port input-port connection-pin zoom-pan-lod0")
-                .style(f"position: absolute; {direction}: -20px; cursor: crosshair;")
+                ui.icon(callback_icon, color=callback_color, size=pin_size)
+                .classes("port input-port connection-pin zoom-pan-lod0")
+                .style(pin_offset)
                 .props(f'{common_props} data-pin-color="{callback_color}"')
             ):
                 with ui.tooltip().classes(callback_color):
@@ -134,7 +154,6 @@ class NodeSkin(BaseSkin, ABC):
         elif pin.flow_type == FlowType.DATA:
             pin_color = pin.color
             pin_data_type = pin._data.get_stored_type().class_identity.registry_key
-            # Get pin color: try data type specific, use pin.color as preference
             if pin.is_inlet():
                 if pin.allow_multiple_links:
                     if issubclass(pin._data.get_stored_type(), CompoundType):
@@ -152,9 +171,9 @@ class NodeSkin(BaseSkin, ABC):
                 else:
                     data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.CIRCLE
             with (
-                ui.icon(data_icon, color=pin_color, size="15px")
-                .classes("text-4xl port connection-pin zoom-pan-lod0")
-                .style(f"position: absolute; {direction}: -20px; cursor: crosshair;")
+                ui.icon(data_icon, color=pin_color, size=pin_size)
+                .classes("port connection-pin zoom-pan-lod0")
+                .style(pin_offset)
                 .props(f'{common_props} data-pin-data-type="{pin_data_type}" data-pin-color="{pin_color}"')
             ):
                 with ui.tooltip().classes(pin_color):

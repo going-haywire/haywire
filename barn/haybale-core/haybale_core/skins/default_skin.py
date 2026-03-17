@@ -36,8 +36,8 @@ class DefaultNodeSkin(NodeSkin):
         main_card.classes(
             'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
         ).style(
-            'background-color: var(--hw-node-bg); backdrop-filter: blur(10px);'
-        )        
+            'background-color: var(--hw-node-bg); backdrop-filter: blur(10px); overflow: visible;'
+        )
 
         with main_card:
             # Runtime errors indicator with popup
