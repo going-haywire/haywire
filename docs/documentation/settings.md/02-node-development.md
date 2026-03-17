@@ -127,7 +127,7 @@ class ImageFilterNode(BaseNode):
 **Rules:**
 
 - The accessor name is the variable name in the class body (inner class name or direct assignment name)
-- `LibrarySettings` schemas already have their namespace and full keys set by `@library_settings` — no override happens
+- `LibrarySettings` schemas already have their namespace and full keys set by `@settings` — no override happens
 - `_node` is a **reserved** accessor name (see below). Using it raises `ValueError` at decoration time
 
 ---

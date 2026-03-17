@@ -147,12 +147,12 @@ Base class for library-wide settings.
 from haywire.core.settings import LibrarySettings
 from haywire.core.settings.decorators import library_settings
 
-@library_settings(namespace='my_lib', label='My Library')
+@settings(namespace='my_lib', label='My Library')
 class MyLibSettings(LibrarySettings):
     api_url: str = setting('https://api.example.com')
 ```
 
-Must be decorated with `@library_settings`. `_field_key` is set at class definition time.
+Must be decorated with `@settings`. `_field_key` is set at class definition time.
 
 ### `GlobalSettings`
 
@@ -171,12 +171,12 @@ Registered explicitly via `registry.register_schema(cls)`.
 
 ## Decorators
 
-### `@library_settings(namespace, label='')`
+### `@settings(namespace, label='')`
 
 ```python
 from haywire.core.settings.decorators import library_settings, SettingsClassIdentity
 
-@library_settings(namespace='my_lib', label='My Library')
+@settings(namespace='my_lib', label='My Library')
 class MyLibSettings(LibrarySettings):
     ...
 ```

@@ -56,7 +56,7 @@ GlobalSettingsRegistry
 │   ├── ExecutionSettings (namespace='execution')
 │   └── EditorSettings (namespace='editor')
 │
-├── LibrarySettings schemas (discovered via @library_settings decorator)
+├── LibrarySettings schemas (discovered via @settings decorator)
 │
 ├── global ~/.haywire/settings.toml                    — user VALUES, global tier (hand-edited)
 └── workspace <workspace>/.haywire/settings.toml       — workspace VALUES, set via UI
@@ -92,7 +92,7 @@ self.settings.threshold
 
 - **[Overview](01-overview.md)** — Architecture, containers, descriptor types, serialization format
 - **[Node Development](02-node-development.md)** — Declaring `Settings` class, using descriptors, `on_change` callbacks
-- **[Library Development](03-library-development.md)** — Creating `LibrarySettings` with `@library_settings`, referencing with `shadow()`
+- **[Library Development](03-library-development.md)** — Creating `LibrarySettings` with `@settings`, referencing with `shadow()`
 - **[UI Integration](04-ui-integration.md)** — Building settings panels, widget factory, inheritance indicators
 - **[API Reference](05-reference.md)** — Complete descriptor, schema, registry, holder, and chain API
 - **[Testing Guide](06-testing.md)** — `create_test_settings_holder()`, `SettingsTestContext`, fixtures

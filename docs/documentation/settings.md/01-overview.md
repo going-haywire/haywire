@@ -33,7 +33,7 @@ GlobalSettingsRegistry
 │   ├── ExecutionSettings (namespace='execution') → execution.auto_execute ...
 │   └── EditorSettings (namespace='editor')   → editor.undo_limit ...
 │
-├── Library LibrarySettings schemas (discovered via @library_settings decorator)
+├── Library LibrarySettings schemas (discovered via @settings decorator)
 │
 ├── global settings.toml (~/.haywire/settings.toml)           — user VALUES, global tier (hand-edited)
 └── workspace settings.toml (<workspace>/.haywire/settings.toml) — workspace VALUES, set via UI

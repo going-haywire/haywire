@@ -6,7 +6,7 @@ This guide covers how to define `LibrarySettings` for your haybale library and h
 
 ## Creating a `LibrarySettings` Class
 
-Decorate a `LibrarySettings` subclass with `@library_settings`. This sets `_namespace` and `_field_key` on every descriptor immediately.
+Decorate a `LibrarySettings` subclass with `@settings`. This sets `_namespace` and `_field_key` on every descriptor immediately.
 
 ```python
 # my_lib/settings.py
@@ -14,7 +14,7 @@ from haywire.core.settings import LibrarySettings, setting, Color
 from haywire.core.settings.decorators import library_settings
 
 
-@library_settings(namespace='my_lib', label='My Library')
+@settings(namespace='my_lib', label='My Library')
 class MyLibSettings(LibrarySettings):
     api_url:          str   = setting('https://api.example.com', label='API URL', category='connection')
     api_timeout:      int   = setting(30, min=5, max=300,        label='Timeout (s)', category='connection')
@@ -29,7 +29,7 @@ Full keys are derived immediately: `my_lib.api_url`, `my_lib.api_timeout`, etc.
 
 ## Registering with the Global System
 
-The registry picks up classes with `_auto_register = True` (set by `@library_settings`) during library initialization. Alternatively, register explicitly:
+The registry picks up classes with `_auto_register = True` (set by `@settings`) during library initialization. Alternatively, register explicitly:
 
 ```python
 # my_lib/__init__.py
@@ -83,7 +83,7 @@ class ApiFetchNode(BaseNode):
         ...
 ```
 
-**Important:** Node classes using `shadow(MyLibSettings.field)` must be defined *after* `MyLibSettings` is decorated. The `@library_settings` decorator sets `_field_key` at class evaluation time.
+**Important:** Node classes using `shadow(MyLibSettings.field)` must be defined *after* `MyLibSettings` is decorated. The `@settings` decorator sets `_field_key` at class evaluation time.
 
 ---
 
@@ -130,7 +130,7 @@ from haywire.core.settings import LibrarySettings, setting, Color
 from haywire.core.settings.decorators import library_settings
 
 
-@library_settings(namespace='image_lib', label='Image Processing')
+@settings(namespace='image_lib', label='Image Processing')
 class ImageLibSettings(LibrarySettings):
 
     # Quality
