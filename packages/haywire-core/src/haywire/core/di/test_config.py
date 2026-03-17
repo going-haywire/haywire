@@ -12,7 +12,7 @@ from injector import Injector
 
 from ..settings import (
     GlobalSettingsRegistry, SettingsHolder, SettingMode, SettingValue,
-    NodeSettings, setting, Color,
+    NodeSettings, GlobalSettings, setting, Color,
 )
 
 if TYPE_CHECKING:
@@ -27,6 +27,12 @@ class _TestNodeSettings(NodeSettings, namespace='test.node'):
     bg_color: Color = setting('#ffffff', label='Background Color')
     font_size: int = setting(12, label='Font Size', min=8, max=72)
     verbose: bool = setting(False, label='Verbose Mode')
+
+
+class _TestGlobalSettings(GlobalSettings, namespace='test.global'):
+    """Minimal GlobalSettings for unit tests that need registered global keys."""
+    verbose_logging: bool = setting(False, label='Verbose Logging')
+    font_size:       int  = setting(12,    label='Font Size', min=8, max=72)
 
 
 def create_test_injector(

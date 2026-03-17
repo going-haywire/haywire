@@ -45,12 +45,12 @@ Node types (DATA, CONTROL, EVENT, OUTPUT, LOOPBACK) are determined by control po
   - `haywire/core/` — graph engine, DI, nodes, edges, ports, types, execution, settings
   - `haywire/ui/` — NiceGUI renderers, widgets, canvas, themes
   - `haywire/undo/` — undo/redo history management
-- **`packages/haywire-app/`** — CLI application (`haywire` entry point)
-  - `app.py` — main `HaywireApp` class (~1800 lines)
+- **`packages/haywire-studio/`** — CLI application (`haywire` entry point)
+  - `app.py` — main `HaywireApp` class (~500 lines)
   - `config.py` — global/project TOML config
-  - `library_manager.py` / `library_manager_ui.py` — runtime library install/UI
+  - `library_manager.py` — runtime library install/UI
   - `init.py` / `share.py` — CLI subcommands
-- **`libraries/haybale-*/`** — plugin node libraries
+- **`barn/haybale-*/`** — plugin node libraries
 
 ### Dependency Injection
 

@@ -44,7 +44,7 @@ class PanelLayout:
     def column(self) -> Any:
         """Return a NiceGUI column context manager."""
         from nicegui import ui
-        return ui.column()
+        return ui.column().classes('w-full gap-0')
 
     def separator(self) -> None:
         """Add a visual divider."""

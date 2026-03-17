@@ -42,7 +42,7 @@ def _workspace_rel_path(path: Path, workspace_root: 'Path | None') -> str:
 @editor(
     registry_id='graph_manager',
     label='Graphs',
-    icon='layers',
+    icon='account_tree',
     default_area='left',
     description='All open graphs. Click to switch; "+" to create a new graph.',
 )
@@ -84,7 +84,7 @@ class GraphManagerEditor(BaseEditor):
         with ui.row().classes(
             'w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1'
         ):
-            ui.icon('layers', size='16px').classes('hw-text-dim')
+            ui.icon('account_tree', size='16px').classes('hw-text-dim')
             ui.label('GRAPHS').classes(
                 'text-xs font-bold tracking-wider hw-text-dim flex-1'
             )

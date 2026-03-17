@@ -69,50 +69,26 @@ class AppShell:
         self._btn_right = None      # ContextBar toggle button for right panel
 
     def _build_initial_theme_css(self) -> str:
-        """
-        Build the :root CSS block from the active WorkbenchTheme.
+        """Build the :root CSS block from the active WorkbenchTheme."""
+        context = self.session.context
+        settings_registry = context.app.library_service.get_settings_registry()
+        theme_registry = context.app.library_service.get_theme_registry()
+        wb_theme_key, _ = settings_registry.resolve('workbench.theme')
+        valid_keys = [k for k in theme_registry.list_workbench_keys() if not k.startswith('__system__:')]
+        if wb_theme_key not in valid_keys:
+            wb_theme_key = valid_keys[0]
+            settings_registry.set_global('workbench.theme', wb_theme_key)
+        context.active_workbench_theme_key = wb_theme_key
+        theme = theme_registry.get_workbench(context.active_workbench_theme_key)
+        vars_str = ' '.join(f'{k}: {v};' for k, v in theme.to_css_vars().items())
+        return f' :root {{ {vars_str} }}'
 
-        Falls back to HaywireFallbackTheme if ThemeRegistry is unavailable.
-        """
-        try:
-            context = self.session.context
-            # Initialise from settings registry on first render; falls back to field default.
-            settings_registry = context.app.library_service.get_settings_registry()
-            wb_theme, _ = settings_registry.resolve('workbench.theme')
-            theme_registry = context.app.library_service.get_theme_registry()
-            if wb_theme and theme_registry is not None:
-                full_keys = theme_registry.list_workbench_keys()
-                if wb_theme in full_keys:
-                    context.active_workbench_theme_key = wb_theme
-                else:
-                    matched = next((k for k in full_keys if k.endswith(f':{wb_theme}')), None)
-                    if matched:
-                        context.active_workbench_theme_key = matched
-            node_theme, _ = settings_registry.resolve('node.theme')
-            if node_theme:
-                context.active_node_theme_key = node_theme
-            theme_key = context.active_workbench_theme_key
-            if theme_registry is not None:
-                theme = theme_registry.get_workbench(theme_key)
-            else:
-                from haywire.ui.themes.builtin import DefaultTheme
-                theme = DefaultTheme()
-            vars_str = ' '.join(f'{k}: {v};' for k, v in theme.to_css_vars().items())
-            return f' :root {{ {vars_str} }}'
-        except Exception:
-            # Minimal safe fallback
-            return (
-                ' :root {'
-                '   --hw-bg-page: #12121e; --hw-bg-surface: #1e1e2e; --hw-bg-sidebar: #181825;'
-                '   --hw-border: #333333;'
-                '   --hw-text-body: rgba(255,255,255,0.87); --hw-text-muted: rgba(255,255,255,0.55);'
-                '   --hw-text-dim: rgba(255,255,255,0.6); --hw-text-expansion: rgba(255,255,255,0.8);'
-                '   --hw-accent: #4f8ef7; --hw-statusbar-bg: #1e3a5f;'
-                '   --hw-console-bg: #0d1117; --hw-console-text: #4ade80;'
-                ' }'
-            )
+    def _on_setting_changed(self, name: str, value) -> None:
+        """React to global setting changes that the shell cares about."""
+        if name == 'workbench.theme' and value.value:
+            self.apply_workbench_theme(value.value)
 
-    async def apply_workbench_theme(self, registry_key: str) -> None:
+    def apply_workbench_theme(self, registry_key: str) -> None:
         """
         Dynamically switch the active workbench theme by updating CSS variables.
 
@@ -126,10 +102,9 @@ class AppShell:
             context.active_workbench_theme_key = registry_key
             for css_var, value in theme.to_css_vars().items():
                 safe_value = value.replace("'", "\\'")
-                await ui.run_javascript(
+                ui.run_javascript(
                     f"document.documentElement.style.setProperty('{css_var}', '{safe_value}')"
                 )
-            # Notify editors that care about theme changes (e.g. CodeMirror source viewer).
             self.session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.WORKBENCH_THEME_CHANGED,
@@ -137,8 +112,7 @@ class AppShell:
                 )
             )
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Failed to apply workbench theme '{theme_registry}': {e}")
+            logging.getLogger(__name__).error(f"Failed to apply workbench theme '{registry_key}': {e}")
 
     def render(self) -> None:
         """Build the complete workspace layout into the current NiceGUI page."""
@@ -196,6 +170,10 @@ class AppShell:
             ' .q-menu .q-item:hover { background: var(--hw-bg-surface) !important; }'
         )
         ui.add_css(self._build_initial_theme_css() + _static_css)
+
+        # React to workbench.theme setting changes (e.g. from the settings panel).
+        settings_registry = self.session.context.app.library_service.get_settings_registry()
+        settings_registry.add_listener(self._on_setting_changed)
         ui.add_head_html('''<script>
 (function () {
   var drag = null;
@@ -380,18 +358,6 @@ class AppShell:
                 on_click=lambda: (wm.save_current(), ui.notify('Workspace saved', position='top-right')),
             ).props('flat round dense color=grey').tooltip('Save current workspace').classes('text-gray-400')
 
-            context = self.session.context
-            theme_registry = context.app.library_service.get_theme_registry()
-            if theme_registry is not None:
-                theme_options = {key: lbl for key, lbl in theme_registry.list_workbench_themes()}
-                current_theme = context.active_workbench_theme_key
-                if current_theme not in theme_options:
-                    current_theme = next(iter(theme_options), None)
-                theme_select = ui.select(
-                    options=theme_options,
-                    value=current_theme,
-                ).props('dense outlined').classes('text-sm hw-text-muted').style('min-width: 160px;')
-                theme_select.on_value_change(lambda e: self.apply_workbench_theme(e.value))
             
     def _render_activity_bar(self) -> None:
         """Render the activity bar (left icon strip) that drives the Left Area."""

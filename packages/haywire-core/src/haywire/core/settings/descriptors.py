@@ -64,8 +64,15 @@ class SettingDescriptor:
     # Widget inference hints (used by properties panel)
     _min: Any = None
     _max: Any = None
-    _choices: list | None = None
+    _choices: list | Callable | None = None
     _widget: str | None = None   # explicit override: 'color', 'slider', 'toggle', etc.
+
+    @property
+    def choices(self) -> list | None:
+        """Resolve choices — calls the provider if it is a callable."""
+        if callable(self._choices):
+            return self._choices()
+        return self._choices
 
     def __set_name__(self, owner: type, name: str) -> None:
         # Each instance must have its own copy of _attr_name and _field_key
@@ -93,7 +100,9 @@ class SettingDescriptor:
                 return False
             elif self._type is int and not isinstance(value, int):
                 return False
-        if self._choices is not None and value not in self._choices:
+        resolved_choices = self.choices
+        valid = list(resolved_choices.keys()) if isinstance(resolved_choices, dict) else resolved_choices
+        if valid is not None and value not in valid:
             return False
         if self._min is not None and value < self._min:
             return False
@@ -132,7 +141,7 @@ class SettingDescriptor:
             'category': self._category,
             'min_value': self._min,
             'max_value': self._max,
-            'choices': self._choices,
+            'choices': self.choices,
             'ui_widget': self._widget,
             'ui_order': self._order,
         }

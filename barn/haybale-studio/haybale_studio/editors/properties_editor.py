@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from nicegui.element import Element
 
 _SCOPE_KEY = 'properties_scope'
+_EXPANSION_KEY = 'properties_expansion'
 
 
 @editor(
@@ -94,7 +95,7 @@ class PropertiesEditor(BaseEditor):
                     'border-right: 1px solid var(--hw-border);'
                 )
                 self._content = ui.column().classes('flex-1 gap-0').style(
-                    'overflow-y: auto; min-width: 0;'
+                    'overflow-y: auto; min-width: 0; min-height: 0; height: 100%;'
                 )
         self._refresh(context)
 
@@ -213,14 +214,19 @@ class PropertiesEditor(BaseEditor):
                 has_panels = True
                 default_open = getattr(panel_cls.class_identity, 'default_open', True)
                 icon = getattr(panel_cls.class_identity, 'icon', None)
+                panel_key = f'{active_scope_id}:{panel_cls.class_identity.registry_key}'
+                exp_state: dict = context.metadata.setdefault(_EXPANSION_KEY, {})
+                is_open = exp_state.get(panel_key, default_open)
 
-                with ui.expansion(
+                exp = ui.expansion(
                     panel_cls.class_identity.label,
                     icon=icon,
-                    value=default_open,
+                    value=is_open,
                 ).classes('w-full').style(
                     'border-bottom: 1px solid var(--hw-border);'
-                ):
+                )
+                exp.on('update:modelValue', lambda e, k=panel_key: exp_state.update({k: e.args}))
+                with exp:
                     panel_container = ui.column().classes('w-full gap-1 p-1')
                     layout = PanelLayout(panel_container)
                     try:

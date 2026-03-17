@@ -10,10 +10,10 @@ from haywire.core.di.test_config import (
 
 def test_node_uses_setting():
     """Values pre-set in the global registry are returned by resolve()."""
-    registry = create_test_settings_registry({'ui.node.bg_color': '#ff0000'})
+    registry = create_test_settings_registry({'node.muted': True})
 
-    value, source = registry.resolve('ui.node.bg_color')
-    assert value == '#ff0000'
+    value, source = registry.resolve('node.muted')
+    assert value is True
     assert source == 'global'
 
 
@@ -49,18 +49,21 @@ def test_global_override_wins():
 
 def test_with_modified_settings():
     """SettingsTestContext restores original registry values after the block."""
+    from haywire.core.di.test_config import _TestGlobalSettings
+
     service = create_test_library_system(load_libraries=False)
     registry = service.get_settings_registry()
+    registry.register_schema(_TestGlobalSettings)
 
     with SettingsTestContext(registry) as ctx:
-        ctx.set('debug.verbose_logging', True)
-        ctx.set_override('ui.node.font_size', 20)
+        ctx.set('test.global.verbose_logging', True)
+        ctx.set_override('test.global.font_size', 20)
 
-        assert registry.resolve('debug.verbose_logging')[0] is True
-        assert registry.resolve('ui.node.font_size')[0] == 20
+        assert registry.resolve('test.global.verbose_logging')[0] is True
+        assert registry.resolve('test.global.font_size')[0] == 20
 
-    assert registry.resolve('debug.verbose_logging')[0] is False
-    assert registry.resolve('ui.node.font_size')[0] == 12
+    assert registry.resolve('test.global.verbose_logging')[0] is False
+    assert registry.resolve('test.global.font_size')[0] == 12
 
 
 def test_full_system_with_settings():

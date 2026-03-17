@@ -743,6 +743,11 @@ def get_library_system() -> LibrarySystemService:
     return _global_library_system
 
 
+def get_theme_registry() -> 'ThemeRegistry':
+    """Get the ThemeRegistry from the global library system."""
+    return get_library_system().get_theme_registry()
+
+
 def get_settings_registry() -> GlobalSettingsRegistry:
     """
     Get the GlobalSettingsRegistry from the global library system.

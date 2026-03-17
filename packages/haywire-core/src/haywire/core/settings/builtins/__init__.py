@@ -1,6 +1,12 @@
 # haywire/core/settings/builtins/__init__.py
 """
-Built-in settings definitions (schema-based GlobalSettings classes).
+Framework-level built-in settings.
+
+Only NodeInstanceSettings lives here — it is injected into every node by the
+framework itself and must be available before any library is loaded.
+
+All other settings (ui.node, ui.edge, ui.canvas, ui.minimap, execution,
+debug, editor, workbench, node theme) are registered by haybale-studio.
 """
 
 from typing import TYPE_CHECKING
@@ -8,37 +14,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..registry import GlobalSettingsRegistry
 
-# Import all builtin modules to ensure schema classes are defined
-from .ui_node import NodeUISettings
-from .ui_edge import EdgeUISettings
-from .ui_canvas import CanvasUISettings
-from .ui_minimap import MinimapUISettings
-from .execution import ExecutionSettings
-from .debug import DebugSettings
-from .editor import EditorSettings
-from .workbench import WorkbenchSettings, NodeThemeSettings
 from .node_instance import NodeInstanceSettings  # noqa: F401 — re-exported for callers
-
-# All GlobalSettings schema classes (for explicit registration)
-BUILTIN_SCHEMA_CLASSES = [
-    NodeUISettings,
-    EdgeUISettings,
-    CanvasUISettings,
-    MinimapUISettings,
-    ExecutionSettings,
-    DebugSettings,
-    EditorSettings,
-    WorkbenchSettings,
-    NodeThemeSettings,
-]
 
 
 def register_all(registry: 'GlobalSettingsRegistry') -> None:
-    """
-    Register all built-in global settings schema classes.
-
-    Args:
-        registry: The global settings registry
-    """
-    for cls in BUILTIN_SCHEMA_CLASSES:
-        registry.register_schema(cls)
+    """Register framework-level built-in settings (NodeInstanceSettings only)."""
+    registry.register_schema(NodeInstanceSettings)

@@ -5,6 +5,7 @@ NodePropertiesPanel — shows basic node identity information.
 
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
+from haybale_studio.panels._settings_panel_base import render_sub_holder
 
 if False:  # TYPE_CHECKING
     from haywire.ui.context import SessionContext
@@ -38,3 +39,39 @@ class NodePropertiesPanel(BasePanel):
         layout.label(f"Name: {label}")
         layout.label(f"Class: {cls_name}")
         layout.label(f"ID: {node_id}")
+
+
+@panel(
+    registry_id='node_instance_settings',
+    editor='properties',
+    scope='node',
+    label='Node',
+    icon='settings',
+    order=20,
+    default_open=True,
+)
+class NodeInstanceSettingsPanel(BasePanel):
+    """Displays per-instance node settings (muted, collapsed, pinned, etc.)."""
+
+    @classmethod
+    def poll(cls, context: 'SessionContext') -> bool:
+        node = context.active_node
+        return (
+            node is not None
+            and hasattr(node, 'node')
+            and node.node is not None
+            and hasattr(node.node, 'settings')
+            and '_node' in node.node.settings
+        )
+
+    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+        node = context.active_node
+        if node is None:
+            return
+        try:
+            sub_holder = node.node.settings._node
+        except AttributeError:
+            layout.label('Node settings unavailable')
+            return
+        with layout.column():
+            render_sub_holder(sub_holder)
