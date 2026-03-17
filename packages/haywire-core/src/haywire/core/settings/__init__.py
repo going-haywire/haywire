@@ -10,7 +10,7 @@ from .holder import SettingsHolder, SettingInfo
 from .types import Color, Icon
 from .descriptors import setting, shadow, watch, SettingDescriptor
 from .schema import NodeSettings, LibrarySettings, GlobalSettings, _EmptyNodeSettings
-from .decorators import SettingsClassIdentity, library_settings
+from .decorator import SettingsClassIdentity, settings
 
 __all__ = [
     'SettingMode',
@@ -29,5 +29,5 @@ __all__ = [
     'GlobalSettings',
     '_EmptyNodeSettings',
     'SettingsClassIdentity',
-    'library_settings',
+    'settings',
 ]

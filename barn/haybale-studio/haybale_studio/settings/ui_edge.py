@@ -3,10 +3,10 @@
 
 from haywire.core.settings.schema import GlobalSettings
 from haywire.core.settings.descriptors import setting
-from haywire.core.settings.decorators import library_settings
+from haywire.core.settings.decorator import settings
 
 
-@library_settings(namespace='ui.edge', label='Edge UI')
+@settings(namespace='ui.edge', label='Edge UI')
 class EdgeUISettings(GlobalSettings):
     """Global settings controlling edge routing, width, and animation behaviour."""
 

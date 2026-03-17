@@ -4,7 +4,7 @@
 import pytest
 from haywire.core.settings.descriptors import setting, shadow, watch, SettingDescriptor
 from haywire.core.settings.schema import NodeSettings, GlobalSettings
-from haywire.core.settings.decorators import library_settings
+from haywire.core.settings.decorator import settings
 from haywire.core.settings.schema import LibrarySettings
 
 
@@ -75,7 +75,7 @@ class TestSettingDescriptor:
 # shadow() descriptor
 # ---------------------------------------------------------------------------
 
-@library_settings(namespace='shadow_lib')
+@settings(namespace='shadow_lib')
 class _ShadowLib(LibrarySettings):
     bg_color: str = setting('#1e1e2e', label='BG Color', category='appearance')
     timeout: int  = setting(30, min=5, max=300, label='Timeout')

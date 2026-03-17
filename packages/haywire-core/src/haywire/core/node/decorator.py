@@ -27,7 +27,7 @@ def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
         'haybale_core:node:transform' → 'haybale_core.node.transform'
 
     Skipped for schemas whose ``_namespace`` is already set (explicitly via the
-    ``namespace=`` kwarg or by ``@library_settings``).
+    ``namespace=`` kwarg or by ``@settings``).
     """
     from haywire.core.settings.schema import _SettingsSchema, NodeSettings
 
@@ -37,7 +37,7 @@ def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
         if not (isinstance(val, type) and issubclass(val, _SettingsSchema) and val is not _SettingsSchema):
             continue
         # Assign namespace for NodeSettings subclasses only (LibrarySettings
-        # already have their namespace set by @library_settings).
+        # already have their namespace set by @settings).
         if issubclass(val, NodeSettings) and not val._namespace:
             ns = registry_key.replace(':', '.')
             val._namespace = ns

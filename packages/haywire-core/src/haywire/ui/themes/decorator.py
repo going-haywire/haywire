@@ -5,7 +5,7 @@ Decorators for registering WorkbenchTheme and NodeTheme classes.
 @theme(registry_id=...) — marks a WorkbenchTheme or NodeTheme subclass for auto-discovery
 by ThemeRegistry when a library calls add_folder().
 
-Consistent with @node, @editor, @panel, @library_settings pattern:
+Consistent with @node, @editor, @panel, @settings pattern:
   - Derives library identity via derive_library_identity()
   - Attaches class_library so hot-reload works
   - Auto-detects theme_type from the base class

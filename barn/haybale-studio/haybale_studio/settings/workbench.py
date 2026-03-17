@@ -3,11 +3,11 @@
 
 from haywire.core.settings.schema import GlobalSettings
 from haywire.core.settings.descriptors import setting
-from haywire.core.settings.decorators import library_settings
+from haywire.core.settings.decorator import settings
 from haywire.core.di.config import get_theme_registry
 
 
-@library_settings(namespace='workbench', label='Workbench')
+@settings(namespace='workbench', label='Workbench')
 class WorkbenchSettings(GlobalSettings):
     """Global settings controlling the active workbench theme."""
 
@@ -22,7 +22,7 @@ class WorkbenchSettings(GlobalSettings):
     )
 
 
-@library_settings(namespace='node_theme', label='Node Theme')
+@settings(namespace='node_theme', label='Node Theme')
 class NodeThemeSettings(GlobalSettings):
     """Global settings controlling the active node theme."""
 

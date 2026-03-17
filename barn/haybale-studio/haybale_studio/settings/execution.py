@@ -3,10 +3,10 @@
 
 from haywire.core.settings.schema import GlobalSettings
 from haywire.core.settings.descriptors import setting
-from haywire.core.settings.decorators import library_settings
+from haywire.core.settings.decorator import settings
 
 
-@library_settings(namespace='execution', label='Execution')
+@settings(namespace='execution', label='Execution')
 class ExecutionSettings(GlobalSettings):
     """Global settings controlling graph execution behaviour."""
 

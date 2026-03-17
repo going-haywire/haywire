@@ -10,7 +10,7 @@ from haywire.core.settings.schema import (
     GlobalSettings,
     _EmptyNodeSettings,
 )
-from haywire.core.settings.decorators import library_settings
+from haywire.core.settings.decorator import settings
 
 
 # ---------------------------------------------------------------------------
@@ -87,10 +87,10 @@ class TestNodeSettings:
 
 
 # ---------------------------------------------------------------------------
-# LibrarySettings + @library_settings decorator
+# LibrarySettings + @settings decorator
 # ---------------------------------------------------------------------------
 
-@library_settings(namespace='mylib', label='My Library')
+@settings(namespace='mylib', label='My Library')
 class _LS(LibrarySettings):
     rate: int  = setting(4, min=1, max=20, label='Rate')
     mode: str  = setting('fast', choices=['fast', 'slow'], label='Mode')

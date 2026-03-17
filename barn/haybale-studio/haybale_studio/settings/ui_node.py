@@ -3,10 +3,10 @@
 
 from haywire.core.settings.schema import GlobalSettings
 from haywire.core.settings.descriptors import setting
-from haywire.core.settings.decorators import library_settings
+from haywire.core.settings.decorator import settings
 
 
-@library_settings(namespace='ui.node', label='Node UI')
+@settings(namespace='ui.node', label='Node UI')
 class NodeUISettings(GlobalSettings):
     """Global settings controlling node layout, dimensions, and label visibility."""
 

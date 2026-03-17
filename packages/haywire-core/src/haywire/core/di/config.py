@@ -194,15 +194,9 @@ class HaywireModule(Module):
     def provide_theme_registry(self) -> ThemeRegistry:
         """Provide singleton ThemeRegistry.
 
-        HaywireFallbackTheme is registered immediately so the UI has at least
-        one workbench theme available before libraries load.  The canonical
-        Haywire themes (haywire-dark, haywire-light, default node theme) are
-        registered by haybale-core via register_components() when libraries load.
+        Themes are registered by haybale-core via register_components() when libraries load.
         """
-        from ...ui.themes.builtin import DefaultTheme
-        registry = ThemeRegistry()
-        registry.register_workbench(DefaultTheme)
-        return registry
+        return ThemeRegistry()
 
     def _detect_project_root(self) -> str:
         """Auto-detect project root by looking for pyproject.toml."""

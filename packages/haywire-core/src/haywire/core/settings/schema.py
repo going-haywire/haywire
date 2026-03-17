@@ -5,7 +5,7 @@ Base schema classes for the Haywire settings system.
 Hierarchy:
     _SettingsSchema          — shared base: collects _SettingDescriptor fields
         NodeSettings         — for node-local Settings inner classes
-        LibrarySettings      — for library-global settings (requires @library_settings)
+        LibrarySettings      — for library-global settings (requires @settings)
         GlobalSettings       — for framework built-in settings (namespace= kwarg required)
         WorkbenchTheme       — defined separately in ui/themes/workbench.py
         NodeTheme            — defined separately in ui/themes/node_theme.py
@@ -72,10 +72,10 @@ class NodeSettings(_SettingsSchema):
 
 class LibrarySettings(_SettingsSchema):
     """
-    Library-global settings. Must be decorated with @library_settings to be
+    Library-global settings. Must be decorated with @settings to be
     registered with GlobalSettingsRegistry (the decorator sets class_identity).
 
-    The namespace= kwarg on the class line is optional — @library_settings sets
+    The namespace= kwarg on the class line is optional — @settings sets
     it authoritatively (and overrides any kwarg-set namespace).
 
     Discovered automatically via GlobalSettingsRegistry folder scan when

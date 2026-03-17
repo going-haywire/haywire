@@ -197,10 +197,10 @@ class GlobalSettingsRegistry(BaseRegistry):
         Explicitly register a GlobalSettings or LibrarySettings schema class.
 
         Creates a class_identity from _namespace if not already present
-        (needed for GlobalSettings built-ins that don't use @library_settings).
+        (needed for GlobalSettings built-ins that don't use @settings).
         """
         if not hasattr(schema_cls, 'class_identity'):
-            from .decorators import SettingsClassIdentity
+            from .decorator import SettingsClassIdentity
             from haywire.core.library.utils import derive_library_identity, reg_key
             ns = schema_cls._namespace
             lib = library_identity or derive_library_identity(schema_cls)

@@ -3,10 +3,10 @@
 
 from haywire.core.settings.schema import GlobalSettings
 from haywire.core.settings.descriptors import setting
-from haywire.core.settings.decorators import library_settings
+from haywire.core.settings.decorator import settings
 
 
-@library_settings(namespace='ui.canvas', label='Canvas UI')
+@settings(namespace='ui.canvas', label='Canvas UI')
 class CanvasSettings(GlobalSettings):
     """Global settings controlling canvas grid, zoom, and pan behaviour."""
 

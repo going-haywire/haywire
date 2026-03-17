@@ -5,8 +5,7 @@ Provides theming support via WorkbenchTheme and NodeTheme Python classes,
 registered through the ThemeRegistry DI singleton.
 
 The canonical Haywire themes (haywire-dark, haywire-light) are defined in
-haybale-core and registered via register_components().  A minimal fallback
-theme (haywire-default) is registered by the framework before libraries load.
+haybale-core and registered via register_components().
 """
 
 from haywire.ui.themes.workbench import WorkbenchTheme

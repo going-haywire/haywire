@@ -4,7 +4,7 @@
 import pytest
 from haywire.core.settings.descriptors import setting
 from haywire.core.settings.schema import GlobalSettings, LibrarySettings
-from haywire.core.settings.decorators import library_settings
+from haywire.core.settings.decorator import settings
 from haywire.core.settings.enums import SettingMode
 from haywire.core.settings.registry import GlobalSettingsRegistry
 
@@ -50,7 +50,7 @@ class TestRegisterSchema:
 # register_schema for LibrarySettings
 # ---------------------------------------------------------------------------
 
-@library_settings(namespace='hot.lib')
+@settings(namespace='hot.lib')
 class _HotLib(LibrarySettings):
     rate: int = setting(4, min=1, max=20)
 
@@ -65,7 +65,7 @@ class TestRegisterLibrarySchema:
         assert val == 4
 
     def test_existing_class_identity_preserved(self):
-        """@library_settings already set class_identity; register_schema must not overwrite."""
+        """@settings already set class_identity; register_schema must not overwrite."""
         registry = GlobalSettingsRegistry()
         original_key = _HotLib.class_identity.registry_key
         registry.register_schema(_HotLib)
