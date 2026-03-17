@@ -202,20 +202,32 @@ class LibraryComponentEditor(BaseEditor):
                             self._render_widget_view(cls)
 
                     with ui.tab_panel(t_docs).style('height: 100%; overflow-y: auto; padding: 0;'):
-                        if doc_file and doc_file.exists():
-                            doc_text = doc_file.read_text()
-                            lines = doc_text.split('\n')
-                            if lines and lines[0].startswith('<!--'):
-                                doc_text = '\n'.join(lines[2:])
-                            ui.markdown(doc_text).classes('w-full text-sm')
-                        else:
-                            with ui.column().classes('gap-1 py-4'):
-                                ui.label('No documentation file found.').classes(
-                                    'hw-text-muted text-sm'
-                                )
-                                ui.label('Run /docs to generate per-component docs.').classes(
-                                    'hw-text-dim text-xs italic'
-                                )
+                        with ui.column().classes('w-full gap-0 p-4'):
+                            if doc_file and doc_file.exists():
+                                doc_text = doc_file.read_text()
+                                lines = doc_text.split('\n')
+                                if lines and lines[0].startswith('<!--'):
+                                    doc_text = '\n'.join(lines[2:])
+                                ui.markdown(doc_text).classes('w-full text-sm')
+                            else:
+                                docstring = inspect.getdoc(cls) if cls else None
+                                if docstring:
+                                    ui.markdown(docstring).classes('w-full text-sm')
+                                else:
+                                    ui.label('No documentation available.').classes(
+                                        'hw-text-muted text-sm italic'
+                                    )
+                                ui.separator().classes('my-3')
+                                with ui.row().classes('w-full items-start gap-2'):
+                                    ui.icon('info').classes('hw-text-dim text-sm mt-0.5 flex-shrink-0')
+                                    with ui.column().classes('gap-0.5 min-w-0'):
+                                        ui.label('Generate richer docs').classes(
+                                            'text-xs font-bold hw-text-dim'
+                                        )
+                                        ui.label(
+                                            'Run /haybale-gen-docs to produce per-component Markdown files,'
+                                            ' or add a detailed docstring directly to the class.'
+                                        ).classes('text-xs hw-text-dim')
 
                     if t_source:
                         with ui.tab_panel(t_source).style(
@@ -232,7 +244,7 @@ class LibraryComponentEditor(BaseEditor):
                             ):
                                 self._code_editor = ui.codemirror(
                                     src_file.read_text(),
-                                    language='Python',
+                                   language='Python',
                                     theme=self._codemirror_theme(context),
                                 ).style('flex: 1; min-height: 0; width: 100%; height: 100%;')
                             if is_editable:
