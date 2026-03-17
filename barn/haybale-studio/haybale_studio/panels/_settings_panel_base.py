@@ -81,7 +81,7 @@ def _render_sub_holder_field(
 
     label_text = defn._label or attr_name
 
-    with ui.row().classes('w-full items-center justify-between gap-2 px-2 py-0.5'):
+    with ui.row().classes('w-full items-center justify-between gap-0 px-2 py-0'):
         lbl = ui.label(label_text).classes('text-sm flex-1 min-w-0 truncate')
         if defn._description:
             lbl.tooltip(defn._description)
@@ -115,7 +115,7 @@ def _render_field(defn: 'SettingDescriptor', registry: 'GlobalSettingsRegistry')
 
     label_text = defn._label or defn._attr_name or key.split('.')[-1]
 
-    with ui.row().classes('w-full items-center justify-between gap-2 px-2 py-0.5'):
+    with ui.row().classes('w-full items-center justify-between gap-0 px-2 py-0'):
         lbl = ui.label(label_text).classes('text-sm flex-1 min-w-0 truncate')
         if defn._description:
             lbl.tooltip(defn._description)
@@ -145,7 +145,7 @@ def _render_widget_impl(defn: 'SettingDescriptor', value: Any, make_setter) -> N
             options=resolved_choices,
             value=value,
             on_change=make_setter(lambda v: v),
-        ).classes('flex-1 min-w-0 text-sm')
+        ).classes('flex-1 min-w-0 text-sm').props('dense')
         return
 
     # ── Bool → switch ────────────────────────────────────────────────────────
@@ -170,14 +170,14 @@ def _render_widget_impl(defn: 'SettingDescriptor', value: Any, make_setter) -> N
             value=value,
             on_change=make_setter(defn._type),
             **kwargs,
-        ).classes('flex-1 min-w-0 text-sm')
+        ).classes('flex-1 min-w-0 text-sm').props('dense hide-bottom-space input-style="appearance:none;-moz-appearance:textfield;" input-class="text-center"')
         return
 
     # ── String fallback → input ──────────────────────────────────────────────
     ui.input(
         value=str(value) if value is not None else '',
         on_change=make_setter(str),
-    ).classes('flex-1 min-w-0 text-sm')
+    ).classes('flex-1 min-w-0 text-sm').props('dense')
 
 
 # ---------------------------------------------------------------------------

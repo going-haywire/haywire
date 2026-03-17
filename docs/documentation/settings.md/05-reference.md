@@ -49,7 +49,7 @@ verbose:   bool  = setting(False, on_change='hb_on_verbose_change')
 | --------- | ---- | ----------- |
 | `_default` | `Any` | Default value |
 | `_min` / `_max` | `Any` | Slider bounds |
-| `_choices` | `list \| None` | Dropdown options |
+| `_choices` | `list \| dict \| Callable \| None` | Dropdown options — see below |
 | `_widget` | `str \| None` | Explicit widget hint |
 | `_label` | `str` | Panel display name |
 | `_description` | `str` | Tooltip text |
@@ -61,6 +61,20 @@ verbose:   bool  = setting(False, on_change='hb_on_verbose_change')
 | `_read_only` | `bool` | `False` |
 | `_field_key` | `str` | Set by `_SettingsSchema.__init_subclass__` |
 | `_attr_name` | `str` | Set by `__set_name__` |
+
+#### `choices` — three accepted forms
+
+| Form | Behaviour |
+| ---- | --------- |
+| `['a', 'b']` | Static list — value shown and stored as-is |
+| `{'a': 'Label A', 'b': 'Label B'}` | Dict `{stored_value: display_label}` — label shown in dropdown, stored value written to registry |
+| `lambda: [...]` or `lambda: {...}` | Callable — evaluated at render time; can return either form above |
+
+Use the callable form when options come from a registry or other runtime source (e.g. theme names, loaded plugins). The callable is invoked fresh on every panel render.
+
+The `choices` **property** on `SettingDescriptor` resolves the callable if needed — panel code should always use `defn.choices` rather than `defn._choices` directly.
+
+Validation checks stored values against the list items (for a plain list) or the dict keys (for a dict).
 
 ### `shadow(global_descriptor)`
 

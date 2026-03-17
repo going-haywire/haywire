@@ -171,6 +171,26 @@ Widget is inferred from type unless overridden:
 - `str` with `choices` → dropdown
 - plain `str` → text input
 
+#### The `choices` parameter
+
+`choices` accepts three forms:
+
+```python
+# Static list — value shown and stored as-is
+algorithm: str = setting('fast', choices=['fast', 'accurate'])
+
+# Dict {stored_value: display_label} — label shown, value stored
+algorithm: str = setting('fast', choices={'fast': 'Fast Mode', 'accurate': 'High Accuracy'})
+
+# Callable — evaluated at render time (use for dynamic lists from a registry)
+theme: str = setting('', choices=lambda: get_theme_registry().list_workbench_keys())
+
+# Callable returning a dict
+theme: str = setting('', choices=lambda: {k: lbl for k, lbl in get_theme_registry().list_workbench_themes()})
+```
+
+The callable form is evaluated fresh on every panel render, so entries added by plugins after startup appear automatically. Use it whenever the valid options come from a registry or other runtime source.
+
 ### `shadow()` — Mirror a global setting
 
 Inherits the global value by default. User can override per-node; shown with a reset affordance in the panel. Target must be a `LibrarySettings` or `GlobalSettings` field.
