@@ -470,6 +470,13 @@ export default {
         handleMouseDown(e) {
             if (e.button === 2) return; // Skip right-click
 
+            // 0. Only handle events that originate within this canvas element.
+            //    The listener is on document.body (capture), so clicks anywhere on
+            //    the page reach this handler — e.g. clicking in the properties panel.
+            //    Without this guard, those clicks fall through to _startBoxSelection
+            //    which clears the selection and fires selectionChanged([],[]).
+            if (!this.$el.contains(e.target)) return;
+
             // 1. Check for connection pin FIRST - before anything else
             const pin = e.target.closest('.connection-pin');
             if (pin) {

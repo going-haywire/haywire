@@ -174,6 +174,12 @@ class AppShell:
         # React to workbench.theme setting changes (e.g. from the settings panel).
         settings_registry = self.session.context.app.library_service.get_settings_registry()
         settings_registry.add_listener(self._on_setting_changed)
+
+        # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
+        # to set inline styles on the fly for immediate response and to avoid conflicts 
+        # with NiceGUI's re-rendering. 
+        # The dividers are only visible when their adjacent panel is visible, 
+        # so they won't interfere with mouse events when not needed.
         ui.add_head_html('''<script>
 (function () {
   var drag = null;
