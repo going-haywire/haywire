@@ -33,10 +33,12 @@ class DefaultNodeSkin(NodeSkin):
         """Render the complete node UI with groups."""
         node = wrapper.node
 
+        padding = self.CARD_H_PADDING
         main_card.classes(
             'w-full min-w-64 max-w-sm node-card zoom-pan-lod0'
         ).style(
-            'background-color: var(--hw-node-bg); backdrop-filter: blur(10px); overflow: visible;'
+            f'background-color: var(--hw-node-bg); backdrop-filter: blur(10px); '
+            f'overflow: visible; padding-left: {padding}px; padding-right: {padding}px;'
         )
 
         with main_card:

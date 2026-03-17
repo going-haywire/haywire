@@ -21,13 +21,26 @@ class NodeSkin(BaseSkin, ABC):
     They are cached and reused by the SkinFactory.
 
     Layout constants (override in subclasses to tune spacing):
-        PIN_GUTTER      — width of the pin column and the pin's outward offset (px)
-        CONTENT_GAP     — horizontal gap between the pin gutter edge and the label/widget (px)
+        CARD_H_PADDING  — explicit horizontal padding applied to the card (px).
+                          This value is consumed by default_skin's render() and is also
+                          baked into the pin offset formula so that PIN_PROTRUSION = 0
+                          always means "pin center exactly at the card's visible border".
+        PIN_GUTTER      — width of the pin column (px). Also sets the icon size.
+        PIN_PROTRUSION  — how far the pin center sits outside the card's visible edge (px).
+                          0 = flush with card border; positive = further out;
+                          negative = pin pulled inward.
+        CONTENT_GAP     — offset between the gutter column edge and the label/widget (px).
+                          Positive = gap, zero = flush with column edge, negative = label
+                          overlaps into the gutter (useful since the pin only occupies the
+                          outer half of the gutter, leaving PIN_GUTTER/2 px of empty space
+                          before the label even at zero).
         PIN_ROW_HEIGHT  — height of the pin cell, sets vertical centering target (px)
     """
 
+    CARD_H_PADDING: int = 16
     PIN_GUTTER: int = 20
-    CONTENT_GAP: int = 0
+    PIN_PROTRUSION: int = 0
+    CONTENT_GAP: int = -15
     PIN_ROW_HEIGHT: int = 24
 
     def render_port(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
@@ -53,9 +66,10 @@ class NodeSkin(BaseSkin, ABC):
                 self._render_pin(port, wrapper, direction='left')
 
             # Content column — label and optional widget stacked vertically
+            # margin (not padding) so negative CONTENT_GAP can pull label toward the pin
             with ui.element('div').style(
                 f'display: flex; flex-direction: column; '
-                f'padding-left: {gap}px; padding-right: {g}px; min-width: 0;'
+                f'margin-left: {gap}px; margin-right: {g}px; min-width: 0;'
             ):
                 ui.label(port.label).classes('text-xs zoom-pan-lod2')
                 if not port.allow_multiple_links and port.widget_key:
@@ -68,9 +82,10 @@ class NodeSkin(BaseSkin, ABC):
             f'display: grid; grid-template-columns: 1fr {g}px; width: 100%; align-items: start;'
         ):
             # Content column — label right-aligned and optional widget
+            # margin (not padding) so negative CONTENT_GAP can pull label toward the pin
             with ui.element('div').style(
                 f'display: flex; flex-direction: column; align-items: flex-end; '
-                f'padding-right: {gap}px; min-width: 0;'
+                f'margin-right: {gap}px; min-width: 0;'
             ):
                 ui.label(port.label).classes('text-xs')
                 if not port.allow_multiple_links and port.widget_key:
@@ -85,7 +100,7 @@ class NodeSkin(BaseSkin, ABC):
 
     def _render_config(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render a config port — no pin, indented symmetrically to align with inlet/outlet labels."""
-        indent = self.PIN_GUTTER + self.CONTENT_GAP
+        indent = max(0, self.PIN_GUTTER + self.CONTENT_GAP)
         with ui.element('div').style(
             f'display: flex; flex-direction: column; width: 100%; '
             f'padding-left: {indent}px; padding-right: {indent}px;'
@@ -119,7 +134,9 @@ class NodeSkin(BaseSkin, ABC):
         )
 
         pin_size = f"{self.PIN_GUTTER}px"
-        pin_offset = f"position: relative; {direction}: -{self.PIN_GUTTER}px; cursor: crosshair;"
+        # offset = card padding + half gutter (pin's natural inset) + desired protrusion
+        offset_px = self.CARD_H_PADDING + self.PIN_GUTTER // 2 + self.PIN_PROTRUSION
+        pin_offset = f"position: relative; {direction}: -{offset_px}px; cursor: crosshair;"
 
         if pin.flow_type == FlowType.CONTROL:
             ctrl_color = pin.color

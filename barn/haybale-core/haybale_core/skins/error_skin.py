@@ -62,10 +62,12 @@ class ErrorNodeSkin(NodeSkin):
         </style>
         ''')
 
+        padding = self.CARD_H_PADDING
         main_card.classes(
             f'w-full min-w-64 max-w-sm error-node-card {node_id} zoom-pan-lod0'
         ).style(
-            'background-color: var(--hw-warning); backdrop-filter: blur(10px);'
+            f'background-color: var(--hw-warning); backdrop-filter: blur(10px); '
+            f'overflow: visible; padding-left: {padding}px; padding-right: {padding}px;'
         )        
 
         with main_card:
