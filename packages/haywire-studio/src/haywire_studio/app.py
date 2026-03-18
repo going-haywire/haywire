@@ -252,7 +252,7 @@ class HaywireApp:
         """
         def _factory(graph_id: str, name: str):
             g = BaseGraph(graph_id, name)
-            e = Editor(g, undo_config=self.undo_config)
+            e = Editor(g, self.node_factory, undo_config=self.undo_config)
             return g, e
 
         entry = self.graph_manager.open_graph(path, _factory)
@@ -281,7 +281,7 @@ class HaywireApp:
         """
         def _factory(graph_id: str, name: str):
             g = BaseGraph(graph_id, name)
-            e = Editor(g, undo_config=self.undo_config)
+            e = Editor(g, self.node_factory, undo_config=self.undo_config)
             return g, e
 
         entry = self.graph_manager.create_new(_factory)

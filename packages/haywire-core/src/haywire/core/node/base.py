@@ -49,28 +49,26 @@ class NodeData:
     
     def __init__(self, node_id: str, wrapper: NodeWrapper):
         """Initialize unified port collection and management state"""
-        from haywire.core.di.config import get_library_system
+        from haywire.core.di.context import get_type_registry, get_settings_registry
 
         self.node_id = node_id
         self.wrapper = wrapper
 
-        self.event_subscription: EventSource | None = None 
+        self.event_subscription: EventSource | None = None
         # TODO: CallbackSystem
         """event nodes store here the event subscription"""
-        
+
         # Cache type registry for port instantiation
-        self._type_registry: 'TypeRegistry' = (
-            get_library_system().get_type_registry()
-        )
-        
+        self._type_registry: 'TypeRegistry' = get_type_registry()
+
         # ---------------------------------------------------------------------
         # Core containers
         # ---------------------------------------------------------------------
-        
+
         # Ports
         self.ports: Dict[str, DataPort] = {}
         """Single source of truth for all ports (inlets and outlets)."""
-        
+
         # Settings (GUI-facing, serialized)
         # Start from the class-level schema dict (set by @node), then always
         # inject NodeInstanceSettings under the reserved '_node' accessor.
@@ -78,7 +76,7 @@ class NodeData:
         schemas['_node'] = NodeInstanceSettings
         self._settings: SettingsHolder = SettingsHolder(
             schemas=schemas,
-            registry=get_library_system().get_settings_registry(),
+            registry=get_settings_registry(),
             node_instance=self,
         )
         

@@ -160,9 +160,8 @@ class EdgeWrapper:
         # Reference to parent graph
         self._graph: Optional['BaseGraph'] = graph
 
-        # Adapter factory reference from global DI service locator
-        from haywire.core.di.config import get_library_system
-        self._adapter_factory: Optional['AdapterFactory'] = get_library_system().get_adapter_factory()
+        from haywire.core.di.context import get_adapter_factory
+        self._adapter_factory: Optional['AdapterFactory'] = get_adapter_factory()
                
         # Node wrapper references (set during registration)
         self._source_wrapper: Optional['NodeWrapper'] = None

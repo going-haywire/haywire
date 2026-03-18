@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Tuple, Set, Any, Callable
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.node.factory import NodeFactory
 from haywire.core.undo.interfaces import IHistoryManager
 from haywire.core.undo.history_manager import HistoryManager
 from haywire.core.undo.config import UndoConfig
@@ -37,20 +38,20 @@ class Editor:
     def __init__(
         self,
         graph: BaseGraph,
+        node_factory: NodeFactory,
         undo_config: Optional[UndoConfig] = None,
     ):
         """
         Initialize the editor with core components.
 
         Args:
-            graph:       The graph instance to manipulate.
-            undo_config: Optional undo configuration. Defaults to UndoConfig().
+            graph:        The graph instance to manipulate.
+            node_factory: Factory for looking up and subscribing to node classes.
+            undo_config:  Optional undo configuration. Defaults to UndoConfig().
         """
         self.graph: BaseGraph = graph
         self.history_manager: IHistoryManager = HistoryManager(undo_config or UndoConfig())
-
-        from haywire.core.di.config import get_library_system
-        self._node_factory = get_library_system().get_node_factory()
+        self._node_factory = node_factory
     
     # =============================================================================
     # NODE OPERATIONS

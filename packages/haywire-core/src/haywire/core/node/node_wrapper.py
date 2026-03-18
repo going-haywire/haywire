@@ -146,9 +146,8 @@ class NodeWrapper:
         self._graph = graph
         """Parent graph instance"""
 
-        # Get factory from global DI service locator
-        from haywire.core.di.config import get_library_system
-        self._node_factory = get_library_system().get_node_factory()
+        from haywire.core.di.context import get_node_factory
+        self._node_factory = get_node_factory()
         
         self._node_factory.add_event_subscriber(self.registry_key, self._on_node_lifecycle_event)
         

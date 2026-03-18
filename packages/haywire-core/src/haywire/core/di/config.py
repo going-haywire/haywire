@@ -28,6 +28,12 @@ from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
 from ..settings import GlobalSettingsRegistry
 from ..settings.builtins import register_all as register_builtin_settings
+from .context import (
+    set_node_factory,
+    set_adapter_factory,
+    set_type_registry,
+    set_settings_registry,
+)
 
 
 class HaywireModule(Module):
@@ -95,6 +101,7 @@ class HaywireModule(Module):
         workspace_settings = Path(self.workspace_root) / '.haywire' / 'settings.toml'
         registry.load_from_toml(workspace_settings, tier='workspace', watch=self.watch_settings)
 
+        set_settings_registry(registry)
         return registry
     
     @provider
@@ -147,7 +154,9 @@ class HaywireModule(Module):
     @singleton
     def provide_type_registry(self) -> TypeRegistry:
         """Provide singleton TypeRegistry."""
-        return TypeRegistry()
+        registry = TypeRegistry()
+        set_type_registry(registry)
+        return registry
 
     @provider
     @singleton
@@ -169,16 +178,20 @@ class HaywireModule(Module):
     @singleton
     def provide_node_factory(self, node_registry: NodeRegistry) -> NodeFactory:
         """Provide NodeFactory as pure utility."""
-        return NodeFactory(node_registry)
+        factory = NodeFactory(node_registry)
+        set_node_factory(factory)
+        return factory
     
     @provider
     @singleton
     def provide_adapter_factory(
-        self, 
+        self,
         adapter_registry: AdapterRegistry
     ) -> AdapterFactory:
         """Provide AdapterFactory for creating adapter chains."""
-        return AdapterFactory(adapter_registry)
+        factory = AdapterFactory(adapter_registry)
+        set_adapter_factory(factory)
+        return factory
     
     @provider
     @singleton
@@ -252,7 +265,11 @@ class LibrarySystemService:
         print("=" * 70)
         logging.basicConfig(level=logging.INFO)
         
-        # Get all required services from DI
+        # Get all required services from DI — order matters for ambient context:
+        # TypeRegistry and GlobalSettingsRegistry are used by BaseNode constructors,
+        # NodeFactory by NodeWrapper, AdapterFactory by EdgeWrapper. All four must be
+        # eagerly resolved here so their providers set the context vars before any
+        # graph/node construction can happen.
         library_registry = self.injector.get(LibraryRegistry)
         widget_registry = self.injector.get(WidgetRegistry)
         adapter_registry = self.injector.get(AdapterRegistry)
@@ -263,6 +280,8 @@ class LibrarySystemService:
         theme_registry = self.injector.get(ThemeRegistry)
         editor_registry = self.injector.get(EditorTypeRegistry)
         panel_registry  = self.injector.get(PanelRegistry)
+        self.injector.get(NodeFactory)      # sets ambient context for NodeWrapper
+        self.injector.get(AdapterFactory)   # sets ambient context for EdgeWrapper
 
         # Link registries to library registry for management
         library_registry.add_class_registry(WidgetRegistry, widget_registry)
