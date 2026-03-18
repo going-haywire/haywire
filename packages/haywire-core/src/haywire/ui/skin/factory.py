@@ -16,7 +16,6 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.ui.ui_nodecard import UINodeCard
 
 from ..widget.factory import WidgetFactory
-from ..widget.registry import WidgetRegistry
 from .base import BaseSkin
 from .registry import SkinRegistry
 
@@ -36,17 +35,17 @@ class SkinFactory():
     - Notifies customers (UINodes) when skins are hot-reloaded
     """
 
-    def __init__(self, skin_registry: SkinRegistry, widget_registry: WidgetRegistry):
+    def __init__(self, skin_registry: SkinRegistry, widget_factory: WidgetFactory):
         """
         Initialize the factory with registries.
 
         Args:
             skin_registry: Registry for NodeSkin classes
-            widget_registry: Registry for widget classes (passed to NodeSkin)
+            widget_factory: Factory for creating widget instances
         """
         self._skin_registry: SkinRegistry = skin_registry
 
-        self._widget_factory = WidgetFactory(widget_registry)
+        self._widget_factory = widget_factory
 
         # Subscribe to widget factory lifecycle events
         self._widget_factory.add_widget_lifecycle_subscriber(
@@ -349,7 +348,6 @@ class SkinFactory():
         self._widget_factory.remove_widget_lifecycle_subscriber(
             self._listen_on_widget_lifecycle_events)
 
-        self._widget_factory.cleanup()
         self._nodeid_to_factory_subscriber.clear()
         self.reset_cache()
 

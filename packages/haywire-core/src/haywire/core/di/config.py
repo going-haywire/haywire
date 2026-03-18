@@ -15,6 +15,7 @@ from injector import Injector, Module, provider, singleton
 from ...ui.skin.registry import SkinRegistry
 from ...ui.widget.registry import WidgetRegistry
 from ...ui.skin.factory import SkinFactory
+from ...ui.widget.factory import WidgetFactory
 from ...ui.themes.registry import ThemeRegistry
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
@@ -181,13 +182,19 @@ class HaywireModule(Module):
     
     @provider
     @singleton
+    def provide_widget_factory(self, widget_registry: WidgetRegistry) -> WidgetFactory:
+        """Provide singleton WidgetFactory."""
+        return WidgetFactory(widget_registry)
+
+    @provider
+    @singleton
     def provide_skin_factory(
         self,
         skin_registry: SkinRegistry,
-        widget_registry: WidgetRegistry
+        widget_factory: WidgetFactory
     ) -> SkinFactory:
         """Provide SkinFactory."""
-        return SkinFactory(skin_registry, widget_registry)
+        return SkinFactory(skin_registry, widget_factory)
     
     @provider
     @singleton
