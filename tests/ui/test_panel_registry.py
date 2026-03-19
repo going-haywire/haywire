@@ -259,11 +259,11 @@ class TestScopeRegistration:
         assert len(scopes) == 1
 
     def test_scope_overwrite(self):
-        """Re-registering a scope replaces the old descriptor."""
+        """Re-registering an existing scope is a no-op — first registration wins."""
         desc1 = ScopeDescriptor(scope_id='node', label='Old', icon='x')
         desc2 = ScopeDescriptor(scope_id='node', label='New', icon='y')
         self.registry.register_scope('properties', desc1)
         self.registry.register_scope('properties', desc2)
         scopes = self.registry.get_scopes('properties')
         assert len(scopes) == 1
-        assert scopes[0].label == 'New'
+        assert scopes[0].label == 'Old'

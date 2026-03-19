@@ -59,6 +59,13 @@ class PanelRegistry(BaseRegistry):
             descriptor:  ScopeDescriptor instance defining the tab.
         """
         key = (editor_id, descriptor.scope_id)
+        if key in self._scope_index:
+            logging.warning(
+                f"PanelRegistry: scope '{descriptor.scope_id}' for editor '{editor_id}' "
+                f"is already registered — ignoring re-registration. "
+                f"Only one library should own a scope definition."
+            )
+            return
         self._scope_index[key] = descriptor
         logging.debug(
             f"PanelRegistry: Registered scope '{descriptor.scope_id}' "
