@@ -119,7 +119,7 @@ class BaseLibrary(ABC):
             registry_cls: The registry class to add discovered classes to
         """
         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
-        if not registry:
+        if registry is None:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
         self._registry_folders[registry_cls] = (folder_path, exclude_patterns)
@@ -144,7 +144,7 @@ class BaseLibrary(ABC):
     ):
         """Inform the registry to add classes from a folder and start watching it if needed"""
         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
-        if not registry:
+        if registry is None:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
         registry.add_folder(folder_path, self.identity, exclude_patterns)
@@ -162,7 +162,7 @@ class BaseLibrary(ABC):
     ):
         """Inform the registry to remove classes from a folder and stop watching it if needed"""
         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
-        if not registry:
+        if registry is None:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
         registry.remove_folder(folder_path, self.identity, exclude_patterns)

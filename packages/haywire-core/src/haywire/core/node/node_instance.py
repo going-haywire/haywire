@@ -1,73 +1,69 @@
 # haywire/core/settings/builtins/node_instance.py
 """
-NodeInstanceSettings — per-node-instance settings schema.
+NodeInstanceSettings — per-node-instance observable props.
 
-Every node automatically receives these settings as an extra schema injected
-into its SettingsHolder.  They are stored in the graph when locally set and
-participate in the normal global resolution chain (so project-wide defaults
-can be enforced via TOML or OVERRIDE mode).
+Migrated from NodeSettings + setting() to Reactive + prop().
+No longer part of the Settings resolution chain.
 
-Full keys:  node.skin, node.muted, node.collapsed, …
-Access via: self.settings.skin,  self.settings.muted, …
+Access via:  node.props.muted,  node.props.collapsed, ...
+Serialized under the 'props' key in graph JSON.
 """
 
-from haywire.core.settings.schema import NodeSettings
-from haywire.core.settings.descriptors import setting
-from haywire.core.settings.types import Color
+from haywire.core.reactive import Reactive, prop
 
 
-class NodeInstanceSettings(NodeSettings, namespace='node'):
+class NodeInstanceSettings(Reactive):
     """
-    Framework-provided settings available on every node instance.
+    Framework-provided props available on every node instance.
 
-    These are injected as an extra schema in SettingsHolder so that every node
-    exposes them alongside its own class-defined Settings.
+    Accessed as ``node.props`` (e.g. ``self.props.muted``).
+    Serialized under ``'props'`` key in the graph JSON.
     """
 
-    skin: str | None = setting(
+    skin: str | None = prop(
         None,
         label='Skin',
         category='node.state',
         description='Skin used for this node',
     )
-    muted: bool = setting(
+    muted: bool = prop(
         False,
         label='Muted',
         category='node.state',
         description='Skip this node during execution',
     )
-    collapsed: bool = setting(
+    collapsed: bool = prop(
         False,
         label='Collapsed',
         category='node.state',
         description='Collapse node to show only header',
     )
-    condensed: bool = setting(
+    condensed: bool = prop(
         False,
         label='Condensed',
         category='node.state',
         description='Show node in condensed view',
     )
-    pinned: bool = setting(
+    pinned: bool = prop(
         False,
         label='Pinned',
         category='node.state',
         description='Prevent auto-layout from moving this node',
     )
-    color_override: Color | None = setting(
+    color_override: str | None = prop(
         None,
         label='Color Override',
         category='node.appearance',
         description='Custom background color for this node (None = use theme default)',
         widget='color',
     )
-    comment: str = setting(
+    comment: str = prop(
         '',
         label='Comment',
         category='node.annotation',
         description='Comment displayed above the node',
     )
-    show_comment: bool = setting(
+    show_comment: bool = prop(
         False,
         label='Show Comment',
         category='node.annotation',

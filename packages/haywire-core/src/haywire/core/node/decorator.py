@@ -18,9 +18,7 @@ def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
     dict as ``cls._settings_schemas``.
 
     The accessor name is the variable name in the class body (inner class name
-    or direct assignment name). The reserved accessor name ``'_node'`` is
-    rejected here; the actual injection of ``NodeInstanceSettings`` happens at
-    instance creation time in ``NodeData.__init__``.
+    or direct assignment name).
 
     Namespace is derived from ``registry_key`` by replacing ``':'`` with ``'.'``::
 
@@ -43,11 +41,6 @@ def _wire_settings_namespace(node_cls: type, registry_key: str) -> None:
             val._namespace = ns
             for field_name, descriptor in val._fields.items():
                 descriptor._field_key = f'{ns}.{field_name}'
-        if name == '_node':
-            raise ValueError(
-                f"'_node' is a reserved accessor name for NodeInstanceSettings "
-                f"(found on {node_cls.__name__}). Rename your schema accessor."
-            )
         schemas[name] = val
 
     node_cls._settings_schemas = schemas

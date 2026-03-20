@@ -8,8 +8,7 @@ from contextlib import contextmanager
 
 from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
-from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
-
+from haywire.core.node.node_instance import NodeInstanceSettings
 from ..types.enums import FlowType, PortType
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
@@ -70,25 +69,25 @@ class NodeData:
         """Single source of truth for all ports (inlets and outlets)."""
 
         # Settings (GUI-facing, serialized)
-        # Start from the class-level schema dict (set by @node), then always
-        # inject NodeInstanceSettings under the reserved '_node' accessor.
         schemas: dict[str, type] = dict(getattr(type(self), '_settings_schemas', {}))
-        schemas['_node'] = NodeInstanceSettings
         self._settings: SettingsHolder = SettingsHolder(
             schemas=schemas,
             registry=get_settings_registry(),
             node_instance=self,
         )
-        
-        # Cache (transient, NOT serialized)
-        self._cache: NodeCache = NodeCache()
-        
-        # Store (persistent, serialized, NOT GUI-facing)
-        self._store: NodeStore = NodeStore()
-        
+
         # UI state (position, dimensions)
         self._ui: NodeUI = NodeUI(self)
-        
+ 
+        # Per-instance observable props (muted, collapsed, pinned, skin, …)
+        self._props: NodeInstanceSettings = NodeInstanceSettings()
+
+        # Cache (transient, NOT serialized)
+        self._cache: NodeCache = NodeCache()
+
+        # Store (persistent, serialized, NOT GUI-facing)
+        self._store: NodeStore = NodeStore()
+       
         self._has_dirty_ports: Set[DataPort] = set()
 
         # ---------------------------------------------------------------------
@@ -145,10 +144,24 @@ class NodeData:
             image = ImageLibSettings
             self.settings.image.jpeg_quality
 
-            # Framework-reserved accessor
-            self.settings._node.muted
         """
         return self._settings
+
+    @property
+    def props(self) -> NodeInstanceSettings:
+        """
+        Per-instance observable props for this node.
+
+        These are lightweight observable values (Reactive + prop()) rather
+        than full Settings — no resolution chain, no global defaults.
+
+        Access::
+
+            self.props.muted
+            self.props.collapsed = True
+            self.props.skin = 'dark'
+        """
+        return self._props
 
     @property
     def cache(self) -> NodeCache:
@@ -1311,6 +1324,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             'node_id': self.node_id,
             'ports': self._serialize_ports(include_data=include_data),
             'settings': self._settings.to_dict(),
+            'props': self._props.to_dict(),
             'store': self._store.to_dict(),
             'ui': self._ui.to_dict(),
             'identity': asdict(self.identity),
@@ -1360,9 +1374,17 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         if 'settings' in data:
             self._settings.from_dict(data['settings'])
 
+        # Restore reactive props — new format ('props' key) or old format
+        # ('_node' nested inside 'settings', from before the Reactive migration).
+        if 'props' in data:
+            self._props.from_dict(data['props'])
+        elif 'settings' in data and '_node' in data['settings']:
+            old = data['settings'].pop('_node', {})
+            self._props.from_dict(old.get('schema_values', {}))
+
         if 'store' in data:
             self._store.from_dict(data['store'])
-        
+
         if 'ui' in data:
             self._ui.from_dict(data['ui'])
 

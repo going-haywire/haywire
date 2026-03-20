@@ -5,8 +5,6 @@ Tests for the namespaced SettingsHolder / SubHolder architecture.
 Covers:
 - Inner class form (class node(NodeSettings): ...)
 - Direct assignment form (image = ImageLibSettings)
-- '_node' reserved accessor always present
-- '_node' reserved name raises ValueError in decorator
 - Multiple sub-holders on one node
 - Namespaced to_dict() / from_dict() round-trip
 - cleanup() releases all sub-holders
@@ -17,7 +15,6 @@ import pytest
 from haywire.core.settings.schema import NodeSettings, GlobalSettings
 from haywire.core.settings.descriptors import setting
 from haywire.core.settings.holder import SettingsHolder, SubHolder
-from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
 from haywire.core.di.test_config import create_test_settings_registry
 
 
@@ -48,31 +45,31 @@ def _make_holder(schemas: dict, registry=None) -> SettingsHolder:
 class TestInnerClassForm:
 
     def test_sub_holder_accessible_by_name(self):
-        holder = _make_holder({'node': _ThresholdSchema, '_node': NodeInstanceSettings})
+        holder = _make_holder({'node': _ThresholdSchema})
         sub = holder.node
         assert isinstance(sub, SubHolder)
 
     def test_field_read(self):
-        holder = _make_holder({'node': _ThresholdSchema, '_node': NodeInstanceSettings})
+        holder = _make_holder({'node': _ThresholdSchema})
         assert holder.node.threshold == 0.5
 
     def test_field_write_and_read(self):
-        holder = _make_holder({'node': _ThresholdSchema, '_node': NodeInstanceSettings})
+        holder = _make_holder({'node': _ThresholdSchema})
         holder.node.threshold = 0.9
         assert holder.node.threshold == 0.9
 
     def test_bool_field(self):
-        holder = _make_holder({'node': _ThresholdSchema, '_node': NodeInstanceSettings})
+        holder = _make_holder({'node': _ThresholdSchema})
         holder.node.verbose = True
         assert holder.node.verbose is True
 
     def test_missing_accessor_raises(self):
-        holder = _make_holder({'node': _ThresholdSchema, '_node': NodeInstanceSettings})
+        holder = _make_holder({'node': _ThresholdSchema})
         with pytest.raises(AttributeError):
             _ = holder.nonexistent
 
     def test_missing_field_raises(self):
-        holder = _make_holder({'node': _ThresholdSchema, '_node': NodeInstanceSettings})
+        holder = _make_holder({'node': _ThresholdSchema})
         with pytest.raises(AttributeError):
             _ = holder.node.nonexistent_field
 
@@ -89,13 +86,13 @@ class TestDirectAssignmentForm:
     """
 
     def test_direct_assignment_accessible(self):
-        holder = _make_holder({'image': _ThresholdSchema, '_node': NodeInstanceSettings})
+        holder = _make_holder({'image': _ThresholdSchema})
         assert holder.image.threshold == 0.5
 
     def test_two_different_accessor_names_same_schema(self):
         """Same schema class can be used under any accessor name."""
-        h1 = _make_holder({'alpha': _ThresholdSchema, '_node': NodeInstanceSettings})
-        h2 = _make_holder({'beta': _ThresholdSchema, '_node': NodeInstanceSettings})
+        h1 = _make_holder({'alpha': _ThresholdSchema})
+        h2 = _make_holder({'beta': _ThresholdSchema})
         h1.alpha.threshold = 0.1
         h2.beta.threshold = 0.2
         assert h1.alpha.threshold == 0.1
@@ -103,34 +100,26 @@ class TestDirectAssignmentForm:
 
 
 # ---------------------------------------------------------------------------
-# Reserved '_node' accessor
+# _node name is no longer reserved
 # ---------------------------------------------------------------------------
 
-class TestNodeReservedAccessor:
+class TestNodeNameNoLongerReserved:
+    """'_node' is no longer a reserved accessor name — props migrated to Reactive."""
 
-    def test_node_accessor_always_present(self):
-        holder = _make_holder({'custom': _ThresholdSchema, '_node': NodeInstanceSettings})
+    def test_node_name_usable_as_accessor(self):
+        holder = _make_holder({'_node': _ThresholdSchema})
         assert '_node' in holder
+        assert holder._node.threshold == 0.5
 
-    def test_node_is_subholder(self):
-        holder = _make_holder({'custom': _ThresholdSchema, '_node': NodeInstanceSettings})
-        assert isinstance(holder._node, SubHolder)
-
-    def test_node_schema_is_nodeinstancesettings(self):
-        holder = _make_holder({'custom': _ThresholdSchema, '_node': NodeInstanceSettings})
-        schema = object.__getattribute__(holder._node, '_schema')
-        assert schema is NodeInstanceSettings
-
-    def test_node_reserved_name_raises_in_decorator(self):
-        """@node decorator raises ValueError if developer names an inner class '_node'."""
+    def test_node_name_decorator_no_longer_raises(self):
+        """@node decorator no longer rejects '_node' as an inner class name."""
         from haywire.core.node.decorator import _wire_settings_namespace
-        from haywire.core.node.base import BaseNode
 
         class _FakeNode:
-            _node = _ThresholdSchema   # reserved name
+            _node = _ThresholdSchema   # was once reserved, now allowed
 
-        with pytest.raises(ValueError, match="reserved"):
-            _wire_settings_namespace(_FakeNode, 'test:node:fake')
+        # Should not raise
+        _wire_settings_namespace(_FakeNode, 'test:node:fake')
 
 
 # ---------------------------------------------------------------------------
@@ -142,40 +131,39 @@ class TestMultipleSubHolders:
     def test_two_sub_holders_independent(self):
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
+            'other': _ThresholdSchema,
         })
         holder.thresh.threshold = 0.7
-        # _node subholder is there too
         assert holder.thresh.threshold == 0.7
-        assert '_node' in holder
+        assert 'other' in holder
 
     def test_iteration_returns_all_accessors(self):
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
+            'extra': _ThresholdSchema,
         })
         names = list(holder)
         assert 'thresh' in names
-        assert '_node' in names
+        assert 'extra' in names
 
     def test_contains(self):
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
+            'extra': _ThresholdSchema,
         })
         assert 'thresh' in holder
-        assert '_node' in holder
+        assert 'extra' in holder
         assert 'nonexistent' not in holder
 
     def test_sub_holders_property(self):
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
+            'extra': _ThresholdSchema,
         })
         subs = holder.sub_holders
         assert isinstance(subs, dict)
         assert 'thresh' in subs
-        assert '_node' in subs
+        assert 'extra' in subs
 
 
 # ---------------------------------------------------------------------------
@@ -187,16 +175,13 @@ class TestNamespacedSerialization:
     def test_to_dict_has_accessor_keys(self):
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
         })
         data = holder.to_dict()
         assert 'thresh' in data
-        assert '_node' in data
 
     def test_to_dict_sub_has_schema_values(self):
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
         })
         holder.thresh.threshold = 0.8
         data = holder.to_dict()
@@ -205,7 +190,6 @@ class TestNamespacedSerialization:
     def test_to_dict_empty_when_nothing_set(self):
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
         })
         data = holder.to_dict()
         assert data['thresh']['schema_values'] == {}
@@ -213,17 +197,16 @@ class TestNamespacedSerialization:
     def test_from_dict_restores_value(self):
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
         })
         holder.from_dict({'thresh': {'schema_values': {'threshold': 0.3}}})
         assert holder.thresh.threshold == 0.3
 
     def test_round_trip(self):
-        h1 = _make_holder({'thresh': _ThresholdSchema, '_node': NodeInstanceSettings})
+        h1 = _make_holder({'thresh': _ThresholdSchema})
         h1.thresh.threshold = 0.77
         data = h1.to_dict()
 
-        h2 = _make_holder({'thresh': _ThresholdSchema, '_node': NodeInstanceSettings})
+        h2 = _make_holder({'thresh': _ThresholdSchema})
         h2.from_dict(data)
         assert h2.thresh.threshold == 0.77
 
@@ -231,7 +214,6 @@ class TestNamespacedSerialization:
         """Extra keys in serialized data don't cause errors."""
         holder = _make_holder({
             'thresh': _ThresholdSchema,
-            '_node': NodeInstanceSettings,
         })
         holder.from_dict({'thresh': {'schema_values': {}}, 'obsolete': {'schema_values': {}}})
         # No exception — just silently ignored
@@ -244,7 +226,7 @@ class TestNamespacedSerialization:
 class TestCleanup:
 
     def test_cleanup_clears_all_sub_holders(self):
-        holder = _make_holder({'thresh': _ThresholdSchema, '_node': NodeInstanceSettings})
+        holder = _make_holder({'thresh': _ThresholdSchema})
         holder.thresh.threshold = 0.9   # prime cache
 
         holder.cleanup()

@@ -5,7 +5,7 @@ NodePropertiesPanel — shows basic node identity information.
 
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
-from haybale_studio.panels._settings_panel_base import render_sub_holder
+from haybale_studio.panels._settings_panel_base import render_reactive
 
 if False:  # TYPE_CHECKING
     from haywire.ui.context import SessionContext
@@ -60,18 +60,12 @@ class NodeInstanceSettingsPanel(BasePanel):
             node is not None
             and hasattr(node, 'node')
             and node.node is not None
-            and hasattr(node.node, 'settings')
-            and '_node' in node.node.settings
+            and hasattr(node.node, 'props')
         )
 
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         node = context.active_node
         if node is None:
             return
-        try:
-            sub_holder = node.node.settings._node
-        except AttributeError:
-            layout.label('Node settings unavailable')
-            return
         with layout.column():
-            render_sub_holder(sub_holder)
+            render_reactive(node.node.props)

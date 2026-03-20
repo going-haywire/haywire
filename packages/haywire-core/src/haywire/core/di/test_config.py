@@ -148,13 +148,9 @@ def create_test_settings_registry(
         })
     """
     from ..settings import GlobalSettingsRegistry, SettingMode
-    from ..settings.builtins import register_all as register_builtin_settings
     
     registry = GlobalSettingsRegistry()
-    
-    if register_builtins:
-        register_builtin_settings(registry)
-    
+        
     # Apply predefined settings into the global tier (simulating hand-edited TOML)
     if predefined_settings:
         for name, value in predefined_settings.items():
@@ -207,7 +203,7 @@ def create_test_settings_holder(
                 category=descriptor._category or 'test',
             )
 
-    from haywire.core.settings.builtins.node_instance import NodeInstanceSettings
+    from haywire.core.node.node_instance import NodeInstanceSettings
     holder = SettingsHolder(
         schemas={'test': resolved_schema, '_node': NodeInstanceSettings},
         registry=registry,

@@ -27,7 +27,6 @@ from ..adapter.factory import AdapterFactory
 from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
 from ..settings import GlobalSettingsRegistry
-from ..settings.builtins import register_all as register_builtin_settings
 from .context import (
     set_node_factory,
     set_adapter_factory,
@@ -90,9 +89,6 @@ class HaywireModule(Module):
         4. Optionally watch both files for hot-reload.
         """
         registry = GlobalSettingsRegistry()
-
-        # Register built-in settings schema
-        register_builtin_settings(registry)
 
         # Global tier — hand-edited by user, never overwritten by the app
         registry.load_from_toml(self.settings_path, tier='global', watch=self.watch_settings)
@@ -218,6 +214,7 @@ class HaywireModule(Module):
         """
         return ThemeRegistry()
 
+    # -------------------------------------------------------------------------
     def _detect_project_root(self) -> str:
         """Auto-detect project root by looking for pyproject.toml."""
         current_dir = Path(__file__).parent

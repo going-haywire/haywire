@@ -63,13 +63,13 @@ class NodeUIState:
 class NodeUI:
     """
     Container for node UI concerns.
-    
+
     Provides a clean namespace for UI operations:
     - self.ui.state - Position, dimensions (serialized)
     - self.ui.collapse() / expand() - Convenience methods
-    
-    Note: Visual settings like colors and visibility toggles
-    are accessed via self.settings._node (e.g., self.settings._node.collapsed)
+
+    Visual props like collapsed/muted/pinned are accessed via node.props
+    (e.g., node.props.collapsed).
     """
 
     def __init__(self, node: 'BaseNode'):
@@ -103,50 +103,50 @@ class NodeUI:
 
     def collapse(self) -> None:
         """Collapse the node in the editor."""
-        self._node.settings._node.collapsed = True
+        self._node.props.collapsed = True
 
     def expand(self) -> None:
         """Expand the node in the editor."""
-        self._node.settings._node.collapsed = False
+        self._node.props.collapsed = False
 
     @property
     def is_collapsed(self) -> bool:
         """Whether the node is collapsed."""
-        return self._node.settings._node.collapsed
+        return self._node.props.collapsed
 
     # =========================================================================
-    # Mute (delegates to settings)
+    # Mute (delegates to props)
     # =========================================================================
 
     def mute(self) -> None:
         """Mute the node (skip during execution)."""
-        self._node.settings._node.muted = True
+        self._node.props.muted = True
 
     def unmute(self) -> None:
         """Unmute the node."""
-        self._node.settings._node.muted = False
+        self._node.props.muted = False
 
     @property
     def is_muted(self) -> bool:
         """Whether the node is muted."""
-        return self._node.settings._node.muted
+        return self._node.props.muted
 
     # =========================================================================
-    # Pin (delegates to settings)
+    # Pin (delegates to props)
     # =========================================================================
 
     def pin(self) -> None:
         """Pin the node (prevent auto-layout movement)."""
-        self._node.settings._node.pinned = True
+        self._node.props.pinned = True
 
     def unpin(self) -> None:
         """Unpin the node."""
-        self._node.settings._node.pinned = False
+        self._node.props.pinned = False
 
     @property
     def is_pinned(self) -> bool:
         """Whether the node is pinned."""
-        return self._node.settings._node.pinned
+        return self._node.props.pinned
     
     # =========================================================================
     # Serialization
