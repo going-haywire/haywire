@@ -8,7 +8,7 @@ from .base import NodeMeta, NodeData, BaseNode
 from .behavior import NodeType, NodeBehaviorFlags, BEHAVIOR_FIELDS
 from .decorator import node
 from .user_data import NodeCache, NodeStore
-from .ui_state import NodeUIState, NodeUI
+from .node_instance import NodeInstanceSettings
 from .node_wrapper import NodeWrapperState, NodeMiddleware, NodeWrapper
 from .registry import NodeRegistry
 from .factory import NodeFactory
@@ -30,9 +30,8 @@ __all__ = [
     # User data containers
     "NodeCache",
     "NodeStore",
-    # UI state
-    "NodeUIState",
-    "NodeUI",
+    # Instance props (position, visual state, etc.)
+    "NodeInstanceSettings",
     # Node wrapper & lifecycle
     "NodeWrapperState",
     "NodeMiddleware",

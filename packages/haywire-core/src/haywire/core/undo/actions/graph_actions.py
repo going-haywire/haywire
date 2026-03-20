@@ -187,8 +187,8 @@ class MoveNodesAction(ActionBase):
                 node = wrapper.node
                 self.graph.move_node(
                     node_id,
-                    node.ui.state.posX + self.deltaX,
-                    node.ui.state.posY + self.deltaY,
+                    node.props.posX + self.deltaX,
+                    node.props.posY + self.deltaY,
                 )
 
     def _undo_impl(self) -> None:
@@ -199,8 +199,8 @@ class MoveNodesAction(ActionBase):
                 node = wrapper.node
                 self.graph.move_node(
                     node_id,
-                    node.ui.state.posX - self.deltaX,
-                    node.ui.state.posY - self.deltaY,
+                    node.props.posX - self.deltaX,
+                    node.props.posY - self.deltaY,
                 )
     
     def can_merge(self, other) -> bool:
@@ -395,8 +395,8 @@ class DuplicateNodeAction(CompositeAction):
         # Create the duplicated node (this would need proper cloning logic)
         # For now, we'll assume there's a clone method
         new_node = self._clone_node(source_node, new_node_id)
-        new_node.ui.state.posX = source_node.ui.state.posX + offset_x
-        new_node.ui.state.posY = source_node.ui.state.posY + offset_y
+        new_node.props.posX = source_node.props.posX + offset_x
+        new_node.props.posY = source_node.props.posY + offset_y
         
         # Create the sub-actions
         actions = [
@@ -463,8 +463,8 @@ class PasteClipboardAction(CompositeAction):
         # Add node actions
         for node_id, node in clipboard_data.nodes.items():
             # Apply position offset
-            node.ui.state.posX += offset_x
-            node.ui.state.posY += offset_y
+            node.props.posX += offset_x
+            node.props.posY += offset_y
             
             # Set graph reference
             node.graph = graph

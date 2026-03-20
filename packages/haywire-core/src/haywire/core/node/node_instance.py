@@ -20,6 +20,10 @@ class NodeInstanceSettings(Reactive):
     Serialized under ``'props'`` key in the graph JSON.
     """
 
+    # -----------------------------------------------------------------
+    # Visual state
+    # -----------------------------------------------------------------
+
     skin: str | None = prop(
         None,
         label='Skin',
@@ -69,3 +73,27 @@ class NodeInstanceSettings(Reactive):
         category='node.annotation',
         description='Display the comment bubble',
     )
+
+    # -----------------------------------------------------------------
+    # Layout (position & dimensions) — not shown in settings panels
+    # -----------------------------------------------------------------
+
+    posX: float = prop(0.0, category='node.layout')
+    posY: float = prop(0.0, category='node.layout')
+    width: float = prop(0.0, category='node.layout')
+    height: float = prop(0.0, category='node.layout')
+    width_min: float = prop(-1.0, category='node.layout')
+    height_min: float = prop(-1.0, category='node.layout')
+
+    # -----------------------------------------------------------------
+    # Convenience helpers
+    # -----------------------------------------------------------------
+
+    def set_position(self, pos: tuple[float, float]) -> None:
+        """Set node position as (x, y) tuple."""
+        self.posX = pos[0]
+        self.posY = pos[1]
+
+    def get_position(self) -> tuple[float, float]:
+        """Get node position as (x, y) tuple."""
+        return (self.posX, self.posY)

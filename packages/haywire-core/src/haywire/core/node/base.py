@@ -15,7 +15,6 @@ from ..library.identity import LibraryIdentity
 from ..types import DataPort
 from .behavior import NodeBehaviorFlags
 from .user_data import NodeCache, NodeStore
-from .ui_state import NodeUI
 from haywire.core.settings import SettingsHolder
 
 if TYPE_CHECKING:
@@ -76,10 +75,7 @@ class NodeData:
             node_instance=self,
         )
 
-        # UI state (position, dimensions)
-        self._ui: NodeUI = NodeUI(self)
- 
-        # Per-instance observable props (muted, collapsed, pinned, skin, …)
+        # Per-instance observable props (muted, collapsed, pinned, position, …)
         self._props: NodeInstanceSettings = NodeInstanceSettings()
 
         # Cache (transient, NOT serialized)
@@ -155,11 +151,12 @@ class NodeData:
         These are lightweight observable values (Reactive + prop()) rather
         than full Settings — no resolution chain, no global defaults.
 
-        Access::
+        Includes visual state, layout, and annotations::
 
             self.props.muted
             self.props.collapsed = True
-            self.props.skin = 'dark'
+            self.props.posX = 100.0
+            self.props.set_position((100, 200))
         """
         return self._props
 
@@ -195,20 +192,6 @@ class NodeData:
             self.store.history = []
         """
         return self._store
-    
-    @property
-    def ui(self) -> NodeUI:
-        """
-        UI state container.
-        
-        Contains position, dimensions, and convenience methods
-        for collapse/expand/mute operations.
-        
-        Example:
-            self.ui.set_position(100, 200)
-            self.ui.collapse()
-        """
-        return self._ui
     
     # =========================================================================
     # Housekeeping
@@ -1326,7 +1309,6 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             'settings': self._settings.to_dict(),
             'props': self._props.to_dict(),
             'store': self._store.to_dict(),
-            'ui': self._ui.to_dict(),
             'identity': asdict(self.identity),
             'library': asdict(self.library),
         }
@@ -1374,17 +1356,11 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         if 'settings' in data:
             self._settings.from_dict(data['settings'])
 
-        # Restore reactive props — new format ('props' key) or old format
-        # ('_node' nested inside 'settings', from before the Reactive migration).
+        # Restore reactive props
         if 'props' in data:
             self._props.from_dict(data['props'])
-        elif 'settings' in data and '_node' in data['settings']:
-            old = data['settings'].pop('_node', {})
-            self._props.from_dict(old.get('schema_values', {}))
+
 
         if 'store' in data:
             self._store.from_dict(data['store'])
-
-        if 'ui' in data:
-            self._ui.from_dict(data['ui'])
 

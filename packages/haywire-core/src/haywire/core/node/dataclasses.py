@@ -61,53 +61,6 @@ class NodeUIConfig:
 
 
 @dataclass
-class NodeUIState:
-    """Runtime UI state"""
-    is_muted: bool = False
-    is_collapsed: bool = False
-    is_condensed: bool = False
-    is_pinned: bool = False
-    custom_color: str = '#000000'
-    posX: float = 0
-    posY: float = 0
-    width: float = 100
-    height: float = 100
-    width_min: float = -1
-    height_min: float = -1
-
-
-class NodeUI:
-    """
-    Container for all node UI-related state and configuration.
-    
-    Groups UI concerns under a single namespace for cleaner API:
-    - node.ui.config - Static UI configuration (set during node design)
-    - node.ui.state - Runtime UI state (changes during use)
-    """
-    
-    def __init__(self):
-        self.config = NodeUIConfig()
-        self.state = NodeUIState()
-    
-    def collapse(self) -> None:
-        """Collapse the node in the editor."""
-        self.state.is_collapsed = True
-    
-    def expand(self) -> None:
-        """Expand the node in the editor."""
-        self.state.is_collapsed = False
-    
-    def set_position(self, x: float, y: float) -> None:
-        """Set node position."""
-        self.state.posX = x
-        self.state.posY = y
-    
-    def get_position(self) -> tuple[float, float]:
-        """Get node position."""
-        return (self.state.posX, self.state.posY)
-
-
-@dataclass
 class NodeUserMetadata:
     """User-defined metadata"""
     notes: list[str] = field(default_factory=list)

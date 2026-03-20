@@ -80,7 +80,7 @@ def graph_to_python_script(graph: 'BaseGraph') -> str:
     lines.append("    # Create nodes")
     for node_id, wrapper in graph.node_wrappers.items():
         var_name, class_name = node_vars[node_id]
-        x, y = wrapper.node.ui.state.posX, wrapper.node.ui.state.posY
+        x, y = wrapper.node.props.posX, wrapper.node.props.posY
         
         lines.append(f"    {var_name} = graph.create_node_wrapper(")
         lines.append(f"        {class_name}.class_identity.registry_key,")
