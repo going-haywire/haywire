@@ -1,15 +1,8 @@
 # haybale_studio/panels/_settings_panel_base.py
 """
-Shared renderer for GlobalSettings / LibrarySettings schema classes.
+Shared renderer for GlobalSettings / LibrarySettings / Reactive schema classes.
 
 Not a panel itself — imported by the concrete settings panels.
-
-Usage inside a panel's draw():
-
-    def draw(self, context, layout):
-        registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(MySettingsClass, registry)
 """
 
 from __future__ import annotations
@@ -24,25 +17,11 @@ from haywire.core.settings.enums import SettingMode
 if TYPE_CHECKING:
     from haywire.core.settings.registry import GlobalSettingsRegistry
     from haywire.core.settings.holder import SubHolder
-    from haywire.core.settings.descriptors import SettingDescriptor
     from haywire.core.property import Bag, FieldDescriptor
 
-
-# ---------------------------------------------------------------------------
-# Category grouping helpers
-# ---------------------------------------------------------------------------
-
-def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str, list]]:
-    """Group a pre-sorted list of descriptors by category, preserving order."""
-    return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
-
 _ROW_CLASSES = 'w-full items-center justify-between gap-0 px-2'
-"""Shared CSS classes for each label+widget row."""
-
 _LABEL_CLASSES = 'text-xs flex-1 min-w-0 truncate'
-"""Shared CSS classes for field labels."""
 
-# Strip internal padding from Quasar components so settings rows are compact.
 _SETTINGS_PANEL_CSS = '''
     .settings-panel {
         --nicegui-default-gap: 0.25rem;
@@ -85,15 +64,10 @@ _SETTINGS_PANEL_CSS = '''
     }
 '''
 
-_CSS_INJECTED = False
 
-
-def _ensure_css() -> None:
-    """Inject the compact-settings CSS once per client."""
-    global _CSS_INJECTED  # noqa: PLW0603
-    if not _CSS_INJECTED:
-        ui.add_css(_SETTINGS_PANEL_CSS)
-        _CSS_INJECTED = True
+def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str, list]]:
+    """Group a pre-sorted list of descriptors by category, preserving order."""
+    return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
 
 
 def _render_category_group(category: str) -> ui.expansion:
@@ -106,19 +80,22 @@ def _render_category_group(category: str) -> ui.expansion:
     )
 
 
+def _render_field_row(label_text: str, description: str, defn, value, make_setter):
+    """Render a single label + widget row."""
+    with ui.row().classes(_ROW_CLASSES):
+        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
+        if description:
+            lbl.tooltip(description)
+        _render_widget_impl(defn, value, make_setter)
+
+
 # ---------------------------------------------------------------------------
-# Reactive renderer (new, for Reactive + prop() objects)
+# Public entry points
 # ---------------------------------------------------------------------------
 
 def render_reactive(obj: 'Bag') -> None:
-    """
-    Render all ``prop()`` fields of a ``Reactive`` instance as labelled form rows.
-
-    Reuses ``_render_widget_impl()`` since ``prop()`` carries identical metadata
-    attributes to ``SettingDescriptor``.  Call from inside a
-    ``with layout.column():`` block.
-    """
-    _ensure_css()
+    """Render all ``prop()`` fields of a ``Reactive`` instance as labelled form rows."""
+    ui.add_css(_SETTINGS_PANEL_CSS)
     fields = type(obj)._prop_fields()
     if not fields:
         ui.label('No props defined.').classes('text-xs text-gray-400 px-2 py-1')
@@ -129,38 +106,15 @@ def render_reactive(obj: 'Bag') -> None:
         for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
             with _render_category_group(category):
                 for attr_name, defn in group:
-                    value = getattr(obj, attr_name)
-                    label_text = defn._label or attr_name
-                    with ui.row().classes(_ROW_CLASSES):
-                        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
-                        if defn._description:
-                            lbl.tooltip(defn._description)
-                        _render_widget_impl(defn, value, _make_reactive_setter(obj, attr_name))
+                    _render_field_row(
+                        defn._label or attr_name, defn._description,
+                        defn, getattr(obj, attr_name), _make_reactive_setter(obj, attr_name),
+                    )
 
-
-def _make_reactive_setter(obj: 'Bag', attr_name: str):
-    """Return a ``make_setter(coerce)`` factory that writes to a Reactive prop."""
-    def make_setter(coerce):
-        def handler(e):
-            try:
-                setattr(obj, attr_name, coerce(e.value))
-            except Exception:
-                pass
-        return handler
-    return make_setter
-
-
-# ---------------------------------------------------------------------------
-# Public entry point (GlobalSettings / legacy)
-# ---------------------------------------------------------------------------
 
 def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
-    """
-    Render all fields of *schema_cls* as labelled form rows into the current
-    NiceGUI slot context.  Call this from inside a ``with layout.column():``
-    block (or any other NiceGUI container).
-    """
-    _ensure_css()
+    """Render all fields of *schema_cls* as labelled form rows."""
+    ui.add_css(_SETTINGS_PANEL_CSS)
     defns = registry.definitions_for_schema(schema_cls)
     if not defns:
         ui.label('No settings defined.').classes('text-xs text-gray-400 px-2 py-1')
@@ -171,22 +125,21 @@ def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
         for category, group in _group_by_category(sorted_defns):
             with _render_category_group(category):
                 for defn in group:
-                    _render_field(defn, registry)
+                    key = defn._field_key
+                    try:
+                        value, _ = registry.resolve(key)
+                    except KeyError:
+                        continue
+                    _render_field_row(
+                        defn._label or defn._attr_name or key.split('.')[-1],
+                        defn._description, defn, value,
+                        lambda coerce, k=key: _make_setter(registry, k, coerce),
+                    )
 
-
-# ---------------------------------------------------------------------------
-# SubHolder renderer (node instance settings)
-# ---------------------------------------------------------------------------
 
 def render_sub_holder(sub_holder: 'SubHolder') -> None:
-    """
-    Render all fields of *sub_holder* as labelled form rows.
-
-    Reads current values from the SubHolder and writes changes back via
-    ``sub_holder.set(attr_name, value)``.  Call from inside a
-    ``with layout.column():`` block.
-    """
-    _ensure_css()
+    """Render all fields of *sub_holder* as labelled form rows."""
+    ui.add_css(_SETTINGS_PANEL_CSS)
     from haywire.core.settings.holder import _collect_fields
 
     schema_cls = object.__getattribute__(sub_holder, '_schema')
@@ -200,95 +153,40 @@ def render_sub_holder(sub_holder: 'SubHolder') -> None:
         for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
             with _render_category_group(category):
                 for attr_name, defn in group:
-                    _render_sub_holder_field(attr_name, defn, sub_holder)
-
-
-def _render_sub_holder_field(
-    attr_name: str, defn: 'SettingDescriptor', sub_holder: 'SubHolder'
-) -> None:
-    try:
-        value = getattr(sub_holder, attr_name)
-    except Exception:
-        return
-
-    label_text = defn._label or attr_name
-
-    with ui.row().classes(_ROW_CLASSES):
-        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
-        if defn._description:
-            lbl.tooltip(defn._description)
-        _render_sub_holder_widget(attr_name, defn, value, sub_holder)
-
-
-def _render_sub_holder_widget(
-    attr_name: str, defn: 'SettingDescriptor', value: Any, sub_holder: 'SubHolder'
-) -> None:
-    def make_setter(coerce):
-        def handler(e):
-            try:
-                sub_holder.set(attr_name, coerce(e.value))
-            except Exception:
-                pass
-        return handler
-
-    _render_widget_impl(defn, value, make_setter)
+                    try:
+                        value = getattr(sub_holder, attr_name)
+                    except Exception:
+                        continue
+                    _render_field_row(
+                        defn._label or attr_name, defn._description,
+                        defn, value, _make_sub_holder_setter(sub_holder, attr_name),
+                    )
 
 
 # ---------------------------------------------------------------------------
-# Per-field renderer (global registry)
+# Widget dispatch
 # ---------------------------------------------------------------------------
-
-def _render_field(defn: 'SettingDescriptor', registry: 'GlobalSettingsRegistry') -> None:
-    key = defn._field_key
-    try:
-        value, _ = registry.resolve(key)
-    except KeyError:
-        return
-
-    label_text = defn._label or defn._attr_name or key.split('.')[-1]
-
-    with ui.row().classes(_ROW_CLASSES):
-        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
-        if defn._description:
-            lbl.tooltip(defn._description)
-        _render_widget(defn, value, registry)
-
-
-def _render_widget(defn: 'SettingDescriptor', value: Any, registry: 'GlobalSettingsRegistry') -> None:
-    """Dispatch to the appropriate NiceGUI widget for *defn*."""
-    key = defn._field_key
-    _render_widget_impl(defn, value, lambda coerce: _make_setter(registry, key, coerce))
-
 
 def _render_widget_impl(defn: 'FieldDescriptor', value: Any, make_setter) -> None:
-    """Shared widget dispatch. make_setter(coerce) → on_change handler."""
-
-    # ── Explicit color hint ──────────────────────────────────────────────────
+    """Shared widget dispatch. make_setter(coerce) -> on_change handler."""
     if defn._widget == 'color':
         ui.color_input(value=value or '#ffffff') \
             .classes('flex-1 min-w-0') \
             .on('change', make_setter(str))
         return
 
-    # ── Choices → select ─────────────────────────────────────────────────────
     resolved_choices = defn.choices
     if resolved_choices is not None:
         ui.select(
-            options=resolved_choices,
-            value=value,
+            options=resolved_choices, value=value,
             on_change=make_setter(lambda v: v),
         ).classes('flex-1 min-w-0 text-xs').props('dense')
         return
 
-    # ── Bool → switch ────────────────────────────────────────────────────────
     if defn._type is bool:
-        ui.switch(
-            value=bool(value),
-            on_change=make_setter(bool),
-        ).props('dense')
+        ui.switch(value=bool(value), on_change=make_setter(bool)).props('dense')
         return
 
-    # ── Numeric → number input ───────────────────────────────────────────────
     if defn._type in (int, float):
         kwargs: dict = {}
         if defn._min is not None:
@@ -298,18 +196,14 @@ def _render_widget_impl(defn: 'FieldDescriptor', value: Any, make_setter) -> Non
         if defn._type is int:
             kwargs['step'] = 1
             kwargs['format'] = '%.0f'
-        ui.number(
-            value=value,
-            on_change=make_setter(defn._type),
-            **kwargs,
-        ).classes('flex-1 min-w-0 text-xs').props(
-            'dense hide-bottom-space'
-            ' input-style="appearance:none;-moz-appearance:textfield;"'
-            ' input-class="text-center"'
-        )
+        ui.number(value=value, on_change=make_setter(defn._type), **kwargs) \
+            .classes('flex-1 min-w-0 text-xs').props(
+                'dense hide-bottom-space'
+                ' input-style="appearance:none;-moz-appearance:textfield;"'
+                ' input-class="text-center"'
+            )
         return
 
-    # ── String fallback → input ──────────────────────────────────────────────
     ui.input(
         value=str(value) if value is not None else '',
         on_change=make_setter(str),
@@ -317,8 +211,32 @@ def _render_widget_impl(defn: 'FieldDescriptor', value: Any, make_setter) -> Non
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Setter factories
 # ---------------------------------------------------------------------------
+
+def _make_reactive_setter(obj: 'Bag', attr_name: str):
+    """Return a make_setter(coerce) factory that writes to a Reactive prop."""
+    def make_setter(coerce):
+        def handler(e):
+            try:
+                setattr(obj, attr_name, coerce(e.value))
+            except Exception:
+                pass
+        return handler
+    return make_setter
+
+
+def _make_sub_holder_setter(sub_holder: 'SubHolder', attr_name: str):
+    """Return a make_setter(coerce) factory that writes to a SubHolder field."""
+    def make_setter(coerce):
+        def handler(e):
+            try:
+                sub_holder.set(attr_name, coerce(e.value))
+            except Exception:
+                pass
+        return handler
+    return make_setter
+
 
 def _make_setter(registry: 'GlobalSettingsRegistry', key: str, coerce):
     """Return an on_change handler that writes *key* to the registry workspace tier."""
@@ -328,15 +246,7 @@ def _make_setter(registry: 'GlobalSettingsRegistry', key: str, coerce):
             if val is None:
                 return
             registry.set_global(key, val, SettingMode.SET)
-            _try_save(registry)
+            registry.save_to_toml()
         except Exception:
             pass
     return handler
-
-
-def _try_save(registry: 'GlobalSettingsRegistry') -> None:
-    """Persist workspace tier to TOML; silently ignored if no path is configured."""
-    try:
-        registry.save_to_toml()
-    except (ValueError, Exception):
-        pass
