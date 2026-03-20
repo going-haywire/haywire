@@ -8,6 +8,7 @@ Features:
 - Configurable min, max, step, precision, prefix, suffix
 """
 
+import math
 from typing import Any, Callable, Optional
 
 from nicegui import ui
@@ -31,8 +32,12 @@ class NumberDrag(ui.element, component='number_drag.vue'):
     ) -> None:
         super().__init__()
         self._props['model-value'] = value
-        self._props['min'] = min
-        self._props['max'] = max
+        # Only send finite min/max — JSON (orjson) serializes inf as null,
+        # which JavaScript coerces to 0, breaking the clamp logic.
+        if math.isfinite(min):
+            self._props['min'] = min
+        if math.isfinite(max):
+            self._props['max'] = max
         self._props['step'] = step
         self._props['precision'] = precision
         self._props['prefix'] = prefix

@@ -460,6 +460,24 @@ class GlobalSettingsRegistry(BaseRegistry):
     # TOML Saving  (workspace tier only — global tier is hand-edited)
     # =========================================================================
 
+    _SAVE_DEBOUNCE: float = 0.5  # seconds
+
+    def save_to_toml_debounced(self, path: Path | str | None = None) -> None:
+        """Schedule a debounced ``save_to_toml()`` call.
+
+        Each call resets the timer so that the file write only happens
+        once the caller stops requesting saves for ``_SAVE_DEBOUNCE`` seconds.
+        Useful during continuous interactions like drag-to-change widgets.
+        """
+        timer = getattr(self, '_save_timer', None)
+        if timer is not None:
+            timer.cancel()
+        self._save_timer = threading.Timer(
+            self._SAVE_DEBOUNCE, self.save_to_toml, args=(path,)
+        )
+        self._save_timer.daemon = True
+        self._save_timer.start()
+
     def save_to_toml(self, path: Path | str | None = None) -> None:
         """
         Save current workspace-tier values to TOML.

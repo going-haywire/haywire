@@ -213,7 +213,7 @@ def _make_setter(registry: 'GlobalSettingsRegistry', key: str, coerce):
             if val is None:
                 return
             registry.set_global(key, val, SettingMode.SET)
-            registry.save_to_toml()
+            registry.save_to_toml_debounced()
         except Exception:
             pass
     return handler
