@@ -36,13 +36,74 @@ def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str
     """Group a pre-sorted list of descriptors by category, preserving order."""
     return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
 
+_ROW_CLASSES = 'w-full items-center justify-between gap-0 px-2'
+"""Shared CSS classes for each label+widget row."""
+
+_LABEL_CLASSES = 'text-xs flex-1 min-w-0 truncate'
+"""Shared CSS classes for field labels."""
+
+# Strip internal padding from Quasar components so settings rows are compact.
+_SETTINGS_PANEL_CSS = '''
+    .settings-panel {
+        --nicegui-default-gap: 0.25rem;
+    }
+    .settings-panel .nicegui-row {
+        min-height: 28px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    .settings-panel .q-field {
+        padding: 0 !important;
+        margin: 0 !important;
+        align-items: center !important;
+    }
+    .settings-panel .q-field__inner {
+        align-self: center !important;
+    }
+    .settings-panel .q-field__control {
+        height: 26px !important;
+        min-height: 26px !important;
+    }
+    .settings-panel .q-field__control::before,
+    .settings-panel .q-field__control::after {
+        border: none !important;
+    }
+    .settings-panel .q-field__marginal {
+        height: 26px !important;
+    }
+    .settings-panel .q-field__native {
+        padding: 0 4px !important;
+        min-height: 26px !important;
+        height: 26px !important;
+    }
+    .settings-panel .q-field__bottom {
+        display: none !important;
+    }
+    .settings-panel .q-toggle {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+'''
+
+_CSS_INJECTED = False
+
+
+def _ensure_css() -> None:
+    """Inject the compact-settings CSS once per client."""
+    global _CSS_INJECTED  # noqa: PLW0603
+    if not _CSS_INJECTED:
+        ui.add_css(_SETTINGS_PANEL_CSS)
+        _CSS_INJECTED = True
+
 
 def _render_category_group(category: str) -> ui.expansion:
     """Return a foldable expansion for a category group (use as context manager)."""
     label = category.replace('_', ' ').replace('.', ' / ').title()
-    return ui.expansion(label, value=True).classes(
-        'w-full'
-    ).props('dense header-class="text-xs font-bold text-gray-500 uppercase tracking-wide px-2 py-0"')
+    return ui.expansion(label, value=True).classes('w-full').props(
+        'dense dense-toggle'
+        ' header-class="text-xs font-bold text-gray-500 uppercase tracking-wide'
+        ' px-2 py-0 min-h-[24px]"'
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -57,22 +118,24 @@ def render_reactive(obj: 'Bag') -> None:
     attributes to ``SettingDescriptor``.  Call from inside a
     ``with layout.column():`` block.
     """
+    _ensure_css()
     fields = type(obj)._prop_fields()
     if not fields:
         ui.label('No props defined.').classes('text-xs text-gray-400 px-2 py-1')
         return
 
     sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0]))
-    for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
-        with _render_category_group(category):
-            for attr_name, defn in group:
-                value = getattr(obj, attr_name)
-                label_text = defn._label or attr_name
-                with ui.row().classes('w-full items-center justify-between gap-0 px-2 py-0').props('dense'):
-                    lbl = ui.label(label_text).classes('text-sm flex-1 min-w-0 truncate')
-                    if defn._description:
-                        lbl.tooltip(defn._description)
-                    _render_widget_impl(defn, value, _make_reactive_setter(obj, attr_name))
+    with ui.column().classes('w-full gap-0 settings-panel'):
+        for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
+            with _render_category_group(category):
+                for attr_name, defn in group:
+                    value = getattr(obj, attr_name)
+                    label_text = defn._label or attr_name
+                    with ui.row().classes(_ROW_CLASSES):
+                        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
+                        if defn._description:
+                            lbl.tooltip(defn._description)
+                        _render_widget_impl(defn, value, _make_reactive_setter(obj, attr_name))
 
 
 def _make_reactive_setter(obj: 'Bag', attr_name: str):
@@ -97,16 +160,18 @@ def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
     NiceGUI slot context.  Call this from inside a ``with layout.column():``
     block (or any other NiceGUI container).
     """
+    _ensure_css()
     defns = registry.definitions_for_schema(schema_cls)
     if not defns:
         ui.label('No settings defined.').classes('text-xs text-gray-400 px-2 py-1')
         return
 
     sorted_defns = sorted(defns.values(), key=lambda d: (d._category, d._order, d._field_key))
-    for category, group in _group_by_category(sorted_defns):
-        with _render_category_group(category):
-            for defn in group:
-                _render_field(defn, registry)
+    with ui.column().classes('w-full gap-0 settings-panel'):
+        for category, group in _group_by_category(sorted_defns):
+            with _render_category_group(category):
+                for defn in group:
+                    _render_field(defn, registry)
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +186,7 @@ def render_sub_holder(sub_holder: 'SubHolder') -> None:
     ``sub_holder.set(attr_name, value)``.  Call from inside a
     ``with layout.column():`` block.
     """
+    _ensure_css()
     from haywire.core.settings.holder import _collect_fields
 
     schema_cls = object.__getattribute__(sub_holder, '_schema')
@@ -130,10 +196,11 @@ def render_sub_holder(sub_holder: 'SubHolder') -> None:
         return
 
     sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0]))
-    for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
-        with _render_category_group(category):
-            for attr_name, defn in group:
-                _render_sub_holder_field(attr_name, defn, sub_holder)
+    with ui.column().classes('w-full gap-0 settings-panel'):
+        for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
+            with _render_category_group(category):
+                for attr_name, defn in group:
+                    _render_sub_holder_field(attr_name, defn, sub_holder)
 
 
 def _render_sub_holder_field(
@@ -146,8 +213,8 @@ def _render_sub_holder_field(
 
     label_text = defn._label or attr_name
 
-    with ui.row().classes('w-full items-center justify-between gap-0 px-2 py-0'):
-        lbl = ui.label(label_text).classes('text-sm flex-1 min-w-0 truncate')
+    with ui.row().classes(_ROW_CLASSES):
+        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if defn._description:
             lbl.tooltip(defn._description)
         _render_sub_holder_widget(attr_name, defn, value, sub_holder)
@@ -180,8 +247,8 @@ def _render_field(defn: 'SettingDescriptor', registry: 'GlobalSettingsRegistry')
 
     label_text = defn._label or defn._attr_name or key.split('.')[-1]
 
-    with ui.row().classes('w-full items-center justify-between gap-0 px-2 py-0'):
-        lbl = ui.label(label_text).classes('text-sm flex-1 min-w-0 truncate')
+    with ui.row().classes(_ROW_CLASSES):
+        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if defn._description:
             lbl.tooltip(defn._description)
         _render_widget(defn, value, registry)
@@ -210,7 +277,7 @@ def _render_widget_impl(defn: 'FieldDescriptor', value: Any, make_setter) -> Non
             options=resolved_choices,
             value=value,
             on_change=make_setter(lambda v: v),
-        ).classes('flex-1 min-w-0 text-sm').props('dense')
+        ).classes('flex-1 min-w-0 text-xs').props('dense')
         return
 
     # ── Bool → switch ────────────────────────────────────────────────────────
@@ -218,7 +285,7 @@ def _render_widget_impl(defn: 'FieldDescriptor', value: Any, make_setter) -> Non
         ui.switch(
             value=bool(value),
             on_change=make_setter(bool),
-        )
+        ).props('dense')
         return
 
     # ── Numeric → number input ───────────────────────────────────────────────
@@ -235,14 +302,18 @@ def _render_widget_impl(defn: 'FieldDescriptor', value: Any, make_setter) -> Non
             value=value,
             on_change=make_setter(defn._type),
             **kwargs,
-        ).classes('flex-1 min-w-0 text-sm').props('dense hide-bottom-space input-style="appearance:none;-moz-appearance:textfield;" input-class="text-center"')
+        ).classes('flex-1 min-w-0 text-xs').props(
+            'dense hide-bottom-space'
+            ' input-style="appearance:none;-moz-appearance:textfield;"'
+            ' input-class="text-center"'
+        )
         return
 
     # ── String fallback → input ──────────────────────────────────────────────
     ui.input(
         value=str(value) if value is not None else '',
         on_change=make_setter(str),
-    ).classes('flex-1 min-w-0 text-sm').props('dense')
+    ).classes('flex-1 min-w-0 text-xs').props('dense')
 
 
 # ---------------------------------------------------------------------------
