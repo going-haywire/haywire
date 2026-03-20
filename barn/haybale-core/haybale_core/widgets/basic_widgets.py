@@ -7,6 +7,7 @@ from nicegui import ui
 
 from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.simple import SimpleWidget
+from haywire.ui.components.number_drag import NumberDrag
 
 from haybale_core.types.specs import BOOL, FLOAT, INT, STRING
 
@@ -16,35 +17,35 @@ from haybale_core.types.specs import BOOL, FLOAT, INT, STRING
 )
 class NumberWidget(SimpleWidget):
     """
-    Number input widget for float and int ports.
+    Blender-style number input widget for float and int ports.
+
+    Drag horizontally to change the value, click to type, or use
+    the arrow buttons that appear on hover.
 
     Config options (via ``NumberWidget.config(properties={...})``):
 
-    - ``label`` (str): Input label shown above the field.
     - ``min`` (int | float): Minimum allowed value.
     - ``max`` (int | float): Maximum allowed value.
-    - ``step`` (int | float): Step increment for the input arrows.
-    - ``precision`` (int): Number of decimal places to display.
+    - ``step`` (int | float): Step increment for drag / arrows.
+    - ``precision`` (int): Decimal places to display (-1 = auto from step).
     - ``prefix`` (str): Text shown before the value (e.g. ``'$'``).
     - ``suffix`` (str): Text shown after the value (e.g. ``'kg'``).
+    - ``sensitivity`` (float): Drag sensitivity multiplier (default 1.0).
 
     Example::
 
-        NumberWidget.config(properties={'label': 'Speed', 'min': 0, 'max': 200, 'step': 0.5})
+        NumberWidget.config(properties={'min': 0, 'max': 200, 'step': 0.5})
     """
 
     def create_element(self) -> Any:
         props = self.config.get('properties', {})
-        kwargs = {'value': 0}
+        kwargs: dict[str, Any] = {'value': 0}
 
-        for prop in ['label', 'min', 'max', 'step', 'precision', 'prefix', 'suffix']:
+        for prop in ['min', 'max', 'step', 'precision', 'prefix', 'suffix', 'sensitivity']:
             if prop in props:
                 kwargs[prop] = props[prop]
 
-        return ui.number(**kwargs).classes('w-full').props(
-            'input-style="appearance:none;-moz-appearance:textfield;"'
-            ' input-class="text-center"'
-        )
+        return NumberDrag(**kwargs).classes('w-full')
 
     def get_default_value(self) -> float:
         return 0.0

@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from nicegui import ui
 
 from haywire.core.settings.enums import SettingMode
+from haywire.ui.components.number_drag import NumberDrag
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import GlobalSettingsRegistry
@@ -153,13 +154,21 @@ def _render_widget_impl(defn: 'FieldDescriptor', value: Any, make_setter) -> Non
             kwargs['max'] = defn._max
         if defn._type is int:
             kwargs['step'] = 1
-            kwargs['format'] = '%.0f'
-        ui.number(value=value, on_change=make_setter(defn._type), **kwargs) \
-            .classes('flex-1 min-w-0 text-xs').props(
-                'dense hide-bottom-space'
-                ' input-style="appearance:none;-moz-appearance:textfield;"'
-                ' input-class="text-center"'
-            )
+            kwargs['precision'] = 0
+        coerce = defn._type
+        handler = make_setter(coerce)
+
+        class _E:
+            __slots__ = ('value',)
+
+        def _on_number_change(e, _h=handler, _c=coerce):
+            ev = _E()
+            ev.value = _c(e.args)
+            _h(ev)
+
+        NumberDrag(value=value if value is not None else 0,
+                   on_change=_on_number_change, **kwargs) \
+            .classes('flex-1 min-w-0')
         return
 
     ui.input(
