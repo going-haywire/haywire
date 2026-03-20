@@ -51,7 +51,7 @@ class TestSettingDescriptor:
 
     def test_category_and_order_defaults(self):
         d = _FakeGlobal._fields['count']
-        assert d._category == ''
+        assert d._category == 'general'
         assert d._order == 0
 
     def test_flags(self):

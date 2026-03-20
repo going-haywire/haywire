@@ -27,20 +27,39 @@ class FieldDescriptor:
 
     # Set by __set_name__
     _attr_name: str = ''
+    """Short attribute name on the owning class, assigned by ``__set_name__``."""
 
     # Set by constructor (subclass __init__)
     _default: Any = None
+    """Default value returned when no local or global override is set."""
+
     _type: type = object
+    """Python type of the field — drives widget inference (bool→switch, int/float→number, etc.)."""
+
     _label: str = ''
+    """Human-readable label shown next to the widget in the properties panel."""
+
     _description: str = ''
-    _category: str = ''
+    """Tooltip text displayed on hover over the label in the properties panel."""
+
+    _category: str = 'general'
+    """Panel grouping key — fields with the same category are rendered under a shared section header."""
+
     _order: int = 0
+    """Sort order within a category — lower values appear first."""
 
     # Widget inference hints (used by properties panel)
     _min: Any = None
+    """Minimum allowed value — used as the lower bound for numeric widgets."""
+
     _max: Any = None
+    """Maximum allowed value — used as the upper bound for numeric widgets."""
+
     _choices: list | Callable | None = None
+    """Dropdown options: a static list, a ``{value: label}`` dict, or a callable returning either."""
+
     _widget: str | None = None
+    """Explicit widget hint (e.g. ``'color'``) that overrides type-based inference."""
 
     @property
     def choices(self) -> list | dict | None:

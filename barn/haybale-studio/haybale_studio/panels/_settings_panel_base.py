@@ -14,6 +14,7 @@ Usage inside a panel's draw():
 
 from __future__ import annotations
 
+from itertools import groupby
 from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
@@ -25,6 +26,23 @@ if TYPE_CHECKING:
     from haywire.core.settings.holder import SubHolder
     from haywire.core.settings.descriptors import SettingDescriptor
     from haywire.core.property import Bag, FieldDescriptor
+
+
+# ---------------------------------------------------------------------------
+# Category grouping helpers
+# ---------------------------------------------------------------------------
+
+def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str, list]]:
+    """Group a pre-sorted list of descriptors by category, preserving order."""
+    return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
+
+
+def _render_category_group(category: str) -> ui.expansion:
+    """Return a foldable expansion for a category group (use as context manager)."""
+    label = category.replace('_', ' ').replace('.', ' / ').title()
+    return ui.expansion(label, value=True).classes(
+        'w-full'
+    ).props('dense header-class="text-xs font-bold text-gray-500 uppercase tracking-wide px-2 py-0"')
 
 
 # ---------------------------------------------------------------------------
@@ -44,15 +62,17 @@ def render_reactive(obj: 'Bag') -> None:
         ui.label('No props defined.').classes('text-xs text-gray-400 px-2 py-1')
         return
 
-    sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._order, item[0]))
-    for attr_name, defn in sorted_fields:
-        value = getattr(obj, attr_name)
-        label_text = defn._label or attr_name
-        with ui.row().classes('w-full items-center justify-between gap-0 px-2 py-0'):
-            lbl = ui.label(label_text).classes('text-sm flex-1 min-w-0 truncate')
-            if defn._description:
-                lbl.tooltip(defn._description)
-            _render_widget_impl(defn, value, _make_reactive_setter(obj, attr_name))
+    sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0]))
+    for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
+        with _render_category_group(category):
+            for attr_name, defn in group:
+                value = getattr(obj, attr_name)
+                label_text = defn._label or attr_name
+                with ui.row().classes('w-full items-center justify-between gap-0 px-2 py-0').props('dense'):
+                    lbl = ui.label(label_text).classes('text-sm flex-1 min-w-0 truncate')
+                    if defn._description:
+                        lbl.tooltip(defn._description)
+                    _render_widget_impl(defn, value, _make_reactive_setter(obj, attr_name))
 
 
 def _make_reactive_setter(obj: 'Bag', attr_name: str):
@@ -82,9 +102,11 @@ def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
         ui.label('No settings defined.').classes('text-xs text-gray-400 px-2 py-1')
         return
 
-    sorted_defns = sorted(defns.values(), key=lambda d: (d._order, d._field_key))
-    for defn in sorted_defns:
-        _render_field(defn, registry)
+    sorted_defns = sorted(defns.values(), key=lambda d: (d._category, d._order, d._field_key))
+    for category, group in _group_by_category(sorted_defns):
+        with _render_category_group(category):
+            for defn in group:
+                _render_field(defn, registry)
 
 
 # ---------------------------------------------------------------------------
@@ -107,9 +129,11 @@ def render_sub_holder(sub_holder: 'SubHolder') -> None:
         ui.label('No settings defined.').classes('text-xs text-gray-400 px-2 py-1')
         return
 
-    sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._order, item[0]))
-    for attr_name, defn in sorted_fields:
-        _render_sub_holder_field(attr_name, defn, sub_holder)
+    sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0]))
+    for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
+        with _render_category_group(category):
+            for attr_name, defn in group:
+                _render_sub_holder_field(attr_name, defn, sub_holder)
 
 
 def _render_sub_holder_field(

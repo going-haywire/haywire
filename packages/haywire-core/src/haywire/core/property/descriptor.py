@@ -29,7 +29,7 @@ class prop(FieldDescriptor):
         *,
         label: str = '',
         description: str = '',
-        category: str = '',
+        category: str = 'general',
         order: int = 0,
         min: Any = None,
         max: Any = None,

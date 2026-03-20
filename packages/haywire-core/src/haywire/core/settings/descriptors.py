@@ -166,7 +166,7 @@ class setting(SettingDescriptor):
         widget: str | None = None,
         label: str = '',
         description: str = '',
-        category: str = '',
+        category: str = 'general',
         order: int = 0,
         on_change: str = '',
     ) -> None:
