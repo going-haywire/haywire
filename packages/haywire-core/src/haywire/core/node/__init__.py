@@ -8,11 +8,11 @@ from .base import NodeMeta, NodeData, BaseNode
 from .behavior import NodeType, NodeBehaviorFlags, BEHAVIOR_FIELDS
 from .decorator import node
 from .user_data import NodeCache, NodeStore
-from .node_instance import NodeInstanceSettings
+from .properties import NodeProperties
 from .node_wrapper import NodeWrapperState, NodeMiddleware, NodeWrapper
 from .registry import NodeRegistry
 from .factory import NodeFactory
-from .dataclasses import NodeErrorInfo, NodeBehavior, NodeUIConfig, NodeUserMetadata
+from .dataclasses import NodeErrorInfo, NodeBehavior, NodeUserMetadata
 
 __all__ = [
     # Identity
@@ -31,7 +31,7 @@ __all__ = [
     "NodeCache",
     "NodeStore",
     # Instance props (position, visual state, etc.)
-    "NodeInstanceSettings",
+    "NodeProperties",
     # Node wrapper & lifecycle
     "NodeWrapperState",
     "NodeMiddleware",
@@ -42,6 +42,5 @@ __all__ = [
     # Dataclasses (legacy)
     "NodeErrorInfo",
     "NodeBehavior",
-    "NodeUIConfig",
     "NodeUserMetadata",
 ]

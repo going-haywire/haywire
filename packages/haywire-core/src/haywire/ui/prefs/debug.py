@@ -1,10 +1,10 @@
 # haywire/ui/prefs/debug.py
 """Debug and development preference singleton."""
 
-from haywire.core.reactive import Reactive, prop
+from haywire.core.property import Bag, prop
 
 
-class DebugSettings(Reactive):
+class DebugSettings(Bag):
     """Global preferences for debug and development features."""
 
     # Logging

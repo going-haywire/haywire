@@ -24,14 +24,14 @@ if TYPE_CHECKING:
     from haywire.core.settings.registry import GlobalSettingsRegistry
     from haywire.core.settings.holder import SubHolder
     from haywire.core.settings.descriptors import SettingDescriptor
-    from haywire.core.reactive import Reactive
+    from haywire.core.property import Bag, FieldDescriptor
 
 
 # ---------------------------------------------------------------------------
 # Reactive renderer (new, for Reactive + prop() objects)
 # ---------------------------------------------------------------------------
 
-def render_reactive(obj: 'Reactive') -> None:
+def render_reactive(obj: 'Bag') -> None:
     """
     Render all ``prop()`` fields of a ``Reactive`` instance as labelled form rows.
 
@@ -55,7 +55,7 @@ def render_reactive(obj: 'Reactive') -> None:
             _render_widget_impl(defn, value, _make_reactive_setter(obj, attr_name))
 
 
-def _make_reactive_setter(obj: 'Reactive', attr_name: str):
+def _make_reactive_setter(obj: 'Bag', attr_name: str):
     """Return a ``make_setter(coerce)`` factory that writes to a Reactive prop."""
     def make_setter(coerce):
         def handler(e):
@@ -169,7 +169,7 @@ def _render_widget(defn: 'SettingDescriptor', value: Any, registry: 'GlobalSetti
     _render_widget_impl(defn, value, lambda coerce: _make_setter(registry, key, coerce))
 
 
-def _render_widget_impl(defn: 'SettingDescriptor', value: Any, make_setter) -> None:
+def _render_widget_impl(defn: 'FieldDescriptor', value: Any, make_setter) -> None:
     """Shared widget dispatch. make_setter(coerce) → on_change handler."""
 
     # ── Explicit color hint ──────────────────────────────────────────────────

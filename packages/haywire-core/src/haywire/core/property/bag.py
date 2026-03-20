@@ -1,95 +1,31 @@
-# haywire/core/reactive.py
+# haywire/core/property/bag.py
 """
-Reactive Props — lightweight observable property system for Haywire.
+Bag — lightweight observable property container for Haywire.
 
-Provides:
-- `prop()` descriptor: direct attribute access with change notification
-- `Reactive` base class: subscribable bag of typed, observable properties
-- Built-in to_dict() / from_dict() serialization
+Subclass and declare fields with ``prop()``:
 
-Zero external dependencies. No file I/O. UI-free.
+    class ExecutionSettings(Bag):
+        auto_execute: bool = prop(True, label='Auto Execute')
+        debounce_ms:  int  = prop(100,  label='Debounce (ms)', min=0, max=2000)
+
+Supports:
+- Direct attribute access (``obj.field = value``)
+- Change notification (``obj.subscribe(callback)``)
+- Serialization (``to_dict()`` / ``from_dict()``)
+- Reset (``reset(name)`` / ``reset_all()``)
 """
 
 from __future__ import annotations
 
 from typing import Any, Callable
 
-
-class prop:
-    """
-    Descriptor for a reactive property.
-
-    Class-level access returns the descriptor itself (for introspection by
-    panels and registry code).  Instance-level access reads/writes the value
-    stored in the owning Reactive object's __dict__.
-
-    Metadata attribute names match SettingDescriptor so that _render_widget_impl()
-    works unchanged for both.
-    """
-
-    def __init__(
-        self,
-        default: Any,
-        *,
-        label: str = '',
-        description: str = '',
-        category: str = '',
-        order: int = 0,
-        min: Any = None,
-        max: Any = None,
-        choices: 'list | dict | Callable | None' = None,
-        widget: 'str | None' = None,
-    ) -> None:
-        self._default = default
-        self._type = type(default)
-        self._label = label
-        self._description = description
-        self._category = category
-        self._order = order
-        self._min = min
-        self._max = max
-        self._choices = choices
-        self._widget = widget
-        self._attr_name: str = ''   # set by __set_name__
-
-    def __set_name__(self, owner: type, name: str) -> None:
-        self._attr_name = name
-
-    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
-        if obj is None:
-            return self   # class-level access → descriptor itself
-        return obj.__dict__.get(f'_prop_{self._attr_name}', self._default)
-
-    def __set__(self, obj: Any, value: Any) -> None:
-        key = f'_prop_{self._attr_name}'
-        old = obj.__dict__.get(key, self._default)
-        obj.__dict__[key] = value
-        if value != old:
-            obj._on_prop_change(self._attr_name, value, old)
-
-    @property
-    def choices(self) -> 'list | dict | None':
-        """Resolve callable choices; return list/dict/None."""
-        if callable(self._choices):
-            return self._choices()
-        return self._choices
+from .descriptor import prop
 
 
-class Reactive:
+class Bag:
     """
     Base class for observable property bags.
 
-    Subclass and declare fields with ``prop()``:
-
-        class ExecutionSettings(Reactive):
-            auto_execute: bool = prop(True, label='Auto Execute')
-            debounce_ms:  int  = prop(100,  label='Debounce (ms)', min=0, max=2000)
-
-    Supports:
-    - Direct attribute access (``obj.field = value``)
-    - Change notification (``obj.subscribe(callback)``)
-    - Serialization (``to_dict()`` / ``from_dict()``)
-    - Reset (``reset(name)`` / ``reset_all()``)
     """
 
     def __init__(self) -> None:

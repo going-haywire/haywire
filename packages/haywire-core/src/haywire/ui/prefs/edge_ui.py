@@ -1,10 +1,10 @@
 # haywire/ui/prefs/edge_ui.py
 """Edge routing, width, and animation preference singleton."""
 
-from haywire.core.reactive import Reactive, prop
+from haywire.core.property import Bag, prop
 
 
-class EdgeUISettings(Reactive):
+class EdgeUISettings(Bag):
     """Global preferences controlling edge routing, width, and animation behaviour."""
 
     # Width

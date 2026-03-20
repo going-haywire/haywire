@@ -1,10 +1,10 @@
 # haywire/ui/prefs/minimap.py
 """Minimap layout and visibility preference singleton."""
 
-from haywire.core.reactive import Reactive, prop
+from haywire.core.property import Bag, prop
 
 
-class MinimapSettings(Reactive):
+class MinimapSettings(Bag):
     """Global preferences controlling the minimap overlay layout and visibility."""
 
     enabled:       bool  = prop(True,          label='Show Minimap',       description='Display minimap overview',                         category='ui.minimap', order=10)

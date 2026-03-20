@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
-from haywire.core.node.node_instance import NodeInstanceSettings
+from haywire.core.node.properties import NodeProperties
 from ..types.enums import FlowType, PortType
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
@@ -76,7 +76,7 @@ class NodeData:
         )
 
         # Per-instance observable props (muted, collapsed, pinned, position, …)
-        self._props: NodeInstanceSettings = NodeInstanceSettings()
+        self._props: NodeProperties = NodeProperties()
 
         # Cache (transient, NOT serialized)
         self._cache: NodeCache = NodeCache()
@@ -144,7 +144,7 @@ class NodeData:
         return self._settings
 
     @property
-    def props(self) -> NodeInstanceSettings:
+    def props(self) -> NodeProperties:
         """
         Per-instance observable props for this node.
 

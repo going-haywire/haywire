@@ -47,19 +47,6 @@ class NodeBehavior:
     is_event_node: bool = False
     """If True, this is an event node (entry point for flows)"""
 
-
-@dataclass
-class NodeUIConfig:
-    """UI configuration and capabilities"""
-    is_collapsable: bool = True
-    is_condensable: bool = True
-    default_color: str = '#FFFFFF'
-    icon: str | None = None
-    node_skin: str | None = None
-    props_skin: str | None = None
-    custom_gui: str | None = None
-
-
 @dataclass
 class NodeUserMetadata:
     """User-defined metadata"""

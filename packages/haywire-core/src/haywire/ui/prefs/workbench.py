@@ -1,7 +1,7 @@
 # haywire/ui/prefs/workbench.py
 """Workbench and node theme selection preference singletons."""
 
-from haywire.core.reactive import Reactive, prop
+from haywire.core.property import Bag, prop
 
 
 def _workbench_theme_choices():
@@ -13,7 +13,7 @@ def _workbench_theme_choices():
         return {}
 
 
-class WorkbenchSettings(Reactive):
+class WorkbenchSettings(Bag):
     """Global preferences controlling the active workbench theme."""
 
     theme: str = prop(
@@ -26,7 +26,7 @@ class WorkbenchSettings(Reactive):
     )
 
 
-class NodeThemeSettings(Reactive):
+class NodeThemeSettings(Bag):
     """Global preferences controlling the active node theme."""
 
     theme: str = prop(

@@ -1,10 +1,10 @@
 # haywire/ui/prefs/execution.py
 """Execution behaviour preference singleton."""
 
-from haywire.core.reactive import Reactive, prop
+from haywire.core.property import Bag, prop
 
 
-class ExecutionSettings(Reactive):
+class ExecutionSettings(Bag):
     """Global preferences controlling graph execution behaviour."""
 
     # Auto-execution

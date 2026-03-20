@@ -1,10 +1,10 @@
 # haywire/ui/prefs/node_ui.py
 """Node layout and visibility preference singleton."""
 
-from haywire.core.reactive import Reactive, prop
+from haywire.core.property import Bag, prop
 
 
-class NodeUISettings(Reactive):
+class NodeUISettings(Bag):
     """Global preferences controlling node layout, dimensions, and label visibility."""
 
     # Label and hint visibility

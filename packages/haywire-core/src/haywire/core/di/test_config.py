@@ -203,9 +203,9 @@ def create_test_settings_holder(
                 category=descriptor._category or 'test',
             )
 
-    from haywire.core.node.node_instance import NodeInstanceSettings
+    from haywire.core.node.properties import NodeProperties
     holder = SettingsHolder(
-        schemas={'test': resolved_schema, '_node': NodeInstanceSettings},
+        schemas={'test': resolved_schema, '_node': NodeProperties},
         registry=registry,
         node_instance=None,
     )

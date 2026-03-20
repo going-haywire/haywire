@@ -9,10 +9,10 @@ Access via:  node.props.muted,  node.props.collapsed, ...
 Serialized under the 'props' key in graph JSON.
 """
 
-from haywire.core.reactive import Reactive, prop
+from haywire.core.property import Bag, prop
 
 
-class NodeInstanceSettings(Reactive):
+class NodeProperties(Bag):
     """
     Framework-provided props available on every node instance.
 

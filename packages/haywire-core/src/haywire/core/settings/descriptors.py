@@ -11,19 +11,22 @@ Three descriptor types are provided:
 from __future__ import annotations
 from typing import Any, Callable
 
+from haywire.core.property.base import FieldDescriptor
 
-class SettingDescriptor:
+
+class SettingDescriptor(FieldDescriptor):
     """
     Base descriptor for all setting field types.
 
+    Extends FieldDescriptor with settings-specific attributes:
+    _field_key, _mirror_key, _validator, _on_change, visibility/storage flags,
+    and validate()/coerce()/to_dict() methods.
+
     Python calls __set_name__ automatically when the class body is evaluated.
     Class-level __get__ returns self (the descriptor) — this enables:
-        shadow(MyLibSettings.bg_color)   ← class access returns descriptor with _field_key set
+        shadow(MyLibSettings.bg_color)   <- class access returns descriptor with _field_key set
     Instance-level __get__ raises AttributeError — values come through SettingsHolder.
     """
-
-    # Set by __set_name__
-    _attr_name: str = ''
 
     _field_key: str = ''
     """
@@ -45,34 +48,14 @@ class SettingDescriptor:
     Used to look up the mirrored values during resolution.
     """
 
-
-    # Set by constructor
-    _default: Any = None
-    _type: type = object          # Python type for validation and coercion
+    # Settings-specific fields (not on FieldDescriptor)
     _validator: Callable | None = None  # Optional custom validator
-    _label: str = ''
-    _description: str = ''
-    _category: str = ''
-    _order: int = 0
     _on_change: str = ''   # method name on the node instance
 
     # Flags used by serializer and panel introspection
     _panel_visible: bool = True
     _stored: bool = True
     _read_only: bool = False
-
-    # Widget inference hints (used by properties panel)
-    _min: Any = None
-    _max: Any = None
-    _choices: list | Callable | None = None
-    _widget: str | None = None   # explicit override: 'color', 'slider', 'toggle', etc.
-
-    @property
-    def choices(self) -> list | None:
-        """Resolve choices — calls the provider if it is a callable."""
-        if callable(self._choices):
-            return self._choices()
-        return self._choices
 
     def __set_name__(self, owner: type, name: str) -> None:
         # Each instance must have its own copy of _attr_name and _field_key
@@ -82,7 +65,7 @@ class SettingDescriptor:
 
     def __get__(self, obj: object | None, objtype: type | None = None) -> Any:
         if obj is None:
-            # Class-level access → return descriptor itself (typed key handle)
+            # Class-level access -> return descriptor itself (typed key handle)
             return self
         raise AttributeError(
             f"Access '{self._attr_name}' via self.settings.{self._attr_name}, "
@@ -159,11 +142,11 @@ class setting(SettingDescriptor):
     Local node setting — stored in graph, shown in properties panel.
 
     Widget inference (if _widget is not set explicitly):
-        bool              → toggle
-        int/float + range → slider
-        Color             → color picker
-        Icon              → icon picker
-        str               → text input
+        bool              -> toggle
+        int/float + range -> slider
+        Color             -> color picker
+        Icon              -> icon picker
+        str               -> text input
         (Literal types are resolved in panel rendering from _choices)
     """
 

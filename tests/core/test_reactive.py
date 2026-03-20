@@ -1,6 +1,6 @@
 # tests/core/test_reactive.py
 """
-Unit tests for haywire.core.reactive — prop() descriptor + Reactive base class.
+Unit tests for haywire.core.property — prop() descriptor + Bag base class.
 
 Coverage:
 - prop() default values, class-level returns descriptor, instance-level returns value
@@ -12,28 +12,29 @@ Coverage:
 - .choices property resolves callables
 - _prop_fields() walks MRO correctly
 - Inheritance: subclass adds fields, parent fields preserved
+- FieldDescriptor is the common ancestor of prop and SettingDescriptor
 """
 
 import pytest
-from haywire.core.reactive import prop, Reactive
+from haywire.core.property import prop, Bag, FieldDescriptor
 
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
 
-class _Simple(Reactive):
+class _Simple(Bag):
     threshold: float = prop(0.5, label='Threshold', min=0.0, max=1.0)
     verbose:   bool  = prop(False, label='Verbose')
     name:      str   = prop('default', label='Name')
 
 
-class _WithChoices(Reactive):
+class _WithChoices(Bag):
     algorithm: str = prop('fast', choices=['fast', 'accurate'])
     dynamic:   str = prop('a',   choices=lambda: ['a', 'b', 'c'])
 
 
-class _Parent(Reactive):
+class _Parent(Bag):
     x: int = prop(1, label='X')
 
 
@@ -346,3 +347,20 @@ class TestInheritance:
         c.subscribe(lambda n, v, o: received.append((n, v)))
         c.x = 42
         assert received == [('x', 42)]
+
+
+# ---------------------------------------------------------------------------
+# FieldDescriptor — shared ancestor
+# ---------------------------------------------------------------------------
+
+class TestFieldDescriptorAncestry:
+
+    def test_prop_is_field_descriptor(self):
+        assert issubclass(prop, FieldDescriptor)
+        assert isinstance(_Simple.threshold, FieldDescriptor)
+
+    def test_setting_descriptor_is_field_descriptor(self):
+        from haywire.core.settings.descriptors import SettingDescriptor, setting
+        assert issubclass(SettingDescriptor, FieldDescriptor)
+        assert issubclass(setting, FieldDescriptor)
+

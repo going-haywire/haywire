@@ -1,10 +1,10 @@
 # haywire/ui/prefs/canvas.py
 """Canvas grid, zoom, and pan preference singleton."""
 
-from haywire.core.reactive import Reactive, prop
+from haywire.core.property import Bag, prop
 
 
-class CanvasSettings(Reactive):
+class CanvasSettings(Bag):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
 
     # Background pattern (style, not color)
