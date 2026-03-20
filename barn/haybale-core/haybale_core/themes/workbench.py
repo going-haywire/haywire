@@ -70,8 +70,10 @@ class HaywireDarkTheme(WorkbenchTheme):
     sidebar_icon_active = '#4f8ef7'
 
     # Panel
-    panel_bg   = '#1a1a2c'
-    panel_text = '#c0c0e0'
+    panel_bg           = '#1a1a2c'
+    panel_text         = '#c0c0e0'
+    panel_header_0_bg  = '#1e1e30'
+    panel_header_1_bg  = 'transparent'
 
     # StatusBar
     statusbar_bg   = '#1e3a5f'
@@ -147,8 +149,10 @@ class HaywireLightTheme(WorkbenchTheme):
     sidebar_icon_active = '#4f8ef7'
 
     # Panel
-    panel_bg   = '#ffffff'
-    panel_text = 'rgba(0,0,0,0.87)'
+    panel_bg           = '#ffffff'
+    panel_text         = 'rgba(0,0,0,0.87)'
+    panel_header_0_bg  = '#f5f5fa'
+    panel_header_1_bg  = 'transparent'
 
     # StatusBar
     statusbar_bg   = '#1565c0'

@@ -142,8 +142,13 @@ class AppShell:
             # Make CodeMirror fill its flex container so height is flexible.
             ' .hw-cm-isolate .cm-editor { height: 100%; }'
             # Expansion items inside area editors (PropertiesEditor, etc.)
-            ' .hw-panel .q-expansion-item { background: transparent; }'
+            ' .hw-panel .q-expansion-item {'
+            '   background: var(--hw-panel-header-0-bg, transparent);'
+            ' }'
             ' .hw-panel .q-expansion-item__header { color: var(--hw-text-expansion) !important; }'
+            ' .compact-fields .q-expansion-item {'
+            '   background: var(--hw-panel-header-1-bg, transparent);'
+            ' }'
             ' .hw-panel .q-expansion-item__content {'
             '   padding: 0.25rem 0.5rem !important;'
             '   gap: 0 !important;'

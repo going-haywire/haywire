@@ -41,7 +41,10 @@ class NumberWidget(SimpleWidget):
             if prop in props:
                 kwargs[prop] = props[prop]
 
-        return ui.number(**kwargs).classes('w-full')
+        return ui.number(**kwargs).classes('w-full').props(
+            'input-style="appearance:none;-moz-appearance:textfield;"'
+            ' input-class="text-center"'
+        )
 
     def get_default_value(self) -> float:
         return 0.0

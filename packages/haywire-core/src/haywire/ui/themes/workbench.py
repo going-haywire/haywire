@@ -92,6 +92,8 @@ class WorkbenchTheme:
         # Panel
         'panel_bg':          '--hw-panel-bg',
         'panel_text':        '--hw-panel-text',
+        'panel_header_0_bg': '--hw-panel-header-0-bg',
+        'panel_header_1_bg': '--hw-panel-header-1-bg',
         # StatusBar
         'statusbar_bg':      '--hw-statusbar-bg',
         'statusbar_text':    '--hw-statusbar-text',
