@@ -227,7 +227,7 @@ class PropertiesEditor(BaseEditor):
                 )
                 exp.on('update:modelValue', lambda e, k=panel_key: exp_state.update({k: e.args}))
                 with exp:
-                    panel_container = ui.column().classes('w-full gap-1 p-1')
+                    panel_container = ui.column().classes('w-full gap-1')
                     layout = PanelLayout(panel_container)
                     try:
                         panel_instance = panel_cls()

@@ -67,5 +67,4 @@ class NodeInstanceSettingsPanel(BasePanel):
         node = context.active_node
         if node is None:
             return
-        with layout.column():
-            render_reactive(node.node.props)
+        render_reactive(node.node.props)

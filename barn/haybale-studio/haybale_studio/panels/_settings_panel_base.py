@@ -22,48 +22,6 @@ if TYPE_CHECKING:
 _ROW_CLASSES = 'w-full items-center justify-between gap-0 px-2'
 _LABEL_CLASSES = 'text-xs flex-1 min-w-0 truncate'
 
-_SETTINGS_PANEL_CSS = '''
-    .settings-panel {
-        --nicegui-default-gap: 0.25rem;
-    }
-    .settings-panel .nicegui-row {
-        min-height: 28px !important;
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-    }
-    .settings-panel .q-field {
-        padding: 0 !important;
-        margin: 0 !important;
-        align-items: center !important;
-    }
-    .settings-panel .q-field__inner {
-        align-self: center !important;
-    }
-    .settings-panel .q-field__control {
-        height: 26px !important;
-        min-height: 26px !important;
-    }
-    .settings-panel .q-field__control::before,
-    .settings-panel .q-field__control::after {
-        border: none !important;
-    }
-    .settings-panel .q-field__marginal {
-        height: 26px !important;
-    }
-    .settings-panel .q-field__native {
-        padding: 0 4px !important;
-        min-height: 26px !important;
-        height: 26px !important;
-    }
-    .settings-panel .q-field__bottom {
-        display: none !important;
-    }
-    .settings-panel .q-toggle {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-'''
-
 
 def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str, list]]:
     """Group a pre-sorted list of descriptors by category, preserving order."""
@@ -75,7 +33,7 @@ def _render_category_group(category: str) -> ui.expansion:
     label = category.replace('_', ' ').replace('.', ' / ').title()
     return ui.expansion(label, value=True).classes('w-full').props(
         'dense dense-toggle'
-        ' header-class="text-xs font-bold text-gray-500 uppercase tracking-wide'
+        ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
         ' px-2 py-0 min-h-[24px]"'
     )
 
@@ -95,14 +53,14 @@ def _render_field_row(label_text: str, description: str, defn, value, make_sette
 
 def render_reactive(obj: 'Bag') -> None:
     """Render all ``prop()`` fields of a ``Reactive`` instance as labelled form rows."""
-    ui.add_css(_SETTINGS_PANEL_CSS)
+
     fields = type(obj)._prop_fields()
     if not fields:
         ui.label('No props defined.').classes('text-xs text-gray-400 px-2 py-1')
         return
 
     sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0]))
-    with ui.column().classes('w-full gap-0 settings-panel'):
+    with ui.column().classes('w-full gap-0 compact-fields'):
         for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
             with _render_category_group(category):
                 for attr_name, defn in group:
@@ -114,14 +72,14 @@ def render_reactive(obj: 'Bag') -> None:
 
 def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
     """Render all fields of *schema_cls* as labelled form rows."""
-    ui.add_css(_SETTINGS_PANEL_CSS)
+
     defns = registry.definitions_for_schema(schema_cls)
     if not defns:
         ui.label('No settings defined.').classes('text-xs text-gray-400 px-2 py-1')
         return
 
     sorted_defns = sorted(defns.values(), key=lambda d: (d._category, d._order, d._field_key))
-    with ui.column().classes('w-full gap-0 settings-panel'):
+    with ui.column().classes('w-full gap-0 compact-fields'):
         for category, group in _group_by_category(sorted_defns):
             with _render_category_group(category):
                 for defn in group:
@@ -139,7 +97,7 @@ def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
 
 def render_sub_holder(sub_holder: 'SubHolder') -> None:
     """Render all fields of *sub_holder* as labelled form rows."""
-    ui.add_css(_SETTINGS_PANEL_CSS)
+
     from haywire.core.settings.holder import _collect_fields
 
     schema_cls = object.__getattribute__(sub_holder, '_schema')
@@ -149,7 +107,7 @@ def render_sub_holder(sub_holder: 'SubHolder') -> None:
         return
 
     sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0]))
-    with ui.column().classes('w-full gap-0 settings-panel'):
+    with ui.column().classes('w-full gap-0 compact-fields'):
         for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
             with _render_category_group(category):
                 for attr_name, defn in group:

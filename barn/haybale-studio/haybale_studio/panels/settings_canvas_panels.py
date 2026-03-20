@@ -40,8 +40,7 @@ class CanvasSettingsPanel(BasePanel):
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         from haybale_studio.settings.ui_canvas import CanvasSettings
         registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(CanvasSettings, registry)
+        render_schema(CanvasSettings, registry)
 
 
 @panel(
@@ -63,8 +62,7 @@ class NodeUISettingsPanel(BasePanel):
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         from haybale_studio.settings.ui_node import NodeUISettings
         registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(NodeUISettings, registry)
+        render_schema(NodeUISettings, registry)
 
 
 @panel(
@@ -86,8 +84,7 @@ class EdgeUISettingsPanel(BasePanel):
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         from haybale_studio.settings.ui_edge import EdgeUISettings
         registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(EdgeUISettings, registry)
+        render_schema(EdgeUISettings, registry)
 
 
 @panel(
@@ -109,5 +106,4 @@ class MinimapSettingsPanel(BasePanel):
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         from haybale_studio.settings.ui_minimap import MinimapSettings
         registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(MinimapSettings, registry)
+        render_schema(MinimapSettings, registry)

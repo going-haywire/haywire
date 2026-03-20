@@ -37,5 +37,4 @@ class ExecutionSettingsPanel(BasePanel):
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         from haybale_studio.settings.execution import ExecutionSettings
         registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(ExecutionSettings, registry)
+        render_schema(ExecutionSettings, registry)

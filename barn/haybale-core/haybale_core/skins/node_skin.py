@@ -67,7 +67,7 @@ class NodeSkin(BaseSkin, ABC):
 
             # Content column — label and optional widget stacked vertically
             # margin (not padding) so negative CONTENT_GAP can pull label toward the pin
-            with ui.element('div').style(
+            with ui.element('div').classes('compact-fields').style(
                 f'display: flex; flex-direction: column; '
                 f'margin-left: {gap}px; margin-right: {g}px; min-width: 0;'
             ):
@@ -83,7 +83,7 @@ class NodeSkin(BaseSkin, ABC):
         ):
             # Content column — label right-aligned and optional widget
             # margin (not padding) so negative CONTENT_GAP can pull label toward the pin
-            with ui.element('div').style(
+            with ui.element('div').classes('compact-fields').style(
                 f'display: flex; flex-direction: column; align-items: flex-end; '
                 f'margin-right: {gap}px; min-width: 0;'
             ):
@@ -101,7 +101,7 @@ class NodeSkin(BaseSkin, ABC):
     def _render_config(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render a config port — no pin, indented symmetrically to align with inlet/outlet labels."""
         indent = max(0, self.PIN_GUTTER + self.CONTENT_GAP)
-        with ui.element('div').style(
+        with ui.element('div').classes('compact-fields').style(
             f'display: flex; flex-direction: column; width: 100%; '
             f'padding-left: {indent}px; padding-right: {indent}px;'
         ):

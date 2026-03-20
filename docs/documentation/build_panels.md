@@ -15,8 +15,9 @@ For background on how panels fit into the larger UI architecture, see [haywire_a
 7. [Registering a Panel](#7-registering-a-panel)
 8. [Panel Ordering and Grouping](#8-panel-ordering-and-grouping)
 9. [Building a Custom Panel-Aware Editor](#9-building-a-custom-panel-aware-editor)
-10. [Best Practices](#10-best-practices)
-11. [Full Example: A Custom Node Metrics Panel](#11-full-example-a-custom-node-metrics-panel)
+10. [Compact Field Styling](#10-compact-field-styling)
+11. [Best Practices](#11-best-practices)
+12. [Full Example: A Custom Node Metrics Panel](#12-full-example-a-custom-node-metrics-panel)
 
 ---
 
@@ -547,7 +548,63 @@ def on_context_changed(self, event, context) -> None:
 
 ---
 
-## 10. Best Practices
+## 10. Compact Field Styling
+
+Haywire ships a shared CSS utility class called **`compact-fields`** that tightens
+NiceGUI/Quasar field rendering for dense UI areas like settings panels and node widgets.
+The class is injected once by `AppShell` — no per-panel `ui.add_css()` call is needed.
+
+### Usage
+
+Wrap the container that holds your form fields with the `compact-fields` class:
+
+```python
+with ui.column().classes('w-full gap-0 compact-fields'):
+    ui.number(value=42).props('dense')
+    ui.input(value='hello').props('dense')
+```
+
+The class reduces vertical gaps, removes Quasar's hidden validation space, compacts
+input heights, and removes underline decorations. It scopes all changes to descendants
+of the marked container so the rest of the application is unaffected.
+
+### What it does
+
+| Override | Effect |
+| --- | --- |
+| `--nicegui-default-gap` | Reduced from `1rem` to `0.25rem` (configurable) |
+| `.q-field` | Padding/margin zeroed, vertical alignment centered |
+| `.q-field__control` | Height clamped to 26 px |
+| `.q-field__bottom` | Hidden (validation/hint space removed) |
+| `.q-toggle` | Margin/padding zeroed |
+| `.q-field__control::before/::after` | Underline border removed |
+
+### Theme integration
+
+The class uses CSS custom properties that themes can override:
+
+```css
+:root {
+    --hw-compact-gap: 0.25rem;       /* gap between rows */
+    --hw-compact-field-h: 26px;      /* input field height */
+    --hw-compact-row-min-h: 28px;    /* minimum row height */
+}
+```
+
+Override these in a `WorkbenchTheme.to_css_vars()` implementation to adjust compact
+field sizing globally for your theme.
+
+### Built-in usage
+
+- **Settings panels** (`_settings_panel_base.py`) — all three render functions
+  (`render_reactive`, `render_schema`, `render_sub_holder`) wrap their output in
+  `ui.column().classes('w-full gap-0 compact-fields')`
+- **Node skins** (`NodeSkin`) — port content columns (inlet, outlet, config) apply
+  `compact-fields` so that inline node widgets render compactly
+
+---
+
+## 11. Best Practices
 
 **Keep `poll()` side-effect-free and fast.** It is called on every context change for every
 registered panel. Avoid I/O, registry lookups, or any stateful mutation inside `poll()`.
@@ -588,7 +645,7 @@ second, actions last) and choose a value accordingly.
 
 ---
 
-## 11. Full Example: A Custom Node Metrics Panel
+## 12. Full Example: A Custom Node Metrics Panel
 
 This example shows a panel that displays timing and execution metrics for the active node. It demonstrates `poll()`, `draw()`, nested expansions, and updating on context change.
 

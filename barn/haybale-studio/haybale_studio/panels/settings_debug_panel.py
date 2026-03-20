@@ -37,5 +37,4 @@ class DebugSettingsPanel(BasePanel):
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         from haybale_studio.settings.debug import DebugSettings
         registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(DebugSettings, registry)
+        render_schema(DebugSettings, registry)

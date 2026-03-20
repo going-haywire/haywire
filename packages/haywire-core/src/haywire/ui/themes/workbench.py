@@ -98,6 +98,10 @@ class WorkbenchTheme:
         # Console
         'console_bg':        '--hw-console-bg',
         'console_text':      '--hw-console-text',
+        # Compact fields
+        'compact_gap':       '--hw-compact-gap',
+        'compact_field_h':   '--hw-compact-field-h',
+        'compact_row_min_h': '--hw-compact-row-min-h',
     }
 
     def __init_subclass__(cls, **kwargs: object) -> None:

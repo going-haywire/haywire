@@ -81,6 +81,11 @@ class HaywireDarkTheme(WorkbenchTheme):
     console_bg   = '#0d1117'
     console_text = '#4ade80'
 
+    # Compact fields
+    compact_gap       = '0.25rem'
+    compact_field_h   = '26px'
+    compact_row_min_h = '28px'
+
 
 @theme(registry_id='haywire-light', label='Haywire Light')
 class HaywireLightTheme(WorkbenchTheme):
@@ -152,3 +157,8 @@ class HaywireLightTheme(WorkbenchTheme):
     # Console
     console_bg   = '#f0f0f0'
     console_text = 'rgba(0,0,0,0.87)'
+
+    # Compact fields
+    compact_gap       = '0.25rem'
+    compact_field_h   = '26px'
+    compact_row_min_h = '28px'

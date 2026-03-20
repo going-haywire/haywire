@@ -420,6 +420,15 @@ if app is None:
     return
 ```
 
+**Use `compact-fields` for dense form areas.** If your editor renders Quasar input fields
+(number, text, select, toggle) in a tight sidebar or inspector layout, add the
+`compact-fields` CSS class to the wrapping container. This reduces vertical gaps, hides
+validation space, and clamps field heights — all scoped to that container. The CSS is
+injected globally by `AppShell`, so no `ui.add_css()` call is needed. See the
+[Compact Field Styling](build_panels.md#10-compact-field-styling) section in the panel
+guide for the full list of overrides and theme integration via CSS custom properties
+(`--hw-compact-gap`, `--hw-compact-field-h`, `--hw-compact-row-min-h`).
+
 **Implement `cleanup()`.** Even if you have nothing to clean up now, add a no-op and a
 comment. Future modifications that add timers or subscriptions are easy to forget.
 

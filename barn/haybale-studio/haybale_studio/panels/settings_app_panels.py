@@ -38,9 +38,8 @@ class WorkbenchSettingsPanel(BasePanel):
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         from haybale_studio.settings.workbench import WorkbenchSettings, NodeThemeSettings
         registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(WorkbenchSettings, registry)
-            render_schema(NodeThemeSettings, registry)
+        render_schema(WorkbenchSettings, registry)
+        render_schema(NodeThemeSettings, registry)
 
 
 @panel(
@@ -62,5 +61,4 @@ class EditorSettingsPanel(BasePanel):
     def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
         from haybale_studio.settings.editor import EditorSettings
         registry = context.app.library_service.get_settings_registry()
-        with layout.column():
-            render_schema(EditorSettings, registry)
+        render_schema(EditorSettings, registry)
