@@ -24,8 +24,14 @@ from .descriptor import prop
 
 class Bag:
     """
-    Base class for observable property bags.
+    Base Bag class for observable properties.
 
+    It provides a simple mechanism for defining properties with change 
+    notifications and serialization support.  
+    
+    Subclasses can define typed fields using the ``prop()`` descriptor, 
+    which allows for metadata such as labels, descriptions, categories, 
+    and validation rules.
     """
 
     def __init__(self) -> None:
