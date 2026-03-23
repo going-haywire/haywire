@@ -66,6 +66,18 @@ PROPERTIES_SCOPES: list[ScopeDescriptor] = [
         poll=lambda ctx: ctx.active_node is not None,
     ),
     ScopeDescriptor(
+        scope_id='settings',
+        label='Settings',
+        icon='tune',
+        order=65,
+        poll=lambda ctx: (
+            ctx.active_node is not None
+            and hasattr(ctx.active_node, 'node')
+            and ctx.active_node.node is not None
+            and bool(ctx.active_node.node.list_setting_bags())
+        ),
+    ),
+    ScopeDescriptor(
         scope_id='edge',
         label='Edge',
         icon='cable',
