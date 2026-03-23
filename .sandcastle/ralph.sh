@@ -27,13 +27,20 @@ fi
 IMAGE_NAME="ralph-haywire"
 CONTAINER_NAME="ralph-haywire-runner"
 
-# Get remote URL for cloning inside container
-REMOTE_URL="$(cd "$REPO_ROOT" && git remote get-url origin 2>/dev/null || echo "")"
+# Get remote URL for cloning inside container (tries origin, then first available remote)
+REMOTE_URL="$(cd "$REPO_ROOT" && git remote get-url origin 2>/dev/null || git remote get-url "$(git remote | head -1)" 2>/dev/null || echo "")"
 BRANCH="$(cd "$REPO_ROOT" && git branch --show-current)"
 
 if [ -z "$REMOTE_URL" ]; then
-  echo "ERROR: No git remote 'origin' found. RALPH needs a remote to clone from."
+  echo "ERROR: No git remote found. RALPH needs a remote to clone from."
   exit 1
+fi
+
+# Convert SSH URL to HTTPS with token (Docker container has no SSH keys)
+if [[ "$REMOTE_URL" == git@github.com:* ]]; then
+  REPO_PATH="${REMOTE_URL#git@github.com:}"
+  REPO_PATH="${REPO_PATH%.git}"
+  REMOTE_URL="https://${GH_TOKEN}@github.com/${REPO_PATH}.git"
 fi
 
 echo "=== RALPH — Haywire Autonomous Agent ==="
@@ -92,8 +99,16 @@ for i in $(seq 1 "$ITERATIONS"); do
     git log --all --grep='RALPH:' --format='%H %ai %s' -10 2>/dev/null || echo 'No RALPH commits yet.'
   ")"
 
-  # Build the full prompt
-  FULL_PROMPT="$(cat <<PROMPT_EOF
+  # Check if all issues are done
+  ISSUE_COUNT="$(echo "$ISSUES_JSON" | jq 'length' 2>/dev/null || echo "0")"
+  if [ "$ISSUE_COUNT" -eq 0 ]; then
+    echo ">>> No open issues. RALPH is done."
+    break
+  fi
+
+  # Write prompt file into container (avoids shell quoting issues)
+  PROMPT_FILE="$(mktemp)"
+  cat > "$PROMPT_FILE" <<PROMPT_EOF
 # OPEN ISSUES
 \`\`\`json
 $ISSUES_JSON
@@ -106,27 +121,22 @@ $RALPH_COMMITS
 
 $(cat "$SCRIPT_DIR/prompt.md")
 PROMPT_EOF
-)"
-
-  # Check if all issues are done
-  ISSUE_COUNT="$(echo "$ISSUES_JSON" | jq 'length' 2>/dev/null || echo "0")"
-  if [ "$ISSUE_COUNT" -eq 0 ]; then
-    echo ">>> No open issues. RALPH is done."
-    break
-  fi
+  docker cp "$PROMPT_FILE" "$CONTAINER_NAME:/tmp/.ralph_prompt.md"
+  rm -f "$PROMPT_FILE"
+  docker exec -u root "$CONTAINER_NAME" chown agent:agent /tmp/.ralph_prompt.md
 
   # Run Claude Code
   docker exec -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
     -e GH_TOKEN="$GH_TOKEN" \
     "$CONTAINER_NAME" bash -c "
     cd /home/agent/repos/$REPO_NAME
-    echo '$FULL_PROMPT' | claude --dangerously-skip-permissions --bare -p -
+    claude --dangerously-skip-permissions --bare -p < /tmp/.ralph_prompt.md
   "
 
   # Push any commits
   docker exec -e GH_TOKEN="$GH_TOKEN" "$CONTAINER_NAME" bash -c "
     cd /home/agent/repos/$REPO_NAME
-    git push origin $BRANCH 2>/dev/null || echo 'Nothing to push.'
+    git push 2>/dev/null || echo 'Nothing to push.'
   "
 
   echo ">>> Iteration $i complete."
