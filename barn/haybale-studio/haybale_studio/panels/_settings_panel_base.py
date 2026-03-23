@@ -17,7 +17,6 @@ from haywire.ui.components.number_drag import NumberDrag
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import GlobalSettingsRegistry
-    from haywire.core.settings.holder import SubHolder
     from haywire.core.property import Bag, FieldDescriptor
 
 _ROW_CLASSES = 'w-full items-center justify-between gap-0 px-2'
@@ -53,22 +52,48 @@ def _render_field_row(label_text: str, description: str, defn, value, make_sette
 # ---------------------------------------------------------------------------
 
 def render_reactive(obj: 'Bag') -> None:
-    """Render all ``prop()`` fields of a ``Reactive`` instance as labelled form rows."""
+    """Render all ``prop()`` fields of a ``Reactive`` instance as labelled form rows.
+
+    - Fields with ``read_only=True`` are skipped (not rendered).
+    - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
+    """
 
     fields = type(obj)._prop_fields()
-    if not fields:
+    # Exclude read-only fields from rendering
+    visible_fields = {name: defn for name, defn in fields.items() if not defn._read_only}
+    if not visible_fields:
         ui.label('No props defined.').classes('text-xs text-gray-400 px-2 py-1')
         return
 
-    sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0]))
+    sorted_fields = sorted(
+        visible_fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0])
+    )
     with ui.column().classes('w-full gap-0 compact-fields'):
         for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
             with _render_category_group(category):
                 for attr_name, defn in group:
-                    _render_field_row(
-                        defn._label or attr_name, defn._description,
-                        defn, getattr(obj, attr_name), _make_reactive_setter(obj, attr_name),
-                    )
+                    _render_reactive_field_row(obj, attr_name, defn)
+
+
+def _render_reactive_field_row(obj: 'Bag', attr_name: str, defn: 'FieldDescriptor') -> None:
+    """Render a single reactive field row, with optional reset button for mirrored fields."""
+    is_mirrored = bool(defn._mirror_key)
+    is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
+
+    label_text = defn._label or attr_name
+    if is_locally_overridden:
+        label_text = f'• {label_text}'  # visual indicator for locally-overridden mirrored field
+
+    with ui.row().classes(_ROW_CLASSES):
+        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
+        if defn._description:
+            lbl.tooltip(defn._description)
+        _render_widget_impl(defn, getattr(obj, attr_name), _make_reactive_setter(obj, attr_name))
+        if is_locally_overridden:
+            ui.button(icon='restart_alt') \
+                .props('flat dense size=xs') \
+                .tooltip('Reset to global default') \
+                .on('click', lambda _o=obj, _n=attr_name: _o.reset(_n))
 
 
 def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
@@ -93,32 +118,6 @@ def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
                         defn._label or defn._attr_name or key.split('.')[-1],
                         defn._description, defn, value,
                         lambda coerce, k=key: _make_setter(registry, k, coerce),
-                    )
-
-
-def render_sub_holder(sub_holder: 'SubHolder') -> None:
-    """Render all fields of *sub_holder* as labelled form rows."""
-
-    from haywire.core.settings.holder import _collect_fields
-
-    schema_cls = object.__getattribute__(sub_holder, '_schema')
-    fields = _collect_fields(schema_cls)
-    if not fields:
-        ui.label('No settings defined.').classes('text-xs text-gray-400 px-2 py-1')
-        return
-
-    sorted_fields = sorted(fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0]))
-    with ui.column().classes('w-full gap-0 compact-fields'):
-        for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
-            with _render_category_group(category):
-                for attr_name, defn in group:
-                    try:
-                        value = getattr(sub_holder, attr_name)
-                    except Exception:
-                        continue
-                    _render_field_row(
-                        defn._label or attr_name, defn._description,
-                        defn, value, _make_sub_holder_setter(sub_holder, attr_name),
                     )
 
 
@@ -187,18 +186,6 @@ def _make_reactive_setter(obj: 'Bag', attr_name: str):
         def handler(e):
             try:
                 setattr(obj, attr_name, coerce(e.value))
-            except Exception:
-                pass
-        return handler
-    return make_setter
-
-
-def _make_sub_holder_setter(sub_holder: 'SubHolder', attr_name: str):
-    """Return a make_setter(coerce) factory that writes to a SubHolder field."""
-    def make_setter(coerce):
-        def handler(e):
-            try:
-                sub_holder.set(attr_name, coerce(e.value))
             except Exception:
                 pass
         return handler
