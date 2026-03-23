@@ -6,6 +6,10 @@ Set once at startup by HaywireModule providers; read by deep entity constructors
 (BaseNode, NodeWrapper, EdgeWrapper) that cannot receive these via constructor
 injection without polluting unrelated intermediaries.
 
+Uses module-level globals (not ContextVar) because these are true app-wide
+singletons that must be accessible from any thread — including the watchdog
+file-watcher thread used for hot-reload.
+
 Usage
 -----
 Read (in entity constructors):
@@ -17,8 +21,7 @@ Write (in DI providers only):
     set_node_factory(factory)
 """
 
-from contextvars import ContextVar
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ..node.factory import NodeFactory
@@ -27,10 +30,10 @@ if TYPE_CHECKING:
     from ..settings import GlobalSettingsRegistry
 
 
-_node_factory:      ContextVar = ContextVar('node_factory')
-_adapter_factory:   ContextVar = ContextVar('adapter_factory')
-_type_registry:     ContextVar = ContextVar('type_registry')
-_settings_registry: ContextVar = ContextVar('settings_registry')
+_node_factory:      Optional['NodeFactory'] = None
+_adapter_factory:   Optional['AdapterFactory'] = None
+_type_registry:     Optional['TypeRegistry'] = None
+_settings_registry: Optional['GlobalSettingsRegistry'] = None
 
 
 # ---------------------------------------------------------------------------
@@ -38,16 +41,20 @@ _settings_registry: ContextVar = ContextVar('settings_registry')
 # ---------------------------------------------------------------------------
 
 def set_node_factory(factory: 'NodeFactory') -> None:
-    _node_factory.set(factory)
+    global _node_factory
+    _node_factory = factory
 
 def set_adapter_factory(factory: 'AdapterFactory') -> None:
-    _adapter_factory.set(factory)
+    global _adapter_factory
+    _adapter_factory = factory
 
 def set_type_registry(registry: 'TypeRegistry') -> None:
-    _type_registry.set(registry)
+    global _type_registry
+    _type_registry = registry
 
 def set_settings_registry(registry: 'GlobalSettingsRegistry') -> None:
-    _settings_registry.set(registry)
+    global _settings_registry
+    _settings_registry = registry
 
 
 # ---------------------------------------------------------------------------
@@ -55,25 +62,33 @@ def set_settings_registry(registry: 'GlobalSettingsRegistry') -> None:
 # ---------------------------------------------------------------------------
 
 def get_node_factory() -> 'NodeFactory':
-    try:
-        return _node_factory.get()
-    except LookupError:
-        raise RuntimeError("NodeFactory not set in ambient context. Ensure DI is initialised before constructing nodes.")
+    if _node_factory is None:
+        raise RuntimeError(
+            "NodeFactory not set in ambient context. "
+            "Ensure DI is initialised before constructing nodes."
+        )
+    return _node_factory
 
 def get_adapter_factory() -> 'AdapterFactory':
-    try:
-        return _adapter_factory.get()
-    except LookupError:
-        raise RuntimeError("AdapterFactory not set in ambient context. Ensure DI is initialised before constructing edges.")
+    if _adapter_factory is None:
+        raise RuntimeError(
+            "AdapterFactory not set in ambient context. "
+            "Ensure DI is initialised before constructing edges."
+        )
+    return _adapter_factory
 
 def get_type_registry() -> 'TypeRegistry':
-    try:
-        return _type_registry.get()
-    except LookupError:
-        raise RuntimeError("TypeRegistry not set in ambient context. Ensure DI is initialised before constructing nodes.")
+    if _type_registry is None:
+        raise RuntimeError(
+            "TypeRegistry not set in ambient context. "
+            "Ensure DI is initialised before constructing nodes."
+        )
+    return _type_registry
 
 def get_settings_registry() -> 'GlobalSettingsRegistry':
-    try:
-        return _settings_registry.get()
-    except LookupError:
-        raise RuntimeError("GlobalSettingsRegistry not set in ambient context. Ensure DI is initialised before constructing nodes.")
+    if _settings_registry is None:
+        raise RuntimeError(
+            "GlobalSettingsRegistry not set in ambient context. "
+            "Ensure DI is initialised before constructing nodes."
+        )
+    return _settings_registry
