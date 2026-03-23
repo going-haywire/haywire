@@ -16,8 +16,8 @@ class SettingsNode(BaseNode):
 
     class example(Settings):
         example_setting: str = setting(
-            'default value',
-            label='Example Setting',
+            'default string',
+            label='My Setting',
             description='An example setting for demonstration purposes',
             category='example',
         )
