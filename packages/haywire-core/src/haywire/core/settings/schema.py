@@ -11,59 +11,83 @@ Node-local settings use Bag subclasses with prop() — see haywire.core.property
 from __future__ import annotations
 from typing import ClassVar
 
-from .descriptors import SettingDescriptor
+from haywire.core.property.bag import Bag
 
 
-class _SettingsSchema:
+class GlobalSettings(Bag):
     """
-    Shared base for GlobalSettings and LibrarySettings schema classes.
+    Framework built-in settings (e.g. NodeUISettings, DebugSettings).
 
-    __init_subclass__ automatically collects SettingDescriptor instances from
-    the class body into cls._fields. A fresh dict is created per class — never
-    inherited from parent.
+    Subclass with a namespace= kwarg to register field keys automatically:
+        class NodeUISettings(GlobalSettings, namespace='ui.node'):
+            bg_color: Color = setting('#ffffff', label='Background Color')
 
-    When a namespace= kwarg is provided at the class line:
-        class MySettings(GlobalSettings, namespace='ui.node'):
-    _namespace is set and _field_key is set on all collected descriptors.
+    Deep inheritance (subclassing a GlobalSettings subclass) is blocked to
+    prevent namespace collisions from inherited fields.
+
+    These classes are class-only (never instantiated) — the registry reads
+    _prop_fields() for metadata.
     """
 
-    _fields: ClassVar[dict[str, SettingDescriptor]]
     _namespace: ClassVar[str] = ''
 
     def __init_subclass__(cls, namespace: str = '', **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
 
-        # Fresh dict per class — NEVER inherit from parent
-        cls._fields = {}
-
-        for name, val in cls.__dict__.items():
-            if isinstance(val, SettingDescriptor):
-                cls._fields[name] = val
+        # Block deep inheritance: only direct subclasses of GlobalSettings allowed
+        for base in cls.__bases__:
+            if (
+                base is not GlobalSettings
+                and isinstance(base, type)
+                and issubclass(base, GlobalSettings)
+            ):
+                raise TypeError(
+                    f"Subclassing a GlobalSettings subclass is not allowed. "
+                    f"'{cls.__name__}' cannot extend '{base.__name__}'. "
+                    f"Extend GlobalSettings directly instead."
+                )
 
         if namespace:
             cls._namespace = namespace
-            for name, descriptor in cls._fields.items():
-                descriptor._field_key = f'{namespace}.{name}'
+            for name, val in cls.__dict__.items():
+                from haywire.core.property.descriptor import prop  # noqa: PLC0415
+                if isinstance(val, prop):
+                    val._field_key = f'{namespace}.{name}'
 
 
-class LibrarySettings(_SettingsSchema):
+class LibrarySettings(Bag):
     """
     Library-global settings. Must be decorated with @settings to be registered
     with GlobalSettingsRegistry.
 
     Used to define library-wide TOML-configurable defaults.  Node authors use
     Bag subclasses with prop() for per-node settings.
+
+    Deep inheritance (subclassing a LibrarySettings subclass) is blocked to
+    prevent namespace collisions from inherited fields.
     """
 
+    _namespace: ClassVar[str] = ''
 
-class GlobalSettings(_SettingsSchema):
-    """
-    Framework built-in settings (e.g. NodeUISettings, DebugSettings).
+    def __init_subclass__(cls, namespace: str = '', **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
 
-    namespace= kwarg required at the class line. Registered explicitly via
-    register_schema() — not via folder scan.
+        # Block deep inheritance: only direct subclasses of LibrarySettings allowed
+        for base in cls.__bases__:
+            if (
+                base is not LibrarySettings
+                and isinstance(base, type)
+                and issubclass(base, LibrarySettings)
+            ):
+                raise TypeError(
+                    f"Subclassing a LibrarySettings subclass is not allowed. "
+                    f"'{cls.__name__}' cannot extend '{base.__name__}'. "
+                    f"Extend LibrarySettings directly instead."
+                )
 
-    Example:
-        class NodeUISettings(GlobalSettings, namespace='ui.node'):
-            bg_color: Color = setting('#ffffff', label='Background Color')
-    """
+        if namespace:
+            cls._namespace = namespace
+            for name, val in cls.__dict__.items():
+                from haywire.core.property.descriptor import prop  # noqa: PLC0415
+                if isinstance(val, prop):
+                    val._field_key = f'{namespace}.{name}'

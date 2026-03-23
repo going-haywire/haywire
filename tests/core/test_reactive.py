@@ -12,7 +12,7 @@ Coverage:
 - .choices property resolves callables
 - _prop_fields() walks MRO correctly
 - Inheritance: subclass adds fields, parent fields preserved
-- FieldDescriptor is the common ancestor of prop and SettingDescriptor
+- FieldDescriptor is the base class of prop
 """
 
 import pytest
@@ -359,7 +359,7 @@ class TestFieldDescriptorAncestry:
         assert issubclass(prop, FieldDescriptor)
         assert isinstance(_Simple.threshold, FieldDescriptor)
 
-    def test_setting_descriptor_is_field_descriptor(self):
-        from haywire.core.settings.descriptors import SettingDescriptor
-        assert issubclass(SettingDescriptor, FieldDescriptor)
+    def test_prop_subclasses_only(self):
+        # SettingDescriptor has been removed — prop is the single descriptor class
+        assert issubclass(prop, FieldDescriptor)
 

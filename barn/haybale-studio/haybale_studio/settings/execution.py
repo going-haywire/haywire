@@ -2,7 +2,7 @@
 """Execution behaviour settings."""
 
 from haywire.core.settings.schema import GlobalSettings
-from haywire.core.settings.descriptors import setting
+from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 

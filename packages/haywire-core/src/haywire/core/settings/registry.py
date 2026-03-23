@@ -26,7 +26,7 @@ except ImportError:
 
 from .enums import SettingMode
 from .value import SettingValue
-from .descriptors import SettingDescriptor, setting as _setting_cls
+from ..property.descriptor import prop
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 
@@ -98,7 +98,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         super().__init__()  # sets up BaseRegistry state: _classes, _dependency_graph, etc.
 
         self._lock = threading.RLock()
-        self._definitions: dict[str, SettingDescriptor] = {}
+        self._definitions: dict[str, prop] = {}
 
         # Two-tier global value storage
         self._global_tier_values: dict[str, SettingValue] = {}
@@ -156,12 +156,12 @@ class GlobalSettingsRegistry(BaseRegistry):
 
     def _register_schema_fields(self, schema_cls) -> None:
         """Register all descriptor fields from a schema class into the definitions."""
-        for _name, descriptor in schema_cls._fields.items():
+        for _name, descriptor in schema_cls._prop_fields().items():
             if not descriptor._field_key:
                 continue
             self._store_definition(descriptor._field_key, descriptor, category=descriptor._category or 'general')
 
-    def _store_definition(self, name: str, descriptor: SettingDescriptor, category: str = 'general') -> None:
+    def _store_definition(self, name: str, descriptor: prop, category: str = 'general') -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
         self._definitions[name] = descriptor
         if name not in self._global_tier_values:
@@ -177,7 +177,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         """Remove all descriptor fields of a schema class from definitions."""
         changed_keys: set[str] = set()
         with self._lock:
-            for descriptor in schema_cls._fields.values():
+            for descriptor in schema_cls._prop_fields().values():
                 if not descriptor._field_key:
                     continue
                 key = descriptor._field_key
@@ -417,7 +417,7 @@ class GlobalSettingsRegistry(BaseRegistry):
             parts = name.split('.')
             category = '.'.join(parts[:-1]) if len(parts) > 1 else 'general'
 
-        d = _setting_cls(
+        d = prop(
             default=default,
             type_=type_,
             label=label,
@@ -601,7 +601,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         validator: Callable[[Any], bool] | None = None,
         ui_widget: str | None = None,
         ui_order: int = 0,
-    ) -> SettingDescriptor:
+    ) -> prop:
         """
         Define a setting from code (authoritative schema).
 
@@ -610,7 +610,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         with self._lock:
             self._toml_defined.discard(name)
 
-            d = _setting_cls(
+            d = prop(
                 default=default,
                 type_=type_ or (type(default) if default is not None else str),
                 validator=validator,
@@ -632,13 +632,13 @@ class GlobalSettingsRegistry(BaseRegistry):
     def has_definition(self, name: str) -> bool:
         return name in self._definitions
 
-    def get_definition(self, name: str) -> SettingDescriptor | None:
+    def get_definition(self, name: str) -> prop | None:
         return self._definitions.get(name)
 
-    def all_definitions(self) -> dict[str, SettingDescriptor]:
+    def all_definitions(self) -> dict[str, prop]:
         return dict(self._definitions)
 
-    def definitions_by_category(self) -> dict[str, list[SettingDescriptor]]:
+    def definitions_by_category(self) -> dict[str, list[prop]]:
         result = {}
         for category, names in self._categories.items():
             defns = [self._definitions[n] for n in names if n in self._definitions]
@@ -823,7 +823,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         """
         return list(self._classes.values())
 
-    def definitions_for_schema(self, schema_cls: type) -> dict[str, SettingDescriptor]:
+    def definitions_for_schema(self, schema_cls: type) -> dict[str, prop]:
         """
         Return all definitions that belong to *schema_cls*, keyed by full_key.
 

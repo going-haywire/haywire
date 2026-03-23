@@ -21,7 +21,6 @@ from .value import SettingValue
 from .types import Color, Icon
 from .registry import GlobalSettingsRegistry
 from .schema import LibrarySettings, GlobalSettings
-from .descriptors import SettingDescriptor, setting as _registry_setting
 from .decorator import SettingsClassIdentity, settings
 
 __all__ = [
@@ -36,7 +35,6 @@ __all__ = [
     'GlobalSettingsRegistry',
     'LibrarySettings',
     'GlobalSettings',
-    'SettingDescriptor',
     'SettingsClassIdentity',
     'settings',
 ]

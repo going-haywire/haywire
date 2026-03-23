@@ -2,7 +2,7 @@
 """Tests for GlobalSettingsRegistry hot-reload: register_schema / unregister."""
 
 import pytest
-from haywire.core.settings.descriptors import setting
+from haywire.core.settings import setting
 from haywire.core.settings.schema import GlobalSettings, LibrarySettings
 from haywire.core.settings.decorator import settings
 from haywire.core.settings.enums import SettingMode

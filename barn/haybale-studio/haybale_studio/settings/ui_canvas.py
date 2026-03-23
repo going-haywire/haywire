@@ -2,7 +2,7 @@
 """Canvas grid, zoom, and pan settings (colors are owned by the theme system)."""
 
 from haywire.core.settings.schema import GlobalSettings
-from haywire.core.settings.descriptors import setting
+from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 

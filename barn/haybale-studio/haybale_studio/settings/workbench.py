@@ -2,7 +2,7 @@
 """Workbench and node theme selection settings."""
 
 from haywire.core.settings.schema import GlobalSettings
-from haywire.core.settings.descriptors import setting
+from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 from haywire.core.di.config import get_theme_registry
 
