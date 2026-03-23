@@ -360,7 +360,6 @@ class TestFieldDescriptorAncestry:
         assert isinstance(_Simple.threshold, FieldDescriptor)
 
     def test_setting_descriptor_is_field_descriptor(self):
-        from haywire.core.settings.descriptors import SettingDescriptor, setting
+        from haywire.core.settings.descriptors import SettingDescriptor
         assert issubclass(SettingDescriptor, FieldDescriptor)
-        assert issubclass(setting, FieldDescriptor)
 

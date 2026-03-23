@@ -55,7 +55,7 @@ def settings(namespace: str, label: str = '', description: str = ''):
     """
     def decorator(inner_cls):
         # Lazy import to avoid circular dependency (schema imports descriptors)
-        from haywire.core.settings.schema import LibrarySettings, GlobalSettings
+        from haywire.core.settings.schema import LibrarySettings, GlobalSettings  # noqa: PLC0415
         if not issubclass(inner_cls, (LibrarySettings, GlobalSettings)):
             raise TypeError(
                 f"@settings can only be applied to LibrarySettings or GlobalSettings "

@@ -13,7 +13,7 @@ from haywire.core.di.test_config import (
     create_test_injector,
     create_test_library_system,
     create_test_settings_registry,
-    create_test_settings_holder,
+    create_test_bag,
     SettingsTestContext,
 )
 ```
@@ -60,67 +60,107 @@ def test_custom_settings_only():
 
 ---
 
-## Settings Holders
+## Testing with Bags
 
-`create_test_settings_holder()` uses `_TestNodeSettings(namespace='test.node')` by default, which defines `bg_color`, `font_size`, and `verbose` fields.
+`create_test_bag()` creates an isolated registry + `Bag` instance. By default it uses a minimal bag with `bg_color`, `font_size`, and `verbose` fields.
 
 - `predefined_local` keys are **attr names** (`'bg_color'`, `'font_size'`)
-- `predefined_global` keys are **full keys** (`'test.node.bg_color'`)
+- `predefined_global` keys are **full keys** (`'test.global.font_size'`)
 
-### Basic holder
+### Basic bag
 
 ```python
-from haywire.core.di.test_config import create_test_settings_holder
+from haywire.core.di.test_config import create_test_bag
 
 
 def test_local_overrides_global():
-    registry, holder = create_test_settings_holder(
-        predefined_global={'test.node.bg_color': '#aaaaaa'},
-        predefined_local={'bg_color': '#ff0000'},
+    registry, bag = create_test_bag(
+        predefined_global={'test.global.font_size': 16},
+        predefined_local={'font_size': 20},
     )
 
-    assert holder.bg_color == '#ff0000'
-
-    info = holder.get_info('bg_color')
-    assert info.source == 'local'
-    assert not info.is_overridden
+    assert bag.font_size == 20
+    assert bag.is_locally_set('font_size')
 
 
-def test_global_override_wins():
-    from haywire.core.settings import SettingMode
-
-    registry, holder = create_test_settings_holder(
-        predefined_local={'bg_color': '#ff0000'},
-    )
-
-    registry.set_global('test.node.bg_color', '#000000', SettingMode.OVERRIDE)
-
-    assert holder.bg_color == '#000000'
-
-    info = holder.get_info('bg_color')
-    assert info.is_overridden
-    assert info.source == 'global_override'
+def test_reset_falls_back_to_default():
+    registry, bag = create_test_bag(predefined_local={'bg_color': '#ff0000'})
+    bag.reset('bg_color')
+    assert bag.bg_color == '#ffffff'
 ```
 
 ### Custom schema
 
 ```python
-from haywire.core.settings import NodeSettings, setting, Color
+from haywire.core.settings import Settings, setting, Color
+from haywire.core.property import Bag, prop
 
 
-class MyNodeSettings(NodeSettings, namespace='my_lib.my_node'):
-    threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
-    color:     Color = setting('#ffffff', label='Color')
+class MyBag(Bag):
+    threshold: float = prop(0.5, min=0.0, max=1.0, label='Threshold')
+    color:     Color = prop('#ffffff', label='Color')
 
 
-def test_custom_schema():
-    registry, holder = create_test_settings_holder(
-        schema_cls=MyNodeSettings,
+def test_custom_bag():
+    registry, bag = create_test_bag(
+        bag_cls=MyBag,
         predefined_local={'threshold': 0.8},
     )
 
-    assert holder.threshold == 0.8
-    assert holder.color == '#ffffff'   # default
+    assert bag.threshold == 0.8
+    assert bag.color == '#ffffff'   # default
+```
+
+### Testing on_change callbacks
+
+```python
+from haywire.core.property import Bag, prop
+
+
+class BagWithCallback(Bag):
+    scale: float = prop(1.0, on_change='_on_scale')
+
+    def __init__(self, registry=None):
+        super().__init__(registry)
+        self.calls = []
+
+    def _on_scale(self, value, field=''):
+        self.calls.append((value, field))
+
+
+def test_on_change_fires():
+    bag = BagWithCallback()
+    bag.scale = 2.0
+    assert bag.calls == [(2.0, 'scale')]
+
+
+def test_on_change_not_fired_same_value():
+    bag = BagWithCallback()
+    bag.scale = 1.0   # same as default
+    assert bag.calls == []
+```
+
+### Testing serialization
+
+```python
+def test_round_trip():
+    from haywire.core.property import Bag, prop
+
+    class MyBag(Bag):
+        threshold: float = prop(0.5)
+        mode: str = prop('fast')
+
+    bag = MyBag()
+    bag.threshold = 0.8
+    bag.mode = 'precise'
+
+    data = bag.to_dict()
+    assert data == {'threshold': 0.8, 'mode': 'precise'}
+
+    bag2 = MyBag()
+    bag2.from_dict(data)
+    assert bag2.threshold == 0.8
+    assert bag2.mode == 'precise'
 ```
 
 ---
@@ -171,6 +211,48 @@ Always use `use_temp_settings=True` to avoid reading from `~/.haywire/settings.t
 
 ---
 
+## Testing Nodes with Settings Bags
+
+```python
+from haywire.core.node import BaseNode, node
+from haywire.core.settings import Settings, setting
+
+
+def test_node_settings_direct_access():
+    @node(label='Test Node')
+    class _TestNode(BaseNode):
+        class filter(Settings):
+            threshold: float = setting(0.7)
+
+    wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
+    n = _TestNode('n1', wrapper)
+
+    assert n.filter.threshold == 0.7
+
+    n.filter.threshold = 0.9
+    assert n.filter.threshold == 0.9
+
+
+def test_node_settings_serialization():
+    @node(label='Serial Node')
+    class _SerialNode(BaseNode):
+        class filter(Settings):
+            strength: float = setting(0.5)
+
+    wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
+    n = _SerialNode('n1', wrapper)
+    n.filter.strength = 0.9
+
+    data = n._to_dict()
+    assert data['settings']['filter']['strength'] == 0.9
+
+    n2 = _SerialNode('n2', wrapper)
+    n2._initialize_from_dict({'settings': data['settings']})
+    assert n2.filter.strength == 0.9
+```
+
+---
+
 ## Pytest Fixtures
 
 ```python
@@ -178,7 +260,7 @@ Always use `use_temp_settings=True` to avoid reading from `~/.haywire/settings.t
 import pytest
 from haywire.core.di.test_config import (
     create_test_settings_registry,
-    create_test_settings_holder,
+    create_test_bag,
     create_test_library_system,
     SettingsTestContext,
 )
@@ -190,9 +272,9 @@ def settings_registry():
 
 
 @pytest.fixture
-def settings_holder():
-    _, holder = create_test_settings_holder()
-    return holder
+def test_bag():
+    _, bag = create_test_bag()
+    return bag
 
 
 @pytest.fixture
@@ -219,27 +301,10 @@ def test_temporary_changes(settings_context):
         # ... assertions
 
 
-def test_holder_access(settings_holder):
-    assert settings_holder.bg_color == '#ffffff'
-    assert settings_holder.font_size == 12
-    assert settings_holder.verbose is False
-```
-
----
-
-## Testing Change Callbacks
-
-```python
-def test_on_change_callback():
-    registry, holder = create_test_settings_holder()
-
-    calls = []
-    holder.on_change(lambda name, value, source: calls.append((name, value, source)))
-
-    holder.set('bg_color', '#ff0000')
-
-    assert len(calls) == 1
-    assert calls[0] == ('bg_color', '#ff0000', 'local')
+def test_bag_access(test_bag):
+    assert test_bag.bg_color == '#ffffff'
+    assert test_bag.font_size == 12
+    assert test_bag.verbose is False
 ```
 
 ---
@@ -247,16 +312,16 @@ def test_on_change_callback():
 ## Summary
 
 | Utility | Use Case |
-|---------|----------|
+| ------- | -------- |
 | `create_test_settings_registry()` | Unit tests for registry and resolution |
-| `create_test_settings_holder()` | Unit tests for holder, caching, override logic |
+| `create_test_bag()` | Unit tests for bag fields, overrides, callbacks, serialization |
 | `create_test_library_system()` | Integration tests with full DI stack |
 | `SettingsTestContext` | Temporary global setting changes with auto-restore |
 
 Best practices:
 
 - Always use `use_temp_settings=True` to isolate from user settings
-- Use **attr names** for `predefined_local` and `holder.get_info()`
+- Use **attr names** for `predefined_local` and `bag.is_locally_set()`
 - Use **full keys** for `predefined_global` and `registry.set_global()`
 - Test both default values and local overrides
-- Test that `is_overridden` is set correctly when OVERRIDE mode is active
+- Test `read_only` fields raise `AttributeError` on write

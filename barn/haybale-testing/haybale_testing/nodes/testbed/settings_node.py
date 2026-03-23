@@ -1,8 +1,8 @@
 from haywire.core.node import node, BaseNode, NodeType
 from haybale_core.types.specs import FLOAT, STRING
 
-from haywire.core.settings.descriptors import setting
-from haywire.core.settings.schema import NodeSettings
+from haywire.core.settings import Settings, setting
+
 
 @node(
     label='Settings Test Node',
@@ -12,9 +12,9 @@ from haywire.core.settings.schema import NodeSettings
     node_type=NodeType.DATA
 )
 class SettingsNode(BaseNode):
-    """Node that displays input values"""
-    
-    class node(NodeSettings, namespace='display_node'):
+    """Node that demonstrates the Bag-based settings system."""
+
+    class example(Settings):
         example_setting: str = setting(
             'default value',
             label='Example Setting',
@@ -27,12 +27,12 @@ class SettingsNode(BaseNode):
             STRING.as_outlet(
                 'settings', label='Settings', default='default value'
             )
-        )   
+        )
 
     def post_init(self):
-        # Accessing settings in post_init (after they are fully initialized)
-        print(f"Post-init: example_setting = {self.settings.example_setting}")
-    
+        # Accessing settings via the bag: self.<bag_name>.<field>
+        print(f"Post-init: example_setting = {self.example.example_setting}")
+
     def worker(self, context: dict) -> dict | None:
         """Execute the node - display the input value"""
         return None

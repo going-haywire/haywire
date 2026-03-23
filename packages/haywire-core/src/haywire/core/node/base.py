@@ -15,7 +15,7 @@ from ..library.identity import LibraryIdentity
 from ..types import DataPort
 from .behavior import NodeBehaviorFlags
 from .user_data import NodeCache, NodeStore
-from haywire.core.settings import SettingsHolder
+from haywire.core.property import Bag
 
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper
@@ -67,13 +67,15 @@ class NodeData:
         self.ports: Dict[str, DataPort] = {}
         """Single source of truth for all ports (inlets and outlets)."""
 
-        # Settings (GUI-facing, serialized)
-        schemas: dict[str, type] = dict(getattr(type(self), '_settings_schemas', {}))
-        self._settings: SettingsHolder = SettingsHolder(
-            schemas=schemas,
-            registry=get_settings_registry(),
-            node_instance=self,
-        )
+        # Settings bags (GUI-facing, serialized)
+        # Each Bag subclass declared in the node class body is instantiated with
+        # the global registry injected (extended mode), then bound directly as a
+        # node instance attribute so node authors can write self.filter.threshold.
+        _registry = get_settings_registry()
+        for _bag_name, _bag_cls in getattr(type(self), '_settings_bags', {}).items():
+            _bag_instance: Bag = _bag_cls(registry=_registry)
+            _bag_instance._subscribe_mirrors()
+            object.__setattr__(self, _bag_name, _bag_instance)
 
         # Per-instance observable props (muted, collapsed, pinned, position, …)
         self._props: NodeProperties = NodeProperties()
@@ -120,28 +122,24 @@ class NodeData:
         """Library identity (read-only, from class)."""
         return self.__class__.class_library
 
-    @property
-    def settings(self) -> SettingsHolder:
+    def list_setting_bags(self) -> dict[str, Bag]:
         """
-        Namespaced settings hub for this node.
+        Return all user-declared settings Bag instances keyed by name.
 
-        Access is via the accessor name declared in the node class body::
+        Used by panels and framework code to discover and render node settings.
+        Node authors access bags directly via the instance attribute instead::
 
-            # Inner class form
-            class node(NodeSettings):
+            class filter(Settings):
                 threshold: float = setting(0.5)
 
-            self.settings.node.threshold         # read
-            self.settings.node.threshold = 0.8  # write local override
-            self.settings.node.reset('threshold')
-            self.settings.node.get_info('threshold')
-
-            # Direct assignment form
-            image = ImageLibSettings
-            self.settings.image.jpeg_quality
-
+            self.filter.threshold         # read
+            self.filter.threshold = 0.8   # write local override
+            self.filter.reset('threshold')
         """
-        return self._settings
+        return {
+            name: getattr(self, name)
+            for name in getattr(type(self), '_settings_bags', {})
+        }
 
     @property
     def props(self) -> NodeProperties:
@@ -1284,9 +1282,12 @@ class BaseNode(NodeData, metaclass=NodeMeta):
     def _cleanup(self) -> None:
         """Clean up resources when node is destroyed."""
         self.on_teardown()
-        # Clean up settings
         self._store.clear()
-        self._settings.cleanup()        
+        # Clean up settings bags (release global namespace subscriptions)
+        for bag_name in getattr(type(self), '_settings_bags', {}):
+            bag = getattr(self, bag_name, None)
+            if isinstance(bag, Bag):
+                bag.cleanup()
 
     # =========================================================================
     # SERIALIZATION (updated)
@@ -1306,7 +1307,10 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         return {
             'node_id': self.node_id,
             'ports': self._serialize_ports(include_data=include_data),
-            'settings': self._settings.to_dict(),
+            'settings': {
+                name: getattr(self, name).to_dict()
+                for name in getattr(type(self), '_settings_bags', {})
+            },
             'props': self._props.to_dict(),
             'store': self._store.to_dict(),
             'identity': asdict(self.identity),
@@ -1352,9 +1356,11 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         if 'ports' in data:
             self._deserialize_ports(data['ports'])
 
-        # Restore settings
-        if 'settings' in data:
-            self._settings.from_dict(data['settings'])
+        # Restore settings bags
+        for bag_name, bag_data in data.get('settings', {}).items():
+            bag = getattr(self, bag_name, None)
+            if isinstance(bag, Bag):
+                bag.from_dict(bag_data)
 
         # Restore reactive props
         if 'props' in data:

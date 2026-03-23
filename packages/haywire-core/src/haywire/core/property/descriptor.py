@@ -2,9 +2,22 @@
 """
 prop — reactive property descriptor.
 
-Instance-level access reads/writes the value stored in the owning
-Bag object's __dict__.  Change notifications are fired via
-``Bag._on_prop_change()``.
+Instance-level access reads/writes the value stored in the owning Bag's
+_local_store.  Change notifications are fired via Bag._on_prop_change().
+
+Two operating modes:
+
+  Simple mode  (no registry injected on the Bag):
+      _field_key is empty or Bag._registry is None.
+      Reads and writes go directly to _local_store keyed by attr name.
+
+  Extended mode (registry injected by @node decorator):
+      _field_key is set and Bag._registry is not None.
+      Reads go through Bag._resolve() — full resolution chain.
+      Writes go to _local_store keyed by _field_key.
+      mirrors= points to a GlobalSettings/LibrarySettings descriptor whose
+      _field_key is stored as _mirror_key (used by _resolve for shadow/watch).
+      read_only=True prevents writes (watch behaviour).
 """
 
 from __future__ import annotations
@@ -18,14 +31,14 @@ class prop(FieldDescriptor):
     """
     Descriptor for a reactive property on a ``Bag`` subclass.
 
-    Class-level access returns the descriptor itself (for introspection by
-    panels and registry code).  Instance-level access reads/writes the value
-    stored in the owning Bag object's __dict__.
+    Class-level access returns the descriptor itself (for introspection and
+    use as the ``mirrors=`` argument on another prop).
+    Instance-level access reads/writes via the owning Bag's _local_store.
     """
 
     def __init__(
         self,
-        default: Any,
+        default: Any = None,
         *,
         label: str = '',
         description: str = '',
@@ -35,9 +48,12 @@ class prop(FieldDescriptor):
         max: Any = None,
         choices: 'list | dict | Callable | None' = None,
         widget: 'str | None' = None,
+        on_change: 'str | None' = None,
+        mirrors: 'FieldDescriptor | None' = None,
+        read_only: bool = False,
     ) -> None:
         self._default = default
-        self._type = type(default)
+        self._type = type(default) if default is not None else object
         self._label = label
         self._description = description
         self._category = category
@@ -46,16 +62,53 @@ class prop(FieldDescriptor):
         self._max = max
         self._choices = choices
         self._widget = widget
-        self._attr_name: str = ''   # set by __set_name__
+        self._on_change = on_change
+        self._read_only = read_only
+        self._attr_name: str = ''    # set by __set_name__
+        self._field_key: str = ''    # set by @node decorator (extended mode)
+
+        # mirrors= accepts a class-level descriptor access which returns the
+        # descriptor itself (FieldDescriptor.__get__ with obj=None).
+        if mirrors is not None:
+            mirror_key = getattr(mirrors, '_field_key', '')
+            if not mirror_key:
+                raise ValueError(
+                    f"prop(mirrors=...) target has no _field_key set. "
+                    f"Ensure the target GlobalSettings/LibrarySettings class has been "
+                    f"registered and its descriptors have _field_key assigned."
+                )
+            self._mirror_key: str = mirror_key
+        else:
+            self._mirror_key = ''
 
     def __get__(self, obj: Any, objtype: type | None = None) -> Any:
         if obj is None:
             return self   # class-level access -> descriptor itself
-        return obj.__dict__.get(f'_prop_{self._attr_name}', self._default)
+
+        # Extended mode: resolution chain via registry
+        if self._field_key and getattr(obj, '_registry', None) is not None:
+            return obj._resolve(self._field_key, self._mirror_key, self._default)
+
+        # Simple mode: direct local store lookup by attr name
+        return obj._local_store.get(self._attr_name, self._default)
 
     def __set__(self, obj: Any, value: Any) -> None:
-        key = f'_prop_{self._attr_name}'
-        old = obj.__dict__.get(key, self._default)
-        obj.__dict__[key] = value
+        if self._read_only:
+            raise AttributeError(
+                f"'{self._attr_name}' is read-only — it mirrors a global setting "
+                f"and cannot be set per-instance."
+            )
+
+        key = self._field_key if self._field_key else self._attr_name
+        old = obj._local_store.get(key, self._default)
+        obj._local_store[key] = value
+
         if value != old:
             obj._on_prop_change(self._attr_name, value, old)
+            if self._on_change:
+                method = getattr(obj, self._on_change, None)
+                if method is not None:
+                    try:
+                        method(value, self._attr_name)
+                    except TypeError:
+                        method(value)

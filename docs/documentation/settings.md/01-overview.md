@@ -10,11 +10,11 @@ Every node instance exposes three containers:
 |-----------|-----------|-------------|--------------|
 | `self.cache` | No | No | No |
 | `self.store` | Yes | No | No |
-| `self.settings` | Yes (local overrides only) | Yes | Yes |
+| `self.<bag_name>` | Yes (local overrides only) | Yes | Yes (optional) |
 
 **Use `self.cache`** for transient computation data (lookup tables, buffers, memoization).
 **Use `self.store`** for persistent internal state users don't see (counters, accumulators, state machines).
-**Use `self.settings`** for anything users should be able to see and configure.
+**Use `self.<bag_name>`** for anything users should be able to see and configure.
 
 ---
 
@@ -51,160 +51,82 @@ font_size = { override = true, value = 14 }  # OVERRIDE mode
 verbose_logging = true
 ```
 
-### Node Settings Schema
+### Node Settings — Bag-Based
 
-Nodes declare settings as an inner class that inherits from `NodeSettings`. The class name becomes the **accessor name** used to reach the settings from `self.settings`.
+Nodes declare settings as inner classes that inherit from `Settings` (an alias for `Bag`). The class name becomes the **accessor name** used to read settings directly from the node instance.
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
+from haywire.core.settings import Settings, setting, Color
 
 @node(label="My Node")
 class MyNode(BaseNode):
 
-    class node(NodeSettings):
+    class filter(Settings):
         # Local setting — stored in graph, shown in properties panel
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
 
-        # Shadow — inherits global default; per-node override shown with reset affordance
-        bg_color: Color = shadow(NodeUISettings.bg_color)
+        # mirrors= — inherits global default; per-node override shown with reset affordance
+        bg_color: Color = setting(mirrors=NodeUISettings.bg_color)
 
-        # Watch — read-only cache of a global; invisible in panel, never serialized
-        verbose: bool = watch(DebugSettings.verbose_logging)
+        # mirrors= + read_only=True — read-only cache of a global; invisible in panel
+        verbose: bool = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
 
     def worker(self, context):
-        result = value * self.settings.node.threshold   # accessor = inner class name
+        result = value * self.filter.threshold   # direct access — no extra indirection
         self.out('result', result)
 ```
 
-The `@node` decorator scans the class body for all `_SettingsSchema` subclasses, assigns a namespace to each `NodeSettings` subclass (derived from the node's `registry_key` by replacing `:` with `.`), and sets `_field_key` on each descriptor.
+The `@node` decorator scans the class body for all `Settings` (= `Bag`) subclasses, assigns a `_field_key` to each `setting()` descriptor (derived from the node's `registry_key`), and binds each bag instance directly on the node object at construction time.
 
-A library settings class can also be imported and assigned directly — the accessor name is then the variable name chosen by the developer:
+### Per-Node Resolution Chain (Extended Mode)
 
-```python
-from haybale_imagelib.settings import ImageLibSettings
-
-@node(label="Image Filter")
-class ImageFilterNode(BaseNode):
-
-    image = ImageLibSettings           # accessor: 'image'
-    class node(NodeSettings):     # accessor: 'node'
-        threshold: float = setting(0.5)
-
-    def worker(self, context):
-        quality = self.settings.image.jpeg_quality   # from ImageLibSettings
-        threshold = self.settings.node.threshold   # own field
-```
-
-### NodeInstanceSettings — Framework-Provided Fields
-
-Every node automatically receives a set of framework-level instance settings via `NodeInstanceSettings` (namespace `'node'`). The `@node` decorator always injects it under the reserved accessor `'_node'`.
-
-| Field | Full key | Type | Default | Purpose |
-| ----- | -------- | ---- | ------- | ------- |
-| `skin` | `node.skin` | str or None | `None` | Skin used to render this node |
-| `muted` | `node.muted` | bool | `False` | Skip during execution |
-| `collapsed` | `node.collapsed` | bool | `False` | Collapse to header only |
-| `condensed` | `node.condensed` | bool | `False` | Condensed view |
-| `pinned` | `node.pinned` | bool | `False` | Prevent auto-layout movement |
-| `color_override` | `node.color_override` | Color or None | `None` | Per-node background colour |
-| `comment` | `node.comment` | str | `''` | Comment text |
-| `show_comment` | `node.show_comment` | bool | `False` | Show comment bubble |
-
-Access via the reserved `_node` accessor:
-
-```python
-self.settings._node.muted           # → bool
-self.settings._node.skin = 'my_lib:skin:MyCustomSkin'
-self.settings._node.color_override  # → str | None
-```
-
-Because they are proper schema fields, global defaults can be set in TOML:
-
-```toml
-# ~/.haywire/settings.toml
-[node]
-collapsed = true          # start all nodes collapsed by default
-```
-
-### Per-Node Resolution Chain
-
-Each node instance has a `ResolutionChain` that resolves values in priority order:
+When a `GlobalSettingsRegistry` is injected, each `setting()` field with a `_field_key` set goes through the full resolution chain:
 
 ```
-self.settings.threshold
+self.filter.threshold
         │
         ▼
-1. Global tier OVERRIDE for 'my_lib.my.threshold'?    → return it (admin policy, hand-edited)
+1. Global tier OVERRIDE for 'my_lib.node.my.filter.threshold'?    → return it (admin policy)
         │ No
         ▼
-2. Workspace tier OVERRIDE for 'my_lib.my.threshold'? → return it (workspace-wide force)
+2. Workspace tier OVERRIDE for the key?                           → return it
         │ No
         ▼
-3. Local value in this instance?                      → return it (per-node override)
+3. Local value in this bag instance?                              → return it
         │ No
         ▼
-4. Workspace tier SET for 'my_lib.my.threshold'?      → return it (set via UI, saved to workspace TOML)
+4. Workspace tier SET for the key?                                → return it (set via UI)
         │ No
         ▼
-5. Global tier SET for 'my_lib.my.threshold'?         → return it (user global default)
+5. Global tier SET for the key?                                   → return it (user global default)
         │ No
         ▼
-6. Descriptor _default                                → return it
+6. Descriptor _default                                            → return it
 ```
+
+Bags without a registry (simple mode) skip steps 1–2 and 4–5 — they read directly from the local store.
 
 ---
 
-## Descriptor Types
+## Descriptor Parameters
 
-| Descriptor | Panel visible | Stored in graph | Read-only |
-|------------|--------------|-----------------|-----------|
-| `setting()` | Yes | Yes, when locally set | No |
-| `shadow()` | Yes, with reset affordance | Yes, when locally overridden | No |
-| `watch()` | No | Never | Yes |
-
-### `setting()` — Local node setting
-
-```python
-class node(NodeSettings):
-    threshold:   float = setting(0.5, min=0.0, max=1.0, label='Threshold')
-    algorithm:   str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
-    bg_color:    Color = setting('#ffffff', label='Background Color', widget='color')
-    verbose:     bool  = setting(False, label='Verbose Output')
-    on_change_cb: float = setting(1.0, label='Scale', on_change='hb_on_scale_change')
-```
-
-Widget is inferred from type: `bool` → toggle, `int`/`float` with range → slider, `Color` → color picker, `str` with `choices` → dropdown, plain `str` → text input.
-
-### `shadow()` — Mirror a global setting
-
-```python
-class node(NodeSettings):
-    # Inherits global value by default; user can override per-node
-    bg_color: Color = shadow(NodeUISettings.bg_color)
-```
-
-`shadow(SomeGlobalSettings.field)` takes the descriptor at class-access time (returns the descriptor object itself) and stores its `_field_key` as a string. The `_label`, `_default`, and widget metadata are inherited from the global descriptor.
-
-### `watch()` — Read-only cached global reference
-
-```python
-class node(NodeSettings):
-    # Invisible in panel; cache invalidated automatically on global change
-    verbose: bool = watch(DebugSettings.verbose_logging)
-```
-
-Useful for settings that control node behavior but shouldn't be per-node configurable.
+| Parameter | Behaviour |
+| --------- | --------- |
+| `setting(default)` | Local node setting — stored in graph, shown in panel |
+| `setting(mirrors=GlobalSettings.field)` | Inherits global value; override shown with reset affordance |
+| `setting(mirrors=..., read_only=True)` | Read-only global cache — invisible in panel, never stored |
+| `setting(..., on_change='method_name')` | Fires `method(value, field_name)` on change |
 
 ---
 
 ## Accessing Settings in Node Code
 
-Access is via the **accessor name** (inner class name or direct assignment name), then the **short attr name**:
+Access is direct via the **bag name** (inner class name), then the **field name**:
 
 ```python
 def worker(self, context, value: float):
-    s = self.settings.node   # accessor = inner class name
+    s = self.filter
     if s.verbose:
         context.log(f"Processing: {value}")
 
@@ -216,24 +138,19 @@ def worker(self, context, value: float):
 
 ## Serialization
 
-Only locally-overridden schema values are serialized with the node. Global values are **not** stored in the graph.
+Only locally-overridden values are serialized with the node. Global values and `read_only` fields are never stored.
 
 ```json
 {
   "node_id": "abc123",
   "settings": {
-    "Settings": {
-      "schema_values": { "threshold": 0.8, "bg_color": "#ff0000" }
-    },
-    "_node": {
-      "schema_values": {}
-    }
+    "filter": { "threshold": 0.8, "bg_color": "#ff0000" }
   },
   "store": { "execution_count": 42 }
 }
 ```
 
-The outer key is the **accessor name**. `schema_values` maps attr name → locally set value. Fields at their default (resolved from global or descriptor default) are omitted.
+The outer key is the **bag name**. The inner dict maps attr name → locally set value. Fields at their default are omitted.
 
 ---
 

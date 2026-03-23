@@ -1,14 +1,13 @@
 # haywire/core/property/base.py
 """
-FieldDescriptor — shared base for all property/setting descriptors.
+FieldDescriptor — shared base for all property descriptors.
 
-Provides the metadata contract that UI panels (e.g. _render_widget_impl)
-rely on: _default, _type, _label, _description, _category, _order,
-_min, _max, _choices, _widget, _attr_name, and the choices property.
+Provides the metadata contract that UI panels rely on: _default, _type,
+_label, _description, _category, _order, _min, _max, _choices, _widget,
+_attr_name, and the choices property.
 
-Subclasses:
-    prop (property/descriptor.py)       — reactive instance property
-    SettingDescriptor (settings/descriptors.py) — settings with resolution chain
+Subclass:
+    prop (property/descriptor.py) — reactive instance property on Bag subclasses
 """
 
 from __future__ import annotations
@@ -18,7 +17,7 @@ from typing import Any, Callable
 
 class FieldDescriptor:
     """
-    Common ancestor for ``prop`` and ``SettingDescriptor``.
+    Common ancestor for all property descriptors.
 
     Carries the metadata attributes that UI widget renderers depend on,
     plus ``__set_name__`` and the class-level branch of ``__get__``

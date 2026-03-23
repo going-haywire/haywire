@@ -1,33 +1,42 @@
 # haywire/core/settings/__init__.py
 """
-Settings system with global/local resolution and TOML persistence.
+Settings system — global registry, TOML persistence, and public node-author API.
+
+Public API for node authors:
+    from haywire.core.settings import Settings, setting, Color, Icon
+
+    class filter(Settings):
+        strength: float = setting(0.5, min=0.0, max=1.0, label='Strength')
+
+Framework / library internals:
+    GlobalSettingsRegistry  — TOML resolution chain + LibrarySettings
+    GlobalSettings          — base for framework built-in settings schemas
+    LibrarySettings         — base for library-wide TOML settings
+    @settings               — decorator for LibrarySettings auto-discovery
 """
 
+from haywire.core.property import Bag as Settings, prop as setting  # node-author API
 from .enums import SettingMode
 from .value import SettingValue
-from .registry import GlobalSettingsRegistry
-from .holder import SettingsHolder, SettingInfo
 from .types import Color, Icon
-from .descriptors import setting, shadow, watch, SettingDescriptor
-from .schema import NodeSettings, LibrarySettings, GlobalSettings, _EmptyNodeSettings
+from .registry import GlobalSettingsRegistry
+from .schema import LibrarySettings, GlobalSettings
+from .descriptors import SettingDescriptor, setting as _registry_setting
 from .decorator import SettingsClassIdentity, settings
 
 __all__ = [
+    # Node-author API
+    'Settings',
+    'setting',
+    'Color',
+    'Icon',
+    # Framework internals
     'SettingMode',
     'SettingValue',
     'GlobalSettingsRegistry',
-    'SettingsHolder',
-    'SettingInfo',
-    'Color',
-    'Icon',
-    'setting',
-    'shadow',
-    'watch',
-    'SettingDescriptor',
-    'NodeSettings',
     'LibrarySettings',
     'GlobalSettings',
-    '_EmptyNodeSettings',
+    'SettingDescriptor',
     'SettingsClassIdentity',
     'settings',
 ]

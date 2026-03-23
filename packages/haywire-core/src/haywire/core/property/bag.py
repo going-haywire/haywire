@@ -1,41 +1,112 @@
 # haywire/core/property/bag.py
 """
-Bag — lightweight observable property container for Haywire.
+Bag — observable property container for Haywire.
 
 Subclass and declare fields with ``prop()``:
 
-    class ExecutionSettings(Bag):
-        auto_execute: bool = prop(True, label='Auto Execute')
-        debounce_ms:  int  = prop(100,  label='Debounce (ms)', min=0, max=2000)
+    class FilterSettings(Bag):
+        strength: float = prop(0.5, min=0.0, max=1.0, label='Strength')
+        mode:     str   = prop('fast', choices=['fast', 'precise'])
+
+Simple mode (no registry):
+    Direct _local_store lookup.  Zero overhead.  Used by NodeProperties and
+    any Bag subclass that doesn't need global defaults.
+
+Extended mode (registry injected by @node decorator):
+    Reads go through _resolve() — full resolution chain (TOML tiers).
+    mirrors= on a prop links to a GlobalSettings/LibrarySettings field.
+    read_only=True on a prop prevents per-instance writes (watch behaviour).
 
 Supports:
 - Direct attribute access (``obj.field = value``)
+- on_change callbacks (``prop(on_change='method_name')``)
 - Change notification (``obj.subscribe(callback)``)
 - Serialization (``to_dict()`` / ``from_dict()``)
 - Reset (``reset(name)`` / ``reset_all()``)
+- Cleanup of global subscriptions (``cleanup()``)
 """
 
 from __future__ import annotations
 
-from typing import Any, Callable
+import weakref
+import logging
+from typing import Any, Callable, TYPE_CHECKING
 
 from .descriptor import prop
+
+if TYPE_CHECKING:
+    from haywire.core.settings.registry import GlobalSettingsRegistry
+
+logger = logging.getLogger(__name__)
 
 
 class Bag:
     """
     Base Bag class for observable properties.
 
-    It provides a simple mechanism for defining properties with change 
-    notifications and serialization support.  
-    
-    Subclasses can define typed fields using the ``prop()`` descriptor, 
-    which allows for metadata such as labels, descriptions, categories, 
-    and validation rules.
+    Subclasses declare typed fields using ``prop()``.  When a
+    ``GlobalSettingsRegistry`` is injected (extended mode), ``prop`` fields
+    gain full TOML-tier resolution.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, registry: 'GlobalSettingsRegistry | None' = None) -> None:
         self._callbacks: list[Callable] = []
+        self._local_store: dict[str, Any] = {}     # key → value
+        self._registry: 'GlobalSettingsRegistry | None' = registry
+        self._subscribed_refs: list = []            # weakrefs for mirrors invalidation
+        self._cleaned_up: bool = False
+
+    # -------------------------------------------------------------------------
+    # Extended mode: resolution chain
+    # -------------------------------------------------------------------------
+
+    def _resolve(self, field_key: str, mirror_key: str, default: Any) -> Any:
+        """
+        Full resolution chain (extended mode):
+            global OVERRIDE > workspace OVERRIDE > local SET > workspace SET > global SET > default
+        """
+        from haywire.core.settings.value import SettingValue
+        from haywire.core.settings.enums import SettingMode
+
+        registry = self._registry
+        key = mirror_key if mirror_key else field_key
+        local_sv = (
+            SettingValue(mode=SettingMode.SET, value=self._local_store[field_key])
+            if field_key in self._local_store
+            else None
+        )
+        try:
+            value, source = registry.resolve(key, local=local_sv)
+            return default if source == 'default' else value
+        except KeyError:
+            return self._local_store.get(field_key, default)
+
+    def _subscribe_mirrors(self) -> None:
+        """Subscribe cache-invalidation weakrefs for mirrored props (extended mode)."""
+        if self._registry is None:
+            return
+        for descriptor in type(self)._prop_fields().values():
+            if descriptor._mirror_key:
+                cb_ref = weakref.WeakMethod(self._invalidate_mirror)
+                self._registry.subscribe_namespace(descriptor._mirror_key, cb_ref)
+                self._subscribed_refs.append(cb_ref)
+
+    def _invalidate_mirror(self, full_key: str) -> None:
+        """Called by registry when a mirrored global value changes."""
+        if self._cleaned_up:
+            return
+        for name, descriptor in type(self)._prop_fields().items():
+            if descriptor._mirror_key == full_key and descriptor._on_change:
+                method = getattr(self, descriptor._on_change, None)
+                if method:
+                    new_val = getattr(self, name)
+                    try:
+                        method(new_val, name)
+                    except TypeError:
+                        try:
+                            method(new_val)
+                        except Exception as e:
+                            logger.error(f"on_change error for mirrored '{name}': {e}")
 
     # -------------------------------------------------------------------------
     # Subscription
@@ -70,53 +141,99 @@ class Bag:
     # -------------------------------------------------------------------------
 
     def to_dict(self) -> dict:
-        """Return only fields whose current value differs from the descriptor default."""
+        """
+        Return only fields whose value differs from the descriptor default.
+
+        Extended mode: only locally-set fields (not inherited from global tiers).
+        Simple mode: any field whose current value differs from its default.
+        read_only (mirrored) fields are never serialized.
+        """
+        fields = type(self)._prop_fields()
         result: dict = {}
-        for name, descriptor in type(self)._prop_fields().items():
-            value = getattr(self, name)
-            if value != descriptor._default:
-                result[name] = value
+        for name, descriptor in fields.items():
+            if descriptor._read_only:
+                continue
+            key = descriptor._field_key if descriptor._field_key else name
+            if key in self._local_store:
+                val = self._local_store[key]
+                if val != descriptor._default:
+                    result[name] = val
+            elif self._registry is None:
+                # Simple mode: check by attr name
+                val = self._local_store.get(name, descriptor._default)
+                if val != descriptor._default:
+                    result[name] = val
         return result
 
     def from_dict(self, data: dict, *, silent: bool = True) -> None:
         """
         Restore values from *data*.
 
-        silent=True (default): writes directly to __dict__ — no callbacks fired.
-            Used during deserialization (graph load, TOML hydration).
+        silent=True (default): writes directly to _local_store — no callbacks fired.
+            Used during deserialization (graph load).
         silent=False: uses normal setattr — callbacks fire.
             Used for live updates.
 
         Unknown keys are silently ignored (forward compatibility).
+        read_only fields are silently skipped.
         """
         fields = type(self)._prop_fields()
-        for key, value in data.items():
-            if key not in fields:
+        for attr_name, value in data.items():
+            if attr_name not in fields:
+                continue
+            descriptor = fields[attr_name]
+            if descriptor._read_only:
                 continue
             if silent:
-                self.__dict__[f'_prop_{key}'] = value
+                key = descriptor._field_key if descriptor._field_key else attr_name
+                self._local_store[key] = value
             else:
-                setattr(self, key, value)
+                setattr(self, attr_name, value)
 
     # -------------------------------------------------------------------------
     # Reset
     # -------------------------------------------------------------------------
 
     def reset(self, name: str) -> None:
-        """Reset a single field to its descriptor default."""
+        """Reset a single field to its descriptor default (removes local override)."""
         fields = type(self)._prop_fields()
         if name not in fields:
             raise KeyError(f"No prop '{name}' on {type(self).__name__}")
-        setattr(self, name, fields[name]._default)
+        descriptor = fields[name]
+        key = descriptor._field_key if descriptor._field_key else name
+        if key in self._local_store:
+            old = self._local_store.pop(key)
+            new = descriptor._default
+            if old != new:
+                self._on_prop_change(name, new, old)
 
     def reset_all(self) -> None:
-        """Reset all fields to their defaults."""
+        """Reset all fields to their defaults (clear all local overrides)."""
         for name in type(self)._prop_fields():
             self.reset(name)
 
     # -------------------------------------------------------------------------
+    # Cleanup
+    # -------------------------------------------------------------------------
+
+    def cleanup(self) -> None:
+        """Release global namespace subscriptions.  Call on node removal."""
+        self._cleaned_up = True
+        self._subscribed_refs.clear()
+        self._callbacks.clear()
+
+    # -------------------------------------------------------------------------
     # Introspection
     # -------------------------------------------------------------------------
+
+    def is_locally_set(self, name: str) -> bool:
+        """Return True if *name* has a local instance override."""
+        fields = type(self)._prop_fields()
+        if name not in fields:
+            return False
+        descriptor = fields[name]
+        key = descriptor._field_key if descriptor._field_key else name
+        return key in self._local_store
 
     @classmethod
     def _prop_fields(cls) -> dict[str, prop]:
