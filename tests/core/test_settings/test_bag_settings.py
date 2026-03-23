@@ -296,3 +296,92 @@ class TestNodeDirectBinding:
         n2 = _TestSerialNode('n2', wrapper)
         n2._initialize_from_dict({'settings': data['settings']})
         assert n2.filter.strength == 0.9
+
+
+# ---------------------------------------------------------------------------
+# New params: type_, stored, validator
+# ---------------------------------------------------------------------------
+
+class TypedBag(Bag):
+    explicit_int: int = prop(0, type_=int)
+    inferred_float: float = prop(1.0)
+    no_default_str: str = prop(type_=str)
+
+
+class StoredBag(Bag):
+    stored_field: float = prop(0.5)
+    unstored_field: float = prop(0.5, stored=False)
+
+
+class ValidatedBag(Bag):
+    positive: float = prop(1.0, validator=lambda v: v > 0)
+
+
+class TestTypeProp:
+    def test_explicit_type_stored_on_descriptor(self):
+        descriptor = TypedBag.__dict__['explicit_int']
+        assert descriptor._type is int
+
+    def test_explicit_type_overrides_default_inference(self):
+        # default is 0 (int), but type_ overrides — same result here; key is _type is int
+        descriptor = TypedBag.__dict__['explicit_int']
+        assert descriptor._type is int
+
+    def test_type_inferred_from_default_when_no_type_arg(self):
+        descriptor = TypedBag.__dict__['inferred_float']
+        assert descriptor._type is float
+
+    def test_type_explicit_when_no_default(self):
+        descriptor = TypedBag.__dict__['no_default_str']
+        assert descriptor._type is str
+
+
+class TestStoredProp:
+    def test_stored_field_appears_in_to_dict(self):
+        bag = StoredBag()
+        bag.stored_field = 0.9
+        d = bag.to_dict()
+        assert 'stored_field' in d
+
+    def test_unstored_field_excluded_from_to_dict(self):
+        bag = StoredBag()
+        bag.unstored_field = 0.9
+        d = bag.to_dict()
+        assert 'unstored_field' not in d
+
+    def test_unstored_field_still_readable_and_writable(self):
+        bag = StoredBag()
+        bag.unstored_field = 0.75
+        assert bag.unstored_field == 0.75
+
+    def test_default_stored_is_true(self):
+        descriptor = StoredBag.__dict__['stored_field']
+        assert descriptor._stored is True
+
+    def test_explicit_stored_false(self):
+        descriptor = StoredBag.__dict__['unstored_field']
+        assert descriptor._stored is False
+
+
+class TestValidatorProp:
+    def test_validate_returns_true_for_valid_value(self):
+        descriptor = ValidatedBag.__dict__['positive']
+        assert descriptor.validate(1.0) is True
+        assert descriptor.validate(0.001) is True
+
+    def test_validate_returns_false_for_invalid_value(self):
+        descriptor = ValidatedBag.__dict__['positive']
+        assert descriptor.validate(0) is False
+        assert descriptor.validate(-1.0) is False
+
+    def test_validate_returns_true_when_no_validator(self):
+        descriptor = SimpleSettings.__dict__['strength']
+        assert descriptor.validate('anything') is True
+
+    def test_no_validator_stored_as_none(self):
+        descriptor = SimpleSettings.__dict__['strength']
+        assert descriptor._validator is None
+
+    def test_validator_stored_on_descriptor(self):
+        descriptor = ValidatedBag.__dict__['positive']
+        assert descriptor._validator is not None

@@ -51,9 +51,12 @@ class prop(FieldDescriptor):
         on_change: 'str | None' = None,
         mirrors: 'FieldDescriptor | None' = None,
         read_only: bool = False,
+        type_: 'type | None' = None,
+        stored: bool = True,
+        validator: 'Callable | None' = None,
     ) -> None:
         self._default = default
-        self._type = type(default) if default is not None else object
+        self._type = type_ if type_ is not None else (type(default) if default is not None else object)
         self._label = label
         self._description = description
         self._category = category
@@ -64,6 +67,8 @@ class prop(FieldDescriptor):
         self._widget = widget
         self._on_change = on_change
         self._read_only = read_only
+        self._stored = stored
+        self._validator = validator
         self._attr_name: str = ''    # set by __set_name__
         self._field_key: str = ''    # set by @node decorator (extended mode)
 
@@ -80,6 +85,12 @@ class prop(FieldDescriptor):
             self._mirror_key: str = mirror_key
         else:
             self._mirror_key = ''
+
+    def validate(self, value: Any) -> bool:
+        """Return True if *value* passes the validator (or if no validator is set)."""
+        if self._validator is None:
+            return True
+        return bool(self._validator(value))
 
     def __get__(self, obj: Any, objtype: type | None = None) -> Any:
         if obj is None:

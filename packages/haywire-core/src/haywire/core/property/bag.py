@@ -153,6 +153,8 @@ class Bag:
         for name, descriptor in fields.items():
             if descriptor._read_only:
                 continue
+            if not descriptor._stored:
+                continue
             key = descriptor._field_key if descriptor._field_key else name
             if key in self._local_store:
                 val = self._local_store[key]
