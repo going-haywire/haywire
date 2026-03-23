@@ -10,6 +10,7 @@ from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
+from haywire.core.settings.registry import GlobalSettingsRegistry
 from haywire.core.types.registry import TypeRegistry
 
 from haywire.ui.skin.registry import SkinRegistry
@@ -66,6 +67,12 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / 'skins'),
             registry_cls=SkinRegistry
+        )
+
+        # Register settings
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'settings'),
+            registry_cls=GlobalSettingsRegistry,
         )
 
         # Register nodes

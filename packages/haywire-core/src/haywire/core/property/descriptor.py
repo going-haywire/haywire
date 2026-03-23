@@ -72,6 +72,11 @@ class prop(FieldDescriptor):
         self._attr_name: str = ''    # set by __set_name__
         self._field_key: str = ''    # set by @node decorator (extended mode)
 
+        if self._validator is not None and default is not None and not self.validate(default):
+            raise ValueError(
+                f"Default value {default!r} fails validation for prop '{label or '?'}'"
+            )
+
         # mirrors= accepts a class-level descriptor access which returns the
         # descriptor itself (FieldDescriptor.__get__ with obj=None).
         if mirrors is not None:
@@ -109,6 +114,9 @@ class prop(FieldDescriptor):
                 f"'{self._attr_name}' is read-only — it mirrors a global setting "
                 f"and cannot be set per-instance."
             )
+
+        if not self.validate(value):
+            return
 
         key = self._field_key if self._field_key else self._attr_name
         old = obj._local_store.get(key, self._default)

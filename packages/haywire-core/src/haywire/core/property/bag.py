@@ -77,7 +77,9 @@ class Bag:
         )
         try:
             value, source = registry.resolve(key, local=local_sv)
-            return default if source == 'default' else value
+            if source == 'default' and not mirror_key:
+                return default  # no mirror — use local descriptor's default
+            return value
         except KeyError:
             return self._local_store.get(field_key, default)
 

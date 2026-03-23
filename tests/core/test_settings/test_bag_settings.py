@@ -222,11 +222,20 @@ class TestExtendedMode:
 # ---------------------------------------------------------------------------
 
 class TestNodeDirectBinding:
+    @staticmethod
+    def _init_ambient():
+        """Create a test injector and force-resolve ambient singletons."""
+        from haywire.core.di.test_config import create_test_injector
+        from haywire.core.types.registry import TypeRegistry
+        from haywire.core.settings import GlobalSettingsRegistry
+        inj = create_test_injector()
+        inj.get(TypeRegistry)
+        inj.get(GlobalSettingsRegistry)
+        return inj
+
     def test_bag_bound_as_direct_attribute(self):
         from haywire.core.node import BaseNode, node
-        from haywire.core.di.test_config import create_test_injector
-
-        inj = create_test_injector()
+        self._init_ambient()
 
         @node(label='Test Binding Node')
         class _TestBindingNode(BaseNode):
@@ -241,9 +250,7 @@ class TestNodeDirectBinding:
 
     def test_direct_read(self):
         from haywire.core.node import BaseNode, node
-        from haywire.core.di.test_config import create_test_injector
-
-        inj = create_test_injector()
+        self._init_ambient()
 
         @node(label='Test Read Node')
         class _TestReadNode(BaseNode):
@@ -257,6 +264,7 @@ class TestNodeDirectBinding:
 
     def test_direct_write(self):
         from haywire.core.node import BaseNode, node
+        self._init_ambient()
 
         @node(label='Test Write Node')
         class _TestWriteNode(BaseNode):
@@ -280,6 +288,7 @@ class TestNodeDirectBinding:
 
     def test_serialization_round_trip_on_node(self):
         from haywire.core.node import BaseNode, node
+        self._init_ambient()
 
         @node(label='Test Serial Node')
         class _TestSerialNode(BaseNode):
@@ -385,3 +394,37 @@ class TestValidatorProp:
     def test_validator_stored_on_descriptor(self):
         descriptor = ValidatedBag.__dict__['positive']
         assert descriptor._validator is not None
+
+    def test_set_silently_rejects_invalid_value(self):
+        bag = ValidatedBag()
+        bag.positive = 5.0
+        bag.positive = -1.0  # invalid — silently rejected
+        assert bag.positive == 5.0
+
+    def test_set_accepts_valid_value(self):
+        bag = ValidatedBag()
+        bag.positive = 3.0
+        assert bag.positive == 3.0
+
+    def test_rejected_value_does_not_fire_on_change(self):
+        bag = ValidatedBag()
+        bag.positive = 5.0
+        calls = []
+        bag.subscribe(lambda name, val, old: calls.append((name, val, old)))
+        bag.positive = -1.0  # invalid — no callback
+        assert calls == []
+
+    def test_no_validator_allows_any_value(self):
+        bag = SimpleSettings()
+        bag.strength = -999.0  # no validator — accepted
+        assert bag.strength == -999.0
+
+    def test_invalid_default_raises_at_definition_time(self):
+        with pytest.raises(ValueError, match="fails validation"):
+            class BadBag(Bag):
+                bad: int = prop(3, validator=lambda v: v % 2 == 0)
+
+    def test_none_default_skips_validation(self):
+        # Should not raise — None default is allowed even with a validator
+        class NoneDefaultBag(Bag):
+            val: int = prop(type_=int, validator=lambda v: v > 0)

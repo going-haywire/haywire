@@ -77,23 +77,30 @@ def render_reactive(obj: 'Bag') -> None:
 
 def _render_reactive_field_row(obj: 'Bag', attr_name: str, defn: 'FieldDescriptor') -> None:
     """Render a single reactive field row, with optional reset button for mirrored fields."""
-    is_mirrored = bool(defn._mirror_key)
-    is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
+    container = ui.element('div').classes('w-full')
 
-    label_text = defn._label or attr_name
-    if is_locally_overridden:
-        label_text = f'• {label_text}'  # visual indicator for locally-overridden mirrored field
+    def _build_row():
+        container.clear()
+        with container:
+            is_mirrored = bool(defn._mirror_key)
+            is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
 
-    with ui.row().classes(_ROW_CLASSES):
-        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
-        if defn._description:
-            lbl.tooltip(defn._description)
-        _render_widget_impl(defn, getattr(obj, attr_name), _make_reactive_setter(obj, attr_name))
-        if is_locally_overridden:
-            ui.button(icon='restart_alt') \
-                .props('flat dense size=xs') \
-                .tooltip('Reset to global default') \
-                .on('click', lambda _o=obj, _n=attr_name: _o.reset(_n))
+            label_text = defn._label or attr_name
+            if is_locally_overridden:
+                label_text = f'• {label_text}'
+
+            with ui.row().classes(_ROW_CLASSES):
+                lbl = ui.label(label_text).classes(_LABEL_CLASSES)
+                if defn._description:
+                    lbl.tooltip(defn._description)
+                _render_widget_impl(defn, getattr(obj, attr_name), _make_reactive_setter(obj, attr_name))
+                if is_locally_overridden:
+                    ui.button(icon='restart_alt') \
+                        .props('flat dense size=xs') \
+                        .tooltip('Reset to global default') \
+                        .on('click', lambda _o=obj, _n=attr_name: (_o.reset(_n), _build_row()))
+
+    _build_row()
 
 
 def render_schema(schema_cls: type, registry: 'GlobalSettingsRegistry') -> None:
