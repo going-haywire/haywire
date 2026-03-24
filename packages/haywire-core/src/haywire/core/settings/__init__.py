@@ -25,16 +25,16 @@ from .decorator import SettingsClassIdentity, settings
 
 __all__ = [
     # Node-author API
-    'Settings',
-    'setting',
-    'Color',
-    'Icon',
+    "Settings",
+    "setting",
+    "Color",
+    "Icon",
     # Framework internals
-    'SettingMode',
-    'SettingValue',
-    'GlobalSettingsRegistry',
-    'LibrarySettings',
-    'GlobalSettings',
-    'SettingsClassIdentity',
-    'settings',
+    "SettingMode",
+    "SettingValue",
+    "GlobalSettingsRegistry",
+    "LibrarySettings",
+    "GlobalSettings",
+    "SettingsClassIdentity",
+    "settings",
 ]

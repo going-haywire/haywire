@@ -4,42 +4,43 @@ Node behavior flags - immutable class-level characteristics.
 """
 
 from dataclasses import dataclass
-from enum import IntFlag, auto
+from enum import IntFlag
 
 
 class NodeType(IntFlag):
     """
     Bitwise flags for node behavior.
-    
+
     Node types are mutually exclusive and determined by control port configuration:
     - DATA: 0 ctrl inlet / 0 ctrl outlet
     - CONTROL: 1 ctrl inlet / 1 ctrl outlet
     - EVENT: 0 ctrl inlet / 1 ctrl outlet
     - OUTPUT: 1 ctrl inlet / 0 ctrl outlet
     - LOOPBACK: 1 ctrl inlet / 2+ ctrl outlets (one with, and one without loopback)
-    
+
     Examples:
         @node(node_type=NodeType.EVENT)
         @node(node_type=NodeType.CONTROL)
         @node(node_type=NodeType.LOOPBACK)
         @node(node_type=NodeType.DATA)
     """
-    DATA     = 1
-    CONTROL  = 2
-    EVENT    = 4  | CONTROL   # 6
-    OUTPUT   = 8  | CONTROL   # 10
-    LOOPBACK = 16 | CONTROL   # 18
+
+    DATA = 1
+    CONTROL = 2
+    EVENT = 4 | CONTROL  # 6
+    OUTPUT = 8 | CONTROL  # 10
+    LOOPBACK = 16 | CONTROL  # 18
 
 
 @dataclass(frozen=True)
 class NodeBehaviorFlags:
     """
     Immutable behavioral characteristics of a node class.
-    
+
     These flags are set at class definition time via the @node decorator
     and cannot be changed at runtime. They define the fundamental nature
     of the node and how the execution engine treats it.
-    
+
     Set via decorator:
         @node(
             label="My Loop Node",
@@ -47,11 +48,11 @@ class NodeBehaviorFlags:
         )
         class ForLoopNode(BaseNode):
             ...
-    
+
     Access at runtime:
         if self.behavior.node_type & NodeType.CONTROL:
             ...
-        
+
         if self.behavior.is_control_node:  # Computed property
             ...
     """
@@ -61,14 +62,14 @@ class NodeBehaviorFlags:
     Primary node type classification.
     Determines control flow behavior and execution semantics.
     """
-    
+
     is_stateful: bool = False
     """
     If True, this node maintains state between executions.
     Stateful nodes may produce different outputs even with
     identical inputs (e.g., counters, accumulators).
     """
-    
+
     has_execute_async: bool = False
     """
     If True, this node supports asynchronous execution.
@@ -87,31 +88,31 @@ class NodeBehaviorFlags:
     If True, this node's configuration can change at runtime.
     Mutable nodes may add/remove ports dynamically.
     """
-    
+
     # =========================================================================
     # COMPUTED PROPERTIES - For backward compatibility and convenience
     # =========================================================================
-    
+
     @property
     def is_control_node(self) -> bool:
         """True if node participates in control flow (CONTROL, EVENT, OUTPUT, LOOPBACK)."""
         return bool(NodeType.CONTROL in self.node_type)
-    
+
     @property
     def is_data_node(self) -> bool:
         """True if node is a pure data node (DATA)."""
         return bool(NodeType.DATA in self.node_type)
-    
+
     @property
     def is_event_node(self) -> bool:
         """True if node is a flow entry point (EVENT)."""
         return bool(NodeType.EVENT in self.node_type)
-    
+
     @property
     def is_output_node(self) -> bool:
         """True if node is a flow termination (OUTPUT)."""
         return bool(NodeType.OUTPUT in self.node_type)
-    
+
     @property
     def is_loopback(self) -> bool:
         """True if control flow can return to this node (LOOPBACK)."""
@@ -119,10 +120,6 @@ class NodeBehaviorFlags:
 
 
 # Fields that belong to NodeBehaviorFlags (used by @node decorator)
-BEHAVIOR_FIELDS = frozenset({
-    'node_type',
-    'is_stateful',
-    'has_execute_async',
-    'is_mutable',
-    'is_thread_safe'
-})
+BEHAVIOR_FIELDS = frozenset(
+    {"node_type", "is_stateful", "has_execute_async", "is_mutable", "is_thread_safe"}
+)

@@ -13,6 +13,7 @@ from haywire.ui.utils import generate_pin_uuid
 if TYPE_CHECKING:
     from haywire.core.errors import HaywireException
 
+
 class NodeSkin(BaseSkin, ABC):
     """
     Base class for all NiceGui NodeSkin classes.
@@ -46,66 +47,78 @@ class NodeSkin(BaseSkin, ABC):
     def render_port(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render a port according to its ort type"""
         if port.is_inlet():
-            self._render_inlet(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+            self._render_inlet(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
         elif port.is_outlet():
-            self._render_outlet(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+            self._render_outlet(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
         elif port.is_config():
-            self._render_config(port, wrapper, widget_classes='widget-container zoom-pan-lod2')
+            self._render_config(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
 
     def _render_inlet(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render an inlet port as a two-column grid: fixed PIN_GUTTER pin column | flex content."""
         g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
-        with ui.element('div').style(
-            f'display: grid; grid-template-columns: {g}px 1fr; width: 100%; align-items: start;'
+        with ui.element("div").style(
+            f"display: grid; grid-template-columns: {g}px 1fr; width: 100%; align-items: start;"
         ):
             # Pin gutter — fixed-width column, overflow visible so pin straddles card edge
-            with ui.element('div').style(
-                f'width: {g}px; height: {h}px; display: flex; align-items: center; '
-                'justify-content: center; overflow: visible; flex-shrink: 0;'
+            with ui.element("div").style(
+                f"width: {g}px; height: {h}px; display: flex; align-items: center; "
+                "justify-content: center; overflow: visible; flex-shrink: 0;"
             ):
-                self._render_pin(port, wrapper, direction='left')
+                self._render_pin(port, wrapper, direction="left")
 
             # Content column — label and optional widget stacked vertically
             # margin (not padding) so negative CONTENT_GAP can pull label toward the pin
-            with ui.element('div').classes('compact-fields').style(
-                f'display: flex; flex-direction: column; '
-                f'margin-left: {gap}px; margin-right: {g}px; min-width: 0;'
+            with (
+                ui.element("div")
+                .classes("compact-fields")
+                .style(
+                    f"display: flex; flex-direction: column; "
+                    f"margin-left: {gap}px; margin-right: {g}px; min-width: 0;"
+                )
             ):
-                ui.label(port.label).classes('text-xs zoom-pan-lod2')
+                ui.label(port.label).classes("text-xs zoom-pan-lod2")
                 if not port.allow_multiple_links and port.widget_key:
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
     def _render_outlet(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render an outlet port as a two-column grid: flex content | fixed PIN_GUTTER pin column."""
         g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
-        with ui.element('div').style(
-            f'display: grid; grid-template-columns: 1fr {g}px; width: 100%; align-items: start;'
+        with ui.element("div").style(
+            f"display: grid; grid-template-columns: 1fr {g}px; width: 100%; align-items: start;"
         ):
             # Content column — label right-aligned and optional widget
             # margin (not padding) so negative CONTENT_GAP can pull label toward the pin
-            with ui.element('div').classes('compact-fields').style(
-                f'display: flex; flex-direction: column; align-items: flex-end; '
-                f'margin-right: {gap}px; min-width: 0;'
+            with (
+                ui.element("div")
+                .classes("compact-fields")
+                .style(
+                    f"display: flex; flex-direction: column; align-items: flex-end; "
+                    f"margin-right: {gap}px; min-width: 0;"
+                )
             ):
-                ui.label(port.label).classes('text-xs')
+                ui.label(port.label).classes("text-xs")
                 if not port.allow_multiple_links and port.widget_key:
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
             # Pin gutter — fixed-width column on the right
-            with ui.element('div').style(
-                f'width: {g}px; height: {h}px; display: flex; align-items: center; '
-                'justify-content: center; overflow: visible; flex-shrink: 0;'
+            with ui.element("div").style(
+                f"width: {g}px; height: {h}px; display: flex; align-items: center; "
+                "justify-content: center; overflow: visible; flex-shrink: 0;"
             ):
-                self._render_pin(port, wrapper, direction='right')
+                self._render_pin(port, wrapper, direction="right")
 
     def _render_config(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render a config port — no pin, indented symmetrically to align with inlet/outlet labels."""
         indent = max(0, self.PIN_GUTTER + self.CONTENT_GAP)
-        with ui.element('div').classes('compact-fields').style(
-            f'display: flex; flex-direction: column; width: 100%; '
-            f'padding-left: {indent}px; padding-right: {indent}px;'
+        with (
+            ui.element("div")
+            .classes("compact-fields")
+            .style(
+                f"display: flex; flex-direction: column; width: 100%; "
+                f"padding-left: {indent}px; padding-right: {indent}px;"
+            )
         ):
-            ui.label(port.label).classes('text-xs')
+            ui.label(port.label).classes("text-xs")
             if not port.allow_multiple_links and port.widget_key:
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
@@ -174,9 +187,14 @@ class NodeSkin(BaseSkin, ABC):
             if pin.is_inlet():
                 if pin.allow_multiple_links:
                     if issubclass(pin._data.get_stored_type(), CompoundType):
-                        data_icon = pin._data.get_stored_type().class_identity.icon_in_multi or ICONS.WEB_STORIES
+                        data_icon = (
+                            pin._data.get_stored_type().class_identity.icon_in_multi or ICONS.WEB_STORIES
+                        )
                     else:
-                        data_icon = pin._data.get_stored_type().class_identity.icon_in_multi or ICONS.FIBER_SMART_RECORD
+                        data_icon = (
+                            pin._data.get_stored_type().class_identity.icon_in_multi
+                            or ICONS.FIBER_SMART_RECORD
+                        )
                 else:
                     if issubclass(pin.type_cls, CompoundType):
                         data_icon = pin._data.get_stored_type().class_identity.icon_in or ICONS.VIEW_DAY
@@ -266,34 +284,38 @@ class NodeSkin(BaseSkin, ABC):
         node_id = wrapper.node_id
 
         # Inlet ghost pin — left side (natural order in flex row)
-        inlet_uuid = generate_pin_uuid(node_id, 'root_in')
-        (ui.element('div')
-            .classes('connection-pin zoom-pan-lod0')
+        inlet_uuid = generate_pin_uuid(node_id, "root_in")
+        (
+            ui.element("div")
+            .classes("connection-pin zoom-pan-lod0")
             .style(
-                'width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; '
-                'background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); '
-                'cursor: default; left: -16px;'
+                "width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; "
+                "background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); "
+                "cursor: default; left: -16px;"
             )
             .props(
                 f'id="{inlet_uuid}" data-node-id="{node_id}" data-pin-id="root_in" '
                 f'data-pin-flow-type="ghost" data-pin-dir="inlet" '
                 f'data-pin-dir-x="-1" data-pin-dir-y="0" data-pin-color="#888888"'
-            ))
+            )
+        )
 
         # Outlet ghost pin — right side (order: 999 pushes it after all other flex items)
-        outlet_uuid = generate_pin_uuid(node_id, 'root_out')
-        (ui.element('div')
-            .classes('connection-pin zoom-pan-lod0')
+        outlet_uuid = generate_pin_uuid(node_id, "root_out")
+        (
+            ui.element("div")
+            .classes("connection-pin zoom-pan-lod0")
             .style(
-                'order: 999; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; '
-                'background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); '
-                'cursor: default; right: -16px;'
+                "order: 999; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; "
+                "background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); "
+                "cursor: default; right: -16px;"
             )
             .props(
                 f'id="{outlet_uuid}" data-node-id="{node_id}" data-pin-id="root_out" '
                 f'data-pin-flow-type="ghost" data-pin-dir="outlet" '
                 f'data-pin-dir-x="1" data-pin-dir-y="0" data-pin-color="#888888"'
-            ))
+            )
+        )
 
     def _render_errors_button(self, errors: List["HaywireException"]):
         """

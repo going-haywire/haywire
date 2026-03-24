@@ -12,11 +12,13 @@ from haywire.ui.widget.factory_interface import IWidgetFactory
 
 NodeIDsBatchCallback = Callable[[set[str]], None]
 
+
 class WidgetFactory(IWidgetFactory):
     """
     Factory class for creating widget instances using the WidgetRegistry.
 
     """
+
     def __init__(self, widget_registry: WidgetRegistry):
         self._creators = {}
         self.widget_registry: WidgetRegistry = widget_registry
@@ -36,7 +38,7 @@ class WidgetFactory(IWidgetFactory):
             callback: Function to call with affected node IDs when a widget is reloaded
         """
         self._widget_lifecycle_subscribers.add(callback)
-    
+
     def remove_widget_lifecycle_subscriber(self, callback: NodeIDsBatchCallback) -> None:
         """
         Remove a previously added customer callback for widget hot reload notifications.
@@ -48,23 +50,20 @@ class WidgetFactory(IWidgetFactory):
             self._widget_lifecycle_subscribers.discard(callback)
 
     def render_widget(
-        self,
-        registry_key: str,
-        port: DataPort,
-        node_id: str
+        self, registry_key: str, port: DataPort, node_id: str
     ) -> tuple[IWidget | None, ui.element]:
         """Render a widget for the given inlet and return the widget instance.
-        
+
         Note: The UI element is automatically added to the current NiceGUI context.
-        
+
         Args:
             registry_key: The registry key of the widget to render
             port: The data port to render a widget for
             node_id: ID of the node containing this port
-            
+
         Returns:
             IWidget instance or None if widget creation failed
-        """        
+        """
         widget_instance: IWidget | None = None
 
         ui_element: ui.element | None = None
@@ -74,44 +73,44 @@ class WidgetFactory(IWidgetFactory):
         try:
             widget_instance, lc_event = self._get_widget(registry_key, port)
             ui_element = widget_instance.render()
-                
+
         except Exception as error:
             library_identity = lc_event.library_identity if lc_event is not None else None
             module_name = lc_event.module_name if lc_event is not None else None
-            #logging.error(f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' "
+            # logging.error(f"Failed to render widget '{inlet.widget}' for inlet '{inlet.id}' "
             # f" in node '{node_id}': {error}", exc_info=True)
             if not isinstance(error, HaywireException):
-                error = HaywireException.from_exception(
-                    exception=error,
-                    category="Widget Render Error",
-                    operation="widget_lookup",
-                    message=(
-                        f"Failed to render widget '{port.widget_key}' "
-                        f"for inlet '{port.id}' in node '{node_id}'"
+                error = (
+                    HaywireException.from_exception(
+                        exception=error,
+                        category="Widget Render Error",
+                        operation="widget_lookup",
+                        message=(
+                            f"Failed to render widget '{port.widget_key}' "
+                            f"for inlet '{port.id}' in node '{node_id}'"
+                        ),
                     )
-                ).enrich(
-                    registry_key=port.widget_key,
-                    library_identity=library_identity,
-                    module_name=module_name,
-                    suggestions=[
-                        "Check if the widget class is implemented correctly",
-                        "Ensure the widget library is properly loaded"
-                    ]
-                ).log()
-            
+                    .enrich(
+                        registry_key=port.widget_key,
+                        library_identity=library_identity,
+                        module_name=module_name,
+                        suggestions=[
+                            "Check if the widget class is implemented correctly",
+                            "Ensure the widget library is properly loaded",
+                        ],
+                    )
+                    .log()
+                )
+
             ui_element = error_render_detail(error)
 
             return None, ui_element
-    
+
         self._widget_regkey_to_nodeids.setdefault(port.widget_key, set()).add(node_id)
-    
+
         return widget_instance, ui_element
 
-    def _get_widget(
-        self,
-        registry_key: str,
-        port: DataPort
-    ) -> tuple[IWidget | None, LifeCycleEvent | None]:
+    def _get_widget(self, registry_key: str, port: DataPort) -> tuple[IWidget | None, LifeCycleEvent | None]:
         """
         Get a widget instance for the given element using the widget registry.
         Args:
@@ -120,7 +119,7 @@ class WidgetFactory(IWidgetFactory):
         Returns:
             BaseWidget: The instantiated widget for the element or None
         """
- 
+
         lc_event = self.widget_registry.get_widget_event(registry_key)
 
         widget_cls: type[IWidget] | None = lc_event.affected_class
@@ -137,11 +136,11 @@ class WidgetFactory(IWidgetFactory):
                     exception=e,
                     category="Widget Instantiation Error",
                     operation="widget_lookup",
-                    message=f"Failed to instantiate widget '{registry_key}'"
+                    message=f"Failed to instantiate widget '{registry_key}'",
                 ).enrich(
                     registry_key=registry_key,
                     module_name=lc_event.module_name,
-                    library_identity=lc_event.library_identity
+                    library_identity=lc_event.library_identity,
                 )
 
                 raise error
@@ -150,10 +149,10 @@ class WidgetFactory(IWidgetFactory):
     def _on_widget_reloaded(self, batch: list[LifeCycleEvent]) -> None:
         """
         Customer callback for widget hot reload events.
-        
+
         This is called by the WidgetRegistry when a widget class is reloaded, added, or removed.
         Since widgets can be used by any renderer, we clear the entire cache.
-        
+
         Args:
             event: The hot reload event with complete context
         """

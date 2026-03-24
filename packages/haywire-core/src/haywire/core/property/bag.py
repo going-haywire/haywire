@@ -49,11 +49,11 @@ class Bag:
     gain full TOML-tier resolution.
     """
 
-    def __init__(self, registry: 'GlobalSettingsRegistry | None' = None) -> None:
+    def __init__(self, registry: "GlobalSettingsRegistry | None" = None) -> None:
         self._callbacks: list[Callable] = []
-        self._local_store: dict[str, Any] = {}     # key → value
-        self._registry: 'GlobalSettingsRegistry | None' = registry
-        self._subscribed_refs: list = []            # weakrefs for mirrors invalidation
+        self._local_store: dict[str, Any] = {}  # key → value
+        self._registry: "GlobalSettingsRegistry | None" = registry
+        self._subscribed_refs: list = []  # weakrefs for mirrors invalidation
         self._cleaned_up: bool = False
 
     # -------------------------------------------------------------------------
@@ -77,7 +77,7 @@ class Bag:
         )
         try:
             value, source = registry.resolve(key, local=local_sv)
-            if source == 'default' and not mirror_key:
+            if source == "default" and not mirror_key:
                 return default  # no mirror — use local descriptor's default
             return value
         except KeyError:

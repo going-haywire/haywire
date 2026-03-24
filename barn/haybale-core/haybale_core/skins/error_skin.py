@@ -10,14 +10,12 @@ from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.decorator import skin
-from haywire.ui.errors.error_info import error_render_detail
 
 
 from ..skins.node_skin import NodeSkin
 
-@skin(
-    description="Error skin that provides error styling for nodes",
-    _is_error=True)
+
+@skin(description="Error skin that provides error styling for nodes", _is_error=True)
 class ErrorNodeSkin(NodeSkin):
     """
     Error skin that provides error styling for nodes.
@@ -25,16 +23,15 @@ class ErrorNodeSkin(NodeSkin):
     This is a child class of NodeSkin with different styling
     to indicate rendering errors or fallback situations.
     """
-    
-    def render(self, main_card: ui.card, wrapper: NodeWrapper):
 
+    def render(self, main_card: ui.card, wrapper: NodeWrapper):
         node: BaseNode = wrapper.node
-        
+
         # Generate unique node ID for CSS scoping
         node_id = f"error-node-{id(node)}"
-        
+
         # Add CSS for error styling
-        ui.add_head_html(f'''
+        ui.add_head_html(f"""
         <style>
         .{node_id} {{
             border: 2px solid #ef4444;
@@ -60,46 +57,45 @@ class ErrorNodeSkin(NodeSkin):
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }}
         </style>
-        ''')
+        """)
 
         padding = self.CARD_H_PADDING
-        main_card.classes(
-            f'w-full min-w-64 max-w-sm error-node-card {node_id} zoom-pan-lod0'
-        ).style(
-            f'background-color: var(--hw-warning); backdrop-filter: blur(10px); '
-            f'overflow: visible; padding-left: {padding}px; padding-right: {padding}px;'
-        )        
+        main_card.classes(f"w-full min-w-64 max-w-sm error-node-card {node_id} zoom-pan-lod0").style(
+            f"background-color: var(--hw-warning); backdrop-filter: blur(10px); "
+            f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
+        )
 
         with main_card:
             # Error header
-            with ui.column().classes('items-left'):
+            with ui.column().classes("items-left"):
                 with ui.row():
-                    ui.label(node.identity.label).classes('text-h6')
-            
-                 # Runtime errors indicator with popup
+                    ui.label(node.identity.label).classes("text-h6")
+
+                # Runtime errors indicator with popup
                 runtime_errors = wrapper.state.get_errors()
                 if runtime_errors:
                     self._render_errors_button(runtime_errors)
 
             # Main content: inlets and outlets in two columns
-            with ui.row().classes('w-full gap-2'):
+            with ui.row().classes("w-full gap-2"):
                 # Left column: Inlets
-                with ui.column().classes('flex-1 gap-1'):
+                with ui.column().classes("flex-1 gap-1"):
                     if node.ports:
-                        ui.label('Inputs').classes('font-bold text-sm')
+                        ui.label("Inputs").classes("font-bold text-sm")
                         for inlet in node.ports.values():
                             self.render_port(inlet, wrapper)
 
                 # Right column: Outlets
-                with ui.column().classes('flex-1 gap-1'):
+                with ui.column().classes("flex-1 gap-1"):
                     if node.ports:
-                        ui.label('Outputs').classes('font-bold text-sm')
+                        ui.label("Outputs").classes("font-bold text-sm")
                         for outlet in node.ports.values():
                             if outlet.is_outlet():
                                 self._render_outlet(outlet, wrapper)
 
             # Footer with port counts
-            with ui.row().classes('w-full justify-between mt-2'):
-                ui.label(f'↓ {len([p for p in node.ports.values() if p.is_inlet()])}').classes('text-caption')
-                ui.label(f'↑ {len([p for p in node.ports.values() if p.is_outlet()])}').classes('text-caption')
-        
+            with ui.row().classes("w-full justify-between mt-2"):
+                inlet_count = len([p for p in node.ports.values() if p.is_inlet()])
+                outlet_count = len([p for p in node.ports.values() if p.is_outlet()])
+                ui.label(f"↓ {inlet_count}").classes("text-caption")
+                ui.label(f"↑ {outlet_count}").classes("text-caption")

@@ -10,6 +10,6 @@ Use HaywireException.from_exception() or HaywireException.create() directly.
 from .haywire_exception import HaywireException, ErrorSeverity
 
 __all__ = [
-    'HaywireException',       # Use this
-    'ErrorSeverity'
+    "HaywireException",  # Use this
+    "ErrorSeverity",
 ]

@@ -23,31 +23,32 @@ from haywire.core.property import prop, Bag, FieldDescriptor
 # Shared fixtures
 # ---------------------------------------------------------------------------
 
+
 class _Simple(Bag):
-    threshold: float = prop(0.5, label='Threshold', min=0.0, max=1.0)
-    verbose:   bool  = prop(False, label='Verbose')
-    name:      str   = prop('default', label='Name')
+    threshold: float = prop(0.5, label="Threshold", min=0.0, max=1.0)
+    verbose: bool = prop(False, label="Verbose")
+    name: str = prop("default", label="Name")
 
 
 class _WithChoices(Bag):
-    algorithm: str = prop('fast', choices=['fast', 'accurate'])
-    dynamic:   str = prop('a',   choices=lambda: ['a', 'b', 'c'])
+    algorithm: str = prop("fast", choices=["fast", "accurate"])
+    dynamic: str = prop("a", choices=lambda: ["a", "b", "c"])
 
 
 class _Parent(Bag):
-    x: int = prop(1, label='X')
+    x: int = prop(1, label="X")
 
 
 class _Child(_Parent):
-    y: int = prop(2, label='Y')
+    y: int = prop(2, label="Y")
 
 
 # ---------------------------------------------------------------------------
 # prop descriptor
 # ---------------------------------------------------------------------------
 
-class TestPropDescriptor:
 
+class TestPropDescriptor:
     def test_class_level_returns_descriptor(self):
         assert isinstance(_Simple.threshold, prop)
 
@@ -66,7 +67,7 @@ class TestPropDescriptor:
 
     def test_str_default(self):
         s = _Simple()
-        assert s.name == 'default'
+        assert s.name == "default"
 
     def test_instances_are_independent(self):
         s1 = _Simple()
@@ -75,12 +76,12 @@ class TestPropDescriptor:
         assert s2.threshold == 0.5
 
     def test_attr_name_set(self):
-        assert _Simple.threshold._attr_name == 'threshold'
-        assert _Simple.verbose._attr_name == 'verbose'
+        assert _Simple.threshold._attr_name == "threshold"
+        assert _Simple.verbose._attr_name == "verbose"
 
     def test_metadata(self):
         d = _Simple.threshold
-        assert d._label == 'Threshold'
+        assert d._label == "Threshold"
         assert d._min == 0.0
         assert d._max == 1.0
         assert d._default == 0.5
@@ -92,10 +93,10 @@ class TestPropDescriptor:
         assert _Simple.name._type is str
 
     def test_choices_list(self):
-        assert _WithChoices.algorithm.choices == ['fast', 'accurate']
+        assert _WithChoices.algorithm.choices == ["fast", "accurate"]
 
     def test_choices_callable_resolved(self):
-        assert _WithChoices.dynamic.choices == ['a', 'b', 'c']
+        assert _WithChoices.dynamic.choices == ["a", "b", "c"]
 
     def test_choices_none(self):
         assert _Simple.threshold.choices is None
@@ -105,14 +106,14 @@ class TestPropDescriptor:
 # Callbacks
 # ---------------------------------------------------------------------------
 
-class TestCallbacks:
 
+class TestCallbacks:
     def test_callback_fired_on_change(self):
         s = _Simple()
         received = []
         s.subscribe(lambda name, value, old: received.append((name, value, old)))
         s.threshold = 0.9
-        assert received == [('threshold', 0.9, 0.5)]
+        assert received == [("threshold", 0.9, 0.5)]
 
     def test_callback_not_fired_when_value_unchanged(self):
         s = _Simple()
@@ -167,15 +168,15 @@ class TestCallbacks:
             raise RuntimeError("boom")
 
         s.subscribe(bad_cb)
-        s.threshold = 0.3   # should not raise
+        s.threshold = 0.3  # should not raise
 
 
 # ---------------------------------------------------------------------------
 # Serialization — to_dict
 # ---------------------------------------------------------------------------
 
-class TestToDict:
 
+class TestToDict:
     def test_empty_when_all_defaults(self):
         s = _Simple()
         assert s.to_dict() == {}
@@ -183,19 +184,19 @@ class TestToDict:
     def test_includes_non_default_values(self):
         s = _Simple()
         s.threshold = 0.8
-        assert s.to_dict() == {'threshold': 0.8}
+        assert s.to_dict() == {"threshold": 0.8}
 
     def test_multiple_non_default_values(self):
         s = _Simple()
         s.threshold = 0.8
         s.verbose = True
         data = s.to_dict()
-        assert data == {'threshold': 0.8, 'verbose': True}
+        assert data == {"threshold": 0.8, "verbose": True}
 
     def test_revert_to_default_not_included(self):
         s = _Simple()
         s.threshold = 0.8
-        s.threshold = 0.5   # back to default
+        s.threshold = 0.5  # back to default
         assert s.to_dict() == {}
 
 
@@ -203,30 +204,30 @@ class TestToDict:
 # Serialization — from_dict
 # ---------------------------------------------------------------------------
 
-class TestFromDict:
 
+class TestFromDict:
     def test_silent_restores_value(self):
         s = _Simple()
-        s.from_dict({'threshold': 0.3})
+        s.from_dict({"threshold": 0.3})
         assert s.threshold == 0.3
 
     def test_silent_does_not_fire_callbacks(self):
         s = _Simple()
         received = []
         s.subscribe(lambda n, v, o: received.append(v))
-        s.from_dict({'threshold': 0.3}, silent=True)
+        s.from_dict({"threshold": 0.3}, silent=True)
         assert received == []
 
     def test_not_silent_fires_callbacks(self):
         s = _Simple()
         received = []
         s.subscribe(lambda n, v, o: received.append(v))
-        s.from_dict({'threshold': 0.3}, silent=False)
+        s.from_dict({"threshold": 0.3}, silent=False)
         assert received == [0.3]
 
     def test_unknown_keys_ignored(self):
         s = _Simple()
-        s.from_dict({'threshold': 0.3, 'unknown_key': 'ignored'})
+        s.from_dict({"threshold": 0.3, "unknown_key": "ignored"})
         assert s.threshold == 0.3  # no exception
 
     def test_empty_dict(self):
@@ -250,12 +251,12 @@ class TestFromDict:
 # Reset
 # ---------------------------------------------------------------------------
 
-class TestReset:
 
+class TestReset:
     def test_reset_single_field(self):
         s = _Simple()
         s.threshold = 0.9
-        s.reset('threshold')
+        s.reset("threshold")
         assert s.threshold == 0.5
 
     def test_reset_fires_callback(self):
@@ -263,49 +264,49 @@ class TestReset:
         s.threshold = 0.9
         received = []
         s.subscribe(lambda n, v, o: received.append(v))
-        s.reset('threshold')
+        s.reset("threshold")
         assert received == [0.5]
 
     def test_reset_all(self):
         s = _Simple()
         s.threshold = 0.9
         s.verbose = True
-        s.name = 'changed'
+        s.name = "changed"
         s.reset_all()
         assert s.threshold == 0.5
         assert s.verbose is False
-        assert s.name == 'default'
+        assert s.name == "default"
 
     def test_reset_unknown_key_raises(self):
         s = _Simple()
         with pytest.raises(KeyError):
-            s.reset('nonexistent')
+            s.reset("nonexistent")
 
 
 # ---------------------------------------------------------------------------
 # _prop_fields — MRO traversal
 # ---------------------------------------------------------------------------
 
-class TestPropFields:
 
+class TestPropFields:
     def test_returns_all_props(self):
         fields = _Simple._prop_fields()
-        assert 'threshold' in fields
-        assert 'verbose' in fields
-        assert 'name' in fields
+        assert "threshold" in fields
+        assert "verbose" in fields
+        assert "name" in fields
 
     def test_non_props_excluded(self):
         fields = _Simple._prop_fields()
-        assert '_callbacks' not in fields
+        assert "_callbacks" not in fields
 
     def test_child_includes_parent_fields(self):
         fields = _Child._prop_fields()
-        assert 'x' in fields
-        assert 'y' in fields
+        assert "x" in fields
+        assert "y" in fields
 
     def test_parent_fields_not_polluted_by_child(self):
         parent_fields = _Parent._prop_fields()
-        assert 'y' not in parent_fields
+        assert "y" not in parent_fields
 
     def test_child_inherits_parent_defaults(self):
         c = _Child()
@@ -323,8 +324,8 @@ class TestPropFields:
 # Inheritance — props from parent survive in child
 # ---------------------------------------------------------------------------
 
-class TestInheritance:
 
+class TestInheritance:
     def test_child_can_set_parent_prop(self):
         c = _Child()
         c.x = 99
@@ -334,11 +335,11 @@ class TestInheritance:
         c = _Child()
         c.x = 5
         data = c.to_dict()
-        assert data == {'x': 5}
+        assert data == {"x": 5}
 
     def test_child_from_dict_restores_parent_field(self):
         c = _Child()
-        c.from_dict({'x': 7})
+        c.from_dict({"x": 7})
         assert c.x == 7
 
     def test_child_callback_fires_for_parent_prop(self):
@@ -346,15 +347,15 @@ class TestInheritance:
         received = []
         c.subscribe(lambda n, v, o: received.append((n, v)))
         c.x = 42
-        assert received == [('x', 42)]
+        assert received == [("x", 42)]
 
 
 # ---------------------------------------------------------------------------
 # FieldDescriptor — shared ancestor
 # ---------------------------------------------------------------------------
 
-class TestFieldDescriptorAncestry:
 
+class TestFieldDescriptorAncestry:
     def test_prop_is_field_descriptor(self):
         assert issubclass(prop, FieldDescriptor)
         assert isinstance(_Simple.threshold, FieldDescriptor)
@@ -362,4 +363,3 @@ class TestFieldDescriptorAncestry:
     def test_prop_subclasses_only(self):
         # SettingDescriptor has been removed — prop is the single descriptor class
         assert issubclass(prop, FieldDescriptor)
-

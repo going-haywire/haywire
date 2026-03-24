@@ -15,9 +15,11 @@ from ..widget.base import BaseWidget
 from ..widget.factory_interface import IWidgetFactory
 from .interface import IBaseSkin
 
+
 @dataclass
 class SkinIdentity(BaseIdentity):
     """Core identifying attributes of a skin"""
+
     _is_default: bool = False
     _default_priority: int = 0
     _is_error: bool = False
@@ -44,7 +46,6 @@ class BaseSkin(IBaseSkin, ABC):
         """
         self._widget_factory: IWidgetFactory = widget_factory
         self._nodeids_widget_instances: Dict[str, Dict[str, BaseWidget]] = {}
-
 
     def _render(self, wrapper: NodeWrapper) -> UINodeCard:
         ui_nodeCard: UINodeCard = UINodeCard()
@@ -95,7 +96,7 @@ class BaseSkin(IBaseSkin, ABC):
         """
         pass
 
-    def render_widget(self, port: DataPort, node_id: str, classes: str = '') -> ui.element | None:
+    def render_widget(self, port: DataPort, node_id: str, classes: str = "") -> ui.element | None:
         """
         Render a widget for the given inlet and node ID.
 
@@ -107,13 +108,11 @@ class BaseSkin(IBaseSkin, ABC):
             The rendered widget ui_element container, or None if no widget was rendered
         """
         widget_instance, ui_element = self._widget_factory.render_widget(
-            registry_key=port.widget_key,
-            port=port,
-            node_id=node_id
+            registry_key=port.widget_key, port=port, node_id=node_id
         )
 
         # Apply styling to the UI element if possible
-        if ui_element and hasattr(ui_element, 'classes') and callable(ui_element.classes):
+        if ui_element and hasattr(ui_element, "classes") and callable(ui_element.classes):
             ui_element.classes(classes)
 
         if widget_instance:

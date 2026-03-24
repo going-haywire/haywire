@@ -1,5 +1,3 @@
-
-
 from abc import ABC, abstractmethod
 import nicegui.ui as ui
 
@@ -11,18 +9,15 @@ class IWidgetFactory(ABC):
     """
     Interface for Widget Factory classes.
     """
-    
+
     @abstractmethod
     def render_widget(
-        self,
-        registry_key: str,
-        port: DataPort,
-        node_id: str
-    ) -> tuple[BaseWidget | None, ui.element] :
+        self, registry_key: str, port: DataPort, node_id: str
+    ) -> tuple[BaseWidget | None, ui.element]:
         """Render a widget for the given inlet and return the widget instance.
-        
+
         Note: The UI element is automatically added to the current NiceGUI context.
-        
+
         Args:
             registry_key: The registry key of the widget to render
             port: The data port to render a widget for

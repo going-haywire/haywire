@@ -1,4 +1,3 @@
-import logging
 from typing import Dict, Optional
 from nicegui import ui
 
@@ -6,7 +5,8 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui.errors.error_info import error_render_detail
 from haywire.ui.widget.base import BaseWidget
 
-class UINodeCard():
+
+class UINodeCard:
     """
     Container for a rendered node's UI elements and widget instances.
 
@@ -29,15 +29,15 @@ class UINodeCard():
     def get_card(self):
         """Get the main NiceGUI card element."""
         return self.ui_card
-    
+
     def set_widget_instances(self, widget_instances: Dict[str, BaseWidget]):
         """Set the widget instances mapping."""
         self.widget_instances = widget_instances
 
-    def get_widget_instance(self, element_id: str) -> Optional['BaseWidget']:
+    def get_widget_instance(self, element_id: str) -> Optional["BaseWidget"]:
         """Get a widget instance by element ID."""
         return self.widget_instances.get(element_id)
-    
+
     def append(self, error: HaywireException):
         """Append an error message to the UI card."""
         if error is not None:

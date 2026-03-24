@@ -31,13 +31,13 @@ class SessionManager:
     """
 
     def __init__(self):
-        self._sessions: Dict[str, 'Session'] = {}
+        self._sessions: Dict[str, "Session"] = {}
 
     # ------------------------------------------------------------------
     # Session lifecycle
     # ------------------------------------------------------------------
 
-    def create_session(self, **session_kwargs) -> 'Session':
+    def create_session(self, **session_kwargs) -> "Session":
         """
         Create a new Session and register it.
 
@@ -47,9 +47,10 @@ class SessionManager:
             The newly created Session.
         """
         from haywire.ui.session import Session
+
         session = Session(**session_kwargs)
         self._sessions[session.session_id] = session
-        logger.info(f'SessionManager: created session {session.session_id[:8]}')
+        logger.info(f"SessionManager: created session {session.session_id[:8]}")
         return session
 
     def remove_session(self, session_id: str) -> None:
@@ -64,15 +65,15 @@ class SessionManager:
             try:
                 session.cleanup()
             except Exception as e:
-                logger.warning(f'SessionManager: error cleaning up session {session_id[:8]}: {e}')
-            logger.info(f'SessionManager: removed session {session_id[:8]}')
+                logger.warning(f"SessionManager: error cleaning up session {session_id[:8]}: {e}")
+            logger.info(f"SessionManager: removed session {session_id[:8]}")
 
-    def get_session(self, session_id: str) -> Optional['Session']:
+    def get_session(self, session_id: str) -> Optional["Session"]:
         """Return the session for the given ID, or None if not found."""
         return self._sessions.get(session_id)
 
     @property
-    def active_sessions(self) -> Dict[str, 'Session']:
+    def active_sessions(self) -> Dict[str, "Session"]:
         """Read-only view of all active sessions keyed by session_id."""
         return dict(self._sessions)
 
@@ -109,21 +110,19 @@ class SessionManager:
         failed = []
         for session_id, session in list(self._sessions.items()):
             if graph_path is not None:
-                session_path = getattr(session.context, 'active_graph_path', None)
+                session_path = getattr(session.context, "active_graph_path", None)
                 if str(session_path) != str(graph_path):
                     continue
             try:
                 session.notify_context_changed(event)
             except Exception as e:
-                logger.warning(
-                    f'SessionManager: broadcast failed for session {session_id[:8]}: {e}'
-                )
+                logger.warning(f"SessionManager: broadcast failed for session {session_id[:8]}: {e}")
                 failed.append(session_id)
         if failed:
-            logger.warning(f'SessionManager: {len(failed)} session(s) failed during broadcast')
+            logger.warning(f"SessionManager: {len(failed)} session(s) failed during broadcast")
 
     def cleanup_all(self) -> None:
         """Clean up all sessions (call on application shutdown)."""
         for session_id in list(self._sessions.keys()):
             self.remove_session(session_id)
-        logger.info('SessionManager: all sessions cleaned up')
+        logger.info("SessionManager: all sessions cleaned up")

@@ -13,18 +13,20 @@ from ...graph.base import BaseGraph
 from ...edge.edge_wrapper import EdgeWrapper, Edge
 from ..base_action import ActionBase, CompositeAction
 
+
 class AddNodeAction(ActionBase):
     """Action for adding a node to the graph."""
 
     def __init__(
-            self, 
-            graph: BaseGraph, 
-            registry_key: str, 
-            position: Tuple[float, float] = (100, 100),
-            description: Optional[str] = None):
+        self,
+        graph: BaseGraph,
+        registry_key: str,
+        position: Tuple[float, float] = (100, 100),
+        description: Optional[str] = None,
+    ):
         """
         Initialize the add node action.
-        
+
         Args:
             graph: The graph to add the node to
             registry_key: Node type to create
@@ -44,20 +46,17 @@ class AddNodeAction(ActionBase):
         if self.wrapper is None:
             # First execution: Create new wrapper via graph
             self.wrapper = self.graph.create_node_wrapper(
-                registry_key=self.registry_key,
-                position=self.position
+                registry_key=self.registry_key, position=self.position
             )
         else:
             # Redo: Re-add existing wrapper
             self.wrapper = self.graph.add_node_wrapper(self.wrapper)
-        
+
         self.undo_wrapper = None
 
         if not self.wrapper:
-            raise RuntimeError(
-                f"Failed to create node wrapper '{self.registry_key}'"
-            )
-    
+            raise RuntimeError(f"Failed to create node wrapper '{self.registry_key}'")
+
     def _undo_impl(self) -> None:
         """Remove the node from the graph."""
         if self.wrapper:
@@ -66,7 +65,7 @@ class AddNodeAction(ActionBase):
     def cleanup(self) -> None:
         """
         Clean up all undone elements when action is discarded.
-        
+
         This is called when the action is removed from history and
         can no longer be undone. We now permanently cleanup all
         undone node wrappers.
@@ -74,21 +73,22 @@ class AddNodeAction(ActionBase):
         if self.undo_wrapper:
             self.undo_wrapper.cleanup()
 
+
 class AddEdgeAction(ActionBase):
     """Action for adding an edge to the graph using EdgeWrapper."""
-    
+
     def __init__(
-        self, 
+        self,
         graph: BaseGraph,
         source_node_id: str,
         outlet_pin_id: str,
         sink_node_id: str,
         inlet_pin_id: str,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ):
         """
         Initialize the add edge action.
-        
+
         Args:
             graph: The graph to add the edge to
             source_node_id: Source node ID
@@ -97,35 +97,29 @@ class AddEdgeAction(ActionBase):
             inlet_pin_id: Sink inlet ID
             description: Optional description override
         """
-        super().__init__(
-            description or 
-            f"Connect {source_node_id} to {sink_node_id}"
-        )
+        super().__init__(description or f"Connect {source_node_id} to {sink_node_id}")
         self.graph = graph
         self.source_node_id = source_node_id
         self.outlet_port_id = outlet_pin_id
         self.sink_node_id = sink_node_id
         self.inlet_port_id = inlet_pin_id
-        
+
         # Wrapper created during execute
         self.wrapper: Optional[EdgeWrapper] = None
 
         self.undo_wrapper = None
-    
+
     def _execute_impl(self) -> None:
         """Add the edge to the graph."""
         if self.wrapper is None:
             # First execution: Create new wrapper via graph
             self.wrapper = self.graph.create_edge_wrapper(
-                self.source_node_id,
-                self.outlet_port_id,
-                self.sink_node_id,
-                self.inlet_port_id
+                self.source_node_id, self.outlet_port_id, self.sink_node_id, self.inlet_port_id
             )
         else:
             # Redo: Re-add existing wrapper
             self.wrapper = self.graph.add_edge_wrapper(self.wrapper)
-        
+
         self.undo_wrapper = None
 
         if not self.wrapper:
@@ -134,7 +128,7 @@ class AddEdgeAction(ActionBase):
                 f"{self.source_node_id}:{self.outlet_port_id} -> "
                 f"{self.sink_node_id}:{self.inlet_port_id}"
             )
-    
+
     def _undo_impl(self) -> None:
         """Remove the edge from the graph."""
         if self.wrapper:
@@ -143,7 +137,7 @@ class AddEdgeAction(ActionBase):
     def cleanup(self) -> None:
         """
         Clean up all undone elements when action is discarded.
-        
+
         This is called when the action is removed from history and
         can no longer be undone. We now permanently cleanup all
         undone edge wrappers.
@@ -152,15 +146,20 @@ class AddEdgeAction(ActionBase):
             self.undo_wrapper.cleanup()
 
 
-
 class MoveNodesAction(ActionBase):
     """Action for moving one or multiple nodes using delta values."""
-    
-    def __init__(self, graph: BaseGraph, nodes: List[str], deltaX: float, deltaY: float, 
-                 description: Optional[str] = None):
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        nodes: List[str],
+        deltaX: float,
+        deltaY: float,
+        description: Optional[str] = None,
+    ):
         """
         Initialize the move nodes action.
-        
+
         Args:
             graph: The graph containing the nodes
             nodes: List of node IDs to move
@@ -173,12 +172,12 @@ class MoveNodesAction(ActionBase):
             super().__init__(description or f"Move node '{nodes[0]}'")
         else:
             super().__init__(description or f"Move {node_count} nodes")
-        
+
         self.graph = graph
         self.nodes = nodes
         self.deltaX = deltaX
         self.deltaY = deltaY
-    
+
     def _execute_impl(self) -> None:
         """Move all nodes by their delta amounts."""
         for node_id in self.nodes:
@@ -202,55 +201,52 @@ class MoveNodesAction(ActionBase):
                     node.props.posX - self.deltaX,
                     node.props.posY - self.deltaY,
                 )
-    
+
     def can_merge(self, other) -> bool:
         """Check if this move can be merged with another delta move of the same nodes."""
-        return (isinstance(other, MoveNodesAction) and 
-                set(other.nodes) == set(self.nodes) and
-                super().can_merge(other))
-    
-    def merge(self, other) -> Optional['MoveNodesAction']:
+        return (
+            isinstance(other, MoveNodesAction)
+            and set(other.nodes) == set(self.nodes)
+            and super().can_merge(other)
+        )
+
+    def merge(self, other) -> Optional["MoveNodesAction"]:
         """Merge with another delta move action for the same nodes."""
         if not self.can_merge(other):
             return None
-        
+
         # Combine the deltas
         combined_deltaX = self.deltaX + other.deltaX
         combined_deltaY = self.deltaY + other.deltaY
-        
+
         # Create merged action with combined deltas but original starting positions
         node_count = len(self.nodes)
         if node_count == 1:
             description = f"Move node '{self.nodes[0]}'"
         else:
             description = f"Move {node_count} nodes"
-        
-        merged = MoveNodesAction(
-            self.graph,
-            self.nodes,
-            combined_deltaX,
-            combined_deltaY,
-            description
-        )
-        
+
+        merged = MoveNodesAction(self.graph, self.nodes, combined_deltaX, combined_deltaY, description)
+
         return merged
+
 
 class RemoveElementsAction(ActionBase):
     """
     Action for removing multiple nodes and connections in a single
     operation.
     """
-    
+
     def __init__(
-        self, 
-        graph: BaseGraph, 
-        nodes: List[str] = None, 
+        self,
+        graph: BaseGraph,
+        nodes: List[str] = None,
         edges: List[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ):
         """
         Initialize the remove elements action.
-        
+
         Args:
             graph: The graph to remove elements from
             nodes: List of node IDs to remove
@@ -259,34 +255,28 @@ class RemoveElementsAction(ActionBase):
         """
         nodes = nodes or []
         edges = edges or []
-        
+
         total_count = len(nodes) + len(edges)
         if total_count == 0:
-            raise ValueError(
-                "Must specify at least one node or edge to remove"
-            )
+            raise ValueError("Must specify at least one node or edge to remove")
         elif total_count == 1:
             if nodes:
-                super().__init__(
-                    description or f"Remove node '{nodes[0]}'"
-                )
+                super().__init__(description or f"Remove node '{nodes[0]}'")
             else:
                 super().__init__(description or "Remove edge")
         else:
-            super().__init__(
-                description or f"Remove {total_count} elements"
-            )
-        
+            super().__init__(description or f"Remove {total_count} elements")
+
         self.graph = graph
         self.nodes = nodes
         self.edges = edges
-        
+
         # Store removed elements for restoration
         self.removed_node_wrappers: Dict[str, NodeWrapper] = {}
         self.removed_edge_wrappers: Dict[str, EdgeWrapper] = {}
         # node_id -> edge wrappers that were connected to it
         self.node_connected_edge_wrappers: Dict[str, EdgeWrapper] = {}
-    
+
     def _execute_impl(self) -> None:
         """Remove all specified elements and store them for undo."""
         # First, store and remove connections
@@ -295,23 +285,23 @@ class RemoveElementsAction(ActionBase):
             if edge_wrapper:
                 self.removed_edge_wrappers[edge_id] = edge_wrapper
                 self.graph.remove_edge_wrapper(edge_id)
-        
+
         # Then, store and remove nodes
         for node_id in self.nodes:
             node_wrapper = self.graph.get_node_wrapper(node_id)
             if node_wrapper:
                 self.removed_node_wrappers[node_id] = node_wrapper
-                
+
                 all_edges = self.graph._get_all_edges(node_id)
 
                 for edge in all_edges:
                     self.node_connected_edge_wrappers[edge.edge_id] = edge
                     # Remove the connected edge wrapper
                     self.graph.remove_edge_wrapper(edge.edge_id)
-                
+
                 # Remove the node wrapper
                 self.graph.remove_node_wrapper(node_wrapper)
-    
+
     def _undo_impl(self) -> None:
         """Restore all removed elements."""
         # First, restore node wrappers
@@ -322,12 +312,12 @@ class RemoveElementsAction(ActionBase):
         for edge_id, edge_wrapper in self.node_connected_edge_wrappers.items():
             # Re-add existing wrapper
             self.graph.add_edge_wrapper(edge_wrapper)
-                
+
         # Then, restore standalone connections
         # (that weren't connected to removed nodes)
         for edge_id, edge_wrapper in self.removed_edge_wrappers.items():
             self.graph.add_edge_wrapper(edge_wrapper)
-    
+
         # Clear away store after restoration otherwise
         # they are cleaned-up when the action is discarded
         self.removed_edge_wrappers.clear()
@@ -337,7 +327,7 @@ class RemoveElementsAction(ActionBase):
     def cleanup(self) -> None:
         """
         Clean up all removed elements when action is discarded.
-        
+
         This is called when the action is removed from history and
         can no longer be undone. We now permanently cleanup all
         removed node and edge wrappers.
@@ -345,15 +335,15 @@ class RemoveElementsAction(ActionBase):
         # Cleanup all removed edge wrappers
         for edge_wrapper in self.removed_edge_wrappers.values():
             edge_wrapper.cleanup()
-        
+
         # Cleanup all edge wrappers connected to removed nodes
         for edge_wrapper in self.node_connected_edge_wrappers.values():
             edge_wrapper.cleanup()
-        
+
         # Cleanup all removed node wrappers
         for wrapper in self.removed_node_wrappers.values():
             wrapper.cleanup()
-        
+
         # Clear the storage dictionaries
         self.removed_node_wrappers.clear()
         self.removed_edge_wrappers.clear()
@@ -369,18 +359,25 @@ class SelectionState:
     Kept as a plain data-transfer object for copy/paste, context panels, and
     future collaborative multi-cursor features.
     """
+
     selected_nodes: set[str]
     selected_edges: set[str]  # Edge UUIDs
 
 
 class DuplicateNodeAction(CompositeAction):
     """Composite action for duplicating a node."""
-    
-    def __init__(self, graph: BaseGraph, source_node_id: str, new_node_id: str,
-                 offset_x: float = 50.0, offset_y: float = 50.0):
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        source_node_id: str,
+        new_node_id: str,
+        offset_x: float = 50.0,
+        offset_y: float = 50.0,
+    ):
         """
         Initialize the duplicate node action.
-        
+
         Args:
             graph: The graph
             source_node_id: ID of the node to duplicate
@@ -391,20 +388,18 @@ class DuplicateNodeAction(CompositeAction):
         source_node = graph.get_node_wrapper(source_node_id).node
         if source_node is None:
             raise ValueError(f"Source node {source_node_id} not found")
-        
+
         # Create the duplicated node (this would need proper cloning logic)
         # For now, we'll assume there's a clone method
         new_node = self._clone_node(source_node, new_node_id)
         new_node.props.posX = source_node.props.posX + offset_x
         new_node.props.posY = source_node.props.posY + offset_y
-        
+
         # Create the sub-actions
-        actions = [
-            AddNodeAction(graph, new_node, f"Add duplicated node '{new_node_id}'")
-        ]
-        
+        actions = [AddNodeAction(graph, new_node, f"Add duplicated node '{new_node_id}'")]
+
         super().__init__(actions, f"Duplicate node '{source_node_id}' as '{new_node_id}'")
-    
+
     def _clone_node(self, source_node: BaseNode, new_id: str) -> BaseNode:
         """Clone a node with a new ID."""
         # This is a placeholder - actual implementation would depend on the node structure
@@ -415,35 +410,40 @@ class DuplicateNodeAction(CompositeAction):
 @dataclass
 class ClipboardData:
     """Session-specific clipboard containing actual node and edge instances"""
-    
+
     # Core data - actual instances, not serialized data
     nodes: Dict[str, BaseNode]  # new_node_id -> node_instance
-    edges: Dict[str, Edge]      # new_edge_id -> edge_instance
-    
+    edges: Dict[str, Edge]  # new_edge_id -> edge_instance
+
     # Mapping for paste operations
     original_to_new_ids: Dict[str, str]  # original_node_id -> new_node_id
-    
+
     # Positioning data
     bounding_box: Dict[str, float]  # min_x, min_y, max_x, max_y
-    
+
     # Metadata
     timestamp: float
     source_session_id: str
-    
+
     def get_paste_offset(self, target_x: float, target_y: float) -> Tuple[float, float]:
         """Calculate offset to position upper-left corner at target position"""
-        return (target_x - self.bounding_box['min_x'], 
-                target_y - self.bounding_box['min_y'])
+        return (target_x - self.bounding_box["min_x"], target_y - self.bounding_box["min_y"])
 
 
 class PasteClipboardAction(CompositeAction):
     """Composite action for pasting clipboard contents."""
-    
-    def __init__(self, graph: BaseGraph, clipboard_data: 'ClipboardData', 
-                 paste_x: float, paste_y: float, description: Optional[str] = None):
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        clipboard_data: "ClipboardData",
+        paste_x: float,
+        paste_y: float,
+        description: Optional[str] = None,
+    ):
         """
         Initialize the paste clipboard action.
-        
+
         Args:
             graph: The graph to paste into
             clipboard_data: The clipboard data containing nodes and edges
@@ -453,29 +453,29 @@ class PasteClipboardAction(CompositeAction):
         """
         self.clipboard_data = clipboard_data
         self.paste_position = (paste_x, paste_y)
-        
+
         # Calculate position offset
         offset_x, offset_y = clipboard_data.get_paste_offset(paste_x, paste_y)
-        
+
         # Create sub-actions for each node and edge
         actions = []
-        
+
         # Add node actions
         for node_id, node in clipboard_data.nodes.items():
             # Apply position offset
             node.props.posX += offset_x
             node.props.posY += offset_y
-            
+
             # Set graph reference
             node.graph = graph
-            
+
             # Create add node action
             actions.append(AddNodeAction(graph, node, f"Paste node '{node.identity.label}'"))
-        
+
         # Add edge actions
         for edge_id, edge in clipboard_data.edges.items():
             actions.append(AddEdgeAction(graph, edge, "Paste connection"))
-        
+
         # Determine description
         node_count = len(clipboard_data.nodes)
         edge_count = len(clipboard_data.edges)
@@ -486,6 +486,5 @@ class PasteClipboardAction(CompositeAction):
                 description = f"Paste {node_count} {'node' if node_count == 1 else 'nodes'}"
             else:
                 description = "Paste clipboard contents"
-        
-        super().__init__(actions, description)
 
+        super().__init__(actions, description)

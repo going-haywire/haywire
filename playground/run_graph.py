@@ -16,7 +16,6 @@ Press Ctrl+C to stop gracefully.
 """
 
 import argparse
-import gc
 import logging
 import signal
 import sys
@@ -75,7 +74,6 @@ class GraphRunner:
         print("=" * 60)
 
         # Set log level
-        import logging
         level = getattr(logging, self.log_level.upper(), logging.WARNING)
         logging.getLogger('haywire').setLevel(level)        
         logging.getLogger('haywire.core.node.node_wrapper').setLevel(logging.INFO)  # Keep node stats
@@ -260,7 +258,7 @@ class GraphRunner:
             
             # Show current stack if requested
             if show_stacks and thread.ident in frames:
-                print(f"     Stack trace:")
+                print("     Stack trace:")
                 frame = frames[thread.ident]
                 stack = traceback.extract_stack(frame, limit=5)
                 for i, (filename, lineno, func, text) in enumerate(stack):

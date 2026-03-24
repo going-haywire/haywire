@@ -19,11 +19,12 @@ if TYPE_CHECKING:
 
 class InteractionMode(Enum):
     """Current user interaction mode."""
+
     IDLE = "idle"
-    EDITING = "editing"          # editing node values
-    CONNECTING = "connecting"    # dragging a connection
-    SELECTING = "selecting"      # box selection
-    PANNING = "panning"          # panning the canvas
+    EDITING = "editing"  # editing node values
+    CONNECTING = "connecting"  # dragging a connection
+    SELECTING = "selecting"  # box selection
+    PANNING = "panning"  # panning the canvas
 
 
 @dataclass
@@ -53,23 +54,26 @@ class SessionContext:
             class or metadata, or None). Drives ComponentDetailEditor.
         metadata: Extensible dict for editor-specific state.
     """
+
     session_id: str
-    app: IProjectState                          # host application (HaywireApp)
-    session: Session = field(init=False)        # set by Session.__init__ immediately after construction
-    active_graph: Optional[Any] = None          # HaywireGraph
-    active_node: Optional[Any] = None           # NodeWrapper
-    active_edge: Optional[Any] = None           # Edge
+    app: IProjectState  # host application (HaywireApp)
+    session: Session = field(init=False)  # set by Session.__init__ immediately after construction
+    active_graph: Optional[Any] = None  # HaywireGraph
+    active_node: Optional[Any] = None  # NodeWrapper
+    active_edge: Optional[Any] = None  # Edge
     selected_nodes: Set[str] = field(default_factory=set)
     selected_edges: Set[str] = field(default_factory=set)
     interaction_mode: InteractionMode = InteractionMode.IDLE
-    active_editor: Optional[str] = None         # editor registry key
+    active_editor: Optional[str] = None  # editor registry key
     workspace_name: str = "default"
-    active_library: Optional[Any] = None        # InstalledLibrary | MarketplaceEntry
-    active_component: Optional[Any] = None      # node/widget/renderer class or metadata
-    active_file: Optional[Any] = None           # Path to the currently viewed file
-    active_graph_path: Optional[Any] = None     # Path to the currently active .haywire file
-    active_workbench_theme_key: str = 'core:theme:workbench:haywire-dark'   # Active WorkbenchTheme registry_key
-    active_node_theme_key: str = 'core:theme:node:default'                 # Active NodeTheme registry_key
+    active_library: Optional[Any] = None  # InstalledLibrary | MarketplaceEntry
+    active_component: Optional[Any] = None  # node/widget/renderer class or metadata
+    active_file: Optional[Any] = None  # Path to the currently viewed file
+    active_graph_path: Optional[Any] = None  # Path to the currently active .haywire file
+    active_workbench_theme_key: str = (
+        "core:theme:workbench:haywire-dark"  # Active WorkbenchTheme registry_key
+    )
+    active_node_theme_key: str = "core:theme:node:default"  # Active NodeTheme registry_key
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     # ------------------------------------------------------------------

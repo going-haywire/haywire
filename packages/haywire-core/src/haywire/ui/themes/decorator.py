@@ -22,14 +22,17 @@ from haywire.core.registry.identity import BaseIdentity
 @dataclass
 class ThemeClassIdentity(BaseIdentity):
     """Identity metadata stored on decorated theme classes."""
-    theme_type: str = ''  # 'workbench' or 'node'
+
+    theme_type: str = ""  # 'workbench' or 'node'
 
 
 def theme(
-    cls=None, /, *,
+    cls=None,
+    /,
+    *,
     registry_id: str | None = None,
-    label: str = '',
-    description: str = '',
+    label: str = "",
+    description: str = "",
 ):
     """
     Decorator that registers a WorkbenchTheme or NodeTheme subclass.
@@ -55,19 +58,19 @@ def theme(
             header_bg = '#252540'
             ...
     """
+
     def decorator(inner_cls):
         # Lazy imports to avoid circular dependencies
         from haywire.ui.themes.workbench import WorkbenchTheme
         from haywire.ui.themes.node_theme import NodeTheme
 
         if issubclass(inner_cls, WorkbenchTheme):
-            theme_type = 'workbench'
+            theme_type = "workbench"
         elif issubclass(inner_cls, NodeTheme):
-            theme_type = 'node'
+            theme_type = "node"
         else:
             raise TypeError(
-                f"@theme can only be applied to WorkbenchTheme or NodeTheme subclasses, "
-                f"got {inner_cls}"
+                f"@theme can only be applied to WorkbenchTheme or NodeTheme subclasses, got {inner_cls}"
             )
 
         _registry_id = registry_id or inner_cls.__name__
@@ -75,7 +78,7 @@ def theme(
 
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id if library_identity else None
-        _registry_key = reg_key(library_id, f'theme:{theme_type}', _registry_id)
+        _registry_key = reg_key(library_id, f"theme:{theme_type}", _registry_id)
 
         inner_cls.class_identity = ThemeClassIdentity(
             registry_id=_registry_id,

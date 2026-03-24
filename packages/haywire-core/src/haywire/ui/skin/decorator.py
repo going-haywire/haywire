@@ -8,7 +8,8 @@ from .base import BaseSkin, SkinIdentity
 #    Decorator
 # ============================================================================
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
@@ -58,23 +59,21 @@ def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         @skin(is_error=True, description="Error node skin")
         class ErrorSkin(BaseSkin): ...
     """
+
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseSkin):
-            raise TypeError(
-                f"@skin can only be applied to BaseSkin subclasses, "
-                f"got {inner_cls}"
-            )
+            raise TypeError(f"@skin can only be applied to BaseSkin subclasses, got {inner_cls}")
 
         # Set defaults from class name if not provided
-        kwargs.setdefault('registry_id', inner_cls.__name__)
-        kwargs.setdefault('label', inner_cls.__name__)
+        kwargs.setdefault("registry_id", inner_cls.__name__)
+        kwargs.setdefault("label", inner_cls.__name__)
 
         # Get library identity (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
         library_id = library_identity.id if library_identity else None
-        kwargs['registry_key'] = reg_key(library_id, 'skin', kwargs['registry_id'])
+        kwargs["registry_key"] = reg_key(library_id, "skin", kwargs["registry_id"])
 
         # Create and attach identity and library
         inner_cls.class_identity = SkinIdentity(**kwargs)

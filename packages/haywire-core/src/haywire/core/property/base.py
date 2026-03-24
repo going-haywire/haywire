@@ -25,7 +25,7 @@ class FieldDescriptor:
     """
 
     # Set by __set_name__
-    _attr_name: str = ''
+    _attr_name: str = ""
     """Short attribute name on the owning class, assigned by ``__set_name__``."""
 
     # Set by constructor (subclass __init__)
@@ -35,13 +35,13 @@ class FieldDescriptor:
     _type: type = object
     """Python type of the field — drives widget inference (bool→switch, int/float→number, etc.)."""
 
-    _label: str = ''
+    _label: str = ""
     """Human-readable label shown next to the widget in the properties panel."""
 
-    _description: str = ''
+    _description: str = ""
     """Tooltip text displayed on hover over the label in the properties panel."""
 
-    _category: str = 'general'
+    _category: str = "general"
     """Panel grouping key — fields with the same category are rendered under a shared section header."""
 
     _order: int = 0
@@ -75,13 +75,7 @@ class FieldDescriptor:
             # Class-level access -> return descriptor itself (typed key handle)
             return self
         # Subclasses override for instance-level access
-        raise NotImplementedError(
-            f"{type(self).__name__} must override __get__ for instance access"
-        )
+        raise NotImplementedError(f"{type(self).__name__} must override __get__ for instance access")
 
     def __repr__(self) -> str:
-        return (
-            f"{self.__class__.__name__}("
-            f"attr={self._attr_name!r}, "
-            f"default={self._default!r})"
-        )
+        return f"{self.__class__.__name__}(attr={self._attr_name!r}, default={self._default!r})"

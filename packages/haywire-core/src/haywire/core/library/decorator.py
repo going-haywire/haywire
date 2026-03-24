@@ -9,7 +9,8 @@ from .identity import LibraryIdentity
 #    Decorator
 # ============================================================================
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
@@ -64,25 +65,23 @@ def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         @library(label="dev.library", file_watcher=True, version="0.1.0")
         class Library(BaseLibrary): ...
     """
+
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseLibrary):
-            raise TypeError(
-                f"@library can only be applied to BaseLibrary subclasses, "
-                f"got {inner_cls}"
-            )
+            raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
 
         # Require label field
-        if 'label' not in kwargs:
+        if "label" not in kwargs:
             raise ValueError("@library decorator requires 'label' argument")
 
         # Set defaults if not provided
-        kwargs.setdefault('version', '1.0.0')
-        kwargs.setdefault('id', kwargs['label'])
+        kwargs.setdefault("version", "1.0.0")
+        kwargs.setdefault("id", kwargs["label"])
 
         # Auto-detect folder_path - use the directory where inner_cls is defined
         class_file = inspect.getfile(inner_cls)
-        kwargs['folder_path'] = str(Path(class_file).parent)
-        kwargs['module_name'] = inner_cls.__module__
+        kwargs["folder_path"] = str(Path(class_file).parent)
+        kwargs["module_name"] = inner_cls.__module__
 
         inner_cls.class_identity = LibraryIdentity(**kwargs)
         return inner_cls

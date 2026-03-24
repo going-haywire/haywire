@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from haywire.core.execution.vm import HaywireVM, logger
     from haywire.core.node import BaseNode
 
+
 @dataclass
 class ExecutionContext:
     """
@@ -17,17 +18,18 @@ class ExecutionContext:
     - Current trigger
     - Callback emission function
     """
+
     global_ctx: Dict[str, Any]
     """Global context from external system"""
     local_ctx: Dict[str, Any]
     """Local context (graph variables)"""
-    trigger: 'Trigger'
+    trigger: "Trigger"
     """Current trigger that activated this flow"""
     control_pin: Optional[str] = None
     """ID of control inlet that was triggered (for control nodes)"""
-    node: Optional['BaseNode'] = None
+    node: Optional["BaseNode"] = None
     """Current node being executed"""
-    vm: Optional['HaywireVM'] = None
+    vm: Optional["HaywireVM"] = None
     """Reference to VM for callback emission"""
     frame_number: Optional[int] = 0
     """Current frame number"""
@@ -50,10 +52,10 @@ class ExecutionContext:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for worker function compatibility"""
         return {
-            'global': self.global_ctx,
-            'local': self.local_ctx,
-            'trigger': self.trigger,
-            'control_pin': self.control_pin,
-            'node': self.node,
-            'emit_callback': self.emit_callback
+            "global": self.global_ctx,
+            "local": self.local_ctx,
+            "trigger": self.trigger,
+            "control_pin": self.control_pin,
+            "node": self.node,
+            "emit_callback": self.emit_callback,
         }

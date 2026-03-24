@@ -29,10 +29,11 @@ class SettingsClassIdentity(BaseIdentity):
     registry_id mirrors namespace (the dot-separated TOML key prefix) so that
     BaseRegistry lookups work consistently across all registry types.
     """
-    namespace: str = ''
+
+    namespace: str = ""
 
 
-def settings(namespace: str, label: str = '', description: str = ''):
+def settings(namespace: str, label: str = "", description: str = ""):
     """
     Decorator for library-global settings classes.
 
@@ -53,9 +54,11 @@ def settings(namespace: str, label: str = '', description: str = ''):
     Auto-discovered by GlobalSettingsRegistry when the library calls:
         settings_registry.add_folder(path, library_identity)
     """
+
     def decorator(inner_cls):
         # Lazy import to avoid circular dependency (schema imports descriptors)
         from haywire.core.settings.schema import LibrarySettings, GlobalSettings  # noqa: PLC0415
+
         if not issubclass(inner_cls, (LibrarySettings, GlobalSettings)):
             raise TypeError(
                 f"@settings can only be applied to LibrarySettings or GlobalSettings "
@@ -66,11 +69,11 @@ def settings(namespace: str, label: str = '', description: str = ''):
         library_id = library_identity.id if library_identity else None
 
         inner_cls.class_identity = SettingsClassIdentity(
-            registry_id  = namespace,
-            namespace    = namespace,
-            registry_key = reg_key(library_id, 'settings', namespace),
-            label        = label or namespace,
-            description  = description,
+            registry_id=namespace,
+            namespace=namespace,
+            registry_key=reg_key(library_id, "settings", namespace),
+            label=label or namespace,
+            description=description,
         )
         inner_cls._namespace = namespace
         inner_cls.class_library = library_identity
@@ -78,7 +81,7 @@ def settings(namespace: str, label: str = '', description: str = ''):
 
         # Set _field_key on all prop descriptors (namespace known at decoration time)
         for name, descriptor in inner_cls._prop_fields().items():
-            descriptor._field_key = f'{namespace}.{name}'
+            descriptor._field_key = f"{namespace}.{name}"
 
         return inner_cls
 

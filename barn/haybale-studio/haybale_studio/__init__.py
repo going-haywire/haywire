@@ -30,16 +30,16 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    label='Haywire Studio',
-    id='studio',
-    version='0.1.0',
-    description='Required library for haywire studio',
-    url='',
-    help_url='',
-    author='',
-    author_url='',
-    dependencies=['haybale_core'],
-    tags=['experimental', 'project-local'],
+    label="Haywire Studio",
+    id="studio",
+    version="0.1.0",
+    description="Required library for haywire studio",
+    url="",
+    help_url="",
+    author="",
+    author_url="",
+    dependencies=["haybale_core"],
+    tags=["experimental", "project-local"],
     file_watcher=True,
 )
 class Library(BaseLibrary):
@@ -50,37 +50,37 @@ class Library(BaseLibrary):
         base_path = Path(__file__).parent
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'settings'),
+            folder_path=str(base_path / "settings"),
             registry_cls=GlobalSettingsRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'themes'),
+            folder_path=str(base_path / "themes"),
             registry_cls=ThemeRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'types'),
+            folder_path=str(base_path / "types"),
             registry_cls=TypeRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'adapters'),
+            folder_path=str(base_path / "adapters"),
             registry_cls=AdapterRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'widgets'),
+            folder_path=str(base_path / "widgets"),
             registry_cls=WidgetRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'skins'),
+            folder_path=str(base_path / "skins"),
             registry_cls=SkinRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'nodes'),
+            folder_path=str(base_path / "nodes"),
             registry_cls=NodeRegistry,
         )
 
@@ -88,18 +88,19 @@ class Library(BaseLibrary):
         # scanning the panels folder so that scope metadata is available when
         # panel classes referencing those scope IDs are registered.
         from haybale_studio.editors.scopes import PROPERTIES_SCOPES
+
         panel_registry = self.get_registry(PanelRegistry)
         if panel_registry is not None:
             for descriptor in PROPERTIES_SCOPES:
-                panel_registry.register_scope('properties', descriptor)
+                panel_registry.register_scope("properties", descriptor)
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'panels'),
+            folder_path=str(base_path / "panels"),
             registry_cls=PanelRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'editors'),
+            folder_path=str(base_path / "editors"),
             registry_cls=EditorTypeRegistry,
         )
 

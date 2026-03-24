@@ -11,9 +11,9 @@ from .workspace_state import AreaState, TabState, MiddleAreaState, WorkspaceStat
 from .manager import WorkspaceManager
 
 __all__ = [
-    'AreaState',
-    'TabState',
-    'MiddleAreaState',
-    'WorkspaceState',
-    'WorkspaceManager',
+    "AreaState",
+    "TabState",
+    "MiddleAreaState",
+    "WorkspaceState",
+    "WorkspaceManager",
 ]

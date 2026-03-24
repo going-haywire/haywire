@@ -6,25 +6,25 @@ class MinimapCanvas(ui.element):
     """
     A canvas-based minimap for the ZoomPanContainer that shows an overview
     of the content and current viewport position.
-    
+
     This is a cleaned-up version of your original approach that works with
     NiceGUI elements and JavaScript injection.
     """
-    
+
     def __init__(
         self,
         zoom_container,
         width: int = 200,
         height: int = 150,
-        position: str = 'top-right',
-        background_color: str = '#f0f0f0',
-        content_color: str = '#4285f4',
-        viewport_color: str = '#ea4335',
+        position: str = "top-right",
+        background_color: str = "#f0f0f0",
+        content_color: str = "#4285f4",
+        viewport_color: str = "#ea4335",
         visible: bool = True,
-        **kwargs
+        **kwargs,
     ) -> None:
-        super().__init__('div', **kwargs)
-        
+        super().__init__("div", **kwargs)
+
         # Store references and configuration
         self.zoom_container = zoom_container
         self.minimap_width = width
@@ -34,74 +34,68 @@ class MinimapCanvas(ui.element):
         self.content_color = content_color
         self.viewport_color = viewport_color
         self.is_visible = visible
-        
+
         # Generate unique IDs
-        self.minimap_id = f'minimap-{uuid.uuid4().hex[:8]}'
-        self.canvas_id = f'canvas-{uuid.uuid4().hex[:8]}'
-        
+        self.minimap_id = f"minimap-{uuid.uuid4().hex[:8]}"
+        self.canvas_id = f"canvas-{uuid.uuid4().hex[:8]}"
+
         # Setup the minimap structure
         self._setup_minimap()
         self._inject_styles()
-        
+
         # Initialize after DOM is ready
         ui.timer(0.1, self._inject_script, once=True)
         ui.timer(0.5, self._scan_content, once=True)
-        
+
         # Hook into zoom container events
         ui.timer(0.6, self._hook_zoom_container_events, once=True)
-    
+
     def _setup_minimap(self) -> None:
         """Setup the minimap container structure."""
-        self.classes('minimap-container')
-        
+        self.classes("minimap-container")
+
         # Position styles
         position_styles = {
-            'top-right': 'top: 10px; right: 10px;',
-            'top-left': 'top: 10px; left: 10px;',
-            'bottom-right': 'bottom: 10px; right: 10px;',
-            'bottom-left': 'bottom: 10px; left: 10px;'
+            "top-right": "top: 10px; right: 10px;",
+            "top-left": "top: 10px; left: 10px;",
+            "bottom-right": "bottom: 10px; right: 10px;",
+            "bottom-left": "bottom: 10px; left: 10px;",
         }
-        
+
         style = (
-            f'position: absolute; '
-            f'width: {self.minimap_width}px; '
-            f'height: {self.minimap_height}px; '
-            f'z-index: 1001; '
-            f'border: 2px solid #ccc; '
-            f'border-radius: 6px; '
-            f'background: {self.background_color}; '
-            f'box-shadow: 0 2px 8px rgba(0,0,0,0.2); '
-            f'cursor: crosshair; '
-            f'{position_styles.get(self.position, position_styles["top-right"])} '
-            f'{"" if self.is_visible else "display: none;"}'
+            f"position: absolute; "
+            f"width: {self.minimap_width}px; "
+            f"height: {self.minimap_height}px; "
+            f"z-index: 1001; "
+            f"border: 2px solid #ccc; "
+            f"border-radius: 6px; "
+            f"background: {self.background_color}; "
+            f"box-shadow: 0 2px 8px rgba(0,0,0,0.2); "
+            f"cursor: crosshair; "
+            f"{position_styles.get(self.position, position_styles['top-right'])} "
+            f"{'' if self.is_visible else 'display: none;'}"
         )
-        
+
         self.style(style)
         self.props(f'id="{self.minimap_id}"')
-        
+
         # Create canvas and toggle button
         with self:
-            self.canvas = ui.element('canvas')
+            self.canvas = ui.element("canvas")
             self.canvas.props(
-                f'id="{self.canvas_id}" '
-                f'width="{self.minimap_width}" '
-                f'height="{self.minimap_height}"'
+                f'id="{self.canvas_id}" width="{self.minimap_width}" height="{self.minimap_height}"'
             )
-            self.canvas.style('display: block; width: 100%; height: 100%;')
-            
-            self.toggle_btn = ui.button(
-                '×',
-                on_click=self.toggle_visibility
-            ).props('round dense size=xs')
+            self.canvas.style("display: block; width: 100%; height: 100%;")
+
+            self.toggle_btn = ui.button("×", on_click=self.toggle_visibility).props("round dense size=xs")
             self.toggle_btn.style(
-                'position: absolute; top: -8px; right: -8px; '
-                'width: 16px; height: 16px; min-width: 16px;'
+                "position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; min-width: 16px;"
             )
-            self.toggle_btn.classes('bg-gray-600 text-white text-xs')
+            self.toggle_btn.classes("bg-gray-600 text-white text-xs")
 
     def _inject_styles(self) -> None:
         """Inject CSS styles for the minimap."""
-        ui.add_css('''
+        ui.add_css("""
             .minimap-container {
                 user-select: none;
                 -webkit-user-select: none;
@@ -116,11 +110,11 @@ class MinimapCanvas(ui.element):
             .minimap-container.dragging {
                 cursor: grabbing !important;
             }
-        ''')
-    
+        """)
+
     def _inject_script(self) -> None:
         """Inject JavaScript for minimap functionality."""
-        script = f'''
+        script = f"""
             (function() {{
                 const minimap = document.getElementById('{self.minimap_id}');
                 const canvas = document.getElementById('{self.canvas_id}');
@@ -319,13 +313,13 @@ class MinimapCanvas(ui.element):
                 // Initial draw
                 drawMinimap();
             }})();
-        '''
-        
+        """
+
         ui.run_javascript(script)
-    
+
     def _scan_content(self) -> None:
         """Scan content and update minimap bounds."""
-        ui.run_javascript(f'''
+        ui.run_javascript(f"""
             const container = document.getElementById(
                 '{self.zoom_container.container_id}'
             );
@@ -397,67 +391,67 @@ class MinimapCanvas(ui.element):
                     minimap._minimapControls.updateContentBounds(bounds);
                 }}
             }}
-        ''')
-        
+        """)
+
         # Schedule next scan
         ui.timer(5.0, self._scan_content, once=True)
-    
+
     def toggle_visibility(self) -> None:
         """Toggle minimap visibility."""
         self.is_visible = not self.is_visible
         if self.is_visible:
-            self.style(remove='display: none;')
-            self.toggle_btn.set_text('×')
+            self.style(remove="display: none;")
+            self.toggle_btn.set_text("×")
             ui.timer(0.1, self._scan_content, once=True)
         else:
-            self.style(add='display: none;')
-            self.toggle_btn.set_text('◐')
-    
+            self.style(add="display: none;")
+            self.toggle_btn.set_text("◐")
+
     def set_position(self, position: str) -> None:
         """Change minimap position."""
         self.position = position
         position_styles = {
-            'top-right': 'top: 10px; right: 10px; bottom: auto; left: auto;',
-            'top-left': 'top: 10px; left: 10px; bottom: auto; right: auto;',
-            'bottom-right': 'bottom: 10px; right: 10px; top: auto; left: auto;',
-            'bottom-left': 'bottom: 10px; left: 10px; top: auto; right: auto;'
+            "top-right": "top: 10px; right: 10px; bottom: auto; left: auto;",
+            "top-left": "top: 10px; left: 10px; bottom: auto; right: auto;",
+            "bottom-right": "bottom: 10px; right: 10px; top: auto; left: auto;",
+            "bottom-left": "bottom: 10px; left: 10px; top: auto; right: auto;",
         }
-        
-        ui.run_javascript(f'''
+
+        ui.run_javascript(f"""
             const minimap = document.getElementById('{self.minimap_id}');
             if (minimap) {{
                 minimap.style.cssText += 
                     '{position_styles.get(position, position_styles["top-right"])}';
             }}
-        ''')
-    
+        """)
+
     def refresh_content(self) -> None:
         """Force refresh of content scanning."""
         self._scan_content()
-    
+
     def _hook_zoom_container_events(self) -> None:
         """Hook into the zoom container's events to update minimap."""
         # Store original callbacks
-        original_zoom_callback = getattr(self.zoom_container, 'on_zoom_change', None)
-        original_pan_callback = getattr(self.zoom_container, 'on_pan_change', None)
-        
+        original_zoom_callback = getattr(self.zoom_container, "on_zoom_change", None)
+        original_pan_callback = getattr(self.zoom_container, "on_pan_change", None)
+
         def zoom_callback(zoom):
             self._update_viewport()
             if original_zoom_callback:
                 original_zoom_callback(zoom)
-        
+
         def pan_callback(x, y):
             self._update_viewport()
             if original_pan_callback:
                 original_pan_callback(x, y)
-        
+
         # Replace the container's callbacks
         self.zoom_container.on_zoom_change = zoom_callback
         self.zoom_container.on_pan_change = pan_callback
-    
+
     def _update_viewport(self) -> None:
         """Update the viewport indicator in the minimap."""
-        ui.run_javascript(f'''
+        ui.run_javascript(f"""
             const minimap = document.getElementById('{self.minimap_id}');
             const mainContainer = document.getElementById('{self.zoom_container.container_id}');
             
@@ -468,5 +462,4 @@ class MinimapCanvas(ui.element):
                 
                 minimap._minimapControls.updateViewport(currentZoom, currentPan.x, currentPan.y);
             }}
-        ''')
-        
+        """)

@@ -1,4 +1,3 @@
-
 from typing import TYPE_CHECKING
 
 from haywire.core.adapter.base import IAdapter
@@ -14,15 +13,11 @@ class Pipe:
     Wraps the sink port, adapter chain, lazy flag, and edge ID.
     Owns the pull operation (read outlet → transform → store in inlet).
     """
-    __slots__ = ('sink', 'chain', 'is_lazy', '_outlet_port', '_edge_id')
+
+    __slots__ = ("sink", "chain", "is_lazy", "_outlet_port", "_edge_id")
 
     def __init__(
-        self,
-        outlet_port: 'DataPort',
-        sink: 'DataPort',
-        chain: IAdapter,
-        is_lazy: bool,
-        edge_id: str
+        self, outlet_port: "DataPort", sink: "DataPort", chain: IAdapter, is_lazy: bool, edge_id: str
     ):
         self._outlet_port = outlet_port
         self.sink = sink
@@ -54,13 +49,9 @@ class Pipe:
         value = self._outlet_port.get_value()
         if value is not None:
             converted_value = self.chain.execute(value)
-            self.sink.set_value(
-                converted_value, edge_id=self._edge_id
-            )
+            self.sink.set_value(converted_value, edge_id=self._edge_id)
         else:
-            self.sink.set_value(
-                None, edge_id=self._edge_id
-            )
+            self.sink.set_value(None, edge_id=self._edge_id)
 
 
 class Pipes:
@@ -68,7 +59,8 @@ class Pipes:
 
     Handles both eager (push) and lazy (pull-on-demand) propagation.
     """
-    def __init__(self, outlet_port: 'DataPort'):
+
+    def __init__(self, outlet_port: "DataPort"):
         self._outlet_port = outlet_port
         self._pipes: dict[str, Pipe] = {}
 

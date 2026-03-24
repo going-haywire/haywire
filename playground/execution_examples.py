@@ -117,8 +117,6 @@ def example_simple_flow():
     """
     Example of a simple flow: BeginPlay → PrintMessage
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_test_a.nodes.print_node import PrintMessageNode
 
     # Create graph
     graph = BaseGraph(
@@ -139,7 +137,7 @@ def example_simple_flow():
     
     # Show statistics
     stats = interpreter.get_statistics()
-    print(f"\nAssembly Statistics:")
+    print("\nAssembly Statistics:")
     print(f"  Flows: {stats['assembly']['total_flows']}")
     for flow_info in stats['assembly']['flows']:
         print(f"    - {flow_info['flow_id']}: {flow_info['event_type']}")
@@ -291,7 +289,7 @@ def example_callback_string_based():
     
     # Show callback registrations
     stats = interpreter.get_statistics()
-    print(f"\nCallback Statistics:")
+    print("\nCallback Statistics:")
     print(f"  Total callback edges: {stats['assembly']['callback_edges']}")
     for cb_info in stats['callbacks']['callbacks']:
         print(f"  '{cb_info['event_name']}': {cb_info['listener_count']} listeners")
@@ -382,7 +380,7 @@ def example_callback_edge_based():
     
     print(f"Created callback edge: {callback_edge.edge_id}")
     print(f"  Event name will propagate: {callback_listener.node_id}")
-    print(f"  From: CustomCallback.listen_callback → EmitCallback.edge_callback")
+    print("  From: CustomCallback.listen_callback → EmitCallback.edge_callback")
     
     # Execute
     interpreter = Interpreter()
@@ -392,7 +390,7 @@ def example_callback_edge_based():
     
     # Show callback topology
     stats = interpreter.get_statistics()
-    print(f"\nCallback Topology:")
+    print("\nCallback Topology:")
     print(f"  Total callback edges: {stats['assembly']['callback_edges']}")
     
     topology = stats.get('callback_topology', {})
@@ -400,11 +398,11 @@ def example_callback_edge_based():
     print(f"  Listeners: {topology.get('listeners', 0)}")
     
     if topology.get('connections'):
-        print(f"\n  Edges (listener → emitter):")
+        print("\n  Edges (listener → emitter):")
         for source, targets in topology['connections'].items():
             print(f"    {source} → {targets}")
     
-    print(f"\nCallback Manager Statistics:")
+    print("\nCallback Manager Statistics:")
     for cb_info in stats['callbacks']['callbacks']:
         print(f"  '{cb_info['event_name']}': {cb_info['listener_count']} listeners")
     

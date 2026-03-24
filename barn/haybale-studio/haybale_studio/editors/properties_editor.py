@@ -32,16 +32,16 @@ if TYPE_CHECKING:
     from haywire.ui.context_events import ContextChangedEvent
     from nicegui.element import Element
 
-_SCOPE_KEY = 'properties_scope'
-_EXPANSION_KEY = 'properties_expansion'
+_SCOPE_KEY = "properties_scope"
+_EXPANSION_KEY = "properties_expansion"
 
 
 @editor(
-    registry_id='properties',
-    label='Properties',
-    icon='tune',
-    default_area='right',
-    description='Context-sensitive property panels for the active selection.',
+    registry_id="properties",
+    label="Properties",
+    icon="tune",
+    default_area="right",
+    description="Context-sensitive property panels for the active selection.",
 )
 class PropertiesEditor(BaseEditor):
     """
@@ -57,23 +57,21 @@ class PropertiesEditor(BaseEditor):
     """
 
     def __init__(self):
-        self._container: 'Element | None' = None
-        self._toolbar: 'Element | None' = None
-        self._content: 'Element | None' = None
+        self._container: "Element | None" = None
+        self._toolbar: "Element | None" = None
+        self._content: "Element | None" = None
         self._panel_registry: Optional[PanelRegistry] = None
 
     # ------------------------------------------------------------------
     # BaseEditor interface
     # ------------------------------------------------------------------
 
-    def render(self, container: 'Element', context: 'SessionContext') -> None:
+    def render(self, container: "Element", context: "SessionContext") -> None:
         self._container = container
         self._panel_registry = context.app.library_service.get_panel_registry()
         self._build_layout(context)
 
-    def on_context_changed(
-        self, event: 'ContextChangedEvent', context: 'SessionContext'
-    ) -> None:
+    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
         relevant = {
             ContextChangeType.SELECTION_CHANGED,
             ContextChangeType.ACTIVE_GRAPH_CHANGED,
@@ -86,16 +84,22 @@ class PropertiesEditor(BaseEditor):
     # Layout construction (called once on render)
     # ------------------------------------------------------------------
 
-    def _build_layout(self, context: 'SessionContext') -> None:
+    def _build_layout(self, context: "SessionContext") -> None:
         """Build the two-column layout: scope toolbar + content area."""
         with self._container:
-            with ui.row().classes('w-full h-full gap-0').style('overflow: hidden;'):
-                self._toolbar = ui.column().classes('gap-0').style(
-                    'width: 36px; min-width: 36px; overflow-y: auto;'
-                    'border-right: 1px solid var(--hw-border);'
+            with ui.row().classes("w-full h-full gap-0").style("overflow: hidden;"):
+                self._toolbar = (
+                    ui.column()
+                    .classes("gap-0")
+                    .style(
+                        "width: 36px; min-width: 36px; overflow-y: auto;"
+                        "border-right: 1px solid var(--hw-border);"
+                    )
                 )
-                self._content = ui.column().classes('flex-1 gap-0').style(
-                    'overflow-y: auto; min-width: 0; min-height: 0; height: 100%;'
+                self._content = (
+                    ui.column()
+                    .classes("flex-1 gap-0")
+                    .style("overflow-y: auto; min-width: 0; min-height: 0; height: 100%;")
                 )
         self._refresh(context)
 
@@ -103,7 +107,7 @@ class PropertiesEditor(BaseEditor):
     # Refresh (called on every relevant context change)
     # ------------------------------------------------------------------
 
-    def _refresh(self, context: 'SessionContext') -> None:
+    def _refresh(self, context: "SessionContext") -> None:
         """Recompute active scope and redraw both toolbar and content."""
         self._resolve_active_scope(context)
         self._rebuild_toolbar(context)
@@ -113,7 +117,7 @@ class PropertiesEditor(BaseEditor):
     # Scope resolution
     # ------------------------------------------------------------------
 
-    def _resolve_active_scope(self, context: 'SessionContext') -> None:
+    def _resolve_active_scope(self, context: "SessionContext") -> None:
         """
         Set a default scope on first render only.  After that the user's
         choice is always preserved regardless of selection changes.
@@ -123,12 +127,10 @@ class PropertiesEditor(BaseEditor):
             return  # user's choice — never override
 
         # First render: default to the first registered scope
-        all_scopes = self._panel_registry.get_scopes('properties') if self._panel_registry else []
+        all_scopes = self._panel_registry.get_scopes("properties") if self._panel_registry else []
         context.metadata[_SCOPE_KEY] = all_scopes[0].scope_id if all_scopes else None
 
-    def _set_active_scope(
-        self, scope_id: str, context: 'SessionContext'
-    ) -> None:
+    def _set_active_scope(self, scope_id: str, context: "SessionContext") -> None:
         """Called when the user clicks a toolbar button."""
         context.metadata[_SCOPE_KEY] = scope_id
         self._rebuild_toolbar(context)
@@ -138,15 +140,12 @@ class PropertiesEditor(BaseEditor):
     # Toolbar rendering
     # ------------------------------------------------------------------
 
-    def _rebuild_toolbar(self, context: 'SessionContext') -> None:
+    def _rebuild_toolbar(self, context: "SessionContext") -> None:
         if self._toolbar is None:
             return
         self._toolbar.clear()
 
-        all_scopes = (
-            self._panel_registry.get_scopes('properties')
-            if self._panel_registry else []
-        )
+        all_scopes = self._panel_registry.get_scopes("properties") if self._panel_registry else []
         active_scope_id = context.metadata.get(_SCOPE_KEY)
 
         with self._toolbar:
@@ -155,49 +154,46 @@ class PropertiesEditor(BaseEditor):
                 is_active = scope.scope_id == active_scope_id
 
                 btn_style = (
-                    'width: 36px; height: 36px; min-height: 36px; padding: 0;'
-                    'border-radius: 0; border: none; background: transparent;'
-                    'transition: background 0.15s;'
+                    "width: 36px; height: 36px; min-height: 36px; padding: 0;"
+                    "border-radius: 0; border: none; background: transparent;"
+                    "transition: background 0.15s;"
                 )
                 if is_active:
                     btn_style += (
-                        'background: var(--hw-accent, #7c6fff) !important;'
-                        'color: #ffffff !important;'
+                        "background: var(--hw-accent, #7c6fff) !important;color: #ffffff !important;"
                     )
                 if not available:
-                    btn_style += 'opacity: 0.3; pointer-events: none;'
+                    btn_style += "opacity: 0.3; pointer-events: none;"
 
                 scope_id_capture = scope.scope_id
 
-                btn = ui.button(icon=scope.icon).props('flat').style(btn_style)
+                btn = ui.button(icon=scope.icon).props("flat").style(btn_style)
                 btn.tooltip(scope.label)
                 if available:
                     btn.on(
-                        'click',
-                        lambda _, sid=scope_id_capture: self._set_active_scope(
-                            sid, context
-                        ),
+                        "click",
+                        lambda _, sid=scope_id_capture: self._set_active_scope(sid, context),
                     )
 
     # ------------------------------------------------------------------
     # Content rendering
     # ------------------------------------------------------------------
 
-    def _rebuild_content(self, context: 'SessionContext') -> None:
+    def _rebuild_content(self, context: "SessionContext") -> None:
         if self._content is None:
             return
         self._content.clear()
 
         active_scope_id = context.metadata.get(_SCOPE_KEY)
         if active_scope_id is None:
-            self._render_empty(self._content, 'select_all', 'Nothing to show')
+            self._render_empty(self._content, "select_all", "Nothing to show")
             return
 
         if self._panel_registry is None:
-            self._render_empty(self._content, 'info', 'No panel registry')
+            self._render_empty(self._content, "info", "No panel registry")
             return
 
-        panel_classes = self._panel_registry.get_panels('properties', active_scope_id)
+        panel_classes = self._panel_registry.get_panels("properties", active_scope_id)
 
         has_panels = False
         with self._content:
@@ -206,48 +202,42 @@ class PropertiesEditor(BaseEditor):
                     if not panel_cls.poll(context):
                         continue
                 except Exception as exc:
-                    logging.warning(
-                        f"PropertiesEditor: poll() error in {panel_cls.__name__}: {exc}"
-                    )
+                    logging.warning(f"PropertiesEditor: poll() error in {panel_cls.__name__}: {exc}")
                     continue
 
                 has_panels = True
-                default_open = getattr(panel_cls.class_identity, 'default_open', True)
-                icon = getattr(panel_cls.class_identity, 'icon', None)
-                panel_key = f'{active_scope_id}:{panel_cls.class_identity.registry_key}'
+                default_open = getattr(panel_cls.class_identity, "default_open", True)
+                icon = getattr(panel_cls.class_identity, "icon", None)
+                panel_key = f"{active_scope_id}:{panel_cls.class_identity.registry_key}"
                 exp_state: dict = context.metadata.setdefault(_EXPANSION_KEY, {})
                 is_open = exp_state.get(panel_key, default_open)
 
-                exp = ui.expansion(
-                    panel_cls.class_identity.label,
-                    icon=icon,
-                    value=is_open,
-                ).classes('w-full').style(
-                    'border-bottom: 1px solid var(--hw-border);'
+                exp = (
+                    ui.expansion(
+                        panel_cls.class_identity.label,
+                        icon=icon,
+                        value=is_open,
+                    )
+                    .classes("w-full")
+                    .style("border-bottom: 1px solid var(--hw-border);")
                 )
-                exp.on('update:modelValue', lambda e, k=panel_key: exp_state.update({k: e.args}))
+                exp.on("update:modelValue", lambda e, k=panel_key: exp_state.update({k: e.args}))
                 with exp:
-                    panel_container = ui.column().classes('w-full gap-1')
+                    panel_container = ui.column().classes("w-full gap-1")
                     layout = PanelLayout(panel_container)
                     try:
                         panel_instance = panel_cls()
                         panel_instance.draw(context, layout)
                     except Exception as exc:
-                        logging.error(
-                            f"PropertiesEditor: draw() error in {panel_cls.__name__}: {exc}"
-                        )
-                        ui.label(f"Error: {exc}").classes('text-red-400 text-xs')
+                        logging.error(f"PropertiesEditor: draw() error in {panel_cls.__name__}: {exc}")
+                        ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
 
             if not has_panels:
-                self._render_empty(
-                    self._content, 'info', 'No properties available'
-                )
+                self._render_empty(self._content, "info", "No properties available")
 
     @staticmethod
-    def _render_empty(container: 'Element', icon: str, message: str) -> None:
+    def _render_empty(container: "Element", icon: str, message: str) -> None:
         with container:
-            with ui.column().classes('w-full items-center justify-center p-4').style(
-                'padding-top: 60px;'
-            ):
-                ui.icon(icon).classes('hw-text-dim text-3xl')
-                ui.label(message).classes('text-xs hw-text-dim')
+            with ui.column().classes("w-full items-center justify-center p-4").style("padding-top: 60px;"):
+                ui.icon(icon).classes("hw-text-dim text-3xl")
+                ui.label(message).classes("text-xs hw-text-dim")

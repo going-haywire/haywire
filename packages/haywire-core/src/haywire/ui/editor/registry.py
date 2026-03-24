@@ -36,24 +36,22 @@ class EditorTypeRegistry(BaseRegistry):
                 inspect.isclass(cls)
                 and issubclass(cls, BaseEditor)
                 and cls is not BaseEditor
-                and hasattr(cls, 'class_identity')
+                and hasattr(cls, "class_identity")
             )
         except TypeError:
             return False
 
-    def _register_class(
-        self, cls: type, library_identity: Optional[LibraryIdentity] = None
-    ) -> 'str | None':
+    def _register_class(self, cls: type, library_identity: Optional[LibraryIdentity] = None) -> "str | None":
         """Register an editor class by its registry_key."""
         registry_key = cls.class_identity.registry_key
         logging.debug(f"EditorTypeRegistry: Registering '{registry_key}' ({cls.__name__})")
         return super()._register(registry_key, cls, library_identity)
 
-    def _unregister_class(self, registry_key: str) -> 'type | None':
+    def _unregister_class(self, registry_key: str) -> "type | None":
         """Unregister an editor class by its registry_key."""
         return super()._unregister(registry_key)
 
-    def get_by_key(self, registry_key: str) -> 'type | None':
+    def get_by_key(self, registry_key: str) -> "type | None":
         """Find an editor class by its full registry_key.
 
         Used by AppShell to resolve workspace editor_key strings to actual
@@ -77,7 +75,4 @@ class EditorTypeRegistry(BaseRegistry):
         Returns:
             Dict mapping registry_key -> editor class.
         """
-        return {
-            k: v for k, v in self._classes.items()
-            if v.class_identity.default_area == area
-        }
+        return {k: v for k, v in self._classes.items() if v.class_identity.default_area == area}

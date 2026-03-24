@@ -24,63 +24,63 @@ from haywire.ui.panel.scope import ScopeDescriptor
 
 PROPERTIES_SCOPES: list[ScopeDescriptor] = [
     ScopeDescriptor(
-        scope_id='app',
-        label='Application',
-        icon='settings',
+        scope_id="app",
+        label="Application",
+        icon="settings",
         order=10,
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
-        scope_id='execution',
-        label='Execution',
-        icon='play_circle',
+        scope_id="execution",
+        label="Execution",
+        icon="play_circle",
         order=20,
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
-        scope_id='canvas',
-        label='Canvas & Nodes',
-        icon='grid_on',
+        scope_id="canvas",
+        label="Canvas & Nodes",
+        icon="grid_on",
         order=30,
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
-        scope_id='debug',
-        label='Debug',
-        icon='bug_report',
+        scope_id="debug",
+        label="Debug",
+        icon="bug_report",
         order=40,
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
-        scope_id='graph',
-        label='Graph',
-        icon='account_tree',
+        scope_id="graph",
+        label="Graph",
+        icon="account_tree",
         order=50,
         poll=lambda ctx: ctx.active_graph is not None,
     ),
     ScopeDescriptor(
-        scope_id='node',
-        label='Node',
-        icon='widgets',
+        scope_id="node",
+        label="Node",
+        icon="widgets",
         order=60,
         poll=lambda ctx: ctx.active_node is not None,
     ),
     ScopeDescriptor(
-        scope_id='settings',
-        label='Settings',
-        icon='tune',
+        scope_id="settings",
+        label="Settings",
+        icon="tune",
         order=65,
         poll=lambda ctx: (
             ctx.active_node is not None
-            and hasattr(ctx.active_node, 'node')
+            and hasattr(ctx.active_node, "node")
             and ctx.active_node.node is not None
             and bool(ctx.active_node.node.list_setting_bags())
         ),
     ),
     ScopeDescriptor(
-        scope_id='edge',
-        label='Edge',
-        icon='cable',
+        scope_id="edge",
+        label="Edge",
+        icon="cable",
         order=70,
         poll=lambda ctx: ctx.active_edge is not None,
     ),

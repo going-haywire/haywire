@@ -12,123 +12,121 @@ if TYPE_CHECKING:
 # ROOT INTERFACE WITH SHARED IMPLEMENTATIONS
 # ============================================================================
 
+
 class IType(ABC):
     """
     Abstract base for Haywire type system.
-    
+
     ARCHITECTURE:
-    
+
     Type System (IType):
         - Describes data types (metadata, ports, adapters)
         - Can be instantiated for adapters and defaults
         - Instances are TEMPLATES, not runtime storage
-    
+
     Storage System (DataField):
         - Stores actual runtime data efficiently
         - Uses unwrapped values for primitives
         - Uses instances for complex types
-    
+
     TWO PATTERNS:
-    
+
     1. PRIMITIVES (FLOAT, INT, STRING)
        - Type: FLOAT class (descriptor)
        - Instance: FLOAT(value=42.0) (template for adapters/defaults)
        - Storage: 42.0 (unwrapped in PrimitiveField)
-    
+
     2. BASE (MeshData, Vector3)
        - Type: MeshData class (descriptor AND data container)
        - Instance: MeshData(...) (descriptor instance IS the data)
        - Storage: MeshData(...) instance (in BaseField)
-    
+
     The .value property provides uniform interface:
     - PrimitiveType.value → unwrapped primitive
     - BaseType.value → self (instance is the value)
-    
+
     HIERARCHICAL TYPE SYSTEM:
-    
+
     element_type_cls creates a hierarchical structure:
     - PrimitiveType: Points to Python primitive (float, str, int, bool)
     - BaseType: Points to itself (the class IS the element type)
     - CompoundType: Points to IType of elements (FLOAT, MeshData)
-    
+
     This enables drilling down through type layers:
         ArrayType[FLOAT].element_type_cls → FLOAT
         FLOAT.element_type_cls → float
-    
+
     **Abstract Requirements** (subclasses must implement):
     - value property: Returns the type's data in natural form
-    
+
     **Concrete Defaults** (subclasses inherit, can override):
     - as_inlet/as_outlet/as_config: Port creation methods
     - create_field: DataField creation
     - _validate_port_type: Port type validation hook (default: allow all)
     - _configure_port: Port configuration hook (default: no config)
-    
+
     **Class Attributes** (subclasses must set):
     - field_class: DataField class that handles storage
     - element_type_cls: What this type wraps/contains (set automatically)
-    
+
     This follows Python's ABC pattern where base classes provide both
     abstract requirements and concrete default implementations.
-    
+
     Attributes (set by @type decorator):
         class_identity: DataTypeIdentity with all type metadata
         class_library: LibraryIdentity of the library this type belongs to
     """
-    
+
     # STRUCTURAL ATTRIBUTES (type system mechanics)
-    field_class: type['DataField'] = None
+    field_class: type["DataField"] = None
     # DataField class responsible for storing this type's data.
     # Subclasses MUST set this to their corresponding DataField subclass.
     # This allows the type to create its own field instances with the correct configuration.
 
-    element_type_cls: type = None  
+    element_type_cls: type = None
     # What this type wraps/contains
-    
+
     # IDENTITY ATTRIBUTES (set by @type decorator)
-    class_identity: 'DataTypeIdentity'
-    class_library: 'LibraryIdentity'
-    
+    class_identity: "DataTypeIdentity"
+    class_library: "LibraryIdentity"
+
     @property
     @abstractmethod
     def value(self):
         """
         Returns the value of this type in its natural form.
-        
+
         For PrimitiveType: returns the unwrapped primitive (42.0, "hello")
         For BaseType: returns self (the instance IS the value)
         For CompoundType: returns the container (list, dict, etc.)
         """
         pass
-    
+
     # ========================================================================
     # FIELD CREATION - Type creates its own field
     # ========================================================================
-    
+
     @classmethod
-    def create_field(
-        cls,
-        default_override: Optional[Dict[str, Any]] = None
-    ) -> 'DataField':
+    def create_field(cls, default_override: Optional[Dict[str, Any]] = None) -> "DataField":
         """
         Create the DataField for this type.
-        
+
         Each type is responsible for creating its own field instance.
         This replaces the DataFieldFactory pattern - types know what they need!
-        
+
         Args:
             default_override: Override default kwargs from @type decorator
-        
+
         Returns:
             Configured DataField instance
-        
+
         Raises:
             ValueError: If field_class not declared
-        
+
         Examples:
             # Simple type
             field = FLOAT.create_field()
-            
+
             # Compound type
             field = ArrayType.create_field()
         """
@@ -137,35 +135,32 @@ class IType(ABC):
                 f"{cls.__name__} doesn't declare field_class. "
                 f"Add 'field_class = SomeField' to the type definition."
             )
-        
+
         # Get default kwargs
         default_kwargs = default_override or {}
-        if not default_kwargs and hasattr(cls, 'class_identity'):
-            default_kwargs = getattr(cls.class_identity, 'default', {})
-        
-        return cls.field_class(
-            type_cls=cls,
-            default_kwargs=default_kwargs
-        )
-                
+        if not default_kwargs and hasattr(cls, "class_identity"):
+            default_kwargs = getattr(cls.class_identity, "default", {})
+
+        return cls.field_class(type_cls=cls, default_kwargs=default_kwargs)
+
     # ========================================================================
     # HOOKS - Subclasses override to customize behavior
     # ========================================================================
-    
+
     @classmethod
     def _validate_port_type(cls, port_type: PortType) -> None:
         """
         Validate if this type supports the given port type.
-        
+
         Hook for subclasses to restrict which port types they support.
         Default implementation allows all port types.
-        
+
         Args:
             port_type: PortType
-        
+
         Raises:
             ValueError: If this type doesn't support the port type
-        
+
         Examples:
             # Override to restrict
             class PooledType(CompoundType):
@@ -175,19 +170,19 @@ class IType(ABC):
                         raise ValueError("PooledType only supports inlets")
         """
         pass  # Default: all port types allowed
-    
+
     @classmethod
-    def _configure_port(cls, port: 'DataPort', **context) -> None:
+    def _configure_port(cls, port: "DataPort", **context) -> None:
         """
         Configure port-specific attributes after creation.
-        
+
         Hook for subclasses to add custom port configuration.
         Default implementation does nothing.
-        
+
         Args:
             port: Port to configure
             **context: Additional context (element_type_cls, etc.)
-        
+
         Examples:
             # Override to configure
             class PooledType(CompoundType):
@@ -196,13 +191,13 @@ class IType(ABC):
                     port.allow_multiple_links = True
         """
         pass  # Default: no extra configuration
-    
+
     # ========================================================================
     # PORT CREATION - Returns PortSpec for node.add() to instantiate
     # ========================================================================
-    
+
     @classmethod
-    def as_inlet(cls, id: str, **kwargs) -> 'PortSpec':
+    def as_inlet(cls, id: str, **kwargs) -> "PortSpec":
         """
         Create an inlet specification from this type.
 
@@ -230,7 +225,7 @@ class IType(ABC):
             Identity:
                 label (str): Display name (auto-generated from id if omitted)
                 description (str): Human-readable description
- 
+
             Type configuration:
                 default (dict | primitive): Default value. Primitives auto-wrap
                     to {'value': ...} for PrimitiveType subclasses
@@ -275,19 +270,16 @@ class IType(ABC):
             self.add(FLOAT.as_inlet('param', on_change='on_param_changed'))
         """
         from haywire.core.types.utils import create_port_spec
-                
+
         # Validate port type
         cls._validate_port_type(PortType.INLET)
-        
-        return create_port_spec(cls, 
-            id=id, 
-            port_type=PortType.INLET, 
-            store_strategy=StoreStrategy.HAS_WIDGET, 
-            **kwargs)
-    
-    
+
+        return create_port_spec(
+            cls, id=id, port_type=PortType.INLET, store_strategy=StoreStrategy.HAS_WIDGET, **kwargs
+        )
+
     @classmethod
-    def as_outlet(cls, id: str, **kwargs) -> 'PortSpec':
+    def as_outlet(cls, id: str, **kwargs) -> "PortSpec":
         """
         Create an outlet specification from this type.
 
@@ -353,18 +345,16 @@ class IType(ABC):
             self.add(CTRL.as_outlet('loop_body', needs_loopback=True))
         """
         from haywire.core.types.utils import create_port_spec
-        
+
         # Validate port type
         cls._validate_port_type(PortType.OUTLET)
-        
-        return create_port_spec(cls, 
-            id=id, 
-            port_type=PortType.OUTLET, 
-            store_strategy=StoreStrategy.ALWAYS, 
-            **kwargs)
-    
+
+        return create_port_spec(
+            cls, id=id, port_type=PortType.OUTLET, store_strategy=StoreStrategy.ALWAYS, **kwargs
+        )
+
     @classmethod
-    def as_config(cls, id: str, **kwargs) -> 'PortSpec':
+    def as_config(cls, id: str, **kwargs) -> "PortSpec":
         """
         Create a config inlet specification (no visible pin) from this type.
 
@@ -376,7 +366,7 @@ class IType(ABC):
 
         Args:
             id: Config identifier
-                
+
             **kwargs: Override identity or port attributes. All values below
                 are inherited from the type's class_identity and can be
                 overridden per-port.
@@ -418,42 +408,41 @@ class IType(ABC):
         """
         from haywire.core.types.enums import FlowType
         from haywire.core.types.utils import create_port_spec
-                
+
         # Validate port type
         cls._validate_port_type(PortType.CONFIG)
 
-        kwargs['flow_type'] = FlowType.NONE
-        
-        return create_port_spec(cls, 
-            id=id, 
-            port_type=PortType.CONFIG, 
-            store_strategy=StoreStrategy.ALWAYS, 
-            **kwargs)
+        kwargs["flow_type"] = FlowType.NONE
 
+        return create_port_spec(
+            cls, id=id, port_type=PortType.CONFIG, store_strategy=StoreStrategy.ALWAYS, **kwargs
+        )
 
     # ========================================================================
     # UTILITY METHODS
     # ========================================================================
-        
+
     def is_value_type(self, compare: type) -> bool:
         """Check if the value is of a specific type"""
         return isinstance(self.value, compare)
-    
+
     @classmethod
     def create_default(cls):
         """
         Create a default instance.
-        
+
         Default implementation uses the 'default' dict from @type decorator
         as constructor kwargs. Override this method for complex default logic.
-        
+
         Returns:
             New instance with default values
         """
-        default_kwargs = getattr(cls.class_identity, 'default', None) if hasattr(cls, 'class_identity') else None
+        default_kwargs = (
+            getattr(cls.class_identity, "default", None) if hasattr(cls, "class_identity") else None
+        )
         if default_kwargs is None:
             default_kwargs = {}
-        
+
         try:
             return cls(**default_kwargs)
         except Exception as e:
@@ -462,4 +451,3 @@ class IType(ABC):
                 f"Consider overriding create_default() classmethod. "
                 f"Original error: {e}"
             ) from e
-

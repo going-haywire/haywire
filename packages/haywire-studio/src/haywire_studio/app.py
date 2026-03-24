@@ -82,7 +82,7 @@ class HaywireApp:
 
         # 3. Clean up graph manager
         try:
-            if hasattr(self, 'graph_manager'):
+            if hasattr(self, "graph_manager"):
                 self.graph_manager.cleanup()
         except Exception as e:
             print(f"  Error cleaning up graph manager: {e}")
@@ -104,7 +104,7 @@ class HaywireApp:
 
         # 7. Cleanup library system
         try:
-            if hasattr(self.library_service, 'cleanup'):
+            if hasattr(self.library_service, "cleanup"):
                 self.library_service.cleanup()
         except Exception as e:
             print(f"  Error cleaning up library system: {e}")
@@ -120,7 +120,7 @@ class HaywireApp:
         print(f"    Cleaning up session {client_id[:8]}...")
 
         # Cancel any lingering interpreter timer
-        interpreter_timer = session_data.get('interpreter_timer')
+        interpreter_timer = session_data.get("interpreter_timer")
         if interpreter_timer:
             try:
                 interpreter_timer.cancel()
@@ -128,8 +128,8 @@ class HaywireApp:
                 print(f"    Error canceling interpreter timer: {e}")
 
         # Unregister console log
-        console_log = session_data.get('console_log')
-        console_timer = session_data.get('console_timer')
+        console_log = session_data.get("console_log")
+        console_timer = session_data.get("console_timer")
         if console_log:
             try:
                 bridge = ConsoleBridge.get_instance()
@@ -143,10 +143,10 @@ class HaywireApp:
                 print(f"    Error canceling console timer: {e}")
 
         # Clean up Haywire Session (editors, context subscribers)
-        haywire_session = session_data.get('haywire_session')
+        haywire_session = session_data.get("haywire_session")
         if haywire_session:
-            haywire_session_id = session_data.get('haywire_session_id')
-            if haywire_session_id and hasattr(self, 'session_manager'):
+            haywire_session_id = session_data.get("haywire_session_id")
+            if haywire_session_id and hasattr(self, "session_manager"):
                 try:
                     self.session_manager.remove_session(haywire_session_id)
                 except Exception as e:
@@ -163,7 +163,7 @@ class HaywireApp:
         """Handle client disconnect."""
         if self._is_shutting_down:
             return
-        client_id = getattr(client, 'id', None)
+        client_id = getattr(client, "id", None)
         if client_id and client_id in self.sessions:
             print(f"Client disconnected: {client_id[:8]}")
             self._cleanup_session(client_id)
@@ -173,12 +173,12 @@ class HaywireApp:
         """Get or create per-client session bookkeeping data."""
         from nicegui import context
 
-        client_id = context.client.id if context.client else 'default'
+        client_id = context.client.id if context.client else "default"
         if client_id not in self.sessions:
             print(f"Creating new session for client: {client_id}")
             self.sessions[client_id] = {
-                'client': context.client,
-                'ui_containers': {},
+                "client": context.client,
+                "ui_containers": {},
             }
         return self.sessions[client_id], client_id
 
@@ -191,7 +191,7 @@ class HaywireApp:
         self.undo_config = DEVELOPMENT_CONFIG
 
         library_paths = []
-        workspace_libs = os.path.join(self.workspace_root, 'barn')
+        workspace_libs = os.path.join(self.workspace_root, "barn")
         if os.path.isdir(workspace_libs):
             library_paths.append(workspace_libs)
 
@@ -226,10 +226,12 @@ class HaywireApp:
 
         # Graph manager — starts empty; graphs are created/opened on demand
         from .graph_manager import GraphManager
+
         self.graph_manager = GraphManager()
 
         # Library manager
         from .library_manager import LibraryManager
+
         library_registry = self.library_service.get_library_registry()
         self.library_manager = LibraryManager(
             library_registry,
@@ -250,6 +252,7 @@ class HaywireApp:
         Subscribes the validation/broadcast handler on first open.
         Attaches the session to the entry and returns it.
         """
+
         def _factory(graph_id: str, name: str):
             g = BaseGraph(graph_id, name)
             e = Editor(g, self.node_factory, undo_config=self.undo_config)
@@ -259,15 +262,17 @@ class HaywireApp:
 
         # Subscribe only the first time this file is opened
         if not entry.sessions:
+
             def _handler(result, _path=path, _entry=entry):
                 self._on_graph_validation_for_interpreter(result)
                 if _result_mutates_data(result):
                     _entry.unsaved = True
-                    if hasattr(self, 'session_manager'):
+                    if hasattr(self, "session_manager"):
                         try:
                             self.session_manager.broadcast_data_mutation(graph_path=_path)
                         except Exception as exc:
                             print(f"Error broadcasting for {_path.name}: {exc}")
+
             entry.graph.subscribe_to_validation(_handler)
 
         self.graph_manager.session_attach(entry, session_id)
@@ -279,6 +284,7 @@ class HaywireApp:
 
         Produces a unique '__new_N__' entry in the GraphManager.
         """
+
         def _factory(graph_id: str, name: str):
             g = BaseGraph(graph_id, name)
             e = Editor(g, self.node_factory, undo_config=self.undo_config)
@@ -290,7 +296,7 @@ class HaywireApp:
             self._on_graph_validation_for_interpreter(result)
             if _result_mutates_data(result):
                 _entry.unsaved = True
-                if hasattr(self, 'session_manager'):
+                if hasattr(self, "session_manager"):
                     try:
                         self.session_manager.broadcast_data_mutation(graph_path=_entry.path)
                     except Exception as exc:
@@ -308,11 +314,7 @@ class HaywireApp:
         """Stop the interpreter when a graph change requires reassembly."""
         if not self.loop_manager or not self.loop_manager.is_running:
             return
-        if (
-            result.has_changes()
-            and result.graph is not None
-            and result.graph.requires_graph_reassembly()
-        ):
+        if result.has_changes() and result.graph is not None and result.graph.requires_graph_reassembly():
             self.stop_interpreter()
 
     def stop_interpreter(self):
@@ -335,10 +337,11 @@ class HaywireApp:
     def create_ui(self):
         """Register NiceGUI page routes."""
 
-        @ui.page('/libraries', title="Library Manager")
+        @ui.page("/libraries", title="Library Manager")
         def libraries_page():
             from .library_manager_ui import LibraryManagerPage
-            marketplace_path = Path(self.workspace_root) / '.haywire' / 'marketplace.toml'
+
+            marketplace_path = Path(self.workspace_root) / ".haywire" / "marketplace.toml"
             page = LibraryManagerPage(
                 self.library_manager,
                 marketplace_path=str(marketplace_path) if marketplace_path.exists() else None,
@@ -350,7 +353,7 @@ class HaywireApp:
             )
             page.create_page()
 
-        @ui.page('/', title="Haywire")
+        @ui.page("/", title="Haywire")
         def main_page():
             from haywire.ui.app_shell import AppShell
             from haywire.ui.editor.registry import EditorTypeRegistry
@@ -363,8 +366,8 @@ class HaywireApp:
                 project_path=Path(self.workspace_root),
             )
 
-            session_data['haywire_session'] = haywire_session
-            session_data['haywire_session_id'] = haywire_session.session_id
+            session_data["haywire_session"] = haywire_session
+            session_data["haywire_session_id"] = haywire_session.session_id
 
             # No graph is active at startup — context.active_graph and
             # context.active_graph_path both remain None.  The user opens or
@@ -404,9 +407,10 @@ class HaywireApp:
 # Entry points
 # ---------------------------------------------------------------------------
 
+
 def run_app():
     """Launch the Haywire application."""
-    logging.getLogger('haywire.ui.editor.graph_canvas_manager').setLevel(logging.DEBUG)
+    logging.getLogger("haywire.ui.editor.graph_canvas_manager").setLevel(logging.DEBUG)
     app_instance = HaywireApp()
     app.on_shutdown(app_instance.cleanup)
     app_instance.run()
@@ -417,39 +421,45 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        prog='haywire',
-        description='Haywire visual programming system',
+        prog="haywire",
+        description="Haywire visual programming system",
     )
-    subparsers = parser.add_subparsers(dest='command')
+    subparsers = parser.add_subparsers(dest="command")
 
-    init_parser = subparsers.add_parser('init', help='Create a new haywire project')
-    init_parser.add_argument('name', help='Project name')
+    init_parser = subparsers.add_parser("init", help="Create a new haywire project")
+    init_parser.add_argument("name", help="Project name")
     init_parser.add_argument(
-        '--no-sync', action='store_true',
-        help='Skip running uv sync after scaffolding',
+        "--no-sync",
+        action="store_true",
+        help="Skip running uv sync after scaffolding",
     )
     init_parser.add_argument(
-        '--dev', action='store_true',
-        help='Use editable local sources from this dev repo instead of PyPI',
+        "--dev",
+        action="store_true",
+        help="Use editable local sources from this dev repo instead of PyPI",
     )
 
     share_parser = subparsers.add_parser(
-        'share', help='Generate a marketplace.toml snippet for sharing a library'
+        "share", help="Generate a marketplace.toml snippet for sharing a library"
     )
     share_parser.add_argument(
-        'library_path', nargs='?', default=None,
-        help='Path to the library directory (e.g. libs/haybale-myproject). '
-             'Auto-detected if libs/ contains exactly one library.',
+        "library_path",
+        nargs="?",
+        default=None,
+        help="Path to the library directory (e.g. libs/haybale-myproject). "
+        "Auto-detected if libs/ contains exactly one library.",
     )
 
     args = parser.parse_args()
 
-    if args.command == 'init':
+    if args.command == "init":
         from .init import init_project, _get_dev_repo_root
+
         dev_repo = _get_dev_repo_root() if args.dev else None
         init_project(args.name, auto_sync=not args.no_sync, dev_repo=dev_repo)
-    elif args.command == 'share':
+    elif args.command == "share":
         from .share import share_library
+
         share_library(args.library_path)
     else:
         run_app()

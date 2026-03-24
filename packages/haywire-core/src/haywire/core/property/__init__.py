@@ -12,7 +12,7 @@ from .descriptor import prop
 from .bag import Bag
 
 __all__ = [
-    'FieldDescriptor',
-    'prop',
-    'Bag',
+    "FieldDescriptor",
+    "prop",
+    "Bag",
 ]

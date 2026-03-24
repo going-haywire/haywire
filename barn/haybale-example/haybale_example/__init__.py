@@ -16,22 +16,23 @@ from haywire.core.types.registry import TypeRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
+
 @library(
-    label='Example',
-    id='example',
-    version='0.1.0',
-    description='Example library for demonstrating multi-library support',
-    url='https://github.com/author/haywire_library',
-    help_url='https://docs.github.io/haywire_library',
-    author='Example Author',
-    author_url='https://author_url',
-    dependencies=['haybale_core', 'haybale_test_a'],
-    tags=['example', 'demo', 'tutorial'],
-    file_watcher=False
+    label="Example",
+    id="example",
+    version="0.1.0",
+    description="Example library for demonstrating multi-library support",
+    url="https://github.com/author/haywire_library",
+    help_url="https://docs.github.io/haywire_library",
+    author="Example Author",
+    author_url="https://author_url",
+    dependencies=["haybale_core", "haybale_test_a"],
+    tags=["example", "demo", "tutorial"],
+    file_watcher=False,
 )
 class Library(BaseLibrary):
     """Example library implementation"""
-       
+
     def register_components(self):
         """Register all test components with the global registries"""
 
@@ -39,39 +40,24 @@ class Library(BaseLibrary):
         base_path = Path(__file__).parent
 
         # Register types (both variants and custom types)
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'types'),
-            registry_cls=TypeRegistry
-        )
+        self.add_folder_to_registry(folder_path=str(base_path / "types"), registry_cls=TypeRegistry)
 
-        # Register adapters 
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'adapters'),
-            registry_cls=AdapterRegistry
-        )
-        
+        # Register adapters
+        self.add_folder_to_registry(folder_path=str(base_path / "adapters"), registry_cls=AdapterRegistry)
+
         # Register widgets
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'widgets'),
-            registry_cls=WidgetRegistry
-        )
-                
+        self.add_folder_to_registry(folder_path=str(base_path / "widgets"), registry_cls=WidgetRegistry)
+
         # Register skins (node skins)
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'skins'),
-            registry_cls=SkinRegistry
-        )
+        self.add_folder_to_registry(folder_path=str(base_path / "skins"), registry_cls=SkinRegistry)
 
         # Register nodes
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'nodes'),
-            registry_cls=NodeRegistry
-        )
-    
+        self.add_folder_to_registry(folder_path=str(base_path / "nodes"), registry_cls=NodeRegistry)
+
     def validate(self) -> bool:
         """Validate that the test library is properly structured"""
         return True
 
 
 # Export for entry point discovery
-__all__ = ['Library']
+__all__ = ["Library"]

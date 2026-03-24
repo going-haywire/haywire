@@ -15,25 +15,26 @@ Covers:
 
 import pytest
 from haywire.core.property import Bag, prop
-from haywire.core.settings import Settings, setting, Color
-from haywire.core.di.test_config import create_test_settings_registry, create_test_bag
+from haywire.core.settings import Settings, setting
+from haywire.core.di.test_config import create_test_bag
 
 
 # ---------------------------------------------------------------------------
 # Simple mode — no registry
 # ---------------------------------------------------------------------------
 
+
 class SimpleSettings(Bag):
-    strength: float = prop(0.5, min=0.0, max=1.0, label='Strength')
-    mode:     str   = prop('fast', choices=['fast', 'precise'], label='Mode')
-    verbose:  bool  = prop(False, label='Verbose')
+    strength: float = prop(0.5, min=0.0, max=1.0, label="Strength")
+    mode: str = prop("fast", choices=["fast", "precise"], label="Mode")
+    verbose: bool = prop(False, label="Verbose")
 
 
 class TestSimpleMode:
     def test_default_values(self):
         bag = SimpleSettings()
         assert bag.strength == 0.5
-        assert bag.mode == 'fast'
+        assert bag.mode == "fast"
         assert bag.verbose is False
 
     def test_set_and_read(self):
@@ -44,41 +45,42 @@ class TestSimpleMode:
     def test_reset_restores_default(self):
         bag = SimpleSettings()
         bag.strength = 0.9
-        bag.reset('strength')
+        bag.reset("strength")
         assert bag.strength == 0.5
 
     def test_reset_all(self):
         bag = SimpleSettings()
         bag.strength = 0.9
-        bag.mode = 'precise'
+        bag.mode = "precise"
         bag.reset_all()
         assert bag.strength == 0.5
-        assert bag.mode == 'fast'
+        assert bag.mode == "fast"
 
     def test_is_locally_set(self):
         bag = SimpleSettings()
-        assert not bag.is_locally_set('strength')
+        assert not bag.is_locally_set("strength")
         bag.strength = 0.9
-        assert bag.is_locally_set('strength')
+        assert bag.is_locally_set("strength")
 
     def test_subscribe_fires_on_change(self):
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda name, val, old: calls.append((name, val, old)))
         bag.strength = 0.8
-        assert calls == [('strength', 0.8, 0.5)]
+        assert calls == [("strength", 0.8, 0.5)]
 
     def test_subscribe_no_fire_if_same_value(self):
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda name, val, old: calls.append((name, val, old)))
-        bag.strength = 0.5   # same as default
+        bag.strength = 0.5  # same as default
         assert calls == []
 
 
 # ---------------------------------------------------------------------------
 # Serialization
 # ---------------------------------------------------------------------------
+
 
 class TestSerialization:
     def test_to_dict_excludes_defaults(self):
@@ -89,38 +91,38 @@ class TestSerialization:
         bag = SimpleSettings()
         bag.strength = 0.9
         d = bag.to_dict()
-        assert d == {'strength': 0.9}
+        assert d == {"strength": 0.9}
 
     def test_from_dict_silent(self):
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({'strength': 0.9})   # silent=True by default
+        bag.from_dict({"strength": 0.9})  # silent=True by default
         assert bag.strength == 0.9
-        assert calls == []   # no callbacks
+        assert calls == []  # no callbacks
 
     def test_from_dict_not_silent(self):
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({'strength': 0.9}, silent=False)
+        bag.from_dict({"strength": 0.9}, silent=False)
         assert bag.strength == 0.9
         assert len(calls) == 1
 
     def test_round_trip(self):
         bag = SimpleSettings()
         bag.strength = 0.8
-        bag.mode = 'precise'
+        bag.mode = "precise"
         data = bag.to_dict()
 
         bag2 = SimpleSettings()
         bag2.from_dict(data)
         assert bag2.strength == 0.8
-        assert bag2.mode == 'precise'
+        assert bag2.mode == "precise"
 
     def test_from_dict_unknown_keys_ignored(self):
         bag = SimpleSettings()
-        bag.from_dict({'unknown_key': 42, 'strength': 0.7})
+        bag.from_dict({"unknown_key": 42, "strength": 0.7})
         assert bag.strength == 0.7
 
 
@@ -128,14 +130,15 @@ class TestSerialization:
 # on_change parameter
 # ---------------------------------------------------------------------------
 
+
 class BagWithCallback(Bag):
-    strength: float = prop(0.5, on_change='_on_strength')
+    strength: float = prop(0.5, on_change="_on_strength")
 
     def __init__(self, registry=None):
         super().__init__(registry)
         self.callback_values = []
 
-    def _on_strength(self, value: float, field: str = '') -> None:
+    def _on_strength(self, value: float, field: str = "") -> None:
         self.callback_values.append((value, field))
 
 
@@ -143,7 +146,7 @@ class TestOnChange:
     def test_on_change_fires_on_set(self):
         bag = BagWithCallback()
         bag.strength = 0.8
-        assert bag.callback_values == [(0.8, 'strength')]
+        assert bag.callback_values == [(0.8, "strength")]
 
     def test_on_change_not_fired_same_value(self):
         bag = BagWithCallback()
@@ -152,18 +155,19 @@ class TestOnChange:
 
     def test_on_change_not_fired_from_dict_silent(self):
         bag = BagWithCallback()
-        bag.from_dict({'strength': 0.9})   # silent=True
+        bag.from_dict({"strength": 0.9})  # silent=True
         assert bag.callback_values == []
 
     def test_on_change_fired_from_dict_not_silent(self):
         bag = BagWithCallback()
-        bag.from_dict({'strength': 0.9}, silent=False)
-        assert bag.callback_values == [(0.9, 'strength')]
+        bag.from_dict({"strength": 0.9}, silent=False)
+        assert bag.callback_values == [(0.9, "strength")]
 
 
 # ---------------------------------------------------------------------------
 # read_only (watch behaviour)
 # ---------------------------------------------------------------------------
+
 
 class ReadOnlyBag(Bag):
     editable: float = prop(1.0)
@@ -179,31 +183,34 @@ class TestReadOnly:
     def test_read_only_not_serialized(self):
         bag = ReadOnlyBag()
         d = bag.to_dict()
-        assert 'read_only_field' not in d
+        assert "read_only_field" not in d
 
     def test_read_only_not_restored_from_dict(self):
         bag = ReadOnlyBag()
-        bag.from_dict({'read_only_field': True})
-        assert bag.read_only_field is False   # unchanged
+        bag.from_dict({"read_only_field": True})
+        assert bag.read_only_field is False  # unchanged
 
 
 # ---------------------------------------------------------------------------
 # Extended mode — resolution chain with registry
 # ---------------------------------------------------------------------------
 
+
 class TestExtendedMode:
     def test_local_override_beats_default(self):
         registry, bag = create_test_bag()
-        bag.bg_color = '#ff0000'
-        assert bag.bg_color == '#ff0000'
+        bag.bg_color = "#ff0000"
+        assert bag.bg_color == "#ff0000"
 
     def test_reset_falls_back_to_default(self):
-        registry, bag = create_test_bag(predefined_local={'bg_color': '#ff0000'})
-        bag.reset('bg_color')
-        assert bag.bg_color == '#ffffff'
+        registry, bag = create_test_bag(predefined_local={"bg_color": "#ff0000"})
+        bag.reset("bg_color")
+        assert bag.bg_color == "#ffffff"
 
-    def test_global_set_beats_default(self, ):
-        registry, bag = create_test_bag(predefined_global={'bg_color': '#aaaaaa'})
+    def test_global_set_beats_default(
+        self,
+    ):
+        registry, bag = create_test_bag(predefined_global={"bg_color": "#aaaaaa"})
         # bg_color has no _field_key set (create_test_bag default bag has no
         # extended-mode keys), so falls back to default — just verify no crash
         assert bag.bg_color is not None
@@ -212,14 +219,15 @@ class TestExtendedMode:
         registry, bag = create_test_bag()
         bag.font_size = 18
         d = bag.to_dict()
-        assert 'font_size' in d
-        assert d['font_size'] == 18
-        assert 'bg_color' not in d   # not locally set
+        assert "font_size" in d
+        assert d["font_size"] == 18
+        assert "bg_color" not in d  # not locally set
 
 
 # ---------------------------------------------------------------------------
 # @node decorator + direct binding on node instances
 # ---------------------------------------------------------------------------
+
 
 class TestNodeDirectBinding:
     @staticmethod
@@ -228,6 +236,7 @@ class TestNodeDirectBinding:
         from haywire.core.di.test_config import create_test_injector
         from haywire.core.types.registry import TypeRegistry
         from haywire.core.settings import GlobalSettingsRegistry
+
         inj = create_test_injector()
         inj.get(TypeRegistry)
         inj.get(GlobalSettingsRegistry)
@@ -235,44 +244,47 @@ class TestNodeDirectBinding:
 
     def test_bag_bound_as_direct_attribute(self):
         from haywire.core.node import BaseNode, node
+
         self._init_ambient()
 
-        @node(label='Test Binding Node')
+        @node(label="Test Binding Node")
         class _TestBindingNode(BaseNode):
             class filter(Settings):
-                strength: float = setting(0.5, min=0.0, max=1.0, label='Strength')
+                strength: float = setting(0.5, min=0.0, max=1.0, label="Strength")
 
-        wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
-        n = _TestBindingNode('n1', wrapper)
+        wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
+        n = _TestBindingNode("n1", wrapper)
 
-        assert hasattr(n, 'filter')
+        assert hasattr(n, "filter")
         assert isinstance(n.filter, Bag)
 
     def test_direct_read(self):
         from haywire.core.node import BaseNode, node
+
         self._init_ambient()
 
-        @node(label='Test Read Node')
+        @node(label="Test Read Node")
         class _TestReadNode(BaseNode):
             class params(Settings):
                 threshold: float = setting(0.7)
 
-        wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
-        n = _TestReadNode('n1', wrapper)
+        wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
+        n = _TestReadNode("n1", wrapper)
 
         assert n.params.threshold == 0.7
 
     def test_direct_write(self):
         from haywire.core.node import BaseNode, node
+
         self._init_ambient()
 
-        @node(label='Test Write Node')
+        @node(label="Test Write Node")
         class _TestWriteNode(BaseNode):
             class params(Settings):
                 threshold: float = setting(0.7)
 
-        wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
-        n = _TestWriteNode('n1', wrapper)
+        wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
+        n = _TestWriteNode("n1", wrapper)
 
         n.params.threshold = 0.9
         assert n.params.threshold == 0.9
@@ -281,35 +293,38 @@ class TestNodeDirectBinding:
         from haywire.core.node import BaseNode, node
 
         with pytest.raises(ValueError, match="conflicts with"):
-            @node(label='Conflict Node')
+
+            @node(label="Conflict Node")
             class _ConflictNode(BaseNode):
-                class init(Settings):   # 'init' is a BaseNode method
+                class init(Settings):  # 'init' is a BaseNode method
                     x: float = setting(1.0)
 
     def test_serialization_round_trip_on_node(self):
         from haywire.core.node import BaseNode, node
+
         self._init_ambient()
 
-        @node(label='Test Serial Node')
+        @node(label="Test Serial Node")
         class _TestSerialNode(BaseNode):
             class filter(Settings):
                 strength: float = setting(0.5)
 
-        wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
-        n = _TestSerialNode('n1', wrapper)
+        wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
+        n = _TestSerialNode("n1", wrapper)
         n.filter.strength = 0.9
 
         data = n._to_dict()
-        assert data['settings']['filter']['strength'] == 0.9
+        assert data["settings"]["filter"]["strength"] == 0.9
 
-        n2 = _TestSerialNode('n2', wrapper)
-        n2._initialize_from_dict({'settings': data['settings']})
+        n2 = _TestSerialNode("n2", wrapper)
+        n2._initialize_from_dict({"settings": data["settings"]})
         assert n2.filter.strength == 0.9
 
 
 # ---------------------------------------------------------------------------
 # New params: type_, stored, validator
 # ---------------------------------------------------------------------------
+
 
 class TypedBag(Bag):
     explicit_int: int = prop(0, type_=int)
@@ -328,20 +343,20 @@ class ValidatedBag(Bag):
 
 class TestTypeProp:
     def test_explicit_type_stored_on_descriptor(self):
-        descriptor = TypedBag.__dict__['explicit_int']
+        descriptor = TypedBag.__dict__["explicit_int"]
         assert descriptor._type is int
 
     def test_explicit_type_overrides_default_inference(self):
         # default is 0 (int), but type_ overrides — same result here; key is _type is int
-        descriptor = TypedBag.__dict__['explicit_int']
+        descriptor = TypedBag.__dict__["explicit_int"]
         assert descriptor._type is int
 
     def test_type_inferred_from_default_when_no_type_arg(self):
-        descriptor = TypedBag.__dict__['inferred_float']
+        descriptor = TypedBag.__dict__["inferred_float"]
         assert descriptor._type is float
 
     def test_type_explicit_when_no_default(self):
-        descriptor = TypedBag.__dict__['no_default_str']
+        descriptor = TypedBag.__dict__["no_default_str"]
         assert descriptor._type is str
 
 
@@ -350,13 +365,13 @@ class TestStoredProp:
         bag = StoredBag()
         bag.stored_field = 0.9
         d = bag.to_dict()
-        assert 'stored_field' in d
+        assert "stored_field" in d
 
     def test_unstored_field_excluded_from_to_dict(self):
         bag = StoredBag()
         bag.unstored_field = 0.9
         d = bag.to_dict()
-        assert 'unstored_field' not in d
+        assert "unstored_field" not in d
 
     def test_unstored_field_still_readable_and_writable(self):
         bag = StoredBag()
@@ -364,35 +379,35 @@ class TestStoredProp:
         assert bag.unstored_field == 0.75
 
     def test_default_stored_is_true(self):
-        descriptor = StoredBag.__dict__['stored_field']
+        descriptor = StoredBag.__dict__["stored_field"]
         assert descriptor._stored is True
 
     def test_explicit_stored_false(self):
-        descriptor = StoredBag.__dict__['unstored_field']
+        descriptor = StoredBag.__dict__["unstored_field"]
         assert descriptor._stored is False
 
 
 class TestValidatorProp:
     def test_validate_returns_true_for_valid_value(self):
-        descriptor = ValidatedBag.__dict__['positive']
+        descriptor = ValidatedBag.__dict__["positive"]
         assert descriptor.validate(1.0) is True
         assert descriptor.validate(0.001) is True
 
     def test_validate_returns_false_for_invalid_value(self):
-        descriptor = ValidatedBag.__dict__['positive']
+        descriptor = ValidatedBag.__dict__["positive"]
         assert descriptor.validate(0) is False
         assert descriptor.validate(-1.0) is False
 
     def test_validate_returns_true_when_no_validator(self):
-        descriptor = SimpleSettings.__dict__['strength']
-        assert descriptor.validate('anything') is True
+        descriptor = SimpleSettings.__dict__["strength"]
+        assert descriptor.validate("anything") is True
 
     def test_no_validator_stored_as_none(self):
-        descriptor = SimpleSettings.__dict__['strength']
+        descriptor = SimpleSettings.__dict__["strength"]
         assert descriptor._validator is None
 
     def test_validator_stored_on_descriptor(self):
-        descriptor = ValidatedBag.__dict__['positive']
+        descriptor = ValidatedBag.__dict__["positive"]
         assert descriptor._validator is not None
 
     def test_set_silently_rejects_invalid_value(self):
@@ -421,6 +436,7 @@ class TestValidatorProp:
 
     def test_invalid_default_raises_at_definition_time(self):
         with pytest.raises(ValueError, match="fails validation"):
+
             class BadBag(Bag):
                 bad: int = prop(3, validator=lambda v: v % 2 == 0)
 

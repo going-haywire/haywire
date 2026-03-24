@@ -4,12 +4,13 @@ Named color constants and unified theme keys for Haywire.
 
 from typing import Final
 
+
 class ICONS:
     """
     Hardcoded icon name constants with IDE preview support.
     see https://fonts.google.com/icons?icon.set=Material%20Icons
     """
-    
+
     # Basic icons
     MY_LOCATION: Final[str] = "my_location"
     LABEL_IMPORTANT: Final[str] = "label_important"
@@ -70,20 +71,20 @@ class ICONS:
     def get(cls, name: str, default: str = "circle") -> str:
         """
         Get icons by name with fallback.
-        
+
         Args:
             name: Icon name (case-insensitive)
             default: Fallback icon if name not found
-            
+
         Returns:
             Icon value as string
         """
         # Convert name to uppercase
         normalized_name = name.upper()
-        
+
         # Check if attribute exists
         if hasattr(cls, normalized_name):
             return getattr(cls, normalized_name)
-        
+
         # Return default
         return default

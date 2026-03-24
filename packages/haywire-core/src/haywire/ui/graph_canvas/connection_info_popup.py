@@ -23,157 +23,107 @@ from haywire.ui.errors.error_info import error_render_detail
 
 class EdgeInfoPopup:
     """Dedicated popup for displaying detailed connection/edge information."""
-    
+
     def __init__(self):
         self._info_popup: Optional[Popup] = None
-    
-    def show(
-        self,
-        x: float,
-        y: float,
-        edge_id: str,
-        edge: Edge,
-        state: EdgeWrapperState
-    ):
+
+    def show(self, x: float, y: float, edge_id: str, edge: Edge, state: EdgeWrapperState):
         """Show detailed connection information in a dedicated popup."""
         # Close any existing popup first
         self.close()
-        
+
         # Create a larger popup for detailed information
         popup = Popup.create_context_menu(
-            "Connection Details",
-            x + 10,
-            y + 10,
-            width='400px',
-            clamp_to_viewport=False
+            "Connection Details", x + 10, y + 10, width="400px", clamp_to_viewport=False
         )
-        
+
         with popup:
-            with ui.column().classes('w-full gap-2 p-2'):
+            with ui.column().classes("w-full gap-2 p-2"):
                 # Header with connection status
-                with ui.row().classes('w-full'):
- 
-                    ui.label(f"{edge.edge_type}").classes(
-                        'text-xs text-gray-700 ml-2 mt-2'
-                    )
+                with ui.row().classes("w-full"):
+                    ui.label(f"{edge.edge_type}").classes("text-xs text-gray-700 ml-2 mt-2")
                     is_valid = state.is_valid()
-                    status_icon = '✓' if is_valid else '✗'
-                    status_color = 'text-green-600' if is_valid else 'text-red-600'
-                    status_text = 'Valid' if is_valid else 'Invalid'
-                    ui.label(f"{status_icon} {status_text}").classes(
-                        f'text-sm font-bold {status_color}'
-                    )
-                
-                ui.separator().classes('my-2')
-                                
+                    status_icon = "✓" if is_valid else "✗"
+                    status_color = "text-green-600" if is_valid else "text-red-600"
+                    status_text = "Valid" if is_valid else "Invalid"
+                    ui.label(f"{status_icon} {status_text}").classes(f"text-sm font-bold {status_color}")
+
+                ui.separator().classes("my-2")
+
                 # Error Section (if present, expandable, default open)
                 error = state.get_error()
                 if error and isinstance(error, HaywireException):
-                    with ui.expansion('Error Details', value=True).classes('w-full'):
-                        with ui.card().classes(
-                            'w-full p-3 bg-red-50 border border-red-200'
-                        ):
-                            ui.label(f"Category: {error.category}").classes(
-                                'text-xs text-red-600 ml-2'
-                            )
+                    with ui.expansion("Error Details", value=True).classes("w-full"):
+                        with ui.card().classes("w-full p-3 bg-red-50 border border-red-200"):
+                            ui.label(f"Category: {error.category}").classes("text-xs text-red-600 ml-2")
                             # Render the error detail with button to show full details
                             error_render_detail(error)
-                
+
                 # Warning Section (if present, expandable, default open)
                 if state.has_warning():
-                    with ui.expansion('Warning', value=True).classes('w-full'):
-                        with ui.card().classes(
-                            'w-full p-3 bg-orange-50 border border-orange-200'
-                        ):
+                    with ui.expansion("Warning", value=True).classes("w-full"):
+                        with ui.card().classes("w-full p-3 bg-orange-50 border border-orange-200"):
                             with ui.column():
                                 for warning in state.warnings:
-                                    ui.label(f"⚠ {warning}").classes(
-                                        'text-xs text-orange-600 ml-2'
-                                    )
-                
+                                    ui.label(f"⚠ {warning}").classes("text-xs text-orange-600 ml-2")
+
                 # Adapter Chain Section (if available, expandable, default closed)
                 if edge.chain_adapter_keys:
-                    with ui.expansion('Adapter Chain', value=False).classes('w-full'):
-                        with ui.card().classes(
-                            'w-full p-3 bg-blue-50 border border-blue-200'
-                        ):
+                    with ui.expansion("Adapter Chain", value=False).classes("w-full"):
+                        with ui.card().classes("w-full p-3 bg-blue-50 border border-blue-200"):
                             # Display each adapter in the chain
                             for i, adapter_key in enumerate(edge.chain_adapter_keys, 1):
-                                ui.label(f"{i}. {adapter_key}").classes(
-                                    'text-xs text-blue-600 ml-2'
-                                )
-                
+                                ui.label(f"{i}. {adapter_key}").classes("text-xs text-blue-600 ml-2")
+
                 if state.execution_count > 0:
                     # Execution Statistics Section (expandable, default closed)
-                    with ui.expansion('Execution Statistics', value=False).classes('w-full'):
-                        with ui.card().classes('w-full p-3 bg-gray-50'):
+                    with ui.expansion("Execution Statistics", value=False).classes("w-full"):
+                        with ui.card().classes("w-full p-3 bg-gray-50"):
                             exec_count = state.execution_count
-                            ui.label(f"Execution Count: {exec_count}").classes(
-                                'text-xs text-gray-700 ml-2'
-                            )
-                            
+                            ui.label(f"Execution Count: {exec_count}").classes("text-xs text-gray-700 ml-2")
+
                             avg_time = state.average_execution_time_us
                             if avg_time > 0:
                                 ui.label(f"Average Time: {avg_time:.1f} μs").classes(
-                                    'text-xs text-gray-700 ml-2'
+                                    "text-xs text-gray-700 ml-2"
                                 )
                             else:
-                                ui.label("Average Time: Not measured").classes(
-                                    'text-xs text-gray-500 ml-2'
-                                )
+                                ui.label("Average Time: Not measured").classes("text-xs text-gray-500 ml-2")
 
                             ui.label(f"Tested value: {state.example_test_value}").classes(
-                                'text-xs text-gray-700 ml-2'
+                                "text-xs text-gray-700 ml-2"
                             )
                             ui.label(f"Tested result: {state.example_test_result}").classes(
-                                'text-xs text-gray-700 ml-2'
+                                "text-xs text-gray-700 ml-2"
                             )
 
                 # Connection Path Section (Expandable, default open)
-                with ui.expansion('Connection Path', value=False).classes('w-full'):
-                    with ui.card().classes('w-full p-3 bg-gray-50'):
-                        ui.label(f"From: {edge.source_node_id}").classes(
-                            'text-xs text-gray-700 ml-2'
-                        )
-                        ui.label(f"Port: {edge.outlet_port_id}").classes(
-                            'text-xs text-gray-500 ml-4'
-                        )
-                        ui.label(f"To: {edge.sink_node_id}").classes(
-                            'text-xs text-gray-700 ml-2 mt-1'
-                        )
-                        ui.label(f"Port: {edge.inlet_port_id}").classes(
-                            'text-xs text-gray-500 ml-4'
-                        )
-                                        
+                with ui.expansion("Connection Path", value=False).classes("w-full"):
+                    with ui.card().classes("w-full p-3 bg-gray-50"):
+                        ui.label(f"From: {edge.source_node_id}").classes("text-xs text-gray-700 ml-2")
+                        ui.label(f"Port: {edge.outlet_port_id}").classes("text-xs text-gray-500 ml-4")
+                        ui.label(f"To: {edge.sink_node_id}").classes("text-xs text-gray-700 ml-2 mt-1")
+                        ui.label(f"Port: {edge.inlet_port_id}").classes("text-xs text-gray-500 ml-4")
+
                 # Close button
-                ui.separator().classes('my-2')
-                btn_close = ui.button(
-                    'Close',
-                    on_click=lambda: self.close()
-                )
-                btn_close.props('flat')
-                btn_close.classes(
-                    'w-full bg-gray-100 text-gray-700 '
-                    'hover:bg-gray-200 text-sm py-2'
-                )
-        
+                ui.separator().classes("my-2")
+                btn_close = ui.button("Close", on_click=lambda: self.close())
+                btn_close.props("flat")
+                btn_close.classes("w-full bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm py-2")
+
         popup.open()
         self._info_popup = popup
-    
+
     def close(self):
         """Close the connection info popup."""
         if self._info_popup:
             self._info_popup.close()
             self._info_popup.delete()
             self._info_popup = None
-    
+
     def _test_adapter_chain(self, edge: Edge):
         """Handle test execution of adapter chain."""
         print(f"[ConnectionInfoPopup] Testing adapter chain for edge {edge.edge_id}")
         print(f"  Chain: {edge.chain_adapter_keys}")
         # TODO: Implement adapter chain test execution
-        ui.notify(
-            f"Adapter chain test: {edge.chain_adapter_keys}",
-            type='info',
-            position='top'
-        )
+        ui.notify(f"Adapter chain test: {edge.chain_adapter_keys}", type="info", position="top")

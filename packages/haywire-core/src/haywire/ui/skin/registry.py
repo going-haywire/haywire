@@ -9,6 +9,7 @@ from haywire.core.registry.base import BaseRegistry
 
 from .interface import IBaseSkin
 
+
 class SkinRegistry(BaseRegistry):
     """Registry for NodeSkin classes with fallback support"""
 
@@ -23,17 +24,17 @@ class SkinRegistry(BaseRegistry):
 
     def _class_filter(self, cls):
         try:
-            return (inspect.isclass(cls) and
-                    issubclass(cls, IBaseSkin) and
-                    cls != IBaseSkin and
-                    hasattr(cls, 'class_identity'))
+            return (
+                inspect.isclass(cls)
+                and issubclass(cls, IBaseSkin)
+                and cls != IBaseSkin
+                and hasattr(cls, "class_identity")
+            )
         except TypeError:
             return False
 
     def _register_class(
-        self,
-        skin_cls: type[IBaseSkin],
-        library_identity: Optional[LibraryIdentity] = None
+        self, skin_cls: type[IBaseSkin], library_identity: Optional[LibraryIdentity] = None
     ) -> str | None:
         """
         Register a skin class.
@@ -49,14 +50,10 @@ class SkinRegistry(BaseRegistry):
         # Use registry_key that was set by the decorator
         registry_key = skin_cls.class_identity.registry_key
 
-
         # Check if this is an error node and register it automatically
         if skin_cls.class_identity._is_error:
             if self._error_skin is not None:
-                if (
-                    skin_cls.class_identity._error_priority >
-                    self._error_skin.class_identity._error_priority
-                ):
+                if skin_cls.class_identity._error_priority > self._error_skin.class_identity._error_priority:
                     logging.warning(
                         f"Overriding already registered error skin: "
                         f"'{self._error_skin.class_identity.registry_key}'"
@@ -83,7 +80,6 @@ class SkinRegistry(BaseRegistry):
                     )
                 self._error_skin_name = registry_key
                 self._error_priority = new_error_priority
-
 
         # Check if this is a default node and register it as such
         if skin_cls.class_identity._is_default:
@@ -133,8 +129,7 @@ class SkinRegistry(BaseRegistry):
     def _find_next_error_skin(self) -> None:
         """Find and set the error skin with the highest priority from remaining skins"""
         for key, skin_cls in self._classes.items():
-            if (hasattr(skin_cls, 'class_identity') and
-                skin_cls.class_identity._is_error):
+            if hasattr(skin_cls, "class_identity") and skin_cls.class_identity._is_error:
                 priority = skin_cls.class_identity._error_priority
                 if priority > self._error_priority:
                     self._error_skin = skin_cls
@@ -143,8 +138,7 @@ class SkinRegistry(BaseRegistry):
 
         if self._error_skin_name:
             logging.info(
-                f"Fallback to error skin '{self._error_skin_name}' "
-                f"with priority {self._error_priority}"
+                f"Fallback to error skin '{self._error_skin_name}' with priority {self._error_priority}"
             )
         else:
             logging.warning("No error skin left in registry")
@@ -152,8 +146,7 @@ class SkinRegistry(BaseRegistry):
     def _find_next_default_skin(self) -> None:
         """Find and set the default skin with the highest priority from remaining skins"""
         for key, skin_cls in self._classes.items():
-            if (hasattr(skin_cls, 'class_identity') and
-                skin_cls.class_identity._is_default):
+            if hasattr(skin_cls, "class_identity") and skin_cls.class_identity._is_default:
                 priority = skin_cls.class_identity._default_priority
                 if priority > self._default_priority:
                     self._default_skin_name = key
@@ -209,9 +202,9 @@ class SkinRegistry(BaseRegistry):
                 registry_key=key,
                 suggestions=[
                     "Try using existing skin instead",
-                    "Library containing the skin may have failed to load"
+                    "Library containing the skin may have failed to load",
                 ],
-                auto_retry=True
+                auto_retry=True,
             )
             raise error
         elif lifecycle_event.error:
@@ -223,13 +216,9 @@ class SkinRegistry(BaseRegistry):
                 category="Skin Load Error",
                 operation="skin_lookup",
                 registry_key=key,
-                suggestions=[
-                    "Skin may have been removed",
-                    "Library containing the skin may been disabled"
-                ],
-                auto_retry=True
+                suggestions=["Skin may have been removed", "Library containing the skin may been disabled"],
+                auto_retry=True,
             )
             raise error
-
 
         return lifecycle_event

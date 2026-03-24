@@ -26,31 +26,31 @@ class NodeProperties(Bag):
 
     muted: bool = prop(
         False,
-        label='Muted',
+        label="Muted",
         order=10,
-        category='state',
-        description='Skip this node during execution',
+        category="state",
+        description="Skip this node during execution",
     )
     collapsed: bool = prop(
         False,
-        label='Collapsed',
+        label="Collapsed",
         order=20,
-        category='state',
-        description='Collapse node to show only header',
+        category="state",
+        description="Collapse node to show only header",
     )
     condensed: bool = prop(
         False,
-        label='Condensed',
+        label="Condensed",
         order=30,
-        category='state',
-        description='Show node in condensed view',
+        category="state",
+        description="Show node in condensed view",
     )
     pinned: bool = prop(
         False,
-        label='Pinned',
+        label="Pinned",
         order=40,
-        category='state',
-        description='Prevent auto-layout from moving this node',
+        category="state",
+        description="Prevent auto-layout from moving this node",
     )
 
     # -----------------------------------------------------------------
@@ -59,18 +59,18 @@ class NodeProperties(Bag):
 
     skin: str | None = prop(
         None,
-        label='Skin',
+        label="Skin",
         order=10,
-        category='appearance',
-        description='Skin used for this node',
+        category="appearance",
+        description="Skin used for this node",
     )
     color_override: str | None = prop(
         None,
-        label='Color Override',
+        label="Color Override",
         order=20,
-        category='appearance',
-        description='Custom background color for this node (None = use theme default)',
-        widget='color',
+        category="appearance",
+        description="Custom background color for this node (None = use theme default)",
+        widget="color",
     )
 
     # -----------------------------------------------------------------
@@ -78,30 +78,30 @@ class NodeProperties(Bag):
     # -----------------------------------------------------------------
 
     comment: str = prop(
-        '',
-        label='Comment',
+        "",
+        label="Comment",
         order=10,
-        category='annotation',
-        description='Comment displayed above the node',
+        category="annotation",
+        description="Comment displayed above the node",
     )
     show_comment: bool = prop(
         False,
-        label='Show Comment',
+        label="Show Comment",
         order=20,
-        category='annotation',
-        description='Display the comment bubble',
+        category="annotation",
+        description="Display the comment bubble",
     )
 
     # -----------------------------------------------------------------
     # Layout (position & dimensions) — not shown in settings panels
     # -----------------------------------------------------------------
 
-    posX: float = prop(0.0, order=10, category='layout')
-    posY: float = prop(0.0, order=20, category='layout')
-    width: float = prop(0.0, order=30, category='layout')
-    height: float = prop(0.0, order=40, category='layout')
-    width_min: float = prop(-1.0, order=50, category='layout')
-    height_min: float = prop(-1.0, order=60, category='layout')
+    posX: float = prop(0.0, order=10, category="layout")
+    posY: float = prop(0.0, order=20, category="layout")
+    width: float = prop(0.0, order=30, category="layout")
+    height: float = prop(0.0, order=40, category="layout")
+    width_min: float = prop(-1.0, order=50, category="layout")
+    height_min: float = prop(-1.0, order=60, category="layout")
 
     # -----------------------------------------------------------------
     # Convenience helpers

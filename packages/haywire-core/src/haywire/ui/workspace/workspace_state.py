@@ -16,15 +16,15 @@ from typing import Optional, List, Dict, Any
 
 # Canonical registry keys for all built-in editors.
 # Using constants avoids scattered hardcoded strings.
-_K_GRAPH_EDITOR    = 'studio:editor:graph_editor'
-_K_LIBRARY_BROWSER = 'studio:editor:library_browser'
-_K_LIBRARY_DETAIL  = 'studio:editor:library_detail'
-_K_COMPONENT_DETAIL = 'studio:editor:component_detail'
-_K_PROPERTIES      = 'studio:editor:properties'
-_K_CONSOLE         = 'studio:editor:console'
-_K_FILE_BROWSER    = 'studio:editor:file_browser'
-_K_FILE_VIEWER     = 'studio:editor:file_viewer'
-_K_GRAPH_MANAGER   = 'studio:editor:graph_manager'
+_K_GRAPH_EDITOR = "studio:editor:graph_editor"
+_K_LIBRARY_BROWSER = "studio:editor:library_browser"
+_K_LIBRARY_DETAIL = "studio:editor:library_detail"
+_K_COMPONENT_DETAIL = "studio:editor:component_detail"
+_K_PROPERTIES = "studio:editor:properties"
+_K_CONSOLE = "studio:editor:console"
+_K_FILE_BROWSER = "studio:editor:file_browser"
+_K_FILE_VIEWER = "studio:editor:file_viewer"
+_K_GRAPH_MANAGER = "studio:editor:graph_manager"
 
 
 @dataclass
@@ -37,6 +37,7 @@ class AreaState:
         visible: Whether the area is visible/expanded.
         size: Size in pixels (width for left/right, height for bottom).
     """
+
     editor_key: Optional[str] = None
     visible: bool = True
     size: int = 300
@@ -52,8 +53,9 @@ class TabState:
         label: Tab display label.
         metadata: Editor-specific state (e.g., which graph is open).
     """
+
     editor_key: str = _K_GRAPH_EDITOR
-    label: str = 'Graph'
+    label: str = "Graph"
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -69,6 +71,7 @@ class MiddleAreaState:
         bottom_size: Height of the bottom area in pixels.
         bottom_editor_key: Full registry_key of the editor in the bottom split.
     """
+
     tabs: List[TabState] = field(default_factory=lambda: [TabState()])
     active_tab_index: int = 0
     bottom_visible: bool = False
@@ -92,13 +95,14 @@ class WorkspaceState:
         right: Right area state.
         right_bar_active: Full registry_key of the active context bar editor.
     """
+
     name: str = "default"
     left_bar_active: Optional[str] = _K_LIBRARY_BROWSER
-    left: AreaState = field(default_factory=lambda: AreaState(
-        editor_key=_K_LIBRARY_BROWSER, visible=True, size=250
-    ))
+    left: AreaState = field(
+        default_factory=lambda: AreaState(editor_key=_K_LIBRARY_BROWSER, visible=True, size=250)
+    )
     middle: MiddleAreaState = field(default_factory=MiddleAreaState)
     right_bar_active: Optional[str] = _K_PROPERTIES
-    right: AreaState = field(default_factory=lambda: AreaState(
-        editor_key=_K_PROPERTIES, visible=True, size=350
-    ))
+    right: AreaState = field(
+        default_factory=lambda: AreaState(editor_key=_K_PROPERTIES, visible=True, size=350)
+    )

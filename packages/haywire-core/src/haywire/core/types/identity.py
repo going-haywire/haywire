@@ -12,20 +12,21 @@ from haywire.core.types.enums import StoreStrategy
 
 from ..registry.identity import BaseIdentity
 
+
 @dataclass
 class DataTypeIdentity(BaseIdentity):
     """
     Unified identity for all data types that can flow through ports.
-    
+
     Combines:
     - Registry identity (registry_id, registry_key, label, description)
     - Type specification (cls, container_type, default)
     - UI metadata (color, icon, widget, ui)
-    
+
     Used for:
     - Type variants (FLOAT, INT, Temperature) - primitive type wrappers
     - Custom types (MeshData, with to_dict/from_dict) - compound data structures
-    
+
     Attributes:
         registry_id: Unique ID within library (e.g., 'float', 'temperature', 'mesh_data')
         registry_key: Full key with library (e.g., 'core:float', 'example:temperature')
@@ -42,9 +43,10 @@ class DataTypeIdentity(BaseIdentity):
         icon_out_multi: Icon for multi-link outlet pins
         widget: Widget for editing values
         default: Default value for this type
-        store_strategy: when to serialize field values 
+        store_strategy: when to serialize field values
         help_url: Documentation link
     """
+
     # Inherited from BaseIdentity:
     # registry_id: str = ''
     # registry_key: str = ''
@@ -52,7 +54,7 @@ class DataTypeIdentity(BaseIdentity):
     # description: str = ''
     from . import IType
     from .enums import FlowType
-    
+
     # Override flow_type to make it required for ports
     flow_type: FlowType = FlowType.NONE
 
@@ -63,7 +65,7 @@ class DataTypeIdentity(BaseIdentity):
     """flag to control whether field values are serialized"""
 
     # UI specification:
-    color: str = '#757575'
+    color: str = "#757575"
     icon: str | None = None
     icon_in: str | None = None
     icon_in_multi: str | None = None
@@ -73,19 +75,19 @@ class DataTypeIdentity(BaseIdentity):
     widget_key: str | None = None
     widget_config: dict[str, Any] = field(default_factory=dict)
 
-    help_url: str = ''
-    
+    help_url: str = ""
+
     def __post_init__(self):
         """Auto-generate defaults and parse widget config."""
-                
+
         # Auto-generate label from registry_id
         if not self.label and self.registry_id:
-            self.label = self.registry_id.replace('_', ' ').title()
-        
+            self.label = self.registry_id.replace("_", " ").title()
+
         # Auto-generate description
         if not self.description and self.label:
             self.description = self.label
-        
+
         if self.icon:
             # Use same icon for in/out unless specified
             if not self.icon_in:

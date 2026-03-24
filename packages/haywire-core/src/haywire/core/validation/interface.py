@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.edge.edge_wrapper import EdgeWrapper
 
+
 class IStructuralValidator(ABC):
     """
     Interface for structural validators.
@@ -19,7 +20,7 @@ class IStructuralValidator(ABC):
     against structural constraints.
     """
 
-    def __init__(self, graph: 'BaseGraph'):
+    def __init__(self, graph: "BaseGraph"):
         """
         Initialize structural validator.
 
@@ -29,12 +30,10 @@ class IStructuralValidator(ABC):
         self.graph = graph
 
     @abstractmethod
-    def validate_node(
-        self, wrapper: 'NodeWrapper'
-    ) -> tuple[bool, str | None, list[str]]:
+    def validate_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
         """
         Validate structural constraints for a single node.
-        
+
         Returns:
             Tuple of (is_valid, error_message, suggestions).
             Error message is None if valid.
@@ -43,12 +42,10 @@ class IStructuralValidator(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_edge(
-        self, wrapper: 'EdgeWrapper'
-    ) -> tuple[bool, str | None, list[str]]:
+    def validate_edge(self, wrapper: "EdgeWrapper") -> tuple[bool, str | None, list[str]]:
         """
         Validate structural constraints for a single edge.
-        
+
         Returns:
             Tuple of (is_valid, error_message, suggestions).
             Error message is None if valid.

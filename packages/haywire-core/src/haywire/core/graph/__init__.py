@@ -12,8 +12,8 @@ from .types import ValidationResult, ChangeReason
 # Do NOT export ValidationManager - it's an internal implementation detail
 
 __all__ = [
-    'BaseGraph',
-    'Variable',
-    'ValidationResult',
-    'ChangeReason',
+    "BaseGraph",
+    "Variable",
+    "ValidationResult",
+    "ChangeReason",
 ]

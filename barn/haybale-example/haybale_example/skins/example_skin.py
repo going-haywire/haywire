@@ -1,4 +1,3 @@
-
 from nicegui import ui
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.base import BaseNode
@@ -7,19 +6,17 @@ from haywire.ui.skin.decorator import skin
 
 from haybale_core.skins.node_skin import NodeSkin
 
-@skin(
-    description="Custom skin for nodes with special styling"
-    )
+
+@skin(description="Custom skin for nodes with special styling")
 class ExampleNodeSkin(NodeSkin):
     """Custom skin for nodes with special styling."""
 
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
-        
         node: BaseNode = wrapper.node
         node_id = f"example-node-{id(node)}"
-        
+
         # Custom math-themed CSS
-        ui.add_head_html(f'''
+        ui.add_head_html(f"""
         <style>
         .{node_id} {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -42,37 +39,37 @@ class ExampleNodeSkin(NodeSkin):
             transform: scale(1);
         }}
         </style>
-        ''')
+        """)
 
-        main_card.classes(
-            f'w-full min-w-64 max-w-sm math-node-card {node_id}'
-        )       
+        main_card.classes(f"w-full min-w-64 max-w-sm math-node-card {node_id}")
 
         with main_card:
             # Math-themed header
-            with ui.row().classes('w-full items-center gap-2'):
-                ui.icon('calculate', color='yellow').classes('text-lg')
-                ui.label("Math Node").classes('text-h6 flex-1')
-                        
+            with ui.row().classes("w-full items-center gap-2"):
+                ui.icon("calculate", color="yellow").classes("text-lg")
+                ui.label("Math Node").classes("text-h6 flex-1")
+
             # Render inlets and outlets
-            with ui.row().classes('w-full gap-2'):
+            with ui.row().classes("w-full gap-2"):
                 # Inlets
-                with ui.column().classes('flex-1 gap-1'):
+                with ui.column().classes("flex-1 gap-1"):
                     if node.ports:
-                        ui.label('Inputs').classes('font-bold text-sm')
+                        ui.label("Inputs").classes("font-bold text-sm")
                         for inlet in node.ports.values():
                             if inlet.is_inlet():
-                                with ui.row().classes('w-full items-center gap-1'):
-                                    ui.label(inlet.label).classes('text-xs')
+                                with ui.row().classes("w-full items-center gap-1"):
+                                    ui.label(inlet.label).classes("text-xs")
                                     if inlet.widget_key:
-                                        self.render_widget(inlet, wrapper.node_id, classes='widget-container zoom-pan-lod2')
-                
+                                        self.render_widget(
+                                            inlet,
+                                            wrapper.node_id,
+                                            classes="widget-container zoom-pan-lod2",
+                                        )
+
                 # Outlets
-                with ui.column().classes('flex-1 gap-1'):
+                with ui.column().classes("flex-1 gap-1"):
                     if node.ports:
-                        ui.label('Outputs').classes('font-bold text-sm')
+                        ui.label("Outputs").classes("font-bold text-sm")
                         for outlet in node.ports.values():
                             if outlet.is_outlet():
-                                ui.label(outlet.label).classes('text-xs text-right')
-        
-    
+                                ui.label(outlet.label).classes("text-xs text-right")

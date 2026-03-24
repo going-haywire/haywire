@@ -16,7 +16,9 @@ from .identity import PanelIdentity
 
 
 def panel(
-    cls=None, /, *,
+    cls=None,
+    /,
+    *,
     registry_id: Optional[str] = None,
     editor: str,
     scope: Union[str, list[str]],
@@ -24,7 +26,7 @@ def panel(
     icon: Optional[str] = None,
     order: int = 100,
     default_open: bool = True,
-    description: str = '',
+    description: str = "",
 ):
     """
     Decorator to mark a class as a panel.
@@ -63,11 +65,10 @@ def panel(
             def draw(self, ctx, layout):
                 layout.label(f"Node: {ctx.active_node.node.identity.label}")
     """
+
     def decorator(inner_cls):
         if not issubclass(inner_cls, BasePanel):
-            raise TypeError(
-                f"@panel can only be applied to BasePanel subclasses, got {inner_cls}"
-            )
+            raise TypeError(f"@panel can only be applied to BasePanel subclasses, got {inner_cls}")
 
         _registry_id = registry_id or inner_cls.__name__
         _label = label or inner_cls.__name__
@@ -75,7 +76,7 @@ def panel(
 
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id if library_identity else None
-        _registry_key = reg_key(library_id, 'panel', _registry_id)
+        _registry_key = reg_key(library_id, "panel", _registry_id)
 
         inner_cls.class_identity = PanelIdentity(
             registry_id=_registry_id,

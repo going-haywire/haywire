@@ -9,4 +9,5 @@ from typing import Set, Type
 @dataclass
 class WidgetIdentity(BaseIdentity):
     """Core identifying attributes of a widget"""
+
     compatible_types: Set[Type[IType]] = field(default_factory=set)

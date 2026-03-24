@@ -3,6 +3,7 @@ Shutdown Event Node.
 
 Triggered when the interpreter is shutting down, allowing for cleanup operations.
 """
+
 import operator
 
 from haywire.core.execution.execution_context import ExecutionContext
@@ -10,113 +11,104 @@ from haywire.core.node import node, BaseNode, NodeType
 
 # Mapping of condition strings to operator functions
 OPERATORS = {
-    '>': operator.gt,
-    '>=': operator.ge,
-    '==': operator.eq,
-    '<': operator.lt,
-    '<=': operator.le,
-    '!=': operator.ne,
+    ">": operator.gt,
+    ">=": operator.ge,
+    "==": operator.eq,
+    "<": operator.lt,
+    "<=": operator.le,
+    "!=": operator.ne,
 }
 
+
 @node(
-    label='Control Switch',
-    description='Switches control flow based on condition',
-    menu='control/switch',
-    search_tags=['switch', 'control', 'flow', 'event'],
+    label="Control Switch",
+    description="Switches control flow based on condition",
+    menu="control/switch",
+    search_tags=["switch", "control", "flow", "event"],
     node_type=NodeType.CONTROL,
 )
 class ControlSwitch(BaseNode):
     """
     Triggered when execution is switching control flow based on condition.
     """
-        
+
     def init(self):
         # Control output
         from haybale_core.widgets.basic_widgets import SelectWidget
-        from ..types.specs import EXEC, FLOAT, INT, STRING
+        from ..types.specs import EXEC, INT, STRING
 
-        self.add(EXEC.as_inlet('exec', label='Execute'))
-        
-        self.add(STRING.as_config(
-            'DataType', 
-            label='Data Type',
-            widget=SelectWidget.config(properties={ 'options': ['int', 'float', 'string']}), 
-            default='int',
-            on_change='hb_change')
+        self.add(EXEC.as_inlet("exec", label="Execute"))
+
+        self.add(
+            STRING.as_config(
+                "DataType",
+                label="Data Type",
+                widget=SelectWidget.config(properties={"options": ["int", "float", "string"]}),
+                default="int",
+                on_change="hb_change",
+            )
         )
 
-        self.add(EXEC.as_outlet('true', label='True'))
-        self.add(EXEC.as_outlet('false', label='False'))
+        self.add(EXEC.as_outlet("true", label="True"))
+        self.add(EXEC.as_outlet("false", label="False"))
 
-        self.add(INT.as_outlet('test', label='Test'))
-    
+        self.add(INT.as_outlet("test", label="Test"))
+
     def post_init(self):
         self.hb_change()
 
     def hb_change(self, *args, **kwargs) -> None:
         from haybale_core.widgets.basic_widgets import SelectWidget, NumberWidget
-        from ..types.specs import EXEC, FLOAT, INT, STRING
+        from ..types.specs import FLOAT, INT, STRING
 
-        with self.rejig(exclude=['exec', 'true', 'false', 'DataType', 'test']):
-            if self.value('DataType') == 'int':
-                self.add(STRING.as_config(
-                    'condition',
-                    label='Condition',
-                    widget=SelectWidget.config(properties={ 'options': ['>', '>=', '==', '<', '<=', '!=' ]}),
-                    default='==')
+        with self.rejig(exclude=["exec", "true", "false", "DataType", "test"]):
+            if self.value("DataType") == "int":
+                self.add(
+                    STRING.as_config(
+                        "condition",
+                        label="Condition",
+                        widget=SelectWidget.config(
+                            properties={"options": [">", ">=", "==", "<", "<=", "!="]}
+                        ),
+                        default="==",
+                    )
                 )
-                self.add(INT.as_inlet(
-                    'compare',
-                    label='Compare',
-                    widget=NumberWidget.config()))
-                self.add(INT.as_inlet(
-                    'with',
-                    label='With',
-                    widget=NumberWidget.config())
+                self.add(INT.as_inlet("compare", label="Compare", widget=NumberWidget.config()))
+                self.add(INT.as_inlet("with", label="With", widget=NumberWidget.config()))
+            elif self.value("DataType") == "float":
+                self.add(
+                    STRING.as_config(
+                        "condition",
+                        label="Condition",
+                        widget=SelectWidget.config(
+                            properties={"options": [">", ">=", "==", "<", "<=", "!="]}
+                        ),
+                        default="==",
+                    )
                 )
-            elif self.value('DataType') == 'float':
-                self.add(STRING.as_config(
-                    'condition',
-                    label='Condition',
-                    widget=SelectWidget.config(properties={ 'options': ['>', '>=', '==', '<', '<=', '!=' ]}),
-                    default='==')
-                )
-                self.add(FLOAT.as_inlet(
-                    'compare',
-                    label='Compare',
-                    widget=NumberWidget.config()))
-                self.add(FLOAT.as_inlet(
-                    'with',
-                    label='With',
-                    widget=NumberWidget.config())
-                )
+                self.add(FLOAT.as_inlet("compare", label="Compare", widget=NumberWidget.config()))
+                self.add(FLOAT.as_inlet("with", label="With", widget=NumberWidget.config()))
             else:  # string
-                self.add(STRING.as_config(
-                    'condition',
-                    label='Condition',
-                    widget=SelectWidget.config(properties={ 'options': ['==', '!=' ]}),
-                    default='==')
+                self.add(
+                    STRING.as_config(
+                        "condition",
+                        label="Condition",
+                        widget=SelectWidget.config(properties={"options": ["==", "!="]}),
+                        default="==",
+                    )
                 )
-                self.add(STRING.as_inlet(
-                    'compare',
-                    label='Compare',
-                    default='')
-                )
-                self.add(STRING.as_inlet(
-                    'with',
-                    label='With',
-                    default='')
-                )
-    
+                self.add(STRING.as_inlet("compare", label="Compare", default=""))
+                self.add(STRING.as_inlet("with", label="With", default=""))
+
     def worker(self, context: ExecutionContext, condition: str) -> str | None:
-        data = self.value('compare')
-        target = self.value('with')
-        condition_str = self.value('condition')
-        
+        data = self.value("compare")
+        target = self.value("with")
+        condition_str = self.value("condition")
+
         # Get the operator function and apply it
         op_func = OPERATORS.get(condition_str, operator.eq)
         result = op_func(data, target)
 
         # self.out('test', data)
-        
-        return 'true' if result else 'false'
+
+        return "true" if result else "false"

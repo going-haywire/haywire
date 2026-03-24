@@ -23,9 +23,10 @@ class EditorIdentity:
         description: Human-readable description.
         registry_key: Fully-qualified registry key; set by decorator via reg_key().
     """
+
     registry_id: str
     label: str
-    icon: str = 'extension'
-    default_area: str = 'middle'
-    description: str = ''
-    registry_key: str = ''      # fully-qualified key; set by decorator via reg_key()
+    icon: str = "extension"
+    default_area: str = "middle"
+    description: str = ""
+    registry_key: str = ""  # fully-qualified key; set by decorator via reg_key()

@@ -19,16 +19,16 @@ if TYPE_CHECKING:
 
 # Framework identity used for built-in theme registration
 _FRAMEWORK_THEME_IDENTITY = LibraryIdentity(
-    label='haywire-core',
-    version='0.0.0',
-    description='Haywire built-in themes',
-    url='',
-    help_url='',
-    author='Haywire',
-    author_url='',
-    id='haywire-core',
-    module_name='haywire',
-    folder_path='',
+    label="haywire-core",
+    version="0.0.0",
+    description="Haywire built-in themes",
+    url="",
+    help_url="",
+    author="Haywire",
+    author_url="",
+    id="haywire-core",
+    module_name="haywire",
+    folder_path="",
 )
 
 
@@ -54,7 +54,7 @@ class ThemeRegistry(BaseRegistry):
             isinstance(cls, type)
             and issubclass(cls, (WorkbenchTheme, NodeTheme))
             and cls not in (WorkbenchTheme, NodeTheme)
-            and hasattr(cls, 'class_identity')
+            and hasattr(cls, "class_identity")
         )
 
     def _register_class(self, cls: Type, library_identity: LibraryIdentity) -> str | None:
@@ -68,11 +68,15 @@ class ThemeRegistry(BaseRegistry):
     # Typed registration helpers
     # =========================================================================
 
-    def register_workbench(self, cls: Type[WorkbenchTheme], library_identity: LibraryIdentity | None = None) -> str | None:
+    def register_workbench(
+        self, cls: Type[WorkbenchTheme], library_identity: LibraryIdentity | None = None
+    ) -> str | None:
         """Register a WorkbenchTheme class."""
         return self._register_class(cls, library_identity or _FRAMEWORK_THEME_IDENTITY)
 
-    def register_node_theme(self, cls: Type[NodeTheme], library_identity: LibraryIdentity | None = None) -> str | None:
+    def register_node_theme(
+        self, cls: Type[NodeTheme], library_identity: LibraryIdentity | None = None
+    ) -> str | None:
         """Register a NodeTheme class."""
         return self._register_class(cls, library_identity or _FRAMEWORK_THEME_IDENTITY)
 
@@ -113,7 +117,5 @@ class ThemeRegistry(BaseRegistry):
     def list_node_theme_keys(self) -> list[str]:
         """Return sorted list of registered node theme registry_keys."""
         return sorted(
-            cls.class_identity.registry_key
-            for cls in self._classes.values()
-            if issubclass(cls, NodeTheme)
+            cls.class_identity.registry_key for cls in self._classes.values() if issubclass(cls, NodeTheme)
         )

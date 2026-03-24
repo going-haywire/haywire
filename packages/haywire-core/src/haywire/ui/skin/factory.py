@@ -20,11 +20,12 @@ from .base import BaseSkin
 from .registry import SkinRegistry
 
 
-FactoryEventCallback = Callable[[], None] # Function signature for factory event callbacks
+FactoryEventCallback = Callable[[], None]  # Function signature for factory event callbacks
 
 NO_SKIN_DEFINED: str = "no.skin.defined"
 
-class SkinFactory():
+
+class SkinFactory:
     """
     Factory class for creating UINodeCard instances using NodeSkin classes.
 
@@ -48,12 +49,10 @@ class SkinFactory():
         self._widget_factory = widget_factory
 
         # Subscribe to widget factory lifecycle events
-        self._widget_factory.add_widget_lifecycle_subscriber(
-            self._listen_on_widget_lifecycle_events)
+        self._widget_factory.add_widget_lifecycle_subscriber(self._listen_on_widget_lifecycle_events)
 
         # Subscribe to skin registry lifecycle events
-        self._skin_registry.add_batch_event_subscriber(
-            self._listen_on_skin_lifecycle_event)
+        self._skin_registry.add_batch_event_subscriber(self._listen_on_skin_lifecycle_event)
 
         # Cache for BaseSkin instances by registry key
         self._skin_instance_cache: Dict[str, BaseSkin] = {}
@@ -75,10 +74,7 @@ class SkinFactory():
 
     # this method is called by UINode to render the node
     def render(
-        self,
-        skin_registry_key: str | None,
-        wrapper: NodeWrapper,
-        _is_error_render: bool = False
+        self, skin_registry_key: str | None, wrapper: NodeWrapper, _is_error_render: bool = False
     ) -> UINodeCard | None:
         """Render a node with the skin identified by skin_registry_key.
 
@@ -117,12 +113,8 @@ class SkinFactory():
                     ],
                     category="Render Error",
                     operation="skin_lookup",
-                    library_identity=(
-                        skin_instance.__class__.class_library
-                        if skin_instance
-                        else None
-                    ),
-                    registry_key=skin_registry_key
+                    library_identity=(skin_instance.__class__.class_library if skin_instance else None),
+                    registry_key=skin_registry_key,
                 )
 
             error.log(self.logger)
@@ -147,10 +139,8 @@ class SkinFactory():
 
             # render error (recursive call with error render flag)
             ui_nodeCard = self.render(
-                    skin_registry_key=error_skin_registry_key,
-                    wrapper=wrapper,
-                    _is_error_render=True
-                )
+                skin_registry_key=error_skin_registry_key, wrapper=wrapper, _is_error_render=True
+            )
 
             ui_nodeCard.append(error)
 
@@ -184,11 +174,11 @@ class SkinFactory():
                     exception=e,
                     category="Skin Instantiation Error",
                     operation="skin_lookup",
-                    message=f"Failed to instantiate skin '{registry_key}'"
+                    message=f"Failed to instantiate skin '{registry_key}'",
                 ).enrich(
                     registry_key=registry_key,
                     module_name=lc_event.module_name,
-                    library_identity=lc_event.library_identity
+                    library_identity=lc_event.library_identity,
                 )
 
                 raise error
@@ -196,10 +186,7 @@ class SkinFactory():
         return None
 
     def add_factory_lifecycle_subscriber(
-        self,
-        node_id: str,
-        skin_registry_key: str,
-        callback: FactoryEventCallback
+        self, node_id: str, skin_registry_key: str, callback: FactoryEventCallback
     ) -> None:
         """
         Register a customer callback for factory event notifications.
@@ -219,8 +206,7 @@ class SkinFactory():
             if node_id in self._skin_regkey_to_node_id.get(previous_regkey, set()):
                 self._skin_regkey_to_node_id[previous_regkey].remove(node_id)
                 self.logger.debug(
-                    f"  -> Cleanup skin_key to node_id mapping: "
-                    f"'{previous_regkey}' -> '{node_id}'"
+                    f"  -> Cleanup skin_key to node_id mapping: '{previous_regkey}' -> '{node_id}'"
                 )
 
         # Setup skin to node_id mappings for hot reload tracking
@@ -228,19 +214,11 @@ class SkinFactory():
         self._skin_regkey_to_node_id.setdefault(skin_registry_key, set()).add(node_id)
         # one to one mapping
         self._nodeid_to_skin_regkey[node_id] = skin_registry_key
-        self.logger.debug(
-            f"  -> Setup skin_key to node_id mapping: "
-            f"'{skin_registry_key}' -> '{node_id}'"
-        )
+        self.logger.debug(f"  -> Setup skin_key to node_id mapping: '{skin_registry_key}' -> '{node_id}'")
 
         self._nodeid_to_factory_subscriber.setdefault(node_id, set()).add(callback)
 
-
-    def remove_factory_lifecycle_subscriber(
-        self,
-        node_id: str,
-        callback: FactoryEventCallback
-    ) -> None:
+    def remove_factory_lifecycle_subscriber(self, node_id: str, callback: FactoryEventCallback) -> None:
         """
         Unregister a customer callback and clean up skin mappings.
 
@@ -271,9 +249,7 @@ class SkinFactory():
         """
         if node_id in self._nodeid_to_factory_subscriber:
             for callback in self._nodeid_to_factory_subscriber[node_id]:
-                self.logger.debug(
-                    f" Node {node_id} lifecycle event notification "
-                )
+                self.logger.debug(f" Node {node_id} lifecycle event notification ")
                 callback()
 
     def _listen_on_skin_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
@@ -300,8 +276,7 @@ class SkinFactory():
                     # if nodes have been rendering with a non existing skin
                     # (most likely the error skin), they might be interested to
                     # know about that new skin and should be informed
-                    node_ids = set(
-                        self._skin_regkey_to_node_id.get(NO_SKIN_DEFINED, set()))
+                    node_ids = set(self._skin_regkey_to_node_id.get(NO_SKIN_DEFINED, set()))
 
                     for node_id in node_ids:
                         self._notify_factory_subscribers(node_id)
@@ -342,11 +317,9 @@ class SkinFactory():
 
     def cleanup(self):
         """Cleanup resources and unregister from registries."""
-        self._skin_registry.remove_batch_event_subscriber(
-            self._listen_on_skin_lifecycle_event)
+        self._skin_registry.remove_batch_event_subscriber(self._listen_on_skin_lifecycle_event)
 
-        self._widget_factory.remove_widget_lifecycle_subscriber(
-            self._listen_on_widget_lifecycle_events)
+        self._widget_factory.remove_widget_lifecycle_subscriber(self._listen_on_widget_lifecycle_events)
 
         self._nodeid_to_factory_subscriber.clear()
         self.reset_cache()

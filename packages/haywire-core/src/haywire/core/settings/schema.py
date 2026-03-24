@@ -29,18 +29,14 @@ class GlobalSettings(Bag):
     _prop_fields() for metadata.
     """
 
-    _namespace: ClassVar[str] = ''
+    _namespace: ClassVar[str] = ""
 
-    def __init_subclass__(cls, namespace: str = '', **kwargs: object) -> None:
+    def __init_subclass__(cls, namespace: str = "", **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
 
         # Block deep inheritance: only direct subclasses of GlobalSettings allowed
         for base in cls.__bases__:
-            if (
-                base is not GlobalSettings
-                and isinstance(base, type)
-                and issubclass(base, GlobalSettings)
-            ):
+            if base is not GlobalSettings and isinstance(base, type) and issubclass(base, GlobalSettings):
                 raise TypeError(
                     f"Subclassing a GlobalSettings subclass is not allowed. "
                     f"'{cls.__name__}' cannot extend '{base.__name__}'. "
@@ -51,8 +47,9 @@ class GlobalSettings(Bag):
             cls._namespace = namespace
             for name, val in cls.__dict__.items():
                 from haywire.core.property.descriptor import prop  # noqa: PLC0415
+
                 if isinstance(val, prop):
-                    val._field_key = f'{namespace}.{name}'
+                    val._field_key = f"{namespace}.{name}"
 
 
 class LibrarySettings(Bag):
@@ -67,18 +64,14 @@ class LibrarySettings(Bag):
     prevent namespace collisions from inherited fields.
     """
 
-    _namespace: ClassVar[str] = ''
+    _namespace: ClassVar[str] = ""
 
-    def __init_subclass__(cls, namespace: str = '', **kwargs: object) -> None:
+    def __init_subclass__(cls, namespace: str = "", **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
 
         # Block deep inheritance: only direct subclasses of LibrarySettings allowed
         for base in cls.__bases__:
-            if (
-                base is not LibrarySettings
-                and isinstance(base, type)
-                and issubclass(base, LibrarySettings)
-            ):
+            if base is not LibrarySettings and isinstance(base, type) and issubclass(base, LibrarySettings):
                 raise TypeError(
                     f"Subclassing a LibrarySettings subclass is not allowed. "
                     f"'{cls.__name__}' cannot extend '{base.__name__}'. "
@@ -89,5 +82,6 @@ class LibrarySettings(Bag):
             cls._namespace = namespace
             for name, val in cls.__dict__.items():
                 from haywire.core.property.descriptor import prop  # noqa: PLC0415
+
                 if isinstance(val, prop):
-                    val._field_key = f'{namespace}.{name}'
+                    val._field_key = f"{namespace}.{name}"

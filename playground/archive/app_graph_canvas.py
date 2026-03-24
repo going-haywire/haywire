@@ -202,7 +202,7 @@ class UndoRedoTestAppWithCanvasManager:
             for name, container in containers.items():
                 try:
                     container.clear()
-                except Exception as e:
+                except Exception:
                     pass  # Client likely deleted
         
         # Remove from sessions dict
@@ -1058,7 +1058,7 @@ class UndoRedoTestAppWithCanvasManager:
         """Actually load the graph file."""
         if self.graph.load_from_file(filepath):
             ui.notify(
-                f"Graph loaded successfully",
+                "Graph loaded successfully",
                 type='positive',
                 position='top'
             )

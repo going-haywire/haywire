@@ -10,6 +10,7 @@ from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 from . import BaseNode
 
+
 class NodeRegistry(BaseRegistry):
     """registry for managing nodes using library.name:node:node.name keys"""
 
@@ -20,16 +21,16 @@ class NodeRegistry(BaseRegistry):
     def _class_filter(self, cls):
         """Check if a class is a valid Haywire node class."""
         try:
-            return (inspect.isclass(cls) and
-                    issubclass(cls, BaseNode) and
-                    cls != BaseNode and
-                    hasattr(cls, 'class_identity'))
+            return (
+                inspect.isclass(cls)
+                and issubclass(cls, BaseNode)
+                and cls != BaseNode
+                and hasattr(cls, "class_identity")
+            )
         except TypeError:
             return False
 
-    def _register_class(
-        self, node_cls: type[BaseNode], library_identity: LibraryIdentity
-    ) -> str | None:
+    def _register_class(self, node_cls: type[BaseNode], library_identity: LibraryIdentity) -> str | None:
         """
         Register a node class with library metadata.
 
@@ -50,10 +51,7 @@ class NodeRegistry(BaseRegistry):
         # Check if this is an error node and register it automatically
         if node_cls.class_identity._is_error:
             if self._error_node is not None:
-                if (
-                    node_cls.class_identity._error_priority 
-                    > self._error_node.class_identity._error_priority
-                ):
+                if node_cls.class_identity._error_priority > self._error_node.class_identity._error_priority:
                     logging.warning(
                         f"Overriding already registered error node: "
                         f"'{self._error_node.class_identity.registry_key}'."
@@ -68,7 +66,6 @@ class NodeRegistry(BaseRegistry):
 
         return super()._register(registry_key, node_cls, library_identity)
 
-
     def _unregister_class(self, registry_key) -> type[BaseNode] | None:
         """Unregister a node by its registry_key
         Args:
@@ -79,11 +76,8 @@ class NodeRegistry(BaseRegistry):
         """
         if self.get(registry_key) == self._error_node:
             self._error_node = None
-            logging.warning(
-                f"Error node '{registry_key}' unregistered, "
-                f"no error node left in registry"
-            )
-    
+            logging.warning(f"Error node '{registry_key}' unregistered, no error node left in registry")
+
         return super()._unregister(registry_key)
 
     def _get_error_node(self) -> type[BaseNode] | None:
@@ -93,7 +87,7 @@ class NodeRegistry(BaseRegistry):
     def get_node_lastevent(self, key: str) -> LifeCycleEvent | None:
         """Get the last lifecycle event for a node by its registry key."""
         return self._regkey_to_last_lifecycle_event.get(key)
-    
+
     def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
         """
         Get alternate node registry keys for a given node registry key.
@@ -101,7 +95,7 @@ class NodeRegistry(BaseRegistry):
         with the same registry_id but from differtent libraries.
 
         Args:
-            registry_key (str): The registry key of the node to find alternates for.    
+            registry_key (str): The registry key of the node to find alternates for.
         Returns:
             list[str]: A list of alternate node registry keys.
         """
@@ -111,4 +105,3 @@ class NodeRegistry(BaseRegistry):
             if get_registry_id_from_key(key) == registry_id and key != registry_key:
                 alternates.append(key)
         return alternates
-

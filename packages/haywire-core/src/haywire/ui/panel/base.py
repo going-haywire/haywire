@@ -33,34 +33,40 @@ class PanelLayout:
     def label(self, text: str, **kwargs) -> Any:
         """Add a text label."""
         from nicegui import ui
+
         with self._container:
             return ui.label(text)
 
     def row(self) -> Any:
         """Return a NiceGUI row context manager."""
         from nicegui import ui
+
         return ui.row()
 
     def column(self) -> Any:
         """Return a NiceGUI column context manager."""
         from nicegui import ui
-        return ui.column().classes('w-full gap-0')
+
+        return ui.column().classes("w-full gap-0")
 
     def separator(self) -> None:
         """Add a visual divider."""
         from nicegui import ui
+
         with self._container:
             ui.separator()
 
     def button(self, text: str, on_click=None, **kwargs) -> Any:
         """Add a button."""
         from nicegui import ui
+
         with self._container:
             return ui.button(text, on_click=on_click)
 
     def expansion(self, title: str, icon: str = None) -> Any:
         """Return a collapsible sub-section context manager."""
         from nicegui import ui
+
         with self._container:
             return ui.expansion(title, icon=icon)
 
@@ -73,6 +79,7 @@ class PanelLayout:
             **config: Additional widget configuration.
         """
         from nicegui import ui
+
         with self._container:
             return ui.label(f"[widget: {widget_key}]")  # placeholder; wired in Phase 5
 
@@ -105,7 +112,7 @@ class BasePanel(ABC):
     class_identity: ClassVar[PanelIdentity]
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         """
         Determine if this panel should be visible given the current context.
 
@@ -121,7 +128,7 @@ class BasePanel(ABC):
         return True
 
     @abstractmethod
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         """
         Render the panel contents.
 
@@ -134,9 +141,7 @@ class BasePanel(ABC):
         """
         ...
 
-    def on_context_changed(
-        self, context: 'SessionContext', layout: PanelLayout
-    ) -> None:
+    def on_context_changed(self, context: "SessionContext", layout: PanelLayout) -> None:
         """
         Optional incremental update when context changes without full redraw.
 

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, List, Any, TYPE_CHECKING
 from injector import Injector
 
-from ..settings import GlobalSettingsRegistry, SettingMode, SettingValue, GlobalSettings, setting, Color
+from ..settings import GlobalSettingsRegistry, SettingMode, SettingValue, GlobalSettings, setting
 from ..property import Bag, prop
 
 if TYPE_CHECKING:
@@ -21,10 +21,12 @@ if TYPE_CHECKING:
 # Reusable test schemas
 # ---------------------------------------------------------------------------
 
-class _TestGlobalSettings(GlobalSettings, namespace='test.global'):
+
+class _TestGlobalSettings(GlobalSettings, namespace="test.global"):
     """Minimal GlobalSettings for unit tests that need registered global keys."""
-    verbose_logging: bool = setting(False, label='Verbose Logging')
-    font_size:       int  = setting(12,    label='Font Size', min=8, max=72)
+
+    verbose_logging: bool = setting(False, label="Verbose Logging")
+    font_size: int = setting(12, label="Font Size", min=8, max=72)
 
 
 def create_test_injector(
@@ -34,7 +36,7 @@ def create_test_injector(
     load_libraries: bool = False,
     settings_path: Optional[str] = None,
     watch_settings: bool = False,
-    use_temp_settings: bool = True
+    use_temp_settings: bool = True,
 ) -> Injector:
     """
     Create a test-specific DI injector with minimal overhead.
@@ -42,15 +44,15 @@ def create_test_injector(
     from .config import HaywireModule
 
     if settings_path is None and use_temp_settings:
-        temp_dir = tempfile.mkdtemp(prefix='haywire_test_')
-        settings_path = str(Path(temp_dir) / 'settings.toml')
+        temp_dir = tempfile.mkdtemp(prefix="haywire_test_")
+        settings_path = str(Path(temp_dir) / "settings.toml")
 
     module = HaywireModule(
         workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         settings_path=settings_path,
-        watch_settings=watch_settings
+        watch_settings=watch_settings,
     )
 
     return Injector([module])
@@ -63,8 +65,8 @@ def create_test_library_system(
     enable_file_watching: bool = False,
     settings_path: Optional[str] = None,
     watch_settings: bool = False,
-    use_temp_settings: bool = True
-) -> 'LibrarySystemService':
+    use_temp_settings: bool = True,
+) -> "LibrarySystemService":
     """
     Create library system for integration tests.
     """
@@ -77,7 +79,7 @@ def create_test_library_system(
         load_libraries=load_libraries,
         settings_path=settings_path,
         watch_settings=watch_settings,
-        use_temp_settings=use_temp_settings
+        use_temp_settings=use_temp_settings,
     )
 
     service = LibrarySystemService(injector)
@@ -89,9 +91,8 @@ def create_test_library_system(
 
 
 def create_test_settings_registry(
-    predefined_settings: Optional[dict] = None,
-    register_builtins: bool = True
-) -> 'GlobalSettingsRegistry':
+    predefined_settings: Optional[dict] = None, register_builtins: bool = True
+) -> "GlobalSettingsRegistry":
     """
     Create an isolated settings registry for unit tests.
 
@@ -112,10 +113,10 @@ def create_test_settings_registry(
     if predefined_settings:
         for name, value in predefined_settings.items():
             if registry.has_definition(name):
-                registry.set_global(name, value, SettingMode.SET, tier='global')
+                registry.set_global(name, value, SettingMode.SET, tier="global")
             else:
                 registry.define(name, value)
-                registry.set_global(name, value, SettingMode.SET, tier='global')
+                registry.set_global(name, value, SettingMode.SET, tier="global")
 
     return registry
 
@@ -124,7 +125,7 @@ def create_test_bag(
     bag_cls: type = None,
     predefined_local: Optional[dict[str, Any]] = None,
     predefined_global: Optional[dict[str, Any]] = None,
-) -> tuple['GlobalSettingsRegistry', Bag]:
+) -> tuple["GlobalSettingsRegistry", Bag]:
     """
     Create an isolated registry + Bag instance for unit tests.
 
@@ -145,10 +146,12 @@ def create_test_bag(
         assert bag.strength == 0.8
     """
     if bag_cls is None:
+
         class _DefaultTestBag(Bag):
-            bg_color:  str  = prop('#ffffff', label='Background Color')
-            font_size: int  = prop(12, min=8, max=72, label='Font Size')
-            verbose:   bool = prop(False, label='Verbose Mode')
+            bg_color: str = prop("#ffffff", label="Background Color")
+            font_size: int = prop(12, min=8, max=72, label="Font Size")
+            verbose: bool = prop(False, label="Verbose Mode")
+
         bag_cls = _DefaultTestBag
 
     registry = create_test_settings_registry(predefined_settings=predefined_global)
@@ -175,19 +178,19 @@ class SettingsTestContext:
         # Original settings restored automatically
     """
 
-    def __init__(self, registry: 'GlobalSettingsRegistry'):
+    def __init__(self, registry: "GlobalSettingsRegistry"):
         self.registry = registry
         self._original_values: dict = {}
 
-    def __enter__(self) -> 'SettingsTestContext':
+    def __enter__(self) -> "SettingsTestContext":
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for name, original in self._original_values.items():
             if original is None or original.mode == SettingMode.AUTO:
-                self.registry.reset_global(name, tier='workspace')
+                self.registry.reset_global(name, tier="workspace")
             else:
-                self.registry.set_global(name, original.value, original.mode, tier='workspace')
+                self.registry.set_global(name, original.value, original.mode, tier="workspace")
         return False
 
     def set(self, name: str, value: Any) -> None:

@@ -1,7 +1,7 @@
 import threading
 from typing import TypeVar, Generic, Callable, List, Optional, Iterator
 
-T = TypeVar('T')
+T = TypeVar("T")
 H = Callable[[T], None]
 
 
@@ -113,7 +113,7 @@ class Event(Generic[T]):
     def has_observers(self) -> bool:
         """
         Fast check if there are any registered event handlers.
-        
+
         Returns:
             bool: True if there are observers, False otherwise.
         """
@@ -208,7 +208,7 @@ class Event(Generic[T]):
         Custom method to remove the _event_trigger from the state when pickling.
         """
         state = self.__dict__.copy()
-        state['_event_trigger'] = None  # Exclude the event trigger from pickling
+        state["_event_trigger"] = None  # Exclude the event trigger from pickling
         return state
 
     def __setstate__(self, state):

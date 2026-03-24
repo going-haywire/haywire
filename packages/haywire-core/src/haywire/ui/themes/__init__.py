@@ -15,9 +15,9 @@ from haywire.ui.themes.decorator import theme
 from haywire.ui.themes.icons import ICONS
 
 __all__ = [
-    'WorkbenchTheme',
-    'NodeTheme',
-    'ThemeRegistry',
-    'theme',
-    'ICONS',
+    "WorkbenchTheme",
+    "NodeTheme",
+    "ThemeRegistry",
+    "theme",
+    "ICONS",
 ]

@@ -12,8 +12,8 @@ from .decorator import editor
 from .registry import EditorTypeRegistry
 
 __all__ = [
-    'EditorIdentity',
-    'BaseEditor',
-    'editor',
-    'EditorTypeRegistry',
+    "EditorIdentity",
+    "BaseEditor",
+    "editor",
+    "EditorTypeRegistry",
 ]

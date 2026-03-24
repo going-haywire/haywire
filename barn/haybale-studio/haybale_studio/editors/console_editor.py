@@ -35,11 +35,11 @@ class _LogHandler(logging.Handler):
 
 
 @editor(
-    registry_id='console',
-    label='Console',
-    icon='terminal',
-    default_area='bottom',
-    description='Application log output. Captures Python logging messages.',
+    registry_id="console",
+    label="Console",
+    icon="terminal",
+    default_area="bottom",
+    description="Application log output. Captures Python logging messages.",
 )
 class ConsoleEditor(BaseEditor):
     """
@@ -53,19 +53,21 @@ class ConsoleEditor(BaseEditor):
         self._log_element = None
         self._handler: _LogHandler | None = None
 
-    def render(self, container, context: 'SessionContext') -> None:
+    def render(self, container, context: "SessionContext") -> None:
         with container:
-            self._log_element = ui.log(max_lines=500).classes(
-                'w-full h-full font-mono text-xs p-2'
-            ).style('background: var(--hw-console-bg); color: var(--hw-console-text);')
+            self._log_element = (
+                ui.log(max_lines=500)
+                .classes("w-full h-full font-mono text-xs p-2")
+                .style("background: var(--hw-console-bg); color: var(--hw-console-text);")
+            )
         self._handler = _LogHandler(self._log_element)
         self._handler.setFormatter(
-            logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s', datefmt='%H:%M:%S')
+            logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S")
         )
         logging.getLogger().addHandler(self._handler)
-        logging.getLogger().info('Console editor connected.')
+        logging.getLogger().info("Console editor connected.")
 
-    def on_context_changed(self, event: 'ContextChangedEvent', context: 'SessionContext') -> None:
+    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
         pass  # Console does not react to context changes
 
     def cleanup(self) -> None:

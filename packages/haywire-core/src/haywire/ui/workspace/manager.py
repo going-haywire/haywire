@@ -10,9 +10,16 @@ import logging
 from pathlib import Path
 
 from haywire.ui.workspace.workspace_state import (
-    WorkspaceState, AreaState, MiddleAreaState, TabState,
-    _K_GRAPH_EDITOR, _K_LIBRARY_BROWSER, _K_LIBRARY_DETAIL,
-    _K_PROPERTIES, _K_CONSOLE, _K_FILE_VIEWER,
+    WorkspaceState,
+    AreaState,
+    MiddleAreaState,
+    TabState,
+    _K_GRAPH_EDITOR,
+    _K_LIBRARY_BROWSER,
+    _K_LIBRARY_DETAIL,
+    _K_PROPERTIES,
+    _K_CONSOLE,
+    _K_FILE_VIEWER,
 )
 
 
@@ -40,9 +47,9 @@ class WorkspaceManager:
             left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=True, size=250),
             middle=MiddleAreaState(
                 tabs=[
-                    TabState(editor_key=_K_GRAPH_EDITOR,   label='Graph'),
-                    TabState(editor_key=_K_LIBRARY_DETAIL, label='Library'),
-                    TabState(editor_key=_K_FILE_VIEWER,    label='File'),
+                    TabState(editor_key=_K_GRAPH_EDITOR, label="Graph"),
+                    TabState(editor_key=_K_LIBRARY_DETAIL, label="Library"),
+                    TabState(editor_key=_K_FILE_VIEWER, label="File"),
                 ],
                 active_tab_index=0,
                 bottom_visible=False,
@@ -56,9 +63,9 @@ class WorkspaceManager:
             left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=True, size=250),
             middle=MiddleAreaState(
                 tabs=[
-                    TabState(editor_key=_K_GRAPH_EDITOR,   label='Graph'),
-                    TabState(editor_key=_K_LIBRARY_DETAIL, label='Library'),
-                    TabState(editor_key=_K_FILE_VIEWER,    label='File'),
+                    TabState(editor_key=_K_GRAPH_EDITOR, label="Graph"),
+                    TabState(editor_key=_K_LIBRARY_DETAIL, label="Library"),
+                    TabState(editor_key=_K_FILE_VIEWER, label="File"),
                 ],
                 active_tab_index=0,
                 bottom_visible=True,
@@ -74,9 +81,9 @@ class WorkspaceManager:
             left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=False, size=250),
             middle=MiddleAreaState(
                 tabs=[
-                    TabState(editor_key=_K_GRAPH_EDITOR,   label='Graph'),
-                    TabState(editor_key=_K_LIBRARY_DETAIL, label='Library'),
-                    TabState(editor_key=_K_FILE_VIEWER,    label='File'),
+                    TabState(editor_key=_K_GRAPH_EDITOR, label="Graph"),
+                    TabState(editor_key=_K_LIBRARY_DETAIL, label="Library"),
+                    TabState(editor_key=_K_FILE_VIEWER, label="File"),
                 ],
                 active_tab_index=0,
                 bottom_visible=True,
@@ -133,30 +140,30 @@ class WorkspaceManager:
     @staticmethod
     def _deserialize_workspace(state_dict: dict) -> WorkspaceState:
         """Reconstruct a WorkspaceState from a plain dict (from JSON)."""
-        left_d = state_dict.get('left', {})
-        right_d = state_dict.get('right', {})
-        middle_d = state_dict.get('middle', {})
-        tabs_data = middle_d.get('tabs', [])
+        left_d = state_dict.get("left", {})
+        right_d = state_dict.get("right", {})
+        middle_d = state_dict.get("middle", {})
+        tabs_data = middle_d.get("tabs", [])
         tabs = [TabState(**t) for t in tabs_data] if tabs_data else [TabState()]
         middle = MiddleAreaState(
             tabs=tabs,
-            active_tab_index=middle_d.get('active_tab_index', 0),
-            bottom_visible=middle_d.get('bottom_visible', False),
-            bottom_size=middle_d.get('bottom_size', 200),
-            bottom_editor_key=middle_d.get('bottom_editor_key', 'console'),
+            active_tab_index=middle_d.get("active_tab_index", 0),
+            bottom_visible=middle_d.get("bottom_visible", False),
+            bottom_size=middle_d.get("bottom_size", 200),
+            bottom_editor_key=middle_d.get("bottom_editor_key", "console"),
         )
         return WorkspaceState(
-            name=state_dict.get('name', 'Unnamed'),
-            left_bar_active=state_dict.get('left_bar_active'),
+            name=state_dict.get("name", "Unnamed"),
+            left_bar_active=state_dict.get("left_bar_active"),
             left=AreaState(**left_d) if left_d else AreaState(),
             middle=middle,
-            right_bar_active=state_dict.get('right_bar_active'),
+            right_bar_active=state_dict.get("right_bar_active"),
             right=AreaState(**right_d) if right_d else AreaState(),
         )
 
     def _load_user_presets(self, project_path: Path) -> None:
         """Load saved workspace presets from project .haywire/ folder."""
-        preset_file = project_path / '.haywire' / 'workspaces.json'
+        preset_file = project_path / ".haywire" / "workspaces.json"
         if preset_file.exists():
             try:
                 data = json.loads(preset_file.read_text())
@@ -169,9 +176,9 @@ class WorkspaceManager:
         """Save workspace presets to project .haywire/ folder."""
         if not self._project_path:
             return
-        preset_dir = self._project_path / '.haywire'
+        preset_dir = self._project_path / ".haywire"
         preset_dir.mkdir(parents=True, exist_ok=True)
-        preset_file = preset_dir / 'workspaces.json'
+        preset_file = preset_dir / "workspaces.json"
         data = {}
         for name, ws in self.presets.items():
             data[name] = asdict(ws)

@@ -16,11 +16,11 @@ if False:  # TYPE_CHECKING
 
 
 @panel(
-    registry_id='node_settings_bags',
-    editor='properties',
-    scope='settings',
-    label='Node Settings',
-    icon='tune',
+    registry_id="node_settings_bags",
+    editor="properties",
+    scope="settings",
+    label="Node Settings",
+    icon="tune",
     order=10,
     default_open=True,
 )
@@ -28,30 +28,34 @@ class NodeSettingsBagsPanel(BasePanel):
     """Discovers and renders all user-defined settings bags on the selected node."""
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         node = context.active_node
         return (
             node is not None
-            and hasattr(node, 'node')
+            and hasattr(node, "node")
             and node.node is not None
             and bool(node.node.list_setting_bags())
         )
 
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         node = context.active_node
-        if node is None or not hasattr(node, 'node') or node.node is None:
+        if node is None or not hasattr(node, "node") or node.node is None:
             return
 
         bags = node.node.list_setting_bags()
         if not bags:
-            layout.label('No settings bags found.')
+            layout.label("No settings bags found.")
             return
 
         for bag_name, bag in bags.items():
-            header = bag_name.replace('_', ' ').title()
-            with ui.expansion(header, value=True).classes('w-full').props(
-                'dense dense-toggle'
-                ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
-                ' px-2 py-0 min-h-[24px]"'
+            header = bag_name.replace("_", " ").title()
+            with (
+                ui.expansion(header, value=True)
+                .classes("w-full")
+                .props(
+                    "dense dense-toggle"
+                    ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
+                    ' px-2 py-0 min-h-[24px]"'
+                )
             ):
                 render_reactive(bag)

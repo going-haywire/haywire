@@ -11,7 +11,8 @@ from .identity import WidgetIdentity
 #    Decorator
 # ============================================================================
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
@@ -57,22 +58,20 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
         @widget(description="Error display widget", _is_error=True)
         class ErrorWidget(BaseWidget): ...
     """
+
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, IWidget):
-            raise TypeError(
-                f"@widget can only be applied to BaseWidget subclasses, "
-                f"got {inner_cls}"
-            )
+            raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
 
-        if 'compatible_types' not in kwargs:
+        if "compatible_types" not in kwargs:
             raise ValueError("'compatible_types' must be provided when registering a widget")
-        
-        if not isinstance(kwargs['compatible_types'], (set, list)):
-            raise TypeError("'compatible_types' must be a set or list of type classes")
-        
-        types = kwargs['compatible_types']
 
-        # However, we allow no type constraints. 
+        if not isinstance(kwargs["compatible_types"], (set, list)):
+            raise TypeError("'compatible_types' must be a set or list of type classes")
+
+        types = kwargs["compatible_types"]
+
+        # However, we allow no type constraints.
         # This has to be explicit by setting an empty set/list.
 
         for typ in types:
@@ -80,15 +79,15 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
                 raise TypeError(f"All 'compatible_types' must be subclasses of IType, got '{typ}'")
 
         # Set defaults from class name if not provided
-        kwargs.setdefault('registry_id', inner_cls.__name__)
-        kwargs.setdefault('label', inner_cls.__name__)
+        kwargs.setdefault("registry_id", inner_cls.__name__)
+        kwargs.setdefault("label", inner_cls.__name__)
 
         # Get library identity (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
         library_id = library_identity.id if library_identity else None
-        kwargs['registry_key'] = reg_key(library_id, 'widget', kwargs['registry_id'])
+        kwargs["registry_key"] = reg_key(library_id, "widget", kwargs["registry_id"])
 
         # Create and attach identity and library
         inner_cls.class_identity = WidgetIdentity(**kwargs)

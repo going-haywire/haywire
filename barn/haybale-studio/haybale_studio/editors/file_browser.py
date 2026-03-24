@@ -24,11 +24,11 @@ if TYPE_CHECKING:
 
 
 @editor(
-    registry_id='file_browser',
-    label='Files',
-    icon='folder',
-    default_area='left',
-    description='Project file tree. Click a file to open it in the middle area.',
+    registry_id="file_browser",
+    label="Files",
+    icon="folder",
+    default_area="left",
+    description="Project file tree. Click a file to open it in the middle area.",
 )
 class FileBrowserEditor(BaseEditor):
     """
@@ -39,75 +39,81 @@ class FileBrowserEditor(BaseEditor):
     Everything else → FILE_SELECTED event sent to file_viewer tab.
     """
 
-    _EXCLUDE_DIRS: frozenset = frozenset({
-        '__pycache__', '.venv', 'venv', 'node_modules', 'dist', 'build', '.git',
-    })
-    _GRAPH_EXTS: frozenset = frozenset({'.haywire'})
+    _EXCLUDE_DIRS: frozenset = frozenset(
+        {
+            "__pycache__",
+            ".venv",
+            "venv",
+            "node_modules",
+            "dist",
+            "build",
+            ".git",
+        }
+    )
+    _GRAPH_EXTS: frozenset = frozenset({".haywire"})
     _ICON_MAP: dict = {
-        '.haywire': 'account_tree',
-        '.py': 'code',
-        '.json': 'data_object',
-        '.toml': 'settings',
-        '.md': 'description',
-        '.yaml': 'tune',
-        '.yml': 'tune',
-        '.txt': 'text_snippet',
-        '.sh': 'terminal',
+        ".haywire": "account_tree",
+        ".py": "code",
+        ".json": "data_object",
+        ".toml": "settings",
+        ".md": "description",
+        ".yaml": "tune",
+        ".yml": "tune",
+        ".txt": "text_snippet",
+        ".sh": "terminal",
     }
 
     def __init__(self):
         self._root_path: Optional[Path] = None
         self._tree_container = None
 
-    def render(self, container, context: 'SessionContext') -> None:
+    def render(self, container, context: "SessionContext") -> None:
         app = context.app
-        if app and hasattr(app, 'workspace_root'):
+        if app and hasattr(app, "workspace_root"):
             self._root_path = Path(app.workspace_root)
 
         with container:
-            with ui.column().classes('w-full h-full gap-0'):
+            with ui.column().classes("w-full h-full gap-0"):
                 # Header
-                with ui.row().classes(
-                    'w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1'
-                ):
-                    ui.icon('folder_open', size='16px').classes('hw-text-dim')
-                    name = self._root_path.name if self._root_path else 'No project'
-                    ui.label(name).classes('text-sm font-medium hw-text-body truncate flex-1')
+                with ui.row().classes("w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1"):
+                    ui.icon("folder_open", size="16px").classes("hw-text-dim")
+                    name = self._root_path.name if self._root_path else "No project"
+                    ui.label(name).classes("text-sm font-medium hw-text-body truncate flex-1")
                     ui.button(
-                        icon='refresh',
+                        icon="refresh",
                         on_click=lambda: self._refresh(context),
-                    ).props('flat round dense size=xs color=grey').tooltip('Refresh tree')
+                    ).props("flat round dense size=xs color=grey").tooltip("Refresh tree")
 
                 # Scrollable tree area
-                with ui.scroll_area().classes('flex-1 w-full'):
-                    self._tree_container = ui.column().classes('w-full p-1 gap-0')
+                with ui.scroll_area().classes("flex-1 w-full"):
+                    self._tree_container = ui.column().classes("w-full p-1 gap-0")
                     self._render_tree(context)
 
-    def _render_tree(self, context: 'SessionContext') -> None:
+    def _render_tree(self, context: "SessionContext") -> None:
         if self._tree_container is None:
             return
         self._tree_container.clear()
 
         if self._root_path is None or not self._root_path.exists():
             with self._tree_container:
-                ui.label('No project loaded').classes('text-xs hw-text-dim p-2')
+                ui.label("No project loaded").classes("text-xs hw-text-dim p-2")
             return
 
         nodes = self._build_tree_nodes(self._root_path)
         if not nodes:
             with self._tree_container:
-                ui.label('Project folder is empty').classes('text-xs hw-text-dim p-2')
+                ui.label("Project folder is empty").classes("text-xs hw-text-dim p-2")
             return
 
         with self._tree_container:
             tree = ui.tree(
                 nodes,
-                label_key='label',
-                node_key='id',
+                label_key="label",
+                node_key="id",
                 on_select=lambda e: self._on_select(e.value, context),
-            ).classes('w-full text-sm')
-            #tree.collapse()
-            tree.expand(['graphs'])  # expand root level
+            ).classes("w-full text-sm")
+            # tree.collapse()
+            tree.expand(["graphs"])  # expand root level
 
     def _build_tree_nodes(self, path: Path, depth: int = 0) -> list:
         """Recursively build ui.tree node dicts from the filesystem."""
@@ -121,19 +127,19 @@ class FileBrowserEditor(BaseEditor):
             )
             for entry in entries:
                 # Skip hidden except the .haywire config dir
-                if entry.name.startswith('.') and entry.name != '.haywire':
+                if entry.name.startswith(".") and entry.name != ".haywire":
                     continue
                 if entry.is_dir() and entry.name in self._EXCLUDE_DIRS:
                     continue
-                node: dict = {'id': str(entry), 'label': entry.name}
+                node: dict = {"id": str(entry), "label": entry.name}
                 if entry.is_dir():
-                    node['children'] = self._build_tree_nodes(entry, depth + 1)
+                    node["children"] = self._build_tree_nodes(entry, depth + 1)
                 items.append(node)
         except PermissionError:
             pass
         return items
 
-    def _on_select(self, node_id: Optional[str], context: 'SessionContext') -> None:
+    def _on_select(self, node_id: Optional[str], context: "SessionContext") -> None:
         if not node_id:
             return
         path = Path(node_id)
@@ -147,12 +153,12 @@ class FileBrowserEditor(BaseEditor):
         else:
             self._open_in_file_viewer(path, context)
 
-    def _open_graph_file(self, path: Path, context: 'SessionContext') -> None:
+    def _open_graph_file(self, path: Path, context: "SessionContext") -> None:
         """Load a .haywire graph file and switch to the graph editor tab."""
-        app: 'HaywireApp' = context.app
+        app: "HaywireApp" = context.app
         session = context.session
 
-        if app is not None and hasattr(app, 'open_graph_file') and session is not None:
+        if app is not None and hasattr(app, "open_graph_file") and session is not None:
             # Detach from whichever graph this session is currently viewing
             if context.active_graph_path is not None:
                 prev_entry = app.graph_manager.get_by_path(context.active_graph_path)
@@ -172,39 +178,39 @@ class FileBrowserEditor(BaseEditor):
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                    source_editor='file_browser',
+                    source_editor="file_browser",
                     detail=entry,
                 )
             )
-        elif app is not None and hasattr(app, '_do_load_graph'):
+        elif app is not None and hasattr(app, "_do_load_graph"):
             # Fallback for backward compat (loads into shared untitled graph)
             app._do_load_graph(str(path))
 
-        self._switch_middle_tab('studio:editor:graph_editor', context)
+        self._switch_middle_tab("studio:editor:graph_editor", context)
 
-    def _open_in_file_viewer(self, path: Path, context: 'SessionContext') -> None:
+    def _open_in_file_viewer(self, path: Path, context: "SessionContext") -> None:
         """Switch to the file_viewer tab and broadcast FILE_SELECTED."""
-        self._switch_middle_tab('studio:editor:file_viewer', context)
+        self._switch_middle_tab("studio:editor:file_viewer", context)
         session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.FILE_SELECTED,
-                    source_editor='file_browser',
+                    source_editor="file_browser",
                     detail=path,
                 )
             )
 
-    def _switch_middle_tab(self, editor_id: str, context: 'SessionContext') -> None:
-        tabs = context.metadata.get('middle_tabs')
+    def _switch_middle_tab(self, editor_id: str, context: "SessionContext") -> None:
+        tabs = context.metadata.get("middle_tabs")
         if tabs is not None:
             try:
                 tabs.set_value(editor_id)
             except Exception:
                 pass
 
-    def _refresh(self, context: 'SessionContext') -> None:
+    def _refresh(self, context: "SessionContext") -> None:
         self._render_tree(context)
 
-    def on_context_changed(self, event: '_CE', context: 'SessionContext') -> None:
+    def on_context_changed(self, event: "_CE", context: "SessionContext") -> None:
         pass  # FileBrowserEditor does not react to context changes

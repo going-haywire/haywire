@@ -38,18 +38,18 @@ from .context import (
 class HaywireModule(Module):
     """
     Main DI module for Haywire system.
-    
+
     This module provides singleton instances of all core registries,
     factories, and services used throughout the Haywire system.
     """
-    
+
     def __init__(
         self,
         workspace_root: Optional[str] = None,
         library_paths: Optional[List[str]] = None,
         enable_file_watching: bool = True,
         settings_path: Optional[str] = None,
-        watch_settings: bool = True
+        watch_settings: bool = True,
     ):
         """
         Initialize the DI module.
@@ -71,11 +71,11 @@ class HaywireModule(Module):
         if settings_path:
             self.settings_path = Path(settings_path).expanduser().resolve()
         else:
-            self.settings_path = Path.home() / '.haywire' / 'settings.toml'
+            self.settings_path = Path.home() / ".haywire" / "settings.toml"
 
         # Library paths must be explicitly provided by the app or test config.
         # The framework does not assume a particular workspace layout.
-    
+
     @provider
     @singleton
     def provide_settings_registry(self) -> GlobalSettingsRegistry:
@@ -91,15 +91,15 @@ class HaywireModule(Module):
         registry = GlobalSettingsRegistry()
 
         # Global tier — hand-edited by user, never overwritten by the app
-        registry.load_from_toml(self.settings_path, tier='global', watch=self.watch_settings)
+        registry.load_from_toml(self.settings_path, tier="global", watch=self.watch_settings)
 
         # Workspace tier — managed by the UI, saved via registry.save_to_toml()
-        workspace_settings = Path(self.workspace_root) / '.haywire' / 'settings.toml'
-        registry.load_from_toml(workspace_settings, tier='workspace', watch=self.watch_settings)
+        workspace_settings = Path(self.workspace_root) / ".haywire" / "settings.toml"
+        registry.load_from_toml(workspace_settings, tier="workspace", watch=self.watch_settings)
 
         set_settings_registry(registry)
         return registry
-    
+
     @provider
     @singleton
     def provide_library_registry(self) -> LibraryRegistry:
@@ -108,10 +108,10 @@ class HaywireModule(Module):
 
         # Core libraries are not used (loaded via pip entry points instead)
         library_registry.load_core_libraries = False
-        
+
         # Enable pip package discovery (priority 2 & 3)
         library_registry.load_pip_packages = True
-        
+
         # Add all configured library paths (priority 4)
         for path in self.library_paths:
             library_registry.add_library_root_path(path)
@@ -121,31 +121,31 @@ class HaywireModule(Module):
             library_registry.enable_file_watching(debounce_delay=0.5, force=True)
 
         return library_registry
-    
+
     @provider
     @singleton
     def provide_widget_registry(self) -> WidgetRegistry:
         """Provide singleton WidgetRegistry."""
         return WidgetRegistry()
-    
+
     @provider
     @singleton
     def provide_adapter_registry(self) -> AdapterRegistry:
         """Provide singleton AdapterRegistry."""
         return AdapterRegistry()
-    
+
     @provider
     @singleton
     def provide_skin_registry(self) -> SkinRegistry:
         """Provide singleton SkinRegistry."""
         return SkinRegistry()
-    
+
     @provider
     @singleton
     def provide_node_registry(self) -> NodeRegistry:
         """Provide singleton NodeRegistry."""
         return NodeRegistry()
-    
+
     @provider
     @singleton
     def provide_type_registry(self) -> TypeRegistry:
@@ -169,7 +169,7 @@ class HaywireModule(Module):
     def provide_panel_registry(self) -> PanelRegistry:
         """Provide singleton PanelRegistry."""
         return PanelRegistry()
-                
+
     @provider
     @singleton
     def provide_node_factory(self, node_registry: NodeRegistry) -> NodeFactory:
@@ -177,18 +177,15 @@ class HaywireModule(Module):
         factory = NodeFactory(node_registry)
         set_node_factory(factory)
         return factory
-    
+
     @provider
     @singleton
-    def provide_adapter_factory(
-        self,
-        adapter_registry: AdapterRegistry
-    ) -> AdapterFactory:
+    def provide_adapter_factory(self, adapter_registry: AdapterRegistry) -> AdapterFactory:
         """Provide AdapterFactory for creating adapter chains."""
         factory = AdapterFactory(adapter_registry)
         set_adapter_factory(factory)
         return factory
-    
+
     @provider
     @singleton
     def provide_widget_factory(self, widget_registry: WidgetRegistry) -> WidgetFactory:
@@ -198,13 +195,11 @@ class HaywireModule(Module):
     @provider
     @singleton
     def provide_skin_factory(
-        self,
-        skin_registry: SkinRegistry,
-        widget_factory: WidgetFactory
+        self, skin_registry: SkinRegistry, widget_factory: WidgetFactory
     ) -> SkinFactory:
         """Provide SkinFactory."""
         return SkinFactory(skin_registry, widget_factory)
-    
+
     @provider
     @singleton
     def provide_theme_registry(self) -> ThemeRegistry:
@@ -218,13 +213,13 @@ class HaywireModule(Module):
     def _detect_project_root(self) -> str:
         """Auto-detect project root by looking for pyproject.toml."""
         current_dir = Path(__file__).parent
-        
+
         # Walk up the directory tree looking for pyproject.toml
         while current_dir != current_dir.parent:
-            if (current_dir / 'pyproject.toml').exists():
+            if (current_dir / "pyproject.toml").exists():
                 return str(current_dir)
             current_dir = current_dir.parent
-        
+
         # Fallback to current working directory
         return os.getcwd()
 
@@ -232,36 +227,36 @@ class HaywireModule(Module):
 class LibrarySystemService:
     """
     Service that handles library system initialization and provides easy access to components.
-    
+
     This service encapsulates the complexity of setting up the library discovery system
     and loading all libraries into the appropriate registries.
     """
-    
+
     def __init__(self, injector: Injector):
         """
         Initialize with DI injector.
-        
+
         Args:
             injector: The configured DI injector
         """
         self.injector = injector
         self._initialized = False
-    
-    def initialize(self) -> 'LibrarySystemService':
+
+    def initialize(self) -> "LibrarySystemService":
         """
         Initialize the library system by loading all libraries.
-        
+
         Returns:
             Self for method chaining
         """
         if self._initialized:
             return self
-        
+
         print("=" * 70)
         print("Initializing Haywire Library System")
         print("=" * 70)
         logging.basicConfig(level=logging.INFO)
-        
+
         # Get all required services from DI — order matters for ambient context:
         # TypeRegistry and GlobalSettingsRegistry are used by BaseNode constructors,
         # NodeFactory by NodeWrapper, AdapterFactory by EdgeWrapper. All four must be
@@ -276,9 +271,9 @@ class LibrarySystemService:
         settings_registry = self.injector.get(GlobalSettingsRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
         editor_registry = self.injector.get(EditorTypeRegistry)
-        panel_registry  = self.injector.get(PanelRegistry)
-        self.injector.get(NodeFactory)      # sets ambient context for NodeWrapper
-        self.injector.get(AdapterFactory)   # sets ambient context for EdgeWrapper
+        panel_registry = self.injector.get(PanelRegistry)
+        self.injector.get(NodeFactory)  # sets ambient context for NodeWrapper
+        self.injector.get(AdapterFactory)  # sets ambient context for EdgeWrapper
 
         # Link registries to library registry for management
         library_registry.add_class_registry(WidgetRegistry, widget_registry)
@@ -309,18 +304,18 @@ class LibrarySystemService:
 
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()
-        
+
         print("\n⚡ Enabling libraries...")
         library_registry.enable_all_libraries()
 
         # Print detailed library discovery results
         self._print_library_discovery_results()
-        
+
         # Print registry status
         print("\n📋 Registry Status:")
         print("-" * 70)
         self.print_registry_status()
-        
+
         # Print settings status
         print("\n⚙️  Settings Status:")
         print("-" * 70)
@@ -330,16 +325,16 @@ class LibrarySystemService:
         print("\n" + "=" * 70)
         print("✅ Library system initialized successfully!")
         print("=" * 70 + "\n")
-        
+
         return self
-    
+
     def _print_settings_status(self, registry: GlobalSettingsRegistry) -> None:
         """Print settings registry status."""
         from ..settings import SettingMode
-        
+
         definitions = registry.all_definitions()
         categories = registry.definitions_by_category()
-        
+
         # Count overrides and custom values
         overrides = 0
         custom_values = 0
@@ -349,59 +344,62 @@ class LibrarySystemService:
                 overrides += 1
             elif sv.mode == SettingMode.SET:
                 custom_values += 1
-        
+
         print(f"   Total settings:     {len(definitions)}")
         print(f"   Categories:         {len(categories)}")
         print(f"   Custom values:      {custom_values}")
         print(f"   Global overrides:   {overrides}")
         print(f"   Global tier:        {registry._global_path}")
         print(f"   Workspace tier:     {registry._workspace_path}")
-        print(f"   File watching:      "
-              f"global={'on' if registry._global_watch_enabled else 'off'}, "
-              f"workspace={'on' if registry._workspace_watch_enabled else 'off'}")
-        
+        print(
+            f"   File watching:      "
+            f"global={'on' if registry._global_watch_enabled else 'off'}, "
+            f"workspace={'on' if registry._workspace_watch_enabled else 'off'}"
+        )
+
         # List categories
         print("\n   Categories:")
         for cat_name, defns in sorted(categories.items()):
             print(f"      • {cat_name}: {len(defns)} settings")
-    
+
     def _print_library_discovery_results(self) -> None:
         """Print detailed information about discovered libraries."""
         library_registry = self.injector.get(LibraryRegistry)
-        
+
         print("\n📊 Library Discovery Results:")
         print("-" * 70)
-        
+
         # List all loaded libraries
         loaded_libraries = library_registry.list_names()
-        
+
         if not loaded_libraries:
             print("⚠️  No libraries loaded!")
             return
-        
+
         print(f"\n✅ Loaded {len(loaded_libraries)} libraries:\n")
-        
+
         for lib_id in loaded_libraries:
             identity = library_registry.get_library_identity(lib_id)
             source = library_registry.get_library_source(lib_id)
             install_type = library_registry.get_library_install_type(lib_id)
             enabled = library_registry.is_library_enabled(lib_id)
-            
+
             # Determine how the library was added
             install_method = "❓ Unknown"
             if install_type:
                 from haywire.core.library.discovery import InstallType
+
                 if install_type == InstallType.REGULAR:
                     install_method = "📦 Pip (regular install)"
                 elif install_type == InstallType.EDITABLE:
                     install_method = "🔗 Pip (editable install)"
                 elif install_type == InstallType.FOLDER:
                     # Determine if it's core or search path
-                    if source and 'src/haywire/libraries' in source:
+                    if source and "src/haywire/libraries" in source:
                         install_method = "⭐ Core library"
                     else:
                         install_method = "📁 Search path"
-            
+
             status = "✓" if enabled else "✗"
             print(f"  {status} {identity.label}")
             print(f"      ID:             {lib_id}")
@@ -411,20 +409,20 @@ class LibrarySystemService:
             print(f"      Source:         {source}")
             print(f"      Install Method: {install_method}")
             print()
-        
+
         print("-" * 70)
-        
+
         # Test entry point discovery directly
         print("\n🔍 Entry Point Discovery:")
         print("-" * 70)
-        
+
         from haywire.core.library.discovery import LibraryDiscovery
-        
+
         discovered = LibraryDiscovery.discover_installed_libraries()
-        
+
         if discovered:
             print(f"\n✅ Found {len(discovered)} libraries via entry points:\n")
-            
+
             for lib_info in discovered:
                 print(f"  • {lib_info.identity.label} ({lib_info.identity.id})")
                 print(f"      Type: {lib_info.install_type.value}")
@@ -435,9 +433,9 @@ class LibrarySystemService:
         else:
             print("ℹ️  No libraries found via entry points")
             print("   (This is normal if libraries aren't pip installed)")
-        
+
         print("-" * 70)
-    
+
     def print_registry_status(self) -> None:
         """Print the status of all registries in a beautiful format."""
         adapter_registry = self.injector.get(AdapterRegistry)
@@ -448,7 +446,7 @@ class LibrarySystemService:
         editor_registry = self.injector.get(EditorTypeRegistry)
         panel_registry = self.injector.get(PanelRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
-        settings_registry = self.injector.get(GlobalSettingsRegistry)
+        self.injector.get(GlobalSettingsRegistry)
         library_registry = self.injector.get(LibraryRegistry)
 
         print("\n=== Registry Status ===")
@@ -515,7 +513,7 @@ class LibrarySystemService:
         all_panels = panel_registry.list_names()
         for panel_key in all_panels:
             cls = panel_registry.get(panel_key)
-            scope_str = ', '.join(cls.class_identity.scope) if cls else '?'
+            scope_str = ", ".join(cls.class_identity.scope) if cls else "?"
             print(f"   • {panel_key}  [{scope_str}]")
 
         # Print registered themes
@@ -534,47 +532,47 @@ class LibrarySystemService:
             f"{len(all_editors)} editors, {len(all_panels)} panels, "
             f"{len(all_workbench_themes) + len(all_node_themes)} themes "
         )
-    
+
     # =========================================================================
     # Convenience methods for getting common services
     # =========================================================================
-    
+
     def get_node_registry(self) -> NodeRegistry:
         """Get the node registry."""
         return self.injector.get(NodeRegistry)
-    
+
     def get_skin_registry(self) -> SkinRegistry:
         """Get the skin registry."""
         return self.injector.get(SkinRegistry)
-    
+
     def get_widget_registry(self) -> WidgetRegistry:
         """Get the widget registry."""
         return self.injector.get(WidgetRegistry)
-    
+
     def get_adapter_registry(self) -> AdapterRegistry:
         """Get the adapter registry."""
         return self.injector.get(AdapterRegistry)
-    
+
     def get_type_registry(self) -> TypeRegistry:
         """Get the type registry."""
         return self.injector.get(TypeRegistry)
-    
+
     def get_library_registry(self) -> LibraryRegistry:
         """Get the library registry."""
         return self.injector.get(LibraryRegistry)
-    
+
     def get_node_factory(self) -> NodeFactory:
         """Get the node factory."""
         return self.injector.get(NodeFactory)
-    
+
     def get_adapter_factory(self) -> AdapterFactory:
         """Get the adapter factory."""
         return self.injector.get(AdapterFactory)
-    
+
     def get_skin_factory(self) -> SkinFactory:
         """Get the skin factory."""
         return self.injector.get(SkinFactory)
-    
+
     def get_theme_registry(self) -> ThemeRegistry:
         """Get the theme registry."""
         return self.injector.get(ThemeRegistry)
@@ -590,51 +588,52 @@ class LibrarySystemService:
     def get_editor_registry(self) -> EditorTypeRegistry:
         """Get the editor type registry."""
         return self.injector.get(EditorTypeRegistry)
-    
+
     # =========================================================================
     # Settings convenience methods
     # =========================================================================
-    
+
     def get_setting(self, name: str) -> any:
         """
         Get a resolved setting value.
-        
+
         Args:
             name: Setting name (e.g., 'ui.node.bg_color')
-            
+
         Returns:
             Resolved value
         """
         registry = self.get_settings_registry()
         value, _ = registry.resolve(name)
         return value
-    
+
     def set_setting(self, name: str, value: any, override: bool = False) -> None:
         """
         Set a global setting value.
-        
+
         Args:
             name: Setting name
             value: Value to set
             override: If True, force this value on all nodes
         """
         from ..settings import SettingMode
+
         registry = self.get_settings_registry()
         mode = SettingMode.OVERRIDE if override else SettingMode.SET
         registry.set_global(name, value, mode)
-    
+
     def save_settings(self) -> None:
         """Save current settings to TOML file."""
         registry = self.get_settings_registry()
         registry.save_to_toml()
-    
+
     def reload_settings(self) -> None:
         """Reload settings from both TOML tiers."""
         registry = self.get_settings_registry()
         if registry._global_path and registry._global_path.exists():
-            registry._reload_from_file(registry._global_path, tier='global')
+            registry._reload_from_file(registry._global_path, tier="global")
         if registry._workspace_path and registry._workspace_path.exists():
-            registry._reload_from_file(registry._workspace_path, tier='workspace')
+            registry._reload_from_file(registry._workspace_path, tier="workspace")
 
 
 def create_haywire_injector(
@@ -642,7 +641,7 @@ def create_haywire_injector(
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = True,
     settings_path: Optional[str] = None,
-    watch_settings: bool = True
+    watch_settings: bool = True,
 ) -> Injector:
     """
     Create and configure a Haywire DI injector.
@@ -663,7 +662,7 @@ def create_haywire_injector(
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         settings_path=settings_path,
-        watch_settings=watch_settings
+        watch_settings=watch_settings,
     )
 
     return Injector([module])
@@ -674,7 +673,7 @@ def create_library_system_service(
     library_paths: Optional[List[str]] = None,
     enable_file_watching: bool = True,
     settings_path: Optional[str] = None,
-    watch_settings: bool = True
+    watch_settings: bool = True,
 ) -> LibrarySystemService:
     """
     Create and initialize a complete library system service.
@@ -698,12 +697,12 @@ def create_library_system_service(
         library_paths=library_paths,
         enable_file_watching=enable_file_watching,
         settings_path=settings_path,
-        watch_settings=watch_settings
+        watch_settings=watch_settings,
     )
-    
+
     service = LibrarySystemService(injector)
     service.initialize()
-    
+
     return service
 
 
@@ -718,9 +717,9 @@ _global_library_system: Optional[LibrarySystemService] = None
 def set_global_injector(injector: Injector) -> None:
     """
     Set the global DI injector.
-    
+
     This should be called during application initialization.
-    
+
     Args:
         injector: The configured injector to use globally
     """
@@ -731,9 +730,9 @@ def set_global_injector(injector: Injector) -> None:
 def set_library_system(service: LibrarySystemService | None) -> None:
     """
     Set the global LibrarySystemService.
-    
+
     Should be called during application initialization.
-    
+
     Args:
         service: The initialized LibrarySystemService (or None to clear)
     """
@@ -745,22 +744,21 @@ def set_library_system(service: LibrarySystemService | None) -> None:
 def get_library_system() -> LibrarySystemService:
     """
     Get the global LibrarySystemService.
-    
+
     Returns:
         LibrarySystemService instance
-        
+
     Raises:
         RuntimeError: If not initialized
     """
     if _global_library_system is None:
         raise RuntimeError(
-            "LibrarySystemService not initialized. "
-            "Call set_library_system() during app startup."
+            "LibrarySystemService not initialized. Call set_library_system() during app startup."
         )
     return _global_library_system
 
 
-def get_theme_registry() -> 'ThemeRegistry':
+def get_theme_registry() -> "ThemeRegistry":
     """Get the ThemeRegistry from the global library system."""
     return get_library_system().get_theme_registry()
 
@@ -768,12 +766,12 @@ def get_theme_registry() -> 'ThemeRegistry':
 def get_settings_registry() -> GlobalSettingsRegistry:
     """
     Get the GlobalSettingsRegistry from the global library system.
-    
+
     Convenience function for quick access to settings.
-    
+
     Returns:
         GlobalSettingsRegistry instance
-        
+
     Raises:
         RuntimeError: If library system not initialized
     """
@@ -783,15 +781,15 @@ def get_settings_registry() -> GlobalSettingsRegistry:
 def get_setting(name: str) -> any:
     """
     Get a resolved setting value.
-    
+
     Convenience function for quick access to settings.
-    
+
     Args:
         name: Setting name (e.g., 'ui.node.bg_color')
-        
+
     Returns:
         Resolved value
-        
+
     Raises:
         RuntimeError: If library system not initialized
         KeyError: If setting not found
@@ -802,15 +800,13 @@ def get_setting(name: str) -> any:
 def get_adapter_factory() -> AdapterFactory:
     """
     Get the AdapterFactory from the global injector.
-    
+
     Returns:
         AdapterFactory instance
-        
+
     Raises:
         RuntimeError: If global injector not set
     """
     if _global_injector is None:
-        raise RuntimeError(
-            "Global injector not set. Call set_global_injector() first."
-        )
+        raise RuntimeError("Global injector not set. Call set_global_injector() first.")
     return _global_injector.get(AdapterFactory)

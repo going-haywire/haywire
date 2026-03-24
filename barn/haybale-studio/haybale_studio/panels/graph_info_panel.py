@@ -11,32 +11,32 @@ if False:  # TYPE_CHECKING
 
 
 @panel(
-    registry_id='graph_info',
-    editor='properties',
-    scope='graph',
-    label='Graph Info',
-    icon='account_tree',
+    registry_id="graph_info",
+    editor="properties",
+    scope="graph",
+    label="Graph Info",
+    icon="account_tree",
     order=10,
 )
 class GraphInfoPanel(BasePanel):
     """Displays node and edge counts for the active graph."""
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         return context.active_graph is not None
 
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         graph = context.active_graph
         if graph is None:
             return
         try:
-            nodes = getattr(graph, 'nodes', {})
-            edges = getattr(graph, 'edges', {})
-            node_count = len(nodes) if hasattr(nodes, '__len__') else '?'
-            edge_count = len(edges) if hasattr(edges, '__len__') else '?'
+            nodes = getattr(graph, "nodes", {})
+            edges = getattr(graph, "edges", {})
+            node_count = len(nodes) if hasattr(nodes, "__len__") else "?"
+            edge_count = len(edges) if hasattr(edges, "__len__") else "?"
             layout.label(f"Nodes: {node_count}")
             layout.label(f"Edges: {edge_count}")
-            graph_name = getattr(graph, 'name', None) or getattr(graph, 'graph_id', '?')
+            graph_name = getattr(graph, "name", None) or getattr(graph, "graph_id", "?")
             layout.label(f"Graph: {graph_name}")
         except Exception:
-            layout.label('Error reading graph info')
+            layout.label("Error reading graph info")

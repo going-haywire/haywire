@@ -14,10 +14,10 @@ from .registry import PanelRegistry
 from .scope import ScopeDescriptor
 
 __all__ = [
-    'PanelIdentity',
-    'BasePanel',
-    'PanelLayout',
-    'panel',
-    'PanelRegistry',
-    'ScopeDescriptor',
+    "PanelIdentity",
+    "BasePanel",
+    "PanelLayout",
+    "panel",
+    "PanelRegistry",
+    "ScopeDescriptor",
 ]

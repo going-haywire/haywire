@@ -17,7 +17,7 @@ def _find_git_root(start: Path) -> Path | None:
     """Walk up from *start* to find the nearest .git directory."""
     current = start.resolve()
     while current != current.parent:
-        if (current / '.git').exists():
+        if (current / ".git").exists():
             return current
         current = current.parent
     return None
@@ -27,7 +27,7 @@ def _get_remote_url(git_root: Path) -> str | None:
     """Get the origin remote URL, or None if unavailable."""
     try:
         result = subprocess.run(
-            ['git', 'remote', 'get-url', 'origin'],
+            ["git", "remote", "get-url", "origin"],
             cwd=str(git_root),
             capture_output=True,
             text=True,
@@ -45,10 +45,10 @@ def _ssh_to_https(url: str) -> str:
     git@github.com:user/repo.git  →  https://github.com/user/repo.git
     git@gitlab.com:user/repo.git  →  https://gitlab.com/user/repo.git
     """
-    match = re.match(r'^git@([^:]+):(.+)$', url)
+    match = re.match(r"^git@([^:]+):(.+)$", url)
     if match:
         host, path = match.groups()
-        return f'https://{host}/{path}'
+        return f"https://{host}/{path}"
     return url
 
 
@@ -57,7 +57,7 @@ def _read_library_label(module_dir: Path, fallback: str) -> str:
 
     Falls back to *fallback* if the file is missing or the field can't be found.
     """
-    init_file = module_dir / '__init__.py'
+    init_file = module_dir / "__init__.py"
     if not init_file.exists():
         return fallback
     content = init_file.read_text()
@@ -71,11 +71,11 @@ def _find_module_dir(lib_dir: Path) -> Path | None:
     Checks flat layout (lib_dir/<module>/__init__.py) and src layout
     (lib_dir/src/<module>/__init__.py).  Returns the first match, or None.
     """
-    for search_root in (lib_dir, lib_dir / 'src'):
+    for search_root in (lib_dir, lib_dir / "src"):
         if not search_root.is_dir():
             continue
         for child in sorted(search_root.iterdir()):
-            if child.is_dir() and (child / '__init__.py').exists():
+            if child.is_dir() and (child / "__init__.py").exists():
                 return child
     return None
 
@@ -87,16 +87,13 @@ def _detect_library() -> Path:
     If multiple exist, print them and exit with usage hint.
     If none exist, print an error and exit.
     """
-    barn_dir = Path.cwd() / 'barn'
+    barn_dir = Path.cwd() / "barn"
     if not barn_dir.is_dir():
         print("Error: No barn/ directory found in the current project.")
         print("Are you running this from a haywire project root?")
         sys.exit(1)
 
-    candidates = [
-        d for d in sorted(barn_dir.iterdir())
-        if d.is_dir() and (d / 'pyproject.toml').exists()
-    ]
+    candidates = [d for d in sorted(barn_dir.iterdir()) if d.is_dir() and (d / "pyproject.toml").exists()]
 
     if not candidates:
         print("Error: No libraries found in barn/.")
@@ -125,22 +122,22 @@ def share_library(library_path: str | None):
         print(f"Error: '{library_path}' is not a directory.")
         sys.exit(1)
 
-    pyproject_path = lib_dir / 'pyproject.toml'
+    pyproject_path = lib_dir / "pyproject.toml"
     if not pyproject_path.exists():
         print(f"Error: No pyproject.toml found in '{library_path}'.")
         sys.exit(1)
 
     # Read metadata
     data = toml.loads(pyproject_path.read_text())
-    project = data.get('project', {})
+    project = data.get("project", {})
 
-    name = project.get('name', lib_dir.name)
-    version = project.get('version', '0.0.0')
-    description = project.get('description', '')
-    tags = project.get('keywords', [])
+    name = project.get("name", lib_dir.name)
+    version = project.get("version", "0.0.0")
+    description = project.get("description", "")
+    tags = project.get("keywords", [])
 
-    authors = project.get('authors', [])
-    author = authors[0].get('name', '') if authors else ''
+    authors = project.get("authors", [])
+    author = authors[0].get("name", "") if authors else ""
 
     # Detect git remote
     git_root = _find_git_root(lib_dir)
@@ -152,55 +149,57 @@ def share_library(library_path: str | None):
     if remote_url:
         https_url = _ssh_to_https(remote_url)
         # Strip trailing .git for cleaner URLs
-        https_url = https_url.removesuffix('.git')
+        https_url = https_url.removesuffix(".git")
         subdirectory = lib_dir.relative_to(git_root)
-        install_spec = f'{name} @ git+{https_url}.git#subdirectory={subdirectory}'
+        install_spec = f"{name} @ git+{https_url}.git#subdirectory={subdirectory}"
     else:
         print("Warning: No git remote found. Using placeholder URL.\n")
-        subdirectory = lib_dir.relative_to(Path.cwd()) if lib_dir.is_relative_to(Path.cwd()) else lib_dir.name
-        install_spec = f'{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}'
+        subdirectory = (
+            lib_dir.relative_to(Path.cwd()) if lib_dir.is_relative_to(Path.cwd()) else lib_dir.name
+        )
+        install_spec = f"{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}"
 
     # Read human-readable label from the @library decorator (falls back to derived name)
     module_dir = _find_module_dir(lib_dir)
-    label_fallback = name.removeprefix('haybale-').replace('-', ' ').replace('_', ' ').title()
+    label_fallback = name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
     label = _read_library_label(module_dir, label_fallback) if module_dir else label_fallback
 
     # Build docs_url — raw URL pointing to the Python package directory
     # (where OVERVIEW.md and docs/ live).  Only meaningful for GitHub/GitLab.
-    docs_url = ''
+    docs_url = ""
     if remote_url and module_dir:
         # https_url already computed above (stripped .git suffix)
         module_rel = module_dir.relative_to(git_root)
-        if 'github.com' in https_url:
-            raw_base = https_url.replace('github.com', 'raw.githubusercontent.com')
-            docs_url = f'{raw_base}/main/{module_rel}/'
-        elif 'gitlab.com' in https_url:
-            docs_url = f'{https_url}/-/raw/main/{module_rel}/'
+        if "github.com" in https_url:
+            raw_base = https_url.replace("github.com", "raw.githubusercontent.com")
+            docs_url = f"{raw_base}/main/{module_rel}/"
+        elif "gitlab.com" in https_url:
+            docs_url = f"{https_url}/-/raw/main/{module_rel}/"
 
     # Build TOML snippet
     entry = {
-        'name': name,
-        'label': label,
-        'version': version,
-        'description': description,
-        'author': author,
-        'source': 'git',
-        'install_spec': install_spec,
-        'tags': tags,
-        'source_url': https_url if remote_url else '',
-        'docs_url': docs_url,
+        "name": name,
+        "label": label,
+        "version": version,
+        "description": description,
+        "author": author,
+        "source": "git",
+        "install_spec": install_spec,
+        "tags": tags,
+        "source_url": https_url if remote_url else "",
+        "docs_url": docs_url,
     }
 
     # Format as TOML array-of-tables entry
-    lines = ['[[packages]]']
+    lines = ["[[packages]]"]
     for key, value in entry.items():
         if isinstance(value, list):
-            formatted = '[' + ', '.join(f'"{v}"' for v in value) + ']'
-            lines.append(f'{key} = {formatted}')
+            formatted = "[" + ", ".join(f'"{v}"' for v in value) + "]"
+            lines.append(f"{key} = {formatted}")
         else:
             lines.append(f'{key} = "{value}"')
 
-    snippet = '\n'.join(lines)
+    snippet = "\n".join(lines)
 
     print("# Copy this snippet into a marketplace.toml:\n")
     print(snippet)

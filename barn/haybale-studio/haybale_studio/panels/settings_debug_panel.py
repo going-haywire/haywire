@@ -19,11 +19,11 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id='settings_debug',
-    editor='properties',
-    scope='debug',
-    label='Debug',
-    icon='bug_report',
+    registry_id="settings_debug",
+    editor="properties",
+    scope="debug",
+    label="Debug",
+    icon="bug_report",
     order=10,
     default_open=True,
 )
@@ -31,10 +31,11 @@ class DebugSettingsPanel(BasePanel):
     """Logging, execution visibility, visual debugging and data inspection."""
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         return True
 
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haybale_studio.settings.debug import DebugSettings
+
         registry = context.app.library_service.get_settings_registry()
         render_schema(DebugSettings, registry)

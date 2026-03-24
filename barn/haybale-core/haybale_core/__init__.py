@@ -20,18 +20,19 @@ from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 from haywire.ui.skin.registry import SkinRegistry
 
+
 @library(
-    label='Haywire Core',
-    id='core',
-    version='1.0.0',
-    description='Core Haywire library with fundamental components',
-    url='https://github.com/maybites/haywire',
-    help_url='https://github.com/maybites/haywire',
-    author='maybites',
-    author_url='https://maybites.ch',
+    label="Haywire Core",
+    id="core",
+    version="1.0.0",
+    description="Core Haywire library with fundamental components",
+    url="https://github.com/maybites/haywire",
+    help_url="https://github.com/maybites/haywire",
+    author="maybites",
+    author_url="https://maybites.ch",
     dependencies=[],
-    tags=['core', 'types', 'widgets', 'skins'],
-    file_watcher=False
+    tags=["core", "types", "widgets", "skins"],
+    file_watcher=False,
 )
 class Library(BaseLibrary):
     """Core Haywire library implementation"""
@@ -42,60 +43,34 @@ class Library(BaseLibrary):
         """Register nodes and custom types"""
         base_path = Path(__file__).parent
 
-        # Register settings 
+        # Register settings
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'settings'),
-            registry_cls=GlobalSettingsRegistry
+            folder_path=str(base_path / "settings"), registry_cls=GlobalSettingsRegistry
         )
- 
+
         # Register themes (workbench and node themes)
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'themes'),
-            registry_cls=ThemeRegistry
-        )
+        self.add_folder_to_registry(folder_path=str(base_path / "themes"), registry_cls=ThemeRegistry)
 
         # Register types (both variants and custom types)
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'types'),
-            registry_cls=TypeRegistry
-        )
+        self.add_folder_to_registry(folder_path=str(base_path / "types"), registry_cls=TypeRegistry)
 
         # Register adapters (now includes data types)
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'adapters'),
-            registry_cls=AdapterRegistry
-        )
-        
+        self.add_folder_to_registry(folder_path=str(base_path / "adapters"), registry_cls=AdapterRegistry)
+
         # Register widgets
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'widgets'),
-            registry_cls=WidgetRegistry
-        )
-                
+        self.add_folder_to_registry(folder_path=str(base_path / "widgets"), registry_cls=WidgetRegistry)
+
         # Register skins (node skins)
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'skins'),
-            registry_cls=SkinRegistry
-        )
+        self.add_folder_to_registry(folder_path=str(base_path / "skins"), registry_cls=SkinRegistry)
 
         # Register nodes
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'nodes'),
-            registry_cls=NodeRegistry
-        )
+        self.add_folder_to_registry(folder_path=str(base_path / "nodes"), registry_cls=NodeRegistry)
 
         # Register nodes
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'panels'),
-            registry_cls=PanelRegistry
-        )
+        self.add_folder_to_registry(folder_path=str(base_path / "panels"), registry_cls=PanelRegistry)
 
         # Register nodes
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'editors'),
-            registry_cls=EditorTypeRegistry
-        )
-
+        self.add_folder_to_registry(folder_path=str(base_path / "editors"), registry_cls=EditorTypeRegistry)
 
     def validate(self) -> bool:
         """Validate that the core library is properly structured"""

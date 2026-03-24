@@ -19,11 +19,11 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id='settings_execution',
-    editor='properties',
-    scope='execution',
-    label='Execution',
-    icon='play_circle',
+    registry_id="settings_execution",
+    editor="properties",
+    scope="execution",
+    label="Execution",
+    icon="play_circle",
     order=10,
     default_open=True,
 )
@@ -31,10 +31,11 @@ class ExecutionSettingsPanel(BasePanel):
     """Auto-execute, timeouts, parallelism, caching and error handling."""
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         return True
 
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haybale_studio.settings.execution import ExecutionSettings
+
         registry = context.app.library_service.get_settings_registry()
         render_schema(ExecutionSettings, registry)

@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class LibraryIdentity:
     """Metadata for a Haywire library"""
+
     label: str
     version: str
     description: str

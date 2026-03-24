@@ -19,12 +19,14 @@ from .identity import EditorIdentity
 
 
 def editor(
-    cls=None, /, *,
+    cls=None,
+    /,
+    *,
     registry_id: Optional[str] = None,
     label: Optional[str] = None,
-    icon: str = 'extension',
-    default_area: str = 'middle',
-    description: str = '',
+    icon: str = "extension",
+    default_area: str = "middle",
+    description: str = "",
 ):
     """
     Decorator to mark a class as an editor type.
@@ -56,18 +58,17 @@ def editor(
         class GraphEditor(BaseEditor):
             ...
     """
+
     def decorator(inner_cls):
         if not issubclass(inner_cls, BaseEditor):
-            raise TypeError(
-                f"@editor can only be applied to BaseEditor subclasses, got {inner_cls}"
-            )
+            raise TypeError(f"@editor can only be applied to BaseEditor subclasses, got {inner_cls}")
 
         _registry_id = registry_id or inner_cls.__name__
         _label = label or inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id if library_identity else None
-        _registry_key = reg_key(library_id, 'editor', _registry_id)
+        _registry_key = reg_key(library_id, "editor", _registry_id)
 
         inner_cls.class_identity = EditorIdentity(
             registry_id=_registry_id,

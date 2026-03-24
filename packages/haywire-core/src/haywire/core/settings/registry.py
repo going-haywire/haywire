@@ -36,16 +36,16 @@ logger = logging.getLogger(__name__)
 
 # Framework identity used when registering built-in schema classes
 FRAMEWORK_IDENTITY = LibraryIdentity(
-    label='haywire-core',
-    version='0.0.0',
-    description='Haywire framework built-in settings',
-    url='',
-    help_url='',
-    author='Haywire',
-    author_url='',
-    id='haywire-core',
-    module_name='haywire',
-    folder_path='',
+    label="haywire-core",
+    version="0.0.0",
+    description="Haywire framework built-in settings",
+    url="",
+    help_url="",
+    author="Haywire",
+    author_url="",
+    id="haywire-core",
+    module_name="haywire",
+    folder_path="",
 )
 
 
@@ -74,24 +74,24 @@ class GlobalSettingsRegistry(BaseRegistry):
     """
 
     TYPE_MAP = {
-        'str': str,
-        'string': str,
-        'int': int,
-        'integer': int,
-        'float': float,
-        'bool': bool,
-        'boolean': bool,
-        'list': list,
-        'dict': dict,
+        "str": str,
+        "string": str,
+        "int": int,
+        "integer": int,
+        "float": float,
+        "bool": bool,
+        "boolean": bool,
+        "list": list,
+        "dict": dict,
     }
 
     TYPE_DEFAULTS = {
-        str: '',
+        str: "",
         int: 0,
         float: 0.0,
         bool: False,
-        list: list,   # factory
-        dict: dict,   # factory
+        list: list,  # factory
+        dict: dict,  # factory
     }
 
     def __init__(self):
@@ -130,11 +130,12 @@ class GlobalSettingsRegistry(BaseRegistry):
     def _class_filter(self, cls: Type) -> bool:
         """Accept LibrarySettings and GlobalSettings subclasses with class_identity."""
         from .schema import LibrarySettings, GlobalSettings
+
         return (
             isinstance(cls, type)
             and issubclass(cls, (LibrarySettings, GlobalSettings))
             and cls not in (LibrarySettings, GlobalSettings)
-            and hasattr(cls, 'class_identity')
+            and hasattr(cls, "class_identity")
         )
 
     def _register_class(self, cls: Type, library_identity: LibraryIdentity) -> str | None:
@@ -159,9 +160,11 @@ class GlobalSettingsRegistry(BaseRegistry):
         for _name, descriptor in schema_cls._prop_fields().items():
             if not descriptor._field_key:
                 continue
-            self._store_definition(descriptor._field_key, descriptor, category=descriptor._category or 'general')
+            self._store_definition(
+                descriptor._field_key, descriptor, category=descriptor._category or "general"
+            )
 
-    def _store_definition(self, name: str, descriptor: prop, category: str = 'general') -> None:
+    def _store_definition(self, name: str, descriptor: prop, category: str = "general") -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
         self._definitions[name] = descriptor
         if name not in self._global_tier_values:
@@ -199,15 +202,16 @@ class GlobalSettingsRegistry(BaseRegistry):
         Creates a class_identity from _namespace if not already present
         (needed for GlobalSettings built-ins that don't use @settings).
         """
-        if not hasattr(schema_cls, 'class_identity'):
+        if not hasattr(schema_cls, "class_identity"):
             from .decorator import SettingsClassIdentity
             from haywire.core.library.utils import derive_library_identity, reg_key
+
             ns = schema_cls._namespace
             lib = library_identity or derive_library_identity(schema_cls)
             library_id = lib.id if lib else None
             schema_cls.class_identity = SettingsClassIdentity(
                 namespace=ns,
-                registry_key=reg_key(library_id, 'settings', ns),
+                registry_key=reg_key(library_id, "settings", ns),
                 label=ns,
             )
         return self._register_class(schema_cls, library_identity or FRAMEWORK_IDENTITY)
@@ -232,9 +236,9 @@ class GlobalSettingsRegistry(BaseRegistry):
         when 'ui.node.bg_color' changes.
         """
         for key in changed_keys:
-            parts = key.split('.')
+            parts = key.split(".")
             for i in range(1, len(parts) + 1):
-                ns = '.'.join(parts[:i])
+                ns = ".".join(parts[:i])
                 dead: list[weakref.ref] = []
                 for cb_ref in self._namespace_subscribers.get(ns, []):
                     cb = cb_ref()
@@ -244,7 +248,7 @@ class GlobalSettingsRegistry(BaseRegistry):
                         try:
                             cb(key)
                         except Exception as e:
-                            logger.error(f'Namespace subscriber error for {key}: {e}')
+                            logger.error(f"Namespace subscriber error for {key}: {e}")
                 for ref in dead:
                     self._namespace_subscribers[ns].remove(ref)
 
@@ -252,7 +256,7 @@ class GlobalSettingsRegistry(BaseRegistry):
     # TOML Loading
     # =========================================================================
 
-    def load_from_toml(self, path: Path | str, tier: str = 'workspace', watch: bool = False) -> None:
+    def load_from_toml(self, path: Path | str, tier: str = "workspace", watch: bool = False) -> None:
         """
         Load setting values from a TOML file into the specified tier.
 
@@ -268,7 +272,7 @@ class GlobalSettingsRegistry(BaseRegistry):
 
         path = Path(path).expanduser().resolve()
 
-        if tier == 'global':
+        if tier == "global":
             self._global_path = path
         else:
             self._workspace_path = path
@@ -279,21 +283,21 @@ class GlobalSettingsRegistry(BaseRegistry):
             logger.info(f"Settings file not found, will create on save: {path}")
 
         if watch:
-            watch_flag = f'_{tier}_watch_enabled'
+            watch_flag = f"_{tier}_watch_enabled"
             if not getattr(self, watch_flag, False):
                 self._start_file_watcher(path, tier=tier)
                 setattr(self, watch_flag, True)
 
-    def _reload_from_file(self, path: Path, tier: str = 'workspace') -> None:
+    def _reload_from_file(self, path: Path, tier: str = "workspace") -> None:
         """Parse TOML and apply values into the specified tier dict."""
         try:
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 data = toml.load(f)
         except Exception as e:
             logger.error(f"Failed to parse settings file: {e}")
             return
 
-        tier_dict = self._workspace_tier_values if tier == 'workspace' else self._global_tier_values
+        tier_dict = self._workspace_tier_values if tier == "workspace" else self._global_tier_values
 
         with self._lock:
             # Snapshot effective values before change for change notification
@@ -323,7 +327,7 @@ class GlobalSettingsRegistry(BaseRegistry):
             self._notify_changes(old_effective)
             logger.info(f"Loaded {len(flat)} settings from {path} into {tier} tier")
 
-    def _flatten_toml(self, data: dict, prefix: str = '') -> dict[str, Any]:
+    def _flatten_toml(self, data: dict, prefix: str = "") -> dict[str, Any]:
         """
         Flatten nested TOML to dot-notation keys.
 
@@ -331,8 +335,18 @@ class GlobalSettingsRegistry(BaseRegistry):
         any of: 'value', 'override', 'default', 'type', 'mode'
         """
         result = {}
-        setting_keys = {'value', 'override', 'default', 'type', 'mode',
-                        'label', 'category', 'min_value', 'max_value', 'choices'}
+        setting_keys = {
+            "value",
+            "override",
+            "default",
+            "type",
+            "mode",
+            "label",
+            "category",
+            "min_value",
+            "max_value",
+            "choices",
+        }
 
         for key, value in data.items():
             full_key = f"{prefix}.{key}" if prefix else key
@@ -353,35 +367,42 @@ class GlobalSettingsRegistry(BaseRegistry):
             parsed = self._parse_config_dict(name, entry)
         else:
             parsed = {
-                'value': entry,
-                'mode': SettingMode.SET,
+                "value": entry,
+                "mode": SettingMode.SET,
             }
 
         if name not in self._definitions:
             self._auto_define(name, parsed)
 
-        if 'value' in parsed and parsed.get('mode') != SettingMode.AUTO:
-            tier_dict[name] = SettingValue(
-                mode=parsed.get('mode', SettingMode.SET),
-                value=parsed['value']
-            )
+        if "value" in parsed and parsed.get("mode") != SettingMode.AUTO:
+            tier_dict[name] = SettingValue(mode=parsed.get("mode", SettingMode.SET), value=parsed["value"])
 
     def _parse_config_dict(self, name: str, config: dict) -> dict:
         """Parse a configuration dict from TOML."""
         result = {}
 
-        if config.get('override', False):
-            result['mode'] = SettingMode.OVERRIDE
-        elif config.get('mode'):
-            result['mode'] = SettingMode[config['mode'].upper()]
+        if config.get("override", False):
+            result["mode"] = SettingMode.OVERRIDE
+        elif config.get("mode"):
+            result["mode"] = SettingMode[config["mode"].upper()]
         else:
-            result['mode'] = SettingMode.SET
+            result["mode"] = SettingMode.SET
 
-        if 'value' in config:
-            result['value'] = config['value']
+        if "value" in config:
+            result["value"] = config["value"]
 
-        for key in ['default', 'type', 'label', 'category', 'description',
-                    'min_value', 'max_value', 'choices', 'ui_widget', 'ui_order']:
+        for key in [
+            "default",
+            "type",
+            "label",
+            "category",
+            "description",
+            "min_value",
+            "max_value",
+            "choices",
+            "ui_widget",
+            "ui_order",
+        ]:
             if key in config:
                 result[key] = config[key]
 
@@ -389,47 +410,47 @@ class GlobalSettingsRegistry(BaseRegistry):
 
     def _auto_define(self, name: str, parsed: dict) -> None:
         """Auto-define a setting from TOML that doesn't exist in code."""
-        value = parsed.get('value', parsed.get('default'))
+        value = parsed.get("value", parsed.get("default"))
 
-        if 'type' in parsed:
-            type_ = self.TYPE_MAP.get(parsed['type'].lower(), str)
+        if "type" in parsed:
+            type_ = self.TYPE_MAP.get(parsed["type"].lower(), str)
         elif value is not None:
             type_ = type(value)
         else:
             type_ = str
 
-        if 'default' in parsed:
-            default = parsed['default']
+        if "default" in parsed:
+            default = parsed["default"]
         elif value is not None:
             default = value
         else:
-            default_factory = self.TYPE_DEFAULTS.get(type_, '')
+            default_factory = self.TYPE_DEFAULTS.get(type_, "")
             default = default_factory() if callable(default_factory) else default_factory
 
-        if 'label' in parsed:
-            label = parsed['label']
+        if "label" in parsed:
+            label = parsed["label"]
         else:
-            label = name.split('.')[-1].replace('_', ' ').title()
+            label = name.split(".")[-1].replace("_", " ").title()
 
-        if 'category' in parsed:
-            category = parsed['category']
+        if "category" in parsed:
+            category = parsed["category"]
         else:
-            parts = name.split('.')
-            category = '.'.join(parts[:-1]) if len(parts) > 1 else 'general'
+            parts = name.split(".")
+            category = ".".join(parts[:-1]) if len(parts) > 1 else "general"
 
         d = prop(
             default=default,
             type_=type_,
             label=label,
-            description=parsed.get('description', ''),
+            description=parsed.get("description", ""),
             category=category,
-            min=parsed.get('min_value'),
-            max=parsed.get('max_value'),
-            choices=parsed.get('choices'),
-            widget=parsed.get('ui_widget'),
-            order=parsed.get('ui_order', 0),
+            min=parsed.get("min_value"),
+            max=parsed.get("max_value"),
+            choices=parsed.get("choices"),
+            widget=parsed.get("ui_widget"),
+            order=parsed.get("ui_order", 0),
         )
-        d._attr_name = name.split('.')[-1]
+        d._attr_name = name.split(".")[-1]
         d._field_key = name
 
         self._toml_defined.add(name)
@@ -469,12 +490,10 @@ class GlobalSettingsRegistry(BaseRegistry):
         once the caller stops requesting saves for ``_SAVE_DEBOUNCE`` seconds.
         Useful during continuous interactions like drag-to-change widgets.
         """
-        timer = getattr(self, '_save_timer', None)
+        timer = getattr(self, "_save_timer", None)
         if timer is not None:
             timer.cancel()
-        self._save_timer = threading.Timer(
-            self._SAVE_DEBOUNCE, self.save_to_toml, args=(path,)
-        )
+        self._save_timer = threading.Timer(self._SAVE_DEBOUNCE, self.save_to_toml, args=(path,))
         self._save_timer.daemon = True
         self._save_timer.start()
 
@@ -503,20 +522,20 @@ class GlobalSettingsRegistry(BaseRegistry):
                 if sv.mode == SettingMode.SET:
                     entry = sv.value
                 else:
-                    entry = {'override': True, 'value': sv.value}
+                    entry = {"override": True, "value": sv.value}
 
                 self._set_nested(data, name, entry)
 
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             toml.dump(data, f)
 
         logger.info(f"Settings saved to {path}")
 
     def _set_nested(self, data: dict, name: str, value: Any) -> None:
         """Set a value in nested dict using dot-notation key."""
-        parts = name.split('.')
+        parts = name.split(".")
         current = data
         for part in parts[:-1]:
             if part not in current:
@@ -528,15 +547,14 @@ class GlobalSettingsRegistry(BaseRegistry):
     # File Watching
     # =========================================================================
 
-    def _start_file_watcher(self, path: Path, tier: str = 'workspace') -> None:
+    def _start_file_watcher(self, path: Path, tier: str = "workspace") -> None:
         """Watch a config file for changes and reload into the specified tier."""
         try:
             from watchdog.observers import Observer
             from watchdog.events import FileSystemEventHandler
         except ImportError:
             logger.warning(
-                "watchdog not installed, file watching disabled. "
-                "Install with: pip install watchdog"
+                "watchdog not installed, file watching disabled. Install with: pip install watchdog"
             )
             return
 
@@ -549,6 +567,7 @@ class GlobalSettingsRegistry(BaseRegistry):
 
             def on_modified(self, event):
                 import time
+
                 now = time.time()
                 if now - self._debounce_time < 0.5:
                     return
@@ -565,7 +584,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         observer.schedule(ConfigHandler(), str(path.parent), recursive=False)
         observer.start()
 
-        if tier == 'global':
+        if tier == "global":
             self._global_observer = observer
         else:
             self._workspace_observer = observer
@@ -574,7 +593,7 @@ class GlobalSettingsRegistry(BaseRegistry):
 
     def stop_watching(self) -> None:
         """Stop all file watchers."""
-        for attr in ('_global_observer', '_workspace_observer'):
+        for attr in ("_global_observer", "_workspace_observer"):
             observer = getattr(self, attr, None)
             if observer:
                 observer.stop()
@@ -614,7 +633,7 @@ class GlobalSettingsRegistry(BaseRegistry):
                 default=default,
                 type_=type_ or (type(default) if default is not None else str),
                 validator=validator,
-                label=label or name.split('.')[-1].replace('_', ' ').title(),
+                label=label or name.split(".")[-1].replace("_", " ").title(),
                 description=description,
                 category=category,
                 min=min_value,
@@ -623,7 +642,7 @@ class GlobalSettingsRegistry(BaseRegistry):
                 widget=ui_widget,
                 order=ui_order,
             )
-            d._attr_name = name.split('.')[-1]
+            d._attr_name = name.split(".")[-1]
             d._field_key = name
 
             self._store_definition(name, d, category=category)
@@ -678,14 +697,14 @@ class GlobalSettingsRegistry(BaseRegistry):
         """
         return self._effective_value(name)
 
-    def get_global_tier(self, name: str, tier: str = 'workspace') -> SettingValue:
+    def get_global_tier(self, name: str, tier: str = "workspace") -> SettingValue:
         """
         Get the raw SettingValue for a specific tier ('global' or 'workspace').
 
         Use this for introspection (e.g. get_info() UI display) when you need
         to distinguish which tier a value came from.
         """
-        if tier == 'global':
+        if tier == "global":
             return self._global_tier_values.get(name, SettingValue())
         return self._workspace_tier_values.get(name, SettingValue())
 
@@ -694,7 +713,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         name: str,
         value: Any,
         mode: SettingMode = SettingMode.SET,
-        tier: str = 'workspace',
+        tier: str = "workspace",
     ) -> None:
         """
         Set a global value programmatically.
@@ -705,7 +724,7 @@ class GlobalSettingsRegistry(BaseRegistry):
             mode:  SettingMode.SET (default) or SettingMode.OVERRIDE.
             tier:  'workspace' (default, saved by UI) or 'global' (hand-edited).
         """
-        tier_dict = self._workspace_tier_values if tier == 'workspace' else self._global_tier_values
+        tier_dict = self._workspace_tier_values if tier == "workspace" else self._global_tier_values
 
         with self._lock:
             if name not in self._definitions:
@@ -727,7 +746,7 @@ class GlobalSettingsRegistry(BaseRegistry):
                         logger.error(f"Listener error: {e}")
                 self._notify_namespace_subscribers({name})
 
-    def reset_global(self, name: str, tier: str = 'workspace') -> None:
+    def reset_global(self, name: str, tier: str = "workspace") -> None:
         """
         Reset a value to AUTO in the specified tier.
 
@@ -735,7 +754,7 @@ class GlobalSettingsRegistry(BaseRegistry):
             name: Full setting key.
             tier: 'workspace' (default) or 'global'.
         """
-        tier_dict = self._workspace_tier_values if tier == 'workspace' else self._global_tier_values
+        tier_dict = self._workspace_tier_values if tier == "workspace" else self._global_tier_values
 
         with self._lock:
             if name in tier_dict:
@@ -755,11 +774,7 @@ class GlobalSettingsRegistry(BaseRegistry):
     # Resolution
     # =========================================================================
 
-    def resolve(
-        self,
-        name: str,
-        local: SettingValue | None = None
-    ) -> tuple[Any, str]:
+    def resolve(self, name: str, local: SettingValue | None = None) -> tuple[Any, str]:
         """
         Resolve the final value for a setting given an optional local override.
 
@@ -784,21 +799,21 @@ class GlobalSettingsRegistry(BaseRegistry):
         local = local or SettingValue()
 
         if global_sv.mode == SettingMode.OVERRIDE:
-            return global_sv.value, 'global_override'
+            return global_sv.value, "global_override"
 
         if workspace_sv.mode == SettingMode.OVERRIDE:
-            return workspace_sv.value, 'workspace_override'
+            return workspace_sv.value, "workspace_override"
 
         if local.mode == SettingMode.SET:
-            return local.value, 'local'
+            return local.value, "local"
 
         if workspace_sv.mode == SettingMode.SET:
-            return workspace_sv.value, 'workspace'
+            return workspace_sv.value, "workspace"
 
         if global_sv.mode == SettingMode.SET:
-            return global_sv.value, 'global'
+            return global_sv.value, "global"
 
-        return defn._default, 'default'
+        return defn._default, "default"
 
     # =========================================================================
     # Listeners
@@ -832,10 +847,10 @@ class GlobalSettingsRegistry(BaseRegistry):
         empty dict when the schema has no namespace (i.e. has not been
         registered yet).
         """
-        ns = getattr(schema_cls, '_namespace', '')
+        ns = getattr(schema_cls, "_namespace", "")
         if not ns:
             return {}
-        prefix = ns + '.'
+        prefix = ns + "."
         return {key: defn for key, defn in self._definitions.items() if key.startswith(prefix)}
 
     def __iter__(self) -> Iterator[str]:

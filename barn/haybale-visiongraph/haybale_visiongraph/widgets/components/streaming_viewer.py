@@ -17,7 +17,7 @@ from nicegui import app
 from nicegui.element import Element
 
 
-class StreamingViewer(Element, component='opencv_viewer.js'):
+class StreamingViewer(Element, component="opencv_viewer.js"):
     """
     NiceGUI component for MJPEG streaming of numpy image arrays.
 
@@ -33,11 +33,11 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
     """
 
     def __init__(
-            self,
-            endpoint: str | None = None,
-            quality: int = 80,
-            frame_queue_size: int = 1,
-            block_on_full: bool = False,
+        self,
+        endpoint: str | None = None,
+        quality: int = 80,
+        frame_queue_size: int = 1,
+        block_on_full: bool = False,
     ):
         super().__init__()
 
@@ -46,7 +46,7 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
             endpoint_id = uuid.uuid4().hex[:8]
             endpoint = f"/stream/{endpoint_id}"
 
-        self._props['endpoint'] = endpoint
+        self._props["endpoint"] = endpoint
         self.endpoint = endpoint
         self.quality = quality
         self.frame_queue_size = frame_queue_size
@@ -84,6 +84,7 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
         try:
             while self._is_running:
                 try:
+
                     def get_with_timeout():
                         try:
                             return self._thread_queue.get(block=True, timeout=0.1)
@@ -136,7 +137,7 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
         import cv2
 
         try:
-            success, buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, self.quality])
+            success, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, self.quality])
             if not success:
                 return
             data = buf.tobytes()
@@ -185,8 +186,7 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
                         try:
                             async with self.cond:
                                 await asyncio.wait_for(
-                                    self.cond.wait_for(lambda: self.frame_id > last_id),
-                                    timeout=5.0
+                                    self.cond.wait_for(lambda: self.frame_id > last_id), timeout=5.0
                                 )
                                 last_id = self.frame_id
                                 frame = self.latest_frame
@@ -199,8 +199,7 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
                         yield (
                             boundary.encode() + b"\r\n"
                             b"Content-Type: image/jpeg\r\n"
-                            b"Content-Length: " + str(len(frame)).encode() + b"\r\n\r\n"
-                            + frame + b"\r\n"
+                            b"Content-Length: " + str(len(frame)).encode() + b"\r\n\r\n" + frame + b"\r\n"
                         )
 
                 except asyncio.CancelledError:
@@ -208,10 +207,7 @@ class StreamingViewer(Element, component='opencv_viewer.js'):
                 except Exception as e:
                     print(f"[StreamingViewer] Client stream error: {e}")
 
-            return StreamingResponse(
-                generator(),
-                media_type="multipart/x-mixed-replace; boundary=frame"
-            )
+            return StreamingResponse(generator(), media_type="multipart/x-mixed-replace; boundary=frame")
 
     def cleanup(self) -> None:
         """Clean up resources when widget is destroyed."""

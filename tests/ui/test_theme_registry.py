@@ -14,6 +14,7 @@ from haybale_testing.themes.node import TestNodeTheme
 # Helpers — fresh registry per test
 # ---------------------------------------------------------------------------
 
+
 def _make_registry() -> ThemeRegistry:
     r = ThemeRegistry()
     r.register_workbench(TestDarkTheme)
@@ -26,12 +27,12 @@ def _make_registry() -> ThemeRegistry:
 # Registration
 # ---------------------------------------------------------------------------
 
-class TestThemeRegistration:
 
+class TestThemeRegistration:
     def test_register_workbench(self):
         r = _make_registry()
         keys = r.list_workbench_keys()
-        assert TestDarkTheme.class_identity.registry_key  in keys
+        assert TestDarkTheme.class_identity.registry_key in keys
         assert TestLightTheme.class_identity.registry_key in keys
 
     def test_register_node_theme(self):
@@ -50,7 +51,8 @@ class TestThemeRegistration:
 
     def test_class_filter_rejects_undecorated(self):
         class _Bare(WorkbenchTheme):
-            bg_page = '#000'
+            bg_page = "#000"
+
         r = ThemeRegistry()
         assert r._class_filter(_Bare) is False
 
@@ -59,8 +61,8 @@ class TestThemeRegistration:
 # Typed accessors
 # ---------------------------------------------------------------------------
 
-class TestThemeAccessors:
 
+class TestThemeAccessors:
     def test_get_workbench_dark(self):
         r = _make_registry()
         t = r.get_workbench(TestDarkTheme.class_identity.registry_key)
@@ -74,7 +76,7 @@ class TestThemeAccessors:
     def test_get_workbench_unknown_raises(self):
         r = _make_registry()
         with pytest.raises(KeyError):
-            r.get_workbench('nonexistent')
+            r.get_workbench("nonexistent")
 
     def test_get_node_theme_default(self):
         r = _make_registry()
@@ -84,7 +86,7 @@ class TestThemeAccessors:
     def test_get_node_theme_unknown_raises(self):
         r = _make_registry()
         with pytest.raises(KeyError):
-            r.get_node_theme('nonexistent')
+            r.get_node_theme("nonexistent")
 
     def test_get_workbench_returns_fresh_instance(self):
         """Each call to get_workbench() returns a new instance."""
@@ -98,19 +100,19 @@ class TestThemeAccessors:
 # Custom theme registration
 # ---------------------------------------------------------------------------
 
-@theme(registry_id='custom-test', label='Custom Test')
+
+@theme(registry_id="custom-test", label="Custom Test")
 class _CustomTheme(WorkbenchTheme):
-    bg_page = '#abcdef'
-    accent  = '#123456'
+    bg_page = "#abcdef"
+    accent = "#123456"
 
 
-@theme(registry_id='custom-node-test', label='Custom Node Test')
+@theme(registry_id="custom-node-test", label="Custom Node Test")
 class _CustomNodeTheme(NodeTheme):
-    header_bg = '#aabbcc'
+    header_bg = "#aabbcc"
 
 
 class TestCustomThemeRegistration:
-
     def test_custom_workbench_accessible(self):
         r = ThemeRegistry()
         r.register_workbench(_CustomTheme)

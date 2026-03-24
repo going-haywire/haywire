@@ -20,11 +20,11 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id='settings_workbench',
-    editor='properties',
-    scope='app',
-    label='Workbench',
-    icon='palette',
+    registry_id="settings_workbench",
+    editor="properties",
+    scope="app",
+    label="Workbench",
+    icon="palette",
     order=10,
     default_open=True,
 )
@@ -32,22 +32,23 @@ class WorkbenchSettingsPanel(BasePanel):
     """Active workbench and node themes."""
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         return True
 
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haybale_studio.settings.workbench import WorkbenchSettings, NodeThemeSettings
+
         registry = context.app.library_service.get_settings_registry()
         render_schema(WorkbenchSettings, registry)
         render_schema(NodeThemeSettings, registry)
 
 
 @panel(
-    registry_id='settings_editor',
-    editor='properties',
-    scope='app',
-    label='Editor',
-    icon='edit',
+    registry_id="settings_editor",
+    editor="properties",
+    scope="app",
+    label="Editor",
+    icon="edit",
     order=20,
     default_open=False,
 )
@@ -55,10 +56,11 @@ class EditorSettingsPanel(BasePanel):
     """Undo, auto-save, interaction, clipboard and node-creation behaviour."""
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         return True
 
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haybale_studio.settings.editor import EditorSettings
+
         registry = context.app.library_service.get_settings_registry()
         render_schema(EditorSettings, registry)

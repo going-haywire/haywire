@@ -21,9 +21,9 @@ import toml
 
 def _sanitize_name(name: str) -> str:
     """Convert a name to a valid Python identifier suffix (mirrors init.py logic)."""
-    sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', name.lower())
+    sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", name.lower())
     if sanitized and sanitized[0].isdigit():
-        sanitized = '_' + sanitized
+        sanitized = "_" + sanitized
     return sanitized
 
 
@@ -35,40 +35,42 @@ def _set_decorator_list_field(content: str, field: str, values: list[str]) -> st
     include tags/dependencies) it is inserted just before ``file_watcher=``,
     or before the closing ``)`` of the decorator as a fallback.
     """
-    value_repr = repr(values)          # e.g. "['testing', 'development']"
+    value_repr = repr(values)  # e.g. "['testing', 'development']"
     # Match the existing field line: optional leading whitespace, field=[ … ],?
-    pattern = rf'([ \t]+{re.escape(field)}=)\[[^\]]*\],?'
+    pattern = rf"([ \t]+{re.escape(field)}=)\[[^\]]*\],?"
     if re.search(pattern, content):
-        return re.sub(pattern, rf'\g<1>{value_repr},', content)
+        return re.sub(pattern, rf"\g<1>{value_repr},", content)
     # Not present — insert before file_watcher= if it exists
-    insert_line = f'    {field}={value_repr},\n'
-    if '    file_watcher=' in content:
-        return content.replace('    file_watcher=', insert_line + '    file_watcher=', 1)
+    insert_line = f"    {field}={value_repr},\n"
+    if "    file_watcher=" in content:
+        return content.replace("    file_watcher=", insert_line + "    file_watcher=", 1)
     # Fallback: insert before the closing )\nclass line
-    return re.sub(r'(\n\)\nclass )', f'\n    {field}={value_repr},\g<1>', content, count=1)
+    return re.sub(r"(\n\)\nclass )", f"\n    {field}={value_repr},\g<1>", content, count=1)
 
 
 @dataclass
 class MarketplaceEntry:
     """A package available for installation from a marketplace manifest."""
-    name: str          # pip distribution name, e.g. "haybale-visiongraph"
+
+    name: str  # pip distribution name, e.g. "haybale-visiongraph"
     version: str
-    label: str = ''    # human-readable display name, e.g. "Visiongraph"
-    description: str = ''
-    author: str = ''
-    source: str = 'pypi'
-    install_spec: str = ''
+    label: str = ""  # human-readable display name, e.g. "Visiongraph"
+    description: str = ""
+    author: str = ""
+    source: str = "pypi"
+    install_spec: str = ""
     tags: list[str] = field(default_factory=list)
-    source_url: str = ''    # URL to the library's source (repo/subdirectory)
-    docs_url: str = ''      # Raw URL to OVERVIEW.md (or directory containing it)
-    source_label: str = ''  # "project", "official", "my-team" — which feed this came from
-    source_file: str = ''   # local file path the user can edit (always a local file)
-    source_origin: str = '' # remote URL if this entry was fetched via a [[sources]] URL
+    source_url: str = ""  # URL to the library's source (repo/subdirectory)
+    docs_url: str = ""  # Raw URL to OVERVIEW.md (or directory containing it)
+    source_label: str = ""  # "project", "official", "my-team" — which feed this came from
+    source_file: str = ""  # local file path the user can edit (always a local file)
+    source_origin: str = ""  # remote URL if this entry was fetched via a [[sources]] URL
 
 
 @dataclass
 class InstalledLibrary:
     """Summary info for an installed library."""
+
     library_id: str
     label: str
     version: str
@@ -79,9 +81,9 @@ class InstalledLibrary:
     source_path: str
     tags: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
-    distribution_name: str = ''  # Pip package name (e.g. "haybale-visiongraph")
-    url: str = ''
-    author_url: str = ''
+    distribution_name: str = ""  # Pip package name (e.g. "haybale-visiongraph")
+    url: str = ""
+    author_url: str = ""
 
 
 class LibraryManager:
@@ -98,9 +100,7 @@ class LibraryManager:
 
     def _detect_venv(self) -> str | None:
         """Detect the current virtual environment path."""
-        return sys.prefix if hasattr(sys, 'real_prefix') or (
-            sys.prefix != sys.base_prefix
-        ) else None
+        return sys.prefix if hasattr(sys, "real_prefix") or (sys.prefix != sys.base_prefix) else None
 
     def _run_uv(self, args: list[str]) -> subprocess.CompletedProcess:
         """Run a uv command and return the result."""
@@ -118,6 +118,7 @@ class LibraryManager:
 
         # Re-process .pth files so new editable installs appear on sys.path
         import site
+
         for sp in site.getsitepackages():
             if Path(sp).is_dir():
                 site.addsitedir(sp)
@@ -132,13 +133,15 @@ class LibraryManager:
 
     def _uv_cmd(self, args: list[str]) -> list[str]:
         """Build the full uv command list."""
-        cmd = ['uv', 'pip'] + args
+        cmd = ["uv", "pip"] + args
         if self.venv_path:
-            cmd.extend(['--python', str(Path(self.venv_path) / 'bin' / 'python')])
+            cmd.extend(["--python", str(Path(self.venv_path) / "bin" / "python")])
         return cmd
 
     async def _run_uv_streaming(
-        self, args: list[str], on_output: Callable[[str], None],
+        self,
+        args: list[str],
+        on_output: Callable[[str], None],
     ) -> tuple[bool, str]:
         """Run a uv command asynchronously, streaming output lines.
 
@@ -160,36 +163,40 @@ class LibraryManager:
             if len(last_lines) > 10:
                 last_lines.pop(0)
         await proc.wait()
-        return proc.returncode == 0, '\n'.join(last_lines)
+        return proc.returncode == 0, "\n".join(last_lines)
 
     async def install_streaming(
-        self, install_spec: str, on_output: Callable[[str], None],
+        self,
+        install_spec: str,
+        on_output: Callable[[str], None],
     ) -> tuple[bool, str]:
         """Install a package with live output streaming.
 
         Same logic as install() but non-blocking with per-line callbacks.
         """
         if Path(install_spec).is_dir():
-            args = ['install', '-e', install_spec]
+            args = ["install", "-e", install_spec]
         else:
-            args = ['install', install_spec]
+            args = ["install", install_spec]
 
         success, stderr = await self._run_uv_streaming(args, on_output)
         if not success:
             return False, f"Install failed: {stderr}"
 
-        on_output('Invalidating caches...')
+        on_output("Invalidating caches...")
         self._invalidate_caches()
 
-        on_output('Scanning for libraries...')
+        on_output("Scanning for libraries...")
         await asyncio.to_thread(self.registry.scan_for_libraries)
 
-        on_output('Enabling libraries...')
+        on_output("Enabling libraries...")
         self.registry.enable_all_libraries()
         return True, f"Installed: {install_spec}"
 
     async def uninstall_streaming(
-        self, library_id: str, on_output: Callable[[str], None],
+        self,
+        library_id: str,
+        on_output: Callable[[str], None],
     ) -> tuple[bool, str]:
         """Uninstall a library with live output streaming."""
         dist_name = self.registry.get_library_distribution_name(library_id)
@@ -199,15 +206,16 @@ class LibraryManager:
         self.registry.disable_library(library_id)
 
         success, stderr = await self._run_uv_streaming(
-            ['uninstall', dist_name], on_output,
+            ["uninstall", dist_name],
+            on_output,
         )
         if not success:
             return False, f"Uninstall failed: {stderr}"
 
-        on_output('Invalidating caches...')
+        on_output("Invalidating caches...")
         self._invalidate_caches()
 
-        on_output('Scanning for libraries...')
+        on_output("Scanning for libraries...")
         await asyncio.to_thread(self.registry.scan_for_libraries)
         return True, f"Uninstalled: {dist_name}"
 
@@ -226,24 +234,24 @@ class LibraryManager:
         `uv sync` to register the new entry point.
         """
         workspace = Path(workspace_root)
-        marketplace_path = workspace / '.haywire' / 'marketplace.toml'
+        marketplace_path = workspace / ".haywire" / "marketplace.toml"
 
         # --- 1. Validate new_name ---
         new_name = new_name.strip()
         if not new_name:
-            return False, 'New name cannot be empty.'
-        if '/' in new_name or '\\' in new_name or '..' in new_name:
-            return False, 'New name must not contain path separators.'
+            return False, "New name cannot be empty."
+        if "/" in new_name or "\\" in new_name or ".." in new_name:
+            return False, "New name must not contain path separators."
         sanitized = _sanitize_name(new_name)
         if not sanitized:
             return False, f'"{new_name}" produces an empty module name.'
 
-        new_lib_name = f'haybale-{new_name}'
-        new_module = f'haybale_{sanitized}'
+        new_lib_name = f"haybale-{new_name}"
+        new_module = f"haybale_{sanitized}"
 
-        dist_name = self.registry.get_library_distribution_name(library_id) or ''
+        dist_name = self.registry.get_library_distribution_name(library_id) or ""
         if new_lib_name.lower() == dist_name.lower():
-            return False, 'New name is the same as the current name.'
+            return False, "New name is the same as the current name."
 
         installed = self.list_installed()
         if any(lib.distribution_name.lower() == new_lib_name.lower() for lib in installed):
@@ -253,136 +261,136 @@ class LibraryManager:
             self.load_marketplace(str(marketplace_path)) if marketplace_path.exists() else []
         )
         if any(
-            pkg.name.lower() == new_lib_name.lower()
-            and pkg.name.lower() != dist_name.lower()
+            pkg.name.lower() == new_lib_name.lower() and pkg.name.lower() != dist_name.lower()
             for pkg in marketplace_entries
         ):
             return False, f'"{new_lib_name}" already exists in the marketplace.'
 
-        new_lib_dir = workspace / 'barn' /new_lib_name
+        new_lib_dir = workspace / "barn" / new_lib_name
         if new_lib_dir.exists():
             return False, f'Directory "{new_lib_dir}" already exists.'
 
         # --- 2. Derive old paths ---
         old_name_part = (
-            dist_name.removeprefix('haybale-') if dist_name.startswith('haybale-') else library_id
+            dist_name.removeprefix("haybale-") if dist_name.startswith("haybale-") else library_id
         )
-        old_module = f'haybale_{_sanitize_name(old_name_part)}'
-        old_lib_dir = workspace / 'barn' /dist_name
+        old_module = f"haybale_{_sanitize_name(old_name_part)}"
+        old_lib_dir = workspace / "barn" / dist_name
         old_pkg_dir = old_lib_dir / old_module
-        new_pkg_dir_tmp = old_lib_dir / new_module   # inside old lib dir before lib rename
-        new_label = new_name.replace('-', ' ').replace('_', ' ').title()
+        new_pkg_dir_tmp = old_lib_dir / new_module  # inside old lib dir before lib rename
+        new_label = new_name.replace("-", " ").replace("_", " ").title()
 
         # Resolve all identity values (new_identity overrides auto-generated defaults)
         _id = new_identity or {}
-        label_val = _id.get('label') or new_label
-        version_val = _id.get('version') or '0.1.0'
-        desc_val = _id.get('description') or f'Local library for {new_name} project'
-        url_val = _id.get('url', '')
-        author_val = _id.get('author', '')
-        author_url_val = _id.get('author_url', '')
-        tags_list = _id.get('tags') or []
-        deps_list = _id.get('dependencies') or []
+        label_val = _id.get("label") or new_label
+        version_val = _id.get("version") or "0.1.0"
+        desc_val = _id.get("description") or f"Local library for {new_name} project"
+        url_val = _id.get("url", "")
+        author_val = _id.get("author", "")
+        author_url_val = _id.get("author_url", "")
+        tags_list = _id.get("tags") or []
+        deps_list = _id.get("dependencies") or []
 
         # --- 3. Disable old library ---
-        on_output(f'Disabling {library_id}...')
+        on_output(f"Disabling {library_id}...")
         self.registry.disable_library(library_id)
 
         # --- 4. Rename module directory ---
-        on_output(f'Renaming module directory:  {old_module}  →  {new_module}')
+        on_output(f"Renaming module directory:  {old_module}  →  {new_module}")
         try:
             os.rename(old_pkg_dir, new_pkg_dir_tmp)
         except OSError as e:
-            return False, f'Failed to rename module directory: {e}'
+            return False, f"Failed to rename module directory: {e}"
 
         # --- 5. Update __init__.py ---
-        on_output('Updating __init__.py...')
+        on_output("Updating __init__.py...")
         try:
-            init_file = new_pkg_dir_tmp / '__init__.py'
+            init_file = new_pkg_dir_tmp / "__init__.py"
             content = init_file.read_text()
-            content = re.sub(r"(    id=')[^']*(')", rf'\g<1>{new_name}\2', content)
-            content = re.sub(r"(    label=')[^']*(')", rf'\g<1>{label_val}\2', content)
-            content = re.sub(r"(    version=')[^']*(')", rf'\g<1>{version_val}\2', content)
-            content = re.sub(r"(    description=')[^']*(')", rf'\g<1>{desc_val}\2', content)
-            content = re.sub(r"(    url=')[^']*(')", rf'\g<1>{url_val}\2', content)
-            content = re.sub(r"(    author=')[^']*(')", rf'\g<1>{author_val}\2', content)
-            content = re.sub(r"(    author_url=')[^']*(')", rf'\g<1>{author_url_val}\2', content)
-            content = _set_decorator_list_field(content, 'tags', tags_list)
-            content = _set_decorator_list_field(content, 'dependencies', deps_list)
+            content = re.sub(r"(    id=')[^']*(')", rf"\g<1>{new_name}\2", content)
+            content = re.sub(r"(    label=')[^']*(')", rf"\g<1>{label_val}\2", content)
+            content = re.sub(r"(    version=')[^']*(')", rf"\g<1>{version_val}\2", content)
+            content = re.sub(r"(    description=')[^']*(')", rf"\g<1>{desc_val}\2", content)
+            content = re.sub(r"(    url=')[^']*(')", rf"\g<1>{url_val}\2", content)
+            content = re.sub(r"(    author=')[^']*(')", rf"\g<1>{author_val}\2", content)
+            content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
+            content = _set_decorator_list_field(content, "tags", tags_list)
+            content = _set_decorator_list_field(content, "dependencies", deps_list)
             content = re.sub(
-                r'(Local haybale library for the )[^\n]*(\.)',
-                rf'\g<1>{new_name} project\2',
+                r"(Local haybale library for the )[^\n]*(\.)",
+                rf"\g<1>{new_name} project\2",
                 content,
             )
             init_file.write_text(content)
         except OSError as e:
-            return False, f'Failed to update __init__.py: {e}'
+            return False, f"Failed to update __init__.py: {e}"
 
         # --- 6. Update lib's pyproject.toml ---
-        on_output('Updating lib pyproject.toml...')
+        on_output("Updating lib pyproject.toml...")
         try:
-            lib_pyproject = old_lib_dir / 'pyproject.toml'
+            lib_pyproject = old_lib_dir / "pyproject.toml"
             data = toml.loads(lib_pyproject.read_text())
-            data['project']['name'] = new_lib_name
-            data['project']['description'] = desc_val
-            ep = data.get('project', {}).get('entry-points', {}).get('haywire.libraries', {})
+            data["project"]["name"] = new_lib_name
+            data["project"]["description"] = desc_val
+            ep = data.get("project", {}).get("entry-points", {}).get("haywire.libraries", {})
             old_ep_key = next(iter(ep), None)
             if old_ep_key:
                 del ep[old_ep_key]
-            ep[new_name] = f'{new_module}:Library'
-            data['tool']['hatch']['build']['targets']['wheel']['packages'] = [new_module]
+            ep[new_name] = f"{new_module}:Library"
+            data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] = [new_module]
             lib_pyproject.write_text(toml.dumps(data))
         except (OSError, KeyError) as e:
-            return False, f'Failed to update lib pyproject.toml: {e}'
+            return False, f"Failed to update lib pyproject.toml: {e}"
 
         # --- 7. Rename library directory ---
-        on_output(f'Renaming library directory:  {dist_name}  →  {new_lib_name}')
+        on_output(f"Renaming library directory:  {dist_name}  →  {new_lib_name}")
         try:
             os.rename(old_lib_dir, new_lib_dir)
         except OSError as e:
-            return False, f'Failed to rename library directory: {e}'
+            return False, f"Failed to rename library directory: {e}"
 
         # --- 8. Update project pyproject.toml ---
-        on_output('Updating project pyproject.toml...')
+        on_output("Updating project pyproject.toml...")
         try:
-            project_pyproject = workspace / 'pyproject.toml'
+            project_pyproject = workspace / "pyproject.toml"
             data = toml.loads(project_pyproject.read_text())
-            deps = data.get('project', {}).get('dependencies', [])
-            data['project']['dependencies'] = [
+            deps = data.get("project", {}).get("dependencies", [])
+            data["project"]["dependencies"] = [
                 new_lib_name if d.lower() == dist_name.lower() else d for d in deps
             ]
-            sources = data.get('tool', {}).get('uv', {}).get('sources', {})
+            sources = data.get("tool", {}).get("uv", {}).get("sources", {})
             old_key = next((k for k in sources if k.lower() == dist_name.lower()), None)
             if old_key:
                 del sources[old_key]
-            sources[new_lib_name] = {'workspace': True}
+            sources[new_lib_name] = {"workspace": True}
             project_pyproject.write_text(toml.dumps(data))
         except (OSError, KeyError) as e:
-            return False, f'Failed to update project pyproject.toml: {e}'
+            return False, f"Failed to update project pyproject.toml: {e}"
 
         # --- 9. Update marketplace.toml ---
-        on_output('Updating marketplace.toml...')
+        on_output("Updating marketplace.toml...")
         try:
             if marketplace_path.exists():
                 data = toml.loads(marketplace_path.read_text())
-                for pkg in data.get('packages', []):
-                    if pkg.get('name', '').lower() == dist_name.lower():
-                        pkg['name'] = new_lib_name
-                        pkg['label'] = label_val
-                        pkg['description'] = desc_val
-                        pkg['version'] = version_val
-                        pkg['tags'] = tags_list
-                        pkg['install_spec'] = str(new_lib_dir)
-                        pkg['docs_url'] = str(new_lib_dir / new_module)
+                for pkg in data.get("packages", []):
+                    if pkg.get("name", "").lower() == dist_name.lower():
+                        pkg["name"] = new_lib_name
+                        pkg["label"] = label_val
+                        pkg["description"] = desc_val
+                        pkg["version"] = version_val
+                        pkg["tags"] = tags_list
+                        pkg["install_spec"] = str(new_lib_dir)
+                        pkg["docs_url"] = str(new_lib_dir / new_module)
                         break
                 marketplace_path.write_text(toml.dumps(data))
         except (OSError, KeyError) as e:
-            return False, f'Failed to update marketplace.toml: {e}'
+            return False, f"Failed to update marketplace.toml: {e}"
 
         # --- 10. Run uv sync ---
-        on_output('Running uv sync...')
+        on_output("Running uv sync...")
         proc = await asyncio.create_subprocess_exec(
-            'uv', 'sync',
+            "uv",
+            "sync",
             cwd=workspace_root,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
@@ -393,17 +401,16 @@ class LibraryManager:
         if proc.returncode != 0:
             return (
                 False,
-                f'uv sync failed — filesystem already renamed, '
-                f'run "uv sync" manually in {workspace_root}',
+                f'uv sync failed — filesystem already renamed, run "uv sync" manually in {workspace_root}',
             )
 
         # --- 11. Rescan and re-enable ---
-        on_output('Rescanning libraries...')
+        on_output("Rescanning libraries...")
         self._invalidate_caches()
         await asyncio.to_thread(self.registry.scan_for_libraries)
         self.registry.enable_all_libraries()
 
-        return True, f'Renamed to haybale-{new_name}'
+        return True, f"Renamed to haybale-{new_name}"
 
     def list_installed(self) -> list[InstalledLibrary]:
         """List all discovered libraries with their status."""
@@ -416,21 +423,23 @@ class LibraryManager:
 
             dist_name = self.registry.get_library_distribution_name(lib_id)
 
-            libraries.append(InstalledLibrary(
-                library_id=lib_id,
-                label=identity.label if identity else lib_id,
-                version=identity.version if identity else '',
-                description=identity.description if identity else '',
-                author=identity.author if identity else '',
-                enabled=enabled,
-                install_type=install_type.name if install_type else 'UNKNOWN',
-                source_path=str(source) if source else '',
-                tags=identity.tags if identity and identity.tags else [],
-                dependencies=identity.dependencies if identity and identity.dependencies else [],
-                distribution_name=dist_name or '',
-                url=identity.url if identity else '',
-                author_url=identity.author_url if identity else '',
-            ))
+            libraries.append(
+                InstalledLibrary(
+                    library_id=lib_id,
+                    label=identity.label if identity else lib_id,
+                    version=identity.version if identity else "",
+                    description=identity.description if identity else "",
+                    author=identity.author if identity else "",
+                    enabled=enabled,
+                    install_type=install_type.name if install_type else "UNKNOWN",
+                    source_path=str(source) if source else "",
+                    tags=identity.tags if identity and identity.tags else [],
+                    dependencies=identity.dependencies if identity and identity.dependencies else [],
+                    distribution_name=dist_name or "",
+                    url=identity.url if identity else "",
+                    author_url=identity.author_url if identity else "",
+                )
+            )
         return libraries
 
     def enable_library(self, library_id: str):
@@ -452,6 +461,7 @@ class LibraryManager:
         if not self.project_dir:
             return
         from .config import get_disabled_libraries
+
         disabled_ids = get_disabled_libraries(self.project_dir)
         for lib_id in disabled_ids:
             if lib_id in self.registry.list_names():
@@ -462,9 +472,9 @@ class LibraryManager:
         if not self.project_dir:
             return
         from .config import set_disabled_libraries
+
         disabled_ids = [
-            lib_id for lib_id in self.registry.list_names()
-            if not self.registry.is_library_enabled(lib_id)
+            lib_id for lib_id in self.registry.list_names() if not self.registry.is_library_enabled(lib_id)
         ]
         set_disabled_libraries(self.project_dir, disabled_ids)
 
@@ -487,18 +497,18 @@ class LibraryManager:
         is protected because haywire-app lists it, even if the user's own
         pyproject.toml only mentions haywire-app.
         """
-        target = re.sub(r'[-_.]+', '_', dist_name).lower()
+        target = re.sub(r"[-_.]+", "_", dist_name).lower()
         for dist in importlib.metadata.distributions():
-            owner_name = dist.metadata.get('Name', '')
-            if re.sub(r'[-_.]+', '_', owner_name).lower() == target:
+            owner_name = dist.metadata.get("Name", "")
+            if re.sub(r"[-_.]+", "_", owner_name).lower() == target:
                 continue  # skip self
-            for req in (dist.metadata.get_all('Requires-Dist') or []):
-                req_name = re.split(r'[>=<!;\s\[]', req)[0]
-                if re.sub(r'[-_.]+', '_', req_name).lower() == target:
+            for req in dist.metadata.get_all("Requires-Dist") or []:
+                req_name = re.split(r"[>=<!;\s\[]", req)[0]
+                if re.sub(r"[-_.]+", "_", req_name).lower() == target:
                     return owner_name
         return None
 
-    async def fetch_versions(self, pkg: 'MarketplaceEntry') -> list[str]:
+    async def fetch_versions(self, pkg: "MarketplaceEntry") -> list[str]:
         """Fetch available versions for a marketplace package.
 
         Only called on demand (when the user requests a specific version).
@@ -512,17 +522,18 @@ class LibraryManager:
         import urllib.request
         import urllib.error
 
-        if pkg.source == 'pypi':
-            url = f'https://pypi.org/pypi/{pkg.name}/json'
+        if pkg.source == "pypi":
+            url = f"https://pypi.org/pypi/{pkg.name}/json"
 
             def _fetch_pypi():
                 try:
                     with urllib.request.urlopen(url, timeout=10) as resp:
                         data = json.loads(resp.read())
-                    versions = list(data.get('releases', {}).keys())
+                    versions = list(data.get("releases", {}).keys())
                     # Sort by PEP 440 if packaging is available, else lexicographic
                     try:
                         from packaging.version import Version
+
                         versions.sort(key=Version, reverse=True)
                     except Exception:
                         versions.sort(reverse=True)
@@ -532,25 +543,25 @@ class LibraryManager:
 
             return await asyncio.to_thread(_fetch_pypi)
 
-        elif pkg.source == 'git':
+        elif pkg.source == "git":
             # Only handles GitHub URLs: git+https://github.com/{user}/{repo}.git[...]
             spec = pkg.install_spec
             # Strip git+ prefix and any @tag or #subdirectory suffix
-            url = spec.removeprefix('git+').split('@')[0].split('#')[0].rstrip('/')
-            if 'github.com' not in url:
+            url = spec.removeprefix("git+").split("@")[0].split("#")[0].rstrip("/")
+            if "github.com" not in url:
                 return []
             # Convert https://github.com/user/repo.git → api.github.com/repos/user/repo/tags
-            path = url.removeprefix('https://github.com/').removesuffix('.git')
-            api_url = f'https://api.github.com/repos/{path}/tags'
+            path = url.removeprefix("https://github.com/").removesuffix(".git")
+            api_url = f"https://api.github.com/repos/{path}/tags"
 
             def _fetch_github():
                 try:
                     req = urllib.request.Request(
-                        api_url, headers={'Accept': 'application/vnd.github.v3+json'}
+                        api_url, headers={"Accept": "application/vnd.github.v3+json"}
                     )
                     with urllib.request.urlopen(req, timeout=10) as resp:
                         data = json.loads(resp.read())
-                    return [tag['name'] for tag in data]
+                    return [tag["name"] for tag in data]
                 except urllib.error.URLError:
                     return []
 
@@ -559,19 +570,19 @@ class LibraryManager:
         return []
 
     @staticmethod
-    def build_versioned_spec(pkg: 'MarketplaceEntry', version: str) -> str:
+    def build_versioned_spec(pkg: "MarketplaceEntry", version: str) -> str:
         """Build a version-pinned install spec for a specific version.
 
         For PyPI: returns '{name}=={version}'.
         For git: appends '@{version}' to the base URL before any #subdirectory.
         """
-        if pkg.source == 'pypi':
-            return f'{pkg.name}=={version}'
-        elif pkg.source == 'git':
-            spec = pkg.install_spec.removeprefix('git+')
-            base = spec.split('@')[0]  # strip any existing tag
-            fragment = f'#{spec.split("#")[1]}' if '#' in spec else ''
-            return f'git+{base}@{version}{fragment}'
+        if pkg.source == "pypi":
+            return f"{pkg.name}=={version}"
+        elif pkg.source == "git":
+            spec = pkg.install_spec.removeprefix("git+")
+            base = spec.split("@")[0]  # strip any existing tag
+            fragment = f"#{spec.split('#')[1]}" if "#" in spec else ""
+            return f"git+{base}@{version}{fragment}"
         return pkg.install_spec
 
     def update_library_identity(
@@ -594,60 +605,60 @@ class LibraryManager:
 
         workspace = Path(workspace_root)
 
-        dist_name = self.registry.get_library_distribution_name(library_id) or ''
+        dist_name = self.registry.get_library_distribution_name(library_id) or ""
         if not dist_name:
-            return False, f'Cannot find distribution name for library {library_id!r}'
+            return False, f"Cannot find distribution name for library {library_id!r}"
 
         # Derive the package directory the same way rename does (most reliable)
-        name_part = dist_name.removeprefix('haybale-') if dist_name.startswith('haybale-') else library_id
-        module_name = f'haybale_{_sanitize_name(name_part)}'
-        pkg_dir = workspace / 'barn' /dist_name / module_name
+        name_part = dist_name.removeprefix("haybale-") if dist_name.startswith("haybale-") else library_id
+        module_name = f"haybale_{_sanitize_name(name_part)}"
+        pkg_dir = workspace / "barn" / dist_name / module_name
 
         if not pkg_dir.exists():
-            return False, f'Library package directory not found: {pkg_dir}'
+            return False, f"Library package directory not found: {pkg_dir}"
 
-        label_val = identity.get('label', '')
-        version_val = identity.get('version', '0.1.0')
-        desc_val = identity.get('description', '')
-        url_val = identity.get('url', '')
-        author_val = identity.get('author', '')
-        author_url_val = identity.get('author_url', '')
-        tags_list = identity.get('tags') or []
-        deps_list = identity.get('dependencies') or []
+        label_val = identity.get("label", "")
+        version_val = identity.get("version", "0.1.0")
+        desc_val = identity.get("description", "")
+        url_val = identity.get("url", "")
+        author_val = identity.get("author", "")
+        author_url_val = identity.get("author_url", "")
+        tags_list = identity.get("tags") or []
+        deps_list = identity.get("dependencies") or []
 
         # Update __init__.py decorator fields
         try:
-            init_file = pkg_dir / '__init__.py'
+            init_file = pkg_dir / "__init__.py"
             if not init_file.exists():
-                return False, f'__init__.py not found at {init_file}'
+                return False, f"__init__.py not found at {init_file}"
             content = init_file.read_text()
-            content = re.sub(r"(    label=')[^']*(')", rf'\g<1>{label_val}\2', content)
-            content = re.sub(r"(    version=')[^']*(')", rf'\g<1>{version_val}\2', content)
-            content = re.sub(r"(    description=')[^']*(')", rf'\g<1>{desc_val}\2', content)
-            content = re.sub(r"(    url=')[^']*(')", rf'\g<1>{url_val}\2', content)
-            content = re.sub(r"(    author=')[^']*(')", rf'\g<1>{author_val}\2', content)
-            content = re.sub(r"(    author_url=')[^']*(')", rf'\g<1>{author_url_val}\2', content)
-            content = _set_decorator_list_field(content, 'tags', tags_list)
-            content = _set_decorator_list_field(content, 'dependencies', deps_list)
+            content = re.sub(r"(    label=')[^']*(')", rf"\g<1>{label_val}\2", content)
+            content = re.sub(r"(    version=')[^']*(')", rf"\g<1>{version_val}\2", content)
+            content = re.sub(r"(    description=')[^']*(')", rf"\g<1>{desc_val}\2", content)
+            content = re.sub(r"(    url=')[^']*(')", rf"\g<1>{url_val}\2", content)
+            content = re.sub(r"(    author=')[^']*(')", rf"\g<1>{author_val}\2", content)
+            content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
+            content = _set_decorator_list_field(content, "tags", tags_list)
+            content = _set_decorator_list_field(content, "dependencies", deps_list)
             init_file.write_text(content)
         except OSError as e:
-            return False, f'Failed to update __init__.py: {e}'
+            return False, f"Failed to update __init__.py: {e}"
 
         # Update matching entry in marketplace.toml
-        marketplace_path = workspace / '.haywire' / 'marketplace.toml'
+        marketplace_path = workspace / ".haywire" / "marketplace.toml"
         try:
             if marketplace_path.exists():
                 data = toml.loads(marketplace_path.read_text())
-                for pkg in data.get('packages', []):
-                    if pkg.get('name', '').lower() == dist_name.lower():
-                        pkg['label'] = label_val
-                        pkg['description'] = desc_val
-                        pkg['version'] = version_val
-                        pkg['tags'] = tags_list
+                for pkg in data.get("packages", []):
+                    if pkg.get("name", "").lower() == dist_name.lower():
+                        pkg["label"] = label_val
+                        pkg["description"] = desc_val
+                        pkg["version"] = version_val
+                        pkg["tags"] = tags_list
                         break
                 marketplace_path.write_text(toml.dumps(data))
         except (OSError, KeyError) as e:
-            return False, f'Failed to update marketplace.toml: {e}'
+            return False, f"Failed to update marketplace.toml: {e}"
 
         # Fully remove the library from the registry (disable + unregister + tracking
         # dicts cleared) so scan_for_libraries() won't skip the "already instantiated"
@@ -656,38 +667,39 @@ class LibraryManager:
 
         # Eject the module (and all submodules) from sys.modules so the fresh
         # import triggered by scan_for_libraries() reads the updated __init__.py.
-        to_remove = [k for k in sys.modules if k == module_name or k.startswith(module_name + '.')]
+        to_remove = [k for k in sys.modules if k == module_name or k.startswith(module_name + ".")]
         for k in to_remove:
             del sys.modules[k]
 
-        return True, f'Updated identity for {dist_name}'
+        return True, f"Updated identity for {dist_name}"
 
     @staticmethod
-    def _parse_marketplace_entries(data: dict) -> 'list[MarketplaceEntry]':
+    def _parse_marketplace_entries(data: dict) -> "list[MarketplaceEntry]":
         """Parse a TOML marketplace data dict into a list of MarketplaceEntry objects."""
         return [
             MarketplaceEntry(
-                name=pkg.get('name', ''),
-                version=pkg.get('version', ''),
-                label=pkg.get('label', ''),
-                description=pkg.get('description', ''),
-                author=pkg.get('author', ''),
-                source=pkg.get('source', 'pypi'),
-                install_spec=pkg.get('install_spec', pkg.get('name', '')),
-                tags=pkg.get('tags', []),
-                source_url=pkg.get('source_url', ''),
-                docs_url=pkg.get('docs_url', ''),
+                name=pkg.get("name", ""),
+                version=pkg.get("version", ""),
+                label=pkg.get("label", ""),
+                description=pkg.get("description", ""),
+                author=pkg.get("author", ""),
+                source=pkg.get("source", "pypi"),
+                install_spec=pkg.get("install_spec", pkg.get("name", "")),
+                tags=pkg.get("tags", []),
+                source_url=pkg.get("source_url", ""),
+                docs_url=pkg.get("docs_url", ""),
             )
-            for pkg in data.get('packages', [])
+            for pkg in data.get("packages", [])
         ]
 
     @staticmethod
-    def _fetch_remote_marketplace(url: str) -> 'list[MarketplaceEntry]':
+    def _fetch_remote_marketplace(url: str) -> "list[MarketplaceEntry]":
         """Fetch a remote marketplace.toml URL and return its entries (no source metadata set)."""
         import urllib.request
+
         try:
             with urllib.request.urlopen(url, timeout=5) as resp:
-                content = resp.read().decode('utf-8')
+                content = resp.read().decode("utf-8")
             return LibraryManager._parse_marketplace_entries(toml.loads(content))
         except Exception:
             return []

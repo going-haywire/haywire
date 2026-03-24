@@ -67,10 +67,7 @@ class PanelRegistry(BaseRegistry):
             )
             return
         self._scope_index[key] = descriptor
-        logging.debug(
-            f"PanelRegistry: Registered scope '{descriptor.scope_id}' "
-            f"for editor '{editor_id}'"
-        )
+        logging.debug(f"PanelRegistry: Registered scope '{descriptor.scope_id}' for editor '{editor_id}'")
 
     def get_scopes(self, editor_id: str) -> List[ScopeDescriptor]:
         """
@@ -82,11 +79,7 @@ class PanelRegistry(BaseRegistry):
         Returns:
             List of ScopeDescriptor instances sorted by ScopeDescriptor.order.
         """
-        result = [
-            desc
-            for (eid, _), desc in self._scope_index.items()
-            if eid == editor_id
-        ]
+        result = [desc for (eid, _), desc in self._scope_index.items() if eid == editor_id]
         result.sort(key=lambda d: d.order)
         return result
 
@@ -101,14 +94,12 @@ class PanelRegistry(BaseRegistry):
                 inspect.isclass(cls)
                 and issubclass(cls, BasePanel)
                 and cls is not BasePanel
-                and hasattr(cls, 'class_identity')
+                and hasattr(cls, "class_identity")
             )
         except TypeError:
             return False
 
-    def _register_class(
-        self, cls: type, library_identity: Optional[LibraryIdentity] = None
-    ) -> 'str | None':
+    def _register_class(self, cls: type, library_identity: Optional[LibraryIdentity] = None) -> "str | None":
         """Register a panel class and update the (editor_key, scope_id) index."""
         registry_key = cls.class_identity.registry_key
         result = super()._register(registry_key, cls, library_identity)
@@ -121,7 +112,7 @@ class PanelRegistry(BaseRegistry):
         )
         return result
 
-    def _unregister_class(self, registry_key: str) -> 'type | None':
+    def _unregister_class(self, registry_key: str) -> "type | None":
         """Unregister a panel class and remove it from the index."""
         removed = super()._unregister(registry_key)
         if removed:

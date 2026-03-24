@@ -6,11 +6,11 @@ from haybale_testing.settings.testing import TestingSettings
 
 
 @node(
-    label='Settings Test Node',
-    description='Test the Settings for debugging',
-    search_tags=['settings', 'debug', 'test', 'example'],
-    menu='testing/testbed',
-    node_type=NodeType.DATA
+    label="Settings Test Node",
+    description="Test the Settings for debugging",
+    search_tags=["settings", "debug", "test", "example"],
+    menu="testing/testbed",
+    node_type=NodeType.DATA,
 )
 class SettingsNode(BaseNode):
     """Node that exercises all prop() features from Issue #2: type_, stored, validator."""
@@ -18,50 +18,50 @@ class SettingsNode(BaseNode):
     class example(Settings):
         # --- type_ ---
         example_string: str = setting(
-            'default string',
-            label='My Setting',
-            description='An example setting for demonstration purposes',
-            category='type',
+            "default string",
+            label="My Setting",
+            description="An example setting for demonstration purposes",
+            category="type",
         )
         example_float: float = setting(
             5,
             min=0.0,
             max=1.0,
-            label='Example Float',
-            description='A float setting with explicit type_ override',
-            category='type',
-            type_=float
+            label="Example Float",
+            description="A float setting with explicit type_ override",
+            category="type",
+            type_=float,
         )
 
         # --- read only ---
         read_only_value: float = setting(
             1.0,
-            label='Read-Only Value',
-            description='Read-only stored setting',
-            category='stored',
-            read_only=True
+            label="Read-Only Value",
+            description="Read-only stored setting",
+            category="stored",
+            read_only=True,
         )
 
         # --- stored ---
         persistent_value: float = setting(
             1.0,
-            label='Persistent Value',
-            description='Normal stored setting (stored=True by default)',
-            category='stored',
+            label="Persistent Value",
+            description="Normal stored setting (stored=True by default)",
+            category="stored",
         )
         transient_value: float = setting(
             0.0,
-            label='Transient Value',
-            description='Ephemeral setting excluded from serialization',
-            category='stored',
+            label="Transient Value",
+            description="Ephemeral setting excluded from serialization",
+            category="stored",
             stored=False,
         )
 
         # --- mirrors (shadow) ---
         intensity: float = setting(
-            label='Intensity',
-            description='Mirrors library-level default_intensity (override locally per node)',
-            category='mirrors',
+            label="Intensity",
+            description="Mirrors library-level default_intensity (override locally per node)",
+            category="mirrors",
             mirrors=TestingSettings.default_intensity,
         )
 
@@ -70,26 +70,22 @@ class SettingsNode(BaseNode):
             1.0,
             min=0.0,
             max=100.0,
-            label='Clamped Positive',
-            description='Must be positive (validator rejects <= 0)',
-            category='validator',
+            label="Clamped Positive",
+            description="Must be positive (validator rejects <= 0)",
+            category="validator",
             validator=lambda v: isinstance(v, (int, float)) and v > 0,
         )
         even_int: int = setting(
             4,
-            label='Even Integer',
-            description='Must be an even integer',
-            category='validator',
+            label="Even Integer",
+            description="Must be an even integer",
+            category="validator",
             type_=int,
             validator=lambda v: isinstance(v, int) and v % 2 == 0,
         )
 
     def init(self):
-        self.add(
-            STRING.as_outlet(
-                'settings', label='Settings', default='default value'
-            )
-        )
+        self.add(STRING.as_outlet("settings", label="Settings", default="default value"))
 
     def post_init(self):
         print(f"Post-init: example_string = {self.example.example_string}")

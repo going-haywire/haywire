@@ -30,29 +30,33 @@ if TYPE_CHECKING:
     from ..settings import GlobalSettingsRegistry
 
 
-_node_factory:      Optional['NodeFactory'] = None
-_adapter_factory:   Optional['AdapterFactory'] = None
-_type_registry:     Optional['TypeRegistry'] = None
-_settings_registry: Optional['GlobalSettingsRegistry'] = None
+_node_factory: Optional["NodeFactory"] = None
+_adapter_factory: Optional["AdapterFactory"] = None
+_type_registry: Optional["TypeRegistry"] = None
+_settings_registry: Optional["GlobalSettingsRegistry"] = None
 
 
 # ---------------------------------------------------------------------------
 # Setters — called by DI providers at startup
 # ---------------------------------------------------------------------------
 
-def set_node_factory(factory: 'NodeFactory') -> None:
+
+def set_node_factory(factory: "NodeFactory") -> None:
     global _node_factory
     _node_factory = factory
 
-def set_adapter_factory(factory: 'AdapterFactory') -> None:
+
+def set_adapter_factory(factory: "AdapterFactory") -> None:
     global _adapter_factory
     _adapter_factory = factory
 
-def set_type_registry(registry: 'TypeRegistry') -> None:
+
+def set_type_registry(registry: "TypeRegistry") -> None:
     global _type_registry
     _type_registry = registry
 
-def set_settings_registry(registry: 'GlobalSettingsRegistry') -> None:
+
+def set_settings_registry(registry: "GlobalSettingsRegistry") -> None:
     global _settings_registry
     _settings_registry = registry
 
@@ -61,31 +65,32 @@ def set_settings_registry(registry: 'GlobalSettingsRegistry') -> None:
 # Getters — called by entity constructors
 # ---------------------------------------------------------------------------
 
-def get_node_factory() -> 'NodeFactory':
+
+def get_node_factory() -> "NodeFactory":
     if _node_factory is None:
         raise RuntimeError(
-            "NodeFactory not set in ambient context. "
-            "Ensure DI is initialised before constructing nodes."
+            "NodeFactory not set in ambient context. Ensure DI is initialised before constructing nodes."
         )
     return _node_factory
 
-def get_adapter_factory() -> 'AdapterFactory':
+
+def get_adapter_factory() -> "AdapterFactory":
     if _adapter_factory is None:
         raise RuntimeError(
-            "AdapterFactory not set in ambient context. "
-            "Ensure DI is initialised before constructing edges."
+            "AdapterFactory not set in ambient context. Ensure DI is initialised before constructing edges."
         )
     return _adapter_factory
 
-def get_type_registry() -> 'TypeRegistry':
+
+def get_type_registry() -> "TypeRegistry":
     if _type_registry is None:
         raise RuntimeError(
-            "TypeRegistry not set in ambient context. "
-            "Ensure DI is initialised before constructing nodes."
+            "TypeRegistry not set in ambient context. Ensure DI is initialised before constructing nodes."
         )
     return _type_registry
 
-def get_settings_registry() -> 'GlobalSettingsRegistry':
+
+def get_settings_registry() -> "GlobalSettingsRegistry":
     if _settings_registry is None:
         raise RuntimeError(
             "GlobalSettingsRegistry not set in ambient context. "

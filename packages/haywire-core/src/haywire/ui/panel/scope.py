@@ -37,6 +37,4 @@ class ScopeDescriptor:
     label: str
     icon: str
     order: int = 100
-    poll: Callable[[SessionContext], bool] = field(
-        default_factory=lambda: (lambda ctx: True)
-    )
+    poll: Callable[[SessionContext], bool] = field(default_factory=lambda: (lambda ctx: True))

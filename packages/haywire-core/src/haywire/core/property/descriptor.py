@@ -40,20 +40,20 @@ class prop(FieldDescriptor):
         self,
         default: Any = None,
         *,
-        label: str = '',
-        description: str = '',
-        category: str = 'general',
+        label: str = "",
+        description: str = "",
+        category: str = "general",
         order: int = 0,
         min: Any = None,
         max: Any = None,
-        choices: 'list | dict | Callable | None' = None,
-        widget: 'str | None' = None,
-        on_change: 'str | None' = None,
-        mirrors: 'FieldDescriptor | None' = None,
+        choices: "list | dict | Callable | None" = None,
+        widget: "str | None" = None,
+        on_change: "str | None" = None,
+        mirrors: "FieldDescriptor | None" = None,
         read_only: bool = False,
-        type_: 'type | None' = None,
+        type_: "type | None" = None,
         stored: bool = True,
-        validator: 'Callable | None' = None,
+        validator: "Callable | None" = None,
     ) -> None:
         self._default = default
         self._type = type_ if type_ is not None else (type(default) if default is not None else object)
@@ -69,27 +69,25 @@ class prop(FieldDescriptor):
         self._read_only = read_only
         self._stored = stored
         self._validator = validator
-        self._attr_name: str = ''    # set by __set_name__
-        self._field_key: str = ''    # set by @node decorator (extended mode)
+        self._attr_name: str = ""  # set by __set_name__
+        self._field_key: str = ""  # set by @node decorator (extended mode)
 
         if self._validator is not None and default is not None and not self.validate(default):
-            raise ValueError(
-                f"Default value {default!r} fails validation for prop '{label or '?'}'"
-            )
+            raise ValueError(f"Default value {default!r} fails validation for prop '{label or '?'}'")
 
         # mirrors= accepts a class-level descriptor access which returns the
         # descriptor itself (FieldDescriptor.__get__ with obj=None).
         if mirrors is not None:
-            mirror_key = getattr(mirrors, '_field_key', '')
+            mirror_key = getattr(mirrors, "_field_key", "")
             if not mirror_key:
                 raise ValueError(
-                    f"prop(mirrors=...) target has no _field_key set. "
-                    f"Ensure the target GlobalSettings/LibrarySettings class has been "
-                    f"registered and its descriptors have _field_key assigned."
+                    "prop(mirrors=...) target has no _field_key set. "
+                    "Ensure the target GlobalSettings/LibrarySettings class has been "
+                    "registered and its descriptors have _field_key assigned."
                 )
             self._mirror_key: str = mirror_key
         else:
-            self._mirror_key = ''
+            self._mirror_key = ""
 
     def validate(self, value: Any) -> bool:
         """Return True if *value* passes the validator (or if no validator is set)."""
@@ -99,10 +97,10 @@ class prop(FieldDescriptor):
 
     def __get__(self, obj: Any, objtype: type | None = None) -> Any:
         if obj is None:
-            return self   # class-level access -> descriptor itself
+            return self  # class-level access -> descriptor itself
 
         # Extended mode: resolution chain via registry
-        if self._field_key and getattr(obj, '_registry', None) is not None:
+        if self._field_key and getattr(obj, "_registry", None) is not None:
             return obj._resolve(self._field_key, self._mirror_key, self._default)
 
         # Simple mode: direct local store lookup by attr name

@@ -26,10 +26,10 @@ if TYPE_CHECKING:
     from haywire_studio.graph_manager import GraphEntry
 
 
-_GRAPH_EDITOR_KEY = 'studio:editor:graph_editor'
+_GRAPH_EDITOR_KEY = "studio:editor:graph_editor"
 
 
-def _workspace_rel_path(path: Path, workspace_root: 'Path | None') -> str:
+def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
     """Return path relative to workspace_root when possible, else absolute path."""
     if workspace_root is not None:
         try:
@@ -40,10 +40,10 @@ def _workspace_rel_path(path: Path, workspace_root: 'Path | None') -> str:
 
 
 @editor(
-    registry_id='graph_manager',
-    label='Graphs',
-    icon='account_tree',
-    default_area='left',
+    registry_id="graph_manager",
+    label="Graphs",
+    icon="account_tree",
+    default_area="left",
     description='All open graphs. Click to switch; "+" to create a new graph.',
 )
 class GraphManagerEditor(BaseEditor):
@@ -68,115 +68,99 @@ class GraphManagerEditor(BaseEditor):
     # render
     # ------------------------------------------------------------------
 
-    def render(self, container, context: 'SessionContext') -> None:
+    def render(self, container, context: "SessionContext") -> None:
         with container:
-            with ui.column().classes('w-full h-full gap-0'):
+            with ui.column().classes("w-full h-full gap-0"):
                 self._render_header(context)
-                with ui.scroll_area().classes('flex-1 w-full'):
-                    self._list_container = ui.column().classes('w-full gap-0 p-1')
+                with ui.scroll_area().classes("flex-1 w-full"):
+                    self._list_container = ui.column().classes("w-full gap-0 p-1")
                     self._render_list(context)
 
     # ------------------------------------------------------------------
     # header
     # ------------------------------------------------------------------
 
-    def _render_header(self, context: 'SessionContext') -> None:
-        with ui.row().classes(
-            'w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1'
-        ):
-            ui.icon('account_tree', size='16px').classes('hw-text-dim')
-            ui.label('GRAPHS').classes(
-                'text-xs font-bold tracking-wider hw-text-dim flex-1'
-            )
+    def _render_header(self, context: "SessionContext") -> None:
+        with ui.row().classes("w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1"):
+            ui.icon("account_tree", size="16px").classes("hw-text-dim")
+            ui.label("GRAPHS").classes("text-xs font-bold tracking-wider hw-text-dim flex-1")
             ui.button(
-                icon='add',
+                icon="add",
                 on_click=lambda: self._on_new(context),
-            ).props('flat round dense size=xs color=grey').tooltip('New graph')
+            ).props("flat round dense size=xs color=grey").tooltip("New graph")
 
     # ------------------------------------------------------------------
     # list
     # ------------------------------------------------------------------
 
-    def _render_list(self, context: 'SessionContext') -> None:
+    def _render_list(self, context: "SessionContext") -> None:
         if self._list_container is None:
             return
         self._list_container.clear()
 
         app = context.app
-        if app is None or not hasattr(app, 'graph_manager'):
+        if app is None or not hasattr(app, "graph_manager"):
             with self._list_container:
-                ui.label('Graph manager not available').classes(
-                    'text-xs hw-text-dim p-2 italic'
-                )
+                ui.label("Graph manager not available").classes("text-xs hw-text-dim p-2 italic")
             return
 
         entries = app.graph_manager.all_entries()
         if not entries:
             with self._list_container:
-                ui.label('No graphs open').classes('text-xs hw-text-dim p-2 italic')
+                ui.label("No graphs open").classes("text-xs hw-text-dim p-2 italic")
             return
 
         with self._list_container:
             for entry in entries.values():
                 self._render_entry(entry, context)
 
-    def _render_entry(self, entry: 'GraphEntry', context: 'SessionContext') -> None:
+    def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
         is_active = entry.graph is context.active_graph
         # A graph with no path is definitionally unsaved (never written to disk).
         is_unsaved = entry.unsaved or entry.path is None
 
-        row_classes = (
-            'w-full px-2 py-1.5 cursor-pointer items-center gap-2 rounded '
-            + ('bg-blue-900/40 ' if is_active else 'hover:bg-white/10 ')
+        row_classes = "w-full px-2 py-1.5 cursor-pointer items-center gap-2 rounded " + (
+            "bg-blue-900/40 " if is_active else "hover:bg-white/10 "
         )
 
-        with ui.row().classes(row_classes).on(
-            'click', lambda e, en=entry: self._on_select(en, context)
-        ):
+        with ui.row().classes(row_classes).on("click", lambda e, en=entry: self._on_select(en, context)):
             # Unsaved indicator dot — always shown for path-less graphs
-            dot_color = 'bg-amber-400' if is_unsaved else 'bg-transparent'
-            ui.element('div').classes(
-                f'w-2 h-2 rounded-full flex-shrink-0 {dot_color}'
-            ).style('border: 1px solid var(--hw-border);')
+            dot_color = "bg-amber-400" if is_unsaved else "bg-transparent"
+            ui.element("div").classes(f"w-2 h-2 rounded-full flex-shrink-0 {dot_color}").style(
+                "border: 1px solid var(--hw-border);"
+            )
 
             # Name + subtitle
-            with ui.column().classes('flex-1 gap-0 min-w-0'):
-                name_classes = (
-                    'text-sm truncate font-medium '
-                    + ('hw-text-body' if is_active else 'hw-text-muted')
+            with ui.column().classes("flex-1 gap-0 min-w-0"):
+                name_classes = "text-sm truncate font-medium " + (
+                    "hw-text-body" if is_active else "hw-text-muted"
                 )
                 ui.label(entry.display_name).classes(name_classes)
 
                 if entry.path is not None:
                     app = context.app
-                    ws_root = (
-                        Path(app.workspace_root)
-                        if app and hasattr(app, 'workspace_root')
-                        else None
-                    )
+                    ws_root = Path(app.workspace_root) if app and hasattr(app, "workspace_root") else None
                     ui.label(_workspace_rel_path(entry.path, ws_root)).classes(
-                        'text-xs hw-text-dim truncate'
+                        "text-xs hw-text-dim truncate"
                     )
                 else:
                     # No file path — always show the unsaved hint
-                    ui.label('not saved').classes('text-xs text-amber-400/70')
+                    ui.label("not saved").classes("text-xs text-amber-400/70")
 
             # Active indicator chevron
             if is_active:
-                ui.icon('chevron_right', size='16px').classes(
-                    'text-blue-400 flex-shrink-0'
-                )
+                ui.icon("chevron_right", size="16px").classes("text-blue-400 flex-shrink-0")
 
     # ------------------------------------------------------------------
     # actions
     # ------------------------------------------------------------------
 
-    def _on_new(self, context: 'SessionContext') -> None:
+    def _on_new(self, context: "SessionContext") -> None:
         """Create a new unnamed graph and activate it."""
         app = context.app
         session = context.session
-        if app is None or not hasattr(app, 'create_new_graph') or session is None:
-            ui.notify('Graph manager not available', type='warning')
+        if app is None or not hasattr(app, "create_new_graph") or session is None:
+            ui.notify("Graph manager not available", type="warning")
             return
 
         # Detach from current graph
@@ -191,7 +175,7 @@ class GraphManagerEditor(BaseEditor):
 
         self._activate_entry(entry, context, session)
 
-    def _on_select(self, entry: 'GraphEntry', context: 'SessionContext') -> None:
+    def _on_select(self, entry: "GraphEntry", context: "SessionContext") -> None:
         """Activate an existing graph entry."""
         if entry.graph is context.active_graph:
             # Already active — just make sure GraphEditor is visible
@@ -219,7 +203,7 @@ class GraphManagerEditor(BaseEditor):
     # helpers
     # ------------------------------------------------------------------
 
-    def _detach_current(self, app, context: 'SessionContext', session) -> None:
+    def _detach_current(self, app, context: "SessionContext", session) -> None:
         """Detach the session from whatever graph it is currently viewing."""
         if context.active_graph_path is not None:
             current_entry = app.graph_manager.get_by_path(context.active_graph_path)
@@ -231,21 +215,19 @@ class GraphManagerEditor(BaseEditor):
         if current_entry is not None:
             app.graph_manager.session_detach(current_entry, session.session_id)
 
-    def _activate_entry(
-        self, entry: 'GraphEntry', context: 'SessionContext', session
-    ) -> None:
+    def _activate_entry(self, entry: "GraphEntry", context: "SessionContext", session) -> None:
         """Fire ACTIVE_GRAPH_CHANGED and switch to the graph editor tab."""
         session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                source_editor='graph_manager',
+                source_editor="graph_manager",
                 detail=entry,
             )
         )
         self._switch_to_graph_editor(context)
 
-    def _switch_to_graph_editor(self, context: 'SessionContext') -> None:
-        tabs = context.metadata.get('middle_tabs')
+    def _switch_to_graph_editor(self, context: "SessionContext") -> None:
+        tabs = context.metadata.get("middle_tabs")
         if tabs is not None:
             try:
                 tabs.set_value(_GRAPH_EDITOR_KEY)
@@ -256,7 +238,7 @@ class GraphManagerEditor(BaseEditor):
     # context changes
     # ------------------------------------------------------------------
 
-    def on_context_changed(self, event: '_CE', context: 'SessionContext') -> None:
+    def on_context_changed(self, event: "_CE", context: "SessionContext") -> None:
         if event.change_type in (
             ContextChangeType.ACTIVE_GRAPH_CHANGED,
             ContextChangeType.DATA_MUTATED,

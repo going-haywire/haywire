@@ -11,32 +11,32 @@ if False:  # TYPE_CHECKING
 
 
 @panel(
-    registry_id='edge_info',
-    editor='properties',
-    scope='edge',
-    label='Edge Info',
-    icon='linear_scale',
+    registry_id="edge_info",
+    editor="properties",
+    scope="edge",
+    label="Edge Info",
+    icon="linear_scale",
     order=10,
 )
 class EdgeInfoPanel(BasePanel):
     """Displays source/target node and port info for the selected edge."""
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         return context.active_edge is not None
 
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         edge = context.active_edge
         if edge is None:
             return
         try:
-            wrapper = edge.wrapper if hasattr(edge, 'wrapper') else edge
-            conn_uuid = getattr(wrapper, 'edge_id', getattr(edge, 'ui_edge_id', '?'))
-            source_node = getattr(wrapper, 'source_node_id', '?')
-            outlet_pin = getattr(wrapper, 'outlet_port_id', '?')
-            sink_node = getattr(wrapper, 'sink_node_id', '?')
-            inlet_pin = getattr(wrapper, 'inlet_port_id', '?')
-            is_valid = wrapper.is_valid() if callable(getattr(wrapper, 'is_valid', None)) else '?'
+            wrapper = edge.wrapper if hasattr(edge, "wrapper") else edge
+            conn_uuid = getattr(wrapper, "edge_id", getattr(edge, "ui_edge_id", "?"))
+            source_node = getattr(wrapper, "source_node_id", "?")
+            outlet_pin = getattr(wrapper, "outlet_port_id", "?")
+            sink_node = getattr(wrapper, "sink_node_id", "?")
+            inlet_pin = getattr(wrapper, "inlet_port_id", "?")
+            is_valid = wrapper.is_valid() if callable(getattr(wrapper, "is_valid", None)) else "?"
 
             layout.label(f"ID: {conn_uuid}")
             layout.separator()
@@ -48,4 +48,4 @@ class EdgeInfoPanel(BasePanel):
             layout.separator()
             layout.label(f"Valid: {is_valid}")
         except Exception:
-            layout.label('Error reading edge info')
+            layout.label("Error reading edge info")

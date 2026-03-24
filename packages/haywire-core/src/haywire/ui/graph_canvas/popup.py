@@ -6,14 +6,14 @@ class Popup:
     """
     A reusable popup component for NiceGUI with drag support.
     """
-    
+
     _css_added = False
     _global_handlers_initialized = False
-    
+
     @classmethod
     def _ensure_css(cls):
         if not cls._css_added:
-            ui.add_css('''
+            ui.add_css("""
                 .popup-overlay { z-index: 5000 !important; }
                 
                 .popup-card {
@@ -48,13 +48,13 @@ class Popup:
                     opacity: 0.95;
                     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
                 }
-            ''')
+            """)
             cls._css_added = True
-        
+
     @classmethod
     def _ensure_global_handlers(cls):
         """Setup global drag handlers once."""
-        script = '''
+        script = """
         (function() {
             if (window._popupGlobalHandlersSetup) return;
             window._popupGlobalHandlersSetup = true;
@@ -87,7 +87,8 @@ class Popup:
                 }
                 
                 if (!container) {
-                    window._popupAnimationFrames[containerId] = requestAnimationFrame(() => enforcePosition(containerId));
+                    window._popupAnimationFrames[containerId] = requestAnimationFrame(
+                        () => enforcePosition(containerId));
                     return;
                 }
                 
@@ -97,10 +98,12 @@ class Popup:
                 container.style.setProperty('margin', '0', 'important');
                 container.style.setProperty('transform', 'none', 'important');
                 
-                window._popupAnimationFrames[containerId] = requestAnimationFrame(() => enforcePosition(containerId));
+                window._popupAnimationFrames[containerId] = requestAnimationFrame(
+                    () => enforcePosition(containerId));
             }
-            
-            window._startPopupPositionEnforcement = function(containerId, initialX, initialY, clampToViewport) {
+
+            window._startPopupPositionEnforcement = function(
+                    containerId, initialX, initialY, clampToViewport) {
                 const container = document.getElementById(containerId);
                 
                 // Store clamp setting for this popup
@@ -208,24 +211,26 @@ class Popup:
                 window._popupDragState = null;
             }, true);
         })();
-        '''
+        """
         ui.run_javascript(script)
         cls._global_handlers_initialized = True
 
-    def __init__(self, 
-                 title: Optional[str] = None,
-                 width: str = "auto",
-                 height: str = "auto",
-                 closable: bool = False,
-                 backdrop_click_close: bool = False,
-                 escape_close: bool = False,
-                 backdrop_color: str = "rgba(0,0,0,0.5)",
-                 position_x: Optional[float] = None,
-                 position_y: Optional[float] = None,
-                 draggable: bool = False,
-                 clamp_to_viewport: bool = False):
+    def __init__(
+        self,
+        title: Optional[str] = None,
+        width: str = "auto",
+        height: str = "auto",
+        closable: bool = False,
+        backdrop_click_close: bool = False,
+        escape_close: bool = False,
+        backdrop_color: str = "rgba(0,0,0,0.5)",
+        position_x: Optional[float] = None,
+        position_y: Optional[float] = None,
+        draggable: bool = False,
+        clamp_to_viewport: bool = False,
+    ):
         self._ensure_css()
-        
+
         self.title = title
         self.width = width
         self.height = height
@@ -245,79 +250,106 @@ class Popup:
         self._is_open = False
         self._on_close_callback = None
         self._event_listener = None
-        
+
     def __enter__(self):
         if self._popup_element is not None:
             raise RuntimeError("Popup is already created")
-        
+
         with ui.context.client.layout:
             self._create_popup_structure()
-        
+
         self._content_area.__enter__()
         return self._content_area
-    
+
     def _create_popup_structure(self):
         if self.position_x is not None and self.position_y is not None:
-            popup_style = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 5000; display: none; pointer-events: none;'
-            content_style = f'min-width: {self.width}; height: {self.height}; max-width: 90vw; max-height: 90vh; overflow: auto; z-index: 5001; pointer-events: auto;'
-            backdrop_style = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: transparent; pointer-events: auto;'
+            popup_style = (
+                "position: fixed; top: 0; left: 0; width: 100%; height: 100%; "
+                "background: transparent; z-index: 5000; display: none; pointer-events: none;"
+            )
+            content_style = (
+                f"min-width: {self.width}; height: {self.height}; max-width: 90vw; "
+                "max-height: 90vh; overflow: auto; z-index: 5001; pointer-events: auto;"
+            )
+            backdrop_style = (
+                "position: absolute; top: 0; left: 0; width: 100%; height: 100%; "
+                "z-index: 0; background: transparent; pointer-events: auto;"
+            )
         else:
-            popup_style = f'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: {self.backdrop_color}; z-index: 5000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); pointer-events: auto;'
-            content_style = f'min-width: {self.width}; height: {self.height}; max-width: 90vw; max-height: 90vh; overflow: auto; margin: 20px; position: relative; z-index: 5001; pointer-events: auto;'
-            backdrop_style = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: auto;'
-        
-        self._popup_element = ui.element('div').style(popup_style)
-        self._popup_element.classes('popup-overlay')
-        self._popup_element._props['data-popup'] = 'true'
-        
+            popup_style = (
+                f"position: fixed; top: 0; left: 0; width: 100%; height: 100%; "
+                f"background: {self.backdrop_color}; z-index: 5000; display: none; "
+                "align-items: center; justify-content: center; "
+                "backdrop-filter: blur(2px); pointer-events: auto;"
+            )
+            content_style = (
+                f"min-width: {self.width}; height: {self.height}; max-width: 90vw; "
+                "max-height: 90vh; overflow: auto; margin: 20px; position: relative; "
+                "z-index: 5001; pointer-events: auto;"
+            )
+            backdrop_style = (
+                "position: absolute; top: 0; left: 0; width: 100%; height: 100%; "
+                "z-index: -1; pointer-events: auto;"
+            )
+
+        self._popup_element = ui.element("div").style(popup_style)
+        self._popup_element.classes("popup-overlay")
+        self._popup_element._props["data-popup"] = "true"
+
         with self._popup_element:
             if self.backdrop_click_close:
-                self._backdrop = ui.element('div').style(backdrop_style)
-                self._backdrop.classes('popup-backdrop')
-                self._backdrop.on('click', self._handle_backdrop_click)
-            
+                self._backdrop = ui.element("div").style(backdrop_style)
+                self._backdrop.classes("popup-backdrop")
+                self._backdrop.on("click", self._handle_backdrop_click)
+
             self._content_container = ui.card().style(content_style)
-            self._content_container.classes('popup-card interactive')
-            self._content_container._props['data-interactive'] = 'true'
-            self._content_container._props['data-popup-container'] = 'true'
-            
+            self._content_container.classes("popup-card interactive")
+            self._content_container._props["data-interactive"] = "true"
+            self._content_container._props["data-popup-container"] = "true"
+
             # Stop click propagation to prevent backdrop from receiving content clicks
-            self._content_container.on('click', lambda e: None, js_handler='(e) => e.stopPropagation()')
+            self._content_container.on("click", lambda e: None, js_handler="(e) => e.stopPropagation()")
 
             with self._content_container:
                 if self.title or self.closable:
-                    title_bar_classes = 'popup-title-bar' if self.draggable else 'popup-title-bar not-draggable'
-                    self._title_row = ui.row().classes(f'w-full justify-between items-center mb-2 {title_bar_classes}')
-                    self._title_row._props['data-popup-drag-handle'] = 'true'
-                    
+                    title_bar_classes = (
+                        "popup-title-bar" if self.draggable else "popup-title-bar not-draggable"
+                    )
+                    self._title_row = ui.row().classes(
+                        f"w-full justify-between items-center mb-2 {title_bar_classes}"
+                    )
+                    self._title_row._props["data-popup-drag-handle"] = "true"
+
                     with self._title_row:
                         if self.title:
-                            ui.label(self.title).style('font-size: 1.1em; font-weight: 600; pointer-events: none;')
+                            ui.label(self.title).style(
+                                "font-size: 1.1em; font-weight: 600; pointer-events: none;"
+                            )
                         else:
-                            ui.element('div')
-                            
+                            ui.element("div")
+
                         if self.closable:
-                            ui.button(icon='close', on_click=self.close).props('flat round size=sm')
-                    
+                            ui.button(icon="close", on_click=self.close).props("flat round size=sm")
+
                     if self.title:
                         ui.separator()
-                    
+
                     if self.draggable:
                         self._setup_drag_handler()
-                
-                self._content_area = ui.column().classes('popup-content-area w-full interactive')
-                self._content_area._props['data-interactive'] = 'true'
-    
+
+                self._content_area = ui.column().classes("popup-content-area w-full interactive")
+                self._content_area._props["data-interactive"] = "true"
+
     def _setup_drag_handler(self):
         """Setup drag handler on title bar."""
         if not self._title_row or not self._content_container:
             return
-        
+
         container_id = self._content_container.id
-        
+
         self._title_row.on(
-            'mousedown',
-            js_handler=f'''(e) => {{
+            "mousedown",
+            js_handler=f"""(e) => {{
                 if (e.target.closest('button, .q-btn')) return;
                 if (document.querySelector('.q-menu')) return;
                 
@@ -348,116 +380,116 @@ class Popup:
                 container.classList.add('popup-dragging');
                 e.preventDefault();
                 e.stopPropagation();
-            }}'''
+            }}""",
         )
-    
+
     def _on_position_update(self, e):
         """Handle position update from JavaScript after drag."""
         args = e.args
         if not args:
             return
-            
-        container_id = f'c{self._content_container.id}' if self._content_container else None
-        
-        if args.get('containerId') == container_id:
-            self.position_x = args.get('x', self.position_x)
-            self.position_y = args.get('y', self.position_y)
-    
+
+        container_id = f"c{self._content_container.id}" if self._content_container else None
+
+        if args.get("containerId") == container_id:
+            self.position_x = args.get("x", self.position_x)
+            self.position_y = args.get("y", self.position_y)
+
     def _register_position_listener(self):
         """Register listener for position updates from JS."""
-        self._event_listener = ui.on('popup_position_update', self._on_position_update)
+        self._event_listener = ui.on("popup_position_update", self._on_position_update)
 
     def _unregister_position_listener(self):
         """Unregister the position listener."""
         pass
-    
+
     def _start_position_enforcement(self):
         """Start the continuous position enforcement loop."""
         if not self._content_container:
             return
-        
-        container_id = f'c{self._content_container.id}'
+
+        container_id = f"c{self._content_container.id}"
         initial_x = self.position_x if self.position_x is not None else 100
         initial_y = self.position_y if self.position_y is not None else 100
-        clamp = 'true' if self.clamp_to_viewport else 'false'
-        
-        ui.run_javascript(f'''
+        clamp = "true" if self.clamp_to_viewport else "false"
+
+        ui.run_javascript(f"""
             window._startPopupPositionEnforcement('{container_id}', {initial_x}, {initial_y}, {clamp});
-        ''')
-    
+        """)
+
     def _stop_position_enforcement(self):
         """Stop the position enforcement loop."""
         if not self._content_container:
             return
-        
-        container_id = f'c{self._content_container.id}'
-        ui.run_javascript(f'''
+
+        container_id = f"c{self._content_container.id}"
+        ui.run_javascript(f"""
             window._stopPopupPositionEnforcement('{container_id}');
-        ''')
-    
+        """)
+
     def _cleanup_position(self):
         """Clean up stored position when popup is deleted."""
         if not self._content_container:
             return
-        
-        container_id = f'c{self._content_container.id}'
-        ui.run_javascript(f'''
+
+        container_id = f"c{self._content_container.id}"
+        ui.run_javascript(f"""
             window._cleanupPopupPosition('{container_id}');
-        ''')
-        
+        """)
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._content_area:
             self._content_area.__exit__(exc_type, exc_val, exc_tb)
         if self.escape_close:
             ui.keyboard(self._handle_escape_key)
-        
+
     def _handle_backdrop_click(self, e):
         self.close()
-        
+
     def _handle_escape_key(self, e):
-        if e.key == 'Escape' and self._is_open:
+        if e.key == "Escape" and self._is_open:
             self.close()
 
     def open(self):
         if self._popup_element and not self._is_open:
             self._ensure_global_handlers()
             self._register_position_listener()
-            
+
             if self._content_container and self.position_x is not None and self.position_y is not None:
                 self._content_container.style(
-                    f'position: fixed; '
-                    f'left: {self.position_x}px; '
-                    f'top: {self.position_y}px; '
-                    f'margin: 0; '
-                    f'transform: none;'
+                    f"position: fixed; "
+                    f"left: {self.position_x}px; "
+                    f"top: {self.position_y}px; "
+                    f"margin: 0; "
+                    f"transform: none;"
                 )
-            
-            self._popup_element.style('display: flex')
+
+            self._popup_element.style("display: flex")
             self._is_open = True
             self._start_position_enforcement()
-                
+
     def close(self):
         if self._popup_element and self._is_open:
-            self._popup_element.style('display: none')
+            self._popup_element.style("display: none")
             self._is_open = False
             self._unregister_position_listener()
             self._stop_position_enforcement()
-            
+
             if self._on_close_callback:
                 self._on_close_callback()
-                
+
     def toggle(self):
         if self._is_open:
             self.close()
         else:
             self.open()
-                
+
     def delete(self):
         if self._popup_element:
             self._unregister_position_listener()
             self._stop_position_enforcement()
             self._cleanup_position()
-            
+
             self._popup_element.delete()
             self._popup_element = None
             self._content_container = None
@@ -465,7 +497,7 @@ class Popup:
             self._title_row = None
             self._backdrop = None
             self._is_open = False
-            
+
     def on_close(self, callback: Callable):
         self._on_close_callback = callback
         return self
@@ -477,20 +509,20 @@ class Popup:
     @classmethod
     def create_context_menu(cls, title: str, x: float, y: float, **kwargs):
         defaults = {
-            'width': "auto",
-            'height': "auto",
-            'backdrop_click_close': True,
-            'backdrop_color': "transparent",
-            'closable': True,
-            'draggable': True,
-            'clamp_to_viewport': True
+            "width": "auto",
+            "height": "auto",
+            "backdrop_click_close": True,
+            "backdrop_color": "transparent",
+            "closable": True,
+            "draggable": True,
+            "clamp_to_viewport": True,
         }
         config = {**defaults, **kwargs}
         return cls(title=title, position_x=x, position_y=y, **config)
 
 
 if __name__ in {"__main__", "__mp_main__"}:
-    
+
     def show_clamped_popup():
         popup = Popup(
             title="Clamped Popup",
@@ -501,15 +533,15 @@ if __name__ in {"__main__", "__mp_main__"}:
             draggable=True,
             position_x=200,
             position_y=150,
-            clamp_to_viewport=True
+            clamp_to_viewport=True,
         )
-        
+
         with popup:
             ui.label("This popup is clamped to the viewport")
             ui.label("Try dragging it - it won't go outside the window")
-        
+
         popup.open()
-    
+
     def show_unclamped_popup():
         popup = Popup(
             title="Unclamped Popup",
@@ -520,17 +552,17 @@ if __name__ in {"__main__", "__mp_main__"}:
             draggable=True,
             position_x=200,
             position_y=150,
-            clamp_to_viewport=False
+            clamp_to_viewport=False,
         )
-        
+
         with popup:
             ui.label("This popup is NOT clamped to the viewport")
             ui.label("You can drag it outside the window boundaries")
-        
+
         popup.open()
-    
-    ui.label("Popup Clamp Test").classes('text-2xl font-bold')
-    ui.button("Open Clamped Popup", on_click=show_clamped_popup).classes('mt-4')
-    ui.button("Open Unclamped Popup", on_click=show_unclamped_popup).classes('mt-2')
-    
+
+    ui.label("Popup Clamp Test").classes("text-2xl font-bold")
+    ui.button("Open Clamped Popup", on_click=show_clamped_popup).classes("mt-4")
+    ui.button("Open Unclamped Popup", on_click=show_unclamped_popup).classes("mt-2")
+
     ui.run()

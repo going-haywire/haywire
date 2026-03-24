@@ -1,18 +1,21 @@
 from enum import Enum, IntFlag
 
+
 class FlowType(Enum):
     """
     Type of data flow through a port.
-    
+
     - NONE: Configuration port (no flow, not a pin)
     - CONTROL: Execution flow (determines when nodes execute)
     - DATA: Data flow (passes values between nodes)
     - CALLBACK: Callback registration (event nodes declare interest)
     """
-    CONTROL = 'control'
-    DATA = 'data'
-    CALLBACK = 'callback'
-    NONE = 'none'
+
+    CONTROL = "control"
+    DATA = "data"
+    CALLBACK = "callback"
+    NONE = "none"
+
 
 class PortType(Enum):
     """
@@ -20,6 +23,7 @@ class PortType(Enum):
     - OUTLET: Sends data/control via Outlets
     - CONFIG: Has neither Inlets nor Outlets
     """
+
     UNDEFINED = "undefined"
     INLET = "inlet"
     OUTLET = "outlet"
@@ -47,8 +51,9 @@ class StoreStrategy(IntFlag):
         It is **NOT** possible to combine them in AND logic, like
         store only if HAS_WIDGET is True **AND** WHEN_LINKED is True
     """
-    NEVER    = 1
-    HAS_WIDGET  = 2
-    WHEN_LINKED    = 4   
-    NODE_SET = 8 
-    ALWAYS  = HAS_WIDGET | WHEN_LINKED | NODE_SET # 14
+
+    NEVER = 1
+    HAS_WIDGET = 2
+    WHEN_LINKED = 4
+    NODE_SET = 8
+    ALWAYS = HAS_WIDGET | WHEN_LINKED | NODE_SET  # 14

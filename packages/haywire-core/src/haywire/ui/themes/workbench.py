@@ -13,9 +13,10 @@ from typing import ClassVar
 
 class _FieldProxy:
     """Minimal descriptor-like object wrapping a plain Color default value."""
-    __slots__ = ('_default', '_attr_name')
 
-    def __init__(self, default: str, attr_name: str = ''):
+    __slots__ = ("_default", "_attr_name")
+
+    def __init__(self, default: str, attr_name: str = ""):
         self._default = default
         self._attr_name = attr_name
 
@@ -39,71 +40,71 @@ class WorkbenchTheme:
     """
 
     _fields: ClassVar[dict[str, _FieldProxy]] = {}
-    _namespace: ClassVar[str] = ''
+    _namespace: ClassVar[str] = ""
 
     # Maps field_name -> CSS variable name.
     # These names match the --hw-* vars used throughout app_shell.py and other CSS.
     _CSS_TOKEN_MAP: ClassVar[dict[str, str]] = {
         # Backgrounds
-        'bg_page':           '--hw-bg-page',
-        'bg_surface':        '--hw-bg-surface',
-        'bg_sidebar':        '--hw-bg-sidebar',
-        'bg_elevated':       '--hw-bg-elevated',
-        'bg_overlay':        '--hw-bg-overlay',
-        'bg_input':          '--hw-bg-input',
+        "bg_page": "--hw-bg-page",
+        "bg_surface": "--hw-bg-surface",
+        "bg_sidebar": "--hw-bg-sidebar",
+        "bg_elevated": "--hw-bg-elevated",
+        "bg_overlay": "--hw-bg-overlay",
+        "bg_input": "--hw-bg-input",
         # Borders
-        'border':            '--hw-border',
-        'border_strong':     '--hw-border-strong',
+        "border": "--hw-border",
+        "border_strong": "--hw-border-strong",
         # Text
-        'text_body':         '--hw-text-body',
-        'text_muted':        '--hw-text-muted',
-        'text_dim':          '--hw-text-dim',
-        'text_expansion':    '--hw-text-expansion',
-        'text_on_accent':    '--hw-text-on-accent',
+        "text_body": "--hw-text-body",
+        "text_muted": "--hw-text-muted",
+        "text_dim": "--hw-text-dim",
+        "text_expansion": "--hw-text-expansion",
+        "text_on_accent": "--hw-text-on-accent",
         # Accent
-        'accent':            '--hw-accent',
-        'accent_hover':      '--hw-accent-hover',
-        'accent_active':     '--hw-accent-active',
+        "accent": "--hw-accent",
+        "accent_hover": "--hw-accent-hover",
+        "accent_active": "--hw-accent-active",
         # Status
-        'danger':            '--hw-danger',
-        'warning':           '--hw-warning',
-        'success':           '--hw-success',
-        'info':              '--hw-info',
+        "danger": "--hw-danger",
+        "warning": "--hw-warning",
+        "success": "--hw-success",
+        "info": "--hw-info",
         # Node chrome
-        'node_bg':           '--hw-node-bg',
-        'node_border':       '--hw-node-border',
-        'node_header_bg':    '--hw-node-header-bg',
-        'node_header_text':  '--hw-node-header-text',
-        'node_selected':     '--hw-node-selected',
-        'node_shadow':       '--hw-node-shadow',
+        "node_bg": "--hw-node-bg",
+        "node_border": "--hw-node-border",
+        "node_header_bg": "--hw-node-header-bg",
+        "node_header_text": "--hw-node-header-text",
+        "node_selected": "--hw-node-selected",
+        "node_shadow": "--hw-node-shadow",
         # Edges
-        'edge_default':      '--hw-edge-default',
-        'edge_selected':     '--hw-edge-selected',
+        "edge_default": "--hw-edge-default",
+        "edge_selected": "--hw-edge-selected",
         # Canvas
-        'canvas_bg':         '--hw-canvas-bg',
-        'canvas_grid':       '--hw-canvas-grid',
+        "canvas_bg": "--hw-canvas-bg",
+        "canvas_grid": "--hw-canvas-grid",
         # TopBar
-        'topbar_bg':         '--hw-topbar-bg',
-        'topbar_text':       '--hw-topbar-text',
+        "topbar_bg": "--hw-topbar-bg",
+        "topbar_text": "--hw-topbar-text",
         # Sidebar
-        'sidebar_bg':        '--hw-sidebar-bg',
-        'sidebar_icon':      '--hw-sidebar-icon',
-        'sidebar_icon_active': '--hw-sidebar-icon-active',
+        "sidebar_bg": "--hw-sidebar-bg",
+        "sidebar_icon": "--hw-sidebar-icon",
+        "sidebar_icon_active": "--hw-sidebar-icon-active",
         # Panel
-        'panel_bg':          '--hw-panel-bg',
-        'panel_text':        '--hw-panel-text',
-        'panel_header_0_bg': '--hw-panel-header-0-bg',
-        'panel_header_1_bg': '--hw-panel-header-1-bg',
+        "panel_bg": "--hw-panel-bg",
+        "panel_text": "--hw-panel-text",
+        "panel_header_0_bg": "--hw-panel-header-0-bg",
+        "panel_header_1_bg": "--hw-panel-header-1-bg",
         # StatusBar
-        'statusbar_bg':      '--hw-statusbar-bg',
-        'statusbar_text':    '--hw-statusbar-text',
+        "statusbar_bg": "--hw-statusbar-bg",
+        "statusbar_text": "--hw-statusbar-text",
         # Console
-        'console_bg':        '--hw-console-bg',
-        'console_text':      '--hw-console-text',
+        "console_bg": "--hw-console-bg",
+        "console_text": "--hw-console-text",
         # Compact fields
-        'compact_gap':       '--hw-compact-gap',
-        'compact_field_h':   '--hw-compact-field-h',
-        'compact_row_min_h': '--hw-compact-row-min-h',
+        "compact_gap": "--hw-compact-gap",
+        "compact_field_h": "--hw-compact-field-h",
+        "compact_row_min_h": "--hw-compact-row-min-h",
     }
 
     def __init_subclass__(cls, **kwargs: object) -> None:
@@ -111,7 +112,7 @@ class WorkbenchTheme:
         # Fresh dict per class
         cls._fields = {}
         for name, val in cls.__dict__.items():
-            if name.startswith('_'):
+            if name.startswith("_"):
                 continue
             if isinstance(val, str) and not callable(val):
                 proxy = _FieldProxy(default=val, attr_name=name)
@@ -130,4 +131,3 @@ class WorkbenchTheme:
             if proxy is not None:
                 result[css_var] = proxy._default
         return result
-

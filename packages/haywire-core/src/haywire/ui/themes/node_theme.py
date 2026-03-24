@@ -20,13 +20,13 @@ class NodeTheme:
     """
 
     _fields: ClassVar[dict[str, _FieldProxy]] = {}
-    _namespace: ClassVar[str] = ''
+    _namespace: ClassVar[str] = ""
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
         cls._fields = {}
         for name, val in cls.__dict__.items():
-            if name.startswith('_'):
+            if name.startswith("_"):
                 continue
             if isinstance(val, str) and not callable(val):
                 proxy = _FieldProxy(default=val, attr_name=name)
@@ -35,5 +35,4 @@ class NodeTheme:
     def get_color(self, token: str) -> str:
         """Return the color value for a named token (or '' if missing)."""
         proxy = self._fields.get(token)
-        return proxy._default if proxy is not None else ''
-
+        return proxy._default if proxy is not None else ""

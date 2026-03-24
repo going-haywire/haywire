@@ -6,7 +6,7 @@ from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
-@settings(namespace='testing', label='Testing')
+@settings(namespace="testing", label="Testing")
 class TestingSettings(LibrarySettings):
     """Global defaults for the testing library."""
 
@@ -14,7 +14,7 @@ class TestingSettings(LibrarySettings):
         0.5,
         min=0.0,
         max=1.0,
-        label='Default Intensity',
-        description='Library-wide default intensity used by test nodes',
-        category='general',
+        label="Default Intensity",
+        description="Library-wide default intensity used by test nodes",
+        category="general",
     )

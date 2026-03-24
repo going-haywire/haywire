@@ -51,7 +51,7 @@ class Session:
         self.workspace_manager = WorkspaceManager(project_path=project_path)
 
         # Active editor instances (keyed by area slot: 'left', 'middle', 'right', 'bottom')
-        self._editors: Dict[str, 'BaseEditor'] = {}
+        self._editors: Dict[str, "BaseEditor"] = {}
 
         # Context change subscribers (editor.on_context_changed callbacks)
         self._context_subscribers: List[Callable] = []

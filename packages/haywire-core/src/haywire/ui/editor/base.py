@@ -34,7 +34,7 @@ class BaseEditor(ABC):
     class_identity: ClassVar[EditorIdentity]
 
     @abstractmethod
-    def render(self, container: 'Element', context: 'SessionContext') -> None:
+    def render(self, container: "Element", context: "SessionContext") -> None:
         """
         Build the editor UI into the given NiceGUI container element.
 
@@ -48,9 +48,7 @@ class BaseEditor(ABC):
         ...
 
     @abstractmethod
-    def on_context_changed(
-        self, event: 'ContextChangedEvent', context: 'SessionContext'
-    ) -> None:
+    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
         """
         Called when the SessionContext changes.
 
@@ -70,7 +68,7 @@ class BaseEditor(ABC):
         """
         pass
 
-    def get_tab_label(self, context: 'SessionContext') -> str:
+    def get_tab_label(self, context: "SessionContext") -> str:
         """
         Return the label to show in a tab header (for tabbed areas like Middle).
         Defaults to class_identity.label. Override for dynamic labels (e.g., graph name).

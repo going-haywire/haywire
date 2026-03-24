@@ -15,27 +15,29 @@ from typing import Optional, Type, Any, Callable
 from ..errors.haywire_exception import HaywireException
 from ..library.identity import LibraryIdentity
 
+
 class LifeCycleEventType(Enum):
     """Types of hot reload events"""
-    CLASS_NOT_FOUND = 'class_not_found'
-    CLASS_ADDED = 'class_added'
-    CLASS_REMOVED = 'class_removed'
-    CLASS_RELOADED = 'class_reloaded'
-    CLASS_RELOAD_FAILED = 'class_reload_failed'
-    CLASS_INSTANTIATED = 'class_instantiated'
-    CLASS_INSTANTIATION_FAILED = 'class_instantiation_failed'
+
+    CLASS_NOT_FOUND = "class_not_found"
+    CLASS_ADDED = "class_added"
+    CLASS_REMOVED = "class_removed"
+    CLASS_RELOADED = "class_reloaded"
+    CLASS_RELOAD_FAILED = "class_reload_failed"
+    CLASS_INSTANTIATED = "class_instantiated"
+    CLASS_INSTANTIATION_FAILED = "class_instantiation_failed"
 
 
 @dataclass
 class LifeCycleEvent:
     """
     Unified hot life cycle event carrying complete reload information.
-    
+
     This event is passed through the entire notification chain:
     Registry → Factory → Wrapper → UINode
-    
+
     Each layer can filter based on its needs using the provided methods.
-    
+
     Example Usage:
         # In Registry:
         event = LifeCycleEvent(
@@ -45,151 +47,156 @@ class LifeCycleEvent:
             library_identity=lib_id
         )
         self._notify_customer_callbacks(event)
-        
+
         # In Factory:
         def _on_node_reloaded(self, event: LifeCycleEvent):
             if event.is_successful_reload():
                 # Forward to listeners
                 for listener in self._hot_reload_listeners:
                     listener(event)
-        
+
         # In Wrapper:
         def _on_hot_reload(self, event: LifeCycleEvent):
             if event.matches_registry_key(self.registry_key):
                 self._perform_migration()
     """
-    
+
     # Core identification
     registry_key: str
     """The haywire registry key (e.g., 'example:MyNode')"""
-    
+
     event_type: LifeCycleEventType
     """What kind of reload event occurred"""
-    
+
     affected_class: Optional[Type[Any]]
     """The actual class that was affected (None for REMOVED/FAILED events)"""
-    
+
     library_identity: LibraryIdentity = None
     """The library where the change occurred"""
-    
+
     # Error information (for failed reloads)
-    error: Optional['HaywireException'] = None
+    error: Optional["HaywireException"] = None
     """The error if reload failed"""
-    
+
     # Module tracking
     module_name: Optional[str] = None
     """The Python module name"""
-    
+
     def __post_init__(self):
         """Initialize tracking sets and auto-populate class metadata"""
         # Auto-populate class_name and module_name from class if available
         if self.affected_class is not None:
             if self.module_name is None:
                 self.module_name = self.affected_class.__module__
-    
+
     # ============================================================================
     # Filtering Methods - Easy routing at each layer
     # ============================================================================
-    
+
     def matches_registry_key(self, registry_key: str) -> bool:
         """Check if this event affects a specific registry key"""
         return self.registry_key == registry_key
-        
+
     def matches_module(self, module_name: str) -> bool:
         """Check if this event affects a specific module"""
         return self.module_name == module_name
-    
+
     def is_successful_event(self) -> bool:
         """Check if this was a successful reload (not removal or failure)
-        
-            this includes:
-            CLASS_ADDED, 
-            CLASS_RELOADED, 
-            CLASS_INSTANTIATED
+
+        this includes:
+        CLASS_ADDED,
+        CLASS_RELOADED,
+        CLASS_INSTANTIATED
         """
-        return self.event_type in (
-            LifeCycleEventType.CLASS_ADDED,
-            LifeCycleEventType.CLASS_RELOADED,
-            LifeCycleEventType.CLASS_INSTANTIATED
-        ) and self.affected_class is not None
-    
+        return (
+            self.event_type
+            in (
+                LifeCycleEventType.CLASS_ADDED,
+                LifeCycleEventType.CLASS_RELOADED,
+                LifeCycleEventType.CLASS_INSTANTIATED,
+            )
+            and self.affected_class is not None
+        )
+
     def is_warning_event(self) -> bool:
         """Check if this event represents an warning (potentialy critical)
 
-            this includes:
-            CLASS_NOT_FOUND, 
-            CLASS_REMOVED, 
-            CLASS_RELOAD_FAILED, 
-            CLASS_INSTANTIATION_FAILED
+        this includes:
+        CLASS_NOT_FOUND,
+        CLASS_REMOVED,
+        CLASS_RELOAD_FAILED,
+        CLASS_INSTANTIATION_FAILED
         """
-        return self.event_type in (
-            LifeCycleEventType.CLASS_NOT_FOUND,
-            LifeCycleEventType.CLASS_REMOVED,
-            LifeCycleEventType.CLASS_RELOAD_FAILED,
-            LifeCycleEventType.CLASS_INSTANTIATION_FAILED
-        ) or self.affected_class is None
-    
+        return (
+            self.event_type
+            in (
+                LifeCycleEventType.CLASS_NOT_FOUND,
+                LifeCycleEventType.CLASS_REMOVED,
+                LifeCycleEventType.CLASS_RELOAD_FAILED,
+                LifeCycleEventType.CLASS_INSTANTIATION_FAILED,
+            )
+            or self.affected_class is None
+        )
+
     def is_error_event(self) -> bool:
         """Check if this event represents a critical error
-        
-            this includes:
-            CLASS_NOT_FOUND
+
+        this includes:
+        CLASS_NOT_FOUND
         """
-        return self.event_type in (
-            LifeCycleEventType.CLASS_NOT_FOUND
-        ) or self.affected_class is None
-    
+        return self.event_type in (LifeCycleEventType.CLASS_NOT_FOUND) or self.affected_class is None
+
     def is_removal(self) -> bool:
         """Check if this event represents a class removal"""
         return self.event_type == LifeCycleEventType.CLASS_REMOVED
-    
+
     def has_class_available(self) -> bool:
         """Check if the affected class is available"""
         return self.affected_class is not None
-    
+
     def get_class(self) -> Type[Any]:
         """
         Get the affected class, raising error if not available.
-        
+
         Use has_class_available() first to check safely.
         """
         if self.affected_class is None:
             raise ValueError(
-                f"Class not available for event type {self.event_type.value} "
-                f"on {self.registry_key}"
+                f"Class not available for event type {self.event_type.value} on {self.registry_key}"
             )
         return self.affected_class
-    
+
     # ============================================================================
     # Routing Helpers
     # ============================================================================
-    
+
     def should_notify_customers(self) -> bool:
         """
         Check if this event should be passed to customer callbacks.
-        
+
         Typically all events are passed down, but layers can filter.
         """
         return True  # By default, notify all
-    
-    def create_derived_event(self, **overrides) -> 'LifeCycleEvent':
+
+    def create_derived_event(self, **overrides) -> "LifeCycleEvent":
         """
         Create a new event with some fields overridden.
-        
+
         Useful when propagating events with additional context.
         """
         data = {
-            'registry_key': self.registry_key,
-            'event_type': self.event_type,
-            'affected_class': self.affected_class,
-            'library_identity': self.library_identity,
-            'error': self.error,
-            'module_name': self.module_name
+            "registry_key": self.registry_key,
+            "event_type": self.event_type,
+            "affected_class": self.affected_class,
+            "library_identity": self.library_identity,
+            "error": self.error,
+            "module_name": self.module_name,
         }
         data.update(overrides)
         return LifeCycleEvent(**data)
 
-    def clone(self) -> 'LifeCycleEvent':
+    def clone(self) -> "LifeCycleEvent":
         """
         Create a deep copy of this LifeCycleEvent instance.
         """
@@ -199,16 +206,16 @@ class LifeCycleEvent:
             affected_class=self.affected_class,
             library_identity=self.library_identity,
             error=self.error,
-            module_name=self.module_name
+            module_name=self.module_name,
         )
-        
+
     def __str__(self) -> str:
         """Human-readable representation"""
         status = self.event_type.value
         if self.error is not None:
             status += f" (error: {self.error.message})"
         return f"LifeCycleEvent({self.registry_key}, {status})"
-    
+
     def __repr__(self) -> str:
         """Detailed representation for debugging"""
         return (

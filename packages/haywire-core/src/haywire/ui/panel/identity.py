@@ -27,6 +27,7 @@ class PanelIdentity:
         description:  Human-readable description.
         registry_key: Fully-qualified key; set by decorator via reg_key().
     """
+
     registry_id: str
     editor_key: str
     scope: list[str]
@@ -34,5 +35,5 @@ class PanelIdentity:
     icon: Optional[str] = None
     order: int = 100
     default_open: bool = True
-    description: str = ''
-    registry_key: str = ''
+    description: str = ""
+    registry_key: str = ""

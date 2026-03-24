@@ -22,13 +22,13 @@ from .edge_ui import EdgeUISettings
 from .minimap import MinimapSettings
 
 __all__ = [
-    'DebugSettings',
-    'EditorSettings',
-    'ExecutionSettings',
-    'WorkbenchSettings',
-    'NodeThemeSettings',
-    'CanvasSettings',
-    'NodeUISettings',
-    'EdgeUISettings',
-    'MinimapSettings',
+    "DebugSettings",
+    "EditorSettings",
+    "ExecutionSettings",
+    "WorkbenchSettings",
+    "NodeThemeSettings",
+    "CanvasSettings",
+    "NodeUISettings",
+    "EdgeUISettings",
+    "MinimapSettings",
 ]

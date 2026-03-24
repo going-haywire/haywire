@@ -10,39 +10,30 @@ from haywire.core.registry.base import BaseRegistry
 #    BASE CLASS
 # ============================================================================
 
+
 class BaseLibrary(ABC):
     """
     Abstract base class for all libraries
 
     Usage:
-    
-    Libraries that extend this class **must** be named 'Library' 
+
+    Libraries that extend this class **must** be named 'Library'
     and be decorated with the @library decorator.
     """
 
-    def __init__(
-        self, 
-        file_path: str, 
-        enforce_file_watching: bool = False, 
-        debounce_delay: float = 0.5
-    ):
+    def __init__(self, file_path: str, enforce_file_watching: bool = False, debounce_delay: float = 0.5):
         self.file_path = file_path
         self.registries = {}
         self.enforce_file_watching = enforce_file_watching
         self.debounce_delay = debounce_delay
         # registry_cls -> (folder_path, exclude_patterns)
-        self._registry_folders: Dict[
-            Type[BaseRegistry], 
-            Tuple[str, Optional[List[str]]]
-        ] = {}
+        self._registry_folders: Dict[Type[BaseRegistry], Tuple[str, Optional[List[str]]]] = {}
 
         self._enabled = False  # Library starts disabled by default
-        
+
         # Initialize FileWatcher with library folder path
         # Note: library_identity will be passed per-folder in add_watch
-        self.file_watcher: FileWatcher = FileWatcher(
-            watch_path=self.identity.folder_path
-        )
+        self.file_watcher: FileWatcher = FileWatcher(watch_path=self.identity.folder_path)
 
     @property
     def enabled(self) -> bool:
@@ -68,7 +59,7 @@ class BaseLibrary(ABC):
             self.on_library_disable()
             self.file_watcher.stop()
             logging.info(f"Library '{self.identity.label}': Disabled and components unregistered")
-            
+
     @property
     def identity(self) -> LibraryIdentity:
         return self.__class__.class_identity
@@ -80,7 +71,7 @@ class BaseLibrary(ABC):
     def get_registry(self, cls):
         """Get a registry instance by its class type"""
         return self.registries.get(cls)
-    
+
     def on_library_enable(self):
         """Hook called when the library is enabled"""
         pass
@@ -103,15 +94,12 @@ class BaseLibrary(ABC):
         pass
 
     def add_folder_to_registry(
-        self, 
-        folder_path: str, 
-        registry_cls: Type, 
-        exclude_patterns: Optional[List[str]] = None
+        self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None
     ):
         """
         Scan a folder for classes matching the registry's class filter
         and add them to the specified registry.
-        
+
         This method should only be called by the _init__ method within each library subfolder
 
         Args:
@@ -137,10 +125,7 @@ class BaseLibrary(ABC):
         self.file_watcher.stop()
 
     def _register_folder(
-        self, 
-        folder_path: str, 
-        registry_cls: Type, 
-        exclude_patterns: Optional[List[str]] = None
+        self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None
     ):
         """Inform the registry to add classes from a folder and start watching it if needed"""
         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
@@ -150,15 +135,10 @@ class BaseLibrary(ABC):
         registry.add_folder(folder_path, self.identity, exclude_patterns)
 
         if self.enforce_file_watching or self.identity.file_watcher:
-            self.file_watcher.add_watch(
-                folder_path, self.identity, registry, self.debounce_delay
-            )
+            self.file_watcher.add_watch(folder_path, self.identity, registry, self.debounce_delay)
 
     def _unregister_folder(
-        self, 
-        folder_path: str, 
-        registry_cls: Type, 
-        exclude_patterns: Optional[List[str]] = None
+        self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None
     ):
         """Inform the registry to remove classes from a folder and stop watching it if needed"""
         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
@@ -169,5 +149,3 @@ class BaseLibrary(ABC):
 
         if self.enforce_file_watching or self.identity.file_watcher:
             self.file_watcher.remove_watch(folder_path, self.identity)
-
-        
