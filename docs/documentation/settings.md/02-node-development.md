@@ -1,6 +1,6 @@
 # Node Development Guide
 
-This guide covers how to use `self.cache`, `self.store`, and node settings bags when developing Haywire nodes.
+This guide covers how to use `self.cache`, `self.store`, and node settings when developing Haywire nodes.
 
 ---
 
@@ -28,7 +28,7 @@ class QuickStartNode(BaseNode):
 
     def worker(self, context, value: float):
         self.store.call_count += 1
-        result = value * self.filter.threshold   # direct bag access
+        result = value * self.filter.threshold   # direct settings access
         self.cache.memo[value] = result
         self.out('result', result)
 ```
@@ -37,7 +37,7 @@ class QuickStartNode(BaseNode):
 
 ## Declaring Settings: the Inner Settings Class
 
-Node settings are declared as an inner class that inherits from `Settings`. The class name becomes the **bag name** — the attribute you use to access settings directly on the node instance.
+Node settings are declared as an inner class that inherits from `Settings`. The class name becomes the **accessor name** — the attribute you use to access settings directly on the node instance.
 
 ```python
 from haywire.core.settings import Settings, setting, Color, Icon
@@ -60,7 +60,7 @@ class MyNode(BaseNode):
         debug_mode: bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
 ```
 
-Access in worker code directly via the bag name:
+Access in worker code directly via the accessor name:
 
 ```python
 def worker(self, context, value: float):
@@ -82,9 +82,9 @@ This is the key used for TOML resolution and global registry lookups. You never 
 
 ---
 
-## Multiple Settings Bags
+## Multiple Settings Groups
 
-A node can declare any number of settings bags. Each gets its own name:
+A node can declare any number of `Settings` inner classes. Each gets its own accessor name:
 
 ```python
 @node(registry_id='image_filter')
@@ -101,7 +101,7 @@ class ImageFilterNode(BaseNode):
         q = self.output.jpeg_quality
 ```
 
-**Conflict check:** the bag name must not shadow an existing `BaseNode` method or attribute. If it does, `@node` raises `ValueError` at class-definition time.
+**Conflict check:** the accessor name must not shadow an existing `BaseNode` method or attribute. If it does, `@node` raises `ValueError` at class-definition time.
 
 ---
 
@@ -183,7 +183,7 @@ def hb_on_scale_change(self, value: float, field: str = '') -> None:
 
 ---
 
-## Bag Methods
+## Settings Instance Methods
 
 ```python
 # Reset a field to default (removes local override)
@@ -195,7 +195,7 @@ self.filter.reset_all()
 # Check if a field has a local override
 is_local = self.filter.is_locally_set('threshold')
 
-# Subscribe a callback to any change on this bag
+# Subscribe a callback to any change on this settings instance
 self.filter.subscribe(lambda name, value, old: ...)
 
 # Serialize / restore

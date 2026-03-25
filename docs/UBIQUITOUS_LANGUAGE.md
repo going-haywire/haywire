@@ -95,12 +95,11 @@
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
-| **Settings** (class / `Bag`) | An inner class on a node, subclassing `Settings`, that groups related configurable fields; the class name becomes the accessor | Config, options |
-| **setting()** | The descriptor that declares a typed, serializable field within a Settings bag | option, param |
+| **Settings** | An inner class on a node, subclassing `Settings`, that groups related configurable fields; the class name becomes the accessor | Config, options, Bag |
+| **setting()** | The descriptor that declares a typed, serializable field within a `Settings` inner class | option, param, prop |
 | **mirrors** | A `setting()` parameter that links a node field to a global setting, inheriting its default with per-node override capability | shadow, reference |
 | **GlobalSettingsRegistry** | The singleton that holds all global setting schemas and their TOML-sourced values; used for the full resolution chain | — |
-| **Three-tier resolution** | The precedence chain for a settings value: global TOML override → workspace TOML override → local bag value → workspace TOML set → global TOML set → descriptor default | — |
-| **Bag** | The internal alias for `Settings`; a container of `setting()` descriptors bound to a node instance | — |
+| **Three-tier resolution** | The precedence chain for a settings value: global TOML override → workspace TOML override → local instance value → workspace TOML set → global TOML set → descriptor default | — |
 | **cache** | Transient, non-serialized per-node storage for computation buffers or memoization | temp, scratch |
 | **store** | Persistent, serialized per-node internal state not shown in the UI | private state |
 

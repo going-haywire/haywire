@@ -60,9 +60,9 @@ def test_custom_settings_only():
 
 ---
 
-## Testing with Bags
+## Testing with Settings Instances
 
-`create_test_bag()` creates an isolated registry + `Bag` instance. By default it uses a minimal bag with `bg_color`, `font_size`, and `verbose` fields.
+`create_test_bag()` creates an isolated registry + `Settings` instance. By default it uses a minimal settings object with `bg_color`, `font_size`, and `verbose` fields.
 
 - `predefined_local` keys are **attr names** (`'bg_color'`, `'font_size'`)
 - `predefined_global` keys are **full keys** (`'test.global.font_size'`)
@@ -93,22 +93,21 @@ def test_reset_falls_back_to_default():
 
 ```python
 from haywire.core.settings import Settings, setting, Color
-from haywire.core.settings import Settings, setting
 
 
-class MyBag(Bag):
+class MySettings(Settings):
     threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
     color:     Color = setting('#ffffff', label='Color')
 
 
-def test_custom_bag():
-    registry, bag = create_test_bag(
-        bag_cls=MyBag,
+def test_custom_settings():
+    registry, s = create_test_bag(
+        bag_cls=MySettings,
         predefined_local={'threshold': 0.8},
     )
 
-    assert bag.threshold == 0.8
-    assert bag.color == '#ffffff'   # default
+    assert s.threshold == 0.8
+    assert s.color == '#ffffff'   # default
 ```
 
 ### Testing on_change callbacks
@@ -117,7 +116,7 @@ def test_custom_bag():
 from haywire.core.settings import Settings, setting
 
 
-class BagWithCallback(Bag):
+class SettingsWithCallback(Settings):
     scale: float = setting(1.0, on_change='_on_scale')
 
     def __init__(self, registry=None):
@@ -129,15 +128,15 @@ class BagWithCallback(Bag):
 
 
 def test_on_change_fires():
-    bag = BagWithCallback()
-    bag.scale = 2.0
-    assert bag.calls == [(2.0, 'scale')]
+    s = SettingsWithCallback()
+    s.scale = 2.0
+    assert s.calls == [(2.0, 'scale')]
 
 
 def test_on_change_not_fired_same_value():
-    bag = BagWithCallback()
-    bag.scale = 1.0   # same as default
-    assert bag.calls == []
+    s = SettingsWithCallback()
+    s.scale = 1.0   # same as default
+    assert s.calls == []
 ```
 
 ### Testing serialization
@@ -146,21 +145,21 @@ def test_on_change_not_fired_same_value():
 def test_round_trip():
     from haywire.core.settings import Settings, setting
 
-    class MyBag(Bag):
+    class MySettings(Settings):
         threshold: float = setting(0.5)
         mode: str = setting('fast')
 
-    bag = MyBag()
-    bag.threshold = 0.8
-    bag.mode = 'precise'
+    s = MySettings()
+    s.threshold = 0.8
+    s.mode = 'precise'
 
-    data = bag.to_dict()
+    data = s.to_dict()
     assert data == {'threshold': 0.8, 'mode': 'precise'}
 
-    bag2 = MyBag()
-    bag2.from_dict(data)
-    assert bag2.threshold == 0.8
-    assert bag2.mode == 'precise'
+    s2 = MySettings()
+    s2.from_dict(data)
+    assert s2.threshold == 0.8
+    assert s2.mode == 'precise'
 ```
 
 ---
@@ -314,14 +313,14 @@ def test_bag_access(test_bag):
 | Utility | Use Case |
 | ------- | -------- |
 | `create_test_settings_registry()` | Unit tests for registry and resolution |
-| `create_test_bag()` | Unit tests for bag fields, overrides, callbacks, serialization |
+| `create_test_bag()` | Unit tests for settings fields, overrides, callbacks, serialization |
 | `create_test_library_system()` | Integration tests with full DI stack |
 | `SettingsTestContext` | Temporary global setting changes with auto-restore |
 
 Best practices:
 
 - Always use `use_temp_settings=True` to isolate from user settings
-- Use **attr names** for `predefined_local` and `bag.is_locally_set()`
+- Use **attr names** for `predefined_local` and `settings.is_locally_set()`
 - Use **full keys** for `predefined_global` and `registry.set_global()`
 - Test both default values and local overrides
 - Test `read_only` fields raise `AttributeError` on write

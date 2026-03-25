@@ -10,11 +10,11 @@ Every node instance exposes three containers:
 |-----------|-----------|-------------|--------------|
 | `self.cache` | No | No | No |
 | `self.store` | Yes | No | No |
-| `self.<bag_name>` | Yes (local overrides only) | Yes | Yes (optional) |
+| `self.<settings_name>` | Yes (local overrides only) | Yes | Yes (optional) |
 
 **Use `self.cache`** for transient computation data (lookup tables, buffers, memoization).
 **Use `self.store`** for persistent internal state users don't see (counters, accumulators, state machines).
-**Use `self.<bag_name>`** for anything users should be able to see and configure.
+**Use `self.<settings_name>`** for anything users should be able to see and configure.
 
 ---
 
@@ -51,9 +51,9 @@ font_size = { override = true, value = 14 }  # OVERRIDE mode
 verbose_logging = true
 ```
 
-### Node Settings — Bag-Based
+### Node Settings
 
-Nodes declare settings as inner classes that inherit from `Settings` (an alias for `Bag`). The class name becomes the **accessor name** used to read settings directly from the node instance.
+Nodes declare settings as inner classes that inherit from `Settings`. The class name becomes the **accessor name** used to read settings directly from the node instance.
 
 ```python
 from haywire.core.node import BaseNode, node
@@ -77,7 +77,7 @@ class MyNode(BaseNode):
         self.out('result', result)
 ```
 
-The `@node` decorator scans the class body for all `Settings` (= `Bag`) subclasses, assigns a `_field_key` to each `setting()` descriptor (derived from the node's `registry_key`), and binds each bag instance directly on the node object at construction time.
+The `@node` decorator scans the class body for all `Settings` subclasses, assigns a `_field_key` to each `setting()` descriptor (derived from the node's `registry_key`), and binds each settings instance directly on the node object at construction time.
 
 ### Per-Node Resolution Chain (Extended Mode)
 
@@ -93,7 +93,7 @@ self.filter.threshold
 2. Workspace tier OVERRIDE for the key?                           → return it
         │ No
         ▼
-3. Local value in this bag instance?                              → return it
+3. Local value in this settings instance?                         → return it
         │ No
         ▼
 4. Workspace tier SET for the key?                                → return it (set via UI)
@@ -105,7 +105,7 @@ self.filter.threshold
 6. Descriptor _default                                            → return it
 ```
 
-Bags without a registry (simple mode) skip steps 1–2 and 4–5 — they read directly from the local store.
+Settings instances without a registry (simple mode) skip steps 1–2 and 4–5 — they read directly from the local store.
 
 ---
 
@@ -122,7 +122,7 @@ Bags without a registry (simple mode) skip steps 1–2 and 4–5 — they read d
 
 ## Accessing Settings in Node Code
 
-Access is direct via the **bag name** (inner class name), then the **field name**:
+Access is direct via the **settings accessor name** (inner class name), then the **field name**:
 
 ```python
 def worker(self, context, value: float):
@@ -150,7 +150,7 @@ Only locally-overridden values are serialized with the node. Global values and `
 }
 ```
 
-The outer key is the **bag name**. The inner dict maps attr name → locally set value. Fields at their default are omitted.
+The outer key is the **settings accessor name**. The inner dict maps attr name → locally set value. Fields at their default are omitted.
 
 ---
 

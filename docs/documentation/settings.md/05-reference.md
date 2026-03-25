@@ -38,12 +38,9 @@ Imported from `haywire.core.settings`.
 from haywire.core.settings import Settings, setting, Color, Icon
 ```
 
-`Settings` is an alias for `Bag` (`haywire.core.property.Bag`).
-`setting` is an alias for `prop` (`haywire.core.property.prop`).
-
 ### `setting(default, *, min=None, max=None, choices=None, widget=None, label='', description='', category='general', order=0, on_change=None, mirrors=None, read_only=False)`
 
-Declare a field on a `Settings` (Bag) inner class.
+Declare a field on a `Settings` inner class.
 
 ```python
 threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
@@ -84,23 +81,22 @@ debug:     bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True
 
 ---
 
-## `Settings` / `Bag`
+## `Settings`
 
 ```python
-from haywire.core.settings import Settings   # public alias
-from haywire.core.property import Bag        # implementation name
+from haywire.core.settings import Settings
 ```
 
 ### `__init__(registry=None)`
 
-- `registry=None` — **simple mode**: reads/writes go directly to `_local_store`. Zero overhead. Used for standalone bags and `NodeProperties`.
+- `registry=None` — **simple mode**: reads/writes go directly to `_local_store`. Zero overhead. Used for standalone settings instances and `NodeProperties`.
 - `registry=GlobalSettingsRegistry` — **extended mode**: reads go through the full TOML resolution chain. Injected automatically by `@node`/`BaseNode`.
 
 ### Field access
 
 ```python
-bag.threshold            # read (simple: local store; extended: resolution chain)
-bag.threshold = 0.8      # write local override
+settings.threshold            # read (simple: local store; extended: resolution chain)
+settings.threshold = 0.8      # write local override
 ```
 
 ### `subscribe(callback)` / `unsubscribe(callback)`
@@ -136,15 +132,15 @@ Release global namespace subscriptions. Called automatically by `BaseNode` on no
 
 ### `_subscribe_mirrors() -> None`
 
-Subscribe cache-invalidation weakrefs for `mirrors=` fields. Called automatically by `BaseNode` after bag construction.
+Subscribe cache-invalidation weakrefs for `mirrors=` fields. Called automatically by `BaseNode` after settings construction.
 
 ### `list_setting_bags()` *(on BaseNode)*
 
 ```python
-node.list_setting_bags()  # → {'filter': <Bag>, 'output': <Bag>, ...}
+node.list_setting_bags()  # → {'filter': <Settings>, 'output': <Settings>, ...}
 ```
 
-Returns all user-declared settings bags for this node instance. Used by panels to discover what to render.
+Returns all user-declared settings instances for this node. Used by panels to discover what to render.
 
 ---
 
@@ -215,15 +211,15 @@ registry = get_settings_registry()
 
 Register a `GlobalSettings` or `LibrarySettings` class.
 
-### `define(name, default, type_=None, label=None, description='', category='general', **kwargs) -> SettingDescriptor`
+### `define(name, default, type_=None, label=None, description='', category='general', **kwargs) -> setting`
 
 Programmatically define a setting.
 
 ### `has_definition(name) -> bool`
 
-### `get_definition(name) -> SettingDescriptor | None`
+### `get_definition(name) -> setting | None`
 
-### `all_definitions() -> dict[str, SettingDescriptor]`
+### `all_definitions() -> dict[str, setting]`
 
 ### `get_global(name) -> SettingValue`
 
@@ -239,7 +235,7 @@ Reset to `AUTO`.
 
 Returns `(value, source)` where source is `'global'`, `'local'`, or `'default'`.
 
-- `local`: optional `SettingValue` representing the per-instance override (passed by `Bag._resolve()`).
+- `local`: optional `SettingValue` representing the per-instance override (passed by `Settings._resolve()`).
 
 ### `load_from_toml(path, tier='workspace', watch=False) -> None`
 
@@ -252,7 +248,7 @@ Load values from a TOML file into the specified tier.
 
 ### `subscribe_namespace(namespace, weakref_callback) -> None`
 
-Cache-invalidation hook. Callback is called with `(full_key: str)` when any key under `namespace` changes. Used internally by `Bag._subscribe_mirrors()`.
+Cache-invalidation hook. Callback is called with `(full_key: str)` when any key under `namespace` changes. Used internally by `Settings._subscribe_mirrors()`.
 
 ---
 
@@ -290,7 +286,7 @@ self.filter.threshold
 2. Workspace tier OVERRIDE for full_key? → return it (workspace-wide force)
     │ No
     ▼
-3. Local value in bag._local_store?      → return it (per-node override)
+3. Local value in settings._local_store? → return it (per-node override)
     │ No
     ▼
 4. Workspace tier SET for full_key?      → return it (set via UI, saved to workspace TOML)
@@ -302,7 +298,7 @@ self.filter.threshold
 6. Descriptor _default                   → return it
 ```
 
-Bags in **simple mode** (no registry) skip steps 1–2 and 4–5.
+Settings instances in **simple mode** (no registry) skip steps 1–2 and 4–5.
 
 ---
 
