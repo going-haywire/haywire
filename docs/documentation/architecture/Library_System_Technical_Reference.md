@@ -367,7 +367,7 @@ class NodeRegistry(BaseClassRegistry, FolderScanMixin):
 **Registry Types**:
 - `NodeRegistry`: Manages `@node` decorated classes
 - `WidgetRegistry`: Manages `@widget` decorated classes  
-- `RendererRegistry`: Manages `@renderer` decorated classes
+- `SkinRegistry`: Manages `@renderer` decorated classes
 - `AdapterRegistry`: Manages `@adapter` decorated classes
 
 Each registry inherits `FolderScanMixin` for consistent module resolution.
@@ -400,7 +400,7 @@ Each registry inherits `FolderScanMixin` for consistent module resolution.
 6. Component Registries Populated
    ├─→ NodeRegistry
    ├─→ WidgetRegistry
-   ├─→ RendererRegistry
+   ├─→ SkinRegistry
    └─→ AdapterRegistry
 ```
 

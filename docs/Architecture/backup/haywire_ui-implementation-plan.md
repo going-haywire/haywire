@@ -742,7 +742,7 @@ class SessionManager:
 
 1. **Do not break existing functionality.** The graph editor, renderers, and widgets must continue to work throughout the refactoring. Wrap existing code rather than rewriting it.
 
-2. **Follow existing patterns.** Look at how `@renderer` and `RendererRegistry` work — `@renderer` only sets `class_identity`, never auto-registers. `RendererRegistry` extends `BaseRegistry`. The `@editor` and `@panel` decorators must follow the identical pattern. Look at `WidgetFactory` for how factories consume registries.
+2. **Follow existing patterns.** Look at how `@renderer` and `SkinRegistry` work — `@renderer` only sets `class_identity`, never auto-registers. `SkinRegistry` extends `BaseRegistry`. The `@editor` and `@panel` decorators must follow the identical pattern. Look at `WidgetFactory` for how factories consume registries.
 
 3. **Registry instances come from DI.** Never access `EditorTypeRegistry` or `PanelRegistry` via a bare `instance()` singleton. Always retrieve them through the injector (or inject via constructor). The `register_builtin_*` bootstrap functions call `registry._register_class()` directly and are only called from the DI provider.
 

@@ -74,7 +74,7 @@ haywire/ui/
 │   ├── decorator.py        # @skin decorator
 │   ├── factory.py          # SkinFactory
 │   ├── interface.py        # ISkin protocol
-│   └── registry.py         # RendererRegistry (skins)
+│   └── registry.py         # SkinRegistry (skins)
 │
 ├── widget/                 # Port widget system (inline port controls)
 │   ├── base.py             # BaseWidget

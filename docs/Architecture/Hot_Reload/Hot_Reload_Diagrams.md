@@ -111,7 +111,7 @@
 │                                                                      │
 │  Use Cases:                                                          │
 │    ✓ CustomTypeRegistry change → NodeRegistry reload                │
-│    ✓ WidgetRegistry change → RendererRegistry reload                │
+│    ✓ WidgetRegistry change → SkinRegistry reload                │
 │    ✓ Any registry-to-registry dependency                            │
 │                                                                      │
 │  Registration:                                                       │

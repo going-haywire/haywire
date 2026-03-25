@@ -73,7 +73,7 @@ Server (one per project, shared across all sessions):
 ├── Global Registries                  ← shared, read-only for sessions; all DI-managed singletons
 │     ├── EditorTypeRegistry           ← extends BaseRegistry; hot-reload capable
 │     ├── PanelRegistry                ← extends BaseRegistry; hot-reload capable
-│     ├── RendererRegistry             (NodeBody renderers, consumed by GraphEditor)
+│     ├── SkinRegistry             (NodeBody renderers, consumed by GraphEditor)
 │     └── WidgetRegistry
 └── SessionManager
       ├── Session A (browser window 1)
@@ -96,7 +96,7 @@ Server (one per project, shared across all sessions):
 
 ### 1.3 Registry Architecture
 
-All registries are global singletons provided by the DI container (`HaywireModule`). `EditorTypeRegistry` and `PanelRegistry` extend `BaseRegistry` — the same base used by `RendererRegistry`, `NodeRegistry`, `WidgetRegistry`, etc. — gaining hot-reload support via folder scanning, lifecycle events, dependency tracking, and snapshot rollback.
+All registries are global singletons provided by the DI container (`HaywireModule`). `EditorTypeRegistry` and `PanelRegistry` extend `BaseRegistry` — the same base used by `SkinRegistry`, `NodeRegistry`, `WidgetRegistry`, etc. — gaining hot-reload support via folder scanning, lifecycle events, dependency tracking, and snapshot rollback.
 
 Editors and panels contributed by libraries are registered via `add_folder()` in `register_components()`, following the identical pattern as nodes and renderers. Built-in framework editors and panels (those that ship inside `haywire-core` itself) are bootstrapped directly in the DI provider via `register_builtin_editors()` and `register_builtin_panels()`, analogous to `register_builtin_settings()`.
 
@@ -104,11 +104,11 @@ Editors and panels contributed by libraries are registered via `add_folder()` in
 Global Registries (shared infrastructure, all DI-managed, all extending BaseRegistry):
 ├── EditorTypeRegistry        — Registers editor types
 ├── PanelRegistry             — Panels declare which editor + context they target
-├── RendererRegistry          — Node body renderers (existing, narrowed scope)
+├── SkinRegistry          — Node body renderers (existing, narrowed scope)
 └── WidgetRegistry            — Atomic UI elements (existing, unchanged)
 
 Editors consume registries:
-├── GraphEditor               → RendererRegistry, WidgetRegistry
+├── GraphEditor               → SkinRegistry, WidgetRegistry
 ├── PropertiesEditor          → PanelRegistry, WidgetRegistry
 ├── LibraryBrowser            → (haywire-app; emits ACTIVE_LIBRARY_CHANGED /
 │                                ACTIVE_COMPONENT_CHANGED context events;
@@ -121,7 +121,7 @@ The GraphEditor owns the node rendering pipeline:
 
 ```
 GraphEditor
-  └── RendererRegistry        — How nodes look inside the graph canvas
+  └── SkinRegistry        — How nodes look inside the graph canvas
         └── WidgetRegistry    — Widgets used for inline port controls
 ```
 
@@ -1110,7 +1110,7 @@ class AppShell:
 
 ### 2.7 Dependency Injection Integration
 
-`EditorTypeRegistry` and `PanelRegistry` are added to `HaywireModule` as DI singletons, following the same pattern as `RendererRegistry` and `NodeRegistry`. Built-in framework editors/panels are bootstrapped in the provider.
+`EditorTypeRegistry` and `PanelRegistry` are added to `HaywireModule` as DI singletons, following the same pattern as `SkinRegistry` and `NodeRegistry`. Built-in framework editors/panels are bootstrapped in the provider.
 
 ```python
 # Addition to packages/haywire-core/src/haywire/core/di/config.py
@@ -1179,7 +1179,7 @@ class GraphEditor(BaseEditor):
     The graph canvas editor.
 
     Wraps the existing GraphCanvasManager and its Vue component.
-    Owns the RendererRegistry consumption for node body rendering.
+    Owns the SkinRegistry consumption for node body rendering.
 
     Context changes this editor EMITS:
         - SELECTION_CHANGED: when user selects/deselects nodes or edges
@@ -1549,9 +1549,9 @@ packages/haywire-app/src/haywire_app/
 
 ## 5. Integration with Existing Systems
 
-### 5.1 RendererRegistry (Existing → Narrowed Scope)
+### 5.1 SkinRegistry (Existing → Narrowed Scope)
 
-No code changes needed. The RendererRegistry continues to work exactly as it does today. The only conceptual change is that it is now understood as being consumed exclusively by the GraphEditor. Its scope narrows from "the rendering system" to "how nodes look inside the graph canvas."
+No code changes needed. The SkinRegistry continues to work exactly as it does today. The only conceptual change is that it is now understood as being consumed exclusively by the GraphEditor. Its scope narrows from "the rendering system" to "how nodes look inside the graph canvas."
 
 ### 5.2 WidgetRegistry (Existing → Shared)
 
@@ -1729,7 +1729,7 @@ The existing `library_manager.py` and `library_manager_ui.py` are prototypical i
 
 3. **Context flows down, events flow up.** The SessionContext is the primary data carrier flowing into poll() and draw(). ContextChangedEvents flow up from editors to the session and then broadcast to all editors.
 
-4. **The graph canvas is not special.** It's just another editor type. The RendererRegistry and node body rendering are internal concerns of the GraphEditor, not framework-level concepts.
+4. **The graph canvas is not special.** It's just another editor type. The SkinRegistry and node body rendering are internal concerns of the GraphEditor, not framework-level concepts.
 
 5. **Widgets are shared atoms.** The same WidgetRegistry and widget classes are used in node bodies (inside the graph canvas) and in panels (inside the PropertiesEditor).
 

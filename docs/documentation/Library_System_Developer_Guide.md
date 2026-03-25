@@ -281,7 +281,7 @@ def register_components(self):
     # Register renderers
     self.add_folder_to_registry(
         folder_path=str(base_path / 'renderers'),
-        registry_cls=RendererRegistry
+        registry_cls=SkinRegistry
     )
     
     # Register adapters
