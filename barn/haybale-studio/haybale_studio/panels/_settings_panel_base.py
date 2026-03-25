@@ -17,7 +17,7 @@ from haywire.ui.components.number_drag import NumberDrag
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import GlobalSettingsRegistry
-    from haywire.core.property import Bag, FieldDescriptor
+    from haywire.core.settings import Settings, FieldDescriptor
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
 _LABEL_CLASSES = "text-xs flex-1 min-w-0 truncate"
@@ -56,8 +56,8 @@ def _render_field_row(label_text: str, description: str, defn, value, make_sette
 # ---------------------------------------------------------------------------
 
 
-def render_reactive(obj: "Bag") -> None:
-    """Render all ``prop()`` fields of a ``Reactive`` instance as labelled form rows.
+def render_reactive(obj: "Settings") -> None:
+    """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
     - Fields with ``read_only=True`` are skipped (not rendered).
     - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
@@ -80,7 +80,7 @@ def render_reactive(obj: "Bag") -> None:
                     _render_reactive_field_row(obj, attr_name, defn)
 
 
-def _render_reactive_field_row(obj: "Bag", attr_name: str, defn: "FieldDescriptor") -> None:
+def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDescriptor") -> None:
     """Render a single reactive field row, with optional reset button for mirrored fields."""
     container = ui.element("div").classes("w-full")
 
@@ -194,8 +194,8 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
 # ---------------------------------------------------------------------------
 
 
-def _make_reactive_setter(obj: "Bag", attr_name: str):
-    """Return a make_setter(coerce) factory that writes to a Reactive prop."""
+def _make_reactive_setter(obj: "Settings", attr_name: str):
+    """Return a make_setter(coerce) factory that writes to a Settings instance."""
 
     def make_setter(coerce):
         def handler(e):

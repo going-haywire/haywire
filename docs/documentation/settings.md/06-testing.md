@@ -93,12 +93,12 @@ def test_reset_falls_back_to_default():
 
 ```python
 from haywire.core.settings import Settings, setting, Color
-from haywire.core.property import Bag, prop
+from haywire.core.settings import Settings, setting
 
 
 class MyBag(Bag):
-    threshold: float = prop(0.5, min=0.0, max=1.0, label='Threshold')
-    color:     Color = prop('#ffffff', label='Color')
+    threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
+    color:     Color = setting('#ffffff', label='Color')
 
 
 def test_custom_bag():
@@ -114,11 +114,11 @@ def test_custom_bag():
 ### Testing on_change callbacks
 
 ```python
-from haywire.core.property import Bag, prop
+from haywire.core.settings import Settings, setting
 
 
 class BagWithCallback(Bag):
-    scale: float = prop(1.0, on_change='_on_scale')
+    scale: float = setting(1.0, on_change='_on_scale')
 
     def __init__(self, registry=None):
         super().__init__(registry)
@@ -144,11 +144,11 @@ def test_on_change_not_fired_same_value():
 
 ```python
 def test_round_trip():
-    from haywire.core.property import Bag, prop
+    from haywire.core.settings import Settings, setting
 
     class MyBag(Bag):
-        threshold: float = prop(0.5)
-        mode: str = prop('fast')
+        threshold: float = setting(0.5)
+        mode: str = setting('fast')
 
     bag = MyBag()
     bag.threshold = 0.8

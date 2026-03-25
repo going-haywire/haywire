@@ -12,45 +12,45 @@ from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIO
 T = TypeVar("T")
 
 
-def _wire_bag_schemas(node_cls: type, registry_key: str) -> None:
+def _wire_settings_schemas(node_cls: type, registry_key: str) -> None:
     """
-    Scan the node class body for all ``Bag`` subclasses, assign ``_field_key``
-    to their ``prop`` descriptors, and store the result as ``cls._settings_bags``.
+    Scan the node class body for all ``Settings`` subclasses, assign ``_field_key``
+    to their ``setting`` descriptors, and store the result as ``cls._settings_bags``.
 
     The accessor name is the inner class name in the node class body.
 
     ``_field_key`` format::
 
-        '{registry_key_dotted}.{bag_name}.{field_name}'
+        '{registry_key_dotted}.{settings_name}.{field_name}'
         e.g. 'haybale_core.node.transform.filter.strength'
 
     Conflict check: raises ``ValueError`` at class-definition time if an
-    accessor name shadows any existing non-Bag attribute on the node MRO.
+    accessor name shadows any existing non-Settings attribute on the node MRO.
     """
-    from haywire.core.property import Bag, prop as prop_cls
+    from haywire.core.settings import Settings, setting as setting_cls
 
     bags: dict[str, type] = {}
     ns = registry_key.replace(":", ".")
 
     for name, val in node_cls.__dict__.items():
-        if not (isinstance(val, type) and issubclass(val, Bag) and val is not Bag):
+        if not (isinstance(val, type) and issubclass(val, Settings) and val is not Settings):
             continue
-        # Set _field_key on every prop descriptor that doesn't already have one
+        # Set _field_key on every setting descriptor that doesn't already have one
         for field_name, descriptor in val._prop_fields().items():
-            if isinstance(descriptor, prop_cls) and not descriptor._field_key:
+            if isinstance(descriptor, setting_cls) and not descriptor._field_key:
                 descriptor._field_key = f"{ns}.{name}.{field_name}"
         bags[name] = val
 
-    # Conflict check — must not shadow existing non-Bag attributes
+    # Conflict check — must not shadow existing non-Settings attributes
     for accessor_name in bags:
         for klass in node_cls.__mro__:
             if accessor_name not in klass.__dict__:
                 continue
             existing = klass.__dict__[accessor_name]
-            if isinstance(existing, type) and issubclass(existing, Bag):
-                continue  # it IS the Bag being wired — that's fine
+            if isinstance(existing, type) and issubclass(existing, Settings):
+                continue  # it IS the Settings being wired — that's fine
             raise ValueError(
-                f"@node: Bag accessor '{accessor_name}' on {node_cls.__name__} "
+                f"@node: Settings accessor '{accessor_name}' on {node_cls.__name__} "
                 f"conflicts with {klass.__name__}.{accessor_name} "
                 f"({type(existing).__name__}). Choose a different inner class name."
             )
@@ -238,8 +238,8 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         inner_cls.class_behavior = NodeBehaviorFlags(**behavior_kwargs)
         inner_cls.class_library = library_identity
 
-        # Wire Bag schemas using registry_key as the single source of truth
-        _wire_bag_schemas(inner_cls, identity_kwargs["registry_key"])
+        # Wire Settings schemas using registry_key as the single source of truth
+        _wire_settings_schemas(inner_cls, identity_kwargs["registry_key"])
 
         return inner_cls
 

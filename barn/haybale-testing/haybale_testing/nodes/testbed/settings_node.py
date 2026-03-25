@@ -13,7 +13,7 @@ from haybale_testing.settings.testing import TestingSettings
     node_type=NodeType.DATA,
 )
 class SettingsNode(BaseNode):
-    """Node that exercises all prop() features from Issue #2: type_, stored, validator."""
+    """Node that exercises all setting() features from Issue #2: type_, stored, validator."""
 
     class example(Settings):
         # --- type_ ---

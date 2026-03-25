@@ -1,14 +1,14 @@
 # haywire/ui/prefs/edge_ui.py
 """Edge routing, width, and animation preference singleton."""
 
-from haywire.core.property import Bag, prop
+from haywire.core.settings import Settings, setting
 
 
-class EdgeUISettings(Bag):
+class EdgeUISettings(Settings):
     """Global preferences controlling edge routing, width, and animation behaviour."""
 
     # Width
-    width: int = prop(
+    width: int = setting(
         2,
         label="Edge Width",
         description="Default edge width in pixels",
@@ -17,7 +17,7 @@ class EdgeUISettings(Bag):
         min=1,
         max=8,
     )
-    width_selected: int = prop(
+    width_selected: int = setting(
         3,
         label="Selected Edge Width",
         description="Edge width when selected",
@@ -28,7 +28,7 @@ class EdgeUISettings(Bag):
     )
 
     # Port-color tinting
-    use_port_colors: bool = prop(
+    use_port_colors: bool = setting(
         True,
         label="Use Port Colors",
         description="Tint edges with the connected port type colour",
@@ -37,7 +37,7 @@ class EdgeUISettings(Bag):
     )
 
     # Curve
-    curve_style: str = prop(
+    curve_style: str = setting(
         "bezier",
         label="Curve Style",
         description="How edges are drawn between nodes",
@@ -45,7 +45,7 @@ class EdgeUISettings(Bag):
         order=20,
         choices=["bezier", "straight", "step", "smoothstep"],
     )
-    curve_tension: float = prop(
+    curve_tension: float = setting(
         0.5,
         label="Curve Tension",
         description="Tension for bezier curves (0–1)",
@@ -54,7 +54,7 @@ class EdgeUISettings(Bag):
         min=0.0,
         max=1.0,
     )
-    curve_offset: int = prop(
+    curve_offset: int = setting(
         50,
         label="Curve Offset",
         description="Control point offset for curves",
@@ -65,14 +65,14 @@ class EdgeUISettings(Bag):
     )
 
     # Animation
-    animate_flow: bool = prop(
+    animate_flow: bool = setting(
         False,
         label="Animate Flow",
         description="Show animated flow direction on edges",
         category="ui.edge",
         order=30,
     )
-    animation_speed: float = prop(
+    animation_speed: float = setting(
         1.0,
         label="Animation Speed",
         description="Speed of flow animation",
@@ -81,7 +81,7 @@ class EdgeUISettings(Bag):
         min=0.1,
         max=5.0,
     )
-    animate_on_execute: bool = prop(
+    animate_on_execute: bool = setting(
         True,
         label="Animate on Execute",
         description="Animate edges during execution",

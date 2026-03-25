@@ -1,55 +1,36 @@
 # tests/core/test_settings/test_schema_rebasing.py
 """
-Tests for GlobalSettings and LibrarySettings rebased on Bag.
+Tests for GlobalSettings and LibrarySettings rebased on Settings.
 
 Verifies:
-- GlobalSettings/LibrarySettings extend Bag (prop descriptor works)
+- GlobalSettings/LibrarySettings extend Settings (setting descriptor works)
 - _prop_fields() returns expected descriptors
-- namespace= kwarg sets _field_key on all props
+- namespace= kwarg sets _field_key on all settings
 - Deep inheritance (subclassing a GS/LS subclass) raises TypeError
-- Class-level access returns the prop descriptor (for mirrors=)
-- from haywire.core.settings import setting returns prop
+- Class-level access returns the setting descriptor (for mirrors=)
 - Registry reads _prop_fields() correctly
 """
 
 import pytest
-from haywire.core.property import Bag, prop
-from haywire.core.settings import setting, GlobalSettings, LibrarySettings
+from haywire.core.settings import Settings, setting, GlobalSettings, LibrarySettings, FieldDescriptor
 from haywire.core.settings.registry import GlobalSettingsRegistry
 from haywire.core.settings.decorator import settings
 
 
 # ---------------------------------------------------------------------------
-# setting() alias
+# GlobalSettings extends Settings
 # ---------------------------------------------------------------------------
 
 
-class TestSettingAlias:
-    def test_setting_is_prop(self):
-        """from haywire.core.settings import setting returns prop."""
-        assert setting is prop
+class TestGlobalSettingsExtendsSettings:
+    def test_globalSettings_is_settings_subclass(self):
+        assert issubclass(GlobalSettings, Settings)
 
-    def test_setting_creates_prop_instance(self):
-        d = setting(42, label="The Answer")
-        assert isinstance(d, prop)
-        assert d._default == 42
-        assert d._label == "The Answer"
-
-
-# ---------------------------------------------------------------------------
-# GlobalSettings extends Bag
-# ---------------------------------------------------------------------------
-
-
-class TestGlobalSettingsExtendsBag:
-    def test_globalSettings_is_bag_subclass(self):
-        assert issubclass(GlobalSettings, Bag)
-
-    def test_direct_subclass_is_bag_subclass(self):
+    def test_direct_subclass_is_settings_subclass(self):
         class FooGS(GlobalSettings, namespace="foo"):
             x: int = setting(1)
 
-        assert issubclass(FooGS, Bag)
+        assert issubclass(FooGS, Settings)
 
     def test_prop_fields_returns_descriptors(self):
         class BarGS(GlobalSettings, namespace="bar"):
@@ -59,8 +40,8 @@ class TestGlobalSettingsExtendsBag:
         fields = BarGS._prop_fields()
         assert "alpha" in fields
         assert "beta" in fields
-        assert isinstance(fields["alpha"], prop)
-        assert isinstance(fields["beta"], prop)
+        assert isinstance(fields["alpha"], setting)
+        assert isinstance(fields["beta"], setting)
 
     def test_namespace_sets_field_key(self):
         class NsGS(GlobalSettings, namespace="ns.test"):
@@ -70,12 +51,12 @@ class TestGlobalSettingsExtendsBag:
         assert fields["val"]._field_key == "ns.test.val"
 
     def test_class_level_access_returns_descriptor(self):
-        """Class-level access returns the prop descriptor (used for mirrors=)."""
+        """Class-level access returns the setting descriptor (used for mirrors=)."""
 
         class ClsGS(GlobalSettings, namespace="cls.gs"):
             count: int = setting(0)
 
-        assert isinstance(ClsGS.count, prop)
+        assert isinstance(ClsGS.count, setting)
 
     def test_no_namespace_does_not_set_field_key(self):
         """Without namespace=, _field_key is empty (set by decorator or register_schema)."""
@@ -89,13 +70,13 @@ class TestGlobalSettingsExtendsBag:
 
 
 # ---------------------------------------------------------------------------
-# LibrarySettings extends Bag
+# LibrarySettings extends Settings
 # ---------------------------------------------------------------------------
 
 
-class TestLibrarySettingsExtendsBag:
-    def test_librarySettings_is_bag_subclass(self):
-        assert issubclass(LibrarySettings, Bag)
+class TestLibrarySettingsExtendsSettings:
+    def test_librarySettings_is_settings_subclass(self):
+        assert issubclass(LibrarySettings, Settings)
 
     def test_prop_fields_returns_descriptors(self):
         class FooLS(LibrarySettings):
@@ -103,7 +84,7 @@ class TestLibrarySettingsExtendsBag:
 
         fields = FooLS._prop_fields()
         assert "rate" in fields
-        assert isinstance(fields["rate"], prop)
+        assert isinstance(fields["rate"], setting)
 
 
 # ---------------------------------------------------------------------------
@@ -169,15 +150,15 @@ class TestRegistryReadsPropFields:
         val, _ = registry.resolve("reg.gs.value")
         assert val == 99
 
-    def test_define_returns_prop_instance(self):
-        """registry.define() returns a prop instance."""
+    def test_define_returns_setting_instance(self):
+        """registry.define() returns a setting instance."""
         registry = GlobalSettingsRegistry()
         d = registry.define("prog.val", 42)
-        assert isinstance(d, prop)
+        assert isinstance(d, setting)
         assert d._default == 42
 
-    def test_auto_define_creates_prop_instance(self):
-        """TOML auto-define creates prop instances."""
+    def test_auto_define_creates_setting_instance(self):
+        """TOML auto-define creates setting instances."""
         import importlib.util
         import tempfile
         import os
@@ -194,13 +175,13 @@ class TestRegistryReadsPropFields:
             registry.load_from_toml(path, tier="workspace")
             defn = registry.get_definition("auto.val")
             assert defn is not None
-            assert isinstance(defn, prop)
+            assert isinstance(defn, setting)
             assert defn._default == 123
         finally:
             os.unlink(path)
 
     def test_settings_decorator_sets_field_keys(self):
-        """@settings decorator sets _field_key on all props via _prop_fields()."""
+        """@settings decorator sets _field_key on all settings via _prop_fields()."""
 
         @settings(namespace="dec.ls")
         class DecLS(LibrarySettings):

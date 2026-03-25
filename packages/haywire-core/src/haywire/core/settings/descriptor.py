@@ -1,19 +1,19 @@
-# haywire/core/property/descriptor.py
+# haywire/core/settings/descriptor.py
 """
-prop — reactive property descriptor.
+setting — reactive property descriptor.
 
-Instance-level access reads/writes the value stored in the owning Bag's
-_local_store.  Change notifications are fired via Bag._on_prop_change().
+Instance-level access reads/writes the value stored in the owning Settings's
+_local_store.  Change notifications are fired via Settings._on_prop_change().
 
 Two operating modes:
 
-  Simple mode  (no registry injected on the Bag):
-      _field_key is empty or Bag._registry is None.
+  Simple mode  (no registry injected on the Settings):
+      _field_key is empty or Settings._registry is None.
       Reads and writes go directly to _local_store keyed by attr name.
 
   Extended mode (registry injected by @node decorator):
-      _field_key is set and Bag._registry is not None.
-      Reads go through Bag._resolve() — full resolution chain.
+      _field_key is set and Settings._registry is not None.
+      Reads go through Settings._resolve() — full resolution chain.
       Writes go to _local_store keyed by _field_key.
       mirrors= points to a GlobalSettings/LibrarySettings descriptor whose
       _field_key is stored as _mirror_key (used by _resolve for shadow/watch).
@@ -27,13 +27,13 @@ from typing import Any, Callable
 from .base import FieldDescriptor
 
 
-class prop(FieldDescriptor):
+class setting(FieldDescriptor):
     """
-    Descriptor for a reactive property on a ``Bag`` subclass.
+    Descriptor for a reactive setting on a ``Settings`` subclass.
 
     Class-level access returns the descriptor itself (for introspection and
-    use as the ``mirrors=`` argument on another prop).
-    Instance-level access reads/writes via the owning Bag's _local_store.
+    use as the ``mirrors=`` argument on another setting).
+    Instance-level access reads/writes via the owning Settings's _local_store.
     """
 
     def __init__(
@@ -73,7 +73,7 @@ class prop(FieldDescriptor):
         self._field_key: str = ""  # set by @node decorator (extended mode)
 
         if self._validator is not None and default is not None and not self.validate(default):
-            raise ValueError(f"Default value {default!r} fails validation for prop '{label or '?'}'")
+            raise ValueError(f"Default value {default!r} fails validation for setting '{label or '?'}'")
 
         # mirrors= accepts a class-level descriptor access which returns the
         # descriptor itself (FieldDescriptor.__get__ with obj=None).
@@ -81,7 +81,7 @@ class prop(FieldDescriptor):
             mirror_key = getattr(mirrors, "_field_key", "")
             if not mirror_key:
                 raise ValueError(
-                    "prop(mirrors=...) target has no _field_key set. "
+                    "setting(mirrors=...) target has no _field_key set. "
                     "Ensure the target GlobalSettings/LibrarySettings class has been "
                     "registered and its descriptors have _field_key assigned."
                 )

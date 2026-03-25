@@ -1,7 +1,7 @@
 # haywire/ui/prefs/workbench.py
 """Workbench and node theme selection preference singletons."""
 
-from haywire.core.property import Bag, prop
+from haywire.core.settings import Settings, setting
 
 
 def _workbench_theme_choices():
@@ -17,10 +17,10 @@ def _workbench_theme_choices():
         return {}
 
 
-class WorkbenchSettings(Bag):
+class WorkbenchSettings(Settings):
     """Global preferences controlling the active workbench theme."""
 
-    theme: str = prop(
+    theme: str = setting(
         "",
         label="Workbench Theme",
         description="Active workbench colour theme",
@@ -30,10 +30,10 @@ class WorkbenchSettings(Bag):
     )
 
 
-class NodeThemeSettings(Bag):
+class NodeThemeSettings(Settings):
     """Global preferences controlling the active node theme."""
 
-    theme: str = prop(
+    theme: str = setting(
         "default",
         label="Node Theme",
         description="Active node rendering theme",

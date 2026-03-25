@@ -1,4 +1,4 @@
-# haywire/core/property/base.py
+# haywire/core/settings/base.py
 """
 FieldDescriptor — shared base for all property descriptors.
 
@@ -7,7 +7,7 @@ _label, _description, _category, _order, _min, _max, _choices, _widget,
 _attr_name, and the choices property.
 
 Subclass:
-    prop (property/descriptor.py) — reactive instance property on Bag subclasses
+    setting (settings/descriptor.py) — reactive instance setting on Settings subclasses
 """
 
 from __future__ import annotations

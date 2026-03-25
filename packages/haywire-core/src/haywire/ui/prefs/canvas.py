@@ -1,14 +1,14 @@
 # haywire/ui/prefs/canvas.py
 """Canvas grid, zoom, and pan preference singleton."""
 
-from haywire.core.property import Bag, prop
+from haywire.core.settings import Settings, setting
 
 
-class CanvasSettings(Bag):
+class CanvasSettings(Settings):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
 
     # Background pattern (style, not color)
-    bg_pattern: str = prop(
+    bg_pattern: str = setting(
         "dots",
         label="Background Pattern",
         description="Pattern style for canvas background",
@@ -18,10 +18,10 @@ class CanvasSettings(Bag):
     )
 
     # Grid
-    grid_enabled: bool = prop(
+    grid_enabled: bool = setting(
         True, label="Show Grid", description="Display grid on canvas", category="ui.canvas", order=20
     )
-    grid_size: int = prop(
+    grid_size: int = setting(
         20,
         label="Grid Size",
         description="Grid cell size in pixels",
@@ -30,7 +30,7 @@ class CanvasSettings(Bag):
         min=5,
         max=100,
     )
-    grid_subdivisions: int = prop(
+    grid_subdivisions: int = setting(
         5,
         label="Grid Subdivisions",
         description="Minor grid lines per major line",
@@ -39,7 +39,7 @@ class CanvasSettings(Bag):
         min=1,
         max=10,
     )
-    snap_to_grid: bool = prop(
+    snap_to_grid: bool = setting(
         True,
         label="Snap to Grid",
         description="Snap nodes to grid when moving",
@@ -48,7 +48,7 @@ class CanvasSettings(Bag):
     )
 
     # Zoom
-    zoom_min: float = prop(
+    zoom_min: float = setting(
         0.1,
         label="Minimum Zoom",
         description="Minimum zoom level",
@@ -57,7 +57,7 @@ class CanvasSettings(Bag):
         min=0.05,
         max=0.5,
     )
-    zoom_max: float = prop(
+    zoom_max: float = setting(
         4.0,
         label="Maximum Zoom",
         description="Maximum zoom level",
@@ -66,7 +66,7 @@ class CanvasSettings(Bag):
         min=1.0,
         max=10.0,
     )
-    zoom_speed: float = prop(
+    zoom_speed: float = setting(
         0.1,
         label="Zoom Speed",
         description="Zoom sensitivity for scroll wheel",
@@ -75,7 +75,7 @@ class CanvasSettings(Bag):
         min=0.01,
         max=0.5,
     )
-    zoom_to_cursor: bool = prop(
+    zoom_to_cursor: bool = setting(
         True,
         label="Zoom to Cursor",
         description="Zoom centred on cursor position",
@@ -84,7 +84,7 @@ class CanvasSettings(Bag):
     )
 
     # Pan
-    pan_speed: float = prop(
+    pan_speed: float = setting(
         1.0,
         label="Pan Speed",
         description="Panning speed multiplier",
@@ -93,7 +93,7 @@ class CanvasSettings(Bag):
         min=0.1,
         max=3.0,
     )
-    inertia_enabled: bool = prop(
+    inertia_enabled: bool = setting(
         True,
         label="Enable Inertia",
         description="Continue panning with momentum after release",

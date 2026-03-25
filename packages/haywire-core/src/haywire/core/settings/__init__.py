@@ -15,7 +15,9 @@ Framework / library internals:
     @settings               — decorator for LibrarySettings auto-discovery
 """
 
-from haywire.core.property import Bag as Settings, prop as setting  # node-author API
+from .settings import Settings
+from .descriptor import setting
+from .base import FieldDescriptor
 from .enums import SettingMode
 from .value import SettingValue
 from .types import Color, Icon
@@ -27,6 +29,7 @@ __all__ = [
     # Node-author API
     "Settings",
     "setting",
+    "FieldDescriptor",
     "Color",
     "Icon",
     # Framework internals

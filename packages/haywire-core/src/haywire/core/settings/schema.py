@@ -5,16 +5,16 @@ Base schema classes for the Haywire global settings registry.
 These are used exclusively by the GlobalSettingsRegistry for framework built-in
 settings (GlobalSettings) and library-wide TOML settings (LibrarySettings).
 
-Node-local settings use Bag subclasses with prop() — see haywire.core.property.
+Node-local settings use Settings subclasses with setting() — see haywire.core.settings.
 """
 
 from __future__ import annotations
 from typing import ClassVar
 
-from haywire.core.property.bag import Bag
+from haywire.core.settings.settings import Settings
 
 
-class GlobalSettings(Bag):
+class GlobalSettings(Settings):
     """
     Framework built-in settings (e.g. NodeUISettings, DebugSettings).
 
@@ -46,19 +46,19 @@ class GlobalSettings(Bag):
         if namespace:
             cls._namespace = namespace
             for name, val in cls.__dict__.items():
-                from haywire.core.property.descriptor import prop  # noqa: PLC0415
+                from haywire.core.settings.descriptor import setting  # noqa: PLC0415
 
-                if isinstance(val, prop):
+                if isinstance(val, setting):
                     val._field_key = f"{namespace}.{name}"
 
 
-class LibrarySettings(Bag):
+class LibrarySettings(Settings):
     """
     Library-global settings. Must be decorated with @settings to be registered
     with GlobalSettingsRegistry.
 
     Used to define library-wide TOML-configurable defaults.  Node authors use
-    Bag subclasses with prop() for per-node settings.
+    Settings subclasses with setting() for per-node settings.
 
     Deep inheritance (subclassing a LibrarySettings subclass) is blocked to
     prevent namespace collisions from inherited fields.
@@ -81,7 +81,7 @@ class LibrarySettings(Bag):
         if namespace:
             cls._namespace = namespace
             for name, val in cls.__dict__.items():
-                from haywire.core.property.descriptor import prop  # noqa: PLC0415
+                from haywire.core.settings.descriptor import setting  # noqa: PLC0415
 
-                if isinstance(val, prop):
+                if isinstance(val, setting):
                     val._field_key = f"{namespace}.{name}"

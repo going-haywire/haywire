@@ -1,25 +1,25 @@
-# haywire/core/property/bag.py
+# haywire/core/settings/settings.py
 """
-Bag — observable property container for Haywire.
+Settings — observable setting container for Haywire.
 
-Subclass and declare fields with ``prop()``:
+Subclass and declare fields with ``setting()``:
 
-    class FilterSettings(Bag):
-        strength: float = prop(0.5, min=0.0, max=1.0, label='Strength')
-        mode:     str   = prop('fast', choices=['fast', 'precise'])
+    class FilterSettings(Settings):
+        strength: float = setting(0.5, min=0.0, max=1.0, label='Strength')
+        mode:     str   = setting('fast', choices=['fast', 'precise'])
 
 Simple mode (no registry):
     Direct _local_store lookup.  Zero overhead.  Used by NodeProperties and
-    any Bag subclass that doesn't need global defaults.
+    any Settings subclass that doesn't need global defaults.
 
 Extended mode (registry injected by @node decorator):
     Reads go through _resolve() — full resolution chain (TOML tiers).
-    mirrors= on a prop links to a GlobalSettings/LibrarySettings field.
-    read_only=True on a prop prevents per-instance writes (watch behaviour).
+    mirrors= on a setting links to a GlobalSettings/LibrarySettings field.
+    read_only=True on a setting prevents per-instance writes (watch behaviour).
 
 Supports:
 - Direct attribute access (``obj.field = value``)
-- on_change callbacks (``prop(on_change='method_name')``)
+- on_change callbacks (``setting(on_change='method_name')``)
 - Change notification (``obj.subscribe(callback)``)
 - Serialization (``to_dict()`` / ``from_dict()``)
 - Reset (``reset(name)`` / ``reset_all()``)
@@ -32,7 +32,7 @@ import weakref
 import logging
 from typing import Any, Callable, TYPE_CHECKING
 
-from .descriptor import prop
+from .descriptor import setting
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import GlobalSettingsRegistry
@@ -40,12 +40,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Bag:
+class Settings:
     """
-    Base Bag class for observable properties.
+    Base Settings class for observable settings.
 
-    Subclasses declare typed fields using ``prop()``.  When a
-    ``GlobalSettingsRegistry`` is injected (extended mode), ``prop`` fields
+    Subclasses declare typed fields using ``setting()``.  When a
+    ``GlobalSettingsRegistry`` is injected (extended mode), ``setting`` fields
     gain full TOML-tier resolution.
     """
 
@@ -84,7 +84,7 @@ class Bag:
             return self._local_store.get(field_key, default)
 
     def _subscribe_mirrors(self) -> None:
-        """Subscribe cache-invalidation weakrefs for mirrored props (extended mode)."""
+        """Subscribe cache-invalidation weakrefs for mirrored settings (extended mode)."""
         if self._registry is None:
             return
         for descriptor in type(self)._prop_fields().values():
@@ -115,7 +115,7 @@ class Bag:
     # -------------------------------------------------------------------------
 
     def subscribe(self, callback: Callable) -> None:
-        """Register ``callback(name, value, old)`` called on any prop change."""
+        """Register ``callback(name, value, old)`` called on any setting change."""
         if callback not in self._callbacks:
             self._callbacks.append(callback)
 
@@ -127,11 +127,11 @@ class Bag:
             pass
 
     # -------------------------------------------------------------------------
-    # Change hook (called by prop.__set__)
+    # Change hook (called by setting.__set__)
     # -------------------------------------------------------------------------
 
     def _on_prop_change(self, name: str, value: Any, old: Any) -> None:
-        """Called when a prop value changes.  Default: fire all callbacks."""
+        """Called when a setting value changes.  Default: fire all callbacks."""
         for cb in list(self._callbacks):
             try:
                 cb(name, value, old)
@@ -202,7 +202,7 @@ class Bag:
         """Reset a single field to its descriptor default (removes local override)."""
         fields = type(self)._prop_fields()
         if name not in fields:
-            raise KeyError(f"No prop '{name}' on {type(self).__name__}")
+            raise KeyError(f"No setting '{name}' on {type(self).__name__}")
         descriptor = fields[name]
         key = descriptor._field_key if descriptor._field_key else name
         if key in self._local_store:
@@ -240,11 +240,11 @@ class Bag:
         return key in self._local_store
 
     @classmethod
-    def _prop_fields(cls) -> dict[str, prop]:
-        """Return all prop descriptors defined on this class (walks MRO, base-first)."""
-        result: dict[str, prop] = {}
+    def _prop_fields(cls) -> dict[str, setting]:
+        """Return all setting descriptors defined on this class (walks MRO, base-first)."""
+        result: dict[str, setting] = {}
         for klass in reversed(cls.__mro__):
             for name, val in klass.__dict__.items():
-                if isinstance(val, prop):
+                if isinstance(val, setting):
                     result[name] = val
         return result

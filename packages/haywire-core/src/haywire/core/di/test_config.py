@@ -10,8 +10,7 @@ from pathlib import Path
 from typing import Optional, List, Any, TYPE_CHECKING
 from injector import Injector
 
-from ..settings import GlobalSettingsRegistry, SettingMode, SettingValue, GlobalSettings, setting
-from ..property import Bag, prop
+from ..settings import GlobalSettingsRegistry, SettingMode, SettingValue, GlobalSettings, Settings, setting
 
 if TYPE_CHECKING:
     from .config import LibrarySystemService
@@ -125,32 +124,32 @@ def create_test_bag(
     bag_cls: type = None,
     predefined_local: Optional[dict[str, Any]] = None,
     predefined_global: Optional[dict[str, Any]] = None,
-) -> tuple["GlobalSettingsRegistry", Bag]:
+) -> tuple["GlobalSettingsRegistry", Settings]:
     """
-    Create an isolated registry + Bag instance for unit tests.
+    Create an isolated registry + Settings instance for unit tests.
 
     Args:
-        bag_cls:           Bag subclass to instantiate.  Defaults to a minimal
-                           test bag with bg_color, font_size, verbose fields.
+        bag_cls:           Settings subclass to instantiate.  Defaults to a minimal
+                           test settings with bg_color, font_size, verbose fields.
         predefined_local:  {attr_name: value} applied as local instance values.
         predefined_global: {full_key: value} pre-set in the global registry.
 
     Returns:
-        (GlobalSettingsRegistry, Bag instance)
+        (GlobalSettingsRegistry, Settings instance)
 
     Example:
-        class MySettings(Bag):
-            strength: float = prop(0.5, min=0.0, max=1.0)
+        class MySettings(Settings):
+            strength: float = setting(0.5, min=0.0, max=1.0)
 
         registry, bag = create_test_bag(MySettings, predefined_local={'strength': 0.8})
         assert bag.strength == 0.8
     """
     if bag_cls is None:
 
-        class _DefaultTestBag(Bag):
-            bg_color: str = prop("#ffffff", label="Background Color")
-            font_size: int = prop(12, min=8, max=72, label="Font Size")
-            verbose: bool = prop(False, label="Verbose Mode")
+        class _DefaultTestBag(Settings):
+            bg_color: str = setting("#ffffff", label="Background Color")
+            font_size: int = setting(12, min=8, max=72, label="Font Size")
+            verbose: bool = setting(False, label="Verbose Mode")
 
         bag_cls = _DefaultTestBag
 

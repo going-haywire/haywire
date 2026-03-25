@@ -1,6 +1,6 @@
-# tests/core/test_settings/test_bag_settings.py
+# tests/core/test_settings/test_settings.py
 """
-Tests for the Bag-based settings system.
+Tests for the Settings-based settings system.
 
 Covers:
 - Simple mode (no registry): direct local store access
@@ -14,7 +14,6 @@ Covers:
 """
 
 import pytest
-from haywire.core.property import Bag, prop
 from haywire.core.settings import Settings, setting
 from haywire.core.di.test_config import create_test_bag
 
@@ -24,10 +23,10 @@ from haywire.core.di.test_config import create_test_bag
 # ---------------------------------------------------------------------------
 
 
-class SimpleSettings(Bag):
-    strength: float = prop(0.5, min=0.0, max=1.0, label="Strength")
-    mode: str = prop("fast", choices=["fast", "precise"], label="Mode")
-    verbose: bool = prop(False, label="Verbose")
+class SimpleSettings(Settings):
+    strength: float = setting(0.5, min=0.0, max=1.0, label="Strength")
+    mode: str = setting("fast", choices=["fast", "precise"], label="Mode")
+    verbose: bool = setting(False, label="Verbose")
 
 
 class TestSimpleMode:
@@ -131,8 +130,8 @@ class TestSerialization:
 # ---------------------------------------------------------------------------
 
 
-class BagWithCallback(Bag):
-    strength: float = prop(0.5, on_change="_on_strength")
+class SettingsWithCallback(Settings):
+    strength: float = setting(0.5, on_change="_on_strength")
 
     def __init__(self, registry=None):
         super().__init__(registry)
@@ -144,22 +143,22 @@ class BagWithCallback(Bag):
 
 class TestOnChange:
     def test_on_change_fires_on_set(self):
-        bag = BagWithCallback()
+        bag = SettingsWithCallback()
         bag.strength = 0.8
         assert bag.callback_values == [(0.8, "strength")]
 
     def test_on_change_not_fired_same_value(self):
-        bag = BagWithCallback()
+        bag = SettingsWithCallback()
         bag.strength = 0.5  # same as default
         assert bag.callback_values == []
 
     def test_on_change_not_fired_from_dict_silent(self):
-        bag = BagWithCallback()
+        bag = SettingsWithCallback()
         bag.from_dict({"strength": 0.9})  # silent=True
         assert bag.callback_values == []
 
     def test_on_change_fired_from_dict_not_silent(self):
-        bag = BagWithCallback()
+        bag = SettingsWithCallback()
         bag.from_dict({"strength": 0.9}, silent=False)
         assert bag.callback_values == [(0.9, "strength")]
 
@@ -169,24 +168,24 @@ class TestOnChange:
 # ---------------------------------------------------------------------------
 
 
-class ReadOnlyBag(Bag):
-    editable: float = prop(1.0)
-    read_only_field: bool = prop(False, read_only=True)
+class ReadOnlySettings(Settings):
+    editable: float = setting(1.0)
+    read_only_field: bool = setting(False, read_only=True)
 
 
 class TestReadOnly:
     def test_read_only_raises_on_set(self):
-        bag = ReadOnlyBag()
+        bag = ReadOnlySettings()
         with pytest.raises(AttributeError):
             bag.read_only_field = True
 
     def test_read_only_not_serialized(self):
-        bag = ReadOnlyBag()
+        bag = ReadOnlySettings()
         d = bag.to_dict()
         assert "read_only_field" not in d
 
     def test_read_only_not_restored_from_dict(self):
-        bag = ReadOnlyBag()
+        bag = ReadOnlySettings()
         bag.from_dict({"read_only_field": True})
         assert bag.read_only_field is False  # unchanged
 
@@ -242,7 +241,7 @@ class TestNodeDirectBinding:
         inj.get(GlobalSettingsRegistry)
         return inj
 
-    def test_bag_bound_as_direct_attribute(self):
+    def test_settings_bound_as_direct_attribute(self):
         from haywire.core.node import BaseNode, node
 
         self._init_ambient()
@@ -256,7 +255,7 @@ class TestNodeDirectBinding:
         n = _TestBindingNode("n1", wrapper)
 
         assert hasattr(n, "filter")
-        assert isinstance(n.filter, Bag)
+        assert isinstance(n.filter, Settings)
 
     def test_direct_read(self):
         from haywire.core.node import BaseNode, node
@@ -326,75 +325,75 @@ class TestNodeDirectBinding:
 # ---------------------------------------------------------------------------
 
 
-class TypedBag(Bag):
-    explicit_int: int = prop(0, type_=int)
-    inferred_float: float = prop(1.0)
-    no_default_str: str = prop(type_=str)
+class TypedSettings(Settings):
+    explicit_int: int = setting(0, type_=int)
+    inferred_float: float = setting(1.0)
+    no_default_str: str = setting(type_=str)
 
 
-class StoredBag(Bag):
-    stored_field: float = prop(0.5)
-    unstored_field: float = prop(0.5, stored=False)
+class StoredSettings(Settings):
+    stored_field: float = setting(0.5)
+    unstored_field: float = setting(0.5, stored=False)
 
 
-class ValidatedBag(Bag):
-    positive: float = prop(1.0, validator=lambda v: v > 0)
+class ValidatedSettings(Settings):
+    positive: float = setting(1.0, validator=lambda v: v > 0)
 
 
-class TestTypeProp:
+class TestTypeSetting:
     def test_explicit_type_stored_on_descriptor(self):
-        descriptor = TypedBag.__dict__["explicit_int"]
+        descriptor = TypedSettings.__dict__["explicit_int"]
         assert descriptor._type is int
 
     def test_explicit_type_overrides_default_inference(self):
         # default is 0 (int), but type_ overrides — same result here; key is _type is int
-        descriptor = TypedBag.__dict__["explicit_int"]
+        descriptor = TypedSettings.__dict__["explicit_int"]
         assert descriptor._type is int
 
     def test_type_inferred_from_default_when_no_type_arg(self):
-        descriptor = TypedBag.__dict__["inferred_float"]
+        descriptor = TypedSettings.__dict__["inferred_float"]
         assert descriptor._type is float
 
     def test_type_explicit_when_no_default(self):
-        descriptor = TypedBag.__dict__["no_default_str"]
+        descriptor = TypedSettings.__dict__["no_default_str"]
         assert descriptor._type is str
 
 
-class TestStoredProp:
+class TestStoredSetting:
     def test_stored_field_appears_in_to_dict(self):
-        bag = StoredBag()
+        bag = StoredSettings()
         bag.stored_field = 0.9
         d = bag.to_dict()
         assert "stored_field" in d
 
     def test_unstored_field_excluded_from_to_dict(self):
-        bag = StoredBag()
+        bag = StoredSettings()
         bag.unstored_field = 0.9
         d = bag.to_dict()
         assert "unstored_field" not in d
 
     def test_unstored_field_still_readable_and_writable(self):
-        bag = StoredBag()
+        bag = StoredSettings()
         bag.unstored_field = 0.75
         assert bag.unstored_field == 0.75
 
     def test_default_stored_is_true(self):
-        descriptor = StoredBag.__dict__["stored_field"]
+        descriptor = StoredSettings.__dict__["stored_field"]
         assert descriptor._stored is True
 
     def test_explicit_stored_false(self):
-        descriptor = StoredBag.__dict__["unstored_field"]
+        descriptor = StoredSettings.__dict__["unstored_field"]
         assert descriptor._stored is False
 
 
-class TestValidatorProp:
+class TestValidatorSetting:
     def test_validate_returns_true_for_valid_value(self):
-        descriptor = ValidatedBag.__dict__["positive"]
+        descriptor = ValidatedSettings.__dict__["positive"]
         assert descriptor.validate(1.0) is True
         assert descriptor.validate(0.001) is True
 
     def test_validate_returns_false_for_invalid_value(self):
-        descriptor = ValidatedBag.__dict__["positive"]
+        descriptor = ValidatedSettings.__dict__["positive"]
         assert descriptor.validate(0) is False
         assert descriptor.validate(-1.0) is False
 
@@ -407,22 +406,22 @@ class TestValidatorProp:
         assert descriptor._validator is None
 
     def test_validator_stored_on_descriptor(self):
-        descriptor = ValidatedBag.__dict__["positive"]
+        descriptor = ValidatedSettings.__dict__["positive"]
         assert descriptor._validator is not None
 
     def test_set_silently_rejects_invalid_value(self):
-        bag = ValidatedBag()
+        bag = ValidatedSettings()
         bag.positive = 5.0
         bag.positive = -1.0  # invalid — silently rejected
         assert bag.positive == 5.0
 
     def test_set_accepts_valid_value(self):
-        bag = ValidatedBag()
+        bag = ValidatedSettings()
         bag.positive = 3.0
         assert bag.positive == 3.0
 
     def test_rejected_value_does_not_fire_on_change(self):
-        bag = ValidatedBag()
+        bag = ValidatedSettings()
         bag.positive = 5.0
         calls = []
         bag.subscribe(lambda name, val, old: calls.append((name, val, old)))
@@ -437,10 +436,10 @@ class TestValidatorProp:
     def test_invalid_default_raises_at_definition_time(self):
         with pytest.raises(ValueError, match="fails validation"):
 
-            class BadBag(Bag):
-                bad: int = prop(3, validator=lambda v: v % 2 == 0)
+            class BadSettings(Settings):
+                bad: int = setting(3, validator=lambda v: v % 2 == 0)
 
     def test_none_default_skips_validation(self):
         # Should not raise — None default is allowed even with a validator
-        class NoneDefaultBag(Bag):
-            val: int = prop(type_=int, validator=lambda v: v > 0)
+        class NoneDefaultSettings(Settings):
+            val: int = setting(type_=int, validator=lambda v: v > 0)

@@ -1,6 +1,6 @@
 # haywire/ui/prefs/__init__.py
 """
-Framework preference singletons — Bag + prop() replacements for the
+Framework preference singletons — Settings + setting() subclasses for the
 old haybale-studio GlobalSettings classes.
 
 All classes configure UI behaviour (canvas, edges, nodes, minimap, editor

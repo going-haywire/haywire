@@ -1,21 +1,21 @@
 # haywire/ui/prefs/execution.py
 """Execution behaviour preference singleton."""
 
-from haywire.core.property import Bag, prop
+from haywire.core.settings import Settings, setting
 
 
-class ExecutionSettings(Bag):
+class ExecutionSettings(Settings):
     """Global preferences controlling graph execution behaviour."""
 
     # Auto-execution
-    auto_execute: bool = prop(
+    auto_execute: bool = setting(
         True,
         label="Auto Execute",
         description="Automatically execute graph when inputs change",
         category="execution",
         order=10,
     )
-    debounce_ms: int = prop(
+    debounce_ms: int = setting(
         100,
         label="Debounce (ms)",
         description="Delay before auto-execution after changes",
@@ -24,7 +24,7 @@ class ExecutionSettings(Bag):
         min=0,
         max=2000,
     )
-    execute_on_connect: bool = prop(
+    execute_on_connect: bool = setting(
         True,
         label="Execute on Connect",
         description="Execute affected nodes when new connections are made",
@@ -33,7 +33,7 @@ class ExecutionSettings(Bag):
     )
 
     # Timeouts and limits
-    timeout_seconds: int = prop(
+    timeout_seconds: int = setting(
         60,
         label="Timeout (s)",
         description="Maximum execution time per node",
@@ -42,7 +42,7 @@ class ExecutionSettings(Bag):
         min=1,
         max=3600,
     )
-    max_iterations: int = prop(
+    max_iterations: int = setting(
         1000,
         label="Max Iterations",
         description="Maximum loop iterations (prevents infinite loops)",
@@ -53,7 +53,7 @@ class ExecutionSettings(Bag):
     )
 
     # Parallelism
-    max_parallel: int = prop(
+    max_parallel: int = setting(
         4,
         label="Max Parallel Nodes",
         description="Maximum nodes to execute in parallel",
@@ -62,7 +62,7 @@ class ExecutionSettings(Bag):
         min=1,
         max=32,
     )
-    thread_pool_size: int = prop(
+    thread_pool_size: int = setting(
         0,
         label="Thread Pool Size",
         description="Worker thread pool size (0 = auto)",
@@ -73,14 +73,14 @@ class ExecutionSettings(Bag):
     )
 
     # Caching
-    cache_results: bool = prop(
+    cache_results: bool = setting(
         True,
         label="Cache Results",
         description="Cache node outputs for unchanged inputs",
         category="execution",
         order=40,
     )
-    cache_max_size_mb: int = prop(
+    cache_max_size_mb: int = setting(
         256,
         label="Cache Size (MB)",
         description="Maximum cache size in megabytes",
@@ -89,7 +89,7 @@ class ExecutionSettings(Bag):
         min=16,
         max=4096,
     )
-    cache_ttl_seconds: int = prop(
+    cache_ttl_seconds: int = setting(
         0,
         label="Cache TTL (s)",
         description="Cache time-to-live in seconds (0 = no expiry)",
@@ -100,14 +100,14 @@ class ExecutionSettings(Bag):
     )
 
     # Error handling
-    stop_on_error: bool = prop(
+    stop_on_error: bool = setting(
         False,
         label="Stop on Error",
         description="Stop entire execution when a node fails",
         category="execution",
         order=50,
     )
-    retry_count: int = prop(
+    retry_count: int = setting(
         0,
         label="Retry Count",
         description="Number of times to retry failed nodes",
@@ -116,7 +116,7 @@ class ExecutionSettings(Bag):
         min=0,
         max=5,
     )
-    retry_delay_ms: int = prop(
+    retry_delay_ms: int = setting(
         1000,
         label="Retry Delay (ms)",
         description="Delay between retries",

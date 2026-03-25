@@ -1,9 +1,9 @@
 # tests/core/test_reactive.py
 """
-Unit tests for haywire.core.property — prop() descriptor + Bag base class.
+Unit tests for haywire.core.settings — setting() descriptor + Settings base class.
 
 Coverage:
-- prop() default values, class-level returns descriptor, instance-level returns value
+- setting() default values, class-level returns descriptor, instance-level returns value
 - __set__ fires callbacks, skips when value unchanged
 - to_dict() includes only non-default values
 - from_dict(silent=True) restores without callbacks
@@ -12,11 +12,11 @@ Coverage:
 - .choices property resolves callables
 - _prop_fields() walks MRO correctly
 - Inheritance: subclass adds fields, parent fields preserved
-- FieldDescriptor is the base class of prop
+- FieldDescriptor is the base class of setting
 """
 
 import pytest
-from haywire.core.property import prop, Bag, FieldDescriptor
+from haywire.core.settings import Settings, setting, FieldDescriptor
 
 
 # ---------------------------------------------------------------------------
@@ -24,33 +24,33 @@ from haywire.core.property import prop, Bag, FieldDescriptor
 # ---------------------------------------------------------------------------
 
 
-class _Simple(Bag):
-    threshold: float = prop(0.5, label="Threshold", min=0.0, max=1.0)
-    verbose: bool = prop(False, label="Verbose")
-    name: str = prop("default", label="Name")
+class _Simple(Settings):
+    threshold: float = setting(0.5, label="Threshold", min=0.0, max=1.0)
+    verbose: bool = setting(False, label="Verbose")
+    name: str = setting("default", label="Name")
 
 
-class _WithChoices(Bag):
-    algorithm: str = prop("fast", choices=["fast", "accurate"])
-    dynamic: str = prop("a", choices=lambda: ["a", "b", "c"])
+class _WithChoices(Settings):
+    algorithm: str = setting("fast", choices=["fast", "accurate"])
+    dynamic: str = setting("a", choices=lambda: ["a", "b", "c"])
 
 
-class _Parent(Bag):
-    x: int = prop(1, label="X")
+class _Parent(Settings):
+    x: int = setting(1, label="X")
 
 
 class _Child(_Parent):
-    y: int = prop(2, label="Y")
+    y: int = setting(2, label="Y")
 
 
 # ---------------------------------------------------------------------------
-# prop descriptor
+# setting descriptor
 # ---------------------------------------------------------------------------
 
 
-class TestPropDescriptor:
+class TestSettingDescriptor:
     def test_class_level_returns_descriptor(self):
-        assert isinstance(_Simple.threshold, prop)
+        assert isinstance(_Simple.threshold, setting)
 
     def test_instance_level_returns_default(self):
         s = _Simple()
@@ -289,13 +289,13 @@ class TestReset:
 
 
 class TestPropFields:
-    def test_returns_all_props(self):
+    def test_returns_all_settings(self):
         fields = _Simple._prop_fields()
         assert "threshold" in fields
         assert "verbose" in fields
         assert "name" in fields
 
-    def test_non_props_excluded(self):
+    def test_non_settings_excluded(self):
         fields = _Simple._prop_fields()
         assert "_callbacks" not in fields
 
@@ -321,12 +321,12 @@ class TestPropFields:
 
 
 # ---------------------------------------------------------------------------
-# Inheritance — props from parent survive in child
+# Inheritance — settings from parent survive in child
 # ---------------------------------------------------------------------------
 
 
 class TestInheritance:
-    def test_child_can_set_parent_prop(self):
+    def test_child_can_set_parent_setting(self):
         c = _Child()
         c.x = 99
         assert c.x == 99
@@ -342,7 +342,7 @@ class TestInheritance:
         c.from_dict({"x": 7})
         assert c.x == 7
 
-    def test_child_callback_fires_for_parent_prop(self):
+    def test_child_callback_fires_for_parent_setting(self):
         c = _Child()
         received = []
         c.subscribe(lambda n, v, o: received.append((n, v)))
@@ -356,10 +356,9 @@ class TestInheritance:
 
 
 class TestFieldDescriptorAncestry:
-    def test_prop_is_field_descriptor(self):
-        assert issubclass(prop, FieldDescriptor)
+    def test_setting_is_field_descriptor(self):
+        assert issubclass(setting, FieldDescriptor)
         assert isinstance(_Simple.threshold, FieldDescriptor)
 
-    def test_prop_subclasses_only(self):
-        # SettingDescriptor has been removed — prop is the single descriptor class
-        assert issubclass(prop, FieldDescriptor)
+    def test_setting_subclasses_only(self):
+        assert issubclass(setting, FieldDescriptor)

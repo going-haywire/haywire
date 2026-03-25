@@ -15,7 +15,7 @@ from ..library.identity import LibraryIdentity
 from ..types import DataPort
 from .behavior import NodeBehaviorFlags
 from .user_data import NodeCache, NodeStore
-from haywire.core.property import Bag
+from haywire.core.settings import Settings
 
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper
@@ -72,12 +72,12 @@ class NodeData:
         """Single source of truth for all ports (inlets and outlets)."""
 
         # Settings bags (GUI-facing, serialized)
-        # Each Bag subclass declared in the node class body is instantiated with
+        # Each Settings subclass declared in the node class body is instantiated with
         # the global registry injected (extended mode), then bound directly as a
         # node instance attribute so node authors can write self.filter.threshold.
         _registry = get_settings_registry()
         for _bag_name, _bag_cls in getattr(type(self), "_settings_bags", {}).items():
-            _bag_instance: Bag = _bag_cls(registry=_registry)
+            _bag_instance: Settings = _bag_cls(registry=_registry)
             _bag_instance._subscribe_mirrors()
             object.__setattr__(self, _bag_name, _bag_instance)
 
@@ -126,9 +126,9 @@ class NodeData:
         """Library identity (read-only, from class)."""
         return self.__class__.class_library
 
-    def list_setting_bags(self) -> dict[str, Bag]:
+    def list_setting_bags(self) -> dict[str, Settings]:
         """
-        Return all user-declared settings Bag instances keyed by name.
+        Return all user-declared Settings instances keyed by name.
 
         Used by panels and framework code to discover and render node settings.
         Node authors access bags directly via the instance attribute instead::
@@ -147,7 +147,7 @@ class NodeData:
         """
         Per-instance observable props for this node.
 
-        These are lightweight observable values (Reactive + prop()) rather
+        These are lightweight observable values (Settings + setting()) rather
         than full Settings — no resolution chain, no global defaults.
 
         Includes visual state, layout, and annotations::
@@ -1252,7 +1252,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         # Clean up settings bags (release global namespace subscriptions)
         for bag_name in getattr(type(self), "_settings_bags", {}):
             bag = getattr(self, bag_name, None)
-            if isinstance(bag, Bag):
+            if isinstance(bag, Settings):
                 bag.cleanup()
 
     # =========================================================================
@@ -1324,7 +1324,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         # Restore settings bags
         for bag_name, bag_data in data.get("settings", {}).items():
             bag = getattr(self, bag_name, None)
-            if isinstance(bag, Bag):
+            if isinstance(bag, Settings):
                 bag.from_dict(bag_data)
 
         # Restore reactive props

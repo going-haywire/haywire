@@ -26,7 +26,7 @@ except ImportError:
 
 from .enums import SettingMode
 from .value import SettingValue
-from ..property.descriptor import prop
+from .descriptor import setting
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 
@@ -98,7 +98,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         super().__init__()  # sets up BaseRegistry state: _classes, _dependency_graph, etc.
 
         self._lock = threading.RLock()
-        self._definitions: dict[str, prop] = {}
+        self._definitions: dict[str, setting] = {}
 
         # Two-tier global value storage
         self._global_tier_values: dict[str, SettingValue] = {}
@@ -164,7 +164,7 @@ class GlobalSettingsRegistry(BaseRegistry):
                 descriptor._field_key, descriptor, category=descriptor._category or "general"
             )
 
-    def _store_definition(self, name: str, descriptor: prop, category: str = "general") -> None:
+    def _store_definition(self, name: str, descriptor: setting, category: str = "general") -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
         self._definitions[name] = descriptor
         if name not in self._global_tier_values:
@@ -438,7 +438,7 @@ class GlobalSettingsRegistry(BaseRegistry):
             parts = name.split(".")
             category = ".".join(parts[:-1]) if len(parts) > 1 else "general"
 
-        d = prop(
+        d = setting(
             default=default,
             type_=type_,
             label=label,
@@ -620,7 +620,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         validator: Callable[[Any], bool] | None = None,
         ui_widget: str | None = None,
         ui_order: int = 0,
-    ) -> prop:
+    ) -> setting:
         """
         Define a setting from code (authoritative schema).
 
@@ -629,7 +629,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         with self._lock:
             self._toml_defined.discard(name)
 
-            d = prop(
+            d = setting(
                 default=default,
                 type_=type_ or (type(default) if default is not None else str),
                 validator=validator,
@@ -651,13 +651,13 @@ class GlobalSettingsRegistry(BaseRegistry):
     def has_definition(self, name: str) -> bool:
         return name in self._definitions
 
-    def get_definition(self, name: str) -> prop | None:
+    def get_definition(self, name: str) -> setting | None:
         return self._definitions.get(name)
 
-    def all_definitions(self) -> dict[str, prop]:
+    def all_definitions(self) -> dict[str, setting]:
         return dict(self._definitions)
 
-    def definitions_by_category(self) -> dict[str, list[prop]]:
+    def definitions_by_category(self) -> dict[str, list[setting]]:
         result = {}
         for category, names in self._categories.items():
             defns = [self._definitions[n] for n in names if n in self._definitions]
@@ -838,7 +838,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         """
         return list(self._classes.values())
 
-    def definitions_for_schema(self, schema_cls: type) -> dict[str, prop]:
+    def definitions_for_schema(self, schema_cls: type) -> dict[str, setting]:
         """
         Return all definitions that belong to *schema_cls*, keyed by full_key.
 
