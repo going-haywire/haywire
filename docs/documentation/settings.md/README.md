@@ -18,10 +18,10 @@ Every node instance exposes three containers:
 
 ## Settings: Descriptor-Based Schema
 
-Settings are declared as an inner `class node(NodeSettings)` using three descriptor types:
+Settings are declared as an inner `class node(NodeSettings)` using `setting()` descriptors:
 
 ```python
-from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
+from haywire.core.settings import NodeSettings, setting, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
@@ -31,16 +31,15 @@ class MyNode(BaseNode):
         # Local setting — stored in graph, shown in panel
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
 
-        # Shadow — inherits global default; per-node override with reset affordance
-        bg_color:  Color = shadow(NodeUISettings.bg_color)
+        # mirrors= — inherits global default; per-node override with reset affordance
+        bg_color:  Color = setting(mirrors=NodeUISettings.bg_color)
 
-        # Watch — read-only cache of a global; invisible in panel, never stored
-        verbose:   bool  = watch(DebugSettings.verbose_logging)
+        # mirrors= + read_only=True — read-only cache of a global; invisible in panel, never stored
+        verbose:   bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
 
     def worker(self, context, value: float):
-        # Access by short attr name
-        result = value * self.settings.threshold
-        if self.settings.verbose:
+        result = value * self.node.threshold
+        if self.node.verbose:
             context.log(f"result: {result}")
         self.out('result', result)
 ```
@@ -49,14 +48,14 @@ class MyNode(BaseNode):
 
 ```
 GlobalSettingsRegistry
-├── Built-in GlobalSettings schemas (registered via register_schema())
+├── GlobalSettings schemas (auto-registered via _pending_global at registry init)
 │   ├── NodeUISettings (namespace='ui.node')
 │   ├── EdgeUISettings (namespace='ui.edge')
 │   ├── DebugSettings  (namespace='debug')
 │   ├── ExecutionSettings (namespace='execution')
 │   └── EditorSettings (namespace='editor')
 │
-├── LibrarySettings schemas (discovered via @settings decorator)
+├── LibrarySettings schemas (registered via BaseRegistry hot-reload machinery)
 │
 ├── global ~/.haywire/settings.toml                    — user VALUES, global tier (hand-edited)
 └── workspace <workspace>/.haywire/settings.toml       — workspace VALUES, set via UI
@@ -67,7 +66,7 @@ Schema classes define the *shape* of settings. TOML files provide *values only*.
 ## Resolution Chain
 
 ```
-self.settings.threshold
+self.node.threshold
     │
     ▼
 1. Global tier OVERRIDE?    → return it (admin policy, hand-edited TOML)
@@ -91,8 +90,8 @@ self.settings.threshold
 ## Documentation
 
 - **[Overview](01-overview.md)** — Architecture, containers, descriptor types, serialization format
-- **[Node Development](02-node-development.md)** — Declaring `Settings` class, using descriptors, `on_change` callbacks
-- **[Library Development](03-library-development.md)** — Creating `LibrarySettings` with `@settings`, referencing with `shadow()`
+- **[Node Development](02-node-development.md)** — Declaring `NodeSettings` class, using descriptors, `on_change` callbacks
+- **[Library Development](03-library-development.md)** — Creating `LibrarySettings`, referencing with `mirrors=`
 - **[UI Integration](04-ui-integration.md)** — Building settings panels, widget factory, inheritance indicators
-- **[API Reference](05-reference.md)** — Complete descriptor, schema, registry, holder, and chain API
-- **[Testing Guide](06-testing.md)** — `create_test_settings_holder()`, `SettingsTestContext`, fixtures
+- **[API Reference](05-reference.md)** — Complete descriptor, schema, registry, and chain API
+- **[Testing Guide](06-testing.md)** — `create_test_bag()`, `SettingsTestContext`, fixtures

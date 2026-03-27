@@ -95,10 +95,14 @@
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
-| **Settings** | An inner class on a node, subclassing `Settings`, that groups related configurable fields; the class name becomes the accessor | Config, options, Bag |
-| **setting()** | The descriptor that declares a typed, serializable field within a `Settings` inner class | option, param, prop |
-| **mirrors** | A `setting()` parameter that links a node field to a global setting, inheriting its default with per-node override capability | shadow, reference |
-| **GlobalSettingsRegistry** | The singleton that holds all global setting schemas and their TOML-sourced values; used for the full resolution chain | — |
+| **NodeSettings** | Base class for node-local settings; subclassed as an inner class on a `@node` class; class name becomes the accessor (`self.filter`, `self.output`, etc.); never registered with the global registry | Config, options, Bag, Settings (avoid bare Settings for node inner classes) |
+| **GlobalSettings** | Base class for framework/app-defined settings schemas; subclassed with `namespace=`; auto-registers via `_pending_global` at registry init; `cls._registry` is set by the registry so instances need no explicit injection | — |
+| **LibrarySettings** | Base class for library plugin-defined settings schemas; subclassed with `namespace=`; registered via `BaseRegistry` hot-reload machinery; same `cls._registry` auto-wiring as `GlobalSettings` | — |
+| **setting()** | The descriptor that declares a typed, serializable field within any `Settings` subclass | option, param, prop |
+| **mirrors** | A `setting()` parameter that links a node field to a `GlobalSettings` or `LibrarySettings` field, inheriting its default with per-node override capability | shadow, reference |
+| **read_only** | A `setting()` parameter (used with `mirrors=`) that makes a field a silent cache of a global value: invisible in panel, never stored, never writable per-instance | watch (avoid), computed |
+| **accessor name** | The inner `NodeSettings` class name as it appears on the node instance (e.g. `class filter` → `self.filter`); must not collide with existing `BaseNode` attributes | settings name, bag name |
+| **GlobalSettingsRegistry** | The central registry that holds all global setting schemas and their TOML-sourced values; used for the full resolution chain; inherits `BaseRegistry` hot-reload machinery | — |
 | **Three-tier resolution** | The precedence chain for a settings value: global TOML override → workspace TOML override → local instance value → workspace TOML set → global TOML set → descriptor default | — |
 | **cache** | Transient, non-serialized per-node storage for computation buffers or memoization | temp, scratch |
 | **store** | Persistent, serialized per-node internal state not shown in the UI | private state |
@@ -134,6 +138,9 @@
 - A **Library** scans folders in `register_components()` to populate registries (nodes, types, adapters, widgets, skins, themes).
 - A **Haybale** package is always a **Library**; not all Libraries are distributed as haybale packages.
 - An **Editor** occupies one workspace **Area**; an **Editor** may host many **Panels** filtered by **Scope**.
+- A **Node** may declare one or more **NodeSettings** inner classes; each is accessible via its **accessor name** on the node instance.
+- A **NodeSettings** field may `mirrors=` a **GlobalSettings** or **LibrarySettings** field; the value resolves through the **GlobalSettingsRegistry** via **Three-tier resolution**.
+- **GlobalSettings** classes auto-register at registry init; **LibrarySettings** classes register via the **BaseRegistry** hot-reload path when their **Library** loads.
 
 ---
 
@@ -147,6 +154,19 @@
 > **Domain expert:** "Declare it in `register_components()` with `scan_nodes(...)`, and the **entry_point** in `pyproject.toml` makes the whole **Library** discoverable at startup."
 > **Dev:** "And if the user is in the **Graph Canvas** and selects the node, what shows in the sidebar?"
 > **Domain expert:** "The **Properties Editor** queries the **PanelRegistry** for all **Panels** whose `poll()` returns `True` for the `node` **Scope**. Each matching **Panel** renders inside a collapsible section."
+
+---
+
+### Settings dialogue (new)
+
+> **Dev:** "I want my node to respect the library's default quality setting, but let users override it per-node."
+> **Domain expert:** "Declare a **NodeSettings** inner class with a field that `mirrors=` the **LibrarySettings** field. The **accessor name** is whatever you call the inner class — `self.output`, say."
+> **Dev:** "What if I just want to read a global flag silently, without showing it in the panel?"
+> **Domain expert:** "Add `read_only=True` to the same `mirrors=` field. It becomes a silent cache — invisible in the panel, never stored, never writable per-instance. The value updates automatically when the **GlobalSettings** source changes."
+> **Dev:** "Where does the actual value come from when the node runs?"
+> **Domain expert:** "**Three-tier resolution**: global TOML override wins, then workspace TOML override, then the node's local instance value, then workspace SET, then global SET, then the descriptor default. The **GlobalSettingsRegistry** owns that chain."
+> **Dev:** "And the framework's own `ExecutionSettings` — does it need to be registered manually?"
+> **Domain expert:** "No — **GlobalSettings** subclasses self-register via `_pending_global` at registry init. **LibrarySettings** come in through the **BaseRegistry** hot-reload machinery when the **Library** loads."
 
 ---
 

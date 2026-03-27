@@ -1,13 +1,13 @@
 # haybale_studio/settings/editor.py
 """Editor behaviour settings."""
 
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace="editor", label="Editor")
-class EditorSettings(GlobalSettings):
+class EditorSettings(LibrarySettings):
     """Global settings controlling editor interaction and behaviour."""
 
     # Undo/Redo

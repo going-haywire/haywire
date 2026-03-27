@@ -1,13 +1,13 @@
 # haybale_studio/settings/execution.py
 """Execution behaviour settings."""
 
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace="execution", label="Execution")
-class ExecutionSettings(GlobalSettings):
+class ExecutionSettings(LibrarySettings):
     """Global settings controlling graph execution behaviour."""
 
     # Auto-execution

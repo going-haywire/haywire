@@ -210,17 +210,17 @@ Always use `use_temp_settings=True` to avoid reading from `~/.haywire/settings.t
 
 ---
 
-## Testing Nodes with Settings Bags
+## Testing Nodes with Settings
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import NodeSettings, setting
 
 
 def test_node_settings_direct_access():
     @node(label='Test Node')
     class _TestNode(BaseNode):
-        class filter(Settings):
+        class filter(NodeSettings):
             threshold: float = setting(0.7)
 
     wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
@@ -235,7 +235,7 @@ def test_node_settings_direct_access():
 def test_node_settings_serialization():
     @node(label='Serial Node')
     class _SerialNode(BaseNode):
-        class filter(Settings):
+        class filter(NodeSettings):
             strength: float = setting(0.5)
 
     wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()

@@ -8,14 +8,14 @@ This guide covers how to use `self.cache`, `self.store`, and node settings when 
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import Settings, setting, Color
+from haywire.core.settings import NodeSettings, setting, Color
 from haywire.core.settings.builtins.debug import DebugSettings
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 
 @node(label="Quick Start")
 class QuickStartNode(BaseNode):
 
-    class filter(Settings):
+    class filter(NodeSettings):
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
         bg_color:  Color = setting(mirrors=NodeUISettings.bg_color)
         verbose:   bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
@@ -35,17 +35,17 @@ class QuickStartNode(BaseNode):
 
 ---
 
-## Declaring Settings: the Inner Settings Class
+## Declaring Settings: the Inner NodeSettings Class
 
-Node settings are declared as an inner class that inherits from `Settings`. The class name becomes the **accessor name** — the attribute you use to access settings directly on the node instance.
+Node settings are declared as an inner class that inherits from `NodeSettings`. The class name becomes the **accessor name** — the attribute you use to access settings directly on the node instance.
 
 ```python
-from haywire.core.settings import Settings, setting, Color, Icon
+from haywire.core.settings import NodeSettings, setting, Color, Icon
 
 @node(label="My Node")
 class MyNode(BaseNode):
 
-    class filter(Settings):
+    class filter(NodeSettings):
         # Local setting — stored in graph when set, shown in properties panel
         threshold:  float = setting(0.5, min=0.0, max=1.0, label='Threshold')
         algorithm:  str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
@@ -84,16 +84,16 @@ This is the key used for TOML resolution and global registry lookups. You never 
 
 ## Multiple Settings Groups
 
-A node can declare any number of `Settings` inner classes. Each gets its own accessor name:
+A node can declare any number of `NodeSettings` inner classes. Each gets its own accessor name:
 
 ```python
 @node(registry_id='image_filter')
 class ImageFilterNode(BaseNode):
 
-    class filter(Settings):
+    class filter(NodeSettings):
         threshold: float = setting(0.5)
 
-    class output(Settings):
+    class output(NodeSettings):
         jpeg_quality: int = setting(85, min=1, max=100, label='JPEG Quality')
 
     def worker(self, context, img):
@@ -108,7 +108,7 @@ class ImageFilterNode(BaseNode):
 ## `setting()` Parameters
 
 ```python
-class filter(Settings):
+class filter(NodeSettings):
     threshold:   float = setting(0.5, min=0.0, max=1.0, label='Threshold')
     algorithm:   str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
     color:       Color = setting('#ffffff', label='Background')
@@ -146,7 +146,7 @@ The callable form is evaluated fresh on every panel render, so entries added by 
 ```python
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 
-class filter(Settings):
+class filter(NodeSettings):
     # Inherits global value by default; user can override per-node
     bg_color: Color = setting(mirrors=NodeUISettings.bg_color)
 ```
@@ -158,7 +158,7 @@ class filter(Settings):
 ```python
 from haywire.core.settings.builtins.debug import DebugSettings
 
-class filter(Settings):
+class filter(NodeSettings):
     # Invisible in panel; never stored; cache invalidated on global change
     verbose: bool = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
 ```
@@ -172,7 +172,7 @@ class filter(Settings):
 Triggered when a setting value changes (local set, reset, or global cache invalidation via `mirrors=`):
 
 ```python
-class filter(Settings):
+class filter(NodeSettings):
     scale: float = setting(1.0, label='Scale', on_change='hb_on_scale_change')
 
 def hb_on_scale_change(self, value: float, field: str = '') -> None:
@@ -274,14 +274,14 @@ Only locally-overridden values are serialized. `read_only` fields and fields at 
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import Settings, setting, Color
+from haywire.core.settings import NodeSettings, setting, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
 @node(label="Signal Processor", is_stateful=True)
 class SignalProcessorNode(BaseNode):
 
-    class filter(Settings):
+    class filter(NodeSettings):
         filter_strength: float = setting(0.5, min=0.0, max=1.0, label='Filter Strength',
                                          on_change='hb_on_filter_change')
         filter_type:     str   = setting('exponential',

@@ -16,6 +16,7 @@ Framework / library internals:
 """
 
 from .settings import Settings
+from .node_settings import NodeSettings
 from .descriptor import setting
 from .base import FieldDescriptor
 from .enums import SettingMode
@@ -28,6 +29,7 @@ from .decorator import SettingsClassIdentity, settings
 __all__ = [
     # Node-author API
     "Settings",
+    "NodeSettings",
     "setting",
     "FieldDescriptor",
     "Color",

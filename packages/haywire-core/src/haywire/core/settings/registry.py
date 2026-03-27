@@ -123,6 +123,19 @@ class GlobalSettingsRegistry(BaseRegistry):
         # Namespace-scoped weak-ref subscriptions for holder cache invalidation (Option B)
         self._namespace_subscribers: dict[str, list[weakref.ref]] = {}
 
+        # Drain GlobalSettings classes that were defined before the registry existed
+        self._drain_pending_global()
+
+    def _drain_pending_global(self) -> None:
+        """Register GlobalSettings subclasses queued before this registry was created."""
+        from .schema import GlobalSettings, _pending_global
+
+        GlobalSettings._registry = self
+        while _pending_global:
+            schema_cls = _pending_global.pop(0)
+            self.register_schema(schema_cls)
+            schema_cls._registry = self
+
     # =========================================================================
     # BaseRegistry abstract methods
     # =========================================================================
@@ -142,6 +155,7 @@ class GlobalSettingsRegistry(BaseRegistry):
         """Register schema class fields then store class in BaseRegistry."""
         registry_key = cls.class_identity.registry_key
         self._register_schema_fields(cls)
+        cls._registry = self
         return super()._register(registry_key, cls, library_identity or FRAMEWORK_IDENTITY)
 
     def _unregister_class(self, registry_key: str) -> type | None:

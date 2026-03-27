@@ -1,13 +1,13 @@
 # haybale_studio/settings/debug.py
 """Debug and development settings."""
 
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace="debug", label="Debug")
-class DebugSettings(GlobalSettings):
+class DebugSettings(LibrarySettings):
     """Global settings for debug and development features."""
 
     # Logging

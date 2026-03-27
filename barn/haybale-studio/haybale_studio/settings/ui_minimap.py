@@ -1,13 +1,13 @@
 # haybale_studio/settings/ui_minimap.py
 """Minimap layout and visibility settings (colors are owned by the theme system)."""
 
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace="ui.minimap", label="Minimap UI")
-class MinimapSettings(GlobalSettings):
+class MinimapSettings(LibrarySettings):
     """Global settings controlling the minimap overlay layout and visibility."""
 
     enabled: bool = setting(

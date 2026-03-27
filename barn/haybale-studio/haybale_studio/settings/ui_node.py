@@ -1,13 +1,13 @@
 # haybale_studio/settings/ui_node.py
 """Node layout and visibility settings (colors are owned by the theme system)."""
 
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace="ui.node", label="Node UI")
-class NodeUISettings(GlobalSettings):
+class NodeUISettings(LibrarySettings):
     """Global settings controlling node layout, dimensions, and label visibility."""
 
     # Label and hint visibility

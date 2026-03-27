@@ -1,13 +1,13 @@
 # haybale_studio/settings/ui_edge.py
 """Edge routing, width, and animation settings (colors are owned by the theme system)."""
 
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace="ui.edge", label="Edge UI")
-class EdgeUISettings(GlobalSettings):
+class EdgeUISettings(LibrarySettings):
     """Global settings controlling edge routing, width, and animation behaviour."""
 
     # Width

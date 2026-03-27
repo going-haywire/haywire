@@ -32,15 +32,26 @@ Icon  = str  # material icon name — implies icon-picker widget
 
 ## Node-Author API
 
-Imported from `haywire.core.settings`.
+```python
+from haywire.core.settings import NodeSettings, setting, Color, Icon
+```
+
+### `NodeSettings`
+
+Base class for node-local settings. Declare as an inner class on a `@node` class:
 
 ```python
-from haywire.core.settings import Settings, setting, Color, Icon
+@node(label="My Node")
+class MyNode(BaseNode):
+    class filter(NodeSettings):
+        threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
 ```
+
+`NodeSettings` are never registered with `GlobalSettingsRegistry`. The `@node` decorator assigns `_field_key` to each descriptor, and the node instance injects the registry for mirror/read_only resolution.
 
 ### `setting(default, *, min=None, max=None, choices=None, widget=None, label='', description='', category='general', order=0, on_change=None, mirrors=None, read_only=False)`
 
-Declare a field on a `Settings` inner class.
+Declare a field on a `NodeSettings`, `GlobalSettings`, or `LibrarySettings` class.
 
 ```python
 threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
@@ -68,7 +79,7 @@ debug:     bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True
 | `_on_change` | `str \| None` | Node method name called on change |
 | `_mirror_key` | `str` | Full key of the mirrored global field (set from `mirrors=`) |
 | `_read_only` | `bool` | If `True`, instance writes raise `AttributeError` |
-| `_field_key` | `str` | Set by `@node` decorator; used for TOML resolution |
+| `_field_key` | `str` | Set by `@node` or `namespace=`; used for TOML resolution |
 | `_attr_name` | `str` | Set by `__set_name__` |
 
 #### `choices` — three accepted forms
@@ -87,10 +98,14 @@ debug:     bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True
 from haywire.core.settings import Settings
 ```
 
+Base class for all settings containers. `NodeSettings`, `GlobalSettings`, and `LibrarySettings` all inherit from `Settings`.
+
 ### `__init__(registry=None)`
 
-- `registry=None` — **simple mode**: reads/writes go directly to `_local_store`. Zero overhead. Used for standalone settings instances and `NodeProperties`.
-- `registry=GlobalSettingsRegistry` — **extended mode**: reads go through the full TOML resolution chain. Injected automatically by `@node`/`BaseNode`.
+- `registry=None` — **simple mode**: reads/writes go directly to `_local_store`. Zero overhead.
+- `registry=GlobalSettingsRegistry` — **extended mode**: reads go through the full TOML resolution chain.
+
+`GlobalSettings` and `LibrarySettings` subclasses read `cls._registry` automatically in their `__init__`, so no explicit injection is needed.
 
 ### Field access
 
@@ -105,7 +120,7 @@ settings.threshold = 0.8      # write local override
 
 ### `reset(name: str) -> None`
 
-Remove the local override for `name`, restoring it to the default (or global value in extended mode). Fires callbacks if the value changes.
+Remove the local override for `name`. Fires callbacks if the value changes.
 
 ### `reset_all() -> None`
 
@@ -121,7 +136,7 @@ Return only fields whose value differs from the descriptor default. `read_only` 
 
 ### `from_dict(data: dict, *, silent: bool = True) -> None`
 
-Restore values from `data`. Unknown keys are silently ignored. `read_only` fields are silently skipped.
+Restore values from `data`. Unknown keys silently ignored. `read_only` fields silently skipped.
 
 - `silent=True` (default): writes directly to `_local_store` — no callbacks fired. Used during graph load.
 - `silent=False`: uses normal `setattr` — callbacks fire.
@@ -137,21 +152,38 @@ Subscribe cache-invalidation weakrefs for `mirrors=` fields. Called automaticall
 ### `list_setting_bags()` *(on BaseNode)*
 
 ```python
-node.list_setting_bags()  # → {'filter': <Settings>, 'output': <Settings>, ...}
+node.list_setting_bags()  # → {'filter': <NodeSettings>, 'output': <NodeSettings>, ...}
 ```
 
-Returns all user-declared settings instances for this node. Used by panels to discover what to render.
+Returns all user-declared settings instances for this node.
 
 ---
 
 ## Schema Classes
 
-### `LibrarySettings`
+### `GlobalSettings`
 
-Base class for library-wide settings.
+Base class for framework/app-defined settings.
 
 ```python
-from haywire.core.settings import LibrarySettings
+from haywire.core.settings import GlobalSettings, setting
+
+class ExecutionSettings(GlobalSettings, namespace='execution'):
+    max_threads: int   = setting(4,     label='Max Threads')
+    timeout_ms:  float = setting(5000., label='Timeout (ms)')
+```
+
+- `namespace=` kwarg triggers `__init_subclass__` to wire `_field_key` on every descriptor and queue the class in `_pending_global`.
+- `GlobalSettingsRegistry.__init__` drains `_pending_global` and writes `cls._registry = self`.
+- After registration, `ExecutionSettings()` with no args is fully registry-wired.
+- Deep inheritance (subclassing a `GlobalSettings` subclass) is blocked.
+
+### `LibrarySettings`
+
+Base class for library plugin-defined settings. Must be decorated with `@settings`.
+
+```python
+from haywire.core.settings import LibrarySettings, setting
 from haywire.core.settings.decorator import settings
 
 @settings(namespace='my_lib', label='My Library')
@@ -159,20 +191,14 @@ class MyLibSettings(LibrarySettings):
     api_url: str = setting('https://api.example.com')
 ```
 
-Must be decorated with `@settings`. `_field_key` is set at class definition time.
+- `@settings` sets `class_identity` (required by `BaseRegistry._class_filter`), `class_library`, `_namespace`, and `_field_key` on all descriptors. Without it the class is invisible to the hot-reload registry.
+- Registration is via `BaseRegistry` hot-reload machinery (inherited by `GlobalSettingsRegistry`).
+- After registration, `cls._registry` is set and `MyLibSettings()` is fully wired.
+- Deep inheritance is blocked.
 
-### `GlobalSettings`
+### `NodeSettings` (schema class)
 
-Base class for built-in framework-wide settings.
-
-```python
-from haywire.core.settings import GlobalSettings
-
-class MyGlobalSettings(GlobalSettings, namespace='my_ns'):
-    some_option: bool = setting(False)
-```
-
-Registered explicitly via `registry.register_schema(cls)`.
+Base class for node-local settings. See the [Node-Author API](#node-author-api) section above.
 
 ---
 
@@ -209,7 +235,7 @@ registry = get_settings_registry()
 
 ### `register_schema(schema_cls, library_identity=None) -> str | None`
 
-Register a `GlobalSettings` or `LibrarySettings` class.
+Explicitly register a `GlobalSettings` or `LibrarySettings` class. Also writes `cls._registry = self`.
 
 ### `define(name, default, type_=None, label=None, description='', category='general', **kwargs) -> setting`
 
@@ -235,7 +261,7 @@ Reset to `AUTO`.
 
 Returns `(value, source)` where source is `'global'`, `'local'`, or `'default'`.
 
-- `local`: optional `SettingValue` representing the per-instance override (passed by `Settings._resolve()`).
+- `local`: optional `SettingValue` representing the per-instance override.
 
 ### `load_from_toml(path, tier='workspace', watch=False) -> None`
 
@@ -248,7 +274,7 @@ Load values from a TOML file into the specified tier.
 
 ### `subscribe_namespace(namespace, weakref_callback) -> None`
 
-Cache-invalidation hook. Callback is called with `(full_key: str)` when any key under `namespace` changes. Used internally by `Settings._subscribe_mirrors()`.
+Cache-invalidation hook. Called internally by `Settings._subscribe_mirrors()`.
 
 ---
 

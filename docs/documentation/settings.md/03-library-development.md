@@ -6,7 +6,7 @@ This guide covers how to define `LibrarySettings` for your haybale library and h
 
 ## Creating a `LibrarySettings` Class
 
-Decorate a `LibrarySettings` subclass with `@settings`. This sets `_namespace` and `_field_key` on every descriptor immediately.
+Decorate a `LibrarySettings` subclass with `@settings`. This sets `class_identity` (required by `BaseRegistry` for hot-reload discovery), `class_library`, `_namespace`, and `_field_key` on every descriptor.
 
 ```python
 # my_lib/settings.py
@@ -25,11 +25,15 @@ class MyLibSettings(LibrarySettings):
 
 Full keys are derived immediately: `my_lib.api_url`, `my_lib.api_timeout`, etc.
 
+`@settings` is required for any class registered via the `BaseRegistry` hot-reload machinery — without it `class_identity` is absent and the registry's `_class_filter` will not pick up the class.
+
 ---
 
-## Registering with the Global System
+## Registration
 
-The registry picks up classes with `_auto_register = True` (set by `@settings`) during library initialization. Alternatively, register explicitly:
+`LibrarySettings` classes are registered via the `BaseRegistry` hot-reload machinery when the library module is loaded. No explicit registration call is needed in typical usage.
+
+For explicit registration (e.g. in a `register_components()` override):
 
 ```python
 # my_lib/__init__.py
@@ -53,19 +57,19 @@ class MyLibrary(BaseLibrary):
 
 ## Referencing Library Settings from Nodes
 
-Once `MyLibSettings._field_key` is set (by the time node classes are defined), use `mirrors=` in `setting()`:
+Once `MyLibSettings._field_key` is set (at class definition time via `namespace=`), use `mirrors=` in `setting()`:
 
 ```python
 # my_lib/nodes/fetch_node.py
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import NodeSettings, setting
 from ..settings import MyLibSettings
 
 
 @node(label='API Fetch')
 class ApiFetchNode(BaseNode):
 
-    class api(Settings):
+    class api(NodeSettings):
         # mirrors= without read_only: user can override per-node; shows reset button in panel
         api_url:    str = setting(mirrors=MyLibSettings.api_url)
         api_timeout: int = setting(mirrors=MyLibSettings.api_timeout)
@@ -83,7 +87,41 @@ class ApiFetchNode(BaseNode):
         ...
 ```
 
-**Important:** Node classes using `mirrors=MyLibSettings.field` must be defined *after* `MyLibSettings` is decorated. The `@settings` decorator sets `_field_key` at class evaluation time.
+**Important:** Node classes using `mirrors=MyLibSettings.field` must be defined *after* `MyLibSettings` is defined. The `namespace=` kwarg sets `_field_key` at class evaluation time.
+
+---
+
+## Reactive Access from Non-Node Code
+
+Any class that wants live reactive access to library settings instantiates the class directly. After the library is loaded and `cls._registry` is set, the instance is fully wired with no explicit injection:
+
+```python
+from my_lib.settings import MyLibSettings
+
+class MyRenderer:
+    def __init__(self):
+        self.settings = MyLibSettings()   # auto-wired after registry init
+        self.settings.subscribe(self._on_change)
+
+    def render(self):
+        url = self.settings.api_url       # resolves through registry
+
+    def _on_change(self, name, value, old):
+        if name == 'api_url':
+            self._reconnect()
+```
+
+For one-off reads without reactivity, use the registry directly:
+
+```python
+from haywire.core.di.config import get_settings_registry
+
+def make_request(endpoint: str) -> dict:
+    registry = get_settings_registry()
+    base_url, _ = registry.resolve('my_lib.api_url')
+    timeout, _  = registry.resolve('my_lib.api_timeout')
+    ...
+```
 
 ---
 
@@ -103,20 +141,6 @@ api_url = { override = true, value = "https://corporate-api.internal" }
 ```
 
 The workspace tier is layered on top of the global tier. `save_to_toml()` always writes to the workspace tier — the global tier is never overwritten by the application.
-
----
-
-## Accessing Library Settings from Non-Node Code
-
-```python
-from haywire.core.di.config import get_settings_registry
-
-def make_request(endpoint: str) -> dict:
-    registry = get_settings_registry()
-    base_url, _ = registry.resolve('my_lib.api_url')
-    timeout, _  = registry.resolve('my_lib.api_timeout')
-    ...
-```
 
 ---
 
@@ -149,14 +173,14 @@ class ImageLibSettings(LibrarySettings):
 ```python
 # haybale_image/nodes/resize_node.py
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import NodeSettings, setting
 from ..settings import ImageLibSettings
 
 
 @node(label='Resize Image')
 class ResizeNode(BaseNode):
 
-    class resize(Settings):
+    class resize(NodeSettings):
         algorithm: str = setting(mirrors=ImageLibSettings.resize_algorithm)
         width:     int = setting(512, min=1, max=8192, label='Width')
         height:    int = setting(512, min=1, max=8192, label='Height')

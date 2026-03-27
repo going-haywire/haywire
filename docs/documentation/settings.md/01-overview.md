@@ -26,14 +26,14 @@ At startup, `GlobalSettingsRegistry` is populated from class-based schema defini
 
 ```
 GlobalSettingsRegistry
-├── Built-in GlobalSettings schemas (registered via register_schema() in DI)
+├── GlobalSettings schemas (auto-registered via _pending_global at registry init)
 │   ├── NodeUISettings (namespace='ui.node')  → ui.node.bg_color, ui.node.font_size ...
 │   ├── EdgeUISettings (namespace='ui.edge')  → ui.edge.color, ui.edge.width ...
 │   ├── DebugSettings  (namespace='debug')    → debug.verbose_logging ...
 │   ├── ExecutionSettings (namespace='execution') → execution.auto_execute ...
 │   └── EditorSettings (namespace='editor')   → editor.undo_limit ...
 │
-├── Library LibrarySettings schemas (discovered via @settings decorator)
+├── LibrarySettings schemas (registered via BaseRegistry hot-reload machinery)
 │
 ├── global settings.toml (~/.haywire/settings.toml)           — user VALUES, global tier (hand-edited)
 └── workspace settings.toml (<workspace>/.haywire/settings.toml) — workspace VALUES, set via UI
@@ -53,16 +53,18 @@ verbose_logging = true
 
 ### Node Settings
 
-Nodes declare settings as inner classes that inherit from `Settings`. The class name becomes the **accessor name** used to read settings directly from the node instance.
+Nodes declare settings as inner classes that inherit from `NodeSettings`. The class name becomes the **accessor name** used to read settings directly from the node instance.
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import Settings, setting, Color
+from haywire.core.settings import NodeSettings, setting, Color
+from haywire.core.settings.builtins.ui_node import NodeUISettings
+from haywire.core.settings.builtins.debug import DebugSettings
 
 @node(label="My Node")
 class MyNode(BaseNode):
 
-    class filter(Settings):
+    class filter(NodeSettings):
         # Local setting — stored in graph, shown in properties panel
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
 
@@ -77,7 +79,7 @@ class MyNode(BaseNode):
         self.out('result', result)
 ```
 
-The `@node` decorator scans the class body for all `Settings` subclasses, assigns a `_field_key` to each `setting()` descriptor (derived from the node's `registry_key`), and binds each settings instance directly on the node object at construction time.
+The `@node` decorator scans the class body for all `NodeSettings` subclasses, assigns a `_field_key` to each `setting()` descriptor (derived from the node's `registry_key`), and binds each settings instance directly on the node object at construction time.
 
 ### Per-Node Resolution Chain (Extended Mode)
 
@@ -151,6 +153,75 @@ Only locally-overridden values are serialized with the node. Global values and `
 ```
 
 The outer key is the **settings accessor name**. The inner dict maps attr name → locally set value. Fields at their default are omitted.
+
+---
+
+## Key Identifiers: namespace, _field_key, registry_key, and panel routing
+
+Four identifiers cooperate to connect a settings field from its class definition all the way to a panel in the UI. Understanding how they relate prevents confusion.
+
+### `namespace`
+
+The dot-separated prefix that identifies a settings schema in TOML and the registry. Set by the `@settings` decorator (for `LibrarySettings`) or the `namespace=` kwarg (for `GlobalSettings`).
+
+```text
+namespace='execution'   →   TOML section [execution]
+namespace='my_lib'      →   TOML section [my_lib]
+```
+
+### `_field_key`
+
+The full TOML address of a single field: `{namespace}.{field_attr_name}`. Set on each `setting()` descriptor by `@settings` / `__init_subclass__` (for `GlobalSettings`/`LibrarySettings`) or by `@node` / `_wire_settings_schemas` (for `NodeSettings`).
+
+```text
+namespace='execution', field 'max_threads'  →  _field_key='execution.max_threads'
+node registry_key='haybale_core:node:filter', accessor 'params', field 'threshold'
+    →  _field_key='haybale_core.node.filter.params.threshold'
+```
+
+`_field_key` is what the `GlobalSettingsRegistry` stores, resolves, and what `mirrors=` references. It is the single shared identity between schema, TOML, and registry lookup.
+
+### `registry_key`
+
+The `BaseRegistry`-level identifier for the settings *class* (not a field). Set by `@settings` as `reg_key(library_id, "settings", namespace)`. Used internally by `BaseRegistry` for class tracking, hot-reload, and dependency graphs. Not normally used directly by node or library authors.
+
+```text
+namespace='my_lib', library_id='haybale_image'
+    →  registry_key='haybale_image:settings:my_lib'
+```
+
+### How they relate
+
+```text
+@settings(namespace='my_lib')          ← sets _namespace on the class
+class MyLibSettings(LibrarySettings):
+    quality: int = setting(85)         ← _field_key = 'my_lib.quality'
+                                          (set by @settings on the descriptor)
+
+    ↓ BaseRegistry registers the class under:
+    registry_key = 'haybale_image:settings:my_lib'
+
+    ↓ GlobalSettingsRegistry stores the field under:
+    _field_key = 'my_lib.quality'
+
+    ↓ TOML resolution reads from:
+    [my_lib]
+    quality = 90
+```
+
+For `NodeSettings` the chain is different — `_field_key` is node-scoped and never entered into the registry as a schema field; it is only used for TOML-tier resolution of that node's local overrides.
+
+### Panel routing and `scope`
+
+`scope` is a **runtime** concept, not a class-level property. It is determined by the UI panel system when rendering settings panels, based on the class type:
+
+| Class type | Panel location | Scope |
+|---|---|---|
+| `GlobalSettings` subclass | Global settings panel | `global` |
+| `LibrarySettings` subclass | Library section of properties editor | `library` |
+| `NodeSettings` instance | Node section of properties editor | `node` |
+
+The properties editor queries registered panels filtered by the active session scope. There is no `scope=` attribute on settings classes — the class hierarchy (`GlobalSettings` vs `LibrarySettings` vs `NodeSettings`) is the routing signal the panel system reads.
 
 ---
 

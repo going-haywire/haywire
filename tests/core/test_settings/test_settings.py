@@ -14,7 +14,7 @@ Covers:
 """
 
 import pytest
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import Settings, NodeSettings, setting
 from haywire.core.di.test_config import create_test_bag
 
 
@@ -248,14 +248,14 @@ class TestNodeDirectBinding:
 
         @node(label="Test Binding Node")
         class _TestBindingNode(BaseNode):
-            class filter(Settings):
+            class filter(NodeSettings):
                 strength: float = setting(0.5, min=0.0, max=1.0, label="Strength")
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestBindingNode("n1", wrapper)
 
         assert hasattr(n, "filter")
-        assert isinstance(n.filter, Settings)
+        assert isinstance(n.filter, NodeSettings)
 
     def test_direct_read(self):
         from haywire.core.node import BaseNode, node
@@ -264,7 +264,7 @@ class TestNodeDirectBinding:
 
         @node(label="Test Read Node")
         class _TestReadNode(BaseNode):
-            class params(Settings):
+            class params(NodeSettings):
                 threshold: float = setting(0.7)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
@@ -279,7 +279,7 @@ class TestNodeDirectBinding:
 
         @node(label="Test Write Node")
         class _TestWriteNode(BaseNode):
-            class params(Settings):
+            class params(NodeSettings):
                 threshold: float = setting(0.7)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
@@ -295,7 +295,7 @@ class TestNodeDirectBinding:
 
             @node(label="Conflict Node")
             class _ConflictNode(BaseNode):
-                class init(Settings):  # 'init' is a BaseNode method
+                class init(NodeSettings):  # 'init' is a BaseNode method
                     x: float = setting(1.0)
 
     def test_serialization_round_trip_on_node(self):
@@ -305,7 +305,7 @@ class TestNodeDirectBinding:
 
         @node(label="Test Serial Node")
         class _TestSerialNode(BaseNode):
-            class filter(Settings):
+            class filter(NodeSettings):
                 strength: float = setting(0.5)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()

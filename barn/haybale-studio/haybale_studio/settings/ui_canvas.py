@@ -1,13 +1,13 @@
 # haybale_studio/settings/ui_canvas.py
 """Canvas grid, zoom, and pan settings (colors are owned by the theme system)."""
 
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace="ui.canvas", label="Canvas UI")
-class CanvasSettings(GlobalSettings):
+class CanvasSettings(LibrarySettings):
     """Global settings controlling canvas grid, zoom, and pan behaviour."""
 
     # Background pattern (style, not color)

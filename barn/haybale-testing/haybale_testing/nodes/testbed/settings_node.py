@@ -1,7 +1,7 @@
 from haywire.core.node import node, BaseNode, NodeType
 from haybale_core.types.specs import STRING
 
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import NodeSettings, setting
 from haybale_testing.settings.testing import TestingSettings
 
 
@@ -15,7 +15,7 @@ from haybale_testing.settings.testing import TestingSettings
 class SettingsNode(BaseNode):
     """Node that exercises all setting() features from Issue #2: type_, stored, validator."""
 
-    class example(Settings):
+    class example(NodeSettings):
         # --- type_ ---
         example_string: str = setting(
             "default string",
