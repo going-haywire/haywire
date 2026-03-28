@@ -1,7 +1,7 @@
 from haywire.core.node import node, BaseNode, NodeType
 from haybale_core.types.specs import STRING
 
-from haywire.core.settings import NodeSettings, setting
+from haywire.core.settings import NodeSettings, setting, Color
 from haybale_testing.settings.testing import TestingSettings
 
 
@@ -63,6 +63,40 @@ class SettingsNode(BaseNode):
             description="Mirrors library-level default_intensity (override locally per node)",
             category="mirrors",
             mirrors=TestingSettings.default_intensity,
+        )
+        enabled: bool = setting(
+            label="Enabled",
+            description="Mirrors library-level default_enabled (plain mirror, bool)",
+            category="mirrors",
+            mirrors=TestingSettings.default_enabled,
+        )
+        mode: str = setting(
+            label="Mode",
+            description="Mirrors library-level default_mode (plain mirror, choices)",
+            category="mirrors",
+            mirrors=TestingSettings.default_mode,
+            choices=["fast", "balanced", "quality"],
+        )
+        tint: Color = setting(
+            label="Tint",
+            description="Mirrors library-level default_color (plain mirror, color)",
+            category="mirrors",
+            mirrors=TestingSettings.default_color,
+            widget="color",
+        )
+        intensity_ro: float = setting(
+            label="Intensity (read-only)",
+            description="Read-only mirror of default_intensity — not shown in panel",
+            category="mirrors",
+            mirrors=TestingSettings.default_intensity,
+            read_only=True,
+        )
+        enabled_ro: bool = setting(
+            label="Enabled (read-only)",
+            description="Read-only mirror of default_enabled — not shown in panel",
+            category="mirrors",
+            mirrors=TestingSettings.default_enabled,
+            read_only=True,
         )
 
         # --- validator ---

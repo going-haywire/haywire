@@ -10,7 +10,15 @@ from pathlib import Path
 from typing import Optional, List, Any, TYPE_CHECKING
 from injector import Injector
 
-from ..settings import SettingsRegistry, SettingMode, SettingValue, FrameworkSettings, Settings, setting
+from ..settings import (
+    SettingsRegistry,
+    SettingMode,
+    SettingValue,
+    FrameworkSettings,
+    Settings,
+    setting,
+    Color,
+)
 
 if TYPE_CHECKING:
     from .config import LibrarySystemService
@@ -26,6 +34,44 @@ class _TestFrameworkSettings(FrameworkSettings, namespace="test.global"):
 
     verbose_logging: bool = setting(False, label="Verbose Logging")
     font_size: int = setting(12, label="Font Size", min=8, max=72)
+
+
+class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
+    """FrameworkSettings covering every widget type, for UI harness tests.
+
+    One field per widget branch in _render_widget_impl:
+      - bool   → ui.switch
+      - int    → NumberDrag (step=1)
+      - float  → NumberDrag
+      - str    → ui.input
+      - choices → ui.select
+      - color  → ui.color_input
+    """
+
+    flag: bool = setting(True, label="Flag", description="Boolean — renders as switch", category="types")
+    count: int = setting(
+        3, min=0, max=10, label="Count", description="Integer — renders as NumberDrag", category="types"
+    )
+    ratio: float = setting(
+        0.5, min=0.0, max=1.0, label="Ratio", description="Float — renders as NumberDrag", category="types"
+    )
+    label: str = setting(
+        "hello", label="Label", description="String — renders as text input", category="types"
+    )
+    mode: str = setting(
+        "fast",
+        choices=["fast", "balanced", "quality"],
+        label="Mode",
+        description="Choices — renders as dropdown",
+        category="types",
+    )
+    tint: Color = setting(
+        "#ff0000",
+        label="Tint",
+        description="Color — renders as color picker",
+        category="types",
+        widget="color",
+    )
 
 
 def create_test_injector(
