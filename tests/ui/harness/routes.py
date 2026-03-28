@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from nicegui import app as nicegui_app
 from nicegui import ui
 
 from haybale_core.panels._settings_panel_base import render_reactive, render_schema
@@ -58,8 +59,8 @@ def register_routes(library_service) -> None:
     # GET /status
     # -------------------------------------------------------------------------
 
-    @ui.page("/status")
-    async def status_page(request: Request):
+    @nicegui_app.get("/status")
+    async def status_page():
         return JSONResponse({"status": "ok"})
 
     # -------------------------------------------------------------------------
@@ -114,8 +115,6 @@ def register_routes(library_service) -> None:
     # -------------------------------------------------------------------------
     # POST /api/set?key=<key>&value=<value>
     # -------------------------------------------------------------------------
-
-    from nicegui import app as nicegui_app
 
     @nicegui_app.post("/api/set")
     async def api_set(request: Request):
