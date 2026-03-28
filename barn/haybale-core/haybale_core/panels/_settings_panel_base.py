@@ -159,7 +159,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
                 _s(e)
                 _w.props(f'data-value="{e.value}"')
 
-            ui.color_input(value=value or "#ffffff").classes("flex-1 min-w-0").on("change", _color_handler)
+            ui.color_input(value=value or "#ffffff", on_change=_color_handler).classes("flex-1 min-w-0")
         return
 
     resolved_choices = defn.choices

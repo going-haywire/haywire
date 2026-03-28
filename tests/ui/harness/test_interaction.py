@@ -109,3 +109,54 @@ def test_reset_button_removes_dot_prefix(page: Page, harness):
     final_row = page.locator('[data-field="intensity"]')
     label_text = final_row.locator(".text-xs").first.inner_text()
     assert not label_text.startswith("•"), f"Expected no • after reset, got: {label_text!r}"
+
+
+def test_color_mirror_dot_prefix_after_local_override(page: Page, harness):
+    """Typing a color value into the tint mirror adds • to the label."""
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    row = page.locator('[data-field="tint"]')
+    edit_input = row.locator("input").first
+    edit_input.fill("#0000ff")
+    edit_input.press("Tab")
+    page.wait_for_timeout(600)
+
+    updated_row = page.locator('[data-field="tint"]')
+    label_text = updated_row.locator(".text-xs").first.inner_text()
+    assert label_text.startswith("•"), f"Expected • prefix after color override, got: {label_text!r}"
+
+
+def test_color_mirror_reset_button_appears_after_override(page: Page, harness):
+    """After overriding tint locally, the reset button appears."""
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    row = page.locator('[data-field="tint"]')
+    edit_input = row.locator("input").first
+    edit_input.fill("#0000ff")
+    edit_input.press("Tab")
+    page.wait_for_timeout(600)
+
+    updated_row = page.locator('[data-field="tint"]')
+    expect(updated_row.locator('button:has-text("restart_alt")')).to_be_visible()
+
+
+def test_color_mirror_reset_removes_dot_prefix(page: Page, harness):
+    """Clicking reset on tint removes the • prefix."""
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    row = page.locator('[data-field="tint"]')
+    edit_input = row.locator("input").first
+    edit_input.fill("#0000ff")
+    edit_input.press("Tab")
+    page.wait_for_timeout(600)
+
+    updated_row = page.locator('[data-field="tint"]')
+    updated_row.locator('button:has-text("restart_alt")').click()
+    page.wait_for_timeout(600)
+
+    final_row = page.locator('[data-field="tint"]')
+    label_text = final_row.locator(".text-xs").first.inner_text()
+    assert not label_text.startswith("•"), f"Expected no • after reset, got: {label_text!r}"
