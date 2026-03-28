@@ -234,11 +234,11 @@ class TestNodeDirectBinding:
         """Create a test injector and force-resolve ambient singletons."""
         from haywire.core.di.test_config import create_test_injector
         from haywire.core.types.registry import TypeRegistry
-        from haywire.core.settings import GlobalSettingsRegistry
+        from haywire.core.settings import SettingsRegistry
 
         inj = create_test_injector()
         inj.get(TypeRegistry)
-        inj.get(GlobalSettingsRegistry)
+        inj.get(SettingsRegistry)
         return inj
 
     def test_settings_bound_as_direct_attribute(self):

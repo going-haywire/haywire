@@ -2,9 +2,9 @@
 """Minimap layout and visibility preference singleton."""
 
 from haywire.core.settings import setting
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import FrameworkSettings
 
-class MinimapSettings(GlobalSettings):
+class MinimapSettings(FrameworkSettings):
     """Global preferences controlling the minimap overlay layout and visibility."""
 
     enabled: bool = setting(

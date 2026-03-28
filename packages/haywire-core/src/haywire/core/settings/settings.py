@@ -14,7 +14,7 @@ Simple mode (no registry):
 
 Extended mode (registry injected by @node decorator):
     Reads go through _resolve() — full resolution chain (TOML tiers).
-    mirrors= on a setting links to a GlobalSettings/LibrarySettings field.
+    mirrors= on a setting links to a FrameworkSettings/LibrarySettings field.
     read_only=True on a setting prevents per-instance writes (watch behaviour).
 
 Supports:
@@ -35,7 +35,7 @@ from typing import Any, Callable, TYPE_CHECKING
 from .descriptor import setting
 
 if TYPE_CHECKING:
-    from haywire.core.settings.registry import GlobalSettingsRegistry
+    from haywire.core.settings.registry import SettingsRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +45,14 @@ class Settings:
     Base Settings class for observable settings.
 
     Subclasses declare typed fields using ``setting()``.  When a
-    ``GlobalSettingsRegistry`` is injected (extended mode), ``setting`` fields
+    ``SettingsRegistry`` is injected (extended mode), ``setting`` fields
     gain full TOML-tier resolution.
     """
 
-    def __init__(self, registry: "GlobalSettingsRegistry | None" = None) -> None:
+    def __init__(self, registry: "SettingsRegistry | None" = None) -> None:
         self._callbacks: list[Callable] = []
         self._local_store: dict[str, Any] = {}  # key → value
-        self._registry: "GlobalSettingsRegistry | None" = registry
+        self._registry: "SettingsRegistry | None" = registry
         self._subscribed_refs: list = []  # weakrefs for mirrors invalidation
         self._cleaned_up: bool = False
 

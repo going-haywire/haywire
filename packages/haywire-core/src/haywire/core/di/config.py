@@ -26,7 +26,7 @@ from ..adapter.registry import AdapterRegistry
 from ..adapter.factory import AdapterFactory
 from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
-from ..settings import GlobalSettingsRegistry
+from ..settings import SettingsRegistry
 from .context import (
     set_node_factory,
     set_adapter_factory,
@@ -78,9 +78,9 @@ class HaywireModule(Module):
 
     @provider
     @singleton
-    def provide_settings_registry(self) -> GlobalSettingsRegistry:
+    def provide_settings_registry(self) -> SettingsRegistry:
         """
-        Provide singleton GlobalSettingsRegistry.
+        Provide singleton SettingsRegistry.
 
         Initialization order:
         1. Register built-in setting definitions (schema only, no values).
@@ -88,7 +88,7 @@ class HaywireModule(Module):
         3. Load workspace tier from <workspace>/.haywire/settings.toml (written by UI).
         4. Optionally watch both files for hot-reload.
         """
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
 
         # Global tier — hand-edited by user, never overwritten by the app
         registry.load_from_toml(self.settings_path, tier="global", watch=self.watch_settings)
@@ -258,7 +258,7 @@ class LibrarySystemService:
         logging.basicConfig(level=logging.INFO)
 
         # Get all required services from DI — order matters for ambient context:
-        # TypeRegistry and GlobalSettingsRegistry are used by BaseNode constructors,
+        # TypeRegistry and SettingsRegistry are used by BaseNode constructors,
         # NodeFactory by NodeWrapper, AdapterFactory by EdgeWrapper. All four must be
         # eagerly resolved here so their providers set the context vars before any
         # graph/node construction can happen.
@@ -268,7 +268,7 @@ class LibrarySystemService:
         skin_registry = self.injector.get(SkinRegistry)
         node_registry = self.injector.get(NodeRegistry)
         type_registry = self.injector.get(TypeRegistry)
-        settings_registry = self.injector.get(GlobalSettingsRegistry)
+        settings_registry = self.injector.get(SettingsRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
         editor_registry = self.injector.get(EditorTypeRegistry)
         panel_registry = self.injector.get(PanelRegistry)
@@ -284,7 +284,7 @@ class LibrarySystemService:
         library_registry.add_class_registry(PanelRegistry, panel_registry)
         library_registry.add_class_registry(ThemeRegistry, theme_registry)
         library_registry.add_class_registry(EditorTypeRegistry, editor_registry)
-        library_registry.add_class_registry(GlobalSettingsRegistry, settings_registry)
+        library_registry.add_class_registry(SettingsRegistry, settings_registry)
 
         # Set up registry subscribers for cross-registry updates
         # this ensures that when new types are added,
@@ -328,7 +328,7 @@ class LibrarySystemService:
 
         return self
 
-    def _print_settings_status(self, registry: GlobalSettingsRegistry) -> None:
+    def _print_settings_status(self, registry: SettingsRegistry) -> None:
         """Print settings registry status."""
         from ..settings import SettingMode
 
@@ -446,7 +446,7 @@ class LibrarySystemService:
         editor_registry = self.injector.get(EditorTypeRegistry)
         panel_registry = self.injector.get(PanelRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
-        self.injector.get(GlobalSettingsRegistry)
+        self.injector.get(SettingsRegistry)
         library_registry = self.injector.get(LibraryRegistry)
 
         print("\n=== Registry Status ===")
@@ -577,9 +577,9 @@ class LibrarySystemService:
         """Get the theme registry."""
         return self.injector.get(ThemeRegistry)
 
-    def get_settings_registry(self) -> GlobalSettingsRegistry:
+    def get_settings_registry(self) -> SettingsRegistry:
         """Get the global settings registry."""
-        return self.injector.get(GlobalSettingsRegistry)
+        return self.injector.get(SettingsRegistry)
 
     def get_panel_registry(self) -> PanelRegistry:
         """Get the panel registry."""
@@ -763,14 +763,14 @@ def get_theme_registry() -> "ThemeRegistry":
     return get_library_system().get_theme_registry()
 
 
-def get_settings_registry() -> GlobalSettingsRegistry:
+def get_settings_registry() -> SettingsRegistry:
     """
-    Get the GlobalSettingsRegistry from the global library system.
+    Get the SettingsRegistry from the global library system.
 
     Convenience function for quick access to settings.
 
     Returns:
-        GlobalSettingsRegistry instance
+        SettingsRegistry instance
 
     Raises:
         RuntimeError: If library system not initialized

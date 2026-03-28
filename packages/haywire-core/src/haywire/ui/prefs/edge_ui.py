@@ -2,9 +2,9 @@
 """Edge routing, width, and animation preference singleton."""
 
 from haywire.core.settings import setting
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import FrameworkSettings
 
-class EdgeUISettings(GlobalSettings):
+class EdgeUISettings(FrameworkSettings):
     """Global preferences controlling edge routing, width, and animation behaviour."""
 
     # Width

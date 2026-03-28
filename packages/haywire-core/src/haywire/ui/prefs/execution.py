@@ -2,9 +2,9 @@
 """Execution behaviour preference singleton."""
 
 from haywire.core.settings import setting
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import FrameworkSettings
 
-class ExecutionSettings(GlobalSettings):
+class ExecutionSettings(FrameworkSettings):
     """Global preferences controlling graph execution behaviour."""
 
     # Auto-execution

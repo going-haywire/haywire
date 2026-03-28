@@ -151,7 +151,7 @@ class filter(NodeSettings):
     bg_color: Color = setting(mirrors=NodeUISettings.bg_color)
 ```
 
-`mirrors=SomeGlobalSettings.field` stores the target descriptor's `_field_key` and inherits its `_label`, `_default`, and widget metadata. The field resolves through the global registry.
+`mirrors=SomeFrameworkSettings.field` stores the target descriptor's `_field_key` and inherits its `_label`, `_default`, and widget metadata. The field resolves through the global registry.
 
 ### The `read_only=` parameter
 

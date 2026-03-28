@@ -1,7 +1,7 @@
 # Settings Refactor — Context Dump
 
 > Generated: 2026-03-25
-> Scope: Bag/prop → Settings/setting rename + ongoing design discussion about GlobalSettings vs LibrarySettings
+> Scope: Bag/prop → Settings/setting rename + ongoing design discussion about FrameworkSettings vs LibrarySettings
 
 ---
 
@@ -30,7 +30,7 @@ haywire-repo/
 │   ├── haywire-core/src/haywire/
 │   │   ├── core/
 │   │   │   ├── node/           # BaseNode, @node decorator, NodeProperties
-│   │   │   ├── settings/       # Settings, setting, GlobalSettings, LibrarySettings, registry
+│   │   │   ├── settings/       # Settings, setting, FrameworkSettings, LibrarySettings, registry
 │   │   │   ├── execution/      # graph execution engine
 │   │   │   ├── types/          # port types, DataPort
 │   │   │   └── di/             # DI config, test_config.py
@@ -58,7 +58,7 @@ haywire-repo/
 ```
 Settings                          # haywire/core/settings/settings.py
 ├── NodeProperties                # haywire/core/node/properties.py — per-instance visual state
-├── GlobalSettings                # haywire/core/settings/schema.py — framework/app-level schemas
+├── FrameworkSettings                # haywire/core/settings/schema.py — framework/app-level schemas
 │   └── CanvasSettings, NodeUISettings, DebugSettings, ExecutionSettings, ...
 ├── LibrarySettings               # haywire/core/settings/schema.py — plugin library schemas
 │   └── (user subclasses decorated with @settings)
@@ -73,8 +73,8 @@ Settings                          # haywire/core/settings/settings.py
 
 ### Registry
 
-`GlobalSettingsRegistry` — `haywire/core/settings/registry.py`. Central store for:
-- Schema definitions (metadata from GlobalSettings/LibrarySettings classes)
+`SettingsRegistry` — `haywire/core/settings/registry.py`. Central store for:
+- Schema definitions (metadata from FrameworkSettings/LibrarySettings classes)
 - Values in three tiers: global TOML (`~/.haywire/settings.toml`), workspace TOML, local instance
 - Resolution chain: global OVERRIDE > workspace OVERRIDE > local SET > workspace SET > global SET > default
 
@@ -107,8 +107,8 @@ font_size = { override = true, value = 14 }  # OVERRIDE mode
 | `settings/settings.py` | The `Settings` base class — simple/extended modes, subscribe, to_dict/from_dict, reset |
 | `settings/descriptor.py` | The `setting()` descriptor — `__get__`/`__set__`, mirrors, read_only, validate |
 | `settings/base.py` | `FieldDescriptor` — metadata contract for UI panels (label, category, widget, choices) |
-| `settings/registry.py` | `GlobalSettingsRegistry` — resolution chain, TOML load/save, namespace subscriptions |
-| `settings/schema.py` | `GlobalSettings` + `LibrarySettings` — namespace-aware base classes |
+| `settings/registry.py` | `SettingsRegistry` — resolution chain, TOML load/save, namespace subscriptions |
+| `settings/schema.py` | `FrameworkSettings` + `LibrarySettings` — namespace-aware base classes |
 | `node/decorator.py` | `_wire_settings_schemas()` — how node authors' inner Settings classes get field keys |
 | `node/base.py` | `list_setting_bags()`, settings instantiation loop |
 | `node/properties.py` | `NodeProperties(Settings)` — per-node visual state (muted, collapsed, position, skin) |
@@ -142,18 +142,18 @@ font_size = { override = true, value = 14 }  # OVERRIDE mode
 
 ---
 
-## Open design thread — GlobalSettings vs LibrarySettings
+## Open design thread — FrameworkSettings vs LibrarySettings
 
-**Current state:** Two base classes exist — `GlobalSettings` (for framework/app-level schemas) and `LibrarySettings` (for plugin library schemas).
+**Current state:** Two base classes exist — `FrameworkSettings` (for framework/app-level schemas) and `LibrarySettings` (for plugin library schemas).
 
-**User's argument:** `GlobalSettings` subclasses (`CanvasSettings`, `NodeUISettings`, etc.) are runtime configuration owned by the app shell, not the framework itself. The framework (`haywire-core`) shouldn't be defining canvas grid sizes — that's a `haywire-studio` concern.
+**User's argument:** `FrameworkSettings` subclasses (`CanvasSettings`, `NodeUISettings`, etc.) are runtime configuration owned by the app shell, not the framework itself. The framework (`haywire-core`) shouldn't be defining canvas grid sizes — that's a `haywire-studio` concern.
 
 **Counter-argument acknowledged:** `ExecutionSettings` (auto_execute, lazy propagation) is legitimately consumed by the engine in `haywire-core`. Moving that to the app layer creates a dependency inversion problem.
 
 **Where the split actually lands:**
 - `haywire/ui/prefs/` schemas (`CanvasSettings`, `NodeUISettings`, `MinimapSettings`, `EdgeUISettings`, `WorkbenchSettings`) → should move to app layer (`haywire-studio` or `haybale-studio`)
 - `ExecutionSettings`, possibly `DebugSettings` → legitimate core-level schemas
-- `GlobalSettings` as a named base class may be unnecessary — a single schema mechanism with explicit `register_schema()` calls could cover both use cases
+- `FrameworkSettings` as a named base class may be unnecessary — a single schema mechanism with explicit `register_schema()` calls could cover both use cases
 
 **Not yet resolved.** This is a design decision pending further discussion. No code changes made yet.
 
@@ -163,8 +163,8 @@ font_size = { override = true, value = 14 }  # OVERRIDE mode
 
 - `_prop_fields()` is the method name on `Settings` that walks MRO and returns all `setting` descriptors. The name `_prop_fields` is a historical artifact — it was named when `prop` was the descriptor class.
 - `_settings_bags` dict on node classes maps accessor name → Settings subclass (the class, not the instance). Instances are created fresh per node in `BaseNode.__init__`.
-- `GlobalSettings` deep inheritance is blocked at `__init_subclass__` time — subclassing a `GlobalSettings` subclass raises `TypeError`. Same for `LibrarySettings`.
-- `setting(mirrors=SomeClass.field)` requires `SomeClass.field._field_key` to already be set at the time the descriptor is constructed. This means the target `GlobalSettings`/`LibrarySettings` class must have been defined with a `namespace=` kwarg before the mirroring class is defined.
+- `FrameworkSettings` deep inheritance is blocked at `__init_subclass__` time — subclassing a `FrameworkSettings` subclass raises `TypeError`. Same for `LibrarySettings`.
+- `setting(mirrors=SomeClass.field)` requires `SomeClass.field._field_key` to already be set at the time the descriptor is constructed. This means the target `FrameworkSettings`/`LibrarySettings` class must have been defined with a `namespace=` kwarg before the mirroring class is defined.
 - `registry.py` internally uses `prop` as the type alias for `setting` descriptors in its type annotations — this was changed to `setting` during the refactor but worth verifying if touching that file.
 - `NodeProperties` runs in simple mode (no registry) — it does NOT participate in the TOML resolution chain. It's purely local observable state.
 - The `@settings` decorator (for LibrarySettings) is separate from the `Settings` class itself. Import: `from haywire.core.settings.decorator import settings`.

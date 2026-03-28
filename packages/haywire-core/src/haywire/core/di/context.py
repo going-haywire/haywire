@@ -27,13 +27,13 @@ if TYPE_CHECKING:
     from ..node.factory import NodeFactory
     from ..adapter.factory import AdapterFactory
     from ..types.registry import TypeRegistry
-    from ..settings import GlobalSettingsRegistry
+    from ..settings import SettingsRegistry
 
 
 _node_factory: Optional["NodeFactory"] = None
 _adapter_factory: Optional["AdapterFactory"] = None
 _type_registry: Optional["TypeRegistry"] = None
-_settings_registry: Optional["GlobalSettingsRegistry"] = None
+_settings_registry: Optional["SettingsRegistry"] = None
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ def set_type_registry(registry: "TypeRegistry") -> None:
     _type_registry = registry
 
 
-def set_settings_registry(registry: "GlobalSettingsRegistry") -> None:
+def set_settings_registry(registry: "SettingsRegistry") -> None:
     global _settings_registry
     _settings_registry = registry
 
@@ -90,10 +90,10 @@ def get_type_registry() -> "TypeRegistry":
     return _type_registry
 
 
-def get_settings_registry() -> "GlobalSettingsRegistry":
+def get_settings_registry() -> "SettingsRegistry":
     if _settings_registry is None:
         raise RuntimeError(
-            "GlobalSettingsRegistry not set in ambient context. "
+            "SettingsRegistry not set in ambient context. "
             "Ensure DI is initialised before constructing nodes."
         )
     return _settings_registry

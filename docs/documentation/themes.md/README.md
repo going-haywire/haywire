@@ -80,7 +80,7 @@ ThemeRegistry (BaseRegistry)
   `__init_subclass__` wraps them into `_FieldProxy` objects collected in `_fields`.
 - `NodeTheme` uses the same mechanism.
 - `ThemeRegistry` follows the same `BaseRegistry` pattern as `NodeRegistry`,
-  `EditorTypeRegistry`, and `GlobalSettingsRegistry`.
+  `EditorTypeRegistry`, and `SettingsRegistry`.
 - TOML data files in `haywire/ui/themes/data/` provide user-editable defaults that can be
   copied and customised without subclassing.
 

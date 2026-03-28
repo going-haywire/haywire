@@ -1,26 +1,26 @@
 # tests/core/test_settings/test_hot_reload.py
-"""Tests for GlobalSettingsRegistry hot-reload: register_schema / unregister."""
+"""Tests for SettingsRegistry hot-reload: register_schema / unregister."""
 
 from haywire.core.settings import setting
-from haywire.core.settings.schema import GlobalSettings, LibrarySettings
+from haywire.core.settings.schema import FrameworkSettings, LibrarySettings
 from haywire.core.settings.decorator import settings
 from haywire.core.settings.enums import SettingMode
-from haywire.core.settings.registry import GlobalSettingsRegistry
+from haywire.core.settings.registry import SettingsRegistry
 
 
 # ---------------------------------------------------------------------------
-# register_schema for GlobalSettings
+# register_schema for FrameworkSettings
 # ---------------------------------------------------------------------------
 
 
-class _HotGS(GlobalSettings, namespace="hot.gs"):
+class _HotGS(FrameworkSettings, namespace="hot.gs"):
     alpha: int = setting(7, label="Alpha")
     beta: str = setting("abc", label="Beta")
 
 
 class TestRegisterSchema:
     def test_register_defines_fields(self):
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         registry.register_schema(_HotGS)
 
         val_alpha, _ = registry.resolve("hot.gs.alpha")
@@ -30,7 +30,7 @@ class TestRegisterSchema:
         assert val_beta == "abc"
 
     def test_registered_field_setable(self):
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         registry.register_schema(_HotGS)
 
         registry.set_global("hot.gs.alpha", 42, SettingMode.SET)
@@ -38,7 +38,7 @@ class TestRegisterSchema:
         assert val == 42
 
     def test_class_identity_created_on_register(self):
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         registry.register_schema(_HotGS)
 
         assert hasattr(_HotGS, "class_identity")
@@ -57,7 +57,7 @@ class _HotLib(LibrarySettings):
 
 class TestRegisterLibrarySchema:
     def test_library_schema_fields_registered(self):
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         registry.register_schema(_HotLib)
 
         val, _ = registry.resolve("hot.lib.rate")
@@ -65,7 +65,7 @@ class TestRegisterLibrarySchema:
 
     def test_existing_class_identity_preserved(self):
         """@settings already set class_identity; register_schema must not overwrite."""
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         original_key = _HotLib.class_identity.registry_key
         registry.register_schema(_HotLib)
         assert _HotLib.class_identity.registry_key == original_key
@@ -78,7 +78,7 @@ class TestRegisterLibrarySchema:
 
 class TestHotReloadCycle:
     def test_fields_gone_after_unregister(self):
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         registry.register_schema(_HotGS)
         registry.set_global("hot.gs.alpha", 42, SettingMode.SET)
 
@@ -90,7 +90,7 @@ class TestHotReloadCycle:
         assert not registry.has_definition("hot.gs.alpha")
 
     def test_re_register_restores_defaults(self):
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         registry.register_schema(_HotGS)
         registry.set_global("hot.gs.alpha", 42, SettingMode.SET)
 

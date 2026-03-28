@@ -47,11 +47,11 @@ class MyNode(BaseNode):
         threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
 ```
 
-`NodeSettings` are never registered with `GlobalSettingsRegistry`. The `@node` decorator assigns `_field_key` to each descriptor, and the node instance injects the registry for mirror/read_only resolution.
+`NodeSettings` are never registered with `SettingsRegistry`. The `@node` decorator assigns `_field_key` to each descriptor, and the node instance injects the registry for mirror/read_only resolution.
 
 ### `setting(default, *, min=None, max=None, choices=None, widget=None, label='', description='', category='general', order=0, on_change=None, mirrors=None, read_only=False)`
 
-Declare a field on a `NodeSettings`, `GlobalSettings`, or `LibrarySettings` class.
+Declare a field on a `NodeSettings`, `FrameworkSettings`, or `LibrarySettings` class.
 
 ```python
 threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
@@ -59,7 +59,7 @@ algorithm: str   = setting('fast', choices=['fast', 'accurate'])
 color:     Color = setting('#ffffff', label='Background')
 verbose:   bool  = setting(False, on_change='hb_on_verbose_change')
 
-# mirrors= — inherit from a GlobalSettings or LibrarySettings field
+# mirrors= — inherit from a FrameworkSettings or LibrarySettings field
 bg_color:  Color = setting(mirrors=NodeUISettings.bg_color)
 
 # mirrors= + read_only= — read-only global cache (invisible in panel)
@@ -98,14 +98,14 @@ debug:     bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True
 from haywire.core.settings import Settings
 ```
 
-Base class for all settings containers. `NodeSettings`, `GlobalSettings`, and `LibrarySettings` all inherit from `Settings`.
+Base class for all settings containers. `NodeSettings`, `FrameworkSettings`, and `LibrarySettings` all inherit from `Settings`.
 
 ### `__init__(registry=None)`
 
 - `registry=None` — **simple mode**: reads/writes go directly to `_local_store`. Zero overhead.
-- `registry=GlobalSettingsRegistry` — **extended mode**: reads go through the full TOML resolution chain.
+- `registry=SettingsRegistry` — **extended mode**: reads go through the full TOML resolution chain.
 
-`GlobalSettings` and `LibrarySettings` subclasses read `cls._registry` automatically in their `__init__`, so no explicit injection is needed.
+`FrameworkSettings` and `LibrarySettings` subclasses read `cls._registry` automatically in their `__init__`, so no explicit injection is needed.
 
 ### Field access
 
@@ -161,22 +161,22 @@ Returns all user-declared settings instances for this node.
 
 ## Schema Classes
 
-### `GlobalSettings`
+### `FrameworkSettings`
 
 Base class for framework/app-defined settings.
 
 ```python
-from haywire.core.settings import GlobalSettings, setting
+from haywire.core.settings import FrameworkSettings, setting
 
-class ExecutionSettings(GlobalSettings, namespace='execution'):
+class ExecutionSettings(FrameworkSettings, namespace='execution'):
     max_threads: int   = setting(4,     label='Max Threads')
     timeout_ms:  float = setting(5000., label='Timeout (ms)')
 ```
 
 - `namespace=` kwarg triggers `__init_subclass__` to wire `_field_key` on every descriptor and queue the class in `_pending_global`.
-- `GlobalSettingsRegistry.__init__` drains `_pending_global` and writes `cls._registry = self`.
+- `SettingsRegistry.__init__` drains `_pending_global` and writes `cls._registry = self`.
 - After registration, `ExecutionSettings()` with no args is fully registry-wired.
-- Deep inheritance (subclassing a `GlobalSettings` subclass) is blocked.
+- Deep inheritance (subclassing a `FrameworkSettings` subclass) is blocked.
 
 ### `LibrarySettings`
 
@@ -192,7 +192,7 @@ class MyLibSettings(LibrarySettings):
 ```
 
 - `@settings` sets `class_identity` (required by `BaseRegistry._class_filter`), `class_library`, `_namespace`, and `_field_key` on all descriptors. Without it the class is invisible to the hot-reload registry.
-- Registration is via `BaseRegistry` hot-reload machinery (inherited by `GlobalSettingsRegistry`).
+- Registration is via `BaseRegistry` hot-reload machinery (inherited by `SettingsRegistry`).
 - After registration, `cls._registry` is set and `MyLibSettings()` is fully wired.
 - Deep inheritance is blocked.
 
@@ -223,10 +223,10 @@ Sets on the class:
 
 ---
 
-## `GlobalSettingsRegistry`
+## `SettingsRegistry`
 
 ```python
-from haywire.core.settings import GlobalSettingsRegistry
+from haywire.core.settings import SettingsRegistry
 
 # Via DI:
 from haywire.core.di.config import get_settings_registry
@@ -235,7 +235,7 @@ registry = get_settings_registry()
 
 ### `register_schema(schema_cls, library_identity=None) -> str | None`
 
-Explicitly register a `GlobalSettings` or `LibrarySettings` class. Also writes `cls._registry = self`.
+Explicitly register a `FrameworkSettings` or `LibrarySettings` class. Also writes `cls._registry = self`.
 
 ### `define(name, default, type_=None, label=None, description='', category='general', **kwargs) -> setting`
 

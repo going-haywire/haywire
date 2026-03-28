@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, List, Any, TYPE_CHECKING
 from injector import Injector
 
-from ..settings import GlobalSettingsRegistry, SettingMode, SettingValue, GlobalSettings, Settings, setting
+from ..settings import SettingsRegistry, SettingMode, SettingValue, FrameworkSettings, Settings, setting
 
 if TYPE_CHECKING:
     from .config import LibrarySystemService
@@ -21,8 +21,8 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 
-class _TestGlobalSettings(GlobalSettings, namespace="test.global"):
-    """Minimal GlobalSettings for unit tests that need registered global keys."""
+class _TestFrameworkSettings(FrameworkSettings, namespace="test.global"):
+    """Minimal FrameworkSettings for unit tests that need registered global keys."""
 
     verbose_logging: bool = setting(False, label="Verbose Logging")
     font_size: int = setting(12, label="Font Size", min=8, max=72)
@@ -91,23 +91,23 @@ def create_test_library_system(
 
 def create_test_settings_registry(
     predefined_settings: Optional[dict] = None, register_builtins: bool = True
-) -> "GlobalSettingsRegistry":
+) -> "SettingsRegistry":
     """
     Create an isolated settings registry for unit tests.
 
     Args:
         predefined_settings: Optional dict of {full_key: value} to pre-set.
-        register_builtins: Whether to register built-in GlobalSettings schemas.
+        register_builtins: Whether to register built-in FrameworkSettings schemas.
 
     Returns:
-        Isolated GlobalSettingsRegistry.
+        Isolated SettingsRegistry.
 
     Example:
         registry = create_test_settings_registry({
             'test.global.verbose_logging': True,
         })
     """
-    registry = GlobalSettingsRegistry()
+    registry = SettingsRegistry()
 
     if predefined_settings:
         for name, value in predefined_settings.items():
@@ -124,7 +124,7 @@ def create_test_bag(
     bag_cls: type = None,
     predefined_local: Optional[dict[str, Any]] = None,
     predefined_global: Optional[dict[str, Any]] = None,
-) -> tuple["GlobalSettingsRegistry", Settings]:
+) -> tuple["SettingsRegistry", Settings]:
     """
     Create an isolated registry + Settings instance for unit tests.
 
@@ -135,7 +135,7 @@ def create_test_bag(
         predefined_global: {full_key: value} pre-set in the global registry.
 
     Returns:
-        (GlobalSettingsRegistry, Settings instance)
+        (SettingsRegistry, Settings instance)
 
     Example:
         class MySettings(Settings):
@@ -177,7 +177,7 @@ class SettingsTestContext:
         # Original settings restored automatically
     """
 
-    def __init__(self, registry: "GlobalSettingsRegistry"):
+    def __init__(self, registry: "SettingsRegistry"):
         self.registry = registry
         self._original_values: dict = {}
 

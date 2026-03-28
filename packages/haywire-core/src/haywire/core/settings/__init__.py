@@ -9,10 +9,11 @@ Public API for node authors:
         strength: float = setting(0.5, min=0.0, max=1.0, label='Strength')
 
 Framework / library internals:
-    GlobalSettingsRegistry  — TOML resolution chain + LibrarySettings
-    GlobalSettings          — base for framework built-in settings schemas
-    LibrarySettings         — base for library-wide TOML settings
-    @settings               — decorator for LibrarySettings auto-discovery
+    SettingsRegistry    — TOML resolution chain + LibrarySettings
+    FrameworkSettings   — base for haywire-core/studio built-in settings schemas only;
+                          not for node or library authors
+    LibrarySettings     — base for library-wide TOML settings
+    @settings           — decorator for LibrarySettings auto-discovery
 """
 
 from .settings import Settings
@@ -22,8 +23,8 @@ from .base import FieldDescriptor
 from .enums import SettingMode
 from .value import SettingValue
 from .types import Color, Icon
-from .registry import GlobalSettingsRegistry
-from .schema import LibrarySettings, GlobalSettings
+from .registry import SettingsRegistry
+from .schema import LibrarySettings, FrameworkSettings
 from .decorator import SettingsClassIdentity, settings
 
 __all__ = [
@@ -37,9 +38,9 @@ __all__ = [
     # Framework internals
     "SettingMode",
     "SettingValue",
-    "GlobalSettingsRegistry",
+    "SettingsRegistry",
     "LibrarySettings",
-    "GlobalSettings",
+    "FrameworkSettings",
     "SettingsClassIdentity",
     "settings",
 ]

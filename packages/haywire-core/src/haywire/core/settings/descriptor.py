@@ -15,7 +15,7 @@ Two operating modes:
       _field_key is set and Settings._registry is not None.
       Reads go through Settings._resolve() — full resolution chain.
       Writes go to _local_store keyed by _field_key.
-      mirrors= points to a GlobalSettings/LibrarySettings descriptor whose
+      mirrors= points to a FrameworkSettings/LibrarySettings descriptor whose
       _field_key is stored as _mirror_key (used by _resolve for shadow/watch).
       read_only=True prevents writes (watch behaviour).
 """
@@ -82,7 +82,7 @@ class setting(FieldDescriptor):
             if not mirror_key:
                 raise ValueError(
                     "setting(mirrors=...) target has no _field_key set. "
-                    "Ensure the target GlobalSettings/LibrarySettings class has been "
+                    "Ensure the target FrameworkSettings/LibrarySettings class has been "
                     "registered and its descriptors have _field_key assigned."
                 )
             self._mirror_key: str = mirror_key

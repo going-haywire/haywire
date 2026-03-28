@@ -1,6 +1,6 @@
 # haywire/core/settings/registry.py
 """
-GlobalSettingsRegistry - central registry for setting definitions and global values.
+SettingsRegistry - central registry for setting definitions and global values.
 Extends BaseRegistry for hot-reload and folder scan support.
 
 Three-tier value storage:
@@ -49,12 +49,12 @@ FRAMEWORK_IDENTITY = LibraryIdentity(
 )
 
 
-class GlobalSettingsRegistry(BaseRegistry):
+class SettingsRegistry(BaseRegistry):
     """
     Central registry for setting definitions and global values.
 
     Extends BaseRegistry for hot-reload and library folder scan support.
-    Schema classes (GlobalSettings / LibrarySettings) can be registered
+    Schema classes (FrameworkSettings / LibrarySettings) can be registered
     via register_schema() or discovered automatically from library folders.
 
     Two global tiers:
@@ -123,14 +123,14 @@ class GlobalSettingsRegistry(BaseRegistry):
         # Namespace-scoped weak-ref subscriptions for holder cache invalidation (Option B)
         self._namespace_subscribers: dict[str, list[weakref.ref]] = {}
 
-        # Drain GlobalSettings classes that were defined before the registry existed
+        # Drain FrameworkSettings classes that were defined before the registry existed
         self._drain_pending_global()
 
     def _drain_pending_global(self) -> None:
-        """Register GlobalSettings subclasses queued before this registry was created."""
-        from .schema import GlobalSettings, _pending_global
+        """Register FrameworkSettings subclasses queued before this registry was created."""
+        from .schema import FrameworkSettings, _pending_global
 
-        GlobalSettings._registry = self
+        FrameworkSettings._registry = self
         while _pending_global:
             schema_cls = _pending_global.pop(0)
             self.register_schema(schema_cls)
@@ -141,13 +141,13 @@ class GlobalSettingsRegistry(BaseRegistry):
     # =========================================================================
 
     def _class_filter(self, cls: Type) -> bool:
-        """Accept LibrarySettings and GlobalSettings subclasses with class_identity."""
-        from .schema import LibrarySettings, GlobalSettings
+        """Accept LibrarySettings and FrameworkSettings subclasses with class_identity."""
+        from .schema import LibrarySettings, FrameworkSettings
 
         return (
             isinstance(cls, type)
-            and issubclass(cls, (LibrarySettings, GlobalSettings))
-            and cls not in (LibrarySettings, GlobalSettings)
+            and issubclass(cls, (LibrarySettings, FrameworkSettings))
+            and cls not in (LibrarySettings, FrameworkSettings)
             and hasattr(cls, "class_identity")
         )
 
@@ -211,10 +211,13 @@ class GlobalSettingsRegistry(BaseRegistry):
 
     def register_schema(self, schema_cls, library_identity: LibraryIdentity | None = None) -> str | None:
         """
-        Explicitly register a GlobalSettings or LibrarySettings schema class.
+        Explicitly register a FrameworkSettings or LibrarySettings schema class.
 
         Creates a class_identity from _namespace if not already present
-        (needed for GlobalSettings built-ins that don't use @settings).
+        (needed for FrameworkSettings built-ins that don't use @settings).
+
+        Idempotent: if the class is already registered in this registry instance,
+        returns the existing registry_key without raising.
         """
         if not hasattr(schema_cls, "class_identity"):
             from .decorator import SettingsClassIdentity
@@ -228,6 +231,9 @@ class GlobalSettingsRegistry(BaseRegistry):
                 registry_key=reg_key(library_id, "settings", ns),
                 label=ns,
             )
+        registry_key = schema_cls.class_identity.registry_key
+        if self.has(registry_key):
+            return registry_key
         return self._register_class(schema_cls, library_identity or FRAMEWORK_IDENTITY)
 
     # =========================================================================
@@ -846,7 +852,7 @@ class GlobalSettingsRegistry(BaseRegistry):
 
     def registered_schemas(self) -> list[type]:
         """
-        All registered GlobalSettings / LibrarySettings schema classes, in
+        All registered FrameworkSettings / LibrarySettings schema classes, in
         registration order.  Useful for building workspace settings panels that
         enumerate settings grouped by schema.
         """

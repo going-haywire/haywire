@@ -5,7 +5,7 @@
 The settings system has two parallel descriptor classes (`prop` and `SettingDescriptor`) that both inherit from `FieldDescriptor` and share ~80% of their constructor parameters. This creates confusion:
 
 - Node authors use `prop()` on `Bag` subclasses for per-node settings
-- Framework/library authors use `SettingDescriptor` on `GlobalSettings`/`LibrarySettings` classes for TOML-tier settings
+- Framework/library authors use `SettingDescriptor` on `FrameworkSettings`/`LibrarySettings` classes for TOML-tier settings
 - The `setting()` name means two different things depending on import path (`haywire.core.settings` returns `prop`, `haywire.core.settings.descriptors` returns `SettingDescriptor`)
 - Two separate base classes (`Bag` vs `_SettingsSchema`) collect descriptors differently (`_prop_fields()` vs `_fields`)
 
@@ -15,7 +15,7 @@ Additionally, node-defined settings bags (`class filter(Settings): ...`) have fu
 
 1. **Unify to a single descriptor class**: `prop` absorbs `SettingDescriptor`'s extra parameters (`type_=`, `stored=`, `validator=`). `SettingDescriptor` and `descriptors.py` are deleted.
 
-2. **Rebase schema classes on `Bag`**: `GlobalSettings` and `LibrarySettings` become `Bag` subclasses (using `prop` descriptors), replacing the parallel `_SettingsSchema` hierarchy. They remain class-only (never instantiated) — the registry reads their `_prop_fields()` for metadata.
+2. **Rebase schema classes on `Bag`**: `FrameworkSettings` and `LibrarySettings` become `Bag` subclasses (using `prop` descriptors), replacing the parallel `_SettingsSchema` hierarchy. They remain class-only (never instantiated) — the registry reads their `_prop_fields()` for metadata.
 
 3. **Add a `settings` scope and panel**: A new scope in the properties editor (order 65, icon `tune`) appears when the selected node has settings bags. A single panel calls `list_setting_bags()` and renders each bag as a collapsible section via `render_reactive()`.
 
@@ -29,8 +29,8 @@ Additionally, node-defined settings bags (`class filter(Settings): ...`) have fu
 4. As a node author, I want `read_only=True` fields to be hidden from the settings panel, so that internal cached globals don't clutter the UI.
 5. As a node author, I want to declare `validator=lambda v: v > 0` on a `setting()`, so that invalid values are rejected at write time.
 6. As a node author, I want to mark a field as `stored=False`, so that computed/derived fields are excluded from serialization.
-7. As a framework developer, I want `GlobalSettings` and `LibrarySettings` to use the same descriptor class as node settings, so that the codebase has one field-descriptor hierarchy instead of two.
-8. As a framework developer, I want `GlobalSettings` subclassing to be forbidden (no `class MySettings(NodeUISettings)`), so that namespace collisions from inherited fields are impossible.
+7. As a framework developer, I want `FrameworkSettings` and `LibrarySettings` to use the same descriptor class as node settings, so that the codebase has one field-descriptor hierarchy instead of two.
+8. As a framework developer, I want `FrameworkSettings` subclassing to be forbidden (no `class MySettings(NodeUISettings)`), so that namespace collisions from inherited fields are impossible.
 9. As a framework developer, I want the registry to store `prop` instances in `_definitions` instead of `SettingDescriptor`, so that there is one descriptor type throughout the system.
 10. As a user, I want to see a dedicated "Settings" tab (tune icon) in the properties editor when I select a node that has settings bags, so that I can find and edit node-specific settings.
 11. As a user, I want each settings bag (e.g., "filter", "output") rendered as a collapsible section within the settings panel, so that multi-bag nodes are organized clearly.
@@ -52,16 +52,16 @@ Additionally, node-defined settings bags (`class filter(Settings): ...`) have fu
 
 ### Schema class rebasing
 
-- `_SettingsSchema` base class is deleted. `GlobalSettings` and `LibrarySettings` extend `Bag` directly.
-- `GlobalSettings.__init_subclass__` accepts `namespace=` kwarg, iterates `_prop_fields()`, and sets `_field_key = f'{namespace}.{name}'` on each `prop` descriptor.
-- Deep inheritance is blocked: if a `GlobalSettings` or `LibrarySettings` subclass's immediate base is not `GlobalSettings` or `LibrarySettings` itself, `__init_subclass__` raises `TypeError`.
-- `GlobalSettings` and `LibrarySettings` remain class-only (never instantiated). The `prop.__get__` instance path exists but is irrelevant for these classes.
+- `_SettingsSchema` base class is deleted. `FrameworkSettings` and `LibrarySettings` extend `Bag` directly.
+- `FrameworkSettings.__init_subclass__` accepts `namespace=` kwarg, iterates `_prop_fields()`, and sets `_field_key = f'{namespace}.{name}'` on each `prop` descriptor.
+- Deep inheritance is blocked: if a `FrameworkSettings` or `LibrarySettings` subclass's immediate base is not `FrameworkSettings` or `LibrarySettings` itself, `__init_subclass__` raises `TypeError`.
+- `FrameworkSettings` and `LibrarySettings` remain class-only (never instantiated). The `prop.__get__` instance path exists but is irrelevant for these classes.
 
 ### Registry migration
 
 - `_register_schema_fields()` reads `schema_cls._prop_fields()` instead of `schema_cls._fields`.
 - `_unregister_schema_fields()` likewise uses `_prop_fields()`.
-- `_class_filter()` checks `issubclass(cls, (LibrarySettings, GlobalSettings))` — unchanged in logic, but these are now `Bag` subclasses.
+- `_class_filter()` checks `issubclass(cls, (LibrarySettings, FrameworkSettings))` — unchanged in logic, but these are now `Bag` subclasses.
 - `_definitions: dict[str, prop]` — type annotation changes from `SettingDescriptor` to `prop`.
 - `_auto_define()` and `define()` call `prop(...)` instead of `_setting_cls(...)`.
 - All other registry logic (two-tier value storage, resolution, TOML load/save, namespace subscriptions) is unchanged.
@@ -102,9 +102,9 @@ Tests should verify external behavior (public API contracts), not implementation
 
 ### Module 2: Schema rebasing on `Bag`
 
-- Test that `GlobalSettings` subclass with `namespace=` has correct `_field_key` on all props
+- Test that `FrameworkSettings` subclass with `namespace=` has correct `_field_key` on all props
 - Test that `_prop_fields()` returns the expected descriptors (not inherited from parent schemas)
-- Test that extending a `GlobalSettings` subclass raises `TypeError`
+- Test that extending a `FrameworkSettings` subclass raises `TypeError`
 - Test that extending a `LibrarySettings` subclass raises `TypeError`
 - Prior art: existing `tests/core/test_settings/`
 
@@ -113,7 +113,7 @@ Tests should verify external behavior (public API contracts), not implementation
 - Existing registry tests should pass with minimal changes (import path updates)
 - Test that `define()` returns a `prop` instance
 - Test that `_auto_define()` from TOML creates `prop` instances
-- Test that `_register_schema_fields()` correctly reads `_prop_fields()` from a `GlobalSettings` class
+- Test that `_register_schema_fields()` correctly reads `_prop_fields()` from a `FrameworkSettings` class
 - Prior art: existing `tests/core/test_settings/test_registry.py`
 
 ### Module 6: Settings scope and panel
@@ -124,8 +124,8 @@ Tests should verify external behavior (public API contracts), not implementation
 
 - **LibrarySettings panels**: Dynamic panel discovery for library-registered settings schemas. Deferred to a future iteration.
 - **Merging `render_reactive()` and `render_schema()`**: They serve different use cases (instance vs global class). Kept separate.
-- **Instantiating `GlobalSettings`**: They remain class-only metadata containers. The registry manages values in flat tier dicts.
-- **`GlobalSettings` inheritance chains**: Actively prevented. No use case identified.
+- **Instantiating `FrameworkSettings`**: They remain class-only metadata containers. The registry manages values in flat tier dicts.
+- **`FrameworkSettings` inheritance chains**: Actively prevented. No use case identified.
 - **Migration tooling**: No automated migration for external libraries using `SettingDescriptor` directly. Clean break — the old API is removed.
 
 ## Further Notes

@@ -2,9 +2,9 @@
 """Editor behaviour preference singleton."""
 
 from haywire.core.settings import setting
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import FrameworkSettings
 
-class EditorSettings(GlobalSettings):
+class EditorSettings(FrameworkSettings):
     """Global preferences controlling editor interaction and behaviour."""
 
     # Undo/Redo

@@ -43,10 +43,10 @@ from haywire.core.node import BaseLibrary, library
 class MyLibrary(BaseLibrary):
 
     def register_components(self, registries):
-        from haywire.core.settings import GlobalSettingsRegistry
+        from haywire.core.settings import SettingsRegistry
         from .settings import MyLibSettings
 
-        settings_registry: GlobalSettingsRegistry = registries.get(GlobalSettingsRegistry)
+        settings_registry: SettingsRegistry = registries.get(SettingsRegistry)
         if settings_registry:
             settings_registry.register_schema(MyLibSettings)
 

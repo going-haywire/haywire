@@ -32,7 +32,7 @@ class NodeSettings(Settings):
     ``_field_key`` to each ``setting()`` descriptor, and the node instance
     injects the registry at construction for mirror/read_only resolution.
 
-    NodeSettings are never registered with GlobalSettingsRegistry.
+    NodeSettings are never registered with SettingsRegistry.
     """
 
     pass

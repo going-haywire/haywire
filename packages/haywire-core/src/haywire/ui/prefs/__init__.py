@@ -1,7 +1,7 @@
 # haywire/ui/prefs/__init__.py
 """
 Framework preference singletons — Settings + setting() subclasses for the
-old haybale-studio GlobalSettings classes.
+old haybale-studio FrameworkSettings classes.
 
 All classes configure UI behaviour (canvas, edges, nodes, minimap, editor
 interaction) and are consumed by framework renderers and editors.

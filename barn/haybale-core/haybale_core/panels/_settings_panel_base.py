@@ -1,6 +1,6 @@
 # haybale_studio/panels/_settings_panel_base.py
 """
-Shared renderer for GlobalSettings / LibrarySettings / Reactive schema classes.
+Shared renderer for FrameworkSettings / LibrarySettings / Reactive schema classes.
 
 Not a panel itself — imported by the concrete settings panels.
 """
@@ -16,7 +16,7 @@ from haywire.core.settings.enums import SettingMode
 from haywire.ui.components.number_drag import NumberDrag
 
 if TYPE_CHECKING:
-    from haywire.core.settings.registry import GlobalSettingsRegistry
+    from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.settings import Settings, FieldDescriptor
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
@@ -107,7 +107,7 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
     _build_row()
 
 
-def render_schema(schema_cls: type, registry: "GlobalSettingsRegistry") -> None:
+def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
     """Render all fields of *schema_cls* as labelled form rows."""
 
     defns = registry.definitions_for_schema(schema_cls)
@@ -209,7 +209,7 @@ def _make_reactive_setter(obj: "Settings", attr_name: str):
     return make_setter
 
 
-def _make_setter(registry: "GlobalSettingsRegistry", key: str, coerce):
+def _make_setter(registry: "SettingsRegistry", key: str, coerce):
     """Return an on_change handler that writes *key* to the registry workspace tier."""
 
     def handler(e):

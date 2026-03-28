@@ -9,7 +9,7 @@ from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
-from haywire.core.settings.registry import GlobalSettingsRegistry
+from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.types.registry import TypeRegistry
@@ -45,7 +45,7 @@ class Library(BaseLibrary):
 
         # Register settings
         self.add_folder_to_registry(
-            folder_path=str(base_path / "settings"), registry_cls=GlobalSettingsRegistry
+            folder_path=str(base_path / "settings"), registry_cls=SettingsRegistry
         )
 
         # Register themes (workbench and node themes)

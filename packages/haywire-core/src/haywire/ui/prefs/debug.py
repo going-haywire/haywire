@@ -2,9 +2,9 @@
 """Debug and development preference singleton."""
 
 from haywire.core.settings import setting
-from haywire.core.settings.schema import GlobalSettings
+from haywire.core.settings.schema import FrameworkSettings
 
-class DebugSettings(GlobalSettings):
+class DebugSettings(FrameworkSettings):
     """Global preferences for debug and development features."""
 
     # Logging

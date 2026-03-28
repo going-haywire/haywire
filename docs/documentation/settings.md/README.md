@@ -47,8 +47,8 @@ class MyNode(BaseNode):
 ## Architecture
 
 ```
-GlobalSettingsRegistry
-├── GlobalSettings schemas (auto-registered via _pending_global at registry init)
+SettingsRegistry
+├── FrameworkSettings schemas (auto-registered via _pending_global at registry init)
 │   ├── NodeUISettings (namespace='ui.node')
 │   ├── EdgeUISettings (namespace='ui.edge')
 │   ├── DebugSettings  (namespace='debug')

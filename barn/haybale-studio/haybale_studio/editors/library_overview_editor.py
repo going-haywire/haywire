@@ -23,7 +23,7 @@ from nicegui import ui
 
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
-from haywire.core.settings import GlobalSettingsRegistry
+from haywire.core.settings import SettingsRegistry
 from haywire.core.types.registry import TypeRegistry
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
@@ -169,7 +169,7 @@ class LibraryOverviewEditor(BaseEditor):
         type_registry: TypeRegistry = svc.get_type_registry()
         adapter_registry: AdapterRegistry = svc.get_adapter_registry()
         skin_registry: SkinRegistry = svc.get_skin_registry()
-        settings_registry: GlobalSettingsRegistry = svc.get_settings_registry()
+        settings_registry: SettingsRegistry = svc.get_settings_registry()
         theme_registry: ThemeRegistry = svc.get_theme_registry()
         panel_registry: PanelRegistry = svc.get_panel_registry()
         editor_registry: EditorTypeRegistry = svc.get_editor_registry()

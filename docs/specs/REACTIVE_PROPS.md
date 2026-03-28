@@ -9,7 +9,7 @@
 
 ## 1. Motivation
 
-Haywire's Settings system (`setting()` + `GlobalSettings` + `GlobalSettingsRegistry` +
+Haywire's Settings system (`setting()` + `FrameworkSettings` + `SettingsRegistry` +
 `ResolutionChain` + `SettingsHolder`) is designed for hierarchical, multi-tier resolution —
 global OVERRIDE → workspace OVERRIDE → per-node local → workspace SET → global SET → default.
 That machinery is warranted for node settings where library developers need per-instance
@@ -88,9 +88,9 @@ library node code. All are mockups consumed only by their own panels.
 
 - `NodeSettings` (per-node, hierarchical, `shadow()`/`watch()` targets)
 - `LibrarySettings` (library-global defaults, `shadow()` targets)
-- `GlobalSettings` base class itself (remains available for future hierarchical use)
+- `FrameworkSettings` base class itself (remains available for future hierarchical use)
 - `SettingsHolder`, `SubHolder`, `ResolutionChain` (unchanged)
-- `GlobalSettingsRegistry` (unchanged, but no longer used by the migrated classes)
+- `SettingsRegistry` (unchanged, but no longer used by the migrated classes)
 
 ---
 
@@ -349,8 +349,8 @@ Attributes that exist only on `SettingDescriptor` (not needed by `prop()`):
 ### 6.2 App singleton prefs — move from haybale-studio to haywire-core
 
 All 9 classes move from `haybale-studio/settings/` to `haywire/ui/prefs/`,
-rewritten from `GlobalSettings` + `setting()` to `Reactive` + `prop()`.
-The `@settings` decorator and `GlobalSettingsRegistry` imports are removed.
+rewritten from `FrameworkSettings` + `setting()` to `Reactive` + `prop()`.
+The `@settings` decorator and `SettingsRegistry` imports are removed.
 
 | Old file (haybale-studio) | New file (haywire-core) | Class(es) | Fields |
 |---|---|---|---|
@@ -460,9 +460,9 @@ to `haywire.ui.prefs.*` and switch from `render_schema(cls, registry)` to
 1. **Create `haywire/ui/prefs/`** package with `__init__.py`.
 
 2. **Move all 9 settings classes** from `haybale_studio/settings/` to
-   `haywire/ui/prefs/`, rewriting each from `GlobalSettings` + `setting()` to
+   `haywire/ui/prefs/`, rewriting each from `FrameworkSettings` + `setting()` to
    `Reactive` + `prop()`. Remove `@settings` decorator and all
-   `GlobalSettingsRegistry` imports. Rename files to match new module names
+   `SettingsRegistry` imports. Rename files to match new module names
    (e.g. `ui_canvas.py` → `canvas.py`, `ui_node.py` → `node_ui.py`).
 
 3. **Delete `haybale_studio/settings/`** (entire directory — `__init__.py` is empty,
@@ -483,8 +483,8 @@ to `haywire.ui.prefs.*` and switch from `render_schema(cls, registry)` to
 
 2. **Write `docs/documentation/reactive.md`** — standalone reference for the new module.
 
-3. **Clean up imports** — remove unused `GlobalSettings` / `@settings` imports from
-   any remaining files. If `GlobalSettings` has no remaining concrete subclasses, add a
+3. **Clean up imports** — remove unused `FrameworkSettings` / `@settings` imports from
+   any remaining files. If `FrameworkSettings` has no remaining concrete subclasses, add a
    deprecation note (but keep the class — library developers may use it).
 
 ---

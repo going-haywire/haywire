@@ -1,9 +1,9 @@
 # tests/core/test_settings/test_schema_rebasing.py
 """
-Tests for GlobalSettings and LibrarySettings rebased on Settings.
+Tests for FrameworkSettings and LibrarySettings rebased on Settings.
 
 Verifies:
-- GlobalSettings/LibrarySettings extend Settings (setting descriptor works)
+- FrameworkSettings/LibrarySettings extend Settings (setting descriptor works)
 - _prop_fields() returns expected descriptors
 - namespace= kwarg sets _field_key on all settings
 - Deep inheritance (subclassing a GS/LS subclass) raises TypeError
@@ -12,28 +12,28 @@ Verifies:
 """
 
 import pytest
-from haywire.core.settings import Settings, setting, GlobalSettings, LibrarySettings, FieldDescriptor
-from haywire.core.settings.registry import GlobalSettingsRegistry
+from haywire.core.settings import Settings, setting, FrameworkSettings, LibrarySettings, FieldDescriptor
+from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.decorator import settings
 
 
 # ---------------------------------------------------------------------------
-# GlobalSettings extends Settings
+# FrameworkSettings extends Settings
 # ---------------------------------------------------------------------------
 
 
-class TestGlobalSettingsExtendsSettings:
+class TestFrameworkSettingsExtendsSettings:
     def test_globalSettings_is_settings_subclass(self):
-        assert issubclass(GlobalSettings, Settings)
+        assert issubclass(FrameworkSettings, Settings)
 
     def test_direct_subclass_is_settings_subclass(self):
-        class FooGS(GlobalSettings, namespace="foo"):
+        class FooGS(FrameworkSettings, namespace="foo"):
             x: int = setting(1)
 
         assert issubclass(FooGS, Settings)
 
     def test_prop_fields_returns_descriptors(self):
-        class BarGS(GlobalSettings, namespace="bar"):
+        class BarGS(FrameworkSettings, namespace="bar"):
             alpha: int = setting(7, label="Alpha")
             beta: str = setting("hello", label="Beta")
 
@@ -44,7 +44,7 @@ class TestGlobalSettingsExtendsSettings:
         assert isinstance(fields["beta"], setting)
 
     def test_namespace_sets_field_key(self):
-        class NsGS(GlobalSettings, namespace="ns.test"):
+        class NsGS(FrameworkSettings, namespace="ns.test"):
             val: float = setting(3.14)
 
         fields = NsGS._prop_fields()
@@ -53,7 +53,7 @@ class TestGlobalSettingsExtendsSettings:
     def test_class_level_access_returns_descriptor(self):
         """Class-level access returns the setting descriptor (used for mirrors=)."""
 
-        class ClsGS(GlobalSettings, namespace="cls.gs"):
+        class ClsGS(FrameworkSettings, namespace="cls.gs"):
             count: int = setting(0)
 
         assert isinstance(ClsGS.count, setting)
@@ -61,7 +61,7 @@ class TestGlobalSettingsExtendsSettings:
     def test_no_namespace_does_not_set_field_key(self):
         """Without namespace=, _field_key is empty (set by decorator or register_schema)."""
 
-        class NoNsGS(GlobalSettings):
+        class NoNsGS(FrameworkSettings):
             val: int = setting(5)
 
         fields = NoNsGS._prop_fields()
@@ -94,20 +94,20 @@ class TestLibrarySettingsExtendsSettings:
 
 class TestDeepInheritanceBlocked:
     def test_globalSettings_direct_subclass_allowed(self):
-        """Directly subclassing GlobalSettings must succeed."""
+        """Directly subclassing FrameworkSettings must succeed."""
 
-        class DirectGS(GlobalSettings, namespace="direct.gs"):
+        class DirectGS(FrameworkSettings, namespace="direct.gs"):
             x: int = setting(0)
 
-        assert issubclass(DirectGS, GlobalSettings)
+        assert issubclass(DirectGS, FrameworkSettings)
 
     def test_globalSettings_deep_subclass_raises(self):
-        """Subclassing a GlobalSettings subclass must raise TypeError."""
+        """Subclassing a FrameworkSettings subclass must raise TypeError."""
 
-        class DirectGS(GlobalSettings, namespace="deep.gs"):
+        class DirectGS(FrameworkSettings, namespace="deep.gs"):
             x: int = setting(0)
 
-        with pytest.raises(TypeError, match="Subclassing a GlobalSettings subclass"):
+        with pytest.raises(TypeError, match="Subclassing a FrameworkSettings subclass"):
 
             class DeepGS(DirectGS):
                 y: int = setting(1)
@@ -139,12 +139,12 @@ class TestDeepInheritanceBlocked:
 
 class TestRegistryReadsPropFields:
     def test_register_schema_reads_prop_fields(self):
-        """register_schema() correctly reads _prop_fields() from GlobalSettings class."""
+        """register_schema() correctly reads _prop_fields() from FrameworkSettings class."""
 
-        class RegGS(GlobalSettings, namespace="reg.gs"):
+        class RegGS(FrameworkSettings, namespace="reg.gs"):
             value: int = setting(99)
 
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         registry.register_schema(RegGS)
 
         val, _ = registry.resolve("reg.gs.value")
@@ -152,7 +152,7 @@ class TestRegistryReadsPropFields:
 
     def test_define_returns_setting_instance(self):
         """registry.define() returns a setting instance."""
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         d = registry.define("prog.val", 42)
         assert isinstance(d, setting)
         assert d._default == 42
@@ -166,7 +166,7 @@ class TestRegistryReadsPropFields:
         if importlib.util.find_spec("toml") is None:
             pytest.skip("toml not installed")
 
-        registry = GlobalSettingsRegistry()
+        registry = SettingsRegistry()
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write("[auto]\nval = 123\n")
             path = f.name

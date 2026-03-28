@@ -3,7 +3,7 @@
 Decorators for the Haywire settings system.
 
 @settings(namespace=...) — marks a LibrarySettings subclass for auto-discovery
-    by GlobalSettingsRegistry when a library calls add_folder().
+    by FrameworkSettingsRegistry when a library calls add_folder().
 
 Consistent with @node, @editor, @panel, @theme pattern:
   - Derives library identity via derive_library_identity()
@@ -21,7 +21,7 @@ from haywire.core.registry.identity import BaseIdentity
 @dataclass
 class SettingsClassIdentity(BaseIdentity):
     """
-    Identity object attached to LibrarySettings / GlobalSettings classes.
+    Identity object attached to LibrarySettings / FrameworkSettings classes.
 
     Required by BaseRegistry._register() — analogous to how @node attaches
     NodeIdentity, @editor attaches EditorClassIdentity, etc.
@@ -51,17 +51,17 @@ def settings(namespace: str, label: str = "", description: str = ""):
         class MyLibSettings(LibrarySettings):
             bg_color: Color = setting('#1e1e2e', label='Node Background')
 
-    Auto-discovered by GlobalSettingsRegistry when the library calls:
+    Auto-discovered by FrameworkSettingsRegistry when the library calls:
         settings_registry.add_folder(path, library_identity)
     """
 
     def decorator(inner_cls):
         # Lazy import to avoid circular dependency (schema imports descriptors)
-        from haywire.core.settings.schema import LibrarySettings, GlobalSettings  # noqa: PLC0415
+        from haywire.core.settings.schema import LibrarySettings, FrameworkSettings  # noqa: PLC0415
 
-        if not issubclass(inner_cls, (LibrarySettings, GlobalSettings)):
+        if not issubclass(inner_cls, (LibrarySettings, FrameworkSettings)):
             raise TypeError(
-                f"@settings can only be applied to LibrarySettings or GlobalSettings "
+                f"@settings can only be applied to LibrarySettings or FrameworkSettings "
                 f"subclasses, got {inner_cls}"
             )
 
