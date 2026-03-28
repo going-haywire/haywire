@@ -15,7 +15,9 @@
       "Bash(do)",
       "Bash(sed -i '' 's/haywire-core/haywire-core/g' \"$f\")",
       "Bash(done)",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

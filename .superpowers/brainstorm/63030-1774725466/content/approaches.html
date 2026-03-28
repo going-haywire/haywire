@@ -1,0 +1,66 @@
+<h2>Settings UI Dev Harness — 3 Approaches</h2>
+<p class="subtitle">How should the isolated test environment be structured?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Standalone NiceGUI Mini-App</h3>
+      <p>A separate <code>dev_harness.py</code> that boots a minimal NiceGUI server rendering only the settings panel in isolation — no graph, no app shell, no library loading. You point it at any <code>NodeSettings</code> or <code>LibrarySettings</code> class and it renders the panel directly.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Instant startup (&lt;2s vs ~10s for full app)</li>
+          <li>No graph setup or node instantiation needed</li>
+          <li>Easy for agent to drive via <code>playwright</code> / <code>browser-use</code></li>
+          <li>Composable — swap in any settings class</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Needs a small amount of DI wiring to inject a registry</li>
+          <li>Mirror resolution requires a real <code>SettingsRegistry</code> to be set up</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>pytest + Playwright Headless Tests</h3>
+      <p>Use <code>pytest-nicegui</code> (or a custom fixture) to run NiceGUI in a headless browser, assert on rendered DOM elements and interactions. Tests live alongside unit tests and run in CI.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Fully automated and repeatable</li>
+          <li>Assertions are code — no human in the loop</li>
+          <li>CI-friendly</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Headless — you can't see the UI while developing</li>
+          <li>Playwright setup overhead</li>
+          <li>Test failures are DOM assertions, not visual inspection</li>
+          <li>Does not help with visual iteration speed</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Harness App + Agent Test Script (Recommended)</h3>
+      <p>Combine A and B: a <strong>mini NiceGUI harness app</strong> you can view in the browser, plus a <strong>Playwright-based agent test script</strong> that spins up the harness, navigates it, and verifies behavior. You use the harness visually; the agent uses Playwright programmatically.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Fast visual feedback for you</li>
+          <li>Agent can drive and verify autonomously</li>
+          <li>One harness serves both purposes</li>
+          <li>Harness can expose a <code>/test?class=SettingsNode.example</code> URL pattern so agent can target specific settings classes</li>
+          <li>No full app or graph needed</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Slightly more upfront design than A alone</li>
+          <li>Playwright must be installed as a dev dependency</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>

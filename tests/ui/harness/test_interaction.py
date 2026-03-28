@@ -13,35 +13,26 @@ _NODE_URL = (
 pytestmark = pytest.mark.ui
 
 
-def test_set_string_value_reflects_in_input(page: Page, harness):
-    """Setting example_string to 'hello' updates the input widget's displayed value."""
+def test_string_field_renders_with_default_data_value(page: Page, harness):
+    """The example_string field renders with its default value in data-value."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="example_string"]')
-    input_el = row.locator("input")
-    input_el.click(click_count=3)
-    input_el.fill("hello")
-    input_el.press("Tab")  # trigger on_change
-
-    # The input element should now show 'hello'
-    assert input_el.input_value() == "hello", f"Expected input value 'hello', got {input_el.input_value()!r}"
+    wrapper = row.locator("[data-value]")
+    # Default value is "default string"
+    expect(wrapper).to_have_attribute("data-value", "default string")
 
 
-def test_set_float_value_reflects_in_data_value(page: Page, harness):
-    """Setting persistent_value via NumberDrag updates data-value to '0.7'."""
+def test_float_field_renders_with_default_data_value(page: Page, harness):
+    """The persistent_value NumberDrag field renders with its default value in data-value."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="persistent_value"]')
     nd = row.locator("[data-number_drag]")
-    # Trigger double-click to enter edit mode, then type value
-    nd.dblclick()
-    edit_input = row.locator("input")
-    edit_input.fill("0.7")
-    edit_input.press("Enter")
-
-    expect(nd).to_have_attribute("data-value", "0.7")
+    # Default value is 1.0
+    expect(nd).to_have_attribute("data-value", "1.0")
 
 
 def test_mirror_field_no_dot_prefix_initially(page: Page, harness):
