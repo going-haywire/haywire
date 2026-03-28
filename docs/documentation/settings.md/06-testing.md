@@ -308,6 +308,92 @@ def test_bag_access(test_bag):
 
 ---
 
+## UI Testing with the Settings Harness
+
+The settings UI harness in `tests/ui/harness/` lets you verify rendered panel behavior with Playwright — without spinning up the full Haywire app.
+
+### How it works
+
+The harness is a standalone NiceGUI app (`app.py`) that boots the full library system and exposes three routes:
+
+- `GET /node?class=<dotted.ClassName>&bag=<bag_name>` — renders a `NodeSettings` bag via `render_reactive()`
+- `GET /schema?class=<dotted.ClassName>` — renders a `LibrarySettings` schema via `render_schema()`
+- `POST /api/set?key=<key>&value=<value>` — writes a value to the registry (for mirror propagation tests)
+
+The pytest fixture in `conftest.py` starts the harness as a subprocess and polls `/status` until it's ready. All tests in the suite share one server instance (session-scoped).
+
+### Running the UI tests
+
+```sh
+uv run pytest tests/ui/harness/ -m ui -v
+```
+
+Or start the harness manually to inspect in a browser:
+
+```sh
+uv run python tests/ui/harness/app.py
+# then open http://localhost:8090/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example
+```
+
+### Writing a Playwright test
+
+Use `data-field` to locate a row, `data-value` to read the current value:
+
+```python
+from playwright.sync_api import Page, expect
+
+_NODE_URL = (
+    "http://localhost:8090/node"
+    "?class=haybale_testing.nodes.testbed.settings_node.SettingsNode"
+    "&bag=example"
+)
+
+def test_float_renders_default(page: Page, harness):
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    nd = page.locator('[data-field="example_float"] [data-number_drag]')
+    expect(nd).to_have_attribute("data-value", "0.5")
+```
+
+For mirror propagation tests, use the `reset_setting` fixture to restore the registry after the test:
+
+```python
+import requests
+
+def test_global_change_propagates(page: Page, harness, reset_setting):
+    reset_setting("testing.default_intensity", 0.5)   # restores after test
+    requests.post(
+        "http://localhost:8090/api/set",
+        params={"key": "testing.default_intensity", "value": "0.9"},
+    )
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    nd = page.locator('[data-field="intensity"] [data-number_drag]')
+    expect(nd).to_have_attribute("data-value", "0.9")
+```
+
+### DOM attributes reference
+
+| Attribute | Element | Value |
+| --------- | ------- | ----- |
+| `data-field="<attr_name>"` | Row container `div` | Field name as declared on the `Settings` class |
+| `data-value="<current>"` | Widget element | Current rendered value as a string |
+| `data-number_drag=""` | `NumberDrag` root | Present on all `NumberDrag` widgets |
+| `data-error="true"` | Error label | Present when last write was rejected by validator |
+
+### Test files
+
+| File | What it covers |
+| ---- | -------------- |
+| `test_structural.py` | Field presence, widget types, category headings, read-only exclusion |
+| `test_interaction.py` | `data-value` on render, mirror `•` prefix, reset button |
+| `test_mirror.py` | Global setting change propagates to mirror fields on re-render |
+| `test_validation.py` | Validator rejection shows `data-error`, clears on valid input |
+
+---
+
 ## Summary
 
 | Utility | Use Case |
