@@ -54,14 +54,6 @@ def test_mirror_field_no_dot_prefix_initially(page: Page, harness):
     assert not label_text.startswith("•"), f"Expected no • prefix, got: {label_text!r}"
 
 
-@pytest.mark.xfail(
-    reason=(
-        "_render_reactive_field_row does not call _build_row() after setattr, "
-        "so the • prefix is not added reactively after a UI-triggered override. "
-        "This test documents the expected behavior once reactive row rebuild is implemented."
-    ),
-    strict=False,
-)
 def test_mirror_field_dot_prefix_after_local_override(page: Page, harness):
     """Overriding the intensity mirror locally adds • to the label."""
     page.goto(_NODE_URL)
@@ -82,14 +74,6 @@ def test_mirror_field_dot_prefix_after_local_override(page: Page, harness):
     assert label_text.startswith("•"), f"Expected • prefix after override, got: {label_text!r}"
 
 
-@pytest.mark.xfail(
-    reason=(
-        "_render_reactive_field_row does not call _build_row() after setattr, "
-        "so the reset button does not appear after a UI-triggered local override. "
-        "This test documents the expected behavior once reactive row rebuild is implemented."
-    ),
-    strict=False,
-)
 def test_reset_button_appears_after_override(page: Page, harness):
     """After overriding intensity locally, the reset (restart_alt) button appears."""
     page.goto(_NODE_URL)
@@ -110,14 +94,6 @@ def test_reset_button_appears_after_override(page: Page, harness):
     expect(reset_btn).to_be_visible()
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Depends on test_reset_button_appears_after_override: reset button does not appear "
-        "reactively after a UI-triggered local override. "
-        "This test documents the expected behavior once reactive row rebuild is implemented."
-    ),
-    strict=False,
-)
 def test_reset_button_removes_dot_prefix(page: Page, harness):
     """Clicking the reset button on intensity removes the • prefix."""
     page.goto(_NODE_URL)

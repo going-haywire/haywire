@@ -94,11 +94,17 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
             if is_locally_overridden:
                 label_text = f"• {label_text}"
 
+            error_container = ui.element("div").classes("w-full")
+
             with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
                 lbl = ui.label(label_text).classes(_LABEL_CLASSES)
                 if defn._description:
                     lbl.tooltip(defn._description)
-                _render_widget_impl(defn, getattr(obj, attr_name), _make_reactive_setter(obj, attr_name))
+                _render_widget_impl(
+                    defn,
+                    getattr(obj, attr_name),
+                    _make_reactive_setter(obj, attr_name, error_container, on_change_callback=_build_row),
+                )
                 if is_locally_overridden:
                     ui.button(icon="restart_alt").props("flat dense size=xs").tooltip(
                         "Reset to global default"
@@ -233,15 +239,22 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
 # ---------------------------------------------------------------------------
 
 
-def _make_reactive_setter(obj: "Settings", attr_name: str):
+def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None, on_change_callback=None):
     """Return a make_setter(coerce) factory that writes to a Settings instance."""
 
     def make_setter(coerce):
         def handler(e):
             try:
                 setattr(obj, attr_name, coerce(e.value))
-            except Exception:
-                pass
+                if error_container is not None:
+                    error_container.clear()
+                if on_change_callback is not None:
+                    on_change_callback()
+            except Exception as exc:
+                if error_container is not None:
+                    error_container.clear()
+                    with error_container:
+                        ui.label(str(exc)).classes("text-xs text-red-400 px-2").props('data-error="true"')
 
         return handler
 
