@@ -84,7 +84,7 @@ def register_routes(library_service) -> None:
             try:
                 node_cls = _resolve_class(class_path)
                 settings_cls = getattr(node_cls, bag_name)
-                settings_instance = settings_cls()
+                settings_instance = settings_cls(registry=registry)
                 render_reactive(settings_instance)
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
