@@ -245,16 +245,30 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None,
     def make_setter(coerce):
         def handler(e):
             try:
-                setattr(obj, attr_name, coerce(e.value))
-                if error_container is not None:
-                    error_container.clear()
-                if on_change_callback is not None:
-                    on_change_callback()
+                coerced = coerce(e.value)
             except Exception as exc:
                 if error_container is not None:
                     error_container.clear()
                     with error_container:
                         ui.label(str(exc)).classes("text-xs text-red-400 px-2").props('data-error="true"')
+                return
+
+            # Check validator before setting — descriptors silently reject invalid values
+            descriptor = type(obj)._prop_fields().get(attr_name)
+            if descriptor is not None and not descriptor.validate(coerced):
+                if error_container is not None:
+                    error_container.clear()
+                    with error_container:
+                        ui.label(f"Invalid value: {coerced!r}").classes("text-xs text-red-400 px-2").props(
+                            'data-error="true"'
+                        )
+                return
+
+            setattr(obj, attr_name, coerced)
+            if error_container is not None:
+                error_container.clear()
+            if on_change_callback is not None:
+                on_change_callback()
 
         return handler
 
