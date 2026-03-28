@@ -18,6 +18,20 @@ class TestingSettings(LibrarySettings):
         description="Library-wide default intensity used by test nodes",
         category="general",
     )
+    default_count: int = setting(
+        7,
+        min=0,
+        max=100,
+        label="Default Count",
+        description="Library-wide integer default used by test nodes",
+        category="general",
+    )
+    default_label: str = setting(
+        "default label",
+        label="Default Label",
+        description="Library-wide string default used by test nodes",
+        category="general",
+    )
     default_enabled: bool = setting(
         True,
         label="Default Enabled",

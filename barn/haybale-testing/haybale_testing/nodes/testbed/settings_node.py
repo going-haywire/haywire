@@ -19,8 +19,16 @@ class SettingsNode(BaseNode):
         # --- type_ ---
         example_string: str = setting(
             "default string",
-            label="My Setting",
-            description="An example setting for demonstration purposes",
+            label="Example String",
+            description="An example string setting",
+            category="type",
+        )
+        example_int: int = setting(
+            3,
+            min=0,
+            max=100,
+            label="Example Int",
+            description="An example integer setting",
             category="type",
         )
         example_float: float = setting(
@@ -31,6 +39,26 @@ class SettingsNode(BaseNode):
             description="A float setting with explicit type_ override",
             category="type",
             type_=float,
+        )
+        example_bool: bool = setting(
+            False,
+            label="Example Bool",
+            description="An example boolean setting",
+            category="type",
+        )
+        example_choices: str = setting(
+            "fast",
+            choices=["fast", "balanced", "quality"],
+            label="Example Choices",
+            description="An example choices setting",
+            category="type",
+        )
+        example_color: Color = setting(
+            "#00ff00",
+            label="Example Color",
+            description="An example color setting",
+            category="type",
+            widget="color",
         )
 
         # --- read only ---
@@ -60,42 +88,84 @@ class SettingsNode(BaseNode):
         # --- mirrors (shadow) ---
         intensity: float = setting(
             label="Intensity",
-            description="Mirrors library-level default_intensity (override locally per node)",
+            description="Mirrors library-level default_intensity",
             category="mirrors",
             mirrors=TestingSettings.default_intensity,
         )
+        count_mirror: int = setting(
+            label="Count Mirror",
+            description="Mirrors library-level default_count",
+            category="mirrors",
+            mirrors=TestingSettings.default_count,
+            min=0,
+            max=100,
+        )
+        label_mirror: str = setting(
+            label="Label Mirror",
+            description="Mirrors library-level default_label",
+            category="mirrors",
+            mirrors=TestingSettings.default_label,
+        )
         enabled: bool = setting(
             label="Enabled",
-            description="Mirrors library-level default_enabled (plain mirror, bool)",
+            description="Mirrors library-level default_enabled",
             category="mirrors",
             mirrors=TestingSettings.default_enabled,
         )
         mode: str = setting(
             label="Mode",
-            description="Mirrors library-level default_mode (plain mirror, choices)",
+            description="Mirrors library-level default_mode",
             category="mirrors",
             mirrors=TestingSettings.default_mode,
             choices=["fast", "balanced", "quality"],
         )
         tint: Color = setting(
             label="Tint",
-            description="Mirrors library-level default_color (plain mirror, color)",
+            description="Mirrors library-level default_color",
             category="mirrors",
             mirrors=TestingSettings.default_color,
             widget="color",
         )
         intensity_ro: float = setting(
             label="Intensity (read-only)",
-            description="Read-only mirror of default_intensity — not shown in panel",
+            description="Read-only mirror of default_intensity",
             category="mirrors",
             mirrors=TestingSettings.default_intensity,
             read_only=True,
         )
+        count_ro: int = setting(
+            label="Count (read-only)",
+            description="Read-only mirror of default_count",
+            category="mirrors",
+            mirrors=TestingSettings.default_count,
+            read_only=True,
+        )
+        label_ro: str = setting(
+            label="Label (read-only)",
+            description="Read-only mirror of default_label",
+            category="mirrors",
+            mirrors=TestingSettings.default_label,
+            read_only=True,
+        )
         enabled_ro: bool = setting(
             label="Enabled (read-only)",
-            description="Read-only mirror of default_enabled — not shown in panel",
+            description="Read-only mirror of default_enabled",
             category="mirrors",
             mirrors=TestingSettings.default_enabled,
+            read_only=True,
+        )
+        mode_ro: str = setting(
+            label="Mode (read-only)",
+            description="Read-only mirror of default_mode",
+            category="mirrors",
+            mirrors=TestingSettings.default_mode,
+            read_only=True,
+        )
+        tint_ro: Color = setting(
+            label="Tint (read-only)",
+            description="Read-only mirror of default_color",
+            category="mirrors",
+            mirrors=TestingSettings.default_color,
             read_only=True,
         )
 

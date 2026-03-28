@@ -20,11 +20,24 @@ def test_node_fields_present(page: Page, harness):
     page.wait_for_selector("[data-field]")
 
     expected_fields = [
+        # direct fields
         "example_string",
+        "example_int",
         "example_float",
+        "example_bool",
+        "example_choices",
+        "example_color",
+        # stored
         "persistent_value",
         "transient_value",
+        # mirrors
         "intensity",
+        "count_mirror",
+        "label_mirror",
+        "enabled",
+        "mode",
+        "tint",
+        # validators
         "clamped_positive",
         "even_int",
     ]
