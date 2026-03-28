@@ -156,8 +156,8 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
         with wrapper:
 
             def _color_handler(e, _w=wrapper, _s=make_setter(str)):
-                _s(e)
                 _w.props(f'data-value="{e.value}"')
+                _s(e)
 
             ui.color_input(value=value or "#ffffff", on_change=_color_handler).classes("flex-1 min-w-0")
         return
@@ -268,7 +268,7 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None,
             if error_container is not None:
                 error_container.clear()
             if on_change_callback is not None:
-                on_change_callback()
+                ui.timer(0, on_change_callback, once=True)
 
         return handler
 
