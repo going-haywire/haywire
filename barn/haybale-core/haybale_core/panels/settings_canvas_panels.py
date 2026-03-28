@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 
-from haybale_studio.panels._settings_panel_base import render_schema
+from ._settings_panel_base import render_schema
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -38,33 +38,10 @@ class CanvasSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_studio.settings.ui_canvas import CanvasSettings
+        from haywire.ui.prefs.canvas import CanvasSettings
 
         registry = context.app.library_service.get_settings_registry()
         render_schema(CanvasSettings, registry)
-
-
-@panel(
-    registry_id="settings_node_ui",
-    editor="properties",
-    scope="canvas",
-    label="Nodes",
-    icon="widgets",
-    order=20,
-    default_open=False,
-)
-class NodeUISettingsPanel(BasePanel):
-    """Node dimensions, typography and label visibility."""
-
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return True
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_studio.settings.ui_node import NodeUISettings
-
-        registry = context.app.library_service.get_settings_registry()
-        render_schema(NodeUISettings, registry)
 
 
 @panel(
@@ -84,7 +61,7 @@ class EdgeUISettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_studio.settings.ui_edge import EdgeUISettings
+        from haywire.ui.prefs.edge_ui import EdgeUISettings
 
         registry = context.app.library_service.get_settings_registry()
         render_schema(EdgeUISettings, registry)
@@ -107,7 +84,7 @@ class MinimapSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_studio.settings.ui_minimap import MinimapSettings
+        from haywire.ui.prefs.minimap import MinimapSettings
 
         registry = context.app.library_service.get_settings_registry()
         render_schema(MinimapSettings, registry)

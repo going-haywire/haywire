@@ -9,7 +9,8 @@ from nicegui import ui
 
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
-from haybale_studio.panels._settings_panel_base import render_reactive
+
+from ._settings_panel_base import render_reactive
 
 if False:  # TYPE_CHECKING
     from haywire.ui.context import SessionContext

@@ -1,10 +1,11 @@
 # haywire/ui/prefs/canvas.py
 """Canvas grid, zoom, and pan preference singleton."""
 
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import setting
+from haywire.core.settings.schema import GlobalSettings
 
 
-class CanvasSettings(Settings):
+class CanvasSettings(GlobalSettings):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
 
     # Background pattern (style, not color)

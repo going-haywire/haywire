@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 
-from haybale_studio.panels._settings_panel_base import render_schema
+from haybale_core.panels._settings_panel_base import render_schema
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext

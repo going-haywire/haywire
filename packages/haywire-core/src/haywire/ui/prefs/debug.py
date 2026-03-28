@@ -1,10 +1,10 @@
 # haywire/ui/prefs/debug.py
 """Debug and development preference singleton."""
 
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import setting
+from haywire.core.settings.schema import GlobalSettings
 
-
-class DebugSettings(Settings):
+class DebugSettings(GlobalSettings):
     """Global preferences for debug and development features."""
 
     # Logging

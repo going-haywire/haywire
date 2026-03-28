@@ -97,7 +97,8 @@ class DefaultNodeSkin(NodeSkin):
                         )
 
         # Add resize handle in bottom-right corner
-        self._add_resize_handle(main_card, wrapper)
+        if self._ui_settings.show_resize_handle:
+            self._add_resize_handle(main_card, wrapper)
 
     def _render_port_hierarchy(self, ports: List[DataPort], wrapper: NodeWrapper, port_type: PortType):
         """

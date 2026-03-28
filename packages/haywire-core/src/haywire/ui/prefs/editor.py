@@ -1,10 +1,10 @@
 # haywire/ui/prefs/editor.py
 """Editor behaviour preference singleton."""
 
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import setting
+from haywire.core.settings.schema import GlobalSettings
 
-
-class EditorSettings(Settings):
+class EditorSettings(GlobalSettings):
     """Global preferences controlling editor interaction and behaviour."""
 
     # Undo/Redo

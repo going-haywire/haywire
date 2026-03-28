@@ -10,39 +10,54 @@ from haywire.ui.skin.base import BaseSkin
 from haywire.ui.themes.icons import ICONS
 from haywire.ui.utils import generate_pin_uuid
 
+from haybale_core.settings.ui_node import NodeUISettings
+
 if TYPE_CHECKING:
     from haywire.core.errors import HaywireException
+    from haywire.ui.widget.factory_interface import IWidgetFactory
 
 
 class NodeSkin(BaseSkin, ABC):
     """
     Base class for all NiceGui NodeSkin classes.
 
-    NodeSkin classes are stateless and define the look and structure of nodes.
-    They are cached and reused by the SkinFactory.
+    NodeSkin instances are cached and reused by the SkinFactory. They hold a
+    NodeUISettings instance for live access to layout and visibility settings,
+    but carry no per-node render state.
 
-    Layout constants (override in subclasses to tune spacing):
-        CARD_H_PADDING  — explicit horizontal padding applied to the card (px).
-                          This value is consumed by default_skin's render() and is also
-                          baked into the pin offset formula so that PIN_PROTRUSION = 0
-                          always means "pin center exactly at the card's visible border".
-        PIN_GUTTER      — width of the pin column (px). Also sets the icon size.
-        PIN_PROTRUSION  — how far the pin center sits outside the card's visible edge (px).
+    Layout values are driven by NodeUISettings and read on every render call:
+        card_padding    — horizontal padding applied to the card (px).
+        pin_gutter      — width of the pin column (px). Also sets the icon size.
+        pin_protrusion  — how far the pin center sits outside the card's visible edge (px).
                           0 = flush with card border; positive = further out;
                           negative = pin pulled inward.
-        CONTENT_GAP     — offset between the gutter column edge and the label/widget (px).
-                          Positive = gap, zero = flush with column edge, negative = label
-                          overlaps into the gutter (useful since the pin only occupies the
-                          outer half of the gutter, leaving PIN_GUTTER/2 px of empty space
-                          before the label even at zero).
-        PIN_ROW_HEIGHT  — height of the pin cell, sets vertical centering target (px)
+        content_gap     — offset between the gutter column edge and the label/widget (px).
+        pin_row_height  — height of the pin cell, sets vertical centering target (px)
     """
 
-    CARD_H_PADDING: int = 16
-    PIN_GUTTER: int = 20
-    PIN_PROTRUSION: int = 0
-    CONTENT_GAP: int = -15
-    PIN_ROW_HEIGHT: int = 24
+    def __init__(self, widget_factory: "IWidgetFactory"):
+        super().__init__(widget_factory)
+        self._ui_settings = NodeUISettings()
+
+    @property
+    def CARD_H_PADDING(self) -> int:  # noqa: N802
+        return self._ui_settings.card_padding
+
+    @property
+    def PIN_GUTTER(self) -> int:  # noqa: N802
+        return self._ui_settings.pin_gutter
+
+    @property
+    def PIN_PROTRUSION(self) -> int:  # noqa: N802
+        return self._ui_settings.pin_protrusion
+
+    @property
+    def CONTENT_GAP(self) -> int:  # noqa: N802
+        return self._ui_settings.content_gap
+
+    @property
+    def PIN_ROW_HEIGHT(self) -> int:  # noqa: N802
+        return self._ui_settings.pin_row_height
 
     def render_port(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render a port according to its ort type"""
@@ -76,7 +91,8 @@ class NodeSkin(BaseSkin, ABC):
                     f"margin-left: {gap}px; margin-right: {g}px; min-width: 0;"
                 )
             ):
-                ui.label(port.label).classes("text-xs zoom-pan-lod2")
+                if self._ui_settings.show_labels:
+                    ui.label(port.label).classes("text-xs zoom-pan-lod2")
                 if not port.allow_multiple_links and port.widget_key:
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
@@ -96,7 +112,8 @@ class NodeSkin(BaseSkin, ABC):
                     f"margin-right: {gap}px; min-width: 0;"
                 )
             ):
-                ui.label(port.label).classes("text-xs")
+                if self._ui_settings.show_labels:
+                    ui.label(port.label).classes("text-xs")
                 if not port.allow_multiple_links and port.widget_key:
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
@@ -118,7 +135,8 @@ class NodeSkin(BaseSkin, ABC):
                 f"padding-left: {indent}px; padding-right: {indent}px;"
             )
         ):
-            ui.label(port.label).classes("text-xs")
+            if self._ui_settings.show_labels:
+                ui.label(port.label).classes("text-xs")
             if not port.allow_multiple_links and port.widget_key:
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
@@ -163,8 +181,9 @@ class NodeSkin(BaseSkin, ABC):
                 .style(pin_offset)
                 .props(f'{common_props} data-pin-color="{ctrl_color}"')
             ):
-                with ui.tooltip().classes(ctrl_color):
-                    self._tooltip_for_port(pin)
+                if self._ui_settings.show_tooltips:
+                    with ui.tooltip().classes(ctrl_color):
+                        self._tooltip_for_port(pin)
 
         elif pin.flow_type == FlowType.CALLBACK:
             callback_color = pin.color
@@ -178,8 +197,9 @@ class NodeSkin(BaseSkin, ABC):
                 .style(pin_offset)
                 .props(f'{common_props} data-pin-color="{callback_color}"')
             ):
-                with ui.tooltip().classes(callback_color):
-                    self._tooltip_for_port(pin)
+                if self._ui_settings.show_tooltips:
+                    with ui.tooltip().classes(callback_color):
+                        self._tooltip_for_port(pin)
 
         elif pin.flow_type == FlowType.DATA:
             pin_color = pin.color
@@ -211,8 +231,9 @@ class NodeSkin(BaseSkin, ABC):
                 .style(pin_offset)
                 .props(f'{common_props} data-pin-data-type="{pin_data_type}" data-pin-color="{pin_color}"')
             ):
-                with ui.tooltip().classes(pin_color):
-                    self._tooltip_for_port(pin)
+                if self._ui_settings.show_tooltips:
+                    with ui.tooltip().classes(pin_color):
+                        self._tooltip_for_port(pin)
 
     def _tooltip_for_port(self, port: DataPort):
         ui.label(f"Desc: {port.description}")
