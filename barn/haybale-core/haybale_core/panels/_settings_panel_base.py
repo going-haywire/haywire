@@ -42,9 +42,9 @@ def _render_category_group(category: str) -> ui.expansion:
     )
 
 
-def _render_field_row(label_text: str, description: str, defn, value, make_setter):
+def _render_field_row(label_text: str, description: str, defn, value, make_setter, attr_name: str = ""):
     """Render a single label + widget row."""
-    with ui.row().classes(_ROW_CLASSES):
+    with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
             lbl.tooltip(description)
@@ -94,7 +94,7 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
             if is_locally_overridden:
                 label_text = f"• {label_text}"
 
-            with ui.row().classes(_ROW_CLASSES):
+            with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
                 lbl = ui.label(label_text).classes(_LABEL_CLASSES)
                 if defn._description:
                     lbl.tooltip(defn._description)
@@ -125,12 +125,14 @@ def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
                         value, _ = registry.resolve(key)
                     except KeyError:
                         continue
+                    attr_name = defn._attr_name or key.split(".")[-1]
                     _render_field_row(
-                        defn._label or defn._attr_name or key.split(".")[-1],
+                        defn._label or attr_name,
                         defn._description,
                         defn,
                         value,
                         lambda coerce, k=key: _make_setter(registry, k, coerce),
+                        attr_name=attr_name,
                     )
 
 
@@ -141,21 +143,26 @@ def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
 
 def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> None:
     """Shared widget dispatch. make_setter(coerce) -> on_change handler."""
+    str_value = str(value) if value is not None else ""
+
     if defn._widget == "color":
-        ui.color_input(value=value or "#ffffff").classes("flex-1 min-w-0").on("change", make_setter(str))
+        with ui.element("div").props(f'data-value="{str_value}"'):
+            ui.color_input(value=value or "#ffffff").classes("flex-1 min-w-0").on("change", make_setter(str))
         return
 
     resolved_choices = defn.choices
     if resolved_choices is not None:
-        ui.select(
-            options=resolved_choices,
-            value=value,
-            on_change=make_setter(lambda v: v),
-        ).classes("flex-1 min-w-0 text-xs").props("dense")
+        with ui.element("div").props(f'data-value="{str_value}"'):
+            ui.select(
+                options=resolved_choices,
+                value=value,
+                on_change=make_setter(lambda v: v),
+            ).classes("flex-1 min-w-0 text-xs").props("dense")
         return
 
     if defn._type is bool:
-        ui.switch(value=bool(value), on_change=make_setter(bool)).props("dense")
+        with ui.element("div").props(f'data-value="{str(bool(value)).lower()}"'):
+            ui.switch(value=bool(value), on_change=make_setter(bool)).props("dense")
         return
 
     if defn._type in (int, float):
@@ -180,13 +187,14 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
 
         NumberDrag(value=value if value is not None else 0, on_change=_on_number_change, **kwargs).classes(
             "flex-1 min-w-0"
-        )
+        ).props(f'data-value="{str_value}"')
         return
 
-    ui.input(
-        value=str(value) if value is not None else "",
-        on_change=make_setter(str),
-    ).classes("flex-1 min-w-0 text-xs").props("dense")
+    with ui.element("div").props(f'data-value="{str_value}"'):
+        ui.input(
+            value=str(value) if value is not None else "",
+            on_change=make_setter(str),
+        ).classes("flex-1 min-w-0 text-xs").props("dense")
 
 
 # ---------------------------------------------------------------------------
