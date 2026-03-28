@@ -56,8 +56,9 @@ def test_mirror_field_no_dot_prefix_initially(page: Page, harness):
 
 @pytest.mark.xfail(
     reason=(
-        "_render_reactive_field_row does not currently call _build_row() after setattr, "
-        "so the • prefix is not added reactively. This test documents the expected behavior."
+        "_render_reactive_field_row does not call _build_row() after setattr, "
+        "so the • prefix is not added reactively after a UI-triggered override. "
+        "This test documents the expected behavior once reactive row rebuild is implemented."
     ),
     strict=False,
 )
@@ -67,13 +68,14 @@ def test_mirror_field_dot_prefix_after_local_override(page: Page, harness):
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="intensity"]')
-    # intensity is a mirror field rendered as a string input (type_=object, not float)
-    input_el = row.locator("input")
-    input_el.click(click_count=3)
-    input_el.fill("0.3")
-    input_el.press("Tab")
+    # intensity is a mirror field rendered as a NumberDrag (float type)
+    nd = row.locator("[data-number_drag]")
+    nd.dblclick()
+    edit_input = row.locator("input")
+    edit_input.fill("0.3")
+    edit_input.press("Enter")
     # Page re-renders the row after local override
-    page.wait_for_timeout(300)
+    page.wait_for_timeout(600)
 
     updated_row = page.locator('[data-field="intensity"]')
     label_text = updated_row.locator(".text-xs").first.inner_text()
@@ -82,9 +84,9 @@ def test_mirror_field_dot_prefix_after_local_override(page: Page, harness):
 
 @pytest.mark.xfail(
     reason=(
-        "_render_reactive_field_row does not currently call _build_row() after setattr, "
-        "so the reset button does not appear after a local override via the UI. "
-        "This test documents the expected behavior."
+        "_render_reactive_field_row does not call _build_row() after setattr, "
+        "so the reset button does not appear after a UI-triggered local override. "
+        "This test documents the expected behavior once reactive row rebuild is implemented."
     ),
     strict=False,
 )
@@ -94,11 +96,13 @@ def test_reset_button_appears_after_override(page: Page, harness):
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="intensity"]')
-    input_el = row.locator("input")
-    input_el.click(click_count=3)
-    input_el.fill("0.3")
-    input_el.press("Tab")
-    page.wait_for_timeout(300)
+    # intensity is a mirror field rendered as a NumberDrag (float type)
+    nd = row.locator("[data-number_drag]")
+    nd.dblclick()
+    edit_input = row.locator("input")
+    edit_input.fill("0.3")
+    edit_input.press("Enter")
+    page.wait_for_timeout(600)
 
     updated_row = page.locator('[data-field="intensity"]')
     # NiceGUI renders Material icon buttons with the icon name as text content
@@ -109,7 +113,8 @@ def test_reset_button_appears_after_override(page: Page, harness):
 @pytest.mark.xfail(
     reason=(
         "Depends on test_reset_button_appears_after_override: reset button does not appear "
-        "reactively after a UI-triggered local override. This test documents the expected behavior."
+        "reactively after a UI-triggered local override. "
+        "This test documents the expected behavior once reactive row rebuild is implemented."
     ),
     strict=False,
 )
@@ -118,19 +123,20 @@ def test_reset_button_removes_dot_prefix(page: Page, harness):
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
-    # Override intensity
+    # Override intensity via NumberDrag edit mode
     row = page.locator('[data-field="intensity"]')
-    input_el = row.locator("input")
-    input_el.click(click_count=3)
-    input_el.fill("0.2")
-    input_el.press("Tab")
-    page.wait_for_timeout(300)
+    nd = row.locator("[data-number_drag]")
+    nd.dblclick()
+    edit_input = row.locator("input")
+    edit_input.fill("0.2")
+    edit_input.press("Enter")
+    page.wait_for_timeout(600)
 
     # Click reset
     updated_row = page.locator('[data-field="intensity"]')
     reset_btn = updated_row.locator('button:has-text("restart_alt")')
     reset_btn.click()
-    page.wait_for_timeout(300)
+    page.wait_for_timeout(600)
 
     # • prefix should be gone
     final_row = page.locator('[data-field="intensity"]')
