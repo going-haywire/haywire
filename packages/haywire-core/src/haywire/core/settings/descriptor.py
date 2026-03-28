@@ -86,6 +86,8 @@ class setting(FieldDescriptor):
                     "registered and its descriptors have _field_key assigned."
                 )
             self._mirror_key: str = mirror_key
+            if self._type is object:
+                self._type = getattr(mirrors, "_type", object)
         else:
             self._mirror_key = ""
 

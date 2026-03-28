@@ -146,23 +146,41 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
     str_value = str(value) if value is not None else ""
 
     if defn._widget == "color":
-        with ui.element("div").props(f'data-value="{str_value}"'):
-            ui.color_input(value=value or "#ffffff").classes("flex-1 min-w-0").on("change", make_setter(str))
+        wrapper = ui.element("div").props(f'data-value="{str_value}"')
+        with wrapper:
+
+            def _color_handler(e, _w=wrapper, _s=make_setter(str)):
+                _s(e)
+                _w.props(f'data-value="{e.value}"')
+
+            ui.color_input(value=value or "#ffffff").classes("flex-1 min-w-0").on("change", _color_handler)
         return
 
     resolved_choices = defn.choices
     if resolved_choices is not None:
-        with ui.element("div").props(f'data-value="{str_value}"'):
+        wrapper = ui.element("div").props(f'data-value="{str_value}"')
+        with wrapper:
+
+            def _select_handler(e, _w=wrapper, _s=make_setter(lambda v: v)):
+                _s(e)
+                _w.props(f'data-value="{str(e.value)}"')
+
             ui.select(
                 options=resolved_choices,
                 value=value,
-                on_change=make_setter(lambda v: v),
+                on_change=_select_handler,
             ).classes("flex-1 min-w-0 text-xs").props("dense")
         return
 
     if defn._type is bool:
-        with ui.element("div").props(f'data-value="{str(bool(value)).lower()}"'):
-            ui.switch(value=bool(value), on_change=make_setter(bool)).props("dense")
+        wrapper = ui.element("div").props(f'data-value="{str(bool(value)).lower()}"')
+        with wrapper:
+
+            def _bool_handler(e, _w=wrapper, _s=make_setter(bool)):
+                _s(e)
+                _w.props(f'data-value="{str(bool(e.value)).lower()}"')
+
+            ui.switch(value=bool(value), on_change=_bool_handler).props("dense")
         return
 
     if defn._type in (int, float):
@@ -180,20 +198,33 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
         class _E:
             __slots__ = ("value",)
 
+        nd_ref = [None]
+
         def _on_number_change(e, _h=handler, _c=coerce):
             ev = _E()
             ev.value = _c(e.args)
             _h(ev)
+            if nd_ref[0] is not None:
+                nd_ref[0].props(f'data-value="{str(ev.value)}"')
 
-        NumberDrag(value=value if value is not None else 0, on_change=_on_number_change, **kwargs).classes(
-            "flex-1 min-w-0"
-        ).props(f'data-value="{str_value}"')
+        nd = (
+            NumberDrag(value=value if value is not None else 0, on_change=_on_number_change, **kwargs)
+            .classes("flex-1 min-w-0")
+            .props(f'data-value="{str_value}"')
+        )
+        nd_ref[0] = nd
         return
 
-    with ui.element("div").props(f'data-value="{str_value}"'):
+    wrapper = ui.element("div").props(f'data-value="{str_value}"')
+    with wrapper:
+
+        def _str_handler(e, _w=wrapper, _s=make_setter(str)):
+            _s(e)
+            _w.props(f'data-value="{str(e.value)}"')
+
         ui.input(
             value=str(value) if value is not None else "",
-            on_change=make_setter(str),
+            on_change=_str_handler,
         ).classes("flex-1 min-w-0 text-xs").props("dense")
 
 
