@@ -176,9 +176,12 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
                 _s(e)
                 _w.props(f'data-value="{str(e.value)}"')
 
+            options_keys = (
+                resolved_choices if isinstance(resolved_choices, list) else list(resolved_choices.keys())
+            )
             ui.select(
                 options=resolved_choices,
-                value=value,
+                value=value if value in options_keys else None,
             ).classes("w-full text-xs").props("dense").on_value_change(_select_handler)
         return
 

@@ -263,28 +263,28 @@ class LibrarySystemService:
         # eagerly resolved here so their providers set the context vars before any
         # graph/node construction can happen.
         library_registry = self.injector.get(LibraryRegistry)
-        widget_registry = self.injector.get(WidgetRegistry)
-        adapter_registry = self.injector.get(AdapterRegistry)
-        skin_registry = self.injector.get(SkinRegistry)
-        node_registry = self.injector.get(NodeRegistry)
-        type_registry = self.injector.get(TypeRegistry)
-        settings_registry = self.injector.get(SettingsRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
-        editor_registry = self.injector.get(EditorTypeRegistry)
+        settings_registry = self.injector.get(SettingsRegistry)
+        type_registry = self.injector.get(TypeRegistry)
+        adapter_registry = self.injector.get(AdapterRegistry)
+        widget_registry = self.injector.get(WidgetRegistry)
+        node_registry = self.injector.get(NodeRegistry)
+        skin_registry = self.injector.get(SkinRegistry)
         panel_registry = self.injector.get(PanelRegistry)
-        self.injector.get(NodeFactory)  # sets ambient context for NodeWrapper
+        editor_registry = self.injector.get(EditorTypeRegistry)
         self.injector.get(AdapterFactory)  # sets ambient context for EdgeWrapper
+        self.injector.get(NodeFactory)  # sets ambient context for NodeWrapper
 
         # Link registries to library registry for management
-        library_registry.add_class_registry(WidgetRegistry, widget_registry)
-        library_registry.add_class_registry(AdapterRegistry, adapter_registry)
-        library_registry.add_class_registry(SkinRegistry, skin_registry)
-        library_registry.add_class_registry(NodeRegistry, node_registry)
-        library_registry.add_class_registry(TypeRegistry, type_registry)
-        library_registry.add_class_registry(PanelRegistry, panel_registry)
         library_registry.add_class_registry(ThemeRegistry, theme_registry)
-        library_registry.add_class_registry(EditorTypeRegistry, editor_registry)
         library_registry.add_class_registry(SettingsRegistry, settings_registry)
+        library_registry.add_class_registry(TypeRegistry, type_registry)
+        library_registry.add_class_registry(AdapterRegistry, adapter_registry)
+        library_registry.add_class_registry(WidgetRegistry, widget_registry)
+        library_registry.add_class_registry(NodeRegistry, node_registry)
+        library_registry.add_class_registry(SkinRegistry, skin_registry)
+        library_registry.add_class_registry(PanelRegistry, panel_registry)
+        library_registry.add_class_registry(EditorTypeRegistry, editor_registry)
 
         # Set up registry subscribers for cross-registry updates
         # this ensures that when new types are added,

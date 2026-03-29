@@ -14,7 +14,6 @@ Registered as DI singletons in HaywireModule.  Panels access them via:
 
 from .debug import DebugSettings
 from .editor import EditorSettings
-from .execution import ExecutionSettings
 from .canvas import CanvasSettings
 from .edge_ui import EdgeUISettings
 from .minimap import MinimapSettings
@@ -22,7 +21,6 @@ from .minimap import MinimapSettings
 __all__ = [
     "DebugSettings",
     "EditorSettings",
-    "ExecutionSettings",
     "CanvasSettings",
     "EdgeUISettings",
     "MinimapSettings",

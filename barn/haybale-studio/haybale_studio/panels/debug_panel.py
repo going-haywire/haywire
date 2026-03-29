@@ -1,8 +1,8 @@
-# haybale_studio/panels/settings_execution_panel.py
+# haybale_studio/panels/settings_debug_panel.py
 """
-Execution-scope settings panel (scope='execution').
+Debug-scope settings panel (scope='debug').
 
-ExecutionSettingsPanel — auto-execute, timeouts, parallelism, caching, error handling
+DebugSettingsPanel — logging, execution visibility, visual debugging, data inspection
 """
 
 from __future__ import annotations
@@ -19,23 +19,23 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="settings_execution",
+    registry_id="settings_debug",
     editor="properties",
-    scope="execution",
-    label="Execution",
-    icon="play_circle",
+    scope="debug",
+    label="Debug",
+    icon="bug_report",
     order=10,
     default_open=True,
 )
-class ExecutionSettingsPanel(BasePanel):
-    """Auto-execute, timeouts, parallelism, caching and error handling."""
+class DebugSettingsPanel(BasePanel):
+    """Logging, execution visibility, visual debugging and data inspection."""
 
     @classmethod
     def poll(cls, context: "SessionContext") -> bool:
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_studio.settings.execution import ExecutionSettings
+        from haywire.ui.prefs.debug import DebugSettings
 
         registry = context.app.library_service.get_settings_registry()
-        render_schema(ExecutionSettings, registry)
+        render_schema(DebugSettings, registry)

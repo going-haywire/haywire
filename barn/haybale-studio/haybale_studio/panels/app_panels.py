@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     order=10,
     default_open=True,
 )
-class WorkbenchSettingsPanel(BasePanel):
+class ThemeSettingsPanel(BasePanel):
     """Active workbench and node themes."""
 
     @classmethod
@@ -36,10 +36,10 @@ class WorkbenchSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_studio.settings.workbench import WorkbenchSettings, NodeThemeSettings
+        from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
 
         registry = context.app.library_service.get_settings_registry()
-        render_schema(WorkbenchSettings, registry)
+        render_schema(WorkbenchThemeSettings, registry)
         render_schema(NodeThemeSettings, registry)
 
 

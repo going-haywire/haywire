@@ -5,7 +5,6 @@ from haywire.ui.panel.decorator import panel
 
 
 @panel(
-    registry_id="settings_node_ui",
     editor="properties",
     scope="canvas",
     label="Nodes",
@@ -13,7 +12,7 @@ from haywire.ui.panel.decorator import panel
     order=20,
     default_open=False,
 )
-class NodeUISettingsPanel(BasePanel):
+class NodeSkinSettingsPanel(BasePanel):
     """Node dimensions, typography and label visibility."""
 
     @classmethod
@@ -21,7 +20,7 @@ class NodeUISettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_core.settings.ui_node import NodeUISettings
+        from haybale_core.settings.node_skin_settings import NodeSkinSettings
 
         registry = context.app.library_service.get_settings_registry()
-        render_schema(NodeUISettings, registry)
+        render_schema(NodeSkinSettings, registry)

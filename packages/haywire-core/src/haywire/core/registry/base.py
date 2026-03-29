@@ -842,7 +842,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """
         if registry not in self._registry_subscribers:
             self._registry_subscribers.append(registry)
-            self.logger.debug(f"Registered registry subscriber: {registry.__class__.__name__}")
+            self.logger.debug(f"{self.__class__.__name__}: Registered registry subscriber: {registry.__class__.__name__}")
 
     def remove_registry_subscriber(self, registry: HotReloadRegistry) -> None:
         """

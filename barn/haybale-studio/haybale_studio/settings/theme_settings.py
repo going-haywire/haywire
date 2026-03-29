@@ -16,8 +16,8 @@ def _workbench_theme_choices():
     except Exception:
         return {}
     
-@settings(namespace="workbench", label="Workbench")
-class WorkbenchSettings(LibrarySettings):
+@settings(namespace="workbench", label="Workbench Theme")
+class WorkbenchThemeSettings(LibrarySettings):
     """Global settings controlling the active workbench theme."""
 
     theme: str = setting(

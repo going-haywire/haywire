@@ -2,6 +2,7 @@ from abc import ABC
 from typing import TYPE_CHECKING, List
 from nicegui import ui
 
+from haywire.core.errors import HaywireException
 from haywire.core.types import DataPort, CompoundType, FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 
@@ -10,10 +11,9 @@ from haywire.ui.skin.base import BaseSkin
 from haywire.ui.themes.icons import ICONS
 from haywire.ui.utils import generate_pin_uuid
 
-from haybale_core.settings.ui_node import NodeUISettings
+from ..settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
-    from haywire.core.errors import HaywireException
     from haywire.ui.widget.factory_interface import IWidgetFactory
 
 
@@ -37,7 +37,7 @@ class NodeSkin(BaseSkin, ABC):
 
     def __init__(self, widget_factory: "IWidgetFactory"):
         super().__init__(widget_factory)
-        self._ui_settings = NodeUISettings()
+        self._ui_settings = NodeSkinSettings()
 
     @property
     def CARD_H_PADDING(self) -> int:  # noqa: N802

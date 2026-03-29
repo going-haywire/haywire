@@ -6,8 +6,8 @@ from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 
 
-@settings(namespace="ui.node", label="Node UI")
-class NodeUISettings(LibrarySettings):
+@settings(namespace="ui.node.skin", label="Node Skin")
+class NodeSkinSettings(LibrarySettings):
     """Settings controlling node layout, pin geometry, and element visibility.
 
     These settings are consumed directly by NodeSkin and its subclasses.
