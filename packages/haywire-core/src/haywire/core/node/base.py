@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
-from haywire.core.node.properties import NodeProperties
+from haywire.core.node.properties import NodeProperties  # re-exported for type hints
 from ..types.enums import FlowType, PortType
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
@@ -81,9 +81,6 @@ class NodeData:
             _bag_instance._subscribe_mirrors()
             object.__setattr__(self, _bag_name, _bag_instance)
 
-        # Per-instance observable props (muted, collapsed, pinned, position, …)
-        self._props: NodeProperties = NodeProperties()
-
         # Cache (transient, NOT serialized)
         self._cache: NodeCache = NodeCache()
 
@@ -141,23 +138,6 @@ class NodeData:
             self.filter.reset('threshold')
         """
         return {name: getattr(self, name) for name in getattr(type(self), "_settings_bags", {})}
-
-    @property
-    def props(self) -> NodeProperties:
-        """
-        Per-instance observable props for this node.
-
-        These are lightweight observable values (Settings + setting()) rather
-        than full Settings — no resolution chain, no global defaults.
-
-        Includes visual state, layout, and annotations::
-
-            self.props.muted
-            self.props.collapsed = True
-            self.props.posX = 100.0
-            self.props.set_position((100, 200))
-        """
-        return self._props
 
     @property
     def cache(self) -> NodeCache:
@@ -1021,6 +1001,9 @@ class BaseNode(NodeData, metaclass=NodeMeta):
     This is useful for nodes under development that should not yet be part of the library.
     """
 
+    class props(NodeProperties):
+        """Per-instance observable props (muted, collapsed, skin, position, …)."""
+
     def __init__(self, node_id: str, wrapper: "NodeWrapper"):
         """
         Initialize node.
@@ -1276,7 +1259,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             "settings": {
                 name: getattr(self, name).to_dict() for name in getattr(type(self), "_settings_bags", {})
             },
-            "props": self._props.to_dict(),
+            "props": self.props.to_dict(),
             "store": self._store.to_dict(),
             "identity": asdict(self.identity),
             "library": asdict(self.library),
@@ -1329,7 +1312,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
 
         # Restore reactive props
         if "props" in data:
-            self._props.from_dict(data["props"])
+            self.props.from_dict(data["props"])
 
         if "store" in data:
             self._store.from_dict(data["store"])

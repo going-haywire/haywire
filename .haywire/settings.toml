@@ -4,3 +4,6 @@ theme = "studio:theme:workbench:haywire-dark"
 [ui.node.skin]
 default_skin = "core:skin:DefaultNodeSkin"
 studio_skin = "core:skin:DefaultNodeSkin"
+
+[ui.node.default.skin]
+studio_skin = "example:skin:ExampleNodeSkin"

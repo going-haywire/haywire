@@ -32,14 +32,16 @@ def _wire_settings_schemas(node_cls: type, registry_key: str) -> None:
     bags: dict[str, type] = {}
     ns = registry_key.replace(":", ".")
 
-    for name, val in node_cls.__dict__.items():
-        if not (isinstance(val, type) and issubclass(val, NodeSettings) and val is not NodeSettings):
-            continue
-        # Set _field_key on every setting descriptor that doesn't already have one
-        for field_name, descriptor in val._prop_fields().items():
-            if isinstance(descriptor, setting_cls) and not descriptor._field_key:
-                descriptor._field_key = f"{ns}.{name}.{field_name}"
-        bags[name] = val
+    # Walk MRO base-first so subclass declarations win over inherited ones
+    for klass in reversed(node_cls.__mro__):
+        for name, val in klass.__dict__.items():
+            if not (isinstance(val, type) and issubclass(val, NodeSettings) and val is not NodeSettings):
+                continue
+            # Set _field_key on every setting descriptor that doesn't already have one
+            for field_name, descriptor in val._prop_fields().items():
+                if isinstance(descriptor, setting_cls) and not descriptor._field_key:
+                    descriptor._field_key = f"{ns}.{name}.{field_name}"
+            bags[name] = val
 
     # Conflict check — must not shadow existing non-NodeSettings attributes
     for accessor_name in bags:

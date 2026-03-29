@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-03-29T20:24:50.084857",
+  "modified_at": "2026-03-29T23:00:04.964276",
   "nodes": {
     "begin_play_f465f325": {
       "node_id": "begin_play_f465f325",
@@ -60,8 +60,15 @@
             }
           }
         },
-        "settings": {},
+        "settings": {
+          "props": {
+            "skin": "core:skin:DefaultNodeSkin",
+            "posX": 153,
+            "posY": 261
+          }
+        },
         "props": {
+          "skin": "core:skin:DefaultNodeSkin",
           "posX": 153,
           "posY": 261
         },
@@ -400,7 +407,12 @@
             "field_data": {}
           }
         },
-        "settings": {},
+        "settings": {
+          "props": {
+            "posX": 680,
+            "posY": 66
+          }
+        },
         "props": {
           "posX": 680,
           "posY": 66
@@ -631,7 +643,12 @@
             }
           }
         },
-        "settings": {},
+        "settings": {
+          "props": {
+            "posX": 182.30686775096243,
+            "posY": 443.4089598817998
+          }
+        },
         "props": {
           "posX": 182.30686775096243,
           "posY": 443.4089598817998
@@ -926,7 +943,12 @@
             }
           }
         },
-        "settings": {},
+        "settings": {
+          "props": {
+            "posX": 569.240040888401,
+            "posY": 491.4354570524541
+          }
+        },
         "props": {
           "posX": 569.240040888401,
           "posY": 491.4354570524541
@@ -1011,6 +1033,10 @@
           }
         },
         "settings": {
+          "props": {
+            "posX": 1059,
+            "posY": 338
+          },
           "example": {}
         },
         "props": {

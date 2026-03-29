@@ -57,13 +57,14 @@ div                                  ← error container (populated on validatio
 
 `_render_widget_impl` selects the widget based on descriptor metadata:
 
-| Condition            | Widget           |
-| -------------------- | ---------------- |
-| `_widget='color'`    | `ui.color_input` |
-| `choices` set        | `ui.select`      |
-| type is `bool`       | `ui.switch`      |
-| type is `int`/`float`| `NumberDrag`     |
-| otherwise            | `ui.input`       |
+| Condition             | Widget                         |
+| --------------------- | ------------------------------ |
+| `_widget='label'`     | `ui.label` (read-only display) |
+| `_widget='color'`     | `ui.color_input`               |
+| `choices` set         | `ui.select`                    |
+| type is `bool`        | `ui.switch`                    |
+| type is `int`/`float` | `NumberDrag`                   |
+| otherwise             | `ui.input`                     |
 
 `NumberDrag` is the custom Blender-style drag input from `haywire.ui.components.number_drag`. It respects `min`, `max`, `step`, and `precision` from the descriptor.
 

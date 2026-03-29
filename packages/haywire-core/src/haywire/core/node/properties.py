@@ -9,10 +9,10 @@ Access via:  node.props.muted,  node.props.collapsed, ...
 Serialized under the 'props' key in graph JSON.
 """
 
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import NodeSettings, setting
 
 
-class NodeProperties(Settings):
+class NodeProperties(NodeSettings):
     """
     Framework-provided props available on every node instance.
 
@@ -62,7 +62,7 @@ class NodeProperties(Settings):
         label="Skin",
         order=10,
         category="appearance",
-        description="Skin used for this node",
+        mirrors="ui.node.default.skin.studio_skin",
     )
     color_override: str | None = setting(
         None,

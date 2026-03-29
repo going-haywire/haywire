@@ -75,10 +75,14 @@ class setting(FieldDescriptor):
         if self._validator is not None and default is not None and not self.validate(default):
             raise ValueError(f"Default value {default!r} fails validation for setting '{label or '?'}'")
 
-        # mirrors= accepts a class-level descriptor access which returns the
-        # descriptor itself (FieldDescriptor.__get__ with obj=None).
+        # mirrors= accepts either:
+        #   - a class-level descriptor access (FieldDescriptor.__get__ with obj=None)
+        #   - a plain string field key (e.g. "ui.node.skin.studio_skin")
         if mirrors is not None:
-            mirror_key = getattr(mirrors, "_field_key", "")
+            if isinstance(mirrors, str):
+                mirror_key = mirrors
+            else:
+                mirror_key = getattr(mirrors, "_field_key", "")
             if not mirror_key:
                 raise ValueError(
                     "setting(mirrors=...) target has no _field_key set. "

@@ -42,6 +42,27 @@ class ThemeSettingsPanel(BasePanel):
         render_schema(WorkbenchThemeSettings, registry)
         render_schema(NodeThemeSettings, registry)
 
+@panel(
+    editor="properties",
+    scope="app",
+    label="Default Skins",
+    icon="palette",
+    order=20,
+    default_open=False,
+)
+class NodeSkinDefaultPanel(BasePanel):
+    """Node Default Skins."""
+
+    @classmethod
+    def poll(cls, context: "SessionContext") -> bool:
+        return True
+
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
+        from haywire.ui.skin.settings import NodeDefaultSkinSettings
+
+        registry = context.app.library_service.get_settings_registry()
+        render_schema(NodeDefaultSkinSettings, registry)
+
 
 @panel(
     registry_id="settings_editor",
@@ -49,7 +70,7 @@ class ThemeSettingsPanel(BasePanel):
     scope="app",
     label="Editor",
     icon="edit",
-    order=20,
+    order=30,
     default_open=False,
 )
 class EditorSettingsPanel(BasePanel):

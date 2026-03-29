@@ -154,6 +154,12 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
     """Shared widget dispatch. make_setter(coerce) -> on_change handler."""
     str_value = str(value) if value is not None else ""
 
+    if defn._widget == "label":
+        ui.label(str_value).classes("text-xs text-right truncate w-32 shrink-0 hw-text-muted").props(
+            f'data-value="{str_value}"'
+        )
+        return
+
     if defn._widget == "color":
         wrapper = ui.element("div").classes("w-32 shrink-0").props(f'data-value="{str_value}"')
         with wrapper:
