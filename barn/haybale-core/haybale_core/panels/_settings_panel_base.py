@@ -100,15 +100,15 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
                 lbl = ui.label(label_text).classes(_LABEL_CLASSES)
                 if defn._description:
                     lbl.tooltip(defn._description)
+                if is_locally_overridden:
+                    ui.button(icon="restart_alt").props("flat dense size=xs").tooltip(
+                        "Reset to global default"
+                    ).on("click", lambda _o=obj, _n=attr_name: (_o.reset(_n), _build_row()))
                 _render_widget_impl(
                     defn,
                     getattr(obj, attr_name),
                     _make_reactive_setter(obj, attr_name, error_container, on_change_callback=_build_row),
                 )
-                if is_locally_overridden:
-                    ui.button(icon="restart_alt").props("flat dense size=xs").tooltip(
-                        "Reset to global default"
-                    ).on("click", lambda _o=obj, _n=attr_name: (_o.reset(_n), _build_row()))
 
     _build_row()
 
@@ -152,19 +152,21 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
     str_value = str(value) if value is not None else ""
 
     if defn._widget == "color":
-        wrapper = ui.element("div").props(f'data-value="{str_value}"')
+        wrapper = ui.element("div").classes("w-32 shrink-0").props(f'data-value="{str_value}"')
         with wrapper:
 
             def _color_handler(e, _w=wrapper, _s=make_setter(str)):
                 _w.props(f'data-value="{e.value}"')
                 _s(e)
 
-            ui.color_input(value=value or "#ffffff", on_change=_color_handler).classes("flex-1 min-w-0")
+            ui.color_input(value=value or "#ffffff", on_change=_color_handler).classes("w-full").props(
+                "dense hide-bottom-space"
+            )
         return
 
     resolved_choices = defn.choices
     if resolved_choices is not None:
-        wrapper = ui.element("div").props(f'data-value="{str_value}"')
+        wrapper = ui.element("div").classes("w-32 shrink-0").props(f'data-value="{str_value}"')
         with wrapper:
 
             def _select_handler(e, _w=wrapper, _s=make_setter(lambda v: v)):
@@ -175,7 +177,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
                 options=resolved_choices,
                 value=value,
                 on_change=_select_handler,
-            ).classes("flex-1 min-w-0 text-xs").props("dense")
+            ).classes("w-full text-xs").props("dense")
         return
 
     if defn._type is bool:
@@ -215,13 +217,13 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
 
         nd = (
             NumberDrag(value=value if value is not None else 0, on_change=_on_number_change, **kwargs)
-            .classes("flex-1 min-w-0")
+            .classes("w-32 shrink-0")
             .props(f'data-value="{str_value}"')
         )
         nd_ref[0] = nd
         return
 
-    wrapper = ui.element("div").props(f'data-value="{str_value}"')
+    wrapper = ui.element("div").classes("w-32 shrink-0").props(f'data-value="{str_value}"')
     with wrapper:
 
         def _str_handler(e, _w=wrapper, _s=make_setter(str)):
@@ -231,7 +233,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
         ui.input(
             value=str(value) if value is not None else "",
             on_change=_str_handler,
-        ).classes("flex-1 min-w-0 text-xs").props("dense")
+        ).classes("w-full text-xs").props("dense")
 
 
 # ---------------------------------------------------------------------------
