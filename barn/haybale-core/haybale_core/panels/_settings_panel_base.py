@@ -169,7 +169,9 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
 
     resolved_choices = defn.choices
     if resolved_choices is not None:
-        wrapper = ui.element("div").classes("w-32 shrink-0").props(f'data-value="{str_value}"')
+        wrapper = (
+            ui.element("div").classes("w-32 shrink-0 overflow-hidden").props(f'data-value="{str_value}"')
+        )
         with wrapper:
 
             def _select_handler(e, _w=wrapper, _s=make_setter(lambda v: v)):
@@ -182,7 +184,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
             ui.select(
                 options=resolved_choices,
                 value=value if value in options_keys else None,
-            ).classes("w-full text-xs").props("dense").on_value_change(_select_handler)
+            ).classes("w-full text-xs").props("dense hide-bottom-space").on_value_change(_select_handler)
         return
 
     if defn._type is bool:

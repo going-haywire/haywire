@@ -106,7 +106,8 @@ class setting(FieldDescriptor):
             return obj._resolve(self._field_key, self._mirror_key, self._default)
 
         # Simple mode: direct local store lookup by attr name
-        return obj._local_store.get(self._attr_name, self._default)
+        value = obj._local_store.get(self._attr_name, self._default)
+        return value() if callable(value) else value
 
     def __set__(self, obj: Any, value: Any) -> None:
         if self._read_only:

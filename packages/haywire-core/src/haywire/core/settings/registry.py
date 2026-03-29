@@ -833,7 +833,8 @@ class SettingsRegistry(BaseRegistry):
         if global_sv.mode == SettingMode.SET:
             return global_sv.value, "global"
 
-        return defn._default, "default"
+        default = defn._default() if callable(defn._default) else defn._default
+        return default, "default"
 
     # =========================================================================
     # Listeners

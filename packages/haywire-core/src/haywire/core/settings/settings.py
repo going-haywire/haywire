@@ -75,13 +75,17 @@ class Settings:
             if field_key in self._local_store
             else None
         )
+
+        def _resolve_default(d: Any) -> Any:
+            return d() if callable(d) else d
+
         try:
             value, source = registry.resolve(key, local=local_sv)
             if source == "default" and not mirror_key:
-                return default  # no mirror — use local descriptor's default
+                return _resolve_default(default)  # no mirror — use local descriptor's default
             return value
         except KeyError:
-            return self._local_store.get(field_key, default)
+            return _resolve_default(self._local_store.get(field_key, default))
 
     def _subscribe_mirrors(self) -> None:
         """Subscribe cache-invalidation weakrefs for mirrored settings (extended mode)."""

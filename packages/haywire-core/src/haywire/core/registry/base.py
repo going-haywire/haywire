@@ -121,7 +121,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         return registry_key in self._classes
 
     def list_names(self) -> list[str]:
-        """List all registered class names"""
+        """List all classes registry_keys in this registry"""
         return list(self._classes.keys())
 
     def _register(

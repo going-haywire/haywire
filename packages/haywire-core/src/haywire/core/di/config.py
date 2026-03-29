@@ -762,6 +762,11 @@ def get_theme_registry() -> "ThemeRegistry":
     """Get the ThemeRegistry from the global library system."""
     return get_library_system().get_theme_registry()
 
+def get_skin_registry() -> "SkinRegistry":
+    """Get the SkinRegistry from the global library system."""
+    return get_library_system().get_skin_registry()
+
+
 
 def get_settings_registry() -> SettingsRegistry:
     """
