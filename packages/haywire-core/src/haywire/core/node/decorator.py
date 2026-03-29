@@ -43,19 +43,26 @@ def _wire_settings_schemas(node_cls: type, registry_key: str) -> None:
                     descriptor._field_key = f"{ns}.{name}.{field_name}"
             bags[name] = val
 
-    # Conflict check — must not shadow existing non-NodeSettings attributes
+    # Conflict check — must not shadow existing attributes on the MRO
     for accessor_name in bags:
         for klass in node_cls.__mro__:
             if accessor_name not in klass.__dict__:
                 continue
             existing = klass.__dict__[accessor_name]
-            if isinstance(existing, type) and issubclass(existing, NodeSettings):
-                continue  # it IS the NodeSettings being wired — that's fine
-            raise ValueError(
-                f"@node: Settings accessor '{accessor_name}' on {node_cls.__name__} "
-                f"conflicts with {klass.__name__}.{accessor_name} "
-                f"({type(existing).__name__}). Choose a different inner class name."
-            )
+            if not (isinstance(existing, type) and issubclass(existing, NodeSettings)):
+                # Conflicts with a non-NodeSettings attribute (method, property, etc.)
+                raise ValueError(
+                    f"@node: Settings accessor '{accessor_name}' on {node_cls.__name__} "
+                    f"conflicts with {klass.__name__}.{accessor_name} "
+                    f"({type(existing).__name__}). Choose a different inner class name."
+                )
+            if klass is not node_cls and accessor_name in node_cls.__dict__:
+                # Subclass is redefining an inherited NodeSettings bag — not allowed
+                raise ValueError(
+                    f"@node: '{accessor_name}' on {node_cls.__name__} shadows the inherited "
+                    f"settings bag '{accessor_name}' defined on {klass.__name__}. "
+                    f"Choose a different inner class name."
+                )
 
     node_cls._settings_bags = bags
 
