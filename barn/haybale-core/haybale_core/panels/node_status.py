@@ -19,7 +19,7 @@ if False:  # TYPE_CHECKING
     order=30,
     default_open=False,
 )
-class NodeSettingsPanel(BasePanel):
+class NodeStatusPanel(BasePanel):
     """Displays the validation and lifecycle status of the selected node."""
 
     @classmethod

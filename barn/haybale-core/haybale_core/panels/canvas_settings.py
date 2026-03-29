@@ -43,6 +43,27 @@ class CanvasSettingsPanel(BasePanel):
         registry = context.app.library_service.get_settings_registry()
         render_schema(CanvasSettings, registry)
 
+@panel(
+    editor="properties",
+    scope="canvas",
+    label="Node Skins",
+    description="Node dimensions, typography and label visibility.",
+    icon="widgets",
+    order=20,
+    default_open=False,
+)
+class NodeSkinSettingsPanel(BasePanel):
+    """Node dimensions, typography and label visibility."""
+
+    @classmethod
+    def poll(cls, context: "SessionContext") -> bool:
+        return True
+
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
+        from haybale_core.settings.node_skin_settings import NodeSkinSettings
+
+        registry = context.app.library_service.get_settings_registry()
+        render_schema(NodeSkinSettings, registry)
 
 @panel(
     registry_id="settings_edge_ui",

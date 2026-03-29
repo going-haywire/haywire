@@ -25,8 +25,8 @@ if False:  # TYPE_CHECKING
     order=10,
     default_open=True,
 )
-class NodeSettingsBagsPanel(BasePanel):
-    """Discovers and renders all user-defined settings bags on the selected node."""
+class NodeSettingsPanel(BasePanel):
+    """Discovers and renders all user-defined settings on the selected node."""
 
     @classmethod
     def poll(cls, context: "SessionContext") -> bool:
