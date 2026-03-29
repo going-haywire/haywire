@@ -38,6 +38,7 @@ def test_node_fields_present(page: Page, harness):
         "mode",
         "tint",
         # validators
+        "validated_string",
         "clamped_positive",
         "even_int",
     ]

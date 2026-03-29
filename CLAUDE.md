@@ -10,11 +10,6 @@ When working on architecture or design patterns, do NOT assume singleton pattern
 
 When user runs a slash command or skill, execute it immediately without asking clarifying questions. If the skill loads context, treat it as context — don't interpret it as a user request for configuration.
 
-## UI/Frontend
-
-After making CSS/UI layout changes, describe what changed and ask user to verify visually before moving on. CSS fixes often require multiple iterations — prefer minimal targeted changes over broad rewrites.
-
-
 ### Package Layout
 
 - **`packages/haywire-core/`** — publishable core (`import haywire`)
@@ -29,6 +24,7 @@ After making CSS/UI layout changes, describe what changed and ask user to verify
 - **`barn/haybale-*/`** — plugin node libraries
 - **`tests/`** — pytest test suite (100% coverage)
 - **`docs`** — markdown documentation
+
 
 ## Commands
 

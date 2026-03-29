@@ -82,35 +82,38 @@ def render_reactive(obj: "Settings") -> None:
 
 def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDescriptor") -> None:
     """Render a single reactive field row, with optional reset button for mirrored fields."""
-    container = ui.element("div").classes("w-full")
 
-    def _build_row():
-        container.clear()
-        with container:
-            is_mirrored = bool(defn._mirror_key)
-            is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
+    @ui.refreshable
+    def row_content():
+        is_mirrored = bool(defn._mirror_key)
+        is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
 
-            label_text = defn._label or attr_name
+        label_text = defn._label or attr_name
+        if is_locally_overridden:
+            label_text = f"• {label_text}"
+
+        # String fields use ui.input(validation=) for inline error display;
+        # int/float/bool use the manual error_container (NumberDrag/switch have no validation= API).
+        needs_manual_error = defn._type in (int, float) or defn._type is bool
+        error_container = ui.element("div").classes("w-full") if needs_manual_error else None
+
+        with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
+            lbl = ui.label(label_text).classes(_LABEL_CLASSES)
+            if defn._description:
+                lbl.tooltip(defn._description)
             if is_locally_overridden:
-                label_text = f"• {label_text}"
+                ui.button(icon="restart_alt").props("flat dense size=xs").tooltip(
+                    "Reset to global default"
+                ).on("click", lambda _o=obj, _n=attr_name: (_o.reset(_n), row_content.refresh()))
+            _render_widget_impl(
+                defn,
+                getattr(obj, attr_name),
+                _make_reactive_setter(
+                    obj, attr_name, error_container, on_change_callback=row_content.refresh
+                ),
+            )
 
-            error_container = ui.element("div").classes("w-full")
-
-            with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
-                lbl = ui.label(label_text).classes(_LABEL_CLASSES)
-                if defn._description:
-                    lbl.tooltip(defn._description)
-                if is_locally_overridden:
-                    ui.button(icon="restart_alt").props("flat dense size=xs").tooltip(
-                        "Reset to global default"
-                    ).on("click", lambda _o=obj, _n=attr_name: (_o.reset(_n), _build_row()))
-                _render_widget_impl(
-                    defn,
-                    getattr(obj, attr_name),
-                    _make_reactive_setter(obj, attr_name, error_container, on_change_callback=_build_row),
-                )
-
-    _build_row()
+    row_content()
 
 
 def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
@@ -229,9 +232,13 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
             _s(e)
             _w.props(f'data-value="{str(e.value)}"')
 
+        def _str_validation(v, _defn=defn):
+            return None if _defn.validate(str(v) if v is not None else "") else "Invalid value"
+
         ui.input(
             value=str(value) if value is not None else "",
             on_change=_str_handler,
+            validation=_str_validation,
         ).classes("w-full text-xs").props("dense debounce=500")
 
 

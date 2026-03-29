@@ -170,6 +170,13 @@ class SettingsNode(BaseNode):
         )
 
         # --- validator ---
+        validated_string: str = setting(
+            "hello",
+            label="Validated String",
+            description="Must be non-empty",
+            category="validator",
+            validator=lambda v: isinstance(v, str) and len(v) > 0,
+        )
         clamped_positive: float = setting(
             1.0,
             min=0.0,

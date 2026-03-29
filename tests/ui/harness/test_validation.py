@@ -85,3 +85,39 @@ def test_float_exceeding_max_is_clamped(page: Page, harness):
     # NumberDrag clamps at max — data-value should be "1.0", not "2.0"
     val = nd.get_attribute("data-value")
     assert float(val) <= 1.0, f"Expected clamped value ≤ 1.0, got {val!r}"
+
+
+def test_string_field_invalid_shows_quasar_error(page: Page, harness):
+    """Emptying validated_string shows Quasar native inline error (ui.input validation=)."""
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    row = page.locator('[data-field="validated_string"]')
+    edit_input = row.locator("input")
+    edit_input.fill("")
+    edit_input.press("Tab")
+    page.wait_for_timeout(300)
+
+    # Quasar renders two .q-field__messages divs during transitions; target the one with text
+    expect(row.locator(".q-field__messages:has-text('Invalid value')")).to_be_visible()
+
+
+def test_string_field_valid_clears_quasar_error(page: Page, harness):
+    """Fixing validated_string after an error clears the Quasar inline error."""
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    row = page.locator('[data-field="validated_string"]')
+    edit_input = row.locator("input")
+
+    # Produce error
+    edit_input.fill("")
+    edit_input.press("Tab")
+    page.wait_for_timeout(300)
+    expect(row.locator(".q-field__messages:has-text('Invalid value')")).to_be_visible()
+
+    # Fix it
+    edit_input.fill("valid text")
+    edit_input.press("Tab")
+    page.wait_for_timeout(300)
+    expect(row.locator(".q-field__messages:has-text('Invalid value')")).not_to_be_visible()
