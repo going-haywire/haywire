@@ -71,29 +71,44 @@ class setting(FieldDescriptor):
         self._validator = validator
         self._attr_name: str = ""  # set by __set_name__
         self._field_key: str = ""  # set by @node decorator (extended mode)
+        self._mirror_descriptor: "FieldDescriptor | None" = None  # set when mirrors= is a descriptor
 
         if self._validator is not None and default is not None and not self.validate(default):
             raise ValueError(f"Default value {default!r} fails validation for setting '{label or '?'}'")
 
         # mirrors= accepts either:
-        #   - a class-level descriptor access (FieldDescriptor.__get__ with obj=None)
-        #   - a plain string field key (e.g. "ui.node.skin.studio_skin")
+        #   - a class-level descriptor access (FieldDescriptor) — key may not be set yet
+        #   - a plain string field key (e.g. "ui.node.default.skin.studio_skin")
         if mirrors is not None:
             if isinstance(mirrors, str):
-                mirror_key = mirrors
+                self._mirror_key: str = mirrors
             else:
-                mirror_key = getattr(mirrors, "_field_key", "")
-            if not mirror_key:
-                raise ValueError(
-                    "setting(mirrors=...) target has no _field_key set. "
-                    "Ensure the target FrameworkSettings/LibrarySettings class has been "
-                    "registered and its descriptors have _field_key assigned."
-                )
-            self._mirror_key: str = mirror_key
-            if self._type is object:
-                self._type = getattr(mirrors, "_type", object)
+                # Descriptor form: inherit metadata immediately; resolve key lazily via property
+                self._mirror_descriptor = mirrors
+                self._mirror_key = getattr(mirrors, "_field_key", "")
+                if not label:
+                    self._label = getattr(mirrors, "_label", "")
+                if not description:
+                    self._description = getattr(mirrors, "_description", "")
+                if choices is None:
+                    self._choices = getattr(mirrors, "_choices", None)
+                if widget is None:
+                    self._widget = getattr(mirrors, "_widget", None)
+                if self._type is object:
+                    self._type = getattr(mirrors, "_type", object)
         else:
             self._mirror_key = ""
+
+    @property
+    def _mirror_key(self) -> str:
+        """Resolved mirror field key — lazy when mirrors= was given as a descriptor."""
+        if self._mirror_descriptor is not None:
+            return self._mirror_descriptor._field_key
+        return self.__mirror_key
+
+    @_mirror_key.setter
+    def _mirror_key(self, value: str) -> None:
+        self.__mirror_key = value
 
     def validate(self, value: Any) -> bool:
         """Return True if *value* passes the validator (or if no validator is set)."""

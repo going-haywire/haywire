@@ -10,6 +10,7 @@ Serialized under the 'props' key in graph JSON.
 """
 
 from haywire.core.settings import NodeSettings, setting
+from haywire.ui.skin.settings import NodeDefaultSkinSettings
 
 
 class NodeProperties(NodeSettings):
@@ -59,11 +60,11 @@ class NodeProperties(NodeSettings):
 
     skin: str | None = setting(
         None,
-        label="Skin",
         order=10,
         category="appearance",
-        mirrors="ui.node.default.skin.studio_skin",
+        mirrors=NodeDefaultSkinSettings.studio_skin,
     )
+
     color_override: str | None = setting(
         None,
         label="Color Override",

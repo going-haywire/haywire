@@ -3,11 +3,11 @@
 
 from haywire.core.settings.schema import FrameworkSettings
 from haywire.core.settings import setting
-from haywire.core.di.config import get_skin_registry
 
 
 def _node_skin_choices():
     try:
+        from haywire.core.di.config import get_skin_registry
         return {reg_key: reg_key for reg_key in get_skin_registry().list_names()}
     except Exception:
         return {}
@@ -15,6 +15,7 @@ def _node_skin_choices():
 
 def _default_skin():
     try:
+        from haywire.core.di.config import get_skin_registry
         return get_skin_registry().get_default_skin_registry_key()
     except Exception:
         return "default"
