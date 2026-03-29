@@ -159,9 +159,9 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
                 _w.props(f'data-value="{e.value}"')
                 _s(e)
 
-            ui.color_input(value=value or "#ffffff", on_change=_color_handler).classes("w-full").props(
+            ui.color_input(value=value or "#ffffff").classes("w-full").props(
                 "dense hide-bottom-space"
-            )
+            ).on_value_change(_color_handler)
         return
 
     resolved_choices = defn.choices
@@ -176,8 +176,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
             ui.select(
                 options=resolved_choices,
                 value=value,
-                on_change=_select_handler,
-            ).classes("w-full text-xs").props("dense")
+            ).classes("w-full text-xs").props("dense").on_value_change(_select_handler)
         return
 
     if defn._type is bool:
@@ -188,7 +187,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
                 _s(e)
                 _w.props(f'data-value="{str(bool(e.value)).lower()}"')
 
-            ui.switch(value=bool(value), on_change=_bool_handler).props("dense")
+            ui.switch(value=bool(value)).props("dense").on_value_change(_bool_handler)
         return
 
     if defn._type in (int, float):
@@ -233,7 +232,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
         ui.input(
             value=str(value) if value is not None else "",
             on_change=_str_handler,
-        ).classes("w-full text-xs").props("dense")
+        ).classes("w-full text-xs").props("dense debounce=500")
 
 
 # ---------------------------------------------------------------------------
@@ -266,10 +265,17 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None,
                         )
                 return
 
+            # Only rebuild the row when mirror override state changes (avoids destroying
+            # focused input elements on every keystroke for plain value changes)
+            was_locally_set = (
+                obj.is_locally_set(attr_name) if descriptor and descriptor._mirror_key else None
+            )
             setattr(obj, attr_name, coerced)
+            is_locally_set = obj.is_locally_set(attr_name) if descriptor and descriptor._mirror_key else None
+
             if error_container is not None:
                 error_container.clear()
-            if on_change_callback is not None:
+            if on_change_callback is not None and was_locally_set != is_locally_set:
                 ui.timer(0, on_change_callback, once=True)
 
         return handler
