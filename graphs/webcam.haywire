@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-03-13T19:29:42.886846",
+  "modified_at": "2026-03-29T20:24:50.084857",
   "nodes": {
     "begin_play_f465f325": {
       "node_id": "begin_play_f465f325",
@@ -60,22 +60,12 @@
             }
           }
         },
-        "settings": {
-          "_node": {
-            "schema_values": {}
-          }
+        "settings": {},
+        "props": {
+          "posX": 153,
+          "posY": 261
         },
         "store": {},
-        "ui": {
-          "state": {
-            "posX": 153,
-            "posY": 261,
-            "width": 0.0,
-            "height": 0.0,
-            "width_min": -1.0,
-            "height_min": -1.0
-          }
-        },
         "identity": {
           "registry_id": "begin_play",
           "registry_key": "core:node:begin_play",
@@ -410,22 +400,12 @@
             "field_data": {}
           }
         },
-        "settings": {
-          "_node": {
-            "schema_values": {}
-          }
+        "settings": {},
+        "props": {
+          "posX": 680,
+          "posY": 66
         },
         "store": {},
-        "ui": {
-          "state": {
-            "posX": 680,
-            "posY": 66,
-            "width": 0.0,
-            "height": 0.0,
-            "width_min": -1.0,
-            "height_min": -1.0
-          }
-        },
         "identity": {
           "registry_id": "StartWebcamStreamNode",
           "registry_key": "visiongraph:node:StartWebcamStreamNode",
@@ -651,22 +631,12 @@
             }
           }
         },
-        "settings": {
-          "_node": {
-            "schema_values": {}
-          }
+        "settings": {},
+        "props": {
+          "posX": 182.30686775096243,
+          "posY": 443.4089598817998
         },
         "store": {},
-        "ui": {
-          "state": {
-            "posX": 182.30686775096243,
-            "posY": 443.4089598817998,
-            "width": 0.0,
-            "height": 0.0,
-            "width_min": -1.0,
-            "height_min": -1.0
-          }
-        },
         "identity": {
           "registry_id": "WebcamFrameEventNode",
           "registry_key": "visiongraph:node:WebcamFrameEventNode",
@@ -956,22 +926,12 @@
             }
           }
         },
-        "settings": {
-          "_node": {
-            "schema_values": {}
-          }
+        "settings": {},
+        "props": {
+          "posX": 569.240040888401,
+          "posY": 491.4354570524541
         },
         "store": {},
-        "ui": {
-          "state": {
-            "posX": 569.240040888401,
-            "posY": 491.4354570524541,
-            "width": 0.0,
-            "height": 0.0,
-            "width_min": -1.0,
-            "height_min": -1.0
-          }
-        },
         "identity": {
           "registry_id": "WebcamFrameInfoDisplayNode",
           "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
@@ -1013,6 +973,90 @@
           "file_watcher": false,
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph"
+        }
+      }
+    },
+    "SettingsNode_2a9932a9": {
+      "node_id": "SettingsNode_2a9932a9",
+      "registry_key": "testing:node:SettingsNode",
+      "position": [
+        1059,
+        338
+      ],
+      "node_data": {
+        "node_id": "SettingsNode_2a9932a9",
+        "ports": {
+          "settings": {
+            "kwargs": {
+              "registry_id": "string",
+              "registry_key": "core:type:string",
+              "label": "Settings",
+              "description": "Text data",
+              "flow_type": "data",
+              "default": {
+                "value": "default value"
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "id": "settings",
+              "port_type": "outlet",
+              "allow_multiple_links": true
+            },
+            "recipe": {
+              "registry_key": "core:type:string"
+            },
+            "field_data": {
+              "value": "default value"
+            }
+          }
+        },
+        "settings": {
+          "example": {}
+        },
+        "props": {
+          "posX": 1059,
+          "posY": 338
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "SettingsNode",
+          "registry_key": "testing:node:SettingsNode",
+          "label": "Settings Test Node",
+          "description": "Test the Settings for debugging",
+          "deprecation_warning": "",
+          "search_tags": [
+            "settings",
+            "debug",
+            "test",
+            "example"
+          ],
+          "menu": "testing/testbed",
+          "help_md": null,
+          "help_url": "https://haywire.io/docs/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Testing",
+          "version": "1.0.0",
+          "description": "Test library for test support",
+          "url": "https://github.com/maybites/haywire",
+          "help_url": "https://github.com/maybites/haywire",
+          "author": "Haywire Team",
+          "author_url": "https://github.com/maybites/haywire",
+          "id": "testing",
+          "dependencies": [
+            "haybale_core",
+            "haybale_test_a"
+          ],
+          "tags": [
+            "testing",
+            "development",
+            "debug"
+          ],
+          "file_watcher": true,
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
+          "module_name": "haybale_testing"
         }
       }
     }

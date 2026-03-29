@@ -3,10 +3,14 @@
 EdgeInfoPanel — shows source and target information for the selected edge.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 
-if False:  # TYPE_CHECKING
+if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 

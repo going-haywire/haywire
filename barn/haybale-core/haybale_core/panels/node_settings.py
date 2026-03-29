@@ -5,6 +5,10 @@ NodeSettingsBagsPanel — renders all user-defined settings bags on the selected
 Appears in the 'settings' scope (tune icon, order=65), one collapsible section per bag.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from nicegui import ui
 
 from haywire.ui.panel.decorator import panel
@@ -12,7 +16,7 @@ from haywire.ui.panel.base import BasePanel, PanelLayout
 
 from ._settings_panel_base import render_reactive
 
-if False:  # TYPE_CHECKING
+if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 

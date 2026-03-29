@@ -470,7 +470,7 @@ class ProjectLogEditor(BaseEditor):
         self._log_path: Path | None = None
         self._tail_task: asyncio.Task | None = None
 
-    def render(self, container, context: 'SessionContext') -> None:
+    def render(self, container, context: "SessionContext") -> None:
         app = context.metadata.get('project_state')
         if app and hasattr(app, 'workspace_root'):
             self._log_path = Path(app.workspace_root) / 'haywire.log'
@@ -517,7 +517,7 @@ class ProjectLogEditor(BaseEditor):
                 pass
             await asyncio.sleep(1.0)
 
-    def on_context_changed(self, event: 'ContextChangedEvent', context: 'SessionContext') -> None:
+    def on_context_changed(self, event: 'ContextChangedEvent', context: "SessionContext") -> None:
         pass  # Log viewer is context-independent
 
     def cleanup(self) -> None:

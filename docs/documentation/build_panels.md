@@ -673,7 +673,7 @@ class NodeMetricsPanel(BasePanel):
     """Displays execution stats stored on the node's execution context."""
 
     @classmethod
-    def poll(cls, context: 'SessionContext') -> bool:
+    def poll(cls, context: "SessionContext") -> bool:
         """Only show when a node is selected and has execution metrics."""
         node = context.active_node
         if node is None:
@@ -682,7 +682,7 @@ class NodeMetricsPanel(BasePanel):
         metrics = getattr(node, 'execution_metrics', None)
         return metrics is not None
 
-    def draw(self, context: 'SessionContext', layout: PanelLayout) -> None:
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         node    = context.active_node
         metrics = getattr(node, 'execution_metrics', {})
 
