@@ -26,6 +26,10 @@ class LibraryFileHandler(FileSystemEventHandler):
         self.pending_events: Dict[Tuple[str, int], FileChangeEvent] = {}
         # (file_path, registry_id) -> timer
         self.debounce_timers: Dict[Tuple[str, int], threading.Timer] = {}
+        # file_path -> expiry timestamp: suppress DELETED events for files recently
+        # promoted via atomic write (tmp → py), since the OS may deliver a spurious
+        # DELETE for the destination file after the move event.
+        self._atomic_write_suppress: Dict[str, float] = {}
         self._lock = threading.Lock()
 
     def add_folder_mapping(
@@ -72,31 +76,46 @@ class LibraryFileHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         if not event.is_directory and event.src_path.endswith(".py"):
+            with self._lock:
+                expiry = self._atomic_write_suppress.get(event.src_path, 0)
+                if time.time() < expiry:
+                    logging.info(
+                        f"FileWatcher: suppressing spurious DELETE for atomic-written file: {event.src_path}"
+                    )
+                    return
             self._handle_file_change(event.src_path, FileEventType.DELETED)
 
     def on_moved(self, event):
         """
         Handle file moves within the watched directory.
 
-        A move is treated as a deletion of the source file followed by
-        creation of the destination file. This ensures the registry
-        properly updates module paths and class registrations.
+        A true rename (foo.py → bar.py) is treated as DELETED + CREATED.
+        An atomic write (foo.py.tmp → foo.py) is treated as MODIFIED — the
+        source was a temp file, not a tracked Python module. This also
+        cancels any pending DELETED event for the destination file that may
+        have been queued when the editor truncated/replaced the original.
 
         Args:
             event: FileMovedEvent with src_path and dest_path
         """
         if not event.is_directory:
-            # Log the move operation
-            if event.src_path.endswith(".py") or event.dest_path.endswith(".py"):
+            src_is_py = event.src_path.endswith(".py")
+            dest_is_py = event.dest_path.endswith(".py")
+
+            if src_is_py or dest_is_py:
                 logging.info(f"File moved: {event.src_path} → {event.dest_path}")
 
-            # Handle source file deletion (if it's a Python file)
-            if event.src_path.endswith(".py"):
+            if src_is_py and dest_is_py:
+                # True rename: foo.py → bar.py
                 self._handle_file_change(event.src_path, FileEventType.DELETED)
-
-            # Handle destination file creation (if it's a Python file)
-            if event.dest_path.endswith(".py"):
                 self._handle_file_change(event.dest_path, FileEventType.CREATED)
+            elif dest_is_py and not src_is_py:
+                # Atomic write: tmp file promoted to .py — treat as modification.
+                # Suppress any spurious DELETE that the OS may deliver for dest_path
+                # after this move event (observed on macOS/kqueue).
+                with self._lock:
+                    self._atomic_write_suppress[event.dest_path] = time.time() + 2.0
+                self._handle_file_change(event.dest_path, FileEventType.MODIFIED)
 
     def _handle_file_change(self, file_path: str, event_type: FileEventType):
         """
@@ -159,6 +178,7 @@ class LibraryFileHandler(FileSystemEventHandler):
                 timer.cancel()
             self.debounce_timers.clear()
             self.pending_events.clear()
+            self._atomic_write_suppress.clear()
 
 
 class FileWatcher:

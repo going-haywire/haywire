@@ -13,7 +13,6 @@ class NodeSkinSettings(LibrarySettings):
     All fields are wired to actual rendering logic.
     """
 
-
     # Visibility
     show_labels: bool = setting(
         True,
@@ -84,4 +83,25 @@ class NodeSkinSettings(LibrarySettings):
         order=80,
         min=4,
         max=32,
+    )
+    # --- debug ---
+    show_node_ids: bool = setting(
+        False, 
+        label="Show Node IDs", 
+        description="Display internal node IDs", 
+        category="debug", order=21
+    )
+    show_port_ids: bool = setting(
+        False, 
+        label="Show Port IDs", 
+        description="Display internal port IDs", 
+        category="debug", 
+        order=22
+    )
+    inspect_on_click: bool = setting(
+        False,
+        label="Inspect on Click",
+        description="Show data inspector when clicking ports",
+        category="debug",
+        order=41,
     )

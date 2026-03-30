@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional, List
 from injector import Injector, Module, provider, singleton
 
+from ..debug.configurator import LoggingConfigurator
 from ...ui.skin.registry import SkinRegistry
 from ...ui.widget.registry import WidgetRegistry
 from ...ui.skin.factory import SkinFactory
@@ -262,6 +263,7 @@ class LibrarySystemService:
         # NodeFactory by NodeWrapper, AdapterFactory by EdgeWrapper. All four must be
         # eagerly resolved here so their providers set the context vars before any
         # graph/node construction can happen.
+        self._logging_configurator = LoggingConfigurator()  # applies DebugSettings log levels
         library_registry = self.injector.get(LibraryRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
         settings_registry = self.injector.get(SettingsRegistry)
@@ -762,10 +764,10 @@ def get_theme_registry() -> "ThemeRegistry":
     """Get the ThemeRegistry from the global library system."""
     return get_library_system().get_theme_registry()
 
+
 def get_skin_registry() -> "SkinRegistry":
     """Get the SkinRegistry from the global library system."""
     return get_library_system().get_skin_registry()
-
 
 
 def get_settings_registry() -> SettingsRegistry:

@@ -1,5 +1,5 @@
+[debug]
+log_level = "DEBUG"
+
 [workbench]
 theme = "studio:theme:workbench:haywire-dark"
-
-[ui.node.default.skin]
-studio_skin = "core:skin:DefaultNodeSkin"

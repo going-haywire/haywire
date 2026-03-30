@@ -35,7 +35,7 @@ class DebugSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.prefs.debug import DebugSettings
+        from haywire.core.debug.debug_settings import DebugSettings
 
         registry = context.app.library_service.get_settings_registry()
         render_schema(DebugSettings, registry)
