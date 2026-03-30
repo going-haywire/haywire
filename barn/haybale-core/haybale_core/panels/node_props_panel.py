@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     scope="node",
     label="Node Properties",
     icon="info",
+    default_open=False,
     order=10,
 )
 class NodePropertiesPanel(BasePanel):
@@ -68,7 +69,7 @@ class NodeInstanceSettingsPanel(BasePanel):
         )
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        node = context.active_node
-        if node is None:
+        node_wrapper = context.active_node
+        if node_wrapper is None:
             return
-        render_settings(node.node.props)
+        render_settings(node_wrapper.node.props)

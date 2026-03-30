@@ -14,9 +14,9 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
     # Logging — global baseline
     log_level: str = field(
         "INFO",
-        label="Log Level",
+        label="Global Log Level",
         description="Minimum log level for the haywire root logger",
-        category="debug",
+        category="log_level",
         order=10,
         choices=_LEVEL_CHOICES,
     )
@@ -26,7 +26,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         "",
         label="Execution",
         description="Log level for haywire.core.execution ('' = inherit)",
-        category="debug",
+        category="log_level",
         order=20,
         choices=_GROUP_CHOICES,
     )
@@ -34,7 +34,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         "",
         label="Assembly",
         description="Log level for haywire.core.assembly ('' = inherit)",
-        category="debug",
+        category="log_level",
         order=30,
         choices=_GROUP_CHOICES,
     )
@@ -42,7 +42,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         "",
         label="Graph",
         description="Log level for haywire.core.graph ('' = inherit)",
-        category="debug",
+        category="log_level",
         order=40,
         choices=_GROUP_CHOICES,
     )
@@ -50,7 +50,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         "",
         label="Node",
         description="Log level for haywire.core.node ('' = inherit)",
-        category="debug",
+        category="log_level",
         order=50,
         choices=_GROUP_CHOICES,
     )
@@ -58,7 +58,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         "",
         label="Settings",
         description="Log level for haywire.core.settings ('' = inherit)",
-        category="debug",
+        category="log_level",
         order=60,
         choices=_GROUP_CHOICES,
     )
@@ -66,7 +66,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         "",
         label="Library",
         description="Log level for haywire.core.library ('' = inherit)",
-        category="debug",
+        category="log_level",
         order=70,
         choices=_GROUP_CHOICES,
     )
@@ -74,7 +74,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         "",
         label="Registry",
         description="Log level for haywire.core.registry ('' = inherit)",
-        category="debug",
+        category="log_level",
         order=80,
         choices=_GROUP_CHOICES,
     )
@@ -82,7 +82,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         "",
         label="UI",
         description="Log level for haywire.ui ('' = inherit)",
-        category="debug",
+        category="log_level",
         order=90,
         choices=_GROUP_CHOICES,
     )
@@ -91,6 +91,6 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         False,
         label="Log to File",
         description="Write logs to file in addition to console",
-        category="debug",
+        category="log_level",
         order=100,
     )

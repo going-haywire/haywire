@@ -3,7 +3,7 @@
 
 import logging
 
-from .keys import LIBRARY_LOG_PREFIX, lib_id_from_key
+from .keys import LIBRARY_LOG_METATADATA_KEY, LIBRARY_LOG_PREFIX, lib_id_from_key
 from .debug_settings import DebugSettings
 from ..settings.registry import SettingsRegistry
 from ..settings.value import FieldValue
@@ -71,7 +71,7 @@ class LoggingConfigurator:
         lib_id = lib_id_from_key(key)
         if lib_id and lib_id not in self._library_namespaces:
             defn = registry.get_definition(key)
-            module_name = defn._metadata.get("module_name", lib_id) if defn else lib_id
+            module_name = defn._metadata.get(LIBRARY_LOG_METATADATA_KEY, lib_id) if defn else lib_id
             self._library_namespaces[lib_id] = module_name
 
     def _apply_all(self) -> None:

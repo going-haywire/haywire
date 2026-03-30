@@ -44,8 +44,6 @@ class NodeSettingsPanel(BasePanel):
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         node = context.active_node
-        if node is None or not hasattr(node, "node") or node.node is None:
-            return
 
         bags = node.node.list_setting_bags()
         if not bags:
@@ -53,6 +51,8 @@ class NodeSettingsPanel(BasePanel):
             return
 
         for bag_name, bag in bags.items():
+            if bag_name == "props":
+                continue  # skip props bag, rendered separately in NodePropertiesPanel
             header = bag_name.replace("_", " ").title()
             with (
                 ui.expansion(header, value=True)

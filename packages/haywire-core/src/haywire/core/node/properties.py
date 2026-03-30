@@ -60,7 +60,7 @@ class NodeProperties(NodeSettings):
     # -----------------------------------------------------------------
 
     skin: str | None = shadow(
-        mirrors=NodeDefaultSkinSettings.studio_skin,
+        src=NodeDefaultSkinSettings.studio_skin,
         category="appearance",
         order=10,
     )

@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     scope="node",
     label="Ports",
     icon="device_hub",
+    default_open=False,
     order=20,
 )
 class NodePortsPanel(BasePanel):

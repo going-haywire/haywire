@@ -15,6 +15,10 @@ from enum import Enum
 if TYPE_CHECKING:
     from haywire.ui.session import Session
     from haywire.ui.protocols import IProjectState
+    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.edge.edge_wrapper import EdgeWrapper
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.library.base import BaseLibrary
 
 
 class InteractionMode(Enum):
@@ -58,15 +62,15 @@ class SessionContext:
     session_id: str
     app: IProjectState  # host application (HaywireApp)
     session: Session = field(init=False)  # set by Session.__init__ immediately after construction
-    active_graph: Optional[Any] = None  # HaywireGraph
-    active_node: Optional[Any] = None  # NodeWrapper
-    active_edge: Optional[Any] = None  # Edge
+    active_graph: Optional["BaseGraph"] = None  # BaseGraph
+    active_node: Optional["NodeWrapper"] = None  # NodeWrapper
+    active_edge: Optional["EdgeWrapper"] = None  # Edge
     selected_nodes: Set[str] = field(default_factory=set)
     selected_edges: Set[str] = field(default_factory=set)
     interaction_mode: InteractionMode = InteractionMode.IDLE
     active_editor: Optional[str] = None  # editor registry key
     workspace_name: str = "default"
-    active_library: Optional[Any] = None  # InstalledLibrary | MarketplaceEntry
+    active_library: Optional["BaseLibrary"] = None  # InstalledLibrary | MarketplaceEntry
     active_component: Optional[Any] = None  # node/widget/renderer class or metadata
     active_file: Optional[Any] = None  # Path to the currently viewed file
     active_graph_path: Optional[Any] = None  # Path to the currently active .haywire file

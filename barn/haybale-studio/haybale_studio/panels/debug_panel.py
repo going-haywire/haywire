@@ -25,10 +25,10 @@ if TYPE_CHECKING:
     registry_id="settings_debug",
     editor="properties",
     scope="debug",
-    label="Debug",
+    label="Log Levels",
     icon="bug_report",
     order=10,
-    default_open=True,
+    default_open=False,
 )
 class DebugSettingsPanel(BasePanel):
     """Logging, execution visibility, visual debugging and data inspection."""

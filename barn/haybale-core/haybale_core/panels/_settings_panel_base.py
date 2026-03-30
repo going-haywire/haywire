@@ -130,6 +130,7 @@ def _render_category_group(category: str) -> ui.expansion:
         )
     )
 
+
 def _render_field_row(label_text: str, description: str, defn, value, make_setter, attr_name: str = ""):
     """Render a single label + widget row."""
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
@@ -185,13 +186,13 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
     str_value = str(value) if value is not None else ""
 
     if defn._widget == "label":
-        ui.label(str_value).classes("text-xs text-right truncate w-32 shrink-0 hw-text-muted").props(
+        ui.label(str_value).classes("text-xs text-right truncate w-1/2 shrink-0 hw-text-muted").props(
             f'data-value="{str_value}"'
         )
         return
 
     if defn._widget == "color":
-        wrapper = ui.element("div").classes("w-32 shrink-0").props(f'data-value="{str_value}"')
+        wrapper = ui.element("div").classes("w-1/2 shrink-0").props(f'data-value="{str_value}"')
         with wrapper:
 
             def _color_handler(e, _w=wrapper, _s=make_setter(str)):
@@ -206,7 +207,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
     resolved_choices = defn.choices
     if resolved_choices is not None:
         wrapper = (
-            ui.element("div").classes("w-32 shrink-0 overflow-hidden").props(f'data-value="{str_value}"')
+            ui.element("div").classes("w-1/2 shrink-0 overflow-hidden").props(f'data-value="{str_value}"')
         )
         with wrapper:
 
@@ -260,13 +261,13 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
 
         nd = (
             NumberDrag(value=value if value is not None else 0, on_change=_on_number_change, **kwargs)
-            .classes("w-32 shrink-0")
+            .classes("w-1/2 shrink-0")
             .props(f'data-value="{str_value}"')
         )
         nd_ref[0] = nd
         return
 
-    wrapper = ui.element("div").classes("w-32 shrink-0").props(f'data-value="{str_value}"')
+    wrapper = ui.element("div").classes("w-1/2 shrink-0").props(f'data-value="{str_value}"')
     with wrapper:
 
         def _str_handler(e, _w=wrapper, _s=make_setter(str)):

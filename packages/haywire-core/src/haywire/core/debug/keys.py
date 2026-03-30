@@ -6,8 +6,10 @@ the debug.library.* key structure is never duplicated as bare strings.
 """
 
 DEBUG_NAMESPACE = "debug"
+LIBRARY_LOG_CATEGORY = "library.log_level"
 LIBRARY_LOG_PREFIX = "debug.library"
 LIBRARY_LOG_LEVEL_SUFFIX = "log_level"
+LIBRARY_LOG_METATADATA_KEY = "module_name"
 
 
 def library_log_key(lib_id: str) -> str:
