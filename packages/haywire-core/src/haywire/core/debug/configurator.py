@@ -31,10 +31,10 @@ class LoggingConfigurator:
     immediately and subscribes for future changes.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, debug_settings: "DebugSettings | None" = None) -> None:
         from .debug_settings import DebugSettings  # noqa: PLC0415
 
-        self._settings: DebugSettings = DebugSettings()
+        self._settings: DebugSettings = debug_settings if debug_settings is not None else DebugSettings()
         self._apply_all()
         self._settings.subscribe(self._on_setting_change)
 

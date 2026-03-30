@@ -11,6 +11,8 @@ from pathlib import Path
 import sys
 import logging
 
+logger = logging.getLogger(__name__)
+
 from ..errors import HaywireException
 from ..library.identity import LibraryIdentity
 from .dependency_graph import DependencyGraph
@@ -89,9 +91,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         self._dependency_module_errors: Dict[str, HaywireException] = {}
         """Track errors during dependency module reloads and store them by registry_key"""
 
-        # Setup logging
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
 
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:
@@ -217,7 +217,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             exclude_patterns (Optional[list[str]]): List of filename patterns to exclude
         """
         if folder_path in self._folder_to_library:
-            logging.warning(
+            logger.warning(
                 f"Library '{library_identity.label}': Folder "
                 f"'{folder_path[len(library_identity.folder_path) :]}' is already registered "
                 f"in registry '{self.__class__.__name__}'. Skipping."
@@ -227,7 +227,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         self._folder_to_library[folder_path] = library_identity
 
         rel_path = folder_path[len(library_identity.folder_path) :]
-        logging.info(
+        logger.info(
             f"Library '{library_identity.label}': START Scanning folder "
             f"'{rel_path}' for files to register classes..."
         )
@@ -255,13 +255,13 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         ),
                     ).enrich(module_name=module_name, library_identity=library_identity).log()
                 except Exception:
-                    logging.error(
+                    logger.error(
                         f"Library '{library_identity.label}': Failed notifying registry : {e}", exc_info=True
                     )
 
         self._notify_batch_event_subscribers()
 
-        logging.info(
+        logger.info(
             f"Library '{library_identity.label}': ... Scanning folder -> DONE. "
             f"{len(file_paths)} files processed."
         )
@@ -305,7 +305,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         ),
                     ).enrich(module_name=module_name, library_identity=library_identity).log(self.logger)
                 except Exception:
-                    logging.error(f"Library '{library_identity.label}': Failed notifying registry : {e}")
+                    logger.error(f"Library '{library_identity.label}': Failed notifying registry : {e}")
 
         self._notify_batch_event_subscribers()
 
@@ -326,7 +326,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
 
         try:
             # Skip validation for deleted files
-            logging.info(
+            logger.info(
                 f"Library '{event.library_identity.label}': "
                 f"Registry '{self.__class__.__name__}': "
                 f"DETECTED Hot Reloading event: file-'{event.event_type.value}' "
@@ -652,7 +652,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 for old_cls_name, new_cls in classes_to_reload:
                     self._unregister_class(old_cls_name)
                     new_key = self._register_class(new_cls, library_identity)
-                    logging.info(
+                    logger.info(
                         f"Library '{library_identity.label}': "
                         f"...Re-loaded and re-registered "
                         f"{new_cls.class_identity.registry_key} from {module_name}"
@@ -695,7 +695,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         self._queue_lifecycle_event(event)
 
         except Exception as e:
-            logging.error(f"Library '{library_identity.label}': Reload failed for '{module_name}': {e}")
+            logger.error(f"Library '{library_identity.label}': Reload failed for '{module_name}': {e}")
             self._rollback_snapshot(module_name, snapshot, library_identity)
             raise
 
@@ -842,7 +842,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """
         if registry not in self._registry_subscribers:
             self._registry_subscribers.append(registry)
-            self.logger.debug(f"{self.__class__.__name__}: Registered registry subscriber: {registry.__class__.__name__}")
+            self.logger.debug(
+                f"{self.__class__.__name__}: Registered registry subscriber: {registry.__class__.__name__}"
+            )
 
     def remove_registry_subscriber(self, registry: HotReloadRegistry) -> None:
         """

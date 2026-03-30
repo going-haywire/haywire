@@ -410,7 +410,7 @@ class HaywireApp:
 
 def run_app():
     """Launch the Haywire application."""
-    logging.getLogger("haywire.ui.editor.graph_canvas_manager").setLevel(logging.DEBUG)
+    # logging.getLogger("haywire.ui.editor.graph_canvas_manager").setLevel(logging.DEBUG)  # use DebugSettings.log_ui instead
     app_instance = HaywireApp()
     app.on_shutdown(app_instance.cleanup)
     app_instance.run()

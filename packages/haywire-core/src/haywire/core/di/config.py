@@ -263,10 +263,14 @@ class LibrarySystemService:
         # NodeFactory by NodeWrapper, AdapterFactory by EdgeWrapper. All four must be
         # eagerly resolved here so their providers set the context vars before any
         # graph/node construction can happen.
-        self._logging_configurator = LoggingConfigurator()  # applies DebugSettings log levels
+        settings_registry = self.injector.get(
+            SettingsRegistry
+        )  # must be first — wires FrameworkSettings._registry and loads TOML
+        self._logging_configurator = (
+            LoggingConfigurator()
+        )  # applies DebugSettings log levels (reads TOML values)
         library_registry = self.injector.get(LibraryRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
-        settings_registry = self.injector.get(SettingsRegistry)
         type_registry = self.injector.get(TypeRegistry)
         adapter_registry = self.injector.get(AdapterRegistry)
         widget_registry = self.injector.get(WidgetRegistry)
@@ -371,6 +375,30 @@ class LibrarySystemService:
         print("\n📊 Library Discovery Results:")
         print("-" * 70)
 
+        # Test entry point discovery directly
+        print("\n🔍 Entry Point Discovery:")
+        print("-" * 70)
+
+        from haywire.core.library.discovery import LibraryDiscovery
+
+        discovered = LibraryDiscovery.discover_installed_libraries()
+
+        if discovered:
+            print(f"\n✅ Found {len(discovered)} libraries via entry points:\n")
+
+            for lib_info in discovered:
+                print(f"  • {lib_info.identity.label} ({lib_info.identity.id})")
+                print(f"      Type: {lib_info.install_type.value}")
+                print(f"      Path: {lib_info.library_path}")
+                if lib_info.entry_point_name:
+                    print(f"      Entry Point: {lib_info.entry_point_name}")
+                print()
+        else:
+            print("ℹ️  No libraries found via entry points")
+            print("   (This is normal if libraries aren't pip installed)")
+
+        print("-" * 70)
+
         # List all loaded libraries
         loaded_libraries = library_registry.list_names()
 
@@ -414,29 +442,6 @@ class LibrarySystemService:
 
         print("-" * 70)
 
-        # Test entry point discovery directly
-        print("\n🔍 Entry Point Discovery:")
-        print("-" * 70)
-
-        from haywire.core.library.discovery import LibraryDiscovery
-
-        discovered = LibraryDiscovery.discover_installed_libraries()
-
-        if discovered:
-            print(f"\n✅ Found {len(discovered)} libraries via entry points:\n")
-
-            for lib_info in discovered:
-                print(f"  • {lib_info.identity.label} ({lib_info.identity.id})")
-                print(f"      Type: {lib_info.install_type.value}")
-                print(f"      Path: {lib_info.library_path}")
-                if lib_info.entry_point_name:
-                    print(f"      Entry Point: {lib_info.entry_point_name}")
-                print()
-        else:
-            print("ℹ️  No libraries found via entry points")
-            print("   (This is normal if libraries aren't pip installed)")
-
-        print("-" * 70)
 
     def print_registry_status(self) -> None:
         """Print the status of all registries in a beautiful format."""
@@ -450,8 +455,6 @@ class LibrarySystemService:
         theme_registry = self.injector.get(ThemeRegistry)
         self.injector.get(SettingsRegistry)
         library_registry = self.injector.get(LibraryRegistry)
-
-        print("\n=== Registry Status ===")
 
         # Print registered libraries
         print("\n📚 Registered Libraries:")

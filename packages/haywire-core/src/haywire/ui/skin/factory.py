@@ -68,9 +68,7 @@ class SkinFactory:
         # this is used to help cleaning up the _skin_regkey_to_node_id mapping
         self._nodeid_to_skin_regkey: dict[str, str] = {}
 
-        # Setup logging
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
 
     # this method is called by UINode to render the node
     def render(

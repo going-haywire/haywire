@@ -1,6 +1,8 @@
 import logging
 import time
 import threading
+
+logger = logging.getLogger(__name__)
 from typing import Dict, Set, Tuple, List, Optional
 
 from watchdog.observers import Observer
@@ -79,7 +81,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             with self._lock:
                 expiry = self._atomic_write_suppress.get(event.src_path, 0)
                 if time.time() < expiry:
-                    logging.info(
+                    logger.info(
                         f"FileWatcher: suppressing spurious DELETE for atomic-written file: {event.src_path}"
                     )
                     return
@@ -103,7 +105,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             dest_is_py = event.dest_path.endswith(".py")
 
             if src_is_py or dest_is_py:
-                logging.info(f"File moved: {event.src_path} → {event.dest_path}")
+                logger.info(f"File moved: {event.src_path} → {event.dest_path}")
 
             if src_is_py and dest_is_py:
                 # True rename: foo.py → bar.py
@@ -224,7 +226,7 @@ class FileWatcher:
         self.handler.add_folder_mapping(folder_path, library_identity, registry, debounce_delay)
 
         rel_path = folder_path[len(self.watch_path) :] or "/"
-        logging.info(
+        logger.info(
             f"Library '{library_identity.label}': Registered folder '{rel_path}' for hot reload events."
         )
 
@@ -239,7 +241,7 @@ class FileWatcher:
         self.handler.remove_folder_mapping(folder_path)
 
         rel_path = folder_path[len(self.watch_path) :] or "/"
-        logging.info(
+        logger.info(
             f"Library '{library_identity.label}': Unregistered folder '{rel_path}' from hot reload events."
         )
 
@@ -251,7 +253,7 @@ class FileWatcher:
                 self.observer.schedule(self.handler, self.watch_path, recursive=True)
                 self.observer.start()
                 self._is_started = True
-                logging.info(f"FileWatcher: Started watching {self.watch_path}")
+                logger.info(f"FileWatcher: Started watching {self.watch_path}")
 
     def stop(self):
         """Stop the observer and clean up"""
@@ -262,7 +264,7 @@ class FileWatcher:
                 self.observer = None
                 self._is_started = False
                 self.handler.cleanup()
-                logging.info(f"FileWatcher: Stopped watching {self.watch_path}")
+                logger.info(f"FileWatcher: Stopped watching {self.watch_path}")
 
     def is_watching(self, folder_path: str) -> bool:
         """Check if a folder is currently registered for routing"""

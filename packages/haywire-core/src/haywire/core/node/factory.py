@@ -9,6 +9,8 @@ lifecycle or undo operations - those are handled by Graph and Actions respective
 import logging
 from typing import Dict, List, Optional, Any
 
+logger = logging.getLogger(__name__)
+
 from haywire.core.errors.haywire_exception import HaywireException
 from . import node, BaseNode, NodeRegistry
 
@@ -140,7 +142,7 @@ class NodeFactory:
 
         # Forward to all individual event listeners
         for event in batch:
-            logging.info(
+            logger.info(
                 f"NodeFactory: Node {event.event_type.value} - {event.registry_key} "
                 f"from library '{event.library_identity.label}'"
             )

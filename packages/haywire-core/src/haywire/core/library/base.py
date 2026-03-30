@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import logging
 from typing import Dict, List, Tuple, Type, Optional
 
+logger = logging.getLogger(__name__)
+
 from haywire.core.library.file_watcher import FileWatcher
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
@@ -49,7 +51,7 @@ class BaseLibrary(ABC):
             self._attach_to_registries()
             if self.enforce_file_watching or self.identity.file_watcher:
                 self.file_watcher.start()
-            logging.info(f"Library '{self.identity.label}': Enabled and components registered")
+            logger.info(f"Library '{self.identity.label}': Enabled and components registered")
 
     def disable(self):
         """Disable the library and remove its components from registries"""
@@ -58,7 +60,7 @@ class BaseLibrary(ABC):
             self._detach_from_registries()
             self.on_library_disable()
             self.file_watcher.stop()
-            logging.info(f"Library '{self.identity.label}': Disabled and components unregistered")
+            logger.info(f"Library '{self.identity.label}': Disabled and components unregistered")
 
     @property
     def identity(self) -> LibraryIdentity:
