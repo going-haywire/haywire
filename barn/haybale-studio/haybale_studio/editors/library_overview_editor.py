@@ -36,7 +36,7 @@ from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 from haywire_studio.library_manager import InstalledLibrary, LibraryManager, MarketplaceEntry
 
 from haywire.ui.widget.registry import WidgetRegistry
-from haywire.ui.workspace.workspace_state import _K_COMPONENT_DETAIL
+from haywire_studio.workspace.defaults import _K_COMPONENT_DETAIL
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
