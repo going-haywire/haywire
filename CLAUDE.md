@@ -47,6 +47,10 @@ uv run ruff format .                         # format
 uv run mypy packages/haywire-core/src/       # type checking
 ```
 
+## Documentation
+
+When looking up how a system works (API, parameters, behaviour), check `docs/` first before reading source code.
+
 ## Testing
 
 - Always run the full test suite (`pytest` or equivalent) after any refactor or multi-file change and confirm all tests pass before presenting work as complete.
