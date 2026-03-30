@@ -49,17 +49,16 @@ class TestWorkspaceStateSerialization:
         """Serializing then deserializing WorkspaceState fields preserves data."""
         ws = WorkspaceState(name="My WS")
         d = asdict(ws)
-        # Reconstruct name only (partial roundtrip — nested dataclasses need manual reconstruction)
         assert d["name"] == "My WS"
-        assert d["left"]["editor_key"] == "studio:editor:library_browser"
-        assert d["right"]["editor_key"] == "studio:editor:properties"
+        assert d["left"]["editor_key"] is None  # no studio strings in core
+        assert d["right"]["editor_key"] is None
 
     def test_default_workspace_state(self):
         ws = WorkspaceState()
         assert ws.name == "default"
-        assert ws.left.editor_key == "studio:editor:library_browser"
-        assert ws.right.editor_key == "studio:editor:properties"
-        assert ws.middle.tabs[0].editor_key == "studio:editor:graph_editor"
+        assert ws.left.editor_key is None  # generic — no studio strings
+        assert ws.right.editor_key is None
+        assert ws.middle.tabs[0].editor_key == "graph_editor"  # sensible generic default
 
 
 # ---------------------------------------------------------------------------
@@ -69,7 +68,9 @@ class TestWorkspaceStateSerialization:
 
 class TestWorkspaceManager:
     def setup_method(self):
-        self.manager = WorkspaceManager(project_path=None)
+        from haywire_studio.workspace.defaults import DEFAULT_PRESETS
+
+        self.manager = WorkspaceManager(initial_presets=DEFAULT_PRESETS, project_path=None)
 
     def test_has_default_presets(self):
         names = self.manager.get_preset_names()
@@ -116,9 +117,11 @@ class TestWorkspaceManager:
         assert "Debugging" in names
 
     def test_development_preset_has_bottom_visible(self):
+        from haywire_studio.workspace.defaults import _K_CONSOLE
+
         dev = self.manager.presets["Development"]
         assert dev.middle.bottom_visible is True
-        assert dev.middle.bottom_editor_key == "studio:editor:console"
+        assert dev.middle.bottom_editor_key == _K_CONSOLE
 
     def test_debugging_preset_left_collapsed(self):
         dbg = self.manager.presets["Debugging"]

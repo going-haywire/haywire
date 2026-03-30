@@ -14,15 +14,10 @@ from haywire.ui.workspace.workspace_state import (
     AreaState,
     MiddleAreaState,
     TabState,
-    _K_GRAPH_EDITOR,
-    _K_LIBRARY_BROWSER,
-    _K_LIBRARY_DETAIL,
-    _K_PROPERTIES,
-    _K_CONSOLE,
-    _K_FILE_VIEWER,
 )
 
 logger = logging.getLogger(__name__)
+
 
 class WorkspaceManager:
     """
@@ -41,65 +36,14 @@ class WorkspaceManager:
         presets: Dict of saved workspace presets by name.
     """
 
-    DEFAULT_PRESETS: Dict[str, WorkspaceState] = {
-        "Graph Editing": WorkspaceState(
-            name="Graph Editing",
-            left_bar_active=_K_LIBRARY_BROWSER,
-            left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=True, size=250),
-            middle=MiddleAreaState(
-                tabs=[
-                    TabState(editor_key=_K_GRAPH_EDITOR, label="Graph"),
-                    TabState(editor_key=_K_LIBRARY_DETAIL, label="Library"),
-                    TabState(editor_key=_K_FILE_VIEWER, label="File"),
-                ],
-                active_tab_index=0,
-                bottom_visible=False,
-            ),
-            right_bar_active=_K_PROPERTIES,
-            right=AreaState(editor_key=_K_PROPERTIES, visible=True, size=350),
-        ),
-        "Development": WorkspaceState(
-            name="Development",
-            left_bar_active=_K_LIBRARY_BROWSER,
-            left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=True, size=250),
-            middle=MiddleAreaState(
-                tabs=[
-                    TabState(editor_key=_K_GRAPH_EDITOR, label="Graph"),
-                    TabState(editor_key=_K_LIBRARY_DETAIL, label="Library"),
-                    TabState(editor_key=_K_FILE_VIEWER, label="File"),
-                ],
-                active_tab_index=0,
-                bottom_visible=True,
-                bottom_size=200,
-                bottom_editor_key=_K_CONSOLE,
-            ),
-            right_bar_active=_K_PROPERTIES,
-            right=AreaState(editor_key=_K_PROPERTIES, visible=True, size=350),
-        ),
-        "Debugging": WorkspaceState(
-            name="Debugging",
-            left_bar_active=_K_LIBRARY_BROWSER,
-            left=AreaState(editor_key=_K_LIBRARY_BROWSER, visible=False, size=250),
-            middle=MiddleAreaState(
-                tabs=[
-                    TabState(editor_key=_K_GRAPH_EDITOR, label="Graph"),
-                    TabState(editor_key=_K_LIBRARY_DETAIL, label="Library"),
-                    TabState(editor_key=_K_FILE_VIEWER, label="File"),
-                ],
-                active_tab_index=0,
-                bottom_visible=True,
-                bottom_size=300,
-                bottom_editor_key=_K_CONSOLE,
-            ),
-            right_bar_active=_K_PROPERTIES,
-            right=AreaState(editor_key=_K_PROPERTIES, visible=True, size=350),
-        ),
-    }
-
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(
+        self,
+        initial_presets: Optional[Dict[str, WorkspaceState]] = None,
+        project_path: Optional[Path] = None,
+    ):
         self._project_path = project_path
-        self.presets: Dict[str, WorkspaceState] = dict(self.DEFAULT_PRESETS)
-        self.active: WorkspaceState = self.presets["Graph Editing"]
+        self.presets: Dict[str, WorkspaceState] = dict(initial_presets) if initial_presets else {}
+        self.active: WorkspaceState = next(iter(self.presets.values())) if self.presets else WorkspaceState()
 
         if project_path:
             self._load_user_presets(project_path)
@@ -151,7 +95,7 @@ class WorkspaceManager:
             active_tab_index=middle_d.get("active_tab_index", 0),
             bottom_visible=middle_d.get("bottom_visible", False),
             bottom_size=middle_d.get("bottom_size", 200),
-            bottom_editor_key=middle_d.get("bottom_editor_key", "console"),
+            bottom_editor_key=middle_d.get("bottom_editor_key", None),
         )
         return WorkspaceState(
             name=state_dict.get("name", "Unnamed"),

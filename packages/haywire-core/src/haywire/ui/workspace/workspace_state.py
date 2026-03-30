@@ -3,28 +3,13 @@
 Workspace state dataclasses for the Haywire UI layout system.
 
 WorkspaceState is serializable to JSON for persistence. Each named workspace
-is a saved instance of this class.
-
-All editor_key values are full registry_key strings
-(e.g. 'studio:editor:graph_editor'), not short registry_id values.
-This avoids collisions between editors from different libraries that share
-the same short id.
+is a saved instance of this class. All editor_key values are full registry_key
+strings (e.g. 'studio:editor:graph_editor') supplied by the host application —
+this module contains no host-specific strings.
 """
 
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
-
-# Canonical registry keys for all built-in editors.
-# Using constants avoids scattered hardcoded strings.
-_K_GRAPH_EDITOR = "studio:editor:graph_editor"
-_K_LIBRARY_BROWSER = "studio:editor:library_browser"
-_K_LIBRARY_DETAIL = "studio:editor:library_detail"
-_K_COMPONENT_DETAIL = "studio:editor:component_detail"
-_K_PROPERTIES = "studio:editor:properties"
-_K_CONSOLE = "studio:editor:console"
-_K_FILE_BROWSER = "studio:editor:file_browser"
-_K_FILE_VIEWER = "studio:editor:file_viewer"
-_K_GRAPH_MANAGER = "studio:editor:graph_manager"
 
 
 @dataclass
@@ -54,7 +39,7 @@ class TabState:
         metadata: Editor-specific state (e.g., which graph is open).
     """
 
-    editor_key: str = _K_GRAPH_EDITOR
+    editor_key: str = "graph_editor"
     label: str = "Graph"
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -76,7 +61,7 @@ class MiddleAreaState:
     active_tab_index: int = 0
     bottom_visible: bool = False
     bottom_size: int = 200
-    bottom_editor_key: Optional[str] = _K_CONSOLE
+    bottom_editor_key: Optional[str] = None
 
 
 @dataclass
@@ -97,12 +82,8 @@ class WorkspaceState:
     """
 
     name: str = "default"
-    left_bar_active: Optional[str] = _K_LIBRARY_BROWSER
-    left: AreaState = field(
-        default_factory=lambda: AreaState(editor_key=_K_LIBRARY_BROWSER, visible=True, size=250)
-    )
+    left_bar_active: Optional[str] = None
+    left: AreaState = field(default_factory=AreaState)
     middle: MiddleAreaState = field(default_factory=MiddleAreaState)
-    right_bar_active: Optional[str] = _K_PROPERTIES
-    right: AreaState = field(
-        default_factory=lambda: AreaState(editor_key=_K_PROPERTIES, visible=True, size=350)
-    )
+    right_bar_active: Optional[str] = None
+    right: AreaState = field(default_factory=AreaState)
