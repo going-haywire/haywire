@@ -38,19 +38,19 @@ class Session:
         5. Session destroyed on client disconnect (cleanup())
     """
 
-    def __init__(self, project_state, project_path=None):
+    def __init__(self, project_state, workspace_manager: WorkspaceManager):
         """
         Create a new session.
 
         Args:
             project_state: The shared project state (graph data, settings, etc.).
-            project_path: Optional path to the project folder for workspace persistence.
+            workspace_manager: Pre-configured WorkspaceManager for this session.
         """
         self.session_id = str(uuid.uuid4())
         self.project_state = project_state
         self.context = SessionContext(session_id=self.session_id, app=project_state)
         self.context.session = self
-        self.workspace_manager = WorkspaceManager(project_path=project_path)
+        self.workspace_manager = workspace_manager
 
         # Active editor instances (keyed by area slot: 'left', 'middle', 'right', 'bottom')
         self._editors: Dict[str, "BaseEditor"] = {}

@@ -127,6 +127,13 @@ class TestWorkspaceManager:
         dbg = self.manager.presets["Debugging"]
         assert dbg.left.visible is False
 
+    def test_empty_presets_when_none_provided(self):
+        """WorkspaceManager with no initial_presets starts with empty presets and blank active."""
+        manager = WorkspaceManager()
+        assert manager.presets == {}
+        assert isinstance(manager.active, WorkspaceState)
+        assert manager.active.name == "default"
+
     def test_deserialize_workspace_roundtrip(self):
         """WorkspaceManager._deserialize_workspace reconstructs a WorkspaceState correctly."""
         from dataclasses import asdict
