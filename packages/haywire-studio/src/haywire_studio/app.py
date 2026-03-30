@@ -25,7 +25,8 @@ from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManag
 from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
 
 # UI imports
-from haywire.ui.console_bridge import ConsoleBridge
+from haywire.ui.console_bridge import get_bridge
+from haywire_studio.workspace.defaults import DEFAULT_PRESETS
 
 
 def _result_mutates_data(result: ValidationResult) -> bool:
@@ -48,8 +49,6 @@ class HaywireApp:
         self.setup_library_system()
         self.setup_shared_services()
 
-        # Per-client session bookkeeping (client_id → session_data dict)
-        self.sessions: dict = {}
         self._is_shutting_down = False
 
         app.on_disconnect(self.on_disconnect)
@@ -72,12 +71,8 @@ class HaywireApp:
             self.stop_interpreter()
 
         # 2. Clean up all sessions
-        print(f"  Cleaning up {len(self.sessions)} sessions...")
-        for client_id in list(self.sessions.keys()):
-            try:
-                self._cleanup_session(client_id)
-            except Exception as e:
-                print(f"  Error cleaning up session {client_id[:8]}: {e}")
+        print(f"  Cleaning up {self.session_manager.session_count} sessions...")
+        self.session_manager.cleanup_all()
 
         # 3. Clean up graph manager
         try:
@@ -88,20 +83,20 @@ class HaywireApp:
 
         # 4. Clean up console bridge
         try:
-            bridge = ConsoleBridge.get_instance()
+            bridge = get_bridge()
             bridge.log_elements.clear()
             bridge.clear_history()
         except Exception as e:
             print(f"  Error cleaning up console bridge: {e}")
 
-        # 6. Shutdown interpreter
+        # 5. Shutdown interpreter
         try:
             if self.interpreter:
                 self.interpreter.shutdown()
         except Exception as e:
             print(f"  Error shutting down interpreter: {e}")
 
-        # 7. Cleanup library system
+        # 6. Cleanup library system
         try:
             if hasattr(self.library_service, "cleanup"):
                 self.library_service.cleanup()
@@ -110,76 +105,14 @@ class HaywireApp:
 
         print("Application shutdown complete")
 
-    def _cleanup_session(self, client_id: str):
-        """Clean up a single session's resources."""
-        if client_id not in self.sessions:
-            return
-
-        session_data = self.sessions[client_id]
-        print(f"    Cleaning up session {client_id[:8]}...")
-
-        # Cancel any lingering interpreter timer
-        interpreter_timer = session_data.get("interpreter_timer")
-        if interpreter_timer:
-            try:
-                interpreter_timer.cancel()
-            except Exception as e:
-                print(f"    Error canceling interpreter timer: {e}")
-
-        # Unregister console log
-        console_log = session_data.get("console_log")
-        console_timer = session_data.get("console_timer")
-        if console_log:
-            try:
-                bridge = ConsoleBridge.get_instance()
-                bridge.unregister_log(console_log)
-            except Exception as e:
-                print(f"    Error unregistering console log: {e}")
-        elif console_timer:
-            try:
-                console_timer.cancel()
-            except Exception as e:
-                print(f"    Error canceling console timer: {e}")
-
-        # Clean up Haywire Session (editors, context subscribers)
-        haywire_session = session_data.get("haywire_session")
-        if haywire_session:
-            haywire_session_id = session_data.get("haywire_session_id")
-            if haywire_session_id and hasattr(self, "session_manager"):
-                try:
-                    self.session_manager.remove_session(haywire_session_id)
-                except Exception as e:
-                    print(f"    Error removing session from manager: {e}")
-            else:
-                try:
-                    haywire_session.cleanup()
-                except Exception as e:
-                    print(f"    Error cleaning up haywire session: {e}")
-
-        del self.sessions[client_id]
-
     def on_disconnect(self, client):
         """Handle client disconnect."""
         if self._is_shutting_down:
             return
-        client_id = getattr(client, "id", None)
-        if client_id and client_id in self.sessions:
-            print(f"Client disconnected: {client_id[:8]}")
-            self._cleanup_session(client_id)
-            print(f"Session {client_id[:8]} cleaned up")
-
-    def get_session_data(self):
-        """Get or create per-client session bookkeeping data."""
-        from nicegui import context
-
-        client_id = context.client.id if context.client else "default"
-        if client_id not in self.sessions:
-            print(f"Creating new session for client: {client_id}")
-            self.sessions[client_id] = {
-                "client": context.client,
-                "ui_containers": {},
-            }
-        return self.sessions[client_id], client_id
+        session_id = getattr(client, "_haywire_session_id", None)
+        if session_id:
+            print(f"Client disconnected, cleaning up session {session_id[:8]}")
+            self.session_manager.remove_session(session_id)
 
     # ------------------------------------------------------------------
     # Shared services setup
@@ -356,21 +289,27 @@ class HaywireApp:
         def main_page():
             from haywire.ui.app.shell import AppShell
             from haywire.ui.editor.registry import EditorTypeRegistry
+            from haywire.ui.workspace.manager import WorkspaceManager
+            from nicegui import context
 
-            session_data, client_id = self.get_session_data()
-            print(f"Creating UI for session: {client_id[:8]}")
+            print(f"Creating UI for session: {context.client.id[:8]}")
 
-            haywire_session = self.session_manager.create_session(
-                project_state=self,
+            workspace_manager = WorkspaceManager(
+                initial_presets=DEFAULT_PRESETS,
                 project_path=Path(self.workspace_root),
             )
 
-            session_data["haywire_session"] = haywire_session
-            session_data["haywire_session_id"] = haywire_session.session_id
+            haywire_session = self.session_manager.create_session(
+                project_state=self,
+                workspace_manager=workspace_manager,
+            )
 
-            # No graph is active at startup — context.active_graph and
-            # context.active_graph_path both remain None.  The user opens or
-            # creates a graph via GraphManagerEditor or FileBrowserEditor.
+            # Store session ID on NiceGUI Client for disconnect lookup
+            context.client._haywire_session_id = haywire_session.session_id
+
+            # Set studio theme defaults on context before rendering
+            haywire_session.context.active_workbench_theme_key = "core:theme:workbench:haywire-dark"
+            haywire_session.context.active_node_theme_key = "core:theme:node:default"
 
             editor_registry = self.library_service.injector.get(EditorTypeRegistry)
             app_shell = AppShell(haywire_session, editor_registry=editor_registry)
