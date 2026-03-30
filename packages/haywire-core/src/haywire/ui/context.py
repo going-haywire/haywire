@@ -74,10 +74,8 @@ class SessionContext:
     active_component: Optional[Any] = None  # node/widget/renderer class or metadata
     active_file: Optional[Any] = None  # Path to the currently viewed file
     active_graph_path: Optional[Any] = None  # Path to the currently active .haywire file
-    active_workbench_theme_key: str = (
-        "core:theme:workbench:haywire-dark"  # Active WorkbenchTheme registry_key
-    )
-    active_node_theme_key: str = "core:theme:node:default"  # Active NodeTheme registry_key
+    active_workbench_theme_key: Optional[str] = None  # set by host app after session creation
+    active_node_theme_key: Optional[str] = None  # set by host app after session creation
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     # ------------------------------------------------------------------
