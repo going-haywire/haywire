@@ -1,6 +1,6 @@
 # haywire/core/settings/descriptor.py
 """
-setting — reactive property descriptor.
+field — reactive property descriptor.
 
 Instance-level access reads/writes the value stored in the owning Settings's
 _local_store.  Change notifications are fired via Settings._on_prop_change().
@@ -18,6 +18,10 @@ Two operating modes:
       mirrors= points to a FrameworkSettings/LibrarySettings descriptor whose
       _field_key is stored as _mirror_key (used by _resolve for shadow/watch).
       read_only=True prevents writes (watch behaviour).
+
+Convenience factories:
+    shadow(src, ...)  — writable mirror of src field
+    watch(src, ...)   — read-only mirror of src field
 """
 
 from __future__ import annotations
@@ -27,12 +31,12 @@ from typing import Any, Callable
 from .base import FieldDescriptor
 
 
-class setting(FieldDescriptor):
+class field(FieldDescriptor):
     """
-    Descriptor for a reactive setting on a ``Settings`` subclass.
+    Descriptor for a reactive field on a ``Settings`` subclass.
 
     Class-level access returns the descriptor itself (for introspection and
-    use as the ``mirrors=`` argument on another setting).
+    use as the ``mirrors=`` argument on another field).
     Instance-level access reads/writes via the owning Settings's _local_store.
     """
 
@@ -49,11 +53,12 @@ class setting(FieldDescriptor):
         choices: "list | dict | Callable | None" = None,
         widget: "str | None" = None,
         on_change: "str | None" = None,
-        mirrors: "FieldDescriptor | None" = None,
+        mirrors: "FieldDescriptor | str | None" = None,
         read_only: bool = False,
         type_: "type | None" = None,
         stored: bool = True,
         validator: "Callable | None" = None,
+        metadata: "dict | None" = None,
     ) -> None:
         self._default = default
         self._type = type_ if type_ is not None else (type(default) if default is not None else object)
@@ -69,12 +74,13 @@ class setting(FieldDescriptor):
         self._read_only = read_only
         self._stored = stored
         self._validator = validator
+        self._metadata: dict = metadata or {}
         self._attr_name: str = ""  # set by __set_name__
         self._field_key: str = ""  # set by @node decorator (extended mode)
         self._mirror_descriptor: "FieldDescriptor | None" = None  # set when mirrors= is a descriptor
 
         if self._validator is not None and default is not None and not self.validate(default):
-            raise ValueError(f"Default value {default!r} fails validation for setting '{label or '?'}'")
+            raise ValueError(f"Default value {default!r} fails validation for field '{label or '?'}'")
 
         # mirrors= accepts either:
         #   - a class-level descriptor access (FieldDescriptor) — key may not be set yet
@@ -151,3 +157,13 @@ class setting(FieldDescriptor):
                         method(value, self._attr_name)
                     except TypeError:
                         method(value)
+
+
+def shadow(src: FieldDescriptor, **kwargs: Any) -> field:
+    """Writable mirror of *src* field. Inherits src metadata; local writes are allowed."""
+    return field(mirrors=src, read_only=False, **kwargs)
+
+
+def watch(src: FieldDescriptor, **kwargs: Any) -> field:
+    """Read-only mirror of *src* field. Inherits src metadata; local writes raise AttributeError."""
+    return field(mirrors=src, read_only=True, **kwargs)

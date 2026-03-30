@@ -49,7 +49,7 @@ def settings(namespace: str, label: str = "", description: str = ""):
     Usage:
         @settings(namespace='my_lib')
         class MyLibSettings(LibrarySettings):
-            bg_color: Color = setting('#1e1e2e', label='Node Background')
+            bg_color: Color = field('#1e1e2e', label='Node Background')
 
     Auto-discovered by FrameworkSettingsRegistry when the library calls:
         settings_registry.add_folder(path, library_identity)

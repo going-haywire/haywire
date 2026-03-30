@@ -1,16 +1,16 @@
 # haywire/ui/prefs/minimap.py
 """Minimap layout and visibility preference singleton."""
 
-from haywire.core.settings import setting
+from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
 class MinimapSettings(FrameworkSettings):
     """Global preferences controlling the minimap overlay layout and visibility."""
 
-    enabled: bool = setting(
+    enabled: bool = field(
         True, label="Show Minimap", description="Display minimap overview", category="ui.minimap", order=10
     )
-    position: str = setting(
+    position: str = field(
         "bottom-right",
         label="Minimap Position",
         description="Corner position of minimap",
@@ -18,7 +18,7 @@ class MinimapSettings(FrameworkSettings):
         order=11,
         choices=["top-left", "top-right", "bottom-left", "bottom-right"],
     )
-    width: int = setting(
+    width: int = field(
         200,
         label="Minimap Width",
         description="Width of minimap in pixels",
@@ -27,7 +27,7 @@ class MinimapSettings(FrameworkSettings):
         min=100,
         max=400,
     )
-    height: int = setting(
+    height: int = field(
         150,
         label="Minimap Height",
         description="Height of minimap in pixels",
@@ -36,7 +36,7 @@ class MinimapSettings(FrameworkSettings):
         min=75,
         max=300,
     )
-    opacity: float = setting(
+    opacity: float = field(
         0.85,
         label="Minimap Opacity",
         description="Opacity of the minimap",
@@ -45,7 +45,7 @@ class MinimapSettings(FrameworkSettings):
         min=0.3,
         max=1.0,
     )
-    show_on_hover: bool = setting(
+    show_on_hover: bool = field(
         False,
         label="Show on Hover Only",
         description="Only show minimap when hovering near its position",

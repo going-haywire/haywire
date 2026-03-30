@@ -131,7 +131,7 @@ class NodeData:
         Node authors access bags directly via the instance attribute instead::
 
             class filter(Settings):
-                threshold: float = setting(0.5)
+                threshold: float = field(0.5)
 
             self.filter.threshold         # read
             self.filter.threshold = 0.8   # write local override

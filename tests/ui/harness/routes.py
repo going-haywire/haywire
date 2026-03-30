@@ -19,7 +19,7 @@ from nicegui import app as nicegui_app
 from nicegui import ui
 
 from haybale_core.panels._settings_panel_base import render_settings, render_schema
-from haywire.core.settings.enums import SettingMode
+from haywire.core.settings.enums import FieldMode
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -133,7 +133,7 @@ def register_routes(library_service) -> None:
                 coerced = raw_value.lower() in ("true", "1", "yes")
             else:
                 coerced = type_(raw_value)
-            registry.set_global(key, coerced, SettingMode.SET)
+            registry.set_global(key, coerced, FieldMode.EXPLICIT)
             return JSONResponse({"ok": True, "key": key, "value": coerced})
         except Exception as exc:
             return JSONResponse({"error": str(exc)}, status_code=500)

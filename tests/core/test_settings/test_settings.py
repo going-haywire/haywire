@@ -14,7 +14,7 @@ Covers:
 """
 
 import pytest
-from haywire.core.settings import Settings, NodeSettings, setting
+from haywire.core.settings import Settings, NodeSettings, field
 from haywire.core.di.test_config import create_test_bag
 
 
@@ -24,9 +24,9 @@ from haywire.core.di.test_config import create_test_bag
 
 
 class SimpleSettings(Settings):
-    strength: float = setting(0.5, min=0.0, max=1.0, label="Strength")
-    mode: str = setting("fast", choices=["fast", "precise"], label="Mode")
-    verbose: bool = setting(False, label="Verbose")
+    strength: float = field(0.5, min=0.0, max=1.0, label="Strength")
+    mode: str = field("fast", choices=["fast", "precise"], label="Mode")
+    verbose: bool = field(False, label="Verbose")
 
 
 class TestSimpleMode:
@@ -131,7 +131,7 @@ class TestSerialization:
 
 
 class SettingsWithCallback(Settings):
-    strength: float = setting(0.5, on_change="_on_strength")
+    strength: float = field(0.5, on_change="_on_strength")
 
     def __init__(self, registry=None):
         super().__init__(registry)
@@ -169,8 +169,8 @@ class TestOnChange:
 
 
 class ReadOnlySettings(Settings):
-    editable: float = setting(1.0)
-    read_only_field: bool = setting(False, read_only=True)
+    editable: float = field(1.0)
+    read_only_field: bool = field(False, read_only=True)
 
 
 class TestReadOnly:
@@ -249,7 +249,7 @@ class TestNodeDirectBinding:
         @node(label="Test Binding Node")
         class _TestBindingNode(BaseNode):
             class filter(NodeSettings):
-                strength: float = setting(0.5, min=0.0, max=1.0, label="Strength")
+                strength: float = field(0.5, min=0.0, max=1.0, label="Strength")
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestBindingNode("n1", wrapper)
@@ -265,7 +265,7 @@ class TestNodeDirectBinding:
         @node(label="Test Read Node")
         class _TestReadNode(BaseNode):
             class params(NodeSettings):
-                threshold: float = setting(0.7)
+                threshold: float = field(0.7)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestReadNode("n1", wrapper)
@@ -280,7 +280,7 @@ class TestNodeDirectBinding:
         @node(label="Test Write Node")
         class _TestWriteNode(BaseNode):
             class params(NodeSettings):
-                threshold: float = setting(0.7)
+                threshold: float = field(0.7)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestWriteNode("n1", wrapper)
@@ -296,7 +296,7 @@ class TestNodeDirectBinding:
             @node(label="Conflict Node")
             class _ConflictNode(BaseNode):
                 class init(NodeSettings):  # 'init' is a BaseNode method
-                    x: float = setting(1.0)
+                    x: float = field(1.0)
 
     def test_serialization_round_trip_on_node(self):
         from haywire.core.node import BaseNode, node
@@ -306,7 +306,7 @@ class TestNodeDirectBinding:
         @node(label="Test Serial Node")
         class _TestSerialNode(BaseNode):
             class filter(NodeSettings):
-                strength: float = setting(0.5)
+                strength: float = field(0.5)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestSerialNode("n1", wrapper)
@@ -326,18 +326,18 @@ class TestNodeDirectBinding:
 
 
 class TypedSettings(Settings):
-    explicit_int: int = setting(0, type_=int)
-    inferred_float: float = setting(1.0)
-    no_default_str: str = setting(type_=str)
+    explicit_int: int = field(0, type_=int)
+    inferred_float: float = field(1.0)
+    no_default_str: str = field(type_=str)
 
 
 class StoredSettings(Settings):
-    stored_field: float = setting(0.5)
-    unstored_field: float = setting(0.5, stored=False)
+    stored_field: float = field(0.5)
+    unstored_field: float = field(0.5, stored=False)
 
 
 class ValidatedSettings(Settings):
-    positive: float = setting(1.0, validator=lambda v: v > 0)
+    positive: float = field(1.0, validator=lambda v: v > 0)
 
 
 class TestTypeSetting:
@@ -437,9 +437,9 @@ class TestValidatorSetting:
         with pytest.raises(ValueError, match="fails validation"):
 
             class BadSettings(Settings):
-                bad: int = setting(3, validator=lambda v: v % 2 == 0)
+                bad: int = field(3, validator=lambda v: v % 2 == 0)
 
     def test_none_default_skips_validation(self):
         # Should not raise — None default is allowed even with a validator
         class NoneDefaultSettings(Settings):
-            val: int = setting(type_=int, validator=lambda v: v > 0)
+            val: int = field(type_=int, validator=lambda v: v > 0)

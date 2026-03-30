@@ -3,10 +3,10 @@
 Settings system — global registry, TOML persistence, and public node-author API.
 
 Public API for node authors:
-    from haywire.core.settings import Settings, setting, Color, Icon
+    from haywire.core.settings import Settings, field, Color, Icon
 
     class filter(Settings):
-        strength: float = setting(0.5, min=0.0, max=1.0, label='Strength')
+        strength: float = field(0.5, min=0.0, max=1.0, label='Strength')
 
 Framework / library internals:
     SettingsRegistry    — TOML resolution chain + LibrarySettings
@@ -18,10 +18,10 @@ Framework / library internals:
 
 from .settings import Settings
 from .node_settings import NodeSettings
-from .descriptor import setting
+from .descriptor import field, shadow, watch
 from .base import FieldDescriptor
-from .enums import SettingMode
-from .value import SettingValue
+from .enums import FieldMode
+from .value import FieldValue
 from .types import Color, Icon
 from .registry import SettingsRegistry
 from .schema import LibrarySettings, FrameworkSettings
@@ -31,13 +31,15 @@ __all__ = [
     # Node-author API
     "Settings",
     "NodeSettings",
-    "setting",
+    "field",
+    "shadow",
+    "watch",
     "FieldDescriptor",
     "Color",
     "Icon",
     # Framework internals
-    "SettingMode",
-    "SettingValue",
+    "FieldMode",
+    "FieldValue",
     "SettingsRegistry",
     "LibrarySettings",
     "FrameworkSettings",

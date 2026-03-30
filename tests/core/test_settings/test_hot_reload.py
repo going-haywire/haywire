@@ -1,10 +1,10 @@
 # tests/core/test_settings/test_hot_reload.py
 """Tests for SettingsRegistry hot-reload: register_schema / unregister."""
 
-from haywire.core.settings import setting
+from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings, LibrarySettings
 from haywire.core.settings.decorator import settings
-from haywire.core.settings.enums import SettingMode
+from haywire.core.settings.enums import FieldMode
 from haywire.core.settings.registry import SettingsRegistry
 
 
@@ -14,8 +14,8 @@ from haywire.core.settings.registry import SettingsRegistry
 
 
 class _HotGS(FrameworkSettings, namespace="hot.gs"):
-    alpha: int = setting(7, label="Alpha")
-    beta: str = setting("abc", label="Beta")
+    alpha: int = field(7, label="Alpha")
+    beta: str = field("abc", label="Beta")
 
 
 class TestRegisterSchema:
@@ -33,7 +33,7 @@ class TestRegisterSchema:
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
 
-        registry.set_global("hot.gs.alpha", 42, SettingMode.SET)
+        registry.set_global("hot.gs.alpha", 42, FieldMode.EXPLICIT)
         val, _ = registry.resolve("hot.gs.alpha")
         assert val == 42
 
@@ -52,7 +52,7 @@ class TestRegisterSchema:
 
 @settings(namespace="hot.lib")
 class _HotLib(LibrarySettings):
-    rate: int = setting(4, min=1, max=20)
+    rate: int = field(4, min=1, max=20)
 
 
 class TestRegisterLibrarySchema:
@@ -80,7 +80,7 @@ class TestHotReloadCycle:
     def test_fields_gone_after_unregister(self):
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
-        registry.set_global("hot.gs.alpha", 42, SettingMode.SET)
+        registry.set_global("hot.gs.alpha", 42, FieldMode.EXPLICIT)
 
         # Simulate unregister (library removal)
         registry_key = _HotGS.class_identity.registry_key
@@ -92,7 +92,7 @@ class TestHotReloadCycle:
     def test_re_register_restores_defaults(self):
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
-        registry.set_global("hot.gs.alpha", 42, SettingMode.SET)
+        registry.set_global("hot.gs.alpha", 42, FieldMode.EXPLICIT)
 
         registry_key = _HotGS.class_identity.registry_key
         registry._unregister_class(registry_key)

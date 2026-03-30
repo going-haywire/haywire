@@ -2,14 +2,14 @@
 """
 NodeInstanceSettings — per-node-instance observable props.
 
-Migrated from NodeSettings + setting() to Settings + setting().
+Migrated from NodeSettings + field() to Settings + field().
 No longer part of the Settings resolution chain.
 
 Access via:  node.props.muted,  node.props.collapsed, ...
 Serialized under the 'props' key in graph JSON.
 """
 
-from haywire.core.settings import NodeSettings, setting
+from haywire.core.settings import NodeSettings, field
 from haywire.ui.skin.settings import NodeDefaultSkinSettings
 
 
@@ -25,28 +25,28 @@ class NodeProperties(NodeSettings):
     # Visual state
     # -----------------------------------------------------------------
 
-    muted: bool = setting(
+    muted: bool = field(
         False,
         label="Muted",
         order=10,
         category="state",
         description="Skip this node during execution",
     )
-    collapsed: bool = setting(
+    collapsed: bool = field(
         False,
         label="Collapsed",
         order=20,
         category="state",
         description="Collapse node to show only header",
     )
-    condensed: bool = setting(
+    condensed: bool = field(
         False,
         label="Condensed",
         order=30,
         category="state",
         description="Show node in condensed view",
     )
-    pinned: bool = setting(
+    pinned: bool = field(
         False,
         label="Pinned",
         order=40,
@@ -58,14 +58,14 @@ class NodeProperties(NodeSettings):
     # Appearance
     # -----------------------------------------------------------------
 
-    skin: str | None = setting(
+    skin: str | None = field(
         None,
         order=10,
         category="appearance",
         mirrors=NodeDefaultSkinSettings.studio_skin,
     )
 
-    color_override: str | None = setting(
+    color_override: str | None = field(
         None,
         label="Color Override",
         order=20,
@@ -78,14 +78,14 @@ class NodeProperties(NodeSettings):
     # Annotation
     # -----------------------------------------------------------------
 
-    comment: str = setting(
+    comment: str = field(
         "",
         label="Comment",
         order=10,
         category="annotation",
         description="Comment displayed above the node",
     )
-    show_comment: bool = setting(
+    show_comment: bool = field(
         False,
         label="Show Comment",
         order=20,
@@ -97,12 +97,12 @@ class NodeProperties(NodeSettings):
     # Layout (position & dimensions) — not shown in settings panels
     # -----------------------------------------------------------------
 
-    posX: float = setting(0.0, order=10, category="layout")
-    posY: float = setting(0.0, order=20, category="layout")
-    width: float = setting(0.0, order=30, category="layout")
-    height: float = setting(0.0, order=40, category="layout")
-    width_min: float = setting(-1.0, order=50, category="layout")
-    height_min: float = setting(-1.0, order=60, category="layout")
+    posX: float = field(0.0, order=10, category="layout")
+    posY: float = field(0.0, order=20, category="layout")
+    width: float = field(0.0, order=30, category="layout")
+    height: float = field(0.0, order=40, category="layout")
+    width_min: float = field(-1.0, order=50, category="layout")
+    height_min: float = field(-1.0, order=60, category="layout")
 
     # -----------------------------------------------------------------
     # Convenience helpers

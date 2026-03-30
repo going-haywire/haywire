@@ -1,14 +1,14 @@
 # haywire/ui/prefs/edge_ui.py
 """Edge routing, width, and animation preference singleton."""
 
-from haywire.core.settings import setting
+from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
 class EdgeUISettings(FrameworkSettings):
     """Global preferences controlling edge routing, width, and animation behaviour."""
 
     # Width
-    width: int = setting(
+    width: int = field(
         2,
         label="Edge Width",
         description="Default edge width in pixels",
@@ -17,7 +17,7 @@ class EdgeUISettings(FrameworkSettings):
         min=1,
         max=8,
     )
-    width_selected: int = setting(
+    width_selected: int = field(
         3,
         label="Selected Edge Width",
         description="Edge width when selected",
@@ -28,7 +28,7 @@ class EdgeUISettings(FrameworkSettings):
     )
 
     # Port-color tinting
-    use_port_colors: bool = setting(
+    use_port_colors: bool = field(
         True,
         label="Use Port Colors",
         description="Tint edges with the connected port type colour",
@@ -37,7 +37,7 @@ class EdgeUISettings(FrameworkSettings):
     )
 
     # Curve
-    curve_style: str = setting(
+    curve_style: str = field(
         "bezier",
         label="Curve Style",
         description="How edges are drawn between nodes",
@@ -45,7 +45,7 @@ class EdgeUISettings(FrameworkSettings):
         order=20,
         choices=["bezier", "straight", "step", "smoothstep"],
     )
-    curve_tension: float = setting(
+    curve_tension: float = field(
         0.5,
         label="Curve Tension",
         description="Tension for bezier curves (0–1)",
@@ -54,7 +54,7 @@ class EdgeUISettings(FrameworkSettings):
         min=0.0,
         max=1.0,
     )
-    curve_offset: int = setting(
+    curve_offset: int = field(
         50,
         label="Curve Offset",
         description="Control point offset for curves",
@@ -65,14 +65,14 @@ class EdgeUISettings(FrameworkSettings):
     )
 
     # Animation
-    animate_flow: bool = setting(
+    animate_flow: bool = field(
         False,
         label="Animate Flow",
         description="Show animated flow direction on edges",
         category="ui.edge",
         order=30,
     )
-    animation_speed: float = setting(
+    animation_speed: float = field(
         1.0,
         label="Animation Speed",
         description="Speed of flow animation",
@@ -81,7 +81,7 @@ class EdgeUISettings(FrameworkSettings):
         min=0.1,
         max=5.0,
     )
-    animate_on_execute: bool = setting(
+    animate_on_execute: bool = field(
         True,
         label="Animate on Execute",
         description="Animate edges during execution",

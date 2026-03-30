@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
-from haywire.core.settings.enums import SettingMode
+from haywire.core.settings.enums import FieldMode
 from haywire.ui.components.number_drag import NumberDrag
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ _LABEL_CLASSES = "text-xs flex-1 min-w-0 truncate"
 
 
 def render_settings(obj: "Settings") -> None:
-    """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
+    """Render all ``field()`` fields of a ``Settings`` instance as labelled form rows.
 
     - Fields with ``read_only=True`` are skipped (not rendered).
     - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
@@ -339,7 +339,7 @@ def _make_setter(registry: "SettingsRegistry", key: str, coerce):
             val = coerce(e.value)
             if val is None:
                 return
-            registry.set_global(key, val, SettingMode.SET)
+            registry.set_global(key, val, FieldMode.EXPLICIT)
             registry.save_to_toml_debounced()
         except Exception:
             pass

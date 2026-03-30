@@ -41,7 +41,7 @@ class FrameworkSettings(Settings):
 
     Subclass with a namespace= kwarg:
         class ExecutionSettings(FrameworkSettings, namespace='execution'):
-            max_threads: int = setting(4, label='Max Threads')
+            max_threads: int = field(4, label='Max Threads')
 
     Registration is automatic:
     - If SettingsRegistry does not yet exist: queued in _pending_global,
@@ -73,10 +73,10 @@ class FrameworkSettings(Settings):
 
         if namespace:
             cls._namespace = namespace
-            from haywire.core.settings.descriptor import setting  # noqa: PLC0415
+            from haywire.core.settings.descriptor import field  # noqa: PLC0415
 
             for name, val in cls.__dict__.items():
-                if isinstance(val, setting):
+                if isinstance(val, field):
                     val._field_key = f"{namespace}.{name}"
 
             # Self-registration: queue or register immediately
@@ -99,7 +99,7 @@ class LibrarySettings(Settings):
 
         @settings(namespace='my_lib.general', label='My Library')
         class GeneralSettings(LibrarySettings):
-            quality: int = setting(80, label='Quality')
+            quality: int = field(80, label='Quality')
 
     @settings sets class_identity (required by BaseRegistry._class_filter),
     class_library (for hot-reload), _namespace, and _field_key on all descriptors.
@@ -129,10 +129,10 @@ class LibrarySettings(Settings):
 
         if namespace:
             cls._namespace = namespace
-            from haywire.core.settings.descriptor import setting  # noqa: PLC0415
+            from haywire.core.settings.descriptor import field  # noqa: PLC0415
 
             for name, val in cls.__dict__.items():
-                if isinstance(val, setting):
+                if isinstance(val, field):
                     val._field_key = f"{namespace}.{name}"
 
         # No registry touch here — registration handled by BaseRegistry hot-reload path

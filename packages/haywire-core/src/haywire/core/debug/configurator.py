@@ -6,7 +6,7 @@ import logging
 from .keys import LIBRARY_LOG_PREFIX, lib_id_from_key
 from .debug_settings import DebugSettings
 from ..settings.registry import SettingsRegistry
-from ..settings.value import SettingValue
+from ..settings.value import FieldValue
 
 # Maps DebugSettings attribute name → Python logger namespace
 _GROUP_MAP: dict[str, str] = {
@@ -70,8 +70,8 @@ class LoggingConfigurator:
     def _register_library_from_key(self, key: str, registry: "SettingsRegistry") -> None:
         lib_id = lib_id_from_key(key)
         if lib_id and lib_id not in self._library_namespaces:
-            meta = registry.get_definition_metadata(key)
-            module_name = meta.get("module_name", lib_id)
+            defn = registry.get_definition(key)
+            module_name = defn._metadata.get("module_name", lib_id) if defn else lib_id
             self._library_namespaces[lib_id] = module_name
 
     def _apply_all(self) -> None:
@@ -103,8 +103,8 @@ class LoggingConfigurator:
         elif name in _GROUP_MAP:
             self._apply_group(_GROUP_MAP[name], str(value) if value else "")
 
-    def _on_registry_change(self, name: str, sv: "SettingValue", registry: "SettingsRegistry") -> None:
-        from haywire.core.settings.enums import SettingMode  # noqa: PLC0415
+    def _on_registry_change(self, name: str, sv: "FieldValue", registry: "SettingsRegistry") -> None:
+        from haywire.core.settings.enums import FieldMode  # noqa: PLC0415
 
         if not name.startswith(LIBRARY_LOG_PREFIX + "."):
             return
@@ -122,7 +122,7 @@ class LoggingConfigurator:
         # New definition (AUTO) or value change
         self._register_library_from_key(name, registry)
 
-        if sv.mode == SettingMode.AUTO:
+        if sv.mode == FieldMode.INHERIT:
             # Newly defined — apply default (inherit)
             self._apply_library_level(name, "")
         else:

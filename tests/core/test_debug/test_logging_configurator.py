@@ -4,7 +4,7 @@
 import logging
 import pytest
 
-from haywire.core.settings import setting
+from haywire.core.settings import field
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.schema import FrameworkSettings
 from haywire.core.debug.debug_settings import DebugSettings

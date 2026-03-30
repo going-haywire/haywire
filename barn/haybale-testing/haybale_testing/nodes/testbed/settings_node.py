@@ -1,7 +1,7 @@
 from haywire.core.node import node, BaseNode, NodeType
 from haybale_core.types.specs import STRING
 
-from haywire.core.settings import NodeSettings, setting, Color
+from haywire.core.settings import NodeSettings, field, Color
 from haybale_testing.settings.testing import TestingSettings
 
 
@@ -13,17 +13,17 @@ from haybale_testing.settings.testing import TestingSettings
     node_type=NodeType.DATA,
 )
 class SettingsNode(BaseNode):
-    """Node that exercises all setting() — suppress spurious delete test."""
+    """Node that exercises all field() — suppress spurious delete test."""
 
     class example(NodeSettings):
         # --- type_ ---
-        example_string: str = setting(
+        example_string: str = field(
             "default string",
             label="Example String",
             description="An example string setting",
             category="type",
         )
-        example_int: int = setting(
+        example_int: int = field(
             3,
             min=0,
             max=100,
@@ -31,7 +31,7 @@ class SettingsNode(BaseNode):
             description="An example integer setting",
             category="type",
         )
-        example_float: float = setting(
+        example_float: float = field(
             5,
             min=0.0,
             max=1.0,
@@ -40,20 +40,20 @@ class SettingsNode(BaseNode):
             category="type",
             type_=float,
         )
-        example_bool: bool = setting(
+        example_bool: bool = field(
             False,
             label="Example Bool",
             description="An example boolean setting",
             category="type",
         )
-        example_choices: str = setting(
+        example_choices: str = field(
             "fast",
             choices=["fast", "balanced", "quality"],
             label="Example Choices",
             description="An example choices setting",
             category="type",
         )
-        example_color: Color = setting(
+        example_color: Color = field(
             "#00ff00",
             label="Example Color",
             description="An example color setting",
@@ -62,7 +62,7 @@ class SettingsNode(BaseNode):
         )
 
         # --- read only ---
-        read_only_value: float = setting(
+        read_only_value: float = field(
             1.0,
             label="Read-Only Value",
             description="Read-only stored setting",
@@ -71,13 +71,13 @@ class SettingsNode(BaseNode):
         )
 
         # --- stored ---
-        persistent_value: float = setting(
+        persistent_value: float = field(
             1.0,
             label="Persistent Value",
             description="Normal stored setting (stored=True by default)",
             category="stored",
         )
-        transient_value: float = setting(
+        transient_value: float = field(
             0.0,
             label="Transient Value",
             description="Ephemeral setting excluded from serialization",
@@ -86,13 +86,13 @@ class SettingsNode(BaseNode):
         )
 
         # --- mirrors (shadow) ---
-        intensity: float = setting(
+        intensity: float = field(
             label="Intensity",
             description="Mirrors library-level default_intensity",
             category="mirrors",
             mirrors=TestingSettings.default_intensity,
         )
-        count_mirror: int = setting(
+        count_mirror: int = field(
             label="Count Mirror",
             description="Mirrors library-level default_count",
             category="mirrors",
@@ -100,68 +100,68 @@ class SettingsNode(BaseNode):
             min=0,
             max=100,
         )
-        label_mirror: str = setting(
+        label_mirror: str = field(
             label="Label Mirror",
             description="Mirrors library-level default_label",
             category="mirrors",
             mirrors=TestingSettings.default_label,
         )
-        enabled: bool = setting(
+        enabled: bool = field(
             label="Enabled",
             description="Mirrors library-level default_enabled",
             category="mirrors",
             mirrors=TestingSettings.default_enabled,
         )
-        mode: str = setting(
+        mode: str = field(
             label="Mode",
             description="Mirrors library-level default_mode",
             category="mirrors",
             mirrors=TestingSettings.default_mode,
             choices=["fast", "balanced", "quality"],
         )
-        tint: Color = setting(
+        tint: Color = field(
             label="Tint",
             description="Mirrors library-level default_color",
             category="mirrors",
             mirrors=TestingSettings.default_color,
             widget="color",
         )
-        intensity_ro: float = setting(
+        intensity_ro: float = field(
             label="Intensity (read-only)",
             description="Read-only mirror of default_intensity",
             category="mirrors",
             mirrors=TestingSettings.default_intensity,
             read_only=True,
         )
-        count_ro: int = setting(
+        count_ro: int = field(
             label="Count (read-only)",
             description="Read-only mirror of default_count",
             category="mirrors",
             mirrors=TestingSettings.default_count,
             read_only=True,
         )
-        label_ro: str = setting(
+        label_ro: str = field(
             label="Label (read-only)",
             description="Read-only mirror of default_label",
             category="mirrors",
             mirrors=TestingSettings.default_label,
             read_only=True,
         )
-        enabled_ro: bool = setting(
+        enabled_ro: bool = field(
             label="Enabled (read-only)",
             description="Read-only mirror of default_enabled",
             category="mirrors",
             mirrors=TestingSettings.default_enabled,
             read_only=True,
         )
-        mode_ro: str = setting(
+        mode_ro: str = field(
             label="Mode (read-only)",
             description="Read-only mirror of default_mode",
             category="mirrors",
             mirrors=TestingSettings.default_mode,
             read_only=True,
         )
-        tint_ro: Color = setting(
+        tint_ro: Color = field(
             label="Tint (read-only)",
             description="Read-only mirror of default_color",
             category="mirrors",
@@ -170,14 +170,14 @@ class SettingsNode(BaseNode):
         )
 
         # --- validator ---
-        validated_string: str = setting(
+        validated_string: str = field(
             "hello",
             label="Validated String",
             description="Must be non-empty",
             category="validator",
             validator=lambda v: isinstance(v, str) and len(v) > 0,
         )
-        clamped_positive: float = setting(
+        clamped_positive: float = field(
             1.0,
             min=0.0,
             max=100.0,
@@ -186,7 +186,7 @@ class SettingsNode(BaseNode):
             category="validator",
             validator=lambda v: isinstance(v, (int, float)) and v > 0,
         )
-        even_int: int = setting(
+        even_int: int = field(
             4,
             label="Even Integer",
             description="Must be an even integer",

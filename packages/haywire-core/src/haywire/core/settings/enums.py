@@ -6,9 +6,9 @@ Enums for the settings system.
 from enum import Enum, auto
 
 
-class SettingMode(Enum):
+class FieldMode(Enum):
     """How a setting value should be resolved."""
 
-    AUTO = auto()  # Inherit from parent level (global or default)
-    SET = auto()  # Use this explicit value
-    OVERRIDE = auto()  # Force this value on all children (global only)
+    INHERIT = auto()  # No opinion — defer to next tier up
+    EXPLICIT = auto()  # Deliberate value — wins unless OVERRIDEd
+    OVERRIDE = auto()  # Forced — wins over everything below

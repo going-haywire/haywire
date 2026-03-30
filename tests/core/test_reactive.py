@@ -1,9 +1,9 @@
 # tests/core/test_reactive.py
 """
-Unit tests for haywire.core.settings — setting() descriptor + Settings base class.
+Unit tests for haywire.core.settings — field() descriptor + Settings base class.
 
 Coverage:
-- setting() default values, class-level returns descriptor, instance-level returns value
+- field() default values, class-level returns descriptor, instance-level returns value
 - __set__ fires callbacks, skips when value unchanged
 - to_dict() includes only non-default values
 - from_dict(silent=True) restores without callbacks
@@ -12,11 +12,11 @@ Coverage:
 - .choices property resolves callables
 - _prop_fields() walks MRO correctly
 - Inheritance: subclass adds fields, parent fields preserved
-- FieldDescriptor is the base class of setting
+- FieldDescriptor is the base class of field
 """
 
 import pytest
-from haywire.core.settings import Settings, setting, FieldDescriptor
+from haywire.core.settings import Settings, field, FieldDescriptor
 
 
 # ---------------------------------------------------------------------------
@@ -25,32 +25,32 @@ from haywire.core.settings import Settings, setting, FieldDescriptor
 
 
 class _Simple(Settings):
-    threshold: float = setting(0.5, label="Threshold", min=0.0, max=1.0)
-    verbose: bool = setting(False, label="Verbose")
-    name: str = setting("default", label="Name")
+    threshold: float = field(0.5, label="Threshold", min=0.0, max=1.0)
+    verbose: bool = field(False, label="Verbose")
+    name: str = field("default", label="Name")
 
 
 class _WithChoices(Settings):
-    algorithm: str = setting("fast", choices=["fast", "accurate"])
-    dynamic: str = setting("a", choices=lambda: ["a", "b", "c"])
+    algorithm: str = field("fast", choices=["fast", "accurate"])
+    dynamic: str = field("a", choices=lambda: ["a", "b", "c"])
 
 
 class _Parent(Settings):
-    x: int = setting(1, label="X")
+    x: int = field(1, label="X")
 
 
 class _Child(_Parent):
-    y: int = setting(2, label="Y")
+    y: int = field(2, label="Y")
 
 
 # ---------------------------------------------------------------------------
-# setting descriptor
+# field descriptor
 # ---------------------------------------------------------------------------
 
 
 class TestSettingDescriptor:
     def test_class_level_returns_descriptor(self):
-        assert isinstance(_Simple.threshold, setting)
+        assert isinstance(_Simple.threshold, field)
 
     def test_instance_level_returns_default(self):
         s = _Simple()
@@ -326,7 +326,7 @@ class TestPropFields:
 
 
 class TestInheritance:
-    def test_child_can_set_parent_setting(self):
+    def test_child_can_set_parent_field(self):
         c = _Child()
         c.x = 99
         assert c.x == 99
@@ -342,7 +342,7 @@ class TestInheritance:
         c.from_dict({"x": 7})
         assert c.x == 7
 
-    def test_child_callback_fires_for_parent_setting(self):
+    def test_child_callback_fires_for_parent_field(self):
         c = _Child()
         received = []
         c.subscribe(lambda n, v, o: received.append((n, v)))
@@ -357,8 +357,8 @@ class TestInheritance:
 
 class TestFieldDescriptorAncestry:
     def test_setting_is_field_descriptor(self):
-        assert issubclass(setting, FieldDescriptor)
+        assert issubclass(field, FieldDescriptor)
         assert isinstance(_Simple.threshold, FieldDescriptor)
 
     def test_setting_subclasses_only(self):
-        assert issubclass(setting, FieldDescriptor)
+        assert issubclass(field, FieldDescriptor)

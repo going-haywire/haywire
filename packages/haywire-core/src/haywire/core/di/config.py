@@ -335,7 +335,7 @@ class LibrarySystemService:
 
     def _print_settings_status(self, registry: SettingsRegistry) -> None:
         """Print settings registry status."""
-        from ..settings import SettingMode
+        from ..settings import FieldMode
 
         definitions = registry.all_definitions()
         categories = registry.definitions_by_category()
@@ -345,9 +345,9 @@ class LibrarySystemService:
         custom_values = 0
         for name in definitions:
             sv = registry.get_global(name)
-            if sv.mode == SettingMode.OVERRIDE:
+            if sv.mode == FieldMode.OVERRIDE:
                 overrides += 1
-            elif sv.mode == SettingMode.SET:
+            elif sv.mode == FieldMode.EXPLICIT:
                 custom_values += 1
 
         print(f"   Total settings:     {len(definitions)}")
@@ -619,10 +619,10 @@ class LibrarySystemService:
             value: Value to set
             override: If True, force this value on all nodes
         """
-        from ..settings import SettingMode
+        from ..settings import FieldMode
 
         registry = self.get_settings_registry()
-        mode = SettingMode.OVERRIDE if override else SettingMode.SET
+        mode = FieldMode.OVERRIDE if override else FieldMode.EXPLICIT
         registry.set_global(name, value, mode)
 
     def save_settings(self) -> None:

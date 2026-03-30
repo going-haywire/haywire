@@ -1,7 +1,7 @@
 # haywire/ui/prefs/debug.py
 """Debug and development preference singleton."""
 
-from haywire.core.settings import setting
+from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
 _LEVEL_CHOICES = ["DEBUG", "INFO", "WARNING", "ERROR"]
@@ -12,7 +12,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
     """Global preferences for debug features."""
 
     # Logging — global baseline
-    log_level: str = setting(
+    log_level: str = field(
         "INFO",
         label="Log Level",
         description="Minimum log level for the haywire root logger",
@@ -22,7 +22,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
     )
 
     # Per-subsystem overrides ("" = inherit from log_level)
-    log_execution: str = setting(
+    log_execution: str = field(
         "",
         label="Execution",
         description="Log level for haywire.core.execution ('' = inherit)",
@@ -30,7 +30,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         order=20,
         choices=_GROUP_CHOICES,
     )
-    log_assembly: str = setting(
+    log_assembly: str = field(
         "",
         label="Assembly",
         description="Log level for haywire.core.assembly ('' = inherit)",
@@ -38,7 +38,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         order=30,
         choices=_GROUP_CHOICES,
     )
-    log_graph: str = setting(
+    log_graph: str = field(
         "",
         label="Graph",
         description="Log level for haywire.core.graph ('' = inherit)",
@@ -46,7 +46,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         order=40,
         choices=_GROUP_CHOICES,
     )
-    log_node: str = setting(
+    log_node: str = field(
         "",
         label="Node",
         description="Log level for haywire.core.node ('' = inherit)",
@@ -54,7 +54,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         order=50,
         choices=_GROUP_CHOICES,
     )
-    log_settings: str = setting(
+    log_settings: str = field(
         "",
         label="Settings",
         description="Log level for haywire.core.settings ('' = inherit)",
@@ -62,7 +62,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         order=60,
         choices=_GROUP_CHOICES,
     )
-    log_library: str = setting(
+    log_library: str = field(
         "",
         label="Library",
         description="Log level for haywire.core.library ('' = inherit)",
@@ -70,7 +70,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         order=70,
         choices=_GROUP_CHOICES,
     )
-    log_registry: str = setting(
+    log_registry: str = field(
         "",
         label="Registry",
         description="Log level for haywire.core.registry ('' = inherit)",
@@ -78,7 +78,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         order=80,
         choices=_GROUP_CHOICES,
     )
-    log_ui: str = setting(
+    log_ui: str = field(
         "",
         label="UI",
         description="Log level for haywire.ui ('' = inherit)",
@@ -87,7 +87,7 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         choices=_GROUP_CHOICES,
     )
 
-    log_to_file: bool = setting(
+    log_to_file: bool = field(
         False,
         label="Log to File",
         description="Write logs to file in addition to console",

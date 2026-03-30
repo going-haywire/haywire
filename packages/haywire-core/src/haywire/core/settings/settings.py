@@ -2,11 +2,11 @@
 """
 Settings — observable setting container for Haywire.
 
-Subclass and declare fields with ``setting()``:
+Subclass and declare fields with ``field()``:
 
     class FilterSettings(Settings):
-        strength: float = setting(0.5, min=0.0, max=1.0, label='Strength')
-        mode:     str   = setting('fast', choices=['fast', 'precise'])
+        strength: float = field(0.5, min=0.0, max=1.0, label='Strength')
+        mode:     str   = field('fast', choices=['fast', 'precise'])
 
 Simple mode (no registry):
     Direct _local_store lookup.  Zero overhead.  Used by NodeProperties and
@@ -14,12 +14,12 @@ Simple mode (no registry):
 
 Extended mode (registry injected by @node decorator):
     Reads go through _resolve() — full resolution chain (TOML tiers).
-    mirrors= on a setting links to a FrameworkSettings/LibrarySettings field.
-    read_only=True on a setting prevents per-instance writes (watch behaviour).
+    mirrors= on a field links to a FrameworkSettings/LibrarySettings field.
+    read_only=True on a field prevents per-instance writes (watch behaviour).
 
 Supports:
 - Direct attribute access (``obj.field = value``)
-- on_change callbacks (``setting(on_change='method_name')``)
+- on_change callbacks (``field(on_change='method_name')``)
 - Change notification (``obj.subscribe(callback)``)
 - Serialization (``to_dict()`` / ``from_dict()``)
 - Reset (``reset(name)`` / ``reset_all()``)
@@ -32,7 +32,7 @@ import weakref
 import logging
 from typing import Any, Callable, TYPE_CHECKING
 
-from .descriptor import setting
+from .descriptor import field
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -44,7 +44,7 @@ class Settings:
     """
     Base Settings class for observable settings.
 
-    Subclasses declare typed fields using ``setting()``.  When a
+    Subclasses declare typed fields using ``field()``.  When a
     ``SettingsRegistry`` is injected (extended mode), ``setting`` fields
     gain full TOML-tier resolution.
     """
@@ -65,13 +65,13 @@ class Settings:
         Full resolution chain (extended mode):
             global OVERRIDE > workspace OVERRIDE > local SET > workspace SET > global SET > default
         """
-        from haywire.core.settings.value import SettingValue
-        from haywire.core.settings.enums import SettingMode
+        from haywire.core.settings.value import FieldValue
+        from haywire.core.settings.enums import FieldMode
 
         registry = self._registry
         key = mirror_key if mirror_key else field_key
         local_sv = (
-            SettingValue(mode=SettingMode.SET, value=self._local_store[field_key])
+            FieldValue(mode=FieldMode.EXPLICIT, value=self._local_store[field_key])
             if field_key in self._local_store
             else None
         )
@@ -131,7 +131,7 @@ class Settings:
             pass
 
     # -------------------------------------------------------------------------
-    # Change hook (called by setting.__set__)
+    # Change hook (called by field.__set__)
     # -------------------------------------------------------------------------
 
     def _on_prop_change(self, name: str, value: Any, old: Any) -> None:
@@ -244,11 +244,11 @@ class Settings:
         return key in self._local_store
 
     @classmethod
-    def _prop_fields(cls) -> dict[str, setting]:
-        """Return all setting descriptors defined on this class (walks MRO, base-first)."""
-        result: dict[str, setting] = {}
+    def _prop_fields(cls) -> dict[str, field]:
+        """Return all field descriptors defined on this class (walks MRO, base-first)."""
+        result: dict[str, field] = {}
         for klass in reversed(cls.__mro__):
             for name, val in klass.__dict__.items():
-                if isinstance(val, setting):
+                if isinstance(val, field):
                     result[name] = val
         return result

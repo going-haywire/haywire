@@ -12,11 +12,11 @@ from injector import Injector
 
 from ..settings import (
     SettingsRegistry,
-    SettingMode,
-    SettingValue,
+    FieldMode,
+    FieldValue,
     FrameworkSettings,
     Settings,
-    setting,
+    field,
     Color,
 )
 
@@ -32,8 +32,8 @@ if TYPE_CHECKING:
 class _TestFrameworkSettings(FrameworkSettings, namespace="test.global"):
     """Minimal FrameworkSettings for unit tests that need registered global keys."""
 
-    verbose_logging: bool = setting(False, label="Verbose Logging")
-    font_size: int = setting(12, label="Font Size", min=8, max=72)
+    verbose_logging: bool = field(False, label="Verbose Logging")
+    font_size: int = field(12, label="Font Size", min=8, max=72)
 
 
 class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
@@ -48,24 +48,24 @@ class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
       - color  → ui.color_input
     """
 
-    flag: bool = setting(True, label="Flag", description="Boolean — renders as switch", category="types")
-    count: int = setting(
+    flag: bool = field(True, label="Flag", description="Boolean — renders as switch", category="types")
+    count: int = field(
         3, min=0, max=10, label="Count", description="Integer — renders as NumberDrag", category="types"
     )
-    ratio: float = setting(
+    ratio: float = field(
         0.5, min=0.0, max=1.0, label="Ratio", description="Float — renders as NumberDrag", category="types"
     )
-    label: str = setting(
+    label: str = field(
         "hello", label="Label", description="String — renders as text input", category="types"
     )
-    mode: str = setting(
+    mode: str = field(
         "fast",
         choices=["fast", "balanced", "quality"],
         label="Mode",
         description="Choices — renders as dropdown",
         category="types",
     )
-    tint: Color = setting(
+    tint: Color = field(
         "#ff0000",
         label="Tint",
         description="Color — renders as color picker",
@@ -158,10 +158,10 @@ def create_test_settings_registry(
     if predefined_settings:
         for name, value in predefined_settings.items():
             if registry.has_definition(name):
-                registry.set_global(name, value, SettingMode.SET, tier="global")
+                registry.set_global(name, value, FieldMode.EXPLICIT, tier="global")
             else:
                 registry.define(name, value)
-                registry.set_global(name, value, SettingMode.SET, tier="global")
+                registry.set_global(name, value, FieldMode.EXPLICIT, tier="global")
 
     return registry
 
@@ -185,7 +185,7 @@ def create_test_bag(
 
     Example:
         class MySettings(Settings):
-            strength: float = setting(0.5, min=0.0, max=1.0)
+            strength: float = field(0.5, min=0.0, max=1.0)
 
         registry, bag = create_test_bag(MySettings, predefined_local={'strength': 0.8})
         assert bag.strength == 0.8
@@ -193,9 +193,9 @@ def create_test_bag(
     if bag_cls is None:
 
         class _DefaultTestBag(Settings):
-            bg_color: str = setting("#ffffff", label="Background Color")
-            font_size: int = setting(12, min=8, max=72, label="Font Size")
-            verbose: bool = setting(False, label="Verbose Mode")
+            bg_color: str = field("#ffffff", label="Background Color")
+            font_size: int = field(12, min=8, max=72, label="Font Size")
+            verbose: bool = field(False, label="Verbose Mode")
 
         bag_cls = _DefaultTestBag
 
@@ -232,7 +232,7 @@ class SettingsTestContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for name, original in self._original_values.items():
-            if original is None or original.mode == SettingMode.AUTO:
+            if original is None or original.mode == FieldMode.INHERIT:
                 self.registry.reset_global(name, tier="workspace")
             else:
                 self.registry.set_global(name, original.value, original.mode, tier="workspace")
@@ -241,12 +241,12 @@ class SettingsTestContext:
     def set(self, name: str, value: Any) -> None:
         """Set a setting value (SET mode)."""
         self._save_original(name)
-        self.registry.set_global(name, value, SettingMode.SET)
+        self.registry.set_global(name, value, FieldMode.EXPLICIT)
 
     def set_override(self, name: str, value: Any) -> None:
         """Set a setting value with OVERRIDE mode."""
         self._save_original(name)
-        self.registry.set_global(name, value, SettingMode.OVERRIDE)
+        self.registry.set_global(name, value, FieldMode.OVERRIDE)
 
     def reset(self, name: str) -> None:
         """Reset a setting to AUTO."""
@@ -256,4 +256,4 @@ class SettingsTestContext:
     def _save_original(self, name: str) -> None:
         if name not in self._original_values:
             sv = self.registry.get_global(name)
-            self._original_values[name] = SettingValue(mode=sv.mode, value=sv.value) if sv else None
+            self._original_values[name] = FieldValue(mode=sv.mode, value=sv.value) if sv else None

@@ -2,7 +2,7 @@
 """Node default skin settings."""
 
 from haywire.core.settings.schema import FrameworkSettings
-from haywire.core.settings import setting
+from haywire.core.settings import field
 
 
 def _node_skin_choices():
@@ -29,7 +29,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace="ui.node.default.skin
     """
 
     # Visibility
-    default_skin: str = setting(
+    default_skin: str = field(
         default=_default_skin,
         label="Default NodeSkin",
         description="Current default node skin",
@@ -37,7 +37,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace="ui.node.default.skin
         widget="label",
         order=10,
     )
-    studio_skin: str = setting(
+    studio_skin: str = field(
         default=_default_skin,
         label="Default Studio Skin",
         description="Studio default node skin",

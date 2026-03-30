@@ -24,9 +24,9 @@ try:
 except ImportError:
     toml = None
 
-from .enums import SettingMode
-from .value import SettingValue
-from .descriptor import setting
+from .enums import FieldMode
+from .value import FieldValue
+from .descriptor import field
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 
@@ -98,13 +98,13 @@ class SettingsRegistry(BaseRegistry):
         super().__init__()  # sets up BaseRegistry state: _classes, _dependency_graph, etc.
 
         self._lock = threading.RLock()
-        self._definitions: dict[str, setting] = {}
+        self._definitions: dict[str, field] = {}
 
         # Two-tier global value storage
-        self._global_tier_values: dict[str, SettingValue] = {}
-        self._workspace_tier_values: dict[str, SettingValue] = {}
+        self._global_tier_values: dict[str, FieldValue] = {}
+        self._workspace_tier_values: dict[str, FieldValue] = {}
 
-        self._listeners: list[Callable[[str, SettingValue], None]] = []
+        self._listeners: list[Callable[[str, FieldValue], None]] = []
         self._categories: dict[str, list[str]] = {}
 
         # Track which definitions came from TOML (vs code)
@@ -122,9 +122,6 @@ class SettingsRegistry(BaseRegistry):
 
         # Namespace-scoped weak-ref subscriptions for holder cache invalidation (Option B)
         self._namespace_subscribers: dict[str, list[weakref.ref]] = {}
-
-        # Arbitrary per-key metadata attached via define(..., metadata={...})
-        self._definition_metadata: dict[str, dict] = {}
 
         # Drain FrameworkSettings classes that were defined before the registry existed
         self._drain_pending_global()
@@ -181,27 +178,27 @@ class SettingsRegistry(BaseRegistry):
                 descriptor._field_key, descriptor, category=descriptor._category or "general"
             )
 
-    def _notify_listeners(self, name: str, sv: "SettingValue") -> None:
+    def _notify_listeners(self, name: str, sv: "FieldValue") -> None:
         for listener in self._listeners:
             try:
                 listener(name, sv)
             except Exception as e:
                 logger.error(f"Listener error for {name}: {e}")
 
-    def _store_definition(self, name: str, descriptor: setting, category: str = "general") -> None:
+    def _store_definition(self, name: str, descriptor: field, category: str = "general") -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
         is_new = name not in self._definitions
         self._definitions[name] = descriptor
         if name not in self._global_tier_values:
-            self._global_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
+            self._global_tier_values[name] = FieldValue(mode=FieldMode.INHERIT)
         if name not in self._workspace_tier_values:
-            self._workspace_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
+            self._workspace_tier_values[name] = FieldValue(mode=FieldMode.INHERIT)
         if category not in self._categories:
             self._categories[category] = []
         if name not in self._categories[category]:
             self._categories[category].append(name)
         if is_new:
-            self._notify_listeners(name, SettingValue(mode=SettingMode.AUTO))
+            self._notify_listeners(name, FieldValue(mode=FieldMode.INHERIT))
 
     def _unregister_schema_fields(self, schema_cls) -> None:
         """Remove all descriptor fields of a schema class from definitions."""
@@ -341,7 +338,7 @@ class SettingsRegistry(BaseRegistry):
 
             # Reset this tier's values to AUTO (file is the source of truth for this tier)
             for name in self._definitions:
-                tier_dict[name] = SettingValue(mode=SettingMode.AUTO)
+                tier_dict[name] = FieldValue(mode=FieldMode.INHERIT)
 
             # Clear TOML-defined definitions that originated from this tier's file
             for name in list(self._toml_defined):
@@ -394,32 +391,32 @@ class SettingsRegistry(BaseRegistry):
 
         return result
 
-    def _process_entry(self, name: str, entry: Any, tier_dict: dict[str, SettingValue]) -> None:
+    def _process_entry(self, name: str, entry: Any, tier_dict: dict[str, FieldValue]) -> None:
         """Process a single TOML entry into the given tier dict."""
         if isinstance(entry, dict):
             parsed = self._parse_config_dict(name, entry)
         else:
             parsed = {
                 "value": entry,
-                "mode": SettingMode.SET,
+                "mode": FieldMode.EXPLICIT,
             }
 
         if name not in self._definitions:
             self._auto_define(name, parsed)
 
-        if "value" in parsed and parsed.get("mode") != SettingMode.AUTO:
-            tier_dict[name] = SettingValue(mode=parsed.get("mode", SettingMode.SET), value=parsed["value"])
+        if "value" in parsed and parsed.get("mode") != FieldMode.INHERIT:
+            tier_dict[name] = FieldValue(mode=parsed.get("mode", FieldMode.EXPLICIT), value=parsed["value"])
 
     def _parse_config_dict(self, name: str, config: dict) -> dict:
         """Parse a configuration dict from TOML."""
         result = {}
 
         if config.get("override", False):
-            result["mode"] = SettingMode.OVERRIDE
+            result["mode"] = FieldMode.OVERRIDE
         elif config.get("mode"):
-            result["mode"] = SettingMode[config["mode"].upper()]
+            result["mode"] = FieldMode[config["mode"].upper()]
         else:
-            result["mode"] = SettingMode.SET
+            result["mode"] = FieldMode.EXPLICIT
 
         if "value" in config:
             result["value"] = config["value"]
@@ -471,7 +468,7 @@ class SettingsRegistry(BaseRegistry):
             parts = name.split(".")
             category = ".".join(parts[:-1]) if len(parts) > 1 else "general"
 
-        d = setting(
+        d = field(
             default=default,
             type_=type_,
             label=label,
@@ -496,7 +493,7 @@ class SettingsRegistry(BaseRegistry):
         changed_keys: set[str] = set()
 
         for name in all_names:
-            old = old_effective.get(name, (SettingMode.AUTO, None))
+            old = old_effective.get(name, (FieldMode.INHERIT, None))
             new = self._effective_value(name)
 
             if (new.mode, new.value) != old:
@@ -545,10 +542,10 @@ class SettingsRegistry(BaseRegistry):
 
         with self._lock:
             for name, sv in sorted(self._workspace_tier_values.items()):
-                if sv.mode == SettingMode.AUTO:
+                if sv.mode == FieldMode.INHERIT:
                     continue
 
-                if sv.mode == SettingMode.SET:
+                if sv.mode == FieldMode.EXPLICIT:
                     entry = sv.value
                 else:
                     entry = {"override": True, "value": sv.value}
@@ -650,7 +647,7 @@ class SettingsRegistry(BaseRegistry):
         ui_widget: str | None = None,
         ui_order: int = 0,
         metadata: dict | None = None,
-    ) -> setting:
+    ) -> field:
         """
         Define a setting from code (authoritative schema).
 
@@ -659,7 +656,7 @@ class SettingsRegistry(BaseRegistry):
         with self._lock:
             self._toml_defined.discard(name)
 
-            d = setting(
+            d = field(
                 default=default,
                 type_=type_ or (type(default) if default is not None else str),
                 validator=validator,
@@ -671,23 +668,18 @@ class SettingsRegistry(BaseRegistry):
                 choices=choices,
                 widget=ui_widget,
                 order=ui_order,
+                metadata=metadata,
             )
             d._attr_name = name.split(".")[-1]
             d._field_key = name
 
             self._store_definition(name, d, category=category)
-            if metadata:
-                self._definition_metadata[name] = metadata
             return d
-
-    def get_definition_metadata(self, name: str) -> dict:
-        """Return the metadata dict attached to a key via define(..., metadata=...), or {}."""
-        return self._definition_metadata.get(name, {})
 
     def undefine(self, name: str) -> None:
         """Remove a programmatically-defined setting key.
 
-        Notifies listeners with a SettingValue(mode=AUTO, value=None) sentinel
+        Notifies listeners with a FieldValue(mode=AUTO, value=None) sentinel
         so subscribers (e.g. LoggingConfigurator) can react to the removal.
         No-op if the key is not defined.
         """
@@ -698,23 +690,22 @@ class SettingsRegistry(BaseRegistry):
             self._global_tier_values.pop(name, None)
             self._workspace_tier_values.pop(name, None)
             self._toml_defined.discard(name)
-            self._definition_metadata.pop(name, None)
             for cat_names in self._categories.values():
                 if name in cat_names:
                     cat_names.remove(name)
-        self._notify_listeners(name, SettingValue(mode=SettingMode.AUTO))
+        self._notify_listeners(name, FieldValue(mode=FieldMode.INHERIT))
         self._notify_namespace_subscribers({name})
 
     def has_definition(self, name: str) -> bool:
         return name in self._definitions
 
-    def get_definition(self, name: str) -> setting | None:
+    def get_definition(self, name: str) -> field | None:
         return self._definitions.get(name)
 
-    def all_definitions(self) -> dict[str, setting]:
+    def all_definitions(self) -> dict[str, field]:
         return dict(self._definitions)
 
-    def definitions_by_category(self) -> dict[str, list[setting]]:
+    def definitions_by_category(self) -> dict[str, list[field]]:
         result = {}
         for category, names in self._categories.items():
             defns = [self._definitions[n] for n in names if n in self._definitions]
@@ -726,27 +717,27 @@ class SettingsRegistry(BaseRegistry):
     # Value Access
     # =========================================================================
 
-    def _effective_value(self, name: str) -> SettingValue:
+    def _effective_value(self, name: str) -> FieldValue:
         """
         Return the merged effective global value for a name.
 
         Priority: global OVERRIDE > workspace OVERRIDE > workspace SET > global SET > AUTO
         Used internally for change detection and by get_global().
         """
-        global_sv = self._global_tier_values.get(name, SettingValue())
-        workspace_sv = self._workspace_tier_values.get(name, SettingValue())
+        global_sv = self._global_tier_values.get(name, FieldValue())
+        workspace_sv = self._workspace_tier_values.get(name, FieldValue())
 
-        if global_sv.mode == SettingMode.OVERRIDE:
+        if global_sv.mode == FieldMode.OVERRIDE:
             return global_sv
-        if workspace_sv.mode == SettingMode.OVERRIDE:
+        if workspace_sv.mode == FieldMode.OVERRIDE:
             return workspace_sv
-        if workspace_sv.mode == SettingMode.SET:
+        if workspace_sv.mode == FieldMode.EXPLICIT:
             return workspace_sv
-        if global_sv.mode == SettingMode.SET:
+        if global_sv.mode == FieldMode.EXPLICIT:
             return global_sv
-        return SettingValue()  # AUTO
+        return FieldValue()  # AUTO
 
-    def get_global(self, name: str) -> SettingValue:
+    def get_global(self, name: str) -> FieldValue:
         """
         Get the merged effective global value (workspace tier beats global tier).
 
@@ -754,22 +745,22 @@ class SettingsRegistry(BaseRegistry):
         """
         return self._effective_value(name)
 
-    def get_global_tier(self, name: str, tier: str = "workspace") -> SettingValue:
+    def get_global_tier(self, name: str, tier: str = "workspace") -> FieldValue:
         """
-        Get the raw SettingValue for a specific tier ('global' or 'workspace').
+        Get the raw FieldValue for a specific tier ('global' or 'workspace').
 
         Use this for introspection (e.g. get_info() UI display) when you need
         to distinguish which tier a value came from.
         """
         if tier == "global":
-            return self._global_tier_values.get(name, SettingValue())
-        return self._workspace_tier_values.get(name, SettingValue())
+            return self._global_tier_values.get(name, FieldValue())
+        return self._workspace_tier_values.get(name, FieldValue())
 
     def set_global(
         self,
         name: str,
         value: Any,
-        mode: SettingMode = SettingMode.SET,
+        mode: FieldMode = FieldMode.EXPLICIT,
         tier: str = "workspace",
     ) -> None:
         """
@@ -778,7 +769,7 @@ class SettingsRegistry(BaseRegistry):
         Args:
             name:  Full setting key (e.g. 'ui.node.bg_color').
             value: New value.
-            mode:  SettingMode.SET (default) or SettingMode.OVERRIDE.
+            mode:  FieldMode.EXPLICIT (default) or FieldMode.OVERRIDE.
             tier:  'workspace' (default, saved by UI) or 'global' (hand-edited).
         """
         tier_dict = self._workspace_tier_values if tier == "workspace" else self._global_tier_values
@@ -788,11 +779,11 @@ class SettingsRegistry(BaseRegistry):
                 raise KeyError(f"Unknown setting: {name}")
 
             defn = self._definitions[name]
-            if mode != SettingMode.AUTO and not defn.validate(value):
+            if mode != FieldMode.INHERIT and not defn.validate(value):
                 raise ValueError(f"Invalid value for '{name}': {value}")
 
             old_effective = (self._effective_value(name).mode, self._effective_value(name).value)
-            tier_dict[name] = SettingValue(mode=mode, value=value)
+            tier_dict[name] = FieldValue(mode=mode, value=value)
             new_effective = self._effective_value(name)
 
             if (new_effective.mode, new_effective.value) != old_effective:
@@ -812,7 +803,7 @@ class SettingsRegistry(BaseRegistry):
         with self._lock:
             if name in tier_dict:
                 old_effective = (self._effective_value(name).mode, self._effective_value(name).value)
-                tier_dict[name] = SettingValue(mode=SettingMode.AUTO)
+                tier_dict[name] = FieldValue(mode=FieldMode.INHERIT)
                 new_effective = self._effective_value(name)
 
                 if (new_effective.mode, new_effective.value) != old_effective:
@@ -823,7 +814,7 @@ class SettingsRegistry(BaseRegistry):
     # Resolution
     # =========================================================================
 
-    def resolve(self, name: str, local: SettingValue | None = None) -> tuple[Any, str]:
+    def resolve(self, name: str, local: FieldValue | None = None) -> tuple[Any, str]:
         """
         Resolve the final value for a setting given an optional local override.
 
@@ -843,23 +834,23 @@ class SettingsRegistry(BaseRegistry):
         if not defn:
             raise KeyError(f"Unknown setting: {name}")
 
-        global_sv = self._global_tier_values.get(name, SettingValue())
-        workspace_sv = self._workspace_tier_values.get(name, SettingValue())
-        local = local or SettingValue()
+        global_sv = self._global_tier_values.get(name, FieldValue())
+        workspace_sv = self._workspace_tier_values.get(name, FieldValue())
+        local = local or FieldValue()
 
-        if global_sv.mode == SettingMode.OVERRIDE:
+        if global_sv.mode == FieldMode.OVERRIDE:
             return global_sv.value, "global_override"
 
-        if workspace_sv.mode == SettingMode.OVERRIDE:
+        if workspace_sv.mode == FieldMode.OVERRIDE:
             return workspace_sv.value, "workspace_override"
 
-        if local.mode == SettingMode.SET:
+        if local.mode == FieldMode.EXPLICIT:
             return local.value, "local"
 
-        if workspace_sv.mode == SettingMode.SET:
+        if workspace_sv.mode == FieldMode.EXPLICIT:
             return workspace_sv.value, "workspace"
 
-        if global_sv.mode == SettingMode.SET:
+        if global_sv.mode == FieldMode.EXPLICIT:
             return global_sv.value, "global"
 
         default = defn._default() if callable(defn._default) else defn._default
@@ -869,14 +860,14 @@ class SettingsRegistry(BaseRegistry):
     # Listeners
     # =========================================================================
 
-    def add_listener(self, callback: Callable[[str, SettingValue], None]) -> None:
+    def add_listener(self, callback: Callable[[str, FieldValue], None]) -> None:
         """
-        Add a listener callback that gets called with 
+        Add a listener callback that gets called with
         (name, new_effective_value) on any change of any setting.
         """
         self._listeners.append(callback)
 
-    def remove_listener(self, callback: Callable[[str, SettingValue], None]) -> None:
+    def remove_listener(self, callback: Callable[[str, FieldValue], None]) -> None:
         """Remove a listener callback."""
         if callback in self._listeners:
             self._listeners.remove(callback)
@@ -893,7 +884,7 @@ class SettingsRegistry(BaseRegistry):
         """
         return list(self._classes.values())
 
-    def definitions_for_schema(self, schema_cls: type) -> dict[str, setting]:
+    def definitions_for_schema(self, schema_cls: type) -> dict[str, field]:
         """
         Return all definitions that belong to *schema_cls*, keyed by full_key.
 

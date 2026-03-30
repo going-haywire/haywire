@@ -12,7 +12,7 @@ Verifies:
 """
 
 import pytest
-from haywire.core.settings import Settings, setting, FrameworkSettings, LibrarySettings, FieldDescriptor
+from haywire.core.settings import Settings, field, FrameworkSettings, LibrarySettings, FieldDescriptor
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.decorator import settings
 
@@ -28,24 +28,24 @@ class TestFrameworkSettingsExtendsSettings:
 
     def test_direct_subclass_is_settings_subclass(self):
         class FooGS(FrameworkSettings, namespace="foo"):
-            x: int = setting(1)
+            x: int = field(1)
 
         assert issubclass(FooGS, Settings)
 
     def test_prop_fields_returns_descriptors(self):
         class BarGS(FrameworkSettings, namespace="bar"):
-            alpha: int = setting(7, label="Alpha")
-            beta: str = setting("hello", label="Beta")
+            alpha: int = field(7, label="Alpha")
+            beta: str = field("hello", label="Beta")
 
         fields = BarGS._prop_fields()
         assert "alpha" in fields
         assert "beta" in fields
-        assert isinstance(fields["alpha"], setting)
-        assert isinstance(fields["beta"], setting)
+        assert isinstance(fields["alpha"], field)
+        assert isinstance(fields["beta"], field)
 
     def test_namespace_sets_field_key(self):
         class NsGS(FrameworkSettings, namespace="ns.test"):
-            val: float = setting(3.14)
+            val: float = field(3.14)
 
         fields = NsGS._prop_fields()
         assert fields["val"]._field_key == "ns.test.val"
@@ -54,15 +54,15 @@ class TestFrameworkSettingsExtendsSettings:
         """Class-level access returns the setting descriptor (used for mirrors=)."""
 
         class ClsGS(FrameworkSettings, namespace="cls.gs"):
-            count: int = setting(0)
+            count: int = field(0)
 
-        assert isinstance(ClsGS.count, setting)
+        assert isinstance(ClsGS.count, field)
 
     def test_no_namespace_does_not_set_field_key(self):
         """Without namespace=, _field_key is empty (set by decorator or register_schema)."""
 
         class NoNsGS(FrameworkSettings):
-            val: int = setting(5)
+            val: int = field(5)
 
         fields = NoNsGS._prop_fields()
         # _field_key should NOT be set since no namespace
@@ -80,11 +80,11 @@ class TestLibrarySettingsExtendsSettings:
 
     def test_prop_fields_returns_descriptors(self):
         class FooLS(LibrarySettings):
-            rate: int = setting(4, min=1, max=20)
+            rate: int = field(4, min=1, max=20)
 
         fields = FooLS._prop_fields()
         assert "rate" in fields
-        assert isinstance(fields["rate"], setting)
+        assert isinstance(fields["rate"], field)
 
 
 # ---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ class TestDeepInheritanceBlocked:
         """Directly subclassing FrameworkSettings must succeed."""
 
         class DirectGS(FrameworkSettings, namespace="direct.gs"):
-            x: int = setting(0)
+            x: int = field(0)
 
         assert issubclass(DirectGS, FrameworkSettings)
 
@@ -105,18 +105,18 @@ class TestDeepInheritanceBlocked:
         """Subclassing a FrameworkSettings subclass must raise TypeError."""
 
         class DirectGS(FrameworkSettings, namespace="deep.gs"):
-            x: int = setting(0)
+            x: int = field(0)
 
         with pytest.raises(TypeError, match="Subclassing a FrameworkSettings subclass"):
 
             class DeepGS(DirectGS):
-                y: int = setting(1)
+                y: int = field(1)
 
     def test_librarySettings_direct_subclass_allowed(self):
         """Directly subclassing LibrarySettings must succeed."""
 
         class DirectLS(LibrarySettings):
-            x: int = setting(0)
+            x: int = field(0)
 
         assert issubclass(DirectLS, LibrarySettings)
 
@@ -124,12 +124,12 @@ class TestDeepInheritanceBlocked:
         """Subclassing a LibrarySettings subclass must raise TypeError."""
 
         class DirectLS(LibrarySettings):
-            x: int = setting(0)
+            x: int = field(0)
 
         with pytest.raises(TypeError, match="Subclassing a LibrarySettings subclass"):
 
             class DeepLS(DirectLS):
-                y: int = setting(1)
+                y: int = field(1)
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +142,7 @@ class TestRegistryReadsPropFields:
         """register_schema() correctly reads _prop_fields() from FrameworkSettings class."""
 
         class RegGS(FrameworkSettings, namespace="reg.gs"):
-            value: int = setting(99)
+            value: int = field(99)
 
         registry = SettingsRegistry()
         registry.register_schema(RegGS)
@@ -154,7 +154,7 @@ class TestRegistryReadsPropFields:
         """registry.define() returns a setting instance."""
         registry = SettingsRegistry()
         d = registry.define("prog.val", 42)
-        assert isinstance(d, setting)
+        assert isinstance(d, field)
         assert d._default == 42
 
     def test_auto_define_creates_setting_instance(self):
@@ -175,7 +175,7 @@ class TestRegistryReadsPropFields:
             registry.load_from_toml(path, tier="workspace")
             defn = registry.get_definition("auto.val")
             assert defn is not None
-            assert isinstance(defn, setting)
+            assert isinstance(defn, field)
             assert defn._default == 123
         finally:
             os.unlink(path)
@@ -185,8 +185,8 @@ class TestRegistryReadsPropFields:
 
         @settings(namespace="dec.ls")
         class DecLS(LibrarySettings):
-            speed: float = setting(1.0)
-            mode: str = setting("fast")
+            speed: float = field(1.0)
+            mode: str = field("fast")
 
         fields = DecLS._prop_fields()
         assert fields["speed"]._field_key == "dec.ls.speed"

@@ -2,13 +2,13 @@
 """
 NodeSettings — base class for node-local settings.
 
-Subclass inside a @node class body and declare fields with ``setting()``:
+Subclass inside a @node class body and declare fields with ``field()``:
 
     @node(node_type=NodeType.DATA)
     class FilterNode(BaseNode):
         class Settings(NodeSettings):
-            strength: float = setting(0.5, min=0.0, max=1.0, label='Strength')
-            mode:     str   = setting('fast', choices=['fast', 'precise'])
+            strength: float = field(0.5, min=0.0, max=1.0, label='Strength')
+            mode:     str   = field('fast', choices=['fast', 'precise'])
 
 NodeSettings are:
 - Purely local — values never enter the registry
@@ -29,7 +29,7 @@ class NodeSettings(Settings):
     Base class for node-local settings.
 
     Declare as an inner class on a @node class.  The @node decorator assigns
-    ``_field_key`` to each ``setting()`` descriptor, and the node instance
+    ``_field_key`` to each ``field()`` descriptor, and the node instance
     injects the registry at construction for mirror/read_only resolution.
 
     NodeSettings are never registered with SettingsRegistry.

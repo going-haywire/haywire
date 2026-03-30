@@ -2,7 +2,7 @@
 """
 WorkbenchTheme — CSS variable definitions for the app shell.
 
-Fields are plain Color string class attributes (NOT setting() descriptors).
+Fields are plain Color string class attributes (NOT field() descriptors).
 WorkbenchTheme.__init_subclass__ auto-wraps them into minimal objects so that
 _fields is populated uniformly and to_css_vars() works without extra boilerplate.
 """

@@ -2,7 +2,7 @@
 """Node layout and visibility settings for the haybale-core skin implementations."""
 
 from haywire.core.settings.schema import LibrarySettings
-from haywire.core.settings import setting
+from haywire.core.settings import field
 from haywire.core.settings.decorator import settings
 
 @settings(namespace="ui.node.skin", label="Node Skin")
@@ -14,21 +14,21 @@ class NodeSkinSettings(LibrarySettings):
     """
 
     # Visibility
-    show_labels: bool = setting(
+    show_labels: bool = field(
         True,
         label="Show Port Labels",
         description="Display labels next to ports",
         category="visibility",
         order=10,
     )
-    show_tooltips: bool = setting(
+    show_tooltips: bool = field(
         True,
         label="Show Tooltips",
         description="Display tooltips on port hover",
         category="visibility",
         order=20,
     )
-    show_resize_handle: bool = setting(
+    show_resize_handle: bool = field(
         True,
         label="Show Resize Handle",
         description="Display the drag handle for resizing nodes",
@@ -37,7 +37,7 @@ class NodeSkinSettings(LibrarySettings):
     )
 
     # Pin geometry
-    pin_gutter: int = setting(
+    pin_gutter: int = field(
         20,
         label="Pin Gutter",
         description="Width of the pin column in pixels",
@@ -46,7 +46,7 @@ class NodeSkinSettings(LibrarySettings):
         min=12,
         max=40,
     )
-    pin_protrusion: int = setting(
+    pin_protrusion: int = field(
         0,
         label="Pin Protrusion",
         description="How far the pin center sits outside the card edge (px). "
@@ -56,7 +56,7 @@ class NodeSkinSettings(LibrarySettings):
         min=-20,
         max=20,
     )
-    content_gap: int = setting(
+    content_gap: int = field(
         -15,
         label="Content Gap",
         description="Offset between pin gutter edge and port label (px). "
@@ -66,7 +66,7 @@ class NodeSkinSettings(LibrarySettings):
         min=-20,
         max=20,
     )
-    pin_row_height: int = setting(
+    pin_row_height: int = field(
         24,
         label="Pin Row Height",
         description="Height of each pin cell in pixels",
@@ -75,7 +75,7 @@ class NodeSkinSettings(LibrarySettings):
         min=16,
         max=48,
     )
-    card_padding: int = setting(
+    card_padding: int = field(
         16,
         label="Card Padding",
         description="Horizontal padding applied to the node card in pixels",
@@ -85,20 +85,20 @@ class NodeSkinSettings(LibrarySettings):
         max=32,
     )
     # --- debug ---
-    show_node_ids: bool = setting(
+    show_node_ids: bool = field(
         False, 
         label="Show Node IDs", 
         description="Display internal node IDs", 
         category="debug", order=21
     )
-    show_port_ids: bool = setting(
+    show_port_ids: bool = field(
         False, 
         label="Show Port IDs", 
         description="Display internal port IDs", 
         category="debug", 
         order=22
     )
-    inspect_on_click: bool = setting(
+    inspect_on_click: bool = field(
         False,
         label="Inspect on Click",
         description="Show data inspector when clicking ports",
