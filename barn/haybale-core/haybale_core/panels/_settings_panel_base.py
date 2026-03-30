@@ -20,7 +20,9 @@ if TYPE_CHECKING:
     from haywire.core.settings import Settings, FieldDescriptor
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
-_LABEL_CLASSES = "text-xs flex-1 min-w-0 truncate"
+_LABEL_CLASSES = "text-xs min-w-0 truncate sf-label"
+_WIDGET_CLASSES = "sf-widget"
+_COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +47,7 @@ def render_settings(obj: "Settings") -> None:
     sorted_fields = sorted(
         visible_fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0])
     )
-    with ui.column().classes("w-full gap-0 compact-fields"):
+    with ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE):
         for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
             with _render_category_group(category):
                 for attr_name, defn in group:
@@ -92,7 +94,7 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
 
 def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> None:
     """Render a pre-sorted list of field descriptors grouped by category."""
-    with ui.column().classes("w-full gap-0 compact-fields"):
+    with ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE):
         for category, group in _group_by_category(sorted_defns):
             with _render_category_group(category):
                 for defn in group:
@@ -186,13 +188,13 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
     str_value = str(value) if value is not None else ""
 
     if defn._widget == "label":
-        ui.label(str_value).classes("text-xs text-right truncate w-1/2 shrink-0 hw-text-muted").props(
+        ui.label(str_value).classes(f"text-xs text-right truncate hw-text-muted {_WIDGET_CLASSES}").props(
             f'data-value="{str_value}"'
         )
         return
 
     if defn._widget == "color":
-        wrapper = ui.element("div").classes("w-1/2 shrink-0").props(f'data-value="{str_value}"')
+        wrapper = ui.element("div").classes(_WIDGET_CLASSES).props(f'data-value="{str_value}"')
         with wrapper:
 
             def _color_handler(e, _w=wrapper, _s=make_setter(str)):
@@ -207,7 +209,9 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
     resolved_choices = defn.choices
     if resolved_choices is not None:
         wrapper = (
-            ui.element("div").classes("w-1/2 shrink-0 overflow-hidden").props(f'data-value="{str_value}"')
+            ui.element("div")
+            .classes(f"{_WIDGET_CLASSES} overflow-hidden")
+            .props(f'data-value="{str_value}"')
         )
         with wrapper:
 
@@ -261,13 +265,13 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
 
         nd = (
             NumberDrag(value=value if value is not None else 0, on_change=_on_number_change, **kwargs)
-            .classes("w-1/2 shrink-0")
+            .classes(_WIDGET_CLASSES)
             .props(f'data-value="{str_value}"')
         )
         nd_ref[0] = nd
         return
 
-    wrapper = ui.element("div").classes("w-1/2 shrink-0").props(f'data-value="{str_value}"')
+    wrapper = ui.element("div").classes(_WIDGET_CLASSES).props(f'data-value="{str_value}"')
     with wrapper:
 
         def _str_handler(e, _w=wrapper, _s=make_setter(str)):

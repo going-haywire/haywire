@@ -228,6 +228,15 @@ class AppShell:
             " .compact-fields .q-expansion-item__content {"
             "   padding: 0 0 0 0.5rem !important;"
             " }"
+            # ── settings-field responsive layout ──
+            # .sf-label / .sf-widget respond to their @container settings-panel.
+            # Below 280px: 50/50 split.  Above: label is fixed 8rem, widget grows.
+            " .sf-label  { width: 50%; flex: none; }"
+            " .sf-widget { width: 50%; }"
+            " @container settings-panel (min-width: 320px) {"
+            "   .sf-label  { width: 9rem; flex: none; }"
+            "   .sf-widget { width: auto; flex: 1; }"
+            " }"
         )
         ui.add_css(self._build_initial_theme_css() + _static_css)
 
