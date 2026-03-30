@@ -58,7 +58,7 @@ class TestWorkspaceStateSerialization:
         assert ws.name == "default"
         assert ws.left.editor_key is None  # generic — no studio strings
         assert ws.right.editor_key is None
-        assert ws.middle.tabs[0].editor_key == "graph_editor"  # sensible generic default
+        assert ws.middle.tabs[0].editor_key is None  # consistent with other key fields
 
 
 # ---------------------------------------------------------------------------

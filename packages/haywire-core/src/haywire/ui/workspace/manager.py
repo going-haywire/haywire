@@ -28,8 +28,9 @@ class WorkspaceManager:
     own active workspace, but the saved presets are shared (stored
     in the project folder).
 
-    Default workspaces shipped with Haywire:
-        - "Graph Editing": Graph in middle, Properties on right, Library on left
+    Presets are injected at construction via initial_presets. The host application
+    is responsible for providing its own preset definitions (e.g. haywire_studio
+    provides DEFAULT_PRESETS). If initial_presets is None, the manager starts empty.
 
     Attributes:
         active: The currently active WorkspaceState.

@@ -39,7 +39,7 @@ class TabState:
         metadata: Editor-specific state (e.g., which graph is open).
     """
 
-    editor_key: str = "graph_editor"
+    editor_key: Optional[str] = None
     label: str = "Graph"
     metadata: Dict[str, Any] = field(default_factory=dict)
 
