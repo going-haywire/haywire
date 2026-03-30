@@ -9,8 +9,6 @@ import json
 import logging
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
 from haywire.ui.workspace.workspace_state import (
     WorkspaceState,
     AreaState,
@@ -24,6 +22,7 @@ from haywire.ui.workspace.workspace_state import (
     _K_FILE_VIEWER,
 )
 
+logger = logging.getLogger(__name__)
 
 class WorkspaceManager:
     """

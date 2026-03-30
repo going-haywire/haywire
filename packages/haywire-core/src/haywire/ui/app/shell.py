@@ -15,17 +15,15 @@ and calling AppShell.render().
 
 import logging
 from typing import Optional, TYPE_CHECKING
-
-logger = logging.getLogger(__name__)
-
 from nicegui import ui
 
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from haywire.ui.session import Session
     from haywire.ui.editor.registry import EditorTypeRegistry
-
 
 class AppShell:
     """

@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 from nicegui import app as nicegui_app
 from nicegui import ui
 
-from haybale_core.panels._settings_panel_base import render_settings, render_schema
+from haywire.ui.panel.render_utils import render_settings, render_schema
 from haywire.core.settings.enums import FieldMode
 
 if TYPE_CHECKING:

@@ -13,8 +13,7 @@ from typing import TYPE_CHECKING
 
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
-
-from haybale_core.panels._settings_panel_base import render_schema, render_keys
+from haywire.ui.panel.render_utils import render_schema, render_keys
 from haywire.core.debug.keys import LIBRARY_LOG_PREFIX
 
 if TYPE_CHECKING:

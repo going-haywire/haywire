@@ -7,11 +7,11 @@ from typing import Dict, List, Callable, TYPE_CHECKING
 import uuid
 import logging
 
-logger = logging.getLogger(__name__)
+from .context import SessionContext
+from .context_events import ContextChangedEvent
+from .workspace.manager import WorkspaceManager
 
-from haywire.ui.context import SessionContext
-from haywire.ui.context_events import ContextChangedEvent
-from haywire.ui.workspace.manager import WorkspaceManager
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor

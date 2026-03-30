@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 
-from ._settings_panel_base import render_schema
+from haywire.ui.panel.render_utils import render_schema
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext

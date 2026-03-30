@@ -1,8 +1,7 @@
 # haybale_studio/panels/_settings_panel_base.py
 """
-Shared renderer for FrameworkSettings / LibrarySettings / Reactive schema classes.
-
-Not a panel itself — imported by the concrete settings panels.
+Utility collection of renderer functions for 
+FrameworkSettings / LibrarySettings / NodeSettings schema classes.
 """
 
 from __future__ import annotations

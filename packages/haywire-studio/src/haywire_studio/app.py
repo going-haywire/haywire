@@ -10,7 +10,6 @@ GraphManagerEditor ('+' button) or opens an existing file via the
 FileBrowserEditor.
 """
 
-import logging
 import os
 from pathlib import Path
 
@@ -355,7 +354,7 @@ class HaywireApp:
 
         @ui.page("/", title="Haywire")
         def main_page():
-            from haywire.ui.app_shell import AppShell
+            from haywire.ui.app.shell import AppShell
             from haywire.ui.editor.registry import EditorTypeRegistry
 
             session_data, client_id = self.get_session_data()
