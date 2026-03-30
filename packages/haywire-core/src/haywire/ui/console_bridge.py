@@ -2,10 +2,10 @@
 Thread-safe console bridge for NiceGUI.
 
 Allows worker threads to print messages that appear in the UI.
+Access the shared bridge via get_bridge() or use console_print() directly.
 """
 
 from __future__ import annotations
-from typing import Optional
 from threading import Lock
 from queue import Queue, Empty
 from nicegui import ui
@@ -17,34 +17,22 @@ class ConsoleBridge:
 
     Usage:
         # In UI setup (per session):
-        bridge = ConsoleBridge.get_instance()
+        bridge = get_bridge()
         log = ui.log(max_lines=100)
-        timer = bridge.register_log_with_polling(log)
-
-        # Store timer reference for cleanup:
-        session_data['console_timer'] = timer
+        bridge.register_log_with_polling(log)
 
         # In worker thread (e.g., Print Message node):
         from haywire.ui.console_bridge import console_print
         console_print("Hello from node!")
     """
 
-    _instance: Optional["ConsoleBridge"] = None
-    _lock = Lock()
-
     def __init__(self):
         self.message_queue: Queue[str] = Queue()
         self.log_elements: dict = {}  # Maps log element to its timer
+        self._lock = Lock()
         self._max_messages_per_poll = 50
         self._history: list[str] = []
         self._max_history = 500
-
-    @classmethod
-    def get_instance(cls) -> "ConsoleBridge":
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = ConsoleBridge()
-            return cls._instance
 
     def register_log_with_polling(self, log_element, interval: float = 0.1):
         """
@@ -57,17 +45,12 @@ class ConsoleBridge:
         Returns:
             The timer object for cleanup by caller.
         """
-        # Create a timer in current client context that broadcasts to all logs
         timer = ui.timer(interval, self._poll_and_broadcast)
         self.log_elements[log_element] = timer
         return timer
 
     def register_log(self, log_element):
-        """
-        Register a ui.log element (deprecated - use register_log_with_polling).
-
-        Kept for backwards compatibility.
-        """
+        """Register a ui.log element (deprecated - use register_log_with_polling)."""
         if log_element not in self.log_elements:
             self.log_elements[log_element] = None
 
@@ -83,29 +66,16 @@ class ConsoleBridge:
             del self.log_elements[log_element]
 
     def start_polling(self, interval: float = 0.1):
-        """
-        Start polling (deprecated - use register_log_with_polling instead).
-
-        Kept for backwards compatibility but doesn't work correctly with
-        multiple sessions.
-        """
-        pass  # No-op, kept for compatibility
+        """Deprecated no-op. Use register_log_with_polling instead."""
+        pass
 
     def stop_polling(self):
-        """Stop polling (deprecated)."""
-        pass  # No-op, kept for compatibility
+        """Deprecated no-op."""
+        pass
 
     def _poll_and_broadcast(self):
-        """
-        Poll message queue and broadcast to ALL log elements.
-
-        This is called by timers from different client contexts, but it
-        broadcasts messages to all registered log elements. This ensures
-        all sessions see all console output.
-        """
+        """Poll message queue and broadcast to ALL log elements."""
         messages = []
-
-        # Drain queue (up to batch limit) - thread-safe with lock
         with self._lock:
             for _ in range(self._max_messages_per_poll):
                 try:
@@ -114,21 +84,18 @@ class ConsoleBridge:
                 except Empty:
                     break
 
-        # Broadcast to ALL log elements (outside lock to avoid UI blocking)
         if messages:
             for log_element in list(self.log_elements.keys()):
                 try:
                     for msg in messages:
                         log_element.push(msg)
                 except Exception:
-                    # Log element might be deleted, remove it
                     self.unregister_log(log_element)
 
     def write(self, message: str):
         """Queue a message for display (thread-safe)."""
         if message.strip():
             self.message_queue.put(message.rstrip())
-            # Keep history for copy
             self._history.append(message.rstrip())
             if len(self._history) > self._max_history:
                 self._history.pop(0)
@@ -150,7 +117,15 @@ class ConsoleBridge:
                 break
 
 
-# Convenience function for nodes
+# Module-level instance — accessible from any thread without DI context.
+_bridge = ConsoleBridge()
+
+
+def get_bridge() -> ConsoleBridge:
+    """Return the shared ConsoleBridge instance."""
+    return _bridge
+
+
 def console_print(*args, **kwargs):
     """
     Print to the NiceGUI console (thread-safe).
@@ -162,5 +137,4 @@ def console_print(*args, **kwargs):
         console_print("Value:", 42)
     """
     message = " ".join(str(arg) for arg in args)
-    bridge = ConsoleBridge.get_instance()
-    bridge.write(message)
+    _bridge.write(message)
