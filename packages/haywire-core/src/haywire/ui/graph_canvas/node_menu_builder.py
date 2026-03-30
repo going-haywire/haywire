@@ -48,10 +48,10 @@ class NodeMenuBuilder:
                 ui.input(
                     placeholder="Search nodes...",
                     on_change=lambda e: self._handle_search(e.value, menu_container),
-                ).props("autofocus").classes("w-full mb-2")
+                ).props("autofocus").classes("w-96 mb-2")
 
                 # Container for search results (initially hidden)
-                self._search_results = ui.column().classes("w-full gap-1").style("display: none")
+                self._search_results = ui.column().classes("w-96 gap-1").style("display: none")
 
             # Main menu content - "Add Nodes" button with menu
             self._main_menu = ui.column().classes("w-full")
@@ -101,10 +101,11 @@ class NodeMenuBuilder:
             if not results:
                 ui.label("No nodes found").classes("text-gray-500 text-sm p-2")
             else:
-                ui.label(f"Found {len(results)} node(s)").classes("text-xs font-semibold text-gray-600 mb-2")
+                with ui.scroll_area():
+                    ui.label(f"Found {len(results)} node(s)").classes("text-xs font-semibold text-gray-600 mb-2")
 
-                for node_info in results[:10]:  # Limit to 10 results
-                    self._create_search_result_item(node_info)
+                    for node_info in results[:10]:  # Limit to 10 results
+                        self._create_search_result_item(node_info)
 
     def _create_search_result_item(self, node_info: Dict[str, str]):
         """Create a search result item."""
