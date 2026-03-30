@@ -1,4 +1,4 @@
-# haywire/ui/protocols.py
+# packages/haywire-core/src/haywire/ui/protocols.py
 """
 Structural protocols for the Haywire UI system.
 
@@ -6,9 +6,32 @@ These protocols define the interface the framework expects from host application
 objects, avoiding circular imports while providing full IDE type resolution.
 """
 
-from typing import Protocol
+from __future__ import annotations
 
-from haywire.core.di.config import LibrarySystemService
+from pathlib import Path
+from typing import Any, Protocol, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from haywire.core.di.config import LibrarySystemService
+    from haywire.core.execution import Interpreter
+    from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
+    from haywire.ui.session_manager import SessionManager
+
+
+class IGraphManager(Protocol):
+    """
+    Structural interface for graph file management.
+
+    GraphManager in haywire-studio satisfies this protocol without inheriting from it.
+    Factory args are typed as Any to avoid importing the studio-specific GraphFactory
+    type alias into haywire.ui.
+    """
+
+    def open_graph(self, path: Path, factory: Any) -> Any: ...
+    def create_new(self, factory: Any) -> Any: ...
+    def save_graph(self, entry: Any) -> None: ...
+    def session_attach(self, entry: Any, session_id: str) -> None: ...
+    def session_detach(self, entry: Any, session_id: str) -> None: ...
 
 
 class IProjectState(Protocol):
@@ -16,8 +39,13 @@ class IProjectState(Protocol):
     Structural interface the framework expects from the host application.
 
     HaywireApp satisfies this protocol without inheriting from it.
-    Any attribute not listed here is accessible as Any via context.app.
     """
 
-    library_service: LibrarySystemService
+    library_service: "LibrarySystemService"
     workspace_root: str
+    session_manager: "SessionManager"
+    graph_manager: IGraphManager
+    node_registry: Any  # NodeRegistry
+    node_factory: Any  # NodeFactory
+    interpreter: "Interpreter"
+    loop_manager: "InterpreterLoopManager"
