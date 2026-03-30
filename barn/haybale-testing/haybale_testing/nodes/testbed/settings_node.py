@@ -1,7 +1,7 @@
 from haywire.core.node import node, BaseNode, NodeType
 from haybale_core.types.specs import STRING
 
-from haywire.core.settings import NodeSettings, field, Color
+from haywire.core.settings import NodeSettings, field, shadow, watch, Color
 from haybale_testing.settings.testing import TestingSettings
 
 
@@ -85,89 +85,23 @@ class SettingsNode(BaseNode):
             stored=False,
         )
 
-        # --- mirrors (shadow) ---
-        intensity: float = field(
-            label="Intensity",
-            description="Mirrors library-level default_intensity",
-            category="mirrors",
-            mirrors=TestingSettings.default_intensity,
+        # --- mirrors (shadow = writable, watch = read-only) ---
+        intensity: float = shadow(TestingSettings.default_intensity, label="Intensity", category="mirrors")
+        count_mirror: int = shadow(TestingSettings.default_count, label="Count Mirror", category="mirrors")
+        label_mirror: str = shadow(TestingSettings.default_label, label="Label Mirror", category="mirrors")
+        enabled: bool = shadow(TestingSettings.default_enabled, label="Enabled", category="mirrors")
+        mode: str = shadow(TestingSettings.default_mode, label="Mode", category="mirrors")
+        tint: Color = shadow(TestingSettings.default_color, label="Tint", category="mirrors")
+        intensity_ro: float = watch(
+            TestingSettings.default_intensity, label="Intensity (read-only)", category="mirrors"
         )
-        count_mirror: int = field(
-            label="Count Mirror",
-            description="Mirrors library-level default_count",
-            category="mirrors",
-            mirrors=TestingSettings.default_count,
-            min=0,
-            max=100,
+        count_ro: int = watch(TestingSettings.default_count, label="Count (read-only)", category="mirrors")
+        label_ro: str = watch(TestingSettings.default_label, label="Label (read-only)", category="mirrors")
+        enabled_ro: bool = watch(
+            TestingSettings.default_enabled, label="Enabled (read-only)", category="mirrors"
         )
-        label_mirror: str = field(
-            label="Label Mirror",
-            description="Mirrors library-level default_label",
-            category="mirrors",
-            mirrors=TestingSettings.default_label,
-        )
-        enabled: bool = field(
-            label="Enabled",
-            description="Mirrors library-level default_enabled",
-            category="mirrors",
-            mirrors=TestingSettings.default_enabled,
-        )
-        mode: str = field(
-            label="Mode",
-            description="Mirrors library-level default_mode",
-            category="mirrors",
-            mirrors=TestingSettings.default_mode,
-            choices=["fast", "balanced", "quality"],
-        )
-        tint: Color = field(
-            label="Tint",
-            description="Mirrors library-level default_color",
-            category="mirrors",
-            mirrors=TestingSettings.default_color,
-            widget="color",
-        )
-        intensity_ro: float = field(
-            label="Intensity (read-only)",
-            description="Read-only mirror of default_intensity",
-            category="mirrors",
-            mirrors=TestingSettings.default_intensity,
-            read_only=True,
-        )
-        count_ro: int = field(
-            label="Count (read-only)",
-            description="Read-only mirror of default_count",
-            category="mirrors",
-            mirrors=TestingSettings.default_count,
-            read_only=True,
-        )
-        label_ro: str = field(
-            label="Label (read-only)",
-            description="Read-only mirror of default_label",
-            category="mirrors",
-            mirrors=TestingSettings.default_label,
-            read_only=True,
-        )
-        enabled_ro: bool = field(
-            label="Enabled (read-only)",
-            description="Read-only mirror of default_enabled",
-            category="mirrors",
-            mirrors=TestingSettings.default_enabled,
-            read_only=True,
-        )
-        mode_ro: str = field(
-            label="Mode (read-only)",
-            description="Read-only mirror of default_mode",
-            category="mirrors",
-            mirrors=TestingSettings.default_mode,
-            read_only=True,
-        )
-        tint_ro: Color = field(
-            label="Tint (read-only)",
-            description="Read-only mirror of default_color",
-            category="mirrors",
-            mirrors=TestingSettings.default_color,
-            read_only=True,
-        )
+        mode_ro: str = watch(TestingSettings.default_mode, label="Mode (read-only)", category="mirrors")
+        tint_ro: Color = watch(TestingSettings.default_color, label="Tint (read-only)", category="mirrors")
 
         # --- validator ---
         validated_string: str = field(

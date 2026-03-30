@@ -8,7 +8,7 @@ This guide covers how to use `self.cache`, `self.store`, and node settings when 
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, setting, Color
+from haywire.core.settings import NodeSettings, field, shadow, watch, Color
 from haywire.core.settings.builtins.debug import DebugSettings
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 
@@ -16,9 +16,9 @@ from haywire.core.settings.builtins.ui_node import NodeUISettings
 class QuickStartNode(BaseNode):
 
     class filter(NodeSettings):
-        threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
-        bg_color:  Color = setting(mirrors=NodeUISettings.bg_color)
-        verbose:   bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
+        threshold: float = field(0.5, min=0.0, max=1.0, label='Threshold')
+        bg_color:  Color = shadow(NodeUISettings.bg_color)
+        verbose:   bool  = watch(DebugSettings.verbose_logging)
 
     def init(self):
         self.add(FLOAT.as_inlet('value'))
@@ -40,24 +40,24 @@ class QuickStartNode(BaseNode):
 Node settings are declared as an inner class that inherits from `NodeSettings`. The class name becomes the **accessor name** — the attribute you use to access settings directly on the node instance.
 
 ```python
-from haywire.core.settings import NodeSettings, setting, Color, Icon
+from haywire.core.settings import NodeSettings, field, shadow, watch, Color, Icon
 
 @node(label="My Node")
 class MyNode(BaseNode):
 
     class filter(NodeSettings):
         # Local setting — stored in graph when set, shown in properties panel
-        threshold:  float = setting(0.5, min=0.0, max=1.0, label='Threshold')
-        algorithm:  str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
-        bg_color:   Color = setting('#ffffff', label='Background Color')
-        verbose:    bool  = setting(False, label='Verbose Output')
-        icon:       Icon  = setting('star', label='Icon')
+        threshold:  float = field(0.5, min=0.0, max=1.0, label='Threshold')
+        algorithm:  str   = field('fast', choices=['fast', 'accurate'], label='Algorithm')
+        bg_color:   Color = field('#ffffff', label='Background Color')
+        verbose:    bool  = field(False, label='Verbose Output')
+        icon:       Icon  = field('star', label='Icon')
 
-        # mirrors= — inherits global default; per-node override shown with reset affordance
-        node_bg:    Color = setting(mirrors=NodeUISettings.bg_color)
+        # shadow() — writable mirror of a global field; per-node override shown with reset affordance
+        node_bg:    Color = shadow(NodeUISettings.bg_color)
 
-        # mirrors= + read_only= — read-only global cache; invisible in panel, never stored
-        debug_mode: bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
+        # watch() — read-only mirror of a global field; invisible in panel, never stored
+        debug_mode: bool  = watch(DebugSettings.verbose_logging)
 ```
 
 Access in worker code directly via the accessor name:
@@ -91,10 +91,10 @@ A node can declare any number of `NodeSettings` inner classes. Each gets its own
 class ImageFilterNode(BaseNode):
 
     class filter(NodeSettings):
-        threshold: float = setting(0.5)
+        threshold: float = field(0.5)
 
     class output(NodeSettings):
-        jpeg_quality: int = setting(85, min=1, max=100, label='JPEG Quality')
+        jpeg_quality: int = field(85, min=1, max=100, label='JPEG Quality')
 
     def worker(self, context, img):
         t = self.filter.threshold
@@ -105,14 +105,14 @@ class ImageFilterNode(BaseNode):
 
 ---
 
-## `setting()` Parameters
+## `field()` Parameters
 
 ```python
 class filter(NodeSettings):
-    threshold:   float = setting(0.5, min=0.0, max=1.0, label='Threshold')
-    algorithm:   str   = setting('fast', choices=['fast', 'accurate'], label='Algorithm')
-    color:       Color = setting('#ffffff', label='Background')
-    verbose:     bool  = setting(False, on_change='hb_on_verbose_change')
+    threshold:   float = field(0.5, min=0.0, max=1.0, label='Threshold')
+    algorithm:   str   = field('fast', choices=['fast', 'accurate'], label='Algorithm')
+    color:       Color = field('#ffffff', label='Background')
+    verbose:     bool  = field(False, on_change='hb_on_verbose_change')
 ```
 
 Widget is inferred from type unless overridden:
@@ -130,50 +130,58 @@ Widget is inferred from type unless overridden:
 
 ```python
 # Static list — value shown and stored as-is
-algorithm: str = setting('fast', choices=['fast', 'accurate'])
+algorithm: str = field('fast', choices=['fast', 'accurate'])
 
 # Dict {stored_value: display_label} — label shown, value stored
-algorithm: str = setting('fast', choices={'fast': 'Fast Mode', 'accurate': 'High Accuracy'})
+algorithm: str = field('fast', choices={'fast': 'Fast Mode', 'accurate': 'High Accuracy'})
 
 # Callable — evaluated at render time (use for dynamic lists from a registry)
-theme: str = setting('', choices=lambda: get_theme_registry().list_workbench_keys())
+theme: str = field('', choices=lambda: get_theme_registry().list_workbench_keys())
 ```
 
 The callable form is evaluated fresh on every panel render, so entries added by plugins after startup appear automatically.
 
-### The `mirrors=` parameter
+### Mirroring global fields: `shadow()` and `watch()`
+
+Use `shadow()` for a **writable** mirror and `watch()` for a **read-only** mirror of a `FrameworkSettings` or `LibrarySettings` field:
 
 ```python
+from haywire.core.settings import shadow, watch
 from haywire.core.settings.builtins.ui_node import NodeUISettings
-
-class filter(NodeSettings):
-    # Inherits global value by default; user can override per-node
-    bg_color: Color = setting(mirrors=NodeUISettings.bg_color)
-```
-
-`mirrors=SomeFrameworkSettings.field` stores the target descriptor's `_field_key` and inherits its `_label`, `_default`, and widget metadata. The field resolves through the global registry.
-
-### The `read_only=` parameter
-
-```python
 from haywire.core.settings.builtins.debug import DebugSettings
 
 class filter(NodeSettings):
-    # Invisible in panel; never stored; cache invalidated on global change
-    verbose: bool = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
+    # Writable — inherits global value by default; user can override per-node
+    bg_color:   Color = shadow(NodeUISettings.bg_color)
+
+    # Read-only — invisible in panel; never stored; value tracks global
+    debug_mode: bool  = watch(DebugSettings.verbose_logging)
 ```
 
-`read_only=True` prevents per-instance writes. Attempting `self.filter.verbose = True` raises `AttributeError`.
+Both factories inherit `_label`, `_default`, `_type`, `_choices`, `_widget`, `_min`, and `_max` from the source descriptor automatically. Pass keyword arguments to override any of them:
+
+```python
+# Override just the label
+node_bg: Color = shadow(NodeUISettings.bg_color, label='Node Background')
+```
+
+`watch()` raises `AttributeError` on any write attempt. `shadow()` allows per-instance writes which are stored in the graph.
+
+You can also pass a raw string key instead of a descriptor reference:
+
+```python
+node_bg: Color = shadow("ui.node.bg_color")
+```
 
 ---
 
 ## `on_change` Callbacks
 
-Triggered when a setting value changes (local set, reset, or global cache invalidation via `mirrors=`):
+Triggered when a setting value changes (local set, reset, or global cache invalidation via `shadow()`/`watch()`):
 
 ```python
 class filter(NodeSettings):
-    scale: float = setting(1.0, label='Scale', on_change='hb_on_scale_change')
+    scale: float = field(1.0, label='Scale', on_change='hb_on_scale_change')
 
 def hb_on_scale_change(self, value: float, field: str = '') -> None:
     # value: new resolved value
@@ -254,7 +262,7 @@ def worker(self, context, value: float):
 
 ## Serialization
 
-Only locally-overridden values are serialized. `read_only` fields and fields at their default are never stored.
+Only locally-overridden values are serialized. `watch()` fields and fields at their default are never stored.
 
 ```json
 {
@@ -274,7 +282,7 @@ Only locally-overridden values are serialized. `read_only` fields and fields at 
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, setting, Color
+from haywire.core.settings import NodeSettings, field, shadow, watch, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
@@ -282,14 +290,14 @@ from haywire.core.settings.builtins.debug import DebugSettings
 class SignalProcessorNode(BaseNode):
 
     class filter(NodeSettings):
-        filter_strength: float = setting(0.5, min=0.0, max=1.0, label='Filter Strength',
-                                         on_change='hb_on_filter_change')
-        filter_type:     str   = setting('exponential',
-                                         choices=['none', 'exponential', 'moving_average'],
-                                         label='Filter Type')
-        window_size:     int   = setting(10, min=2, max=100, label='Window Size')
-        bg_color:        Color = setting(mirrors=NodeUISettings.bg_color)
-        verbose:         bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
+        filter_strength: float = field(0.5, min=0.0, max=1.0, label='Filter Strength',
+                                       on_change='hb_on_filter_change')
+        filter_type:     str   = field('exponential',
+                                       choices=['none', 'exponential', 'moving_average'],
+                                       label='Filter Type')
+        window_size:     int   = field(10, min=2, max=100, label='Window Size')
+        bg_color:        Color = shadow(NodeUISettings.bg_color)
+        verbose:         bool  = watch(DebugSettings.verbose_logging)
 
     def init(self):
         self.add(FLOAT.as_inlet('signal'))

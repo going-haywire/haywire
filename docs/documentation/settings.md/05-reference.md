@@ -6,15 +6,15 @@ Complete API documentation for the Haywire settings system.
 
 ## Enums
 
-### `SettingMode`
+### `FieldMode`
 
 ```python
-from haywire.core.settings import SettingMode
+from haywire.core.settings import FieldMode
 
-class SettingMode(Enum):
-    AUTO     = "auto"      # No value set; inherit from global or use descriptor default
-    SET      = "set"       # Explicitly set at this level
-    OVERRIDE = "override"  # (Global only) Force this value on all instances
+class FieldMode(Enum):
+    INHERIT  = auto()  # No opinion — defer to next tier up
+    EXPLICIT = auto()  # Deliberate value — wins unless OVERRIDEd
+    OVERRIDE = auto()  # Forced — wins over everything below
 ```
 
 ---
@@ -33,7 +33,7 @@ Icon  = str  # material icon name — implies icon-picker widget
 ## Node-Author API
 
 ```python
-from haywire.core.settings import NodeSettings, setting, Color, Icon
+from haywire.core.settings import NodeSettings, field, shadow, watch, Color, Icon
 ```
 
 ### `NodeSettings`
@@ -44,43 +44,47 @@ Base class for node-local settings. Declare as an inner class on a `@node` class
 @node(label="My Node")
 class MyNode(BaseNode):
     class filter(NodeSettings):
-        threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
+        threshold: float = field(0.5, min=0.0, max=1.0, label='Threshold')
 ```
 
-`NodeSettings` are never registered with `SettingsRegistry`. The `@node` decorator assigns `_field_key` to each descriptor, and the node instance injects the registry for mirror/read_only resolution.
+`NodeSettings` are never registered with `SettingsRegistry`. The `@node` decorator assigns `_field_key` to each descriptor, and the node instance injects the registry for mirror/watch resolution.
 
-### `setting(default, *, min=None, max=None, choices=None, widget=None, label='', description='', category='general', order=0, on_change=None, mirrors=None, read_only=False)`
+### `field(default=None, *, ...)`
 
 Declare a field on a `NodeSettings`, `FrameworkSettings`, or `LibrarySettings` class.
 
 ```python
-threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
-algorithm: str   = setting('fast', choices=['fast', 'accurate'])
-color:     Color = setting('#ffffff', label='Background')
-verbose:   bool  = setting(False, on_change='hb_on_verbose_change')
-
-# mirrors= — inherit from a FrameworkSettings or LibrarySettings field
-bg_color:  Color = setting(mirrors=NodeUISettings.bg_color)
-
-# mirrors= + read_only= — read-only global cache (invisible in panel)
-debug:     bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
+threshold: float = field(0.5, min=0.0, max=1.0, label='Threshold')
+algorithm: str   = field('fast', choices=['fast', 'accurate'])
+color:     Color = field('#ffffff', label='Background')
+verbose:   bool  = field(False, on_change='hb_on_verbose_change')
 ```
 
-| Attribute | Type | Description |
+| Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| `_default` | `Any` | Default value |
-| `_min` / `_max` | `Any` | Slider bounds |
-| `_choices` | `list \| dict \| Callable \| None` | Dropdown options |
-| `_widget` | `str \| None` | Explicit widget hint |
-| `_label` | `str` | Panel display name |
-| `_description` | `str` | Tooltip text |
-| `_category` | `str` | Panel grouping |
-| `_order` | `int` | Sort order within category |
-| `_on_change` | `str \| None` | Node method name called on change |
-| `_mirror_key` | `str` | Full key of the mirrored global field (set from `mirrors=`) |
-| `_read_only` | `bool` | If `True`, instance writes raise `AttributeError` |
-| `_field_key` | `str` | Set by `@node` or `namespace=`; used for TOML resolution |
-| `_attr_name` | `str` | Set by `__set_name__` |
+| `default` | `Any` | Default value |
+| `label` | `str` | Panel display name |
+| `description` | `str` | Tooltip text |
+| `category` | `str` | Panel grouping |
+| `order` | `int` | Sort order within category |
+| `min` / `max` | `Any` | Slider bounds |
+| `choices` | `list \| dict \| Callable \| None` | Dropdown options |
+| `widget` | `str \| None` | Explicit widget hint |
+| `on_change` | `str \| None` | Node method name called on change |
+| `mirrors` | `FieldDescriptor \| str \| None` | Source descriptor or full key to mirror |
+| `read_only` | `bool` | If `True`, instance writes raise `AttributeError` |
+| `type_` | `type \| None` | Explicit type (inferred from default if omitted) |
+| `stored` | `bool` | If `False`, excluded from serialization |
+| `validator` | `Callable \| None` | Called with value; return `False` to reject |
+| `metadata` | `dict \| None` | Arbitrary key/value attached to the descriptor (`._metadata`) |
+
+Descriptor attributes (set after construction):
+
+| Attribute | Set by | Description |
+| --------- | ------ | ----------- |
+| `_attr_name` | `__set_name__` | Python attribute name on the class |
+| `_field_key` | `@node` / `namespace=` | Full dot-notation key for TOML resolution |
+| `_mirror_key` | `mirrors=` | Full key of the mirrored global field |
 
 #### `choices` — three accepted forms
 
@@ -89,6 +93,24 @@ debug:     bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True
 | `['a', 'b']` | Static list — value shown and stored as-is |
 | `{'a': 'Label A', 'b': 'Label B'}` | Dict `{stored_value: display_label}` |
 | `lambda: [...]` or `lambda: {...}` | Callable — evaluated at render time |
+
+### `shadow(src, **kwargs) -> field`
+
+Writable mirror of `src`. Inherits `_label`, `_default`, `_type`, `_choices`, `_widget`, `_min`, `_max` from the source. Per-instance writes are allowed and stored in the graph.
+
+```python
+bg_color: Color = shadow(NodeUISettings.bg_color)
+bg_color: Color = shadow(NodeUISettings.bg_color, label='Node Background')  # override label
+bg_color: Color = shadow("ui.node.bg_color")  # raw key form
+```
+
+### `watch(src, **kwargs) -> field`
+
+Read-only mirror of `src`. Same inheritance as `shadow()`. Any write attempt raises `AttributeError`. The field is invisible in settings panels and never serialized.
+
+```python
+debug_mode: bool = watch(DebugSettings.verbose_logging)
+```
 
 ---
 
@@ -132,11 +154,11 @@ Return `True` if `name` has a local instance override.
 
 ### `to_dict() -> dict`
 
-Return only fields whose value differs from the descriptor default. `read_only` fields are never included.
+Return only fields whose value differs from the descriptor default. `watch()` fields are never included.
 
 ### `from_dict(data: dict, *, silent: bool = True) -> None`
 
-Restore values from `data`. Unknown keys silently ignored. `read_only` fields silently skipped.
+Restore values from `data`. Unknown keys silently ignored. `watch()` fields silently skipped.
 
 - `silent=True` (default): writes directly to `_local_store` — no callbacks fired. Used during graph load.
 - `silent=False`: uses normal `setattr` — callbacks fire.
@@ -147,7 +169,7 @@ Release global namespace subscriptions. Called automatically by `BaseNode` on no
 
 ### `_subscribe_mirrors() -> None`
 
-Subscribe cache-invalidation weakrefs for `mirrors=` fields. Called automatically by `BaseNode` after settings construction.
+Subscribe cache-invalidation weakrefs for `shadow()`/`watch()` fields. Called automatically by `BaseNode` after settings construction.
 
 ### `list_setting_bags()` *(on BaseNode)*
 
@@ -166,11 +188,11 @@ Returns all user-declared settings instances for this node.
 Base class for framework/app-defined settings.
 
 ```python
-from haywire.core.settings import FrameworkSettings, setting
+from haywire.core.settings import FrameworkSettings, field
 
 class ExecutionSettings(FrameworkSettings, namespace='execution'):
-    max_threads: int   = setting(4,     label='Max Threads')
-    timeout_ms:  float = setting(5000., label='Timeout (ms)')
+    max_threads: int   = field(4,     label='Max Threads')
+    timeout_ms:  float = field(5000., label='Timeout (ms)')
 ```
 
 - `namespace=` kwarg triggers `__init_subclass__` to wire `_field_key` on every descriptor and queue the class in `_pending_global`.
@@ -183,12 +205,12 @@ class ExecutionSettings(FrameworkSettings, namespace='execution'):
 Base class for library plugin-defined settings. Must be decorated with `@settings`.
 
 ```python
-from haywire.core.settings import LibrarySettings, setting
+from haywire.core.settings import LibrarySettings, field
 from haywire.core.settings.decorator import settings
 
 @settings(namespace='my_lib', label='My Library')
 class MyLibSettings(LibrarySettings):
-    api_url: str = setting('https://api.example.com')
+    api_url: str = field('https://api.example.com')
 ```
 
 - `@settings` sets `class_identity` (required by `BaseRegistry._class_filter`), `class_library`, `_namespace`, and `_field_key` on all descriptors. Without it the class is invisible to the hot-reload registry.
@@ -237,31 +259,31 @@ registry = get_settings_registry()
 
 Explicitly register a `FrameworkSettings` or `LibrarySettings` class. Also writes `cls._registry = self`.
 
-### `define(name, default, type_=None, label=None, description='', category='general', **kwargs) -> setting`
+### `define(name, default, type_=None, label=None, description='', category='general', metadata=None, **kwargs) -> field`
 
-Programmatically define a setting.
+Programmatically define a setting. `metadata` is stored on the returned `field` descriptor as `._metadata`.
 
 ### `has_definition(name) -> bool`
 
-### `get_definition(name) -> setting | None`
+### `get_definition(name) -> field | None`
 
-### `all_definitions() -> dict[str, setting]`
+### `all_definitions() -> dict[str, field]`
 
-### `get_global(name) -> SettingValue`
+### `get_global(name) -> FieldValue`
 
-Returns `SettingValue(mode=AUTO)` if the key is unknown.
+Returns `FieldValue(mode=INHERIT)` if the key is unknown.
 
-### `set_global(name, value, mode=SettingMode.SET) -> None`
+### `set_global(name, value, mode=FieldMode.EXPLICIT) -> None`
 
 ### `reset_global(name) -> None`
 
-Reset to `AUTO`.
+Reset to `INHERIT`.
 
 ### `resolve(name, local=None) -> tuple[Any, str]`
 
-Returns `(value, source)` where source is `'global'`, `'local'`, or `'default'`.
+Returns `(value, source)` where source is one of `'global_override'`, `'workspace_override'`, `'local'`, `'workspace'`, `'global'`, `'default'`.
 
-- `local`: optional `SettingValue` representing the per-instance override.
+- `local`: optional `FieldValue` representing the per-instance override.
 
 ### `load_from_toml(path, tier='workspace', watch=False) -> None`
 
@@ -280,7 +302,7 @@ Cache-invalidation hook. Called internally by `Settings._subscribe_mirrors()`.
 
 ## TOML Format
 
-### Simple values (SET mode)
+### Simple values (EXPLICIT mode)
 
 ```toml
 [ui.node]
@@ -315,10 +337,10 @@ self.filter.threshold
 3. Local value in settings._local_store? → return it (per-node override)
     │ No
     ▼
-4. Workspace tier SET for full_key?      → return it (set via UI, saved to workspace TOML)
+4. Workspace tier EXPLICIT for full_key? → return it (set via UI, saved to workspace TOML)
     │ No
     ▼
-5. Global tier SET for full_key?         → return it (user global default)
+5. Global tier EXPLICIT for full_key?    → return it (user global default)
     │ No
     ▼
 6. Descriptor _default                   → return it
