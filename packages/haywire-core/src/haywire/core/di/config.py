@@ -266,9 +266,8 @@ class LibrarySystemService:
         settings_registry = self.injector.get(
             SettingsRegistry
         )  # must be first — wires FrameworkSettings._registry and loads TOML
-        self._logging_configurator = (
-            LoggingConfigurator()
-        )  # applies DebugSettings log levels (reads TOML values)
+        self._logging_configurator = LoggingConfigurator()  # applies DebugSettings log levels
+        self._logging_configurator.attach_registry(settings_registry)  # watches for per-library keys
         library_registry = self.injector.get(LibraryRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
         type_registry = self.injector.get(TypeRegistry)
@@ -441,7 +440,6 @@ class LibrarySystemService:
             print()
 
         print("-" * 70)
-
 
     def print_registry_status(self) -> None:
         """Print the status of all registries in a beautiful format."""

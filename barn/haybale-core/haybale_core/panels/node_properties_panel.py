@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
-from ._settings_panel_base import render_reactive
+from ._settings_panel_base import render_settings
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -71,4 +71,4 @@ class NodeInstanceSettingsPanel(BasePanel):
         node = context.active_node
         if node is None:
             return
-        render_reactive(node.node.props)
+        render_settings(node.node.props)

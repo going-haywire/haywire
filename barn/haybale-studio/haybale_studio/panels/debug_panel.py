@@ -1,8 +1,10 @@
-# haybale_studio/panels/settings_debug_panel.py
+# haybale_studio/panels/debug_panel.py
 """
 Debug-scope settings panel (scope='debug').
 
-DebugSettingsPanel — logging, execution visibility, visual debugging, data inspection
+DebugSettingsPanel — logging, execution visibility, visual debugging, data inspection.
+Per-library log level controls appear under "Debug / Library" via render_keys(),
+populated dynamically as libraries are enabled/disabled.
 """
 
 from __future__ import annotations
@@ -12,7 +14,8 @@ from typing import TYPE_CHECKING
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 
-from haybale_core.panels._settings_panel_base import render_schema
+from haybale_core.panels._settings_panel_base import render_schema, render_keys
+from haywire.core.debug.keys import LIBRARY_LOG_PREFIX
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -39,3 +42,4 @@ class DebugSettingsPanel(BasePanel):
 
         registry = context.app.library_service.get_settings_registry()
         render_schema(DebugSettings, registry)
+        render_keys(prefix=LIBRARY_LOG_PREFIX, registry=registry)

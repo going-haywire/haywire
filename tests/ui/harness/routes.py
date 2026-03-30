@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 from nicegui import app as nicegui_app
 from nicegui import ui
 
-from haybale_core.panels._settings_panel_base import render_reactive, render_schema
+from haybale_core.panels._settings_panel_base import render_settings, render_schema
 from haywire.core.settings.enums import SettingMode
 
 if TYPE_CHECKING:
@@ -85,7 +85,7 @@ def register_routes(library_service) -> None:
                 node_cls = _resolve_class(class_path)
                 settings_cls = getattr(node_cls, bag_name)
                 settings_instance = settings_cls(registry=registry)
-                render_reactive(settings_instance)
+                render_settings(settings_instance)
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
 

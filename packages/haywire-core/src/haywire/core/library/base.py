@@ -1,3 +1,4 @@
+# haywire.core.library.base.py
 from abc import ABC, abstractmethod
 import logging
 from typing import Dict, List, Tuple, Type, Optional
@@ -7,6 +8,7 @@ logger = logging.getLogger(__name__)
 from haywire.core.library.file_watcher import FileWatcher
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
+from haywire.core.debug.keys import library_log_key
 
 # ============================================================================
 #    BASE CLASS
@@ -46,9 +48,9 @@ class BaseLibrary(ABC):
         """Enable the library and register its components"""
         if not self._enabled:
             self._enabled = True
-            self.on_library_enable()
             self.register_components()
             self._attach_to_registries()
+            self.on_library_enable()
             if self.enforce_file_watching or self.identity.file_watcher:
                 self.file_watcher.start()
             logger.info(f"Library '{self.identity.label}': Enabled and components registered")
@@ -57,8 +59,8 @@ class BaseLibrary(ABC):
         """Disable the library and remove its components from registries"""
         if self._enabled:
             self._enabled = False
-            self._detach_from_registries()
             self.on_library_disable()
+            self._detach_from_registries()
             self.file_watcher.stop()
             logger.info(f"Library '{self.identity.label}': Disabled and components unregistered")
 
@@ -76,11 +78,48 @@ class BaseLibrary(ABC):
 
     def on_library_enable(self):
         """Hook called when the library is enabled"""
-        pass
+        self._register_log_level_setting()
 
     def on_library_disable(self):
         """Hook called when the library is disabled"""
-        pass
+        self._unregister_log_level_setting()
+
+    def _register_log_level_setting(self) -> None:
+        """Register a per-library log level setting in the SettingsRegistry."""
+        from haywire.core.settings.registry import SettingsRegistry
+        from haywire.core.debug.debug_settings import _GROUP_CHOICES
+
+        registry = self.get_registry(SettingsRegistry)
+        if registry is None:
+            return
+        lib_id = self.identity.id
+        module_name = self.identity.module_name
+        if not lib_id or not module_name:
+            return
+        key = library_log_key(lib_id)
+        registry.define(
+            name=key,
+            default="",
+            type_=str,
+            label=self.identity.label,
+            description=f"Log level for {module_name} ('' = inherit from root)",
+            category="debug.library",
+            choices=_GROUP_CHOICES,
+            ui_order=0,
+            metadata={"module_name": module_name},
+        )
+
+    def _unregister_log_level_setting(self) -> None:
+        """Remove the per-library log level setting from the SettingsRegistry."""
+        from haywire.core.settings.registry import SettingsRegistry
+
+        registry = self.get_registry(SettingsRegistry)
+        if registry is None:
+            return
+        lib_id = self.identity.id
+        if not lib_id:
+            return
+        registry.undefine(library_log_key(lib_id))
 
     @abstractmethod
     def register_components(self):

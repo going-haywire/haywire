@@ -3,7 +3,7 @@
 LibraryBrowser — searchable library list editor for the left area.
 
 Displays installed and marketplace libraries in a compact scrollable list.
-Selecting a library updates context.active_library and fires ACTIVE_LIBRARY_CHANGED.
+Selecting a library updates context.active_library and fires LIBRARY_STATE_CHANGED.
 """
 
 import logging
@@ -35,7 +35,7 @@ class LibraryBrowserEditor(BaseEditor):
     Shows a searchable list of installed (enabled/disabled) libraries.
 
     On selection, updates context.active_library and notifies subscribers
-    via ACTIVE_LIBRARY_CHANGED. The library_manager is retrieved from
+    via LIBRARY_STATE_CHANGED. The library_manager is retrieved from
     context.app.library_manager.
     """
 
@@ -237,11 +237,11 @@ class LibraryBrowserEditor(BaseEditor):
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
-                    change_type=ContextChangeType.ACTIVE_LIBRARY_CHANGED,
+                    change_type=ContextChangeType.LIBRARY_STATE_CHANGED,
                     source_editor="library_browser",
                 )
             )
 
     def on_context_changed(self, event: "_CE", context: "SessionContext") -> None:
-        if event.change_type == ContextChangeType.ACTIVE_LIBRARY_CHANGED:
+        if event.change_type == ContextChangeType.LIBRARY_STATE_CHANGED:
             self._render_list(context)

@@ -14,7 +14,7 @@ from nicegui import ui
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 
-from ._settings_panel_base import render_reactive
+from ._settings_panel_base import render_settings
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -63,4 +63,4 @@ class NodeSettingsPanel(BasePanel):
                     ' px-2 py-0 min-h-[24px]"'
                 )
             ):
-                render_reactive(bag)
+                render_settings(bag)

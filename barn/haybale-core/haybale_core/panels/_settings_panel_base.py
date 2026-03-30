@@ -23,6 +23,95 @@ _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
 _LABEL_CLASSES = "text-xs flex-1 min-w-0 truncate"
 
 
+# ---------------------------------------------------------------------------
+# Public entry points
+# ---------------------------------------------------------------------------
+
+
+def render_settings(obj: "Settings") -> None:
+    """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
+
+    - Fields with ``read_only=True`` are skipped (not rendered).
+    - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
+    """
+
+    fields = type(obj)._prop_fields()
+    # Exclude read-only fields from rendering
+    visible_fields = {name: defn for name, defn in fields.items() if not defn._read_only}
+    if not visible_fields:
+        ui.label("No fields defined.").classes("text-xs text-gray-400 px-2 py-1")
+        return
+
+    sorted_fields = sorted(
+        visible_fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0])
+    )
+    with ui.column().classes("w-full gap-0 compact-fields"):
+        for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
+            with _render_category_group(category):
+                for attr_name, defn in group:
+                    _render_reactive_field_row(obj, attr_name, defn)
+
+
+def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
+    """Render only the fields declared on *schema_cls* as labelled form rows.
+
+    Uses the schema's own _prop_fields() so that keys registered under the
+    same namespace prefix by other code (e.g. dynamic library keys) are not
+    accidentally included.
+    """
+    prop_fields = schema_cls._prop_fields()
+    defns = {
+        defn._field_key: defn
+        for defn in prop_fields.values()
+        if defn._field_key and registry.has_definition(defn._field_key)
+    }
+    if not defns:
+        ui.label("No fields defined.").classes("text-xs text-gray-400 px-2 py-1")
+        return
+
+    sorted_defns = sorted(defns.values(), key=lambda d: (d._category, d._order, d._field_key))
+    _render_definitions(sorted_defns, registry)
+
+
+def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
+    """Render all registry keys whose full key starts with *prefix*.
+
+    Intended for dynamically registered keys (e.g. per-library log levels)
+    that are not declared on any schema class. The category label is derived
+    from the key structure via _render_category_group.
+    """
+    match_prefix = prefix + "."
+    defns = {key: defn for key, defn in registry.all_definitions().items() if key.startswith(match_prefix)}
+    if not defns:
+        ui.label(f"No fields found under: {prefix}.*").classes("text-xs text-gray-400 px-2 py-1")
+        return
+
+    sorted_defns = sorted(defns.values(), key=lambda d: (d._category, d._order, d._field_key))
+    _render_definitions(sorted_defns, registry)
+
+
+def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> None:
+    """Render a pre-sorted list of field descriptors grouped by category."""
+    with ui.column().classes("w-full gap-0 compact-fields"):
+        for category, group in _group_by_category(sorted_defns):
+            with _render_category_group(category):
+                for defn in group:
+                    key = defn._field_key
+                    try:
+                        value, _ = registry.resolve(key)
+                    except KeyError:
+                        continue
+                    attr_name = defn._attr_name or key.split(".")[-1]
+                    _render_field_row(
+                        defn._label or attr_name,
+                        defn._description,
+                        defn,
+                        value,
+                        lambda coerce, k=key: _make_setter(registry, k, coerce),
+                        attr_name=attr_name,
+                    )
+
+
 def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str, list]]:
     """Group a pre-sorted list of descriptors by category, preserving order."""
     return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
@@ -41,7 +130,6 @@ def _render_category_group(category: str) -> ui.expansion:
         )
     )
 
-
 def _render_field_row(label_text: str, description: str, defn, value, make_setter, attr_name: str = ""):
     """Render a single label + widget row."""
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
@@ -49,35 +137,6 @@ def _render_field_row(label_text: str, description: str, defn, value, make_sette
         if description:
             lbl.tooltip(description)
         _render_widget_impl(defn, value, make_setter)
-
-
-# ---------------------------------------------------------------------------
-# Public entry points
-# ---------------------------------------------------------------------------
-
-
-def render_reactive(obj: "Settings") -> None:
-    """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
-
-    - Fields with ``read_only=True`` are skipped (not rendered).
-    - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
-    """
-
-    fields = type(obj)._prop_fields()
-    # Exclude read-only fields from rendering
-    visible_fields = {name: defn for name, defn in fields.items() if not defn._read_only}
-    if not visible_fields:
-        ui.label("No props defined.").classes("text-xs text-gray-400 px-2 py-1")
-        return
-
-    sorted_fields = sorted(
-        visible_fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0])
-    )
-    with ui.column().classes("w-full gap-0 compact-fields"):
-        for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
-            with _render_category_group(category):
-                for attr_name, defn in group:
-                    _render_reactive_field_row(obj, attr_name, defn)
 
 
 def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDescriptor") -> None:
@@ -114,35 +173,6 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
             )
 
     row_content()
-
-
-def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
-    """Render all fields of *schema_cls* as labelled form rows."""
-
-    defns = registry.definitions_for_schema(schema_cls)
-    if not defns:
-        ui.label("No settings defined.").classes("text-xs text-gray-400 px-2 py-1")
-        return
-
-    sorted_defns = sorted(defns.values(), key=lambda d: (d._category, d._order, d._field_key))
-    with ui.column().classes("w-full gap-0 compact-fields"):
-        for category, group in _group_by_category(sorted_defns):
-            with _render_category_group(category):
-                for defn in group:
-                    key = defn._field_key
-                    try:
-                        value, _ = registry.resolve(key)
-                    except KeyError:
-                        continue
-                    attr_name = defn._attr_name or key.split(".")[-1]
-                    _render_field_row(
-                        defn._label or attr_name,
-                        defn._description,
-                        defn,
-                        value,
-                        lambda coerce, k=key: _make_setter(registry, k, coerce),
-                        attr_name=attr_name,
-                    )
 
 
 # ---------------------------------------------------------------------------

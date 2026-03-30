@@ -20,7 +20,7 @@ class ContextChangeType(Enum):
     EDITOR_FOCUSED = auto()  # different editor gained focus
     WORKSPACE_CHANGED = auto()  # workspace preset switched
     DATA_MUTATED = auto()  # graph data changed (node values, structure)
-    ACTIVE_LIBRARY_CHANGED = auto()  # library selected in LibraryBrowser
+    LIBRARY_STATE_CHANGED = auto()  # library enabled, disabled, installed, or selected
     ACTIVE_COMPONENT_CHANGED = auto()  # component (node/widget/renderer) selected in LibraryBrowser
     FILE_SELECTED = auto()  # file selected in FileBrowserEditor
     WORKBENCH_THEME_CHANGED = auto()  # active workbench theme switched

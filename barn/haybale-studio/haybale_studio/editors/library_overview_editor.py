@@ -2,7 +2,7 @@
 """
 LibraryOverviewEditor — full center-panel port from LibraryManagerPage.
 
-Renders in the middle area and reacts to ACTIVE_LIBRARY_CHANGED events.
+Renders in the middle area and reacts to LIBRARY_STATE_CHANGED events.
 Receives the active library via context.active_library (InstalledLibrary or
 MarketplaceEntry). All services are retrieved from
 context.app (= HaywireApp).
@@ -80,7 +80,7 @@ class LibraryOverviewEditor(BaseEditor):
     - Scrollable content: tabs (Overview, Nodes, Widgets, Types, Adapters,
       Renderers) for installed libraries, or async overview for marketplace-only.
 
-    Rebuilds on ACTIVE_LIBRARY_CHANGED.
+    Rebuilds on LIBRARY_STATE_CHANGED.
     """
 
     def __init__(self):
@@ -99,7 +99,7 @@ class LibraryOverviewEditor(BaseEditor):
         self._rebuild(context)
 
     def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
-        if event.change_type == ContextChangeType.ACTIVE_LIBRARY_CHANGED and self._container is not None:
+        if event.change_type == ContextChangeType.LIBRARY_STATE_CHANGED and self._container is not None:
             self._container.clear()
             self._rebuild(context)
 
@@ -658,12 +658,12 @@ class LibraryOverviewEditor(BaseEditor):
             return None
 
     def _notify_library_changed(self, context: "SessionContext") -> None:
-        """Broadcast ACTIVE_LIBRARY_CHANGED so all editors (incl. LibraryBrowser) refresh."""
+        """Broadcast LIBRARY_STATE_CHANGED so all editors (incl. LibraryBrowser) refresh."""
         session = context.session
         if session is not None:
             session.notify_context_changed(
                 ContextChangedEvent(
-                    change_type=ContextChangeType.ACTIVE_LIBRARY_CHANGED,
+                    change_type=ContextChangeType.LIBRARY_STATE_CHANGED,
                     source_editor="library_detail",
                 )
             )

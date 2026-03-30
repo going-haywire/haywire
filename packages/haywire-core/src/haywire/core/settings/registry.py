@@ -123,6 +123,9 @@ class SettingsRegistry(BaseRegistry):
         # Namespace-scoped weak-ref subscriptions for holder cache invalidation (Option B)
         self._namespace_subscribers: dict[str, list[weakref.ref]] = {}
 
+        # Arbitrary per-key metadata attached via define(..., metadata={...})
+        self._definition_metadata: dict[str, dict] = {}
+
         # Drain FrameworkSettings classes that were defined before the registry existed
         self._drain_pending_global()
 
@@ -178,8 +181,16 @@ class SettingsRegistry(BaseRegistry):
                 descriptor._field_key, descriptor, category=descriptor._category or "general"
             )
 
+    def _notify_listeners(self, name: str, sv: "SettingValue") -> None:
+        for listener in self._listeners:
+            try:
+                listener(name, sv)
+            except Exception as e:
+                logger.error(f"Listener error for {name}: {e}")
+
     def _store_definition(self, name: str, descriptor: setting, category: str = "general") -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
+        is_new = name not in self._definitions
         self._definitions[name] = descriptor
         if name not in self._global_tier_values:
             self._global_tier_values[name] = SettingValue(mode=SettingMode.AUTO)
@@ -189,6 +200,8 @@ class SettingsRegistry(BaseRegistry):
             self._categories[category] = []
         if name not in self._categories[category]:
             self._categories[category].append(name)
+        if is_new:
+            self._notify_listeners(name, SettingValue(mode=SettingMode.AUTO))
 
     def _unregister_schema_fields(self, schema_cls) -> None:
         """Remove all descriptor fields of a schema class from definitions."""
@@ -488,11 +501,7 @@ class SettingsRegistry(BaseRegistry):
 
             if (new.mode, new.value) != old:
                 changed_keys.add(name)
-                for listener in self._listeners:
-                    try:
-                        listener(name, new)
-                    except Exception as e:
-                        logger.error(f"Listener error for {name}: {e}")
+                self._notify_listeners(name, new)
 
         if changed_keys:
             self._notify_namespace_subscribers(changed_keys)
@@ -640,6 +649,7 @@ class SettingsRegistry(BaseRegistry):
         validator: Callable[[Any], bool] | None = None,
         ui_widget: str | None = None,
         ui_order: int = 0,
+        metadata: dict | None = None,
     ) -> setting:
         """
         Define a setting from code (authoritative schema).
@@ -666,7 +676,34 @@ class SettingsRegistry(BaseRegistry):
             d._field_key = name
 
             self._store_definition(name, d, category=category)
+            if metadata:
+                self._definition_metadata[name] = metadata
             return d
+
+    def get_definition_metadata(self, name: str) -> dict:
+        """Return the metadata dict attached to a key via define(..., metadata=...), or {}."""
+        return self._definition_metadata.get(name, {})
+
+    def undefine(self, name: str) -> None:
+        """Remove a programmatically-defined setting key.
+
+        Notifies listeners with a SettingValue(mode=AUTO, value=None) sentinel
+        so subscribers (e.g. LoggingConfigurator) can react to the removal.
+        No-op if the key is not defined.
+        """
+        with self._lock:
+            if name not in self._definitions:
+                return
+            del self._definitions[name]
+            self._global_tier_values.pop(name, None)
+            self._workspace_tier_values.pop(name, None)
+            self._toml_defined.discard(name)
+            self._definition_metadata.pop(name, None)
+            for cat_names in self._categories.values():
+                if name in cat_names:
+                    cat_names.remove(name)
+        self._notify_listeners(name, SettingValue(mode=SettingMode.AUTO))
+        self._notify_namespace_subscribers({name})
 
     def has_definition(self, name: str) -> bool:
         return name in self._definitions
@@ -759,11 +796,7 @@ class SettingsRegistry(BaseRegistry):
             new_effective = self._effective_value(name)
 
             if (new_effective.mode, new_effective.value) != old_effective:
-                for listener in self._listeners:
-                    try:
-                        listener(name, new_effective)
-                    except Exception as e:
-                        logger.error(f"Listener error: {e}")
+                self._notify_listeners(name, new_effective)
                 self._notify_namespace_subscribers({name})
 
     def reset_global(self, name: str, tier: str = "workspace") -> None:
@@ -783,11 +816,7 @@ class SettingsRegistry(BaseRegistry):
                 new_effective = self._effective_value(name)
 
                 if (new_effective.mode, new_effective.value) != old_effective:
-                    for listener in self._listeners:
-                        try:
-                            listener(name, new_effective)
-                        except Exception as e:
-                            logger.error(f"Listener error: {e}")
+                    self._notify_listeners(name, new_effective)
                     self._notify_namespace_subscribers({name})
 
     # =========================================================================
@@ -841,9 +870,14 @@ class SettingsRegistry(BaseRegistry):
     # =========================================================================
 
     def add_listener(self, callback: Callable[[str, SettingValue], None]) -> None:
+        """
+        Add a listener callback that gets called with 
+        (name, new_effective_value) on any change of any setting.
+        """
         self._listeners.append(callback)
 
     def remove_listener(self, callback: Callable[[str, SettingValue], None]) -> None:
+        """Remove a listener callback."""
         if callback in self._listeners:
             self._listeners.remove(callback)
 
