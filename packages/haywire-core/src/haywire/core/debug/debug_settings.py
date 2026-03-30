@@ -70,11 +70,27 @@ class DebugSettings(FrameworkSettings, namespace="debug"):
         order=17,
         choices=_GROUP_CHOICES,
     )
+    log_registry: str = setting(
+        "",
+        label="Registry",
+        description="Log level for haywire.core.registry ('' = inherit)",
+        category="debug",
+        order=18,
+        choices=_GROUP_CHOICES,
+    )
+    log_node: str = setting(
+        "",
+        label="Node",
+        description="Log level for haywire.core.node ('' = inherit)",
+        category="debug",
+        order=19,
+        choices=_GROUP_CHOICES,
+    )
 
     log_to_file: bool = setting(
         False,
         label="Log to File",
         description="Write logs to file in addition to console",
         category="debug",
-        order=18,
+        order=20,
     )

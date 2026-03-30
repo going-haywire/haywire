@@ -7,6 +7,8 @@ Selecting a library updates context.active_library and fires ACTIVE_LIBRARY_CHAN
 """
 
 import logging
+
+logger = logging.getLogger(__name__)
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -116,7 +118,7 @@ class LibraryBrowserEditor(BaseEditor):
         try:
             libraries = app.library_manager.list_installed()
         except Exception as e:
-            logging.warning(f"LibraryBrowser: failed to list libraries: {e}")
+            logger.warning(f"LibraryBrowser: failed to list libraries: {e}")
             with self._list_container:
                 ui.label("Error loading libraries").classes("text-xs text-red-400 p-2")
             return
@@ -176,7 +178,7 @@ class LibraryBrowserEditor(BaseEditor):
                     available = [e for e in entries if e.name not in installed_names and matches(e)]
                     available.sort(key=lambda x: x.label or x.name)
                 except Exception as e:
-                    logging.warning(f"LibraryBrowser: failed to load marketplace: {e}")
+                    logger.warning(f"LibraryBrowser: failed to load marketplace: {e}")
 
         with self._list_container:
             if required:

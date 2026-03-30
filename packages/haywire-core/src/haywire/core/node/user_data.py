@@ -3,8 +3,11 @@
 User data containers for node state.
 """
 
+import logging
 from types import SimpleNamespace
 from typing import Any, Iterator
+
+logger = logging.getLogger(__name__)
 
 
 class NodeCache(SimpleNamespace):
@@ -172,8 +175,6 @@ class NodeStore:
         - Be JSON-serializable
         - Be skipped (with warning in logs)
         """
-        import logging
-
         result = {}
         for key, value in self._data.items():
             try:
@@ -181,7 +182,7 @@ class NodeStore:
                 if serialized is not None:
                     result[key] = serialized
             except (TypeError, ValueError) as e:
-                logging.warning(f"NodeStore: Cannot serialize '{key}': {e}")
+                logger.warning(f"NodeStore: Cannot serialize '{key}': {e}")
 
         return result
 

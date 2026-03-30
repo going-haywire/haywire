@@ -16,6 +16,8 @@ _GROUP_MAP: dict[str, str] = {
     "log_graph": "haywire.core.graph",
     "log_settings": "haywire.core.settings",
     "log_library": "haywire.core.library",
+    "log_registry": "haywire.core.registry",
+    "log_node": "haywire.core.node",
     "log_ui": "haywire.ui",
 }
 

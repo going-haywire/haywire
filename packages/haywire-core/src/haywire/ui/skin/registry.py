@@ -2,6 +2,8 @@ import inspect
 import logging
 from typing import Optional
 
+logger = logging.getLogger(__name__)
+
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.library.identity import LibraryIdentity
@@ -54,7 +56,7 @@ class SkinRegistry(BaseRegistry):
         if skin_cls.class_identity._is_error:
             if self._error_skin is not None:
                 if skin_cls.class_identity._error_priority > self._error_skin.class_identity._error_priority:
-                    logging.warning(
+                    logger.warning(
                         f"Overriding already registered error skin: "
                         f"'{self._error_skin.class_identity.registry_key}'"
                         f" with : '{skin_cls.class_identity.registry_key}'"
@@ -71,7 +73,7 @@ class SkinRegistry(BaseRegistry):
             new_error_priority = skin_cls.class_identity._error_priority
             if new_error_priority > self._error_priority:
                 if self._error_skin_name:
-                    logging.warning(
+                    logger.warning(
                         f"Overriding already registered error skin: "
                         f"'{self._error_skin_name}'"
                         f" with : '{registry_key}'"
@@ -86,7 +88,7 @@ class SkinRegistry(BaseRegistry):
             new_default_priority = skin_cls.class_identity._default_priority
             if new_default_priority > self._default_priority:
                 if self._default_skin_name:
-                    logging.warning(
+                    logger.warning(
                         f"Overriding already registered default skin: "
                         f"'{self._default_skin_name}'"
                         f" with : '{registry_key}'"
@@ -137,11 +139,11 @@ class SkinRegistry(BaseRegistry):
                     self._error_priority = priority
 
         if self._error_skin_name:
-            logging.info(
+            logger.info(
                 f"Fallback to error skin '{self._error_skin_name}' with priority {self._error_priority}"
             )
         else:
-            logging.warning("No error skin left in registry")
+            logger.warning("No error skin left in registry")
 
     def _find_next_default_skin(self) -> None:
         """Find and set the default skin with the highest priority from remaining skins"""
@@ -153,12 +155,12 @@ class SkinRegistry(BaseRegistry):
                     self._default_priority = priority
 
         if self._default_skin_name:
-            logging.info(
+            logger.info(
                 f"Fallback to default skin '{self._default_skin_name}' "
                 f"with priority {self._default_priority}"
             )
         else:
-            logging.warning("No default skin left in registry")
+            logger.warning("No default skin left in registry")
 
     def get_default_skin_registry_key(self, fallback: str | None = None) -> str | None:
         """Get the default skin registry key

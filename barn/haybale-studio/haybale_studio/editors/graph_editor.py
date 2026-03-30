@@ -10,6 +10,8 @@ A slim header inside the tab panel shows the open file name and a Save button.
 """
 
 import logging
+
+logger = logging.getLogger(__name__)
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -79,7 +81,7 @@ class GraphEditor(BaseEditor):
         if self._project_state is None:
             with container:
                 ui.label("GraphEditor: no app in context").classes("text-red-400 p-4")
-            logging.warning("GraphEditor.render(): project_state not found in context.metadata")
+            logger.warning("GraphEditor.render(): project_state not found in context.metadata")
             return
 
         with container:
@@ -161,7 +163,7 @@ class GraphEditor(BaseEditor):
             on_selection_changed=self._handle_selection_changed,
         )
         self._canvas_manager.sync_with_graph()
-        logging.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
+        logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 
     def _get_entry(self, context: "SessionContext"):
         """Look up the active GraphEntry from the graph_manager, if available."""
@@ -310,7 +312,7 @@ class GraphEditor(BaseEditor):
             try:
                 self._canvas_manager.cleanup()
             except Exception as exc:
-                logging.warning(f"GraphEditor: cleanup error during swap: {exc}")
+                logger.warning(f"GraphEditor: cleanup error during swap: {exc}")
             self._canvas_manager = None
 
         self._canvas_wrapper.clear()
@@ -518,7 +520,7 @@ class GraphEditor(BaseEditor):
             try:
                 self._canvas_manager.cleanup()
             except Exception as exc:
-                logging.error(f"GraphEditor.cleanup(): {exc}")
+                logger.error(f"GraphEditor.cleanup(): {exc}")
             self._canvas_manager = None
         self._save_as_dialog = None
         self._save_base_dir = None

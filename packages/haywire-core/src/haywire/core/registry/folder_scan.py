@@ -1,6 +1,8 @@
 import ast
 import logging
 import importlib
+
+logger = logging.getLogger(__name__)
 import inspect
 from pathlib import Path
 import sys
@@ -66,7 +68,7 @@ class FolderScanMixin:
         # Convert filesystem path to module path
         module_prefix = self.resolve_module_name(library_dir)
         if not module_prefix:
-            logging.warning(
+            logger.warning(
                 f"Could not resolve module name for {library_path}. "
                 "No __init__.py found in parent directories."
             )
@@ -81,7 +83,7 @@ class FolderScanMixin:
                 continue
 
             if not self._validate_python_file(py_file):
-                logging.warning(f"Invalid Python file: {py_file}. Skip Registering.")
+                logger.warning(f"Invalid Python file: {py_file}. Skip Registering.")
                 continue
 
             # Calculate module name based on relative path from library_dir
@@ -131,7 +133,7 @@ class FolderScanMixin:
                         discovered_classes.append(obj)
                 except Exception as e:
                     # Log filter errors but continue discovery
-                    logging.error(f"Filter error for class {name}: \n\n {e} \n")
+                    logger.error(f"Filter error for class {name}: \n\n {e} \n")
                     continue
 
         return discovered_classes, module
@@ -173,7 +175,7 @@ class FolderScanMixin:
             rel_path = file_path.relative_to(library_root_path)
         except ValueError:
             # File is not under library root - should not happen
-            logging.error(f"File {file_path} is not under library root {library_root_path}")
+            logger.error(f"File {file_path} is not under library root {library_root_path}")
             return None
 
         # Build module parts from relative path
@@ -193,7 +195,7 @@ class FolderScanMixin:
                 source_code = f.read()
 
         except OSError as e:
-            logging.error(f"Error reading {file_path}: {e}")
+            logger.error(f"Error reading {file_path}: {e}")
             return False
 
         ast.parse(source_code, filename=file_path)

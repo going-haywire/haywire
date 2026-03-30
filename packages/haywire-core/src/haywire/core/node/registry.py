@@ -3,6 +3,8 @@
 import inspect
 import logging
 
+logger = logging.getLogger(__name__)
+
 from haywire.core.library.utils import get_registry_id_from_key
 
 from ...core.registry.lifecycle_event import LifeCycleEvent
@@ -52,7 +54,7 @@ class NodeRegistry(BaseRegistry):
         if node_cls.class_identity._is_error:
             if self._error_node is not None:
                 if node_cls.class_identity._error_priority > self._error_node.class_identity._error_priority:
-                    logging.warning(
+                    logger.warning(
                         f"Overriding already registered error node: "
                         f"'{self._error_node.class_identity.registry_key}'."
                         f" with : '{node_cls.class_identity.registry_key}'"
@@ -76,7 +78,7 @@ class NodeRegistry(BaseRegistry):
         """
         if self.get(registry_key) == self._error_node:
             self._error_node = None
-            logging.warning(f"Error node '{registry_key}' unregistered, no error node left in registry")
+            logger.warning(f"Error node '{registry_key}' unregistered, no error node left in registry")
 
         return super()._unregister(registry_key)
 

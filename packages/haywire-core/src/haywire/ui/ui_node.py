@@ -10,6 +10,8 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 
 import logging
 from typing import Any, Callable, Optional
+
+logger = logging.getLogger(__name__)
 from nicegui import ui
 from haywire.core.graph.types import ChangeReason
 from haywire.core.node.base import BaseNode
@@ -113,7 +115,7 @@ class UINode:
         # Always use the container's client context for safe rendering
         # This handles both initial renders and background task updates
         if not self.container or not hasattr(self.container, "client"):
-            logging.error(f"Cannot render UINode {self._node_id}: no valid container")
+            logger.error(f"Cannot render UINode {self._node_id}: no valid container")
             return False
 
         with self.container.client:
@@ -154,7 +156,7 @@ class UINode:
                     # this can happen if :
                     # the node has no skin assigned AND the registry has no default skin available
                     renderer_name = NO_SKIN_DEFINED  # Fallback if no default skin is set
-                    logging.debug(
+                    logger.debug(
                         f"For node '{self.wrapper.node.identity.label}' - '{self.wrapper.node_id}' "
                         f"no skin or default defined. Using '{NO_SKIN_DEFINED}' as skin key"
                     )
@@ -224,7 +226,7 @@ class UINode:
         using the pending-set / MutationObserver pattern if the canvas is not
         currently the active panel.
         """
-        logging.debug(f"UINode {self.wrapper.node_id}: Emitting sync redraw event.")
+        logger.debug(f"UINode {self.wrapper.node_id}: Emitting sync redraw event.")
         if self.sync_event_emitter:
             sync_event = SyncNodeRedrawEvent(nodeId=self.wrapper.node_id)
             self.sync_event_emitter(sync_event)
@@ -271,7 +273,7 @@ class UINode:
         Clean up resources and remove UI elements.
         Enhanced to unsubscribe from wrapper and factory callbacks.
         """
-        logging.info(f"🔌 Cleaning up UINode {self._node_id} ..")
+        logger.info(f"🔌 Cleaning up UINode {self._node_id} ..")
         self.factory.remove_factory_lifecycle_subscriber(
             self._node_id, self._listen_on_factory_lifecycle_event
         )
@@ -295,7 +297,7 @@ class UINode:
 
         # Unsubscribe from wrapper changes
 
-        logging.info(f".. Done 🔌 Cleaning up UINode {self._node_id}.")
+        logger.info(f".. Done 🔌 Cleaning up UINode {self._node_id}.")
 
         self.wrapper = None
 

@@ -7,6 +7,8 @@ from typing import Dict, List, Callable, TYPE_CHECKING
 import uuid
 import logging
 
+logger = logging.getLogger(__name__)
+
 from haywire.ui.context import SessionContext
 from haywire.ui.context_events import ContextChangedEvent
 from haywire.ui.workspace.manager import WorkspaceManager
@@ -56,7 +58,7 @@ class Session:
         # Context change subscribers (editor.on_context_changed callbacks)
         self._context_subscribers: List[Callable] = []
 
-        logging.info(f"Session created: {self.session_id}")
+        logger.info(f"Session created: {self.session_id}")
 
     def notify_context_changed(self, event: ContextChangedEvent) -> None:
         """
@@ -72,7 +74,7 @@ class Session:
             try:
                 subscriber(event, self.context)
             except Exception as e:
-                logging.error(f"Session {self.session_id}: context subscriber error: {e}")
+                logger.error(f"Session {self.session_id}: context subscriber error: {e}")
 
     def subscribe_context_changes(self, callback: Callable) -> None:
         """Register a callback to receive context change notifications.
@@ -101,4 +103,4 @@ class Session:
             editor.cleanup()
         self._editors.clear()
         self._context_subscribers.clear()
-        logging.info(f"Session cleaned up: {self.session_id}")
+        logger.info(f"Session cleaned up: {self.session_id}")

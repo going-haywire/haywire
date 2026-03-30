@@ -9,6 +9,8 @@ import json
 import logging
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 from haywire.ui.workspace.workspace_state import (
     WorkspaceState,
     AreaState,
@@ -118,7 +120,7 @@ class WorkspaceManager:
         if name not in self.presets:
             raise KeyError(f"Workspace '{name}' not found")
         self.active = self.presets[name]
-        logging.info(f"WorkspaceManager: Switched to workspace '{name}'")
+        logger.info(f"WorkspaceManager: Switched to workspace '{name}'")
         return self.active
 
     def save_current(self, name: Optional[str] = None) -> None:
@@ -170,7 +172,7 @@ class WorkspaceManager:
                 for name, state_dict in data.items():
                     self.presets[name] = self._deserialize_workspace(state_dict)
             except Exception as e:
-                logging.warning(f"WorkspaceManager: Failed to load workspace presets: {e}")
+                logger.warning(f"WorkspaceManager: Failed to load workspace presets: {e}")
 
     def _persist_presets(self) -> None:
         """Save workspace presets to project .haywire/ folder."""
@@ -183,4 +185,4 @@ class WorkspaceManager:
         for name, ws in self.presets.items():
             data[name] = asdict(ws)
         preset_file.write_text(json.dumps(data, indent=2))
-        logging.info(f"WorkspaceManager: Persisted presets to {preset_file}")
+        logger.info(f"WorkspaceManager: Persisted presets to {preset_file}")

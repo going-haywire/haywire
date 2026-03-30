@@ -10,6 +10,8 @@ import inspect
 import logging
 from typing import Optional, Dict
 
+logger = logging.getLogger(__name__)
+
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
@@ -44,7 +46,7 @@ class EditorTypeRegistry(BaseRegistry):
     def _register_class(self, cls: type, library_identity: Optional[LibraryIdentity] = None) -> "str | None":
         """Register an editor class by its registry_key."""
         registry_key = cls.class_identity.registry_key
-        logging.debug(f"EditorTypeRegistry: Registering '{registry_key}' ({cls.__name__})")
+        logger.debug(f"EditorTypeRegistry: Registering '{registry_key}' ({cls.__name__})")
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key: str) -> "type | None":

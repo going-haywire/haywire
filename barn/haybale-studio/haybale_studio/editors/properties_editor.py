@@ -17,6 +17,8 @@ libraries.
 """
 
 import logging
+
+logger = logging.getLogger(__name__)
 from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
@@ -202,7 +204,7 @@ class PropertiesEditor(BaseEditor):
                     if not panel_cls.poll(context):
                         continue
                 except Exception as exc:
-                    logging.warning(f"PropertiesEditor: poll() error in {panel_cls.__name__}: {exc}")
+                    logger.warning(f"PropertiesEditor: poll() error in {panel_cls.__name__}: {exc}")
                     continue
 
                 has_panels = True
@@ -229,7 +231,7 @@ class PropertiesEditor(BaseEditor):
                         panel_instance = panel_cls()
                         panel_instance.draw(context, layout)
                     except Exception as exc:
-                        logging.exception(f"PropertiesEditor: draw() error in {panel_cls.__name__}: {exc}")
+                        logger.exception(f"PropertiesEditor: draw() error in {panel_cls.__name__}: {exc}")
                         ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
 
             if not has_panels:

@@ -8,6 +8,8 @@ including creation, hot reload, serialization, and cleanup.
 import time
 import threading
 import logging
+
+logger = logging.getLogger(__name__)
 from typing import List, Optional, Tuple, Any, Dict, TYPE_CHECKING
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
@@ -439,7 +441,7 @@ class NodeWrapper:
             event: The life cycle event with complete context
         """
         with self._lock:
-            logging.info(
+            logger.info(
                 f"NodeWrapper {self._node_id}: Detected life cycle event - {lc_event.event_type.value}"
             )
 

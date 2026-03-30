@@ -11,6 +11,8 @@ import inspect
 import logging
 from typing import Dict, List, Optional
 
+logger = logging.getLogger(__name__)
+
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
@@ -60,14 +62,14 @@ class PanelRegistry(BaseRegistry):
         """
         key = (editor_id, descriptor.scope_id)
         if key in self._scope_index:
-            logging.warning(
+            logger.warning(
                 f"PanelRegistry: scope '{descriptor.scope_id}' for editor '{editor_id}' "
                 f"is already registered — ignoring re-registration. "
                 f"Only one library should own a scope definition."
             )
             return
         self._scope_index[key] = descriptor
-        logging.debug(f"PanelRegistry: Registered scope '{descriptor.scope_id}' for editor '{editor_id}'")
+        logger.debug(f"PanelRegistry: Registered scope '{descriptor.scope_id}' for editor '{editor_id}'")
 
     def get_scopes(self, editor_id: str) -> List[ScopeDescriptor]:
         """
@@ -105,7 +107,7 @@ class PanelRegistry(BaseRegistry):
         result = super()._register(registry_key, cls, library_identity)
         if result:
             self._index_panel(cls)
-        logging.debug(
+        logger.debug(
             f"PanelRegistry: Registered '{registry_key}' -> "
             f"editor='{cls.class_identity.editor_key}', "
             f"scope={cls.class_identity.scope!r}"

@@ -13,6 +13,8 @@ Features:
 
 import logging
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 from typing import Callable, Optional
 
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -175,7 +177,7 @@ class UIEdge:
 
         self.sync_event_emitter(event)
 
-        logging.debug(
+        logger.debug(
             f"🔗 UIEdge synced: {new_state.edge_id} -> "
             f"color={new_state.stroke_color}, "
             f"valid={new_state.is_valid}, "
@@ -193,7 +195,7 @@ class UIEdge:
         self.sync_event_emitter = None
         self._current_visual_state = None
 
-        logging.debug(f"🔗 UIEdge cleaned up: {self.ui_edge_id}")
+        logger.debug(f"🔗 UIEdge cleaned up: {self.ui_edge_id}")
 
     def is_valid(self) -> bool:
         """Check if connection is in valid state"""

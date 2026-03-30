@@ -16,6 +16,8 @@ and calling AppShell.render().
 import logging
 from typing import Optional, TYPE_CHECKING
 
+logger = logging.getLogger(__name__)
+
 from nicegui import ui
 
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
@@ -654,7 +656,7 @@ class AppShell:
             )
             editor_instance.render(container_div, self.session.context)
         except Exception as e:
-            logging.error(f"AppShell: Failed to render editor '{editor_key}' in slot '{slot}': {e}")
+            logger.error(f"AppShell: Failed to render editor '{editor_key}' in slot '{slot}': {e}")
             ui.label(f"Error loading editor: {editor_key}").classes("text-red-400 p-4")
 
     def _toggle_left_panel(self) -> None:
@@ -719,7 +721,7 @@ class AppShell:
 
         ws.left.editor_key = editor_key
         ws.left_bar_active = editor_key
-        logging.info(f"AppShell: Switching left area to '{editor_key}'")
+        logger.info(f"AppShell: Switching left area to '{editor_key}'")
 
         # Re-render the left column with the new editor.
         if self._left_column is not None:
@@ -748,7 +750,7 @@ class AppShell:
 
         ws.right.editor_key = editor_key
         ws.right_bar_active = editor_key
-        logging.info(f"AppShell: Switching right area to '{editor_key}'")
+        logger.info(f"AppShell: Switching right area to '{editor_key}'")
 
         # Re-render the right column with the new editor.
         if self._right_column is not None:

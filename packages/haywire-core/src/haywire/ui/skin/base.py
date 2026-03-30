@@ -3,6 +3,8 @@ from ast import Dict
 from dataclasses import dataclass
 import logging
 
+logger = logging.getLogger(__name__)
+
 import nicegui.ui as ui
 
 from haywire.core.library.identity import LibraryIdentity
@@ -71,7 +73,7 @@ class BaseSkin(IBaseSkin, ABC):
                     ui_card.clear()
                     ui_card.delete()
                 except Exception as cleanup_error:
-                    logging.error(f"Error during UI cleanup: {cleanup_error}")
+                    logger.error(f"Error during UI cleanup: {cleanup_error}")
 
             # Re-raise the original exception so the factory can handle it
             raise

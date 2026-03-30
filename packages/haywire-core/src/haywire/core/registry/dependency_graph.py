@@ -2,6 +2,8 @@ import ast
 import sys
 import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 from typing import Set, List, Dict, Optional
 from dataclasses import dataclass
 from collections import deque
@@ -227,7 +229,7 @@ class DependencyGraph:
         # This is a single-pass operation that builds both caches
         dep_count = self._build_reverse_dependencies(module_name, scope_prefixes)
 
-        logging.debug(
+        logger.debug(
             f"Module '{module_name}' registered as managed with scopes {scope_prefixes} "
             f"and {dep_count} dependencies"
         )
@@ -260,7 +262,7 @@ class DependencyGraph:
             if module_name in self._module_scope_prefixes:
                 del self._module_scope_prefixes[module_name]
 
-            logging.debug(f"Module '{module_name}' removed from managed modules")
+            logger.debug(f"Module '{module_name}' removed from managed modules")
 
     def _refresh_module_dependencies(self, module_name: str, scope_prefixes: List[str]) -> None:
         """
@@ -302,7 +304,7 @@ class DependencyGraph:
         # Update the cache
         self._direct_dependencies_cache[module_name] = new_deps
 
-        logging.debug(
+        logger.debug(
             f"Refreshed dependencies for '{module_name}': "
             f"+{len(added)} -{len(removed)} (total: {len(new_deps)})"
         )
@@ -354,7 +356,7 @@ class DependencyGraph:
             if len(managed) > 1:
                 managed = self._topological_sort(managed)
 
-            logging.debug(f"Reload plan (managed changed): 0 helpers, {len(managed)} managed")
+            logger.debug(f"Reload plan (managed changed): 0 helpers, {len(managed)} managed")
 
             return ReloadPlan(non_managed_modules=[], managed_modules=managed)
 
@@ -365,7 +367,7 @@ class DependencyGraph:
             self._refresh_module_dependencies(changed_module, scope_prefixes)
         else:
             # Module not tracked yet - might be a new file
-            logging.debug(f"Module '{changed_module}' not in dependency graph, skipping refresh")
+            logger.debug(f"Module '{changed_module}' not in dependency graph, skipping refresh")
 
         # Use BFS with deque for O(1) popleft instead of O(n) list.pop(0)
         to_reload = set()
@@ -399,7 +401,7 @@ class DependencyGraph:
         if len(managed) > 1:
             managed = self._topological_sort(managed)
 
-        logging.debug(
+        logger.debug(
             f"Reload plan (helper changed): {len(helpers)} helpers, {len(managed)} managed "
             f"(excluded {len(exclude_modules)} already reloaded)"
         )
@@ -546,7 +548,7 @@ class DependencyGraph:
             return dependencies
 
         except Exception as e:
-            logging.warning(f"Failed to extract dependencies from '{module_name}': {e}")
+            logger.warning(f"Failed to extract dependencies from '{module_name}': {e}")
             return set()
 
     def _topological_sort(self, modules: List[str]) -> List[str]:
@@ -602,7 +604,7 @@ class DependencyGraph:
         # Check for cycles
         if len(result) != len(modules):
             remaining = set(modules) - set(result)
-            logging.error(
+            logger.error(
                 f"CIRCULAR DEPENDENCY DETECTED in modules: {remaining}. "
                 f"This will likely cause reload failures. Please fix your import structure."
             )
@@ -642,7 +644,7 @@ class DependencyGraph:
             parts = importing_module.split(".")
 
             if level > len(parts):
-                logging.warning(f"Relative import level {level} too high for '{importing_module}'")
+                logger.warning(f"Relative import level {level} too high for '{importing_module}'")
                 return None
 
             # Go up 'level' packages
@@ -654,5 +656,5 @@ class DependencyGraph:
                 return ".".join(base_parts)
 
         except Exception as e:
-            logging.warning(f"Failed to resolve relative import in '{importing_module}': {e}")
+            logger.warning(f"Failed to resolve relative import in '{importing_module}': {e}")
             return None
