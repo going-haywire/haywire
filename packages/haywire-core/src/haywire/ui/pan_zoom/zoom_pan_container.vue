@@ -57,10 +57,13 @@ export default {
     this._zoom = this.initialZoom;
     this._panX = 0;
     this._panY = 0;
-    
+
+    // Cached container rect — populated on first gesture, cleared on mouseup/resize
+    this._cachedRect = null;
+
     // Initialize
-    this._updateTransformDirect();
-    
+    this._updateTransformDirect(true);
+
     // Setup keyboard listeners
     this._setupKeyboardListeners();
 
@@ -76,7 +79,7 @@ export default {
         this._zoom = this.initialZoom;
         this._panX = 0;
         this._panY = 0;
-        this._updateTransformDirect();
+        this._updateTransformDirect(true);
       },
       fitToContent: this.fitToContent,
       getState: () => ({ 
@@ -90,15 +93,31 @@ export default {
   
   methods: {
 
+    _getContainerRect() {
+      if (!this._cachedRect) {
+        this._cachedRect = this.$el.getBoundingClientRect();
+      }
+      return this._cachedRect;
+    },
+
+    _invalidateRectCache() {
+      this._cachedRect = null;
+    },
+
     _setupKeyboardListeners() {
       // Listen for modifier key changes
       document.addEventListener('keydown', this.handleGlobalKeyDown);
       document.addEventListener('keyup', this.handleGlobalKeyUp);
+      // Invalidate rect cache at gesture boundaries
+      this.$el.addEventListener('mousedown', this._invalidateRectCache);
+      document.addEventListener('mouseup', this._invalidateRectCache);
     },
-    
+
     _cleanupKeyboardListeners() {
       document.removeEventListener('keydown', this.handleGlobalKeyDown);
       document.removeEventListener('keyup', this.handleGlobalKeyUp);
+      this.$el.removeEventListener('mousedown', this._invalidateRectCache);
+      document.removeEventListener('mouseup', this._invalidateRectCache);
     },
     
     handleGlobalKeyDown(e) {
@@ -146,27 +165,27 @@ export default {
     _setZoomDirect(newZoom, centerX = null, centerY = null) {
       const oldZoom = this._zoom;
       this._zoom = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
-      
+
       if (centerX !== null && centerY !== null) {
-        const rect = this.$el.getBoundingClientRect();
+        const rect = this._getContainerRect();
         const offsetX = centerX - rect.left;
         const offsetY = centerY - rect.top;
-        
+
         const contentX = (offsetX - this._panX) / oldZoom;
         const contentY = (offsetY - this._panY) / oldZoom;
-        
+
         this._panX = offsetX - contentX * this._zoom;
         this._panY = offsetY - contentY * this._zoom;
       }
-      
-      this._updateTransformDirect();
+
+      this._updateTransformDirect(true);
     },
 
     // prevent extremely large pan values:
     _clampPanValues() {
-      const containerRect = this.$el.getBoundingClientRect();
+      const containerRect = this._getContainerRect();
       const maxPan = Math.max(containerRect.width, containerRect.height) * 5; // Reasonable limit
-      
+
       this._panX = Math.max(-maxPan, Math.min(maxPan, this._panX));
       this._panY = Math.max(-maxPan, Math.min(maxPan, this._panY));
     },
@@ -174,11 +193,11 @@ export default {
     _setPanDirect(newPanX, newPanY) {
       this._panX = newPanX;
       this._panY = newPanY;
-      
+
       // Clamp pan values to prevent Chrome performance issues
       this._clampPanValues();
-      
-      this._updateTransformDirect();
+
+      this._updateTransformDirect(false);
     },
    
     _updateZoomAndLODClass() {
@@ -210,10 +229,10 @@ export default {
     },
 
     // NEW - Optimized transform with Chrome-specific handling:
-    _updateTransformDirect() {
+    _updateTransformDirect(zoomChanged) {
       // Chrome optimization: use matrix3d for better GPU handling
       let transform;
-      
+
       if (this._zoom < 0.5) {
         // For very low zoom, use matrix3d which Chrome handles better
         transform = `matrix3d(${this._zoom}, 0, 0, 0, 0, ${this._zoom}, 0, 0, 0, 0, 1, 0, ${this._panX}, ${this._panY}, 0, 1)`;
@@ -221,9 +240,12 @@ export default {
         // For normal zoom, use regular transform
         transform = `translate(${this._panX}px, ${this._panY}px) scale(${this._zoom})`;
       }
-      
+
       this.$refs.content.style.transform = transform;
-      this._updateZoomAndLODClass();
+      // LOD only depends on zoom level — skip during pure pan frames
+      if (zoomChanged) {
+        this._updateZoomAndLODClass();
+      }
       
       // Dispatch custom event with zoom/pan state to document
       document.dispatchEvent(new CustomEvent('zoom-pan-state', {
@@ -259,7 +281,7 @@ export default {
     initialZoom(newVal) {
       if (this._zoom === this.initialZoom) { // Only if not manually changed
         this._zoom = newVal;
-        this._updateTransformDirect();
+        this._updateTransformDirect(true);
       }
     }
   }

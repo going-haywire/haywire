@@ -470,6 +470,9 @@ export default {
         handleMouseDown(e) {
             if (e.button === 2) return; // Skip right-click
 
+            // Invalidate cached container rect at the start of every gesture
+            this._cachedNodeContainerRect = null;
+
             // 0. Only handle events that originate within this canvas element.
             //    The listener is on document.body (capture), so clicks anywhere on
             //    the page reach this handler — e.g. clicking in the properties panel.
@@ -538,6 +541,9 @@ export default {
         },
 
         handleMouseUp(e) {
+            // Invalidate cached container rect at gesture end
+            this._cachedNodeContainerRect = null;
+
             if (this.boxSelectionState.isActive) {
                 this._endBoxSelection(e);
                 return;
@@ -1040,13 +1046,20 @@ export default {
                     rect1.top > rect2.bottom);
         },
 
+        _getNodeContainerRect() {
+            if (!this._cachedNodeContainerRect) {
+                this._cachedNodeContainerRect = this.$refs.nodeContainer.getBoundingClientRect();
+            }
+            return this._cachedNodeContainerRect;
+        },
+
         _transformScreenToCanvas(clientX, clientY) {
-            const containerRect = this.$refs.nodeContainer.getBoundingClientRect();
-            const { zoom, panX, panY } = this.zoomState;
-            
+            const containerRect = this._getNodeContainerRect();
+            const { zoom } = this.zoomState;
+
             const x = (clientX - containerRect.left) / zoom;
             const y = (clientY - containerRect.top) / zoom;
-            
+
             return { x, y };
         },
 
