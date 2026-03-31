@@ -79,7 +79,6 @@ def settings(namespace: str, label: str = "", description: str = ""):
         )
         inner_cls._namespace = namespace
         inner_cls.class_library = library_identity
-        inner_cls._auto_register = True  # readable flag; registry uses class_identity for detection
 
         # Set _field_key on all prop descriptors (namespace known at decoration time)
         for name, descriptor in inner_cls._prop_fields().items():

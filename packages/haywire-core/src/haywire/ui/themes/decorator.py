@@ -88,7 +88,6 @@ def theme(
             description=description,
         )
         inner_cls.class_library = library_identity
-        inner_cls._auto_register = True
         return inner_cls
 
     return decorator if cls is None else decorator(cls)
