@@ -273,7 +273,8 @@ def _render_vec_field_rows(
 
 def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> None:
     """Shared widget dispatch. make_setter(coerce) -> on_change handler."""
-    str_value = str(value) if value is not None else ""
+    # Escape for safe embedding in props strings (newlines etc. break ast.literal_eval)
+    str_value = (str(value) if value is not None else "").encode("unicode_escape").decode()
 
     if defn._widget == "label":
         ui.label(str_value).classes(f"text-xs text-right truncate hw-text-muted {_WIDGET_CLASSES}").props(
