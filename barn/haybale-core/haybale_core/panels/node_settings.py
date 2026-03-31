@@ -1,6 +1,6 @@
-# barn/haybale-studio/haybale_studio/panels/node_settings_bags_panel.py
+# barn/haybale-studio/haybale_studio/panels/node_settings.py
 """
-NodeSettingsBagsPanel — renders all user-defined settings bags on the selected node.
+NodeSettingsPanel — renders all user-defined settings on the selected node.
 
 Appears in the 'settings' scope (tune icon, order=65), one collapsible section per bag.
 """
@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="node_settings_bags",
     editor="properties",
     scope="settings",
     label="Node Settings",

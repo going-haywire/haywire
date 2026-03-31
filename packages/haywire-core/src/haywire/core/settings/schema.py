@@ -22,6 +22,7 @@ from __future__ import annotations
 from typing import ClassVar, TYPE_CHECKING
 
 from haywire.core.settings.settings import Settings
+from haywire.core.settings.descriptor import field
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -73,7 +74,6 @@ class FrameworkSettings(Settings):
 
         if namespace:
             cls._namespace = namespace
-            from haywire.core.settings.descriptor import field  # noqa: PLC0415
 
             for name, val in cls.__dict__.items():
                 if isinstance(val, field):
@@ -133,7 +133,6 @@ class LibrarySettings(Settings):
 
         if namespace:
             cls._namespace = namespace
-            from haywire.core.settings.descriptor import field  # noqa: PLC0415
 
             for name, val in cls.__dict__.items():
                 if isinstance(val, field):

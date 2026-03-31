@@ -1,7 +1,7 @@
 from __future__ import annotations
 import inspect
 import re
-from typing import TYPE_CHECKING, Iterator, Set, Any, Callable, Dict, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Iterator, Set, Any, Callable, ClassVar, Dict, List, Optional, TypeVar
 from dataclasses import asdict
 from abc import abstractmethod
 from contextlib import contextmanager
@@ -45,6 +45,7 @@ class NodeData:
     """
 
     # Class-level attributes (set by @node decorator)
+    _settings_bags: ClassVar[dict[str, type]] = {}
     class_identity: NodeIdentity
     class_behavior: NodeBehaviorFlags
     class_library: LibraryIdentity
@@ -76,7 +77,7 @@ class NodeData:
         # the global registry injected (extended mode), then bound directly as a
         # node instance attribute so node authors can write self.filter.threshold.
         _registry = get_settings_registry()
-        for _bag_name, _bag_cls in getattr(type(self), "_settings_bags", {}).items():
+        for _bag_name, _bag_cls in type(self)._settings_bags.items():
             _bag_instance: Settings = _bag_cls(registry=_registry)
             _bag_instance._subscribe_mirrors()
             object.__setattr__(self, _bag_name, _bag_instance)
@@ -137,7 +138,7 @@ class NodeData:
             self.filter.threshold = 0.8   # write local override
             self.filter.reset('threshold')
         """
-        return {name: getattr(self, name) for name in getattr(type(self), "_settings_bags", {})}
+        return {name: getattr(self, name) for name in type(self)._settings_bags}
 
     @property
     def cache(self) -> NodeCache:
@@ -1233,7 +1234,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         self.on_teardown()
         self._store.clear()
         # Clean up settings bags (release global namespace subscriptions)
-        for bag_name in getattr(type(self), "_settings_bags", {}):
+        for bag_name in type(self)._settings_bags:
             bag = getattr(self, bag_name, None)
             if isinstance(bag, Settings):
                 bag.cleanup()
@@ -1256,9 +1257,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         return {
             "node_id": self.node_id,
             "ports": self._serialize_ports(include_data=include_data),
-            "settings": {
-                name: getattr(self, name).to_dict() for name in getattr(type(self), "_settings_bags", {})
-            },
+            "settings": {name: getattr(self, name).to_dict() for name in type(self)._settings_bags},
             "props": self.props.to_dict(),
             "store": self._store.to_dict(),
             "identity": asdict(self.identity),

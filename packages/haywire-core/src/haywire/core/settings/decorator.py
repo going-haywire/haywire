@@ -65,6 +65,8 @@ def settings(namespace: str, label: str = "", description: str = ""):
                 f"subclasses, got {inner_cls}"
             )
 
+        _registry_id = inner_cls.__name__
+
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id if library_identity else None
 
