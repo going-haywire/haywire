@@ -1,7 +1,7 @@
 from haywire.core.node import node, BaseNode, NodeType
 from haybale_core.types.specs import STRING
 
-from haywire.core.settings import NodeSettings, field, shadow, watch, Color
+from haywire.core.settings import NodeSettings, field, shadow, watch, Color, Vec2i, Vec3f, Vec4f
 from haybale_testing.settings.testing import TestingSettings
 
 
@@ -60,6 +60,24 @@ class SettingsNode(BaseNode):
             category="type",
             widget="color",
         )
+        example_vec2i: Vec2i = field(
+            [4, 8],
+            label="Example Vec2i",
+            description="A 2-component integer vector",
+            category="type",
+        )
+        example_vec3f: Vec3f = field(
+            [1.0, 2.0, 3.0],
+            label="Example Vec3f",
+            description="A 3-component float vector",
+            category="type",
+        )
+        example_vec4f: Vec4f = field(
+            [0.0, 0.0, 0.0, 1.0],
+            label="Example Vec4f",
+            description="A 4-component float vector (e.g. RGBA or homogeneous coords)",
+            category="type",
+        )
 
         # --- read only ---
         read_only_value: float = field(
@@ -92,6 +110,8 @@ class SettingsNode(BaseNode):
         enabled: bool = shadow(TestingSettings.default_enabled, label="Enabled", category="mirrors")
         mode: str = shadow(TestingSettings.default_mode, label="Mode", category="mirrors")
         tint: Color = shadow(TestingSettings.default_color, label="Tint", category="mirrors")
+        offset: Vec2i = shadow(TestingSettings.default_offset, label="Offset", category="mirrors")
+        position: Vec3f = shadow(TestingSettings.default_position, label="Position", category="mirrors")
         intensity_ro: float = watch(
             TestingSettings.default_intensity, label="Intensity (read-only)", category="mirrors"
         )
@@ -102,6 +122,12 @@ class SettingsNode(BaseNode):
         )
         mode_ro: str = watch(TestingSettings.default_mode, label="Mode (read-only)", category="mirrors")
         tint_ro: Color = watch(TestingSettings.default_color, label="Tint (read-only)", category="mirrors")
+        offset_ro: Vec2i = watch(
+            TestingSettings.default_offset, label="Offset (read-only)", category="mirrors"
+        )
+        position_ro: Vec3f = watch(
+            TestingSettings.default_position, label="Position (read-only)", category="mirrors"
+        )
 
         # --- validator ---
         validated_string: str = field(

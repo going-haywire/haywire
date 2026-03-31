@@ -12,6 +12,7 @@ Subclass:
 
 from __future__ import annotations
 
+import typing
 from typing import Any, Callable
 
 
@@ -69,6 +70,16 @@ class FieldDescriptor:
 
     def __set_name__(self, owner: type, name: str) -> None:
         self._attr_name = name
+        # The annotation may be more specific than what was inferred from the default
+        # (e.g. Vec3f vs plain list, or an explicit type_ that matches the annotation).
+        # Always let the annotation win if it resolves to a concrete type.
+        try:
+            hints = typing.get_type_hints(owner)
+            hint = hints.get(name)
+            if hint is not None and isinstance(hint, type) and hint is not self._type:
+                self._type = hint
+        except Exception:
+            pass
 
     def __get__(self, obj: object | None, objtype: type | None = None) -> Any:
         if obj is None:

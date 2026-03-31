@@ -22,7 +22,7 @@ from .descriptor import field, shadow, watch
 from .base import FieldDescriptor
 from .enums import FieldMode
 from .value import FieldValue
-from .types import Color, Icon
+from .types import Color, Icon, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
 from .registry import SettingsRegistry
 from .schema import LibrarySettings, FrameworkSettings
 from .decorator import SettingsClassIdentity, settings
@@ -37,6 +37,13 @@ __all__ = [
     "FieldDescriptor",
     "Color",
     "Icon",
+    "Vec2i",
+    "Vec3i",
+    "Vec4i",
+    "Vec2f",
+    "Vec3f",
+    "Vec4f",
+    "get_vec_meta",
     # Framework internals
     "FieldMode",
     "FieldValue",

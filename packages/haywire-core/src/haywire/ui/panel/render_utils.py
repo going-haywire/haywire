@@ -1,6 +1,6 @@
 # haybale_studio/panels/_settings_panel_base.py
 """
-Utility collection of renderer functions for 
+Utility collection of renderer functions for
 FrameworkSettings / LibrarySettings / NodeSettings schema classes.
 """
 
@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 from nicegui import ui
 
 from haywire.core.settings.enums import FieldMode
+from haywire.core.settings.types import get_vec_meta
 from haywire.ui.components.number_drag import NumberDrag
 
 if TYPE_CHECKING:
@@ -134,6 +135,10 @@ def _render_category_group(category: str) -> ui.expansion:
 
 def _render_field_row(label_text: str, description: str, defn, value, make_setter, attr_name: str = ""):
     """Render a single label + widget row."""
+    vec_meta = get_vec_meta(defn._type)
+    if vec_meta is not None:
+        _render_vec_field_rows(label_text, description, vec_meta, value, make_setter, attr_name)
+        return
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
@@ -148,10 +153,33 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
     def row_content():
         is_mirrored = bool(defn._mirror_key)
         is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
-
         label_text = defn._label or attr_name
         if is_locally_overridden:
             label_text = f"• {label_text}"
+
+        def _render_label():
+            with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
+                lbl = ui.label(label_text).classes("text-xs truncate")
+                if defn._description:
+                    lbl.tooltip(defn._description)
+                if is_locally_overridden:
+                    ui.button(icon="restart_alt").props("flat dense size=xs").tooltip(
+                        "Reset to global default"
+                    ).on("click", lambda _o=obj, _n=attr_name: (_o.reset(_n), row_content.refresh()))
+
+        vec_meta = get_vec_meta(defn._type)
+        if vec_meta is not None:
+            make_setter = _make_reactive_setter(obj, attr_name, on_change_callback=row_content.refresh)
+            _render_vec_field_rows(
+                label_text,
+                defn._description,
+                vec_meta,
+                getattr(obj, attr_name),
+                make_setter,
+                attr_name,
+                render_label=_render_label,
+            )
+            return
 
         # String fields use ui.input(validation=) for inline error display;
         # int/float/bool use the manual error_container (NumberDrag/switch have no validation= API).
@@ -159,13 +187,7 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
         error_container = ui.element("div").classes("w-full") if needs_manual_error else None
 
         with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
-            lbl = ui.label(label_text).classes(_LABEL_CLASSES)
-            if defn._description:
-                lbl.tooltip(defn._description)
-            if is_locally_overridden:
-                ui.button(icon="restart_alt").props("flat dense size=xs").tooltip(
-                    "Reset to global default"
-                ).on("click", lambda _o=obj, _n=attr_name: (_o.reset(_n), row_content.refresh()))
+            _render_label()
             _render_widget_impl(
                 defn,
                 getattr(obj, attr_name),
@@ -180,6 +202,73 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
 # ---------------------------------------------------------------------------
 # Widget dispatch
 # ---------------------------------------------------------------------------
+
+
+def _render_vec_field_rows(
+    label_text: str,
+    description: str,
+    vec_meta,
+    value: Any,
+    make_setter,
+    attr_name: str = "",
+    render_label=None,
+) -> None:
+    """Render a vector field as a tight column of rows aligned to the panel grid.
+
+    Layout per row:  [field label / spacer]  [X/Y/Z]  [NumberDrag]
+
+    render_label: optional callable that renders the label cell on row 0 (used by
+    reactive rows to inject the reset button inline after the label text).
+    """
+    current = list(value) if value is not None else [0] * vec_meta.length
+    while len(current) < vec_meta.length:
+        current.append(0)
+    current = current[: vec_meta.length]
+
+    step = 1 if vec_meta.element_type is int else None
+    precision = 0 if vec_meta.element_type is int else None
+    coerce = vec_meta.element_type
+
+    class _E:
+        __slots__ = ("value",)
+
+    def _make_component_setter(idx, _cv=current, _ms=make_setter, _c=coerce):
+        handler = _ms(lambda v: v)
+
+        def _on_change(e, _i=idx, _h=handler, _cv=_cv, _c=_c):
+            _cv[_i] = _c(e.args)
+            ev = _E()
+            ev.value = list(_cv)
+            _h(ev)
+
+        return _on_change
+
+    nd_kwargs: dict = {}
+    if step is not None:
+        nd_kwargs["step"] = step
+        nd_kwargs["precision"] = precision
+
+    prop = f'data-field="{attr_name}"' if attr_name else ""
+
+    # Outer row: label left, component column right.
+    # items-start keeps the label aligned to the first component row, not centred across all.
+    with ui.row().classes(_ROW_CLASSES.replace("items-center", "items-start") + " py-1").props(prop):
+        if render_label is not None:
+            render_label()
+        else:
+            lbl = ui.label(label_text).classes(_LABEL_CLASSES)
+            if description:
+                lbl.tooltip(description)
+        # Component rows: gap-0, tighter row height than standard compact-fields rows
+        with ui.column().classes("gap-0 flex-1 pb-1").style("--hw-compact-row-min-h: 22px;"):
+            for i, component_label in enumerate(vec_meta.labels):
+                with ui.row().classes("w-full items-center gap-1"):
+                    ui.label(component_label).classes("text-xs w-4 text-right hw-text-muted shrink-0")
+                    NumberDrag(
+                        value=coerce(current[i]),
+                        on_change=_make_component_setter(i),
+                        **nd_kwargs,
+                    ).classes("flex-1")
 
 
 def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> None:
@@ -270,21 +359,52 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
         nd_ref[0] = nd
         return
 
-    wrapper = ui.element("div").classes(_WIDGET_CLASSES).props(f'data-value="{str_value}"')
+    # str fallback — inline input + expand-to-modal button
+    wrapper = (
+        ui.element("div")
+        .classes(f"flex items-center gap-1 {_WIDGET_CLASSES}")
+        .props(f'data-value="{str_value}"')
+    )
     with wrapper:
+        current_value = [str(value) if value is not None else ""]
 
-        def _str_handler(e, _w=wrapper, _s=make_setter(str)):
+        def _str_handler(e, _w=wrapper, _s=make_setter(str), _cv=current_value):
+            _cv[0] = str(e.value)
             _s(e)
-            _w.props(f'data-value="{str(e.value)}"')
+            _w.props(f'data-value="{str(e.value).encode("unicode_escape").decode()}"')
 
         def _str_validation(v, _defn=defn):
             return None if _defn.validate(str(v) if v is not None else "") else "Invalid value"
 
         ui.input(
-            value=str(value) if value is not None else "",
+            value=current_value[0],
             on_change=_str_handler,
             validation=_str_validation,
-        ).classes("w-full text-xs").props("dense debounce=500")
+        ).classes("flex-1 text-xs").props("dense debounce=500")
+
+        def _open_modal(_cv=current_value, _s=make_setter(str), _w=wrapper):
+            with ui.dialog() as dlg, ui.card().classes("w-[480px]"):
+                ta = ui.textarea(value=_cv[0]).classes("w-full text-xs").props("dense autogrow")
+
+                def _confirm():
+                    v = ta.value
+                    _cv[0] = v
+
+                    class _Ev:
+                        value = v
+
+                    _s(_Ev())
+                    _w.props(f'data-value="{v.encode("unicode_escape").decode()}"')
+                    dlg.close()
+
+                with ui.row().classes("w-full justify-end gap-2 mt-2"):
+                    ui.button("Cancel", on_click=dlg.close).props("flat dense")
+                    ui.button("OK", on_click=_confirm).props("flat dense")
+            dlg.open()
+
+        ui.button(icon="open_in_full", on_click=_open_modal).props("flat dense size=xs").tooltip(
+            "Edit in full"
+        )
 
 
 # ---------------------------------------------------------------------------

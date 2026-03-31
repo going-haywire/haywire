@@ -2,7 +2,7 @@
 """Library-level settings for the testing library."""
 
 from haywire.core.settings.schema import LibrarySettings
-from haywire.core.settings import field, Color
+from haywire.core.settings import field, Color, Vec2i, Vec3f
 from haywire.core.settings.decorator import settings
 
 
@@ -51,4 +51,16 @@ class TestingSettings(LibrarySettings):
         description="Library-wide color default used by test nodes",
         category="general",
         widget="color",
+    )
+    default_offset: Vec2i = field(
+        [0, 0],
+        label="Default Offset",
+        description="Library-wide 2D integer offset used by test nodes",
+        category="general",
+    )
+    default_position: Vec3f = field(
+        [0.0, 0.0, 0.0],
+        label="Default Position",
+        description="Library-wide 3D float position used by test nodes",
+        category="general",
     )

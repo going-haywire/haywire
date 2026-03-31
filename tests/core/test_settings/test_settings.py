@@ -14,7 +14,18 @@ Covers:
 """
 
 import pytest
-from haywire.core.settings import Settings, NodeSettings, field
+from haywire.core.settings import (
+    Settings,
+    NodeSettings,
+    field,
+    Vec2i,
+    Vec3i,
+    Vec4i,
+    Vec2f,
+    Vec3f,
+    Vec4f,
+    get_vec_meta,
+)
 from haywire.core.di.test_config import create_test_bag
 
 
@@ -443,3 +454,70 @@ class TestValidatorSetting:
         # Should not raise — None default is allowed even with a validator
         class NoneDefaultSettings(Settings):
             val: int = field(type_=int, validator=lambda v: v > 0)
+
+
+# ---------------------------------------------------------------------------
+# Vec types — type inference, validation, serialization
+# ---------------------------------------------------------------------------
+
+
+class VecSettings(Settings):
+    pos: Vec3f = field([0.0, 0.0, 0.0])
+    coord: Vec2i = field([0, 0])
+    color: Vec4f = field([1.0, 0.0, 0.0, 1.0])
+
+
+class TestVecTypes:
+    def test_annotation_infers_vec3f(self):
+        assert VecSettings.__dict__["pos"]._type is Vec3f
+
+    def test_annotation_infers_vec2i(self):
+        assert VecSettings.__dict__["coord"]._type is Vec2i
+
+    def test_annotation_infers_vec4f(self):
+        assert VecSettings.__dict__["color"]._type is Vec4f
+
+    def test_get_vec_meta_returns_correct_length(self):
+        assert get_vec_meta(Vec3f).length == 3
+        assert get_vec_meta(Vec2i).length == 2
+        assert get_vec_meta(Vec4f).length == 4
+
+    def test_get_vec_meta_returns_correct_element_type(self):
+        assert get_vec_meta(Vec3f).element_type is float
+        assert get_vec_meta(Vec2i).element_type is int
+
+    def test_get_vec_meta_labels(self):
+        assert get_vec_meta(Vec2i).labels == ("X", "Y")
+        assert get_vec_meta(Vec3i).labels == ("X", "Y", "Z")
+        assert get_vec_meta(Vec4i).labels == ("W", "X", "Y", "Z")
+
+    def test_get_vec_meta_returns_none_for_plain_list(self):
+        assert get_vec_meta(list) is None
+
+    def test_get_vec_meta_returns_none_for_scalar(self):
+        assert get_vec_meta(float) is None
+
+    def test_read_default(self):
+        bag = VecSettings()
+        assert bag.pos == [0.0, 0.0, 0.0]
+
+    def test_write_and_read(self):
+        bag = VecSettings()
+        bag.pos = [1.0, 2.0, 3.0]
+        assert bag.pos == [1.0, 2.0, 3.0]
+
+    def test_serialization_round_trip(self):
+        bag = VecSettings()
+        bag.pos = [1.0, 2.0, 3.0]
+        data = bag.to_dict()
+        assert data["pos"] == [1.0, 2.0, 3.0]
+
+        bag2 = VecSettings()
+        bag2.from_dict(data)
+        assert bag2.pos == [1.0, 2.0, 3.0]
+
+    def test_explicit_type_also_works(self):
+        class ExplicitVec(Settings):
+            pos: Vec3f = field([0.0, 0.0, 0.0], type_=Vec3f)
+
+        assert ExplicitVec.__dict__["pos"]._type is Vec3f
