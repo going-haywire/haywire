@@ -37,7 +37,7 @@ def render_settings(obj: "Settings") -> None:
     - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
     """
 
-    fields = type(obj)._prop_fields()
+    fields = type(obj)._property_fields()
     # Exclude read-only fields from rendering
     visible_fields = {name: defn for name, defn in fields.items() if not defn._read_only}
     if not visible_fields:
@@ -57,11 +57,11 @@ def render_settings(obj: "Settings") -> None:
 def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
     """Render only the fields declared on *schema_cls* as labelled form rows.
 
-    Uses the schema's own _prop_fields() so that keys registered under the
+    Uses the schema's own _property_fields() so that keys registered under the
     same namespace prefix by other code (e.g. dynamic library keys) are not
     accidentally included.
     """
-    prop_fields = schema_cls._prop_fields()
+    prop_fields = schema_cls._property_fields()
     defns = {
         defn._field_key: defn
         for defn in prop_fields.values()
@@ -428,7 +428,7 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None,
                 return
 
             # Check validator before setting — descriptors silently reject invalid values
-            descriptor = type(obj)._prop_fields().get(attr_name)
+            descriptor = type(obj)._property_fields().get(attr_name)
             if descriptor is not None and not descriptor.validate(coerced):
                 if error_container is not None:
                     error_container.clear()

@@ -44,13 +44,19 @@ class FrameworkSettings(Settings):
         class ExecutionSettings(FrameworkSettings, namespace='execution'):
             max_threads: int = field(4, label='Max Threads')
 
-    Registration is automatic:
-    - If SettingsRegistry does not yet exist: queued in _pending_global,
-      drained when the registry is created.
-    - If the registry already exists (late import): registered immediately.
+    Registration is automatic.
 
-    After registration, cls._registry holds the registry back-reference, so:
+    Consumers can instantiate directly for live reactive access
+      — no explicit registry injection needed:
+
+    ```
         self.settings = ExecutionSettings()   # fully wired, no explicit injection
+
+        self.settings.max_threads = 8   # writes to registry, fires notifications
+
+        self.settings.subscribe(self.on_max_threads_change)  # subscribe to changes
+
+    ```
     """
 
     _namespace: ClassVar[str] = ""
@@ -75,10 +81,18 @@ class FrameworkSettings(Settings):
         if namespace:
             cls._namespace = namespace
 
-            for name, val in cls.__dict__.items():
-                if isinstance(val, field):
-                    val._field_key = f"{namespace}.{name}"
-                    val._mirror_key = val._field_key
+            for name, val in cls._property_fields().items():
+                if val._mirror_key:
+                    raise TypeError(
+                        f"mirrors= is not allowed in FrameworkSettings: '{cls.__name__}.{name}'. "
+                        f"Use plain field() without mirrors=, shadow(), or watch()."
+                    )
+                val._field_key = f"{namespace}.{name}"
+                # we need to set _mirror_key because in this class it is in fact 
+                # a mirror of itself for resolution and subscription purposes
+                # we don't want the user to set mirrors because this would 
+                # silently break the resolution and subscription machinery
+                val._mirror_key = val._field_key
 
             # Self-registration: queue or register immediately
             if FrameworkSettings._registry is not None:
@@ -90,10 +104,9 @@ class FrameworkSettings(Settings):
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)
-        # Subscribe immediately only if the class declares on_change fields —
-        # otherwise subscription happens lazily on first subscribe() call.
-        if any(d._on_change for d in type(self)._prop_fields().values()):
-            self._subscribe_fields()
+        for descriptor in type(self)._property_fields().values():
+            if descriptor._on_change:
+                self._subscribe_field(descriptor)
 
 
 class LibrarySettings(Settings):
@@ -106,12 +119,7 @@ class LibrarySettings(Settings):
         class GeneralSettings(LibrarySettings):
             quality: int = field(80, label='Quality')
 
-    @settings sets class_identity (required by BaseRegistry._class_filter),
-    class_library (for hot-reload), _namespace, and _field_key on all descriptors.
-
-    Registration is via BaseRegistry hot-reload machinery — SettingsRegistry
-    inherits BaseRegistry and calls _register_class / _unregister_class as libraries
-    are loaded and hot-reloaded.
+    Registration is via hot-reload machinery
 
     After registration, cls._registry holds the registry back-reference, so:
         self.settings = GeneralSettings()   # fully wired, no explicit injection
@@ -135,16 +143,23 @@ class LibrarySettings(Settings):
         if namespace:
             cls._namespace = namespace
 
-            for name, val in cls.__dict__.items():
-                if isinstance(val, field):
-                    val._field_key = f"{namespace}.{name}"
-                    val._mirror_key = val._field_key
+            for name, val in cls._property_fields().items():
+                if val._mirror_key:
+                    raise TypeError(
+                        f"mirrors= is not allowed in LibrarySettings: '{cls.__name__}.{name}'. "
+                        f"Use plain field() without mirrors=, shadow(), or watch()."
+                    )
+                val._field_key = f"{namespace}.{name}"
+                # we need to set _mirror_key because in this class it is in fact 
+                # a mirror of itself for resolution and subscription purposes
+                # we don't want the user to set mirrors because this would 
+                # silently break the resolution and subscription machinery
+                val._mirror_key = val._field_key
 
         # No registry touch here — registration handled by BaseRegistry hot-reload path
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)
-        # Subscribe immediately only if the class declares on_change fields —
-        # otherwise subscription happens lazily on first subscribe() call.
-        if any(d._on_change for d in type(self)._prop_fields().values()):
-            self._subscribe_fields()
+        for descriptor in type(self)._property_fields().values():
+            if descriptor._on_change:
+                self._subscribe_field(descriptor)

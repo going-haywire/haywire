@@ -38,7 +38,7 @@ def _wire_settings_schemas(node_cls: type, registry_key: str) -> None:
             if not (isinstance(val, type) and issubclass(val, NodeSettings) and val is not NodeSettings):
                 continue
             # Set _field_key on every setting descriptor that doesn't already have one
-            for field_name, descriptor in val._prop_fields().items():
+            for field_name, descriptor in val._property_fields().items():
                 if isinstance(descriptor, field_cls) and not descriptor._field_key:
                     descriptor._field_key = f"{ns}.{name}.{field_name}"
             bags[name] = val

@@ -88,24 +88,17 @@ class Settings:
             return _resolve_default(self._local_store.get(field_key, default))
 
     def _subscribe_fields(self) -> None:
-        """
-        Subscribe a per-field weakref callback to the registry for each field that
-        has a key to subscribe to (extended mode).
+        """Subscribe all fields that have a _mirror_key. Delegates to _subscribe_field."""
+        for descriptor in type(self)._property_fields().values():
+            self._subscribe_field(descriptor)
 
-        Subscribes to _mirror_key for each field that has one.
-        NodeSettings fields with mirrors= have _mirror_key set explicitly.
-        FrameworkSettings / LibrarySettings fields have _mirror_key == _field_key (set by __init_subclass__).
-
-        Idempotent — safe to call multiple times (re-subscription is harmless since
-        the registry prunes dead weakrefs on notification).
-        """
-        if self._registry is None:
+    def _subscribe_field(self, descriptor: field) -> None:
+        """Subscribe a single field's _mirror_key to the registry (extended mode, no-op if no registry)."""
+        if self._registry is None or not descriptor._mirror_key:
             return
         cb_ref = weakref.WeakMethod(self._on_field_change)
-        for descriptor in type(self)._prop_fields().values():
-            if descriptor._mirror_key:
-                self._registry.subscribe_namespace(descriptor._mirror_key, cb_ref)
-                self._subscribed_refs.append(cb_ref)
+        self._registry.subscribe_namespace(descriptor._mirror_key, cb_ref)
+        self._subscribed_refs.append(cb_ref)
 
     def _on_field_change(self, full_key: str) -> None:
         """
@@ -117,26 +110,11 @@ class Settings:
         """
         if self._cleaned_up:
             return
-        for attr_name, descriptor in type(self)._prop_fields().items():
+        for attr_name, descriptor in type(self)._property_fields().items():
             if descriptor._mirror_key != full_key:
                 continue
             new_val = getattr(self, attr_name)
-            if descriptor._on_change:
-                method = getattr(self, descriptor._on_change, None)
-                if method is not None:
-                    try:
-                        method(new_val, attr_name)
-                    except TypeError:
-                        try:
-                            method(new_val)
-                        except Exception as e:
-                            logger.error(f"on_change error for '{attr_name}': {e}")
-            # Fire subscribe() listeners — old value unavailable from registry, pass None
-            for cb in list(self._callbacks):
-                try:
-                    cb(attr_name, new_val, None)
-                except Exception as e:
-                    logger.error(f"subscribe callback error for '{attr_name}': {e}")
+            self._on_property_change(attr_name, new_val, None, descriptor._on_change)
 
     # -------------------------------------------------------------------------
     # Subscription
@@ -156,16 +134,26 @@ class Settings:
             pass
 
     # -------------------------------------------------------------------------
-    # Change hook (called by field.__set__)
+    # Change hook (called also by field.__set__)
     # -------------------------------------------------------------------------
 
-    def _on_prop_change(self, name: str, value: Any, old: Any) -> None:
-        """Called when a setting value changes.  Default: fire all callbacks."""
+    def _on_property_change(self, name: str, value: Any, old: Any, on_change: str = "") -> None:
+        """Called when a setting value changes. Fires on_change method and all subscribe() callbacks."""
+        if on_change:
+            method = getattr(self, on_change, None)
+            if method is not None:
+                try:
+                    method(value, name)
+                except TypeError:
+                    try:
+                        method(value)
+                    except Exception as e:
+                        logger.error(f"on_change error for '{name}': {e}")
         for cb in list(self._callbacks):
             try:
                 cb(name, value, old)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"subscribe callback error for '{name}': {e}")
 
     # -------------------------------------------------------------------------
     # Serialization
@@ -179,7 +167,7 @@ class Settings:
         Simple mode: any field whose current value differs from its default.
         read_only (mirrored) fields are never serialized.
         """
-        fields = type(self)._prop_fields()
+        fields = type(self)._property_fields()
         result: dict = {}
         for name, descriptor in fields.items():
             if descriptor._read_only:
@@ -210,7 +198,7 @@ class Settings:
         Unknown keys are silently ignored (forward compatibility).
         read_only fields are silently skipped.
         """
-        fields = type(self)._prop_fields()
+        fields = type(self)._property_fields()
         for attr_name, value in data.items():
             if attr_name not in fields:
                 continue
@@ -229,7 +217,7 @@ class Settings:
 
     def reset(self, name: str) -> None:
         """Reset a single field to its descriptor default (removes local override)."""
-        fields = type(self)._prop_fields()
+        fields = type(self)._property_fields()
         if name not in fields:
             raise KeyError(f"No setting '{name}' on {type(self).__name__}")
         descriptor = fields[name]
@@ -238,11 +226,11 @@ class Settings:
             old = self._local_store.pop(key)
             new = descriptor._default
             if old != new:
-                self._on_prop_change(name, new, old)
+                self._on_property_change(name, new, old)
 
     def reset_all(self) -> None:
         """Reset all fields to their defaults (clear all local overrides)."""
-        for name in type(self)._prop_fields():
+        for name in type(self)._property_fields():
             self.reset(name)
 
     # -------------------------------------------------------------------------
@@ -261,7 +249,7 @@ class Settings:
 
     def is_locally_set(self, name: str) -> bool:
         """Return True if *name* has a local instance override."""
-        fields = type(self)._prop_fields()
+        fields = type(self)._property_fields()
         if name not in fields:
             return False
         descriptor = fields[name]
@@ -269,7 +257,7 @@ class Settings:
         return key in self._local_store
 
     @classmethod
-    def _prop_fields(cls) -> dict[str, field]:
+    def _property_fields(cls) -> dict[str, field]:
         """Return all field descriptors defined on this class (walks MRO, base-first)."""
         result: dict[str, field] = {}
         for klass in reversed(cls.__mro__):

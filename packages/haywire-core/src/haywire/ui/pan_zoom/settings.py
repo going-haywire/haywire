@@ -9,13 +9,13 @@ class EditorPanZoomSettings(FrameworkSettings, namespace="editor.pan_zoom"):
     """Global preferences controlling canvas pan/zoom behaviour."""
 
     zoom_sensitivity: float = field(
-        0.1,
+        1.0,
         label="Zoom Sensitivity",
         description="How fast scroll/pinch zooms the canvas",
         category="editor.pan_zoom",
         order=10,
         min=0.01,
-        max=1.0,
+        max=2.0,
     )
     pan_sensitivity: float = field(
         1.0,
@@ -32,15 +32,15 @@ class EditorPanZoomSettings(FrameworkSettings, namespace="editor.pan_zoom"):
         description="Minimum zoom level",
         category="editor.pan_zoom",
         order=30,
-        min=0.05,
+        min=0.01,
         max=0.5,
     )
     max_zoom: float = field(
-        3.0,
+        1.0,
         label="Maximum Zoom",
         description="Maximum zoom level",
         category="editor.pan_zoom",
         order=40,
-        min=1.0,
-        max=10.0,
+        min=0.5,
+        max=5.0,
     )

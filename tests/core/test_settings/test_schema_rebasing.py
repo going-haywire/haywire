@@ -37,7 +37,7 @@ class TestFrameworkSettingsExtendsSettings:
             alpha: int = field(7, label="Alpha")
             beta: str = field("hello", label="Beta")
 
-        fields = BarGS._prop_fields()
+        fields = BarGS._property_fields()
         assert "alpha" in fields
         assert "beta" in fields
         assert isinstance(fields["alpha"], field)
@@ -47,7 +47,7 @@ class TestFrameworkSettingsExtendsSettings:
         class NsGS(FrameworkSettings, namespace="ns.test"):
             val: float = field(3.14)
 
-        fields = NsGS._prop_fields()
+        fields = NsGS._property_fields()
         assert fields["val"]._field_key == "ns.test.val"
 
     def test_class_level_access_returns_descriptor(self):
@@ -64,7 +64,7 @@ class TestFrameworkSettingsExtendsSettings:
         class NoNsGS(FrameworkSettings):
             val: int = field(5)
 
-        fields = NoNsGS._prop_fields()
+        fields = NoNsGS._property_fields()
         # _field_key should NOT be set since no namespace
         assert fields["val"]._field_key == ""
 
@@ -82,7 +82,7 @@ class TestLibrarySettingsExtendsSettings:
         class FooLS(LibrarySettings):
             rate: int = field(4, min=1, max=20)
 
-        fields = FooLS._prop_fields()
+        fields = FooLS._property_fields()
         assert "rate" in fields
         assert isinstance(fields["rate"], field)
 
@@ -188,7 +188,7 @@ class TestRegistryReadsPropFields:
             speed: float = field(1.0)
             mode: str = field("fast")
 
-        fields = DecLS._prop_fields()
+        fields = DecLS._property_fields()
         assert fields["speed"]._field_key == "dec.ls.speed"
         assert fields["mode"]._field_key == "dec.ls.mode"
 

@@ -89,7 +89,7 @@ def settings(namespace: str, label: str = "", description: str = ""):
         inner_cls.class_library = library_identity
 
         # Set _field_key on all prop descriptors (namespace known at decoration time)
-        for name, descriptor in inner_cls._prop_fields().items():
+        for name, descriptor in inner_cls._property_fields().items():
             descriptor._field_key = f"{namespace}.{name}"
 
         return inner_cls

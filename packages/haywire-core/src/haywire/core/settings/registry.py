@@ -17,7 +17,10 @@ import threading
 import logging
 import weakref
 from pathlib import Path
-from typing import Any, Callable, Iterator, Type
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Type
+
+if TYPE_CHECKING:
+    from .settings import Settings
 
 try:
     import toml
@@ -169,9 +172,9 @@ class SettingsRegistry(BaseRegistry):
     # Schema field registration helpers
     # =========================================================================
 
-    def _register_schema_fields(self, schema_cls) -> None:
+    def _register_schema_fields(self, schema_cls: type["Settings"]) -> None:
         """Register all descriptor fields from a schema class into the definitions."""
-        for _name, descriptor in schema_cls._prop_fields().items():
+        for _name, descriptor in schema_cls._property_fields().items():
             if not descriptor._field_key:
                 continue
             self._store_definition(
@@ -200,11 +203,11 @@ class SettingsRegistry(BaseRegistry):
         if is_new:
             self._notify_listeners(name, FieldValue(mode=FieldMode.INHERIT))
 
-    def _unregister_schema_fields(self, schema_cls) -> None:
+    def _unregister_schema_fields(self, schema_cls: type["Settings"]) -> None:
         """Remove all descriptor fields of a schema class from definitions."""
         changed_keys: set[str] = set()
         with self._lock:
-            for descriptor in schema_cls._prop_fields().values():
+            for descriptor in schema_cls._property_fields().values():
                 if not descriptor._field_key:
                     continue
                 key = descriptor._field_key

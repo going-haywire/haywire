@@ -35,16 +35,18 @@ class field(FieldDescriptor):
     """
     Descriptor for a reactive field on a ``Settings`` subclass.
 
-    **choices** = can be a list of valid values, a dict of {value: label}, 
+    **choices** = can be a list of valid values, a dict of {value: label},
         or a callable that returns either of those.
     **widget** =...
-    **on_change** = is the name of a method on the OWNING Settings instance, 
+    **on_change** = is the name of a method on the OWNING Settings instance,
         called when the field value changes.
-    **mirrors** = can be a string field key or a class-level descriptor access (FieldDescriptor) 
-        to mirror another field's value and metadata. 
+        **For callbacks that are outside the OWNING Settings instance,
+        use the subscribe method on the OWNING Settings instance.**
+    **mirrors** = can be a string field key or a class-level descriptor access (FieldDescriptor)
+        to mirror another field's value and metadata.
         **It is recommended to use the shadow() and watch() factories instead of setting mirrors= directly.**
     **read_only** = True makes the field a read-only mirror (watch);
-    **validator** = is a callable that accepts a value and returns True if it's valid 
+    **validator** = is a callable that accepts a value and returns True if it's valid
         (used for validating the default value).
     """
 
@@ -157,14 +159,7 @@ class field(FieldDescriptor):
         obj._local_store[key] = value
 
         if value != old:
-            obj._on_prop_change(self._attr_name, value, old)
-            if self._on_change:
-                method = getattr(obj, self._on_change, None)
-                if method is not None:
-                    try:
-                        method(value, self._attr_name)
-                    except TypeError:
-                        method(value)
+            obj._on_property_change(self._attr_name, value, old, self._on_change)
 
 
 def shadow(src: FieldDescriptor, **kwargs: Any) -> field:
