@@ -39,14 +39,7 @@ export default {
       isDragging: false,
       lastMouseX: 0,
       lastMouseY: 0,
-      updateTimeout: null,
-      
-      // Add gesture state
-      gestureState: {
-        ctrlPressed: false,
-        shiftPressed: false,
-        isGesturing: false
-      }
+      updateTimeout: null
     };
   },
   
@@ -65,7 +58,7 @@ export default {
     this._updateTransformDirect(true);
 
     // Setup keyboard listeners
-    this._setupKeyboardListeners();
+    this._setupListeners();
 
     // API exposure
     this.$el._zoomPanControls = {
@@ -104,57 +97,26 @@ export default {
       this._cachedRect = null;
     },
 
-    _setupKeyboardListeners() {
-      // Listen for modifier key changes
-      document.addEventListener('keydown', this.handleGlobalKeyDown);
-      document.addEventListener('keyup', this.handleGlobalKeyUp);
+    _setupListeners() {
       // Invalidate rect cache at gesture boundaries
       this.$el.addEventListener('mousedown', this._invalidateRectCache);
       document.addEventListener('mouseup', this._invalidateRectCache);
     },
 
-    _cleanupKeyboardListeners() {
-      document.removeEventListener('keydown', this.handleGlobalKeyDown);
-      document.removeEventListener('keyup', this.handleGlobalKeyUp);
+    _cleanupListeners() {
       this.$el.removeEventListener('mousedown', this._invalidateRectCache);
       document.removeEventListener('mouseup', this._invalidateRectCache);
     },
     
-    handleGlobalKeyDown(e) {
-      // Track modifier key states
-      if (e.key === 'Control' || e.key === 'Meta') { // Meta for Cmd on Mac
-        // currently ignored
-        this.gestureState.ctrlPressed = true;
-      }
-      
-      if (e.key === 'Shift') {
-        this.gestureState.shiftPressed = true;
-      }
-    },
-    
-    handleGlobalKeyUp(e) {
-      // Track modifier key states
-      if (e.key === 'Control' || e.key === 'Meta') {
-        // currently ignored
-        this.gestureState.ctrlPressed = false;
-      }
-      
-      if (e.key === 'Shift') {
-        this.gestureState.shiftPressed = false;
-      }
-    },
-    
     handleWheel(e) {
-      // Immediate processing - no batching
-      // Check if we're in a special gesture mode
-      const isCtrlGesture = this.gestureState.ctrlPressed;
-      const isShiftGesture = this.gestureState.shiftPressed;
-       
-      if (isCtrlGesture) {
+      // e.ctrlKey is set by the browser for both physical Ctrl+scroll AND trackpad
+      // pinch gestures — it is more reliable than tracking keydown/keyup state.
+      if (e.ctrlKey) {
+        // Zoom: Ctrl+scroll or trackpad pinch
         const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
         this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
-      }
-      else if (!isCtrlGesture) {
+      } else {
+        // Pan: plain scroll or two-finger trackpad swipe
         const deltaX = (-e.deltaX) * this.panSensitivity;
         const deltaY = (-e.deltaY) * this.panSensitivity;
         this._setPanDirect(this._panX + deltaX, this._panY + deltaY);
