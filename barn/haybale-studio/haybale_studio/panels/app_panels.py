@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="settings_workbench",
     editor="properties",
     scope="app",
     label="Workbench",
@@ -64,7 +63,6 @@ class NodeSkinDefaultPanel(BasePanel):
 
 
 @panel(
-    registry_id="settings_editor",
     editor="properties",
     scope="app",
     label="Editor",
@@ -80,7 +78,28 @@ class EditorSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_studio.settings.editor import EditorSettings
+        from haywire.ui.prefs.editor import EditorSettings
 
         registry = context.app.library_service.get_settings_registry()
         render_schema(EditorSettings, registry)
+
+@panel(
+    editor="properties",
+    scope="app",
+    label="Zoom & Pan",
+    icon="edit",
+    order=40,
+    default_open=False,
+)
+class EditorZoomPanSettingsPanel(BasePanel):
+    """Canvas pan/zoom behaviour settings."""
+
+    @classmethod
+    def poll(cls, context: "SessionContext") -> bool:
+        return True
+
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
+        from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
+
+        registry = context.app.library_service.get_settings_registry()
+        render_schema(EditorPanZoomSettings, registry)

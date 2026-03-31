@@ -55,6 +55,7 @@ class Settings:
         self._registry: "SettingsRegistry | None" = registry
         self._subscribed_refs: list = []  # weakrefs for mirrors invalidation
         self._cleaned_up: bool = False
+        self._global_subscribed: bool = False  # lazily set by _subscribe_global()
 
     # -------------------------------------------------------------------------
     # Extended mode: resolution chain
@@ -114,6 +115,66 @@ class Settings:
                         except Exception as e:
                             logger.error(f"on_change error for mirrored '{name}': {e}")
 
+    def _subscribe_global(self) -> None:
+        """
+        Lazily subscribe a single namespace weakref so that global registry changes
+        fire on_change callbacks and subscribe() listeners.
+
+        Idempotent — safe to call multiple times; only subscribes once.
+        No-op if no registry or no namespace is set on the class.
+        """
+        if self._global_subscribed:
+            return
+        namespace = getattr(type(self), "_namespace", "")
+        if self._registry is None or not namespace:
+            return
+        cb_ref = weakref.WeakMethod(self._on_global_change)
+        self._registry.subscribe_namespace(namespace, cb_ref)
+        self._subscribed_refs.append(cb_ref)
+        self._global_subscribed = True
+
+    def _on_global_change(self, full_key: str) -> None:
+        """
+        Dispatched by the registry when a value under this class's namespace changes.
+
+        Fires:
+          - the field's on_change method (same contract as local NodeSettings writes)
+          - all subscribe() listeners with (attr_name, new_value, None)
+        """
+        if self._cleaned_up:
+            return
+        namespace = getattr(type(self), "_namespace", "")
+        # Map full_key back to attr name: strip namespace prefix
+        prefix = f"{namespace}."
+        if not full_key.startswith(prefix):
+            return
+        attr_name = full_key[len(prefix) :]
+
+        descriptor = type(self)._prop_fields().get(attr_name)
+        if descriptor is None:
+            return
+
+        new_val = getattr(self, attr_name)
+
+        # Fire field-level on_change (same as local write path in field.__set__)
+        if descriptor._on_change:
+            method = getattr(self, descriptor._on_change, None)
+            if method is not None:
+                try:
+                    method(new_val, attr_name)
+                except TypeError:
+                    try:
+                        method(new_val)
+                    except Exception as e:
+                        logger.error(f"on_change error for '{attr_name}': {e}")
+
+        # Fire subscribe() listeners — old value unavailable from registry, pass None
+        for cb in list(self._callbacks):
+            try:
+                cb(attr_name, new_val, None)
+            except Exception as e:
+                logger.error(f"subscribe callback error for '{attr_name}': {e}")
+
     # -------------------------------------------------------------------------
     # Subscription
     # -------------------------------------------------------------------------
@@ -122,6 +183,7 @@ class Settings:
         """Register ``callback(name, value, old)`` called on any setting change."""
         if callback not in self._callbacks:
             self._callbacks.append(callback)
+        self._subscribe_global()
 
     def unsubscribe(self, callback: Callable) -> None:
         """Remove a previously registered callback."""

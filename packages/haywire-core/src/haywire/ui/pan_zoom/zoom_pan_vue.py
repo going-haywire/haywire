@@ -1,7 +1,10 @@
 from nicegui import ui, events
-from typing import Optional, Callable
+from typing import Optional, Callable, TYPE_CHECKING
 import uuid
 import time
+
+if TYPE_CHECKING:
+    from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
 
 
 class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
@@ -11,22 +14,15 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
     Features:
     - Mouse wheel zoom in/out
     - Click and drag to pan
-    - Keyboard shortcuts (+ and - for zoom)
+    - Trackpad pinch to zoom, two-finger swipe to pan
     - Zoom to fit functionality
-    - Configurable zoom limits
-    - Smooth animations
+    - Configurable via EditorPanZoomSettings (live-updates on setting change)
     - Event callbacks for zoom/pan changes
     """
 
     def __init__(
         self,
-        min_zoom: float = 0.1,
-        max_zoom: float = 5.0,
         initial_zoom: float = 1.0,
-        zoom_sensitivity: float = 0.1,
-        pan_sensitivity: float = 1.0,
-        smooth_zoom: bool = True,
-        enable_keyboard: bool = True,
         on_zoom_change: Optional[Callable[[float], None]] = None,
         on_pan_change: Optional[Callable[[float, float], None]] = None,
         **kwargs,
@@ -35,26 +31,16 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         Initialize the ZoomPanContainer.
 
         Args:
-            min_zoom: Minimum zoom level (default: 0.1)
-            max_zoom: Maximum zoom level (default: 5.0)
             initial_zoom: Initial zoom level (default: 1.0)
-            zoom_sensitivity: How sensitive zoom operations are (default: 0.1)
-            pan_sensitivity: How sensitive pan operations are (default: 1.0)
-            smooth_zoom: Whether to use smooth zoom animations (default: True)
-            enable_keyboard: Enable keyboard shortcuts (default: True)
-            on_zoom_change: Callback for zoom changes
-            on_pan_change: Callback for pan changes
+            on_zoom_change: Callback fired when zoom changes
+            on_pan_change: Callback fired when pan position changes
         """
+        from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
+
+        self._pz_settings = EditorPanZoomSettings()
+
         # Generate unique ID for this container
         self.container_id = f"zoom-pan-{uuid.uuid4().hex[:8]}"
-
-        # Store configuration for Python-side access
-        self.min_zoom = min_zoom
-        self.max_zoom = max_zoom
-        self.zoom_sensitivity = zoom_sensitivity
-        self.pan_sensitivity = pan_sensitivity
-        self.smooth_zoom = smooth_zoom
-        self.enable_keyboard = enable_keyboard
 
         # Store callbacks
         self.on_zoom_change = on_zoom_change
@@ -75,18 +61,36 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         # Setup the container structure
         self._setup_container()
 
-        # Set Vue component props
+        # Set initial Vue component props from settings
         self._props["container-id"] = self.container_id
-        self._props["min-zoom"] = min_zoom
-        self._props["max-zoom"] = max_zoom
         self._props["initial-zoom"] = initial_zoom
-        self._props["zoom-sensitivity"] = zoom_sensitivity
-        self._props["pan-sensitivity"] = pan_sensitivity
-        self._props["smooth-zoom"] = smooth_zoom
-        self._props["enable-keyboard"] = enable_keyboard
+        self._apply_settings_props()
 
         # Set up Python event handlers
         self.on("transform-changed", self._handle_transform_changed)
+
+        # Subscribe to settings changes — fires via _on_global_change in Settings base
+        self._pz_settings.subscribe(self._on_setting_changed)
+
+    def _apply_settings_props(self) -> None:
+        """Push current settings values to Vue props."""
+        pz = self._pz_settings
+        self._props["min-zoom"] = pz.min_zoom
+        self._props["max-zoom"] = pz.max_zoom
+        self._props["zoom-sensitivity"] = pz.zoom_sensitivity
+        self._props["pan-sensitivity"] = pz.pan_sensitivity
+
+    def _on_setting_changed(self, name: str, value, old) -> None:
+        """Propagate a settings change to the Vue component immediately."""
+        prop_map = {
+            "min_zoom": "min-zoom",
+            "max_zoom": "max-zoom",
+            "zoom_sensitivity": "zoom-sensitivity",
+            "pan_sensitivity": "pan-sensitivity",
+        }
+        if name in prop_map:
+            self._props[prop_map[name]] = value
+            self.update()
 
     def _setup_container(self) -> None:
         """Setup the basic container structure."""
@@ -366,8 +370,6 @@ def main():
                 # Create the zoom/pan container
                 zoom_container = (
                     ZoomPanContainer(
-                        min_zoom=0.1,
-                        max_zoom=3.0,
                         initial_zoom=1.0,
                         on_zoom_change=on_zoom_change,
                         on_pan_change=on_pan_change,

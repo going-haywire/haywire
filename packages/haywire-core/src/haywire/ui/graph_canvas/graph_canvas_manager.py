@@ -148,9 +148,7 @@ class GraphCanvasManager:
 
         # Create zoom container
         self.zoom_container = (
-            ZoomPanContainer(min_zoom=0.1, max_zoom=3.0, initial_zoom=1.0)
-            .classes("w-full flex-grow border-2 border-gray-300")
-            .style("height: 100%;")
+            ZoomPanContainer().classes("w-full flex-grow border-2 border-gray-300").style("height: 100%;")
         )
 
         with self.zoom_container.content_container:

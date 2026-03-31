@@ -125,8 +125,6 @@ def main():
                 # Create the zoom/pan container
                 zoom_container = (
                     ZoomPanContainer(
-                        min_zoom=0.1,
-                        max_zoom=3.0,
                         initial_zoom=1.0,
                         on_zoom_change=on_zoom_change,
                         on_pan_change=on_pan_change,

@@ -89,6 +89,10 @@ class FrameworkSettings(Settings):
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)
+        # Subscribe immediately only if the class declares on_change fields —
+        # otherwise subscription happens lazily on first subscribe() call.
+        if any(d._on_change for d in type(self)._prop_fields().values()):
+            self._subscribe_global()
 
 
 class LibrarySettings(Settings):
@@ -139,3 +143,7 @@ class LibrarySettings(Settings):
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)
+        # Subscribe immediately only if the class declares on_change fields —
+        # otherwise subscription happens lazily on first subscribe() call.
+        if any(d._on_change for d in type(self)._prop_fields().values()):
+            self._subscribe_global()
