@@ -35,9 +35,17 @@ class field(FieldDescriptor):
     """
     Descriptor for a reactive field on a ``Settings`` subclass.
 
-    Class-level access returns the descriptor itself (for introspection and
-    use as the ``mirrors=`` argument on another field).
-    Instance-level access reads/writes via the owning Settings's _local_store.
+    **choices** = can be a list of valid values, a dict of {value: label}, 
+        or a callable that returns either of those.
+    **widget** =...
+    **on_change** = is the name of a method on the OWNING Settings instance, 
+        called when the field value changes.
+    **mirrors** = can be a string field key or a class-level descriptor access (FieldDescriptor) 
+        to mirror another field's value and metadata. 
+        **It is recommended to use the shadow() and watch() factories instead of setting mirrors= directly.**
+    **read_only** = True makes the field a read-only mirror (watch);
+    **validator** = is a callable that accepts a value and returns True if it's valid 
+        (used for validating the default value).
     """
 
     def __init__(

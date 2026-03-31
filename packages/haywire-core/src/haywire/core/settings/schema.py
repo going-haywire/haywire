@@ -78,6 +78,7 @@ class FrameworkSettings(Settings):
             for name, val in cls.__dict__.items():
                 if isinstance(val, field):
                     val._field_key = f"{namespace}.{name}"
+                    val._mirror_key = val._field_key
 
             # Self-registration: queue or register immediately
             if FrameworkSettings._registry is not None:
@@ -92,7 +93,7 @@ class FrameworkSettings(Settings):
         # Subscribe immediately only if the class declares on_change fields —
         # otherwise subscription happens lazily on first subscribe() call.
         if any(d._on_change for d in type(self)._prop_fields().values()):
-            self._subscribe_global()
+            self._subscribe_fields()
 
 
 class LibrarySettings(Settings):
@@ -137,6 +138,7 @@ class LibrarySettings(Settings):
             for name, val in cls.__dict__.items():
                 if isinstance(val, field):
                     val._field_key = f"{namespace}.{name}"
+                    val._mirror_key = val._field_key
 
         # No registry touch here — registration handled by BaseRegistry hot-reload path
 
@@ -145,4 +147,4 @@ class LibrarySettings(Settings):
         # Subscribe immediately only if the class declares on_change fields —
         # otherwise subscription happens lazily on first subscribe() call.
         if any(d._on_change for d in type(self)._prop_fields().values()):
-            self._subscribe_global()
+            self._subscribe_fields()

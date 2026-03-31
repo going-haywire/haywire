@@ -1,11 +1,9 @@
 from nicegui import ui, events
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import Optional, Callable
 import uuid
 import time
 
-if TYPE_CHECKING:
-    from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
-
+from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
 
 class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
     """
@@ -35,8 +33,6 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             on_zoom_change: Callback fired when zoom changes
             on_pan_change: Callback fired when pan position changes
         """
-        from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
-
         self._pz_settings = EditorPanZoomSettings()
 
         # Generate unique ID for this container

@@ -201,7 +201,7 @@ def create_test_bag(
 
     registry = create_test_settings_registry(predefined_settings=predefined_global)
     bag = bag_cls(registry=registry)
-    bag._subscribe_mirrors()
+    bag._subscribe_fields()
 
     if predefined_local:
         for name, value in predefined_local.items():

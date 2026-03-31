@@ -35,21 +35,25 @@ class SettingsClassIdentity(BaseIdentity):
 
 def settings(namespace: str, label: str = "", description: str = ""):
     """
-    Decorator for library-global settings classes.
+    Decorator for library settings classes.
 
     Sets class_identity (required by BaseRegistry), class_library (for hot-reload),
     _namespace, and _field_key on all descriptor fields (namespace known at decoration time).
 
     Args:
-        namespace:   Dot-separated settings namespace (e.g. 'my_lib.ui').
-                     Also used as registry_id for BaseRegistry compatibility.
+        namespace:   Dot-separated sub-namespace (e.g. 'ui.info').
+                     the actual namespace is derived from the library 
+                     identity and this sub namespace (e.g. 'my_lib.ui.info').
         label:       Human-readable display name. Defaults to namespace.
         description: Human-readable description. Defaults to ''.
 
     Usage:
-        @settings(namespace='my_lib')
+        @settings(namespace='ui.info')
         class MyLibSettings(LibrarySettings):
             bg_color: Color = field('#1e1e2e', label='Node Background')
+
+    Notes:
+        the namespace of the field bg_color would be 'my_lib.ui.info.bg_color'
 
     Auto-discovered by FrameworkSettingsRegistry when the library calls:
         settings_registry.add_folder(path, library_identity)
@@ -70,10 +74,14 @@ def settings(namespace: str, label: str = "", description: str = ""):
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id if library_identity else None
 
+        registry_key = reg_key(library_id, "settings", _registry_id)
+
+        full_namespace = library_id + "." + namespace if library_id else namespace
+
         inner_cls.class_identity = SettingsClassIdentity(
-            registry_id=namespace,
-            namespace=namespace,
-            registry_key=reg_key(library_id, "settings", namespace),
+            namespace=full_namespace,
+            registry_id=_registry_id,
+            registry_key=registry_key,
             label=label or namespace,
             description=description,
         )
