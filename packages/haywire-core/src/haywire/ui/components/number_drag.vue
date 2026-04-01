@@ -86,13 +86,20 @@ export default {
 
   computed: {
     formattedValue() {
-      const p = this.effectivePrecision;
+      const p = Math.max(this.effectivePrecision, this.valuePrecision);
       return this.modelValue.toFixed(p);
     },
     effectivePrecision() {
       if (this.precision >= 0) return this.precision;
       // auto: derive from step
       const s = this.step.toString();
+      const dot = s.indexOf('.');
+      return dot < 0 ? 0 : s.length - dot - 1;
+    },
+    valuePrecision() {
+      // derive decimal places from the actual stored value
+      // use toPrecision(10) to strip floating-point noise before counting
+      const s = parseFloat(this.modelValue.toPrecision(10)).toString();
       const dot = s.indexOf('.');
       return dot < 0 ? 0 : s.length - dot - 1;
     },
@@ -120,11 +127,18 @@ export default {
     nudge(dir) {
       this.setValue(this.modelValue + dir * this.step);
     },
+    countDecimals(num) {
+      if (Number.isInteger(num)) return 0;
+      const str = num.toString();
+      const decimalPart = str.split('.')[1];
+      return decimalPart ? decimalPart.length : 0;
+    },
 
     // ── Drag ──────────────────────────────────────────
     onMouseDown(e) {
       this._startX = e.clientX;
       this._startValue = this.modelValue;
+      this._startPrecision = this.valuePrecision;
       this._moved = false;
       document.addEventListener('mousemove', this.onMouseMove);
       document.addEventListener('mouseup', this.onMouseUp);
@@ -137,7 +151,8 @@ export default {
 
       const pxPerStep = Math.max(1, 4 / this.sensitivity);  // pixels needed per step
       const steps = Math.round(dx / pxPerStep);
-      this.setValue(this._startValue + steps * this.step);
+      let newStep = 1 / Math.pow(10, this.countDecimals(this._startValue));
+      this.setValue(this._startValue + steps * newStep);
     },
     onMouseUp() {
       document.removeEventListener('mousemove', this.onMouseMove);
@@ -161,7 +176,12 @@ export default {
     confirmEdit() {
       if (!this.isEditing) return;
       const parsed = parseFloat(this.editText);
-      if (!isNaN(parsed)) this.setValue(parsed);
+      if (!isNaN(parsed)) {
+        const clamped = Math.min(this.max, Math.max(this.min, parsed));
+        if (clamped !== this.modelValue) {
+          this.$emit('update:modelValue', clamped);
+        }
+      }
       this.isEditing = false;
     },
     cancelEdit() {
@@ -169,12 +189,10 @@ export default {
     },
 
     // ── Value helpers ─────────────────────────────────
-    setValue(raw) {
+    setValue(raw, extraPrecision) {
       const clamped = Math.min(this.max, Math.max(this.min, raw));
-      const p = this.effectivePrecision;
-      const rounded = parseFloat(clamped.toFixed(p));
-      if (rounded !== this.modelValue) {
-        this.$emit('update:modelValue', rounded);
+      if (clamped !== this.modelValue) {
+        this.$emit('update:modelValue', clamped);
       }
     },
   },

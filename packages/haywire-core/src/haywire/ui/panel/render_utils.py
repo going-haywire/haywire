@@ -271,6 +271,22 @@ def _render_vec_field_rows(
                     ).classes("flex-1")
 
 
+def _float_step_from_default(default: Any) -> float:
+    """Derive a drag step from the decimal places of a float default value.
+
+    0 decimals (e.g. 1.0 or 1) → 0.1, 1 decimal (e.g. 0.3) → 0.01, etc.
+    """
+    if not isinstance(default, (int, float)):
+        return 0.1
+    s = str(float(default))
+    dot = s.find(".")
+    if dot < 0:
+        decimals = 0
+    else:
+        decimals = len(s.rstrip("0")) - dot - 1
+    return 10 ** -(decimals + 1)
+
+
 def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> None:
     """Shared widget dispatch. make_setter(coerce) -> on_change handler."""
     # Escape for safe embedding in props strings (newlines etc. break ast.literal_eval)
@@ -337,6 +353,8 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
         if defn._type is int:
             kwargs["step"] = 1
             kwargs["precision"] = 0
+        elif defn._type is float:
+            kwargs["step"] = _float_step_from_default(defn._default)
         coerce = defn._type
         handler = make_setter(coerce)
 

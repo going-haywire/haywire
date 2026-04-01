@@ -8,6 +8,6 @@ theme = "studio:theme:workbench:haywire-dark"
 
 [editor.pan_zoom]
 max_zoom = 1.0
-min_zoom = 0.1
-pan_sensitivity = 2.9
-zoom_sensitivity = 2.0
+min_zoom = 0.41000000000000003
+pan_sensitivity = 3.8600000000000003
+zoom_sensitivity = 0.7
