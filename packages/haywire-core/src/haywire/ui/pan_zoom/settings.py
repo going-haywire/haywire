@@ -45,17 +45,3 @@ class EditorPanZoomSettings(FrameworkSettings, namespace = NAMESPACE_EDITOR_PAN_
         min=0.5,
         max=5.0,
     )
-    zoom_to_cursor: bool = field(
-        True,
-        label="Zoom to Cursor",
-        description="Zoom centred on cursor position",
-        category=CATEGORY_EDITOR_PAN_ZOOM,
-        order=50,
-    )
-    inertia_enabled: bool = field(
-        True,
-        label="Enable Inertia",
-        description="Continue panning with momentum after release",
-        category=CATEGORY_EDITOR_PAN_ZOOM,
-        order=60,
-    )
