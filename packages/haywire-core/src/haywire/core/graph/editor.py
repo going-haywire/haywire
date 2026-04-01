@@ -59,7 +59,7 @@ class Editor:
     # =============================================================================
 
     def create_wrapper(
-        self, registry_key: str, position: Tuple[float, float] = (100, 100)
+        self, registry_key: str, position: Tuple[float, float] = (3750, 3750)
     ) -> Optional[NodeWrapper]:
         """
         Create a new node wrapper of the specified type at the given position.

@@ -163,6 +163,16 @@ class GraphEditor(BaseEditor):
             on_selection_changed=self._handle_selection_changed,
         )
         self._canvas_manager.sync_with_graph()
+
+        # Center the viewport on the canvas origin (3750, 3750) once the DOM is ready.
+        # If the graph has nodes, fit_to_content() is used instead so existing work is visible.
+        zoom_container = self._canvas_manager.zoom_container
+        has_nodes = len(entry.editor.graph.node_wrappers) > 0
+        if has_nodes:
+            ui.timer(0.2, zoom_container.fit_to_content, once=True)
+        else:
+            ui.timer(0.2, lambda: zoom_container.center_on(3750, 3750), once=True)
+
         logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 
     def _get_entry(self, context: "SessionContext"):

@@ -266,6 +266,20 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         """Set pan position programmatically."""
         self.run_method("$el._zoomPanControls.setPan", x, y)
 
+    def center_on(self, content_x: float, content_y: float) -> None:
+        """Pan so that the given content-space point is centered in the viewport."""
+        ui.run_javascript(f"""
+            const el = document.getElementById('{self.container_id}');
+            if (el && el._zoomPanControls) {{
+                const rect = el.getBoundingClientRect();
+                const zoom = el._zoomPanControls.getZoom();
+                el._zoomPanControls.setPan(
+                    rect.width  / 2 - {content_x} * zoom,
+                    rect.height / 2 - {content_y} * zoom
+                );
+            }}
+        """)
+
     def __enter__(self):
         """Context manager entry - enter the content container if it exists, otherwise self."""
         if hasattr(self, "content_container") and self.content_container:

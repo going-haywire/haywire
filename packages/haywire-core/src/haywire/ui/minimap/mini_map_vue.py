@@ -107,13 +107,6 @@ class MinimapCanvas(ui.element):
             self.canvas.props(f'id="{self.canvas_id}" width="{self.minimap_width}"')
             self.canvas.style("display: block; width: 100%;")
 
-            # Toggle button
-            self.toggle_btn = ui.button("×", on_click=self.toggle_visibility).props("round dense size=xs")
-            self.toggle_btn.style(
-                "position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; min-width: 16px;"
-            )
-            self.toggle_btn.classes("bg-gray-600 text-white text-xs")
-
         self._apply_zoom_container_ratio(self.minimap_width)
 
     def _inject_styles(self) -> None:
@@ -175,6 +168,7 @@ class MinimapCanvas(ui.element):
                     let contentBounds = {{ minX: -500, minY: -500, maxX: 2000, maxY: 2000 }};
                     let scaleFactor = 1.0;
                     let viewportRect = {{ x: 0, y: 0, width: 50, height: 50 }};
+                    let nodeRects = [];
                     
                     const MINIMAP_PADDING = 10;
                     let minimap_content_width = minimap_width - (MINIMAP_PADDING * 2);
@@ -199,33 +193,32 @@ class MinimapCanvas(ui.element):
                         minimap_content_height = minimap_height - (MINIMAP_PADDING * 2);
                     }}  
                     
-                    function updateContentBounds(bounds) {{
+                    function updateContentBounds(bounds, nodes) {{
                         contentBounds = bounds;
+                        nodeRects = nodes || [];
                         contentWidth = contentBounds.maxX - contentBounds.minX;
                         contentHeight = contentBounds.maxY - contentBounds.minY;
-                        
+
                         // Calculate scale to fit content in minimap
                         const scaleX = minimap_content_width / contentWidth;
                         const scaleY = minimap_content_height / contentHeight;
                         scaleFactor = Math.min(scaleX, scaleY, 1.0); // Don't scale up
-                        
-                        console.log(
-                            'Content bounds updated:', bounds, 
-                            'Scale factor:', scaleFactor
-                        );
+
                         drawMinimap();
                     }}
                     
                     function updateViewport(_zoom, _panX, _panY) {{
                         zoom = _zoom;
-                        panX = _panX / zoom;
-                        panY = _panY / zoom;
-                        
+                        panX = _panX;
+                        panY = _panY;
+
                         if (!mainContainer) return;
-                        
+
                         const containerRect = mainContainer.getBoundingClientRect();
-                        
-                        // Calculate viewport in content coordinates
+
+                        // Content coordinates of the viewport top-left:
+                        // transform is translate(panX, panY) scale(zoom)
+                        // so screen(0,0) → content(-panX/zoom, -panY/zoom)
                         const viewWidth = containerRect.width / zoom;
                         const viewHeight = containerRect.height / zoom;
                         const viewX = -panX / zoom;
@@ -271,19 +264,15 @@ class MinimapCanvas(ui.element):
                         ctx.lineWidth = 1;
                         ctx.strokeRect(boundsX, boundsY, boundsWidth, boundsHeight);
                         
-                        // Draw content representation (grid pattern)
+                        // Draw node rectangles
                         ctx.fillStyle = '{self.content_color}';
-                        const gridSize = Math.max(1, Math.min(4, 20 * scaleFactor));
-                        const gridSpacing = Math.max(gridSize * 2, 8);
-                        
-                        for (let x = boundsX; x <= boundsX + boundsWidth; x += gridSize) {{
-                            for (let y = boundsY; y <= boundsY + boundsHeight; y += gridSize) {{
-                                if (x + gridSize <= boundsX + boundsWidth && 
-                                    y + gridSize <= boundsY + boundsHeight) {{
-                                    ctx.fillRect(x, y, 1, 1);
-                                }}
-                            }}
-                        }}
+                        nodeRects.forEach(n => {{
+                            const nx = MINIMAP_PADDING + (n.x - contentBounds.minX) * scaleFactor;
+                            const ny = MINIMAP_PADDING + (n.y - contentBounds.minY) * scaleFactor;
+                            const nw = Math.max(2, n.w * scaleFactor);
+                            const nh = Math.max(2, n.h * scaleFactor);
+                            ctx.fillRect(nx, ny, nw, nh);
+                        }});
                         
                         // Draw viewport rectangle
                         ctx.strokeStyle = '{self.viewport_color}';
@@ -305,36 +294,6 @@ class MinimapCanvas(ui.element):
                         ctx.fillRect(clampedX, clampedY, clampedWidth, clampedHeight);
                         ctx.strokeRect(clampedX, clampedY, clampedWidth, clampedHeight);
                         
-                        // Debug info (remove in production)
-                        ctx.fillStyle = 'black';
-                        ctx.font = '10px monospace';
-                        ctx.fillText(
-                            `Minimap: ${{minimap_width}}x${{minimap_height}}`, 
-                            5, 
-                            minimap_height - 65
-                        );
-                        ctx.fillText(
-                            `Content: ${{contentWidth.toFixed(0)}}x${{contentHeight.toFixed(0)}}`, 
-                            5, 
-                            minimap_height - 55
-                        );
-                        ctx.fillText(
-                            `Pan: ${{panX.toFixed(0)}}x${{panY.toFixed(0)}}`, 
-                            5, 
-                            minimap_height - 45
-                        );
-                        ctx.fillText(`Zoom: ${{zoom.toFixed(3)}}`, 5, minimap_height - 35);
-                        ctx.fillText(`Scale: ${{scaleFactor.toFixed(3)}}`, 5, minimap_height - 25);
-                        ctx.fillText(
-                            `Bounds: ${{Math.round(boundsWidth)}}x${{Math.round(boundsHeight)}}`, 
-                            5, 
-                            minimap_height - 15
-                        );
-                        ctx.fillText(
-                            `View: ${{Math.round(clampedWidth)}}x${{Math.round(clampedHeight)}}`, 
-                            5, 
-                            minimap_height - 5
-                        );
                     }}
                     
                     function minimapToContent(minimapX, minimapY) {{
@@ -465,80 +424,47 @@ class MinimapCanvas(ui.element):
         """Scan the zoom container content to build minimap representation."""
         # Calculate aspect ratio first
         self._apply_zoom_container_ratio(self.minimap_width)
-        # Scan content
+        # Scan content — node positions are in content-space (offsetLeft/offsetTop),
+        # so no transform math is needed.
         ui.run_javascript(f"""
             const container = document.getElementById('{self.zoom_container.container_id}');
             const content = container ? container.querySelector('.zoom-pan-content') : null;
-            
+
             if (content) {{
-                // Get current transform values
-                const transform = content.style.transform;
-                let currentZoom = 1.0;
-                let currentPanX = 0;
-                let currentPanY = 0;
-                
-                // Parse current transform to get actual zoom/pan values
-                if (transform) {{
-                    const translateMatch = transform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
-                    const scaleMatch = transform.match(/scale\\(([^)]+)\\)/);
-                    
-                    if (translateMatch) {{
-                        currentPanX = parseFloat(translateMatch[1]) || 0;
-                        currentPanY = parseFloat(translateMatch[2]) || 0;
-                    }}
-                    if (scaleMatch) {{
-                        currentZoom = parseFloat(scaleMatch[1]) || 1.0;
-                    }}
-                }}
-                
-                // Get all meaningful content elements
-                const elements = content.querySelectorAll(
-                    '.zoomable-card, .card, [class*="card"], [class*="item"]'
-                );
-                
+                const elements = content.querySelectorAll('[data-node-id]');
+
                 let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                
+                const nodes = [];
+
                 if (elements.length > 0) {{
                     elements.forEach(el => {{
-                        const rect = el.getBoundingClientRect();
-                        const containerRect = container.getBoundingClientRect();
-                        
-                        // Convert screen coordinates to content coordinates
-                        // Account for current transform: screen_pos = (content_pos * zoom) + pan
-                        // So: content_pos = (screen_pos - pan) / zoom
-                        const screenX = rect.left - containerRect.left;
-                        const screenY = rect.top - containerRect.top;
-                        
-                        const contentX = (screenX - currentPanX) / currentZoom;
-                        const contentY = (screenY - currentPanY) / currentZoom;
-                        const contentWidth = rect.width / currentZoom;
-                        const contentHeight = rect.height / currentZoom;
-                        
-                        minX = Math.min(minX, contentX);
-                        minY = Math.min(minY, contentY);
-                        maxX = Math.max(maxX, contentX + contentWidth);
-                        maxY = Math.max(maxY, contentY + contentHeight);
+                        // Positions are set as inline style left/top by graph_canvas_manager
+                        // and are already in content-space coordinates.
+                        const x = parseFloat(el.style.left) || 0;
+                        const y = parseFloat(el.style.top) || 0;
+                        const w = el.offsetWidth;
+                        const h = el.offsetHeight;
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x + w);
+                        maxY = Math.max(maxY, y + h);
+                        nodes.push({{ x, y, w, h }});
                     }});
                 }} else {{
-                    // Fallback: assume a reasonable content area
-                    minX = -500;
-                    minY = -500;
-                    maxX = 2000;
-                    maxY = 2000;
+                    minX = 0; minY = 0; maxX = 2000; maxY = 2000;
                 }}
-                
-                // Add padding in content coordinates
+
                 const padding = 100;
-                minX -= padding;
-                minY -= padding;
-                maxX += padding;
-                maxY += padding;
-                
-                const bounds = {{ minX, minY, maxX, maxY }};
-                
+                const bounds = {{
+                    minX: minX - padding,
+                    minY: minY - padding,
+                    maxX: maxX + padding,
+                    maxY: maxY + padding,
+                }};
+
                 const minimap = document.getElementById('{self.minimap_id}');
                 if (minimap && minimap._minimapControls) {{
-                    minimap._minimapControls.updateContentBounds(bounds);
+                    minimap._minimapControls.updateContentBounds(bounds, nodes);
                 }}
             }}
         """)
@@ -590,12 +516,9 @@ class MinimapCanvas(ui.element):
         self.is_visible = not self.is_visible
         if self.is_visible:
             self.style(remove="display: none;")
-            self.toggle_btn.set_text("×")
-            # Rescan content when showing
             ui.timer(0.1, self._scan_content, once=True)
         else:
             self.style(add="display: none;")
-            self.toggle_btn.set_text("◐")
 
     def set_position(self, position: str) -> None:
         """Change minimap position."""

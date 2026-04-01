@@ -134,7 +134,11 @@ class NodeWrapper:
     """
 
     def __init__(
-        self, registry_key: str, node_id: str, graph: "BaseGraph", position: Tuple[float, float] = (100, 100)
+        self,
+        registry_key: str,
+        node_id: str,
+        graph: "BaseGraph",
+        position: Tuple[float, float] = (3750, 3750),
     ):
         """
         Initialize a new NodeWrapper.

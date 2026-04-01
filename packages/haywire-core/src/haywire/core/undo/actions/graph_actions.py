@@ -21,7 +21,7 @@ class AddNodeAction(ActionBase):
         self,
         graph: BaseGraph,
         registry_key: str,
-        position: Tuple[float, float] = (100, 100),
+        position: Tuple[float, float] = (3750, 3750),
         description: Optional[str] = None,
     ):
         """

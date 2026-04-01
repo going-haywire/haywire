@@ -15,4 +15,4 @@ zoom_sensitivity = 0.4
 [ui.minimap]
 enabled = true
 position = "bottom-right"
-width = 153
+width = 259

@@ -230,7 +230,7 @@ class BaseGraph:
                 return node_id
 
     def create_node_wrapper(
-        self, registry_key: str, position: Tuple[float, float] = (100, 100)
+        self, registry_key: str, position: Tuple[float, float] = (3750, 3750)
     ) -> Optional["NodeWrapper"]:
         """
         Create and add NodeWrapper (graph-managed factory pattern).
