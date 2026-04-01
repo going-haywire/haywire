@@ -6,7 +6,7 @@ from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
 
-class EditorPanZoomSettings(FrameworkSettings, namespace = NAMESPACE_EDITOR_PAN_ZOOM):
+class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZOOM):
     """Global preferences controlling canvas pan/zoom behaviour."""
 
     zoom_sensitivity: float = field(
@@ -26,15 +26,6 @@ class EditorPanZoomSettings(FrameworkSettings, namespace = NAMESPACE_EDITOR_PAN_
         order=20,
         min=0.1,
         max=5.0,
-    )
-    min_zoom: float = field(
-        0.1,
-        label="Minimum Zoom",
-        description="Minimum zoom level",
-        category=CATEGORY_EDITOR_PAN_ZOOM,
-        order=30,
-        min=0.05,
-        max=0.5,
     )
     max_zoom: float = field(
         1.0,

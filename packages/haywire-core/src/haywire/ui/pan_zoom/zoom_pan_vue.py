@@ -84,7 +84,6 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
     def _apply_settings_props(self) -> None:
         """Push current settings values to Vue props."""
         pz = self._pz_settings
-        self._props["min-zoom"] = pz.min_zoom
         self._props["max-zoom"] = pz.max_zoom
         self._props["zoom-sensitivity"] = pz.zoom_sensitivity
         self._props["pan-sensitivity"] = pz.pan_sensitivity
@@ -92,7 +91,6 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
     def _on_setting_changed(self, name: str, value, old) -> None:
         """Propagate a pan/zoom settings change to the Vue component immediately."""
         prop_map = {
-            "min_zoom": "min-zoom",
             "max_zoom": "max-zoom",
             "zoom_sensitivity": "zoom-sensitivity",
             "pan_sensitivity": "pan-sensitivity",

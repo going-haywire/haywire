@@ -25,7 +25,6 @@ export default {
   
   props: {
     containerId: { type: String, required: true },
-    minZoom: { type: Number, default: 0.1 },
     maxZoom: { type: Number, default: 5.0 },
     initialZoom: { type: Number, default: 1.0 },
     zoomSensitivity: { type: Number, default: 0.1 },
@@ -50,9 +49,13 @@ export default {
     this._zoom = this.initialZoom;
     this._panX = 0;
     this._panY = 0;
+    this._minZoom = 0.01; // will be computed properly after first layout
 
     // Cached container rect — populated on first gesture, cleared on mouseup/resize
     this._cachedRect = null;
+
+    // Compute initial min zoom and re-compute on resize
+    this._updateMinZoom();
 
     // Initialize
     this._updateTransformDirect(true);
@@ -75,11 +78,12 @@ export default {
         this._updateTransformDirect(true);
       },
       fitToContent: this.fitToContent,
-      getState: () => ({ 
-        zoom: this._zoom, 
-        panX: this._panX, 
-        panY: this._panY, 
-        isDragging: this.isDragging 
+      getMinZoom: () => this._minZoom,
+      getState: () => ({
+        zoom: this._zoom,
+        panX: this._panX,
+        panY: this._panY,
+        isDragging: this.isDragging
       })
     };
   },
@@ -95,6 +99,15 @@ export default {
 
     _invalidateRectCache() {
       this._cachedRect = null;
+      this._updateMinZoom();
+    },
+
+    _updateMinZoom() {
+      const rect = this.$el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        const CANVAS_SIZE = 8000;
+        this._minZoom = Math.max(rect.width / CANVAS_SIZE, rect.height / CANVAS_SIZE);
+      }
     },
 
     _setupListeners() {
@@ -128,7 +141,7 @@ export default {
 
     _setZoomDirect(newZoom, centerX = null, centerY = null) {
       const oldZoom = this._zoom;
-      this._zoom = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
+      this._zoom = Math.max(this._minZoom, Math.min(this.maxZoom, newZoom));
 
       if (centerX !== null && centerY !== null) {
         const rect = this._getContainerRect();
@@ -142,6 +155,10 @@ export default {
         this._panY = offsetY - contentY * this._zoom;
       }
 
+      // Clamp pan after zoom — keeps the canvas filling the viewport
+      // as the user zooms out toward the minimum zoom level.
+      this._clampPanValues();
+
       this._updateTransformDirect(true);
     },
 
@@ -149,21 +166,26 @@ export default {
     _clampPanValues() {
       const containerRect = this._getContainerRect();
       const CANVAS_SIZE = 8000;
-      const MARGIN = 0;
 
-      // Pan range must cover the full canvas at the current zoom level.
-      // transform: translate(panX, panY) scale(zoom)
-      // To see canvas origin (0,0): panX can go up to viewportWidth (canvas left at right edge)
-      // To see canvas far edge (CANVAS_SIZE): panX >= -(CANVAS_SIZE * zoom - viewportWidth)
       const canvasW = CANVAS_SIZE * this._zoom;
       const canvasH = CANVAS_SIZE * this._zoom;
-      const maxX = MARGIN;
-      const minX = canvasW > containerRect.width  ? -(canvasW - containerRect.width)  - MARGIN : MARGIN;
-      const maxY = MARGIN;
-      const minY = canvasH > containerRect.height ? -(canvasH - containerRect.height) - MARGIN : MARGIN;
 
-      this._panX = Math.max(minX, Math.min(maxX, this._panX));
-      this._panY = Math.max(minY, Math.min(maxY, this._panY));
+      // Canvas larger than viewport: clamp so neither edge escapes the viewport.
+      // Canvas smaller than viewport (at min zoom, one axis may be smaller):
+      //   center it — no panning allowed in that axis.
+      if (canvasW >= containerRect.width) {
+        const minX = -(canvasW - containerRect.width);
+        this._panX = Math.max(minX, Math.min(0, this._panX));
+      } else {
+        this._panX = (containerRect.width - canvasW) / 2;
+      }
+
+      if (canvasH >= containerRect.height) {
+        const minY = -(canvasH - containerRect.height);
+        this._panY = Math.max(minY, Math.min(0, this._panY));
+      } else {
+        this._panY = (containerRect.height - canvasH) / 2;
+      }
     },
 
     _setPanDirect(newPanX, newPanY) {
