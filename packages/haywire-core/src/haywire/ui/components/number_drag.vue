@@ -139,6 +139,15 @@ export default {
       this._startX = e.clientX;
       this._startValue = this.modelValue;
       this._startPrecision = this.valuePrecision;
+      const baseStep = 1 / Math.pow(10, this.countDecimals(this._startValue));
+      const rect = this.$refs.root.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;  // 0 (left) → 1 (right)
+      // 5 zones: [0,0.2) *100  [0.2,0.4) *10  [0.4,0.6) *1  [0.6,0.8) *0.1  [0.8,1] *0.01
+      const zone = Math.min(4, Math.floor(pos * 5));
+      const multiplier = Math.pow(10, 2 - zone);         // 100, 10, 1, 0.1, 0.01
+      this._dragStep = baseStep * multiplier;
+      // precision = decimals needed to represent this step cleanly
+      this._dragPrecision = Math.max(0, this.countDecimals(this._startValue) - (2 - zone));
       this._moved = false;
       document.addEventListener('mousemove', this.onMouseMove);
       document.addEventListener('mouseup', this.onMouseUp);
@@ -151,8 +160,18 @@ export default {
 
       const pxPerStep = Math.max(1, 4 / this.sensitivity);  // pixels needed per step
       const steps = Math.round(dx / pxPerStep);
-      let newStep = 1 / Math.pow(10, this.countDecimals(this._startValue));
-      this.setValue(this._startValue + steps * newStep);
+      const raw = parseFloat((this._startValue + steps * this._dragStep).toFixed(this._dragPrecision));
+      const clamped = Math.min(this.max, Math.max(this.min, raw));
+
+      // Rebase origin when clamped so dragging back responds immediately
+      if (clamped !== raw) {
+        this._startX = e.clientX;
+        this._startValue = clamped;
+      }
+
+      if (clamped !== this.modelValue) {
+        this.$emit('update:modelValue', clamped);
+      }
     },
     onMouseUp() {
       document.removeEventListener('mousemove', this.onMouseMove);
@@ -189,7 +208,7 @@ export default {
     },
 
     // ── Value helpers ─────────────────────────────────
-    setValue(raw, extraPrecision) {
+    setValue(raw) {
       const clamped = Math.min(this.max, Math.max(this.min, raw));
       if (clamped !== this.modelValue) {
         this.$emit('update:modelValue', clamped);
