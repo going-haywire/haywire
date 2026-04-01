@@ -292,7 +292,10 @@ class SettingsRegistry(BaseRegistry):
             ref: weakref.ref = weakref.WeakMethod(callback)  # type: ignore[arg-type]
         except TypeError:
             ref = weakref.ref(callback)
-        self._subscribers.setdefault(namespace, []).append(ref)
+        bucket = self._subscribers.setdefault(namespace, [])
+        if any(r() == callback for r in bucket):
+            return  # already subscribed — deduplicate
+        bucket.append(ref)
 
     def unsubscribe(self, namespace: str | None, callback: Callable[[str, "FieldValue"], None]) -> None:
         """Remove a subscription registered with ``subscribe``."""

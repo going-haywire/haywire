@@ -235,6 +235,78 @@ class TestExtendedMode:
 
 
 # ---------------------------------------------------------------------------
+# mirror callback suppression (shadow / watch global-change filtering)
+# ---------------------------------------------------------------------------
+
+
+def _make_mirror_bag(predefined_local=None):
+    """
+    Build a Settings bag with one shadow field ('color') mirroring the global
+    key 'test.color'.  Returns (registry, bag, GLOBAL_KEY).
+
+    _field_key must be set so the descriptor enters extended-mode resolution;
+    _mirror_key points it at the global registry entry.
+    """
+    from haywire.core.settings import SettingsRegistry
+
+    GLOBAL_KEY = "test.color"
+    LOCAL_KEY = "test.node.color"  # simulates a node-scoped field key
+
+    class MirrorBag(Settings):
+        color: str = field("#ffffff", label="Color")
+
+    MirrorBag.color._field_key = LOCAL_KEY
+    MirrorBag.color._mirror_key = GLOBAL_KEY
+
+    registry = SettingsRegistry()
+    registry.define(GLOBAL_KEY, "#ffffff")
+
+    bag = MirrorBag(registry=registry)
+    bag._subscribe_fields()
+
+    if predefined_local:
+        for name, value in predefined_local.items():
+            setattr(bag, name, value)
+
+    return registry, bag, GLOBAL_KEY
+
+
+class TestMirrorCallbackSuppression:
+    def test_global_change_fires_callback_when_no_local_override(self):
+        """When no local override exists, a global SET fires the on_change callback."""
+        registry, bag, key = _make_mirror_bag()
+        calls = []
+        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+
+        registry.set_global(key, "#aabbcc")
+
+        assert calls == [("color", "#aabbcc")]
+
+    def test_global_change_suppressed_when_local_override_exists(self):
+        """When a local override exists, a global SET must not fire the callback."""
+        registry, bag, key = _make_mirror_bag(predefined_local={"color": "#ff0000"})
+        calls = []
+        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+
+        registry.set_global(key, "#aabbcc")
+
+        assert calls == [], "callback must be suppressed when local override exists"
+
+    def test_global_override_fires_callback_even_with_local_override(self):
+        """A global OVERRIDE beats the local value — callback must still fire."""
+        from haywire.core.settings.enums import FieldMode
+
+        registry, bag, key = _make_mirror_bag(predefined_local={"color": "#ff0000"})
+        calls = []
+        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+
+        registry.set_global(key, "#aabbcc", mode=FieldMode.OVERRIDE)
+
+        assert len(calls) == 1
+        assert calls[0] == ("color", "#aabbcc")
+
+
+# ---------------------------------------------------------------------------
 # @node decorator + direct binding on node instances
 # ---------------------------------------------------------------------------
 

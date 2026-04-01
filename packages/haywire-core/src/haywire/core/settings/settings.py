@@ -99,16 +99,23 @@ class Settings:
 
     def _on_field_change(self, full_key: str, value: "FieldValue") -> None:
         """
-        Dispatched by the registry when a field's effective key changes.
+        Dispatched by the registry when a mirrored field's effective value changes.
 
-        Covers both mirrored fields (NodeSettings) and own fields
-        (FrameworkSettings / LibrarySettings). Fires on_change callbacks and
-        subscribe() listeners.
+        Suppresses the callback when the instance has a local override and the
+        incoming change is not a global OVERRIDE — in that case the resolved value
+        is unchanged, so firing the callback would be spurious.
+
+        A global OVERRIDE beats all local values, so the callback always fires then.
         """
+        from haywire.core.settings.enums import FieldMode
+
         if self._cleaned_up:
             return
         for attr_name, descriptor in type(self)._property_fields().items():
             if descriptor._mirror_key != full_key:
+                continue
+            field_key = descriptor._field_key or attr_name
+            if field_key in self._local_store and value.mode != FieldMode.OVERRIDE:
                 continue
             new_val = getattr(self, attr_name)
             self._on_property_change(attr_name, new_val, None, descriptor._on_change)
