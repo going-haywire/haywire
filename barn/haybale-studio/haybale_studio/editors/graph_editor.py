@@ -123,7 +123,7 @@ class GraphEditor(BaseEditor):
 
                 # ---- canvas area (swapped on ACTIVE_GRAPH_CHANGED) ----
                 self._canvas_wrapper = ui.element("div").style(
-                    "flex: 1; width: 100%; overflow: hidden; min-height: 0;"
+                    "flex: 1; width: 100%; overflow: hidden; min-height: 0; position: relative;"
                 )
                 with self._canvas_wrapper:
                     self._build_canvas(context)

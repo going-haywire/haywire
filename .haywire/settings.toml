@@ -7,7 +7,12 @@ log_node = "DEBUG"
 theme = "studio:theme:workbench:haywire-dark"
 
 [editor.pan_zoom]
-max_zoom = 1.0
-min_zoom = 0.41000000000000003
-pan_sensitivity = 3.8600000000000003
-zoom_sensitivity = 0.7
+max_zoom = 3.4
+min_zoom = 0.05
+pan_sensitivity = 4.2
+zoom_sensitivity = 0.4
+
+[ui.minimap]
+enabled = true
+position = "bottom-right"
+width = 153

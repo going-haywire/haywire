@@ -4,7 +4,7 @@ import time
 from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 
 # from haywire.ui.pan_zoom.mini_map_vue import MinimapCanvas
-from haywire.ui.pan_zoom.mini_map_vue import MinimapCanvas
+from haywire.ui.minimap.mini_map_vue import MinimapCanvas
 
 
 def create_zoom_pan_controls(container: ZoomPanContainer) -> None:

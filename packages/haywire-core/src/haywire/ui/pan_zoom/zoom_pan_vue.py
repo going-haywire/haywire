@@ -1,9 +1,14 @@
 from nicegui import ui, events
-from typing import Optional, Callable
+from typing import TYPE_CHECKING, Optional, Callable
 import uuid
 import time
 
 from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
+from haywire.ui.minimap.settings import MinimapSettings
+
+if TYPE_CHECKING:
+    from haywire.ui.minimap.mini_map_vue import MinimapCanvas
+
 
 class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
     """
@@ -34,6 +39,7 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             on_pan_change: Callback fired when pan position changes
         """
         self._pz_settings = EditorPanZoomSettings()
+        self._mm_settings = MinimapSettings()
 
         # Generate unique ID for this container
         self.container_id = f"zoom-pan-{uuid.uuid4().hex[:8]}"
@@ -41,6 +47,9 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         # Store callbacks
         self.on_zoom_change = on_zoom_change
         self.on_pan_change = on_pan_change
+
+        # Minimap instance — created in _setup_container after DOM is ready
+        self.minimap: Optional["MinimapCanvas"] = None
 
         # Current state tracking
         self.current_zoom = initial_zoom
@@ -67,6 +76,7 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
 
         # Subscribe to settings changes — fires via _on_global_change in Settings base
         self._pz_settings.subscribe(self._on_setting_changed)
+        self._mm_settings.subscribe(self._on_minimap_setting_changed)
 
     def _apply_settings_props(self) -> None:
         """Push current settings values to Vue props."""
@@ -77,7 +87,7 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         self._props["pan-sensitivity"] = pz.pan_sensitivity
 
     def _on_setting_changed(self, name: str, value, old) -> None:
-        """Propagate a settings change to the Vue component immediately."""
+        """Propagate a pan/zoom settings change to the Vue component immediately."""
         prop_map = {
             "min_zoom": "min-zoom",
             "max_zoom": "max-zoom",
@@ -88,8 +98,21 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             self._props[prop_map[name]] = value
             self.update()
 
+    def _on_minimap_setting_changed(self, name: str, value, _old) -> None:
+        """Propagate a minimap settings change to the MinimapCanvas instance."""
+        if self.minimap is None:
+            return
+        if name == "enabled":
+            self.minimap.set_enabled(value)
+        elif name == "position":
+            self.minimap.set_position(value)
+        elif name == "width":
+            self.minimap.set_width(value)
+
     def _setup_container(self) -> None:
         """Setup the basic container structure."""
+        from haywire.ui.minimap.mini_map_vue import MinimapCanvas
+
         self.classes("zoom-pan-container")
         self.style("position: relative; overflow: hidden; width: 100%; height: 100%;")
         # Set the unique ID
@@ -107,6 +130,16 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
                 "min-width: 100%; "
                 "min-height: 100%;"
             )
+
+        # Minimap is placed as a sibling of ZoomPanContainer in the parent context
+        # (not inside the slot which feeds into .zoom-pan-content and gets transformed).
+        mm = self._mm_settings
+        self.minimap = MinimapCanvas(
+            zoom_container=self,
+            width=mm.width,
+            position=mm.position,
+            visible=mm.enabled,
+        )
 
     def _handle_transform_changed(self, e: events.GenericEventArguments) -> None:
         """Handle zoom change events from Vue component."""
@@ -342,4 +375,3 @@ def create_zoom_pan_info(container: ZoomPanContainer) -> ui.label:
     ui.timer(0.1, lambda: update_info(), once=True)
 
     return info_label
-

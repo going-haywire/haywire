@@ -1,7 +1,7 @@
 from nicegui import ui
 import uuid
 
-from .zoom_pan_vue import ZoomPanContainer
+from ..pan_zoom.zoom_pan_vue import ZoomPanContainer
 
 
 class MinimapCanvas(ui.element):
@@ -617,6 +617,24 @@ class MinimapCanvas(ui.element):
                 minimap.style.cssText += \n'{position_styles.get(position, position_styles["top-right"])}';
             }}
         """)
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Show or hide the minimap."""
+        if enabled != self.is_visible:
+            self.toggle_visibility()
+
+    def set_width(self, width: int) -> None:
+        """Update the minimap width and re-derive height from the container aspect ratio."""
+        self.minimap_width = width
+        ui.run_javascript(f"""
+            const minimap = document.getElementById('{self.minimap_id}');
+            const canvas = document.getElementById('{self.canvas_id}');
+            if (minimap && canvas) {{
+                minimap.style.width = '{width}px';
+                canvas.width = {width};
+            }}
+        """)
+        self._apply_zoom_container_ratio(width)
 
     def refresh_content(self) -> None:
         """Force refresh of content scanning."""

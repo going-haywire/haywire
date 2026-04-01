@@ -14,8 +14,13 @@ from typing import TYPE_CHECKING
 
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
-
 from haywire.ui.panel.render_utils import render_schema
+
+from haywire.ui.minimap.settings import MinimapSettings
+from haywire.ui.prefs.canvas import CanvasSettings
+from haywire.ui.prefs.edge_ui import EdgeUISettings
+
+from haybale_core.settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -38,8 +43,6 @@ class CanvasSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.prefs.canvas import CanvasSettings
-
         registry = context.app.library_service.get_settings_registry()
         render_schema(CanvasSettings, registry)
 
@@ -60,8 +63,6 @@ class NodeSkinSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_core.settings.node_skin_settings import NodeSkinSettings
-
         registry = context.app.library_service.get_settings_registry()
         render_schema(NodeSkinSettings, registry)
 
@@ -82,8 +83,6 @@ class EdgeUISettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.prefs.edge_ui import EdgeUISettings
-
         registry = context.app.library_service.get_settings_registry()
         render_schema(EdgeUISettings, registry)
 
@@ -105,7 +104,5 @@ class MinimapSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.prefs.minimap import MinimapSettings
-
         registry = context.app.library_service.get_settings_registry()
         render_schema(MinimapSettings, registry)
