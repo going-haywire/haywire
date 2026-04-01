@@ -3,10 +3,13 @@
 
 import logging
 
-from .keys import LIBRARY_LOG_METATADATA_KEY, LIBRARY_LOG_PREFIX, lib_id_from_key
-from .debug_settings import DebugSettings
+from ..namespaces import NAMESPACE_LIBRARY_LOG
+
+from .keys import LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY, lib_id_from_key
+from .debug_settings import GLOBAL_BASELINE_LOG_LEVEL_KEY, DebugSettings
 from ..settings.registry import SettingsRegistry
 from ..settings.value import FieldValue
+from ..settings.enums import FieldMode
 
 # Maps DebugSettings attribute name → Python logger namespace
 _GROUP_MAP: dict[str, str] = {
@@ -21,7 +24,6 @@ _GROUP_MAP: dict[str, str] = {
 }
 
 _ROOT_NAMESPACE = "haywire"
-
 
 class LoggingConfigurator:
     """
@@ -56,9 +58,12 @@ class LoggingConfigurator:
     # ------------------------------------------------------------------
 
     def _attach_registry(self, registry: "SettingsRegistry") -> None:
-        # Scan already-defined library keys (libraries loaded before configurator)
+        """
+        Scan already-defined library keys (libraries loaded before configurator)
+        and apply their levels, then subscribe for future changes.
+        """
         for key in list(registry.all_definitions()):
-            if key.startswith(LIBRARY_LOG_PREFIX + "."):
+            if key.startswith(NAMESPACE_LIBRARY_LOG + "."):
                 self._register_library_from_key(key, registry)
                 try:
                     value, _ = registry.resolve(key)
@@ -71,7 +76,7 @@ class LoggingConfigurator:
         lib_id = lib_id_from_key(key)
         if lib_id and lib_id not in self._library_namespaces:
             defn = registry.get_definition(key)
-            module_name = defn._metadata.get(LIBRARY_LOG_METATADATA_KEY, lib_id) if defn else lib_id
+            module_name = defn._metadata.get(LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY, lib_id) if defn else lib_id
             self._library_namespaces[lib_id] = module_name
 
     def _apply_all(self) -> None:
@@ -81,32 +86,39 @@ class LoggingConfigurator:
             self._apply_group(namespace, getattr(self._settings, attr))
 
     def _apply_root(self, level: str) -> None:
+        """Apply the global baseline log level to the root logger."""
         logging.getLogger(_ROOT_NAMESPACE).setLevel(level)
 
     def _apply_group(self, namespace: str, level: str) -> None:
+        """
+        Apply a log level to a specific logger namespace.
+        namespace: the logger namespace to apply the level to (e.g. "haywire.core.execution"
+        level: the log level to apply (e.g. "DEBUG" or "" to inherit)
+        """
         logger = logging.getLogger(namespace)
         if level:
             logger.setLevel(level)
         else:
             logger.setLevel(logging.NOTSET)
 
-    def _apply_library_level(self, key: str, level: str) -> None:
-        lib_id = lib_id_from_key(key)
+    def _apply_library_level(self, library_log_level_key: str, level: str) -> None:
+        """Apply a log level to a library"""
+        lib_id = lib_id_from_key(library_log_level_key)
         if lib_id is None:
             return
         module_name = self._library_namespaces.get(lib_id, lib_id)
         self._apply_group(module_name, level)
 
     def _on_setting_change(self, name: str, value: object, old: object) -> None:
-        if name == "log_level":
+        """Callback for DebugSettings changes — apply log level changes to the logging hierarchy."""
+        if name == GLOBAL_BASELINE_LOG_LEVEL_KEY:
             self._apply_root(str(value))
         elif name in _GROUP_MAP:
             self._apply_group(_GROUP_MAP[name], str(value) if value else "")
 
     def _on_registry_change(self, name: str, sv: "FieldValue", registry: "SettingsRegistry") -> None:
-        from haywire.core.settings.enums import FieldMode  # noqa: PLC0415
-
-        if not name.startswith(LIBRARY_LOG_PREFIX + "."):
+        """Callback for SettingsRegistry changes — handle dynamic debug.library.<lib_id>.log_level keys."""
+        if not name.startswith(NAMESPACE_LIBRARY_LOG + "."):
             return
 
         lib_id = lib_id_from_key(name)

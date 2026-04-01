@@ -652,7 +652,11 @@ class SettingsRegistry(BaseRegistry):
         metadata: dict | None = None,
     ) -> field:
         """
-        Define a setting from code (authoritative schema).
+        Define a custom setting from code (authoritative schema).
+
+        This creates a new field definition not associated to any Settings bag
+        and adds it to the registry, making it available
+        for resolution and UI immediately.
 
         Code definitions take precedence over TOML definitions.
         """

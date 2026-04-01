@@ -1,6 +1,7 @@
 # haywire-core/haywire/ui/skin/settings.py
 """Node default skin settings."""
 
+from haywire.core.namespaces import CATEGORY_NODE_SKINS, NAMESPACE_UI_NODE_DEFAULT_SKIN
 from haywire.core.settings.schema import FrameworkSettings
 from haywire.core.settings import field
 
@@ -21,7 +22,7 @@ def _default_skin():
         return "default"
 
 
-class NodeDefaultSkinSettings(FrameworkSettings, namespace="ui.node.default.skin"):
+class NodeDefaultSkinSettings(FrameworkSettings, namespace = NAMESPACE_UI_NODE_DEFAULT_SKIN):
     """Settings controlling node layout, pin geometry, and element visibility.
 
     These settings are referenced by Node properties.
@@ -33,7 +34,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace="ui.node.default.skin
         default=_default_skin,
         label="Default NodeSkin",
         description="Current default node skin",
-        category="skins",
+        category=CATEGORY_NODE_SKINS,
         widget="label",
         order=10,
     )
@@ -41,7 +42,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace="ui.node.default.skin
         default=_default_skin,
         label="Default Studio Skin",
         description="Studio default node skin",
-        category="skins",
+        category=CATEGORY_NODE_SKINS,
         choices=_node_skin_choices,
         order=20,
     )

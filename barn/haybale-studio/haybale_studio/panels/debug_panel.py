@@ -14,14 +14,13 @@ from typing import TYPE_CHECKING
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema, render_keys
-from haywire.core.debug.keys import LIBRARY_LOG_PREFIX
+from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
+from haywire.core.debug.debug_settings import DebugSettings
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
-
 @panel(
-    registry_id="settings_debug",
     editor="properties",
     scope="debug",
     label="Log Levels",
@@ -37,8 +36,6 @@ class DebugSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.core.debug.debug_settings import DebugSettings
-
         registry = context.app.library_service.get_settings_registry()
         render_schema(DebugSettings, registry)
-        render_keys(prefix=LIBRARY_LOG_PREFIX, registry=registry)
+        render_keys(prefix=NAMESPACE_LIBRARY_LOG, registry=registry)

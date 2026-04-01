@@ -4,6 +4,7 @@
 from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
+#TODO: Setup Canvas Settings
 
 class CanvasSettings(FrameworkSettings):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
@@ -48,56 +49,3 @@ class CanvasSettings(FrameworkSettings):
         order=23,
     )
 
-    # Zoom
-    zoom_min: float = field(
-        0.1,
-        label="Minimum Zoom",
-        description="Minimum zoom level",
-        category="ui.canvas",
-        order=30,
-        min=0.05,
-        max=0.5,
-    )
-    zoom_max: float = field(
-        4.0,
-        label="Maximum Zoom",
-        description="Maximum zoom level",
-        category="ui.canvas",
-        order=31,
-        min=1.0,
-        max=10.0,
-    )
-    zoom_speed: float = field(
-        0.1,
-        label="Zoom Speed",
-        description="Zoom sensitivity for scroll wheel",
-        category="ui.canvas",
-        order=32,
-        min=0.01,
-        max=0.5,
-    )
-    zoom_to_cursor: bool = field(
-        True,
-        label="Zoom to Cursor",
-        description="Zoom centred on cursor position",
-        category="ui.canvas",
-        order=33,
-    )
-
-    # Pan
-    pan_speed: float = field(
-        1.0,
-        label="Pan Speed",
-        description="Panning speed multiplier",
-        category="ui.canvas",
-        order=40,
-        min=0.1,
-        max=3.0,
-    )
-    inertia_enabled: bool = field(
-        True,
-        label="Enable Inertia",
-        description="Continue panning with momentum after release",
-        category="ui.canvas",
-        order=41,
-    )

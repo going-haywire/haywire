@@ -3,17 +3,19 @@ from abc import ABC, abstractmethod
 import logging
 from typing import Dict, List, Tuple, Type, Optional
 
-logger = logging.getLogger(__name__)
+from haywire.core.namespaces import CATEGORY_LIBRARY_LOG
 
 from haywire.core.library.file_watcher import FileWatcher
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.debug.keys import library_log_key
 
+logger = logging.getLogger(__name__)
+
+
 # ============================================================================
 #    BASE CLASS
 # ============================================================================
-
 
 class BaseLibrary(ABC):
     """
@@ -88,9 +90,9 @@ class BaseLibrary(ABC):
         """Register a per-library log level setting in the SettingsRegistry."""
         from haywire.core.settings.registry import SettingsRegistry
         from haywire.core.debug.debug_settings import _GROUP_CHOICES
-        from haywire.core.debug.keys import LIBRARY_LOG_CATEGORY, LIBRARY_LOG_METATADATA_KEY
+        from haywire.core.debug.keys import LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY
 
-        registry = self.get_registry(SettingsRegistry)
+        registry: SettingsRegistry = self.get_registry(SettingsRegistry)
         if registry is None:
             return
         lib_id = self.identity.id
@@ -104,10 +106,10 @@ class BaseLibrary(ABC):
             type_=str,
             label=self.identity.label,
             description=f"Log level for {module_name} ('' = inherit from root)",
-            category=LIBRARY_LOG_CATEGORY,
+            category=CATEGORY_LIBRARY_LOG,
             choices=_GROUP_CHOICES,
             ui_order=0,
-            metadata={LIBRARY_LOG_METATADATA_KEY: module_name},
+            metadata={LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY: module_name},
         )
 
     def _unregister_log_level_setting(self) -> None:

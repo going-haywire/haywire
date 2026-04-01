@@ -4,6 +4,7 @@
 from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
+#TODO: Setup Execution Settings
 class ExecutionSettings(FrameworkSettings):
     """Global preferences controlling graph execution behaviour."""
 

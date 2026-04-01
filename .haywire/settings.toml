@@ -1,6 +1,7 @@
 [debug]
 log_level = "WARNING"
 log_library = ""
+log_node = "DEBUG"
 
 [workbench]
 theme = "studio:theme:workbench:haywire-dark"
