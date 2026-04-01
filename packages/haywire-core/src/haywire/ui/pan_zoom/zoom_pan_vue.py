@@ -2,6 +2,9 @@ from nicegui import ui, events
 from typing import TYPE_CHECKING, Optional, Callable
 import uuid
 import time
+import logging
+
+_log = logging.getLogger(__name__)
 
 from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
 from haywire.ui.minimap.settings import MinimapSettings
@@ -153,15 +156,19 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             self.current_zoom = e.args["zoom"]
             self._update_performance_metrics()
             if self._on_ready is not None:
+                _log.info(
+                    f"[ZoomPan] _on_ready firing, cb={self._on_ready.__name__ if hasattr(self._on_ready, '__name__') else self._on_ready}"
+                )
                 cb = self._on_ready
                 self._on_ready = None
                 cb()
+                _log.info("[ZoomPan] _on_ready cb returned")
             if self.on_zoom_change:
                 self.on_zoom_change(self.current_zoom)
             if self.on_pan_change:
                 self.on_pan_change(self.pan_x, self.pan_y)
-        except Exception:
-            pass
+        except Exception as ex:
+            _log.warning(f"ZoomPanContainer._handle_transform_changed: {ex}")
 
     def _update_performance_metrics(self) -> None:
         """Update performance tracking metrics."""
@@ -247,52 +254,43 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
 
     def zoom_in(self) -> None:
         """Zoom in programmatically."""
-        self.run_method("$el._zoomPanControls.zoomIn")
+        self.run_method("zoomIn")
 
     def zoom_out(self) -> None:
         """Zoom out programmatically."""
-        self.run_method("$el._zoomPanControls.zoomOut")
+        self.run_method("zoomOut")
 
     def reset_view(self) -> None:
         """Reset zoom and pan to initial values."""
-        self.run_method("$el._zoomPanControls.reset")
+        self.run_method("resetView")
 
     def fit_to_content(self) -> None:
         """Automatically fit the content to the container."""
-        self.run_method("$el._zoomPanControls.fitToContent")
+        self.run_method("fitToContent")
 
     def center_on_content(self) -> None:
         """Fit all content into view. Must be called after Vue component is mounted."""
-        self.run_method("$el._zoomPanControls.fitToContent")
+        _log.info("[ZoomPan] center_on_content → run_method('fitToContent')")
+        self.run_method("fitToContent")
 
     def set_zoom(
         self, zoom: float, center_x: Optional[float] = None, center_y: Optional[float] = None
     ) -> None:
         """Set zoom level programmatically."""
         if center_x is not None and center_y is not None:
-            self.run_method("$el._zoomPanControls.setZoom", zoom, center_x, center_y)
+            self.run_method("setZoom", zoom, center_x, center_y)
         else:
-            self.run_method("$el._zoomPanControls.setZoom", zoom)
+            self.run_method("setZoom", zoom)
 
     def set_pan(self, x: float, y: float) -> None:
         """Set pan position programmatically."""
-        self.run_method("$el._zoomPanControls.setPan", x, y)
+        self.run_method("setPan", x, y)
 
     def center_on(self, content_x: float, content_y: float) -> None:
         """Pan so that the given content-space point is centered in the viewport.
         Must be called after the Vue component is mounted (_on_ready or later).
         """
-        ui.run_javascript(f"""
-            const el = document.getElementById('{self.container_id}');
-            if (el && el._zoomPanControls) {{
-                const rect = el.getBoundingClientRect();
-                const zoom = el._zoomPanControls.getZoom();
-                el._zoomPanControls.setPan(
-                    rect.width  / 2 - {content_x} * zoom,
-                    rect.height / 2 - {content_y} * zoom
-                );
-            }}
-        """)
+        self.run_method("centerOn", content_x, content_y)
 
     def __enter__(self):
         """Context manager entry - enter the content container if it exists, otherwise self."""

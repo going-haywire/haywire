@@ -1,7 +1,8 @@
 [debug]
-log_level = "WARNING"
+log_level = "INFO"
 log_library = ""
 log_node = "DEBUG"
+log_ui = ""
 
 [workbench]
 theme = "studio:theme:workbench:haywire-dark"
@@ -16,4 +17,4 @@ zoom_sensitivity = 0.4
 debug_info = false
 enabled = true
 position = "bottom-right"
-width = 259
+width = 136

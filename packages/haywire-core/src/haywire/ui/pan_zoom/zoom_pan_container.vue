@@ -45,6 +45,7 @@ export default {
   // Remove computed properties entirely
   
   mounted() {
+    console.log('[ZoomPan] mounted, container:', this.containerId);
     // Non-reactive transform state
     this._zoom = this.initialZoom;
     this._panX = 0;
@@ -261,6 +262,77 @@ export default {
         this.$emit('transform-changed', { panX: this._panX, panY: this._panY, zoom: this._zoom });
         this.updateTimeout = null;
       }, 8);
+    },
+
+    zoomIn() { this._setZoomDirect(this._zoom + this.zoomSensitivity); },
+    zoomOut() { this._setZoomDirect(this._zoom - this.zoomSensitivity); },
+    resetView() { this._zoom = this.initialZoom; this._panX = 0; this._panY = 0; this._updateTransformDirect(true); },
+    setZoom(zoom, centerX, centerY) { this._setZoomDirect(zoom, centerX ?? null, centerY ?? null); },
+    setPan(x, y) { this._setPanDirect(x, y); },
+    centerOn(contentX, contentY) {
+      const rect = this._getContainerRect();
+      this._setPanDirect(
+        rect.width  / 2 - contentX * this._zoom,
+        rect.height / 2 - contentY * this._zoom
+      );
+    },
+
+    fitToContent() {
+      console.log('[ZoomPan] fitToContent called');
+      // Double rAF: first frame lets any pending WebSocket DOM updates apply,
+      // second frame ensures the browser has completed layout (offsetWidth/offsetHeight valid).
+      requestAnimationFrame(() => requestAnimationFrame(() => this._doFitToContent()));
+    },
+
+    _doFitToContent() {
+      const content = this.$refs.content;
+      // Only top-level node containers: [data-node-id] elements that are NOT nested
+      // inside another [data-node-id] (ports and sub-elements also carry this attr).
+      const allNodes = content ? Array.from(content.querySelectorAll('[data-node-id]')) : [];
+      const nodes = allNodes.filter(el => !el.parentElement?.closest('[data-node-id]'));
+      const rect = this._getContainerRect();
+      console.log(`[ZoomPan] _doFitToContent: ${nodes.length} top-level nodes, viewport=${Math.round(rect.width)}x${Math.round(rect.height)}`);
+      nodes.forEach(n => console.log(`  node ${n.getAttribute('data-node-id')} left=${n.style.left} top=${n.style.top} w=${n.offsetWidth} h=${n.offsetHeight}`));
+
+      let minX, minY, maxX, maxY;
+
+      if (nodes.length > 0) {
+        minX = Infinity; minY = Infinity; maxX = -Infinity; maxY = -Infinity;
+        for (const node of nodes) {
+          const x = parseFloat(node.style.left) || 0;
+          const y = parseFloat(node.style.top) || 0;
+          const w = node.offsetWidth || 200;
+          const h = node.offsetHeight || 100;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x + w > maxX) maxX = x + w;
+          if (y + h > maxY) maxY = y + h;
+        }
+      } else {
+        // No nodes: center on canvas midpoint
+        minX = 3650; minY = 3650; maxX = 4350; maxY = 4350;
+        console.log('[ZoomPan] _doFitToContent: no nodes, centering on canvas midpoint');
+      }
+
+      const PADDING = 80;
+      const contentW = maxX - minX + PADDING * 2;
+      const contentH = maxY - minY + PADDING * 2;
+
+      const scaleX = rect.width / contentW;
+      const scaleY = rect.height / contentH;
+      const newZoom = Math.max(this._minZoom, Math.min(this.maxZoom, Math.min(scaleX, scaleY)));
+
+      const contentCenterX = (minX + maxX) / 2;
+      const contentCenterY = (minY + maxY) / 2;
+      const newPanX = rect.width / 2 - contentCenterX * newZoom;
+      const newPanY = rect.height / 2 - contentCenterY * newZoom;
+
+      console.log(`[ZoomPan] _doFitToContent: bbox=(${Math.round(minX)},${Math.round(minY)})→(${Math.round(maxX)},${Math.round(maxY)}) zoom=${newZoom.toFixed(3)} pan=(${Math.round(newPanX)},${Math.round(newPanY)})`);
+      this._zoom = newZoom;
+      this._panX = newPanX;
+      this._panY = newPanY;
+      this._clampPanValues();
+      this._updateTransformDirect(true);
     },
 
     beforeDestroy() {

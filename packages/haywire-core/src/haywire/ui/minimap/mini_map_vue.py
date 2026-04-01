@@ -412,6 +412,15 @@ class MinimapCanvas(ui.element):
                     canvas.addEventListener('mouseup', stopDragging);
                     canvas.addEventListener('mouseleave', stopDragging);
                     
+                    // Listen directly to the zoom-pan-state DOM event so the minimap
+                    // updates on every frame without a Python round-trip.
+                    // This also fires immediately after fitToContent / centerOn.
+                    document.addEventListener('zoom-pan-state', (e) => {{
+                        if (e.detail.containerId === '{self.zoom_container.container_id}') {{
+                            updateViewport(e.detail.zoom, e.detail.panX, e.detail.panY);
+                        }}
+                    }});
+
                     // Expose functions for external control
                     minimap._minimapControls = {{
                         updateMinimapBounds: updateMinimapBounds,
@@ -424,7 +433,14 @@ class MinimapCanvas(ui.element):
                         }},
                     }};
                     
-                    // Initial draw
+                    // Initial draw — sync viewport from current zoom/pan state if available.
+                    console.log('[Minimap] init, _zoomPanControls=', !!mainContainer._zoomPanControls);
+                    if (mainContainer && mainContainer._zoomPanControls) {{
+                        const z = mainContainer._zoomPanControls.getZoom();
+                        const p = mainContainer._zoomPanControls.getPan();
+                        console.log('[Minimap] initial viewport z=', z, 'pan=', p.x, p.y);
+                        updateViewport(z, p.x, p.y);
+                    }}
                     drawMinimap();
                 }}
                 
@@ -468,9 +484,11 @@ class MinimapCanvas(ui.element):
                 // Fixed bounds matching GraphCanvasVue's 8000x8000 CSS size.
                 const bounds = {{ minX: 0, minY: 0, maxX: 8000, maxY: 8000 }};
 
-                // Node rects in content-space (inline style left/top set by graph_canvas_manager).
+                // Top-level node containers only — skip ports/sub-elements that also
+                // carry data-node-id but are nested inside another [data-node-id].
                 const nodes = [];
                 content.querySelectorAll('[data-node-id]').forEach(el => {{
+                    if (el.parentElement && el.parentElement.closest('[data-node-id]')) return;
                     const x = parseFloat(el.style.left) || 0;
                     const y = parseFloat(el.style.top) || 0;
                     nodes.push({{ x, y, w: el.offsetWidth, h: el.offsetHeight }});
@@ -479,6 +497,12 @@ class MinimapCanvas(ui.element):
                 const minimap = document.getElementById('{self.minimap_id}');
                 if (minimap && minimap._minimapControls) {{
                     minimap._minimapControls.updateContentBounds(bounds, nodes);
+                    // Re-sync viewport after bounds update so the rect is correct on load.
+                    if (mainContainer && mainContainer._zoomPanControls) {{
+                        const z = mainContainer._zoomPanControls.getZoom();
+                        const p = mainContainer._zoomPanControls.getPan();
+                        minimap._minimapControls.updateViewport(z, p.x, p.y);
+                    }}
                 }}
             }}
         """)
