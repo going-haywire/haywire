@@ -143,14 +143,21 @@ export default {
       const rect = this.$refs.root.getBoundingClientRect();
       const pos = (e.clientX - rect.left) / rect.width;  // 0 (left) → 1 (right)
       // 5 zones: [0,0.2) *100  [0.2,0.4) *10  [0.4,0.6) *1  [0.6,0.8) *0.1  [0.8,1] *0.01
-      const zone = Math.min(4, Math.floor(pos * 5));
-      const multiplier = Math.pow(10, 2 - zone);         // 100, 10, 1, 0.1, 0.01
+      const zone = Math.min(2, Math.floor(pos * 3));
+      const multiplier = Math.pow(10, 1 - zone);         // 10, 1, 0.1
       this._dragStep = baseStep * multiplier;
       // precision = decimals needed to represent this step cleanly
-      this._dragPrecision = Math.max(0, this.countDecimals(this._startValue) - (2 - zone));
+      this._dragPrecision = Math.max(0, this.countDecimals(this._startValue) - (1 - zone));
       this._moved = false;
       document.addEventListener('mousemove', this.onMouseMove);
       document.addEventListener('mouseup', this.onMouseUp);
+      document.addEventListener('mouseleave', this.onMouseLeave);
+      if (!document.getElementById('number-drag-cursor-style')) {
+        const style = document.createElement('style');
+        style.id = 'number-drag-cursor-style';
+        style.textContent = '* { cursor: none !important; }';
+        document.head.appendChild(style);
+      }
     },
     onMouseMove(e) {
       const dx = e.clientX - this._startX;
@@ -176,6 +183,9 @@ export default {
     onMouseUp() {
       document.removeEventListener('mousemove', this.onMouseMove);
       document.removeEventListener('mouseup', this.onMouseUp);
+      document.removeEventListener('mouseleave', this.onMouseLeave);
+      const style = document.getElementById('number-drag-cursor-style');
+      if (style) style.remove();
       this.isDragging = false;
       // if no drag happened, treat as single click → edit mode
       if (!this._moved) {
@@ -206,6 +216,9 @@ export default {
     cancelEdit() {
       this.isEditing = false;
     },
+    onMouseLeave() {
+      this.onMouseUp();
+    },
 
     // ── Value helpers ─────────────────────────────────
     setValue(raw) {
@@ -220,6 +233,9 @@ export default {
     this.stopRepeat();
     document.removeEventListener('mousemove', this.onMouseMove);
     document.removeEventListener('mouseup', this.onMouseUp);
+    document.removeEventListener('mouseleave', this.onMouseLeave);
+    const style = document.getElementById('number-drag-cursor-style');
+    if (style) style.remove();
   },
 };
 </script>
