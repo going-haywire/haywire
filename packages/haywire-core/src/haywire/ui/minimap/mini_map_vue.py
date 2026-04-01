@@ -187,20 +187,29 @@ class MinimapCanvas(ui.element):
                     
                     function updateMinimapBounds(width) {{
                         minimap_width = width;
-                        if (mainContainer) {{
-                            const rect = mainContainer.getBoundingClientRect();
-                            const aspectRatio = rect.height / rect.width;
-                            minimap_height = Math.round(width * aspectRatio);
-                        }}
+                        // Derive height from the canvas aspect ratio (contentBounds),
+                        // not the viewport — so it stays correct when the canvas resizes.
+                        const cw = contentBounds.maxX - contentBounds.minX;
+                        const ch = contentBounds.maxY - contentBounds.minY;
+                        minimap_height = (cw > 0 && ch > 0)
+                            ? Math.round(width * ch / cw)
+                            : width; // fallback to square if bounds not yet known
                         minimap_content_width = minimap_width - (MINIMAP_PADDING * 2);
                         minimap_content_height = minimap_height - (MINIMAP_PADDING * 2);
-                    }}  
+                        // Resize the DOM elements to match.
+                        minimap.style.height = minimap_height + 'px';
+                        canvas.style.height = '100%';
+                        canvas.height = minimap_height;
+                    }}
                     
                     function updateContentBounds(bounds, nodes) {{
                         contentBounds = bounds;
                         nodeRects = nodes || [];
                         contentWidth = contentBounds.maxX - contentBounds.minX;
                         contentHeight = contentBounds.maxY - contentBounds.minY;
+
+                        // Re-derive minimap height from canvas aspect ratio.
+                        updateMinimapBounds(minimap_width);
 
                         // Calculate scale to fit content in minimap
                         const scaleX = minimap_content_width / contentWidth;
@@ -478,28 +487,17 @@ class MinimapCanvas(ui.element):
         ui.timer(5.0, self._scan_content, once=True)
 
     def _apply_zoom_container_ratio(self, width: int) -> None:
-        """Calculate minimap height based on zoom container's aspect ratio."""
-        script = f"""
-                const container = document.getElementById('{self.zoom_container.container_id}');
-                if (container) {{
-                    const rect = container.getBoundingClientRect();
-                    const aspectRatio = rect.height / rect.width;
-                    const newHeight = Math.round({width} * aspectRatio);
-                    
-                    // Update the minimap size
-                    const minimap = document.getElementById('{self.minimap_id}');
-                    const canvas = document.getElementById('{self.canvas_id}');
-                    
-                    if (minimap && canvas) {{
-                        minimap.style.height = newHeight + 'px';
-                        canvas.style.height = '100%';
-                        canvas.height = newHeight;
-
-                        minimap._minimapControls.updateMinimapBounds({width});
-                    }}
-                }}
-            """
-        _ = ui.run_javascript(script)
+        """Resize the minimap to match the canvas aspect ratio.
+        The ratio is derived from the content bounds already known to the minimap JS,
+        so it stays correct when the canvas size changes (e.g. auto-expand).
+        """
+        ui.run_javascript(f"""
+            const minimap = document.getElementById('{self.minimap_id}');
+            const canvas = document.getElementById('{self.canvas_id}');
+            if (minimap && canvas && minimap._minimapControls) {{
+                minimap._minimapControls.updateMinimapBounds({width});
+            }}
+        """)
 
     def _update_viewport(self) -> None:
         """Update the viewport indicator in the minimap."""

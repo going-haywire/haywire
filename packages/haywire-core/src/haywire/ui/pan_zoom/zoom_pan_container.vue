@@ -98,14 +98,16 @@ export default {
     },
 
     _setupListeners() {
-      // Invalidate rect cache at gesture boundaries
+      // Invalidate rect cache at gesture boundaries and on resize
       this.$el.addEventListener('mousedown', this._invalidateRectCache);
       document.addEventListener('mouseup', this._invalidateRectCache);
+      window.addEventListener('resize', this._invalidateRectCache);
     },
 
     _cleanupListeners() {
       this.$el.removeEventListener('mousedown', this._invalidateRectCache);
       document.removeEventListener('mouseup', this._invalidateRectCache);
+      window.removeEventListener('resize', this._invalidateRectCache);
     },
     
     handleWheel(e) {
@@ -147,16 +149,18 @@ export default {
     _clampPanValues() {
       const containerRect = this._getContainerRect();
       const CANVAS_SIZE = 8000;
-      const MARGIN = 200; // px of overscroll allowed beyond canvas edge
+      const MARGIN = 0;
 
       // Pan range must cover the full canvas at the current zoom level.
       // transform: translate(panX, panY) scale(zoom)
       // To see canvas origin (0,0): panX can go up to viewportWidth (canvas left at right edge)
       // To see canvas far edge (CANVAS_SIZE): panX >= -(CANVAS_SIZE * zoom - viewportWidth)
-      const maxX = containerRect.width + MARGIN;
-      const minX = -(CANVAS_SIZE * this._zoom - containerRect.width) - MARGIN;
-      const maxY = containerRect.height + MARGIN;
-      const minY = -(CANVAS_SIZE * this._zoom - containerRect.height) - MARGIN;
+      const canvasW = CANVAS_SIZE * this._zoom;
+      const canvasH = CANVAS_SIZE * this._zoom;
+      const maxX = MARGIN;
+      const minX = canvasW > containerRect.width  ? -(canvasW - containerRect.width)  - MARGIN : MARGIN;
+      const maxY = MARGIN;
+      const minY = canvasH > containerRect.height ? -(canvasH - containerRect.height) - MARGIN : MARGIN;
 
       this._panX = Math.max(minX, Math.min(maxX, this._panX));
       this._panY = Math.max(minY, Math.min(maxY, this._panY));
