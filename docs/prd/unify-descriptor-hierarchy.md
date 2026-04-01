@@ -132,4 +132,4 @@ Tests should verify external behavior (public API contracts), not implementation
 
 - The `setting` name in `haywire.core.settings.__init__` continues to be the public node-author API (alias for `prop`). Library authors use the same `setting()` function on their `LibrarySettings` classes.
 - `Bag` and `prop` remain the implementation names in `haywire.core.property`. `Settings` and `setting` are public-facing aliases in `haywire.core.settings`.
-- This builds on the prior refactoring that replaced `NodeSettings`/`SubHolder`/`SettingsHolder`/`ResolutionChain` with the extended `Bag` + `prop()` system. That work is complete (320 tests passing). This PRD covers the remaining unification and UI gap.
+- This builds on the prior refactoring that replaced `NodeSettings`/`SubHolder`/`Settings`/`ResolutionChain` with the extended `Bag` + `prop()` system. That work is complete (320 tests passing). This PRD covers the remaining unification and UI gap.

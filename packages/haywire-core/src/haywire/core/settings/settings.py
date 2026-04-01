@@ -28,7 +28,6 @@ Supports:
 
 from __future__ import annotations
 
-import weakref
 import logging
 from typing import Any, Callable, TYPE_CHECKING
 
@@ -36,6 +35,7 @@ from .descriptor import field
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
+    from haywire.core.settings.value import FieldValue
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,6 @@ class Settings:
         self._callbacks: list[Callable] = []
         self._local_store: dict[str, Any] = {}  # key → value
         self._registry: "SettingsRegistry | None" = registry
-        self._subscribed_refs: list = []  # weakrefs for field subscriptions
         self._cleaned_up: bool = False
 
     # -------------------------------------------------------------------------
@@ -96,11 +95,9 @@ class Settings:
         """Subscribe a single field's _mirror_key to the registry (extended mode, no-op if no registry)."""
         if self._registry is None or not descriptor._mirror_key:
             return
-        cb_ref = weakref.WeakMethod(self._on_field_change)
-        self._registry.subscribe_namespace(descriptor._mirror_key, cb_ref)
-        self._subscribed_refs.append(cb_ref)
+        self._registry.subscribe(descriptor._mirror_key, self._on_field_change)
 
-    def _on_field_change(self, full_key: str) -> None:
+    def _on_field_change(self, full_key: str, value: "FieldValue") -> None:
         """
         Dispatched by the registry when a field's effective key changes.
 
@@ -240,7 +237,6 @@ class Settings:
     def cleanup(self) -> None:
         """Release global namespace subscriptions.  Call on node removal."""
         self._cleaned_up = True
-        self._subscribed_refs.clear()
         self._callbacks.clear()
 
     # -------------------------------------------------------------------------

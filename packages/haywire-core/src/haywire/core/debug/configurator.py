@@ -25,6 +25,7 @@ _GROUP_MAP: dict[str, str] = {
 
 _ROOT_NAMESPACE = "haywire"
 
+
 class LoggingConfigurator:
     """
     Watches DebugSettings and applies log levels to the Python logging hierarchy.
@@ -42,6 +43,7 @@ class LoggingConfigurator:
 
         # lib_id → module_name for dynamically registered library loggers
         self._library_namespaces: dict[str, str] = {}
+        self._registry: "SettingsRegistry | None" = None
 
         self._apply_all()
         self._settings.subscribe(self._on_setting_change)
@@ -70,13 +72,16 @@ class LoggingConfigurator:
                     self._apply_library_level(key, value)
                 except KeyError:
                     pass
-        registry.add_listener(lambda name, sv: self._on_registry_change(name, sv, registry))
+        self._registry = registry
+        registry.subscribe(None, self._on_registry_change)
 
     def _register_library_from_key(self, key: str, registry: "SettingsRegistry") -> None:
         lib_id = lib_id_from_key(key)
         if lib_id and lib_id not in self._library_namespaces:
             defn = registry.get_definition(key)
-            module_name = defn._metadata.get(LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY, lib_id) if defn else lib_id
+            module_name = (
+                defn._metadata.get(LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY, lib_id) if defn else lib_id
+            )
             self._library_namespaces[lib_id] = module_name
 
     def _apply_all(self) -> None:
@@ -116,7 +121,7 @@ class LoggingConfigurator:
         elif name in _GROUP_MAP:
             self._apply_group(_GROUP_MAP[name], str(value) if value else "")
 
-    def _on_registry_change(self, name: str, sv: "FieldValue", registry: "SettingsRegistry") -> None:
+    def _on_registry_change(self, name: str, sv: "FieldValue") -> None:
         """Callback for SettingsRegistry changes — handle dynamic debug.library.<lib_id>.log_level keys."""
         if not name.startswith(NAMESPACE_LIBRARY_LOG + "."):
             return
@@ -125,14 +130,14 @@ class LoggingConfigurator:
         if lib_id is None:
             return
 
-        if name not in registry:
+        if name not in self._registry:
             # Key was undefined — reset logger and remove mapping
             module_name = self._library_namespaces.pop(lib_id, lib_id)
             logging.getLogger(module_name).setLevel(logging.NOTSET)
             return
 
         # New definition (AUTO) or value change
-        self._register_library_from_key(name, registry)
+        self._register_library_from_key(name, self._registry)
 
         if sv.mode == FieldMode.INHERIT:
             # Newly defined — apply default (inherit)

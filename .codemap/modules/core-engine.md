@@ -86,8 +86,8 @@ haywire/core/
 │
 ├── settings/                   # Settings system
 │   ├── schema.py               # NodeSettings / LibrarySettings base + setting() descriptor
-│   ├── descriptors.py          # shadow() / watch() descriptors
-│   ├── holder.py               # SettingsHolder — live instance
+│   ├── descriptors.py          # field() / shadow() / watch() descriptors
+│   ├── settings.py             # Settings — live instance
 │   ├── registry.py             # SettingsRegistry
 │   ├── chain.py                # Three-tier TOML chain resolution
 │   ├── enums.py                # SettingMode, SettingScope

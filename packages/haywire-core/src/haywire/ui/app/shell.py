@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from haywire.ui.session import Session
     from haywire.ui.editor.registry import EditorTypeRegistry
 
+
 class AppShell:
     """
     Renders the workspace layout for a single browser session.
@@ -240,7 +241,7 @@ class AppShell:
 
         # React to workbench.theme setting changes (e.g. from the settings panel).
         settings_registry = self.session.context.app.library_service.get_settings_registry()
-        settings_registry.add_listener(self._on_setting_changed)
+        settings_registry.subscribe(None, self._on_setting_changed)
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
         # to set inline styles on the fly for immediate response and to avoid conflicts

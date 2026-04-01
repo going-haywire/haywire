@@ -6,7 +6,7 @@ Extends BaseRegistry for hot-reload and folder scan support.
 Three-tier value storage:
     global tier    (~/.haywire/settings.toml)      — hand-edited by user
     workspace tier (<workspace>/.haywire/settings.toml) — written by UI, saved via save_to_toml()
-    local tier     (SettingsHolder per-node)        — serialised into graph JSON
+    local tier     (Settings per-node)        — serialised into graph JSON
 
 Resolution priority:
     global OVERRIDE > workspace OVERRIDE > local SET > workspace SET > global SET > default
@@ -107,7 +107,7 @@ class SettingsRegistry(BaseRegistry):
         self._global_tier_values: dict[str, FieldValue] = {}
         self._workspace_tier_values: dict[str, FieldValue] = {}
 
-        self._listeners: list[Callable[[str, FieldValue], None]] = []
+        self._subscribers: dict[str | None, list[weakref.ref]] = {}
         self._categories: dict[str, list[str]] = {}
 
         # Track which definitions came from TOML (vs code)
@@ -122,9 +122,6 @@ class SettingsRegistry(BaseRegistry):
         self._workspace_observer = None
         self._global_watch_enabled = False
         self._workspace_watch_enabled = False
-
-        # Namespace-scoped weak-ref subscriptions for holder cache invalidation (Option B)
-        self._namespace_subscribers: dict[str, list[weakref.ref]] = {}
 
         # Drain FrameworkSettings classes that were defined before the registry existed
         self._drain_pending_global()
@@ -181,12 +178,33 @@ class SettingsRegistry(BaseRegistry):
                 descriptor._field_key, descriptor, category=descriptor._category or "general"
             )
 
-    def _notify_listeners(self, name: str, sv: "FieldValue") -> None:
-        for listener in self._listeners:
-            try:
-                listener(name, sv)
-            except Exception as e:
-                logger.error(f"Listener error for {name}: {e}")
+    def _notify_subscribers(self, changed: dict[str, "FieldValue"]) -> None:
+        """
+        Notify all subscribers for a batch of changed keys.
+
+        For each changed key, walks all namespace prefixes so a subscriber on
+        'ui' fires for 'ui.node.bg_color'.  Subscribers registered under
+        namespace=None receive every change.  Dead weakrefs are cleaned up.
+        """
+        for key, value in changed.items():
+            parts = key.split(".")
+            namespaces_to_notify: list[str | None] = [None]
+            for i in range(1, len(parts) + 1):
+                namespaces_to_notify.append(".".join(parts[:i]))
+
+            for ns in namespaces_to_notify:
+                dead: list[weakref.ref] = []
+                for cb_ref in self._subscribers.get(ns, []):
+                    cb = cb_ref()
+                    if cb is None:
+                        dead.append(cb_ref)
+                    else:
+                        try:
+                            cb(key, value)
+                        except Exception as e:
+                            logger.error(f"Subscriber error for {key!r} (namespace={ns!r}): {e}")
+                for ref in dead:
+                    self._subscribers[ns].remove(ref)
 
     def _store_definition(self, name: str, descriptor: field, category: str = "general") -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
@@ -201,7 +219,7 @@ class SettingsRegistry(BaseRegistry):
         if name not in self._categories[category]:
             self._categories[category].append(name)
         if is_new:
-            self._notify_listeners(name, FieldValue(mode=FieldMode.INHERIT))
+            self._notify_subscribers({name: FieldValue(mode=FieldMode.INHERIT)})
 
     def _unregister_schema_fields(self, schema_cls: type["Settings"]) -> None:
         """Remove all descriptor fields of a schema class from definitions."""
@@ -220,7 +238,7 @@ class SettingsRegistry(BaseRegistry):
                         cat_names.remove(key)
                 changed_keys.add(key)
         if changed_keys:
-            self._notify_namespace_subscribers(changed_keys)
+            self._notify_subscribers({k: FieldValue(mode=FieldMode.INHERIT) for k in changed_keys})
 
     def register_schema(self, schema_cls, library_identity: LibraryIdentity | None = None) -> str | None:
         """
@@ -250,40 +268,36 @@ class SettingsRegistry(BaseRegistry):
         return self._register_class(schema_cls, library_identity or FRAMEWORK_IDENTITY)
 
     # =========================================================================
-    # Namespace subscriptions (Option B — weakref holder cache invalidation)
+    # Subscriptions
     # =========================================================================
 
-    def subscribe_namespace(self, namespace: str, callback: weakref.ref) -> None:
+    def subscribe(self, namespace: str | None, callback: Callable[[str, "FieldValue"], None]) -> None:
         """
-        Subscribe a weakref callback to any change under a namespace prefix.
+        Subscribe *callback* to setting changes under *namespace*.
 
-        Called by SettingsHolder to set up targeted cache invalidation.
-        """
-        self._namespace_subscribers.setdefault(namespace, []).append(callback)
+        *namespace* controls the scope:
+            None           — fires on every key change (global listener)
+            'ui'           — fires when any key starting with 'ui.' changes
+            'ui.node'      — fires when any key starting with 'ui.node.' changes
+            'ui.node.color'— fires only when that exact key changes
 
-    def _notify_namespace_subscribers(self, changed_keys: set[str]) -> None:
-        """
-        Notify namespace subscribers for all changed keys.
+        The callback signature is ``callback(key: str, value: FieldValue)``.
 
-        Walks all prefixes of each key so that a subscriber on 'ui' gets notified
-        when 'ui.node.bg_color' changes.
+        All subscriptions are stored as weakrefs.  Bound methods must be kept
+        alive by the caller (hold a reference to ``self``); plain functions must
+        be kept alive by the caller as well.  Raises ``TypeError`` for objects
+        that cannot be weakly referenced.
         """
-        for key in changed_keys:
-            parts = key.split(".")
-            for i in range(1, len(parts) + 1):
-                ns = ".".join(parts[:i])
-                dead: list[weakref.ref] = []
-                for cb_ref in self._namespace_subscribers.get(ns, []):
-                    cb = cb_ref()
-                    if cb is None:
-                        dead.append(cb_ref)
-                    else:
-                        try:
-                            cb(key)
-                        except Exception as e:
-                            logger.error(f"Namespace subscriber error for {key}: {e}")
-                for ref in dead:
-                    self._namespace_subscribers[ns].remove(ref)
+        try:
+            ref: weakref.ref = weakref.WeakMethod(callback)  # type: ignore[arg-type]
+        except TypeError:
+            ref = weakref.ref(callback)
+        self._subscribers.setdefault(namespace, []).append(ref)
+
+    def unsubscribe(self, namespace: str | None, callback: Callable[[str, "FieldValue"], None]) -> None:
+        """Remove a subscription registered with ``subscribe``."""
+        bucket = self._subscribers.get(namespace, [])
+        self._subscribers[namespace] = [r for r in bucket if r() is not callback]
 
     # =========================================================================
     # TOML Loading
@@ -491,20 +505,18 @@ class SettingsRegistry(BaseRegistry):
         logger.debug(f"Auto-defined setting from TOML: {name}")
 
     def _notify_changes(self, old_effective: dict[str, tuple]) -> None:
-        """Notify listeners and namespace subscribers of changed effective values."""
+        """Notify subscribers of changed effective values after a TOML reload."""
         all_names = set(old_effective.keys()) | set(self._definitions.keys())
-        changed_keys: set[str] = set()
+        changed: dict[str, FieldValue] = {}
 
         for name in all_names:
             old = old_effective.get(name, (FieldMode.INHERIT, None))
             new = self._effective_value(name)
-
             if (new.mode, new.value) != old:
-                changed_keys.add(name)
-                self._notify_listeners(name, new)
+                changed[name] = new
 
-        if changed_keys:
-            self._notify_namespace_subscribers(changed_keys)
+        if changed:
+            self._notify_subscribers(changed)
 
     # =========================================================================
     # TOML Saving  (workspace tier only — global tier is hand-edited)
@@ -700,8 +712,7 @@ class SettingsRegistry(BaseRegistry):
             for cat_names in self._categories.values():
                 if name in cat_names:
                     cat_names.remove(name)
-        self._notify_listeners(name, FieldValue(mode=FieldMode.INHERIT))
-        self._notify_namespace_subscribers({name})
+        self._notify_subscribers({name: FieldValue(mode=FieldMode.INHERIT)})
 
     def has_definition(self, name: str) -> bool:
         return name in self._definitions
@@ -748,7 +759,7 @@ class SettingsRegistry(BaseRegistry):
         """
         Get the merged effective global value (workspace tier beats global tier).
 
-        Used by ResolutionChain and SettingsHolder for value resolution.
+        Used by ResolutionChain and Settings for value resolution.
         """
         return self._effective_value(name)
 
@@ -794,8 +805,7 @@ class SettingsRegistry(BaseRegistry):
             new_effective = self._effective_value(name)
 
             if (new_effective.mode, new_effective.value) != old_effective:
-                self._notify_listeners(name, new_effective)
-                self._notify_namespace_subscribers({name})
+                self._notify_subscribers({name: new_effective})
 
     def reset_global(self, name: str, tier: str = "workspace") -> None:
         """
@@ -814,8 +824,7 @@ class SettingsRegistry(BaseRegistry):
                 new_effective = self._effective_value(name)
 
                 if (new_effective.mode, new_effective.value) != old_effective:
-                    self._notify_listeners(name, new_effective)
-                    self._notify_namespace_subscribers({name})
+                    self._notify_subscribers({name: new_effective})
 
     # =========================================================================
     # Resolution
@@ -862,22 +871,6 @@ class SettingsRegistry(BaseRegistry):
 
         default = defn._default() if callable(defn._default) else defn._default
         return default, "default"
-
-    # =========================================================================
-    # Listeners
-    # =========================================================================
-
-    def add_listener(self, callback: Callable[[str, FieldValue], None]) -> None:
-        """
-        Add a listener callback that gets called with
-        (name, new_effective_value) on any change of any setting.
-        """
-        self._listeners.append(callback)
-
-    def remove_listener(self, callback: Callable[[str, FieldValue], None]) -> None:
-        """Remove a listener callback."""
-        if callback in self._listeners:
-            self._listeners.remove(callback)
 
     # =========================================================================
     # Iteration
