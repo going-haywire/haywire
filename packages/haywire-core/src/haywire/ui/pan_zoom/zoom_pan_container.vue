@@ -146,10 +146,20 @@ export default {
     // prevent extremely large pan values:
     _clampPanValues() {
       const containerRect = this._getContainerRect();
-      const maxPan = Math.max(containerRect.width, containerRect.height) * 5; // Reasonable limit
+      const CANVAS_SIZE = 8000;
+      const MARGIN = 200; // px of overscroll allowed beyond canvas edge
 
-      this._panX = Math.max(-maxPan, Math.min(maxPan, this._panX));
-      this._panY = Math.max(-maxPan, Math.min(maxPan, this._panY));
+      // Pan range must cover the full canvas at the current zoom level.
+      // transform: translate(panX, panY) scale(zoom)
+      // To see canvas origin (0,0): panX can go up to viewportWidth (canvas left at right edge)
+      // To see canvas far edge (CANVAS_SIZE): panX >= -(CANVAS_SIZE * zoom - viewportWidth)
+      const maxX = containerRect.width + MARGIN;
+      const minX = -(CANVAS_SIZE * this._zoom - containerRect.width) - MARGIN;
+      const maxY = containerRect.height + MARGIN;
+      const minY = -(CANVAS_SIZE * this._zoom - containerRect.height) - MARGIN;
+
+      this._panX = Math.max(minX, Math.min(maxX, this._panX));
+      this._panY = Math.max(minY, Math.min(maxY, this._panY));
     },
 
     _setPanDirect(newPanX, newPanY) {

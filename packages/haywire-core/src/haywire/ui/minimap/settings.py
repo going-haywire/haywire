@@ -28,3 +28,10 @@ class MinimapSettings(FrameworkSettings, namespace="ui.minimap"):
         min=100,
         max=400,
     )
+    debug_info: bool = field(
+        False,
+        label="Show Debug Info",
+        description="Overlay zoom/pan/scale values on the minimap",
+        category="ui.minimap",
+        order=13,
+    )

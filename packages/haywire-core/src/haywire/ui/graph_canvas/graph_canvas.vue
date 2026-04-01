@@ -20,10 +20,6 @@
 
         <!-- Node container slot -->
         <div id="node-container" ref="nodeContainer" class="node-container" :style="nodeContainerTransform">
-            <!-- Debug info to verify component is working -->
-            <div class="debug-info" v-if="!edgeState.hasNodes">
-                Canvas Ready - ID: {{ containerId }}
-            </div>
             <slot></slot>
         </div>
 

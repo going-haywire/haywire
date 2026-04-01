@@ -13,6 +13,7 @@ pan_sensitivity = 4.2
 zoom_sensitivity = 0.4
 
 [ui.minimap]
+debug_info = true
 enabled = true
 position = "bottom-right"
 width = 259

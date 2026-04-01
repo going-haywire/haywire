@@ -48,6 +48,9 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         self.on_zoom_change = on_zoom_change
         self.on_pan_change = on_pan_change
 
+        # Called once when the Vue component first mounts (first transform-changed event).
+        self._on_ready: Optional[Callable] = None
+
         # Minimap instance — created in _setup_container after DOM is ready
         self.minimap: Optional["MinimapCanvas"] = None
 
@@ -108,6 +111,8 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             self.minimap.set_position(value)
         elif name == "width":
             self.minimap.set_width(value)
+        elif name == "debug_info":
+            self.minimap.set_debug_info(value)
 
     def _setup_container(self) -> None:
         """Setup the basic container structure."""
@@ -139,6 +144,7 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             width=mm.width,
             position=mm.position,
             visible=mm.enabled,
+            debug_info=mm.debug_info,
         )
 
     def _handle_transform_changed(self, e: events.GenericEventArguments) -> None:
@@ -148,6 +154,10 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             self.pan_y = e.args["panY"]
             self.current_zoom = e.args["zoom"]
             self._update_performance_metrics()
+            if self._on_ready is not None:
+                cb = self._on_ready
+                self._on_ready = None
+                cb()
             if self.on_zoom_change:
                 self.on_zoom_change(self.current_zoom)
             if self.on_pan_change:
@@ -253,6 +263,10 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         """Automatically fit the content to the container."""
         self.run_method("$el._zoomPanControls.fitToContent")
 
+    def center_on_content(self) -> None:
+        """Fit all content into view. Must be called after Vue component is mounted."""
+        self.run_method("$el._zoomPanControls.fitToContent")
+
     def set_zoom(
         self, zoom: float, center_x: Optional[float] = None, center_y: Optional[float] = None
     ) -> None:
@@ -267,7 +281,9 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         self.run_method("$el._zoomPanControls.setPan", x, y)
 
     def center_on(self, content_x: float, content_y: float) -> None:
-        """Pan so that the given content-space point is centered in the viewport."""
+        """Pan so that the given content-space point is centered in the viewport.
+        Must be called after the Vue component is mounted (_on_ready or later).
+        """
         ui.run_javascript(f"""
             const el = document.getElementById('{self.container_id}');
             if (el && el._zoomPanControls) {{

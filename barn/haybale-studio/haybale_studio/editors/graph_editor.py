@@ -164,14 +164,15 @@ class GraphEditor(BaseEditor):
         )
         self._canvas_manager.sync_with_graph()
 
-        # Center the viewport on the canvas origin (3750, 3750) once the DOM is ready.
-        # If the graph has nodes, fit_to_content() is used instead so existing work is visible.
+        # Center the viewport once the Vue component signals it is mounted
+        # (first transform-changed event). fit_to_content for graphs with nodes;
+        # center on canvas midpoint (3750, 3750) for empty graphs.
         zoom_container = self._canvas_manager.zoom_container
         has_nodes = len(entry.editor.graph.node_wrappers) > 0
         if has_nodes:
-            ui.timer(0.2, zoom_container.fit_to_content, once=True)
+            zoom_container._on_ready = zoom_container.center_on_content
         else:
-            ui.timer(0.2, lambda: zoom_container.center_on(3750, 3750), once=True)
+            zoom_container._on_ready = lambda: zoom_container.center_on(3750, 3750)
 
         logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 

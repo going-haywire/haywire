@@ -27,6 +27,7 @@ class MinimapCanvas(ui.element):
         content_color: str = "#4285f4",
         viewport_color: str = "#ea4335",
         visible: bool = True,
+        debug_info: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -52,6 +53,7 @@ class MinimapCanvas(ui.element):
         self.content_color = content_color
         self.viewport_color = viewport_color
         self.is_visible = visible
+        self.debug_info = debug_info
 
         # Generate unique ID for this minimap
         self.minimap_id = f"minimap-{uuid.uuid4().hex[:8]}"
@@ -169,6 +171,7 @@ class MinimapCanvas(ui.element):
                     let scaleFactor = 1.0;
                     let viewportRect = {{ x: 0, y: 0, width: 50, height: 50 }};
                     let nodeRects = [];
+                    let showDebugInfo = {str(self.debug_info).lower()};
                     
                     const MINIMAP_PADDING = 10;
                     let minimap_content_width = minimap_width - (MINIMAP_PADDING * 2);
@@ -293,7 +296,25 @@ class MinimapCanvas(ui.element):
                         
                         ctx.fillRect(clampedX, clampedY, clampedWidth, clampedHeight);
                         ctx.strokeRect(clampedX, clampedY, clampedWidth, clampedHeight);
-                        
+
+                        // Debug overlay
+                        if (showDebugInfo) {{
+                            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+                            ctx.fillRect(0, minimap_height - 80, minimap_width, 80);
+                            ctx.fillStyle = '#fff';
+                            ctx.font = '9px monospace';
+                            const lines = [
+                                `zoom: ${{zoom.toFixed(3)}}`,
+                                `pan:  ${{panX.toFixed(0)}}, ${{panY.toFixed(0)}}`,
+                                `view: ${{Math.round(clampedWidth)}} x ${{Math.round(clampedHeight)}}`,
+                                `scale: ${{scaleFactor.toFixed(4)}}`,
+                                `canvas: ${{Math.round(contentBounds.maxX)}}`
+                                    + ` x ${{Math.round(contentBounds.maxY)}}`,
+                            ];
+                            lines.forEach((line, i) => {{
+                                ctx.fillText(line, 4, minimap_height - 80 + 11 + i * 13);
+                            }});
+                        }}
                     }}
                     
                     function minimapToContent(minimapX, minimapY) {{
@@ -387,7 +408,11 @@ class MinimapCanvas(ui.element):
                         updateMinimapBounds: updateMinimapBounds,
                         updateContentBounds: updateContentBounds,
                         updateViewport: updateViewport,
-                        drawMinimap: drawMinimap
+                        drawMinimap: drawMinimap,
+                        setDebugInfo: (enabled) => {{
+                            showDebugInfo = enabled;
+                            drawMinimap();
+                        }},
                     }};
                     
                     // Initial draw
@@ -421,46 +446,26 @@ class MinimapCanvas(ui.element):
         self.zoom_container.on_pan_change = pan_callback
 
     def _scan_content(self) -> None:
-        """Scan the zoom container content to build minimap representation."""
-        # Calculate aspect ratio first
+        """Scan node positions for minimap drawing.
+        Canvas bounds are fixed at [0, 8000] to match GraphCanvasVue's physical size,
+        so the viewport rectangle always reflects the true navigable space.
+        """
         self._apply_zoom_container_ratio(self.minimap_width)
-        # Scan content — node positions are in content-space (offsetLeft/offsetTop),
-        # so no transform math is needed.
         ui.run_javascript(f"""
             const container = document.getElementById('{self.zoom_container.container_id}');
             const content = container ? container.querySelector('.zoom-pan-content') : null;
 
             if (content) {{
-                const elements = content.querySelectorAll('[data-node-id]');
+                // Fixed bounds matching GraphCanvasVue's 8000x8000 CSS size.
+                const bounds = {{ minX: 0, minY: 0, maxX: 8000, maxY: 8000 }};
 
-                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                // Node rects in content-space (inline style left/top set by graph_canvas_manager).
                 const nodes = [];
-
-                if (elements.length > 0) {{
-                    elements.forEach(el => {{
-                        // Positions are set as inline style left/top by graph_canvas_manager
-                        // and are already in content-space coordinates.
-                        const x = parseFloat(el.style.left) || 0;
-                        const y = parseFloat(el.style.top) || 0;
-                        const w = el.offsetWidth;
-                        const h = el.offsetHeight;
-                        minX = Math.min(minX, x);
-                        minY = Math.min(minY, y);
-                        maxX = Math.max(maxX, x + w);
-                        maxY = Math.max(maxY, y + h);
-                        nodes.push({{ x, y, w, h }});
-                    }});
-                }} else {{
-                    minX = 0; minY = 0; maxX = 2000; maxY = 2000;
-                }}
-
-                const padding = 100;
-                const bounds = {{
-                    minX: minX - padding,
-                    minY: minY - padding,
-                    maxX: maxX + padding,
-                    maxY: maxY + padding,
-                }};
+                content.querySelectorAll('[data-node-id]').forEach(el => {{
+                    const x = parseFloat(el.style.left) || 0;
+                    const y = parseFloat(el.style.top) || 0;
+                    nodes.push({{ x, y, w: el.offsetWidth, h: el.offsetHeight }});
+                }});
 
                 const minimap = document.getElementById('{self.minimap_id}');
                 if (minimap && minimap._minimapControls) {{
@@ -558,6 +563,16 @@ class MinimapCanvas(ui.element):
             }}
         """)
         self._apply_zoom_container_ratio(width)
+
+    def set_debug_info(self, enabled: bool) -> None:
+        """Toggle debug overlay on the minimap canvas."""
+        self.debug_info = enabled
+        ui.run_javascript(f"""
+            const minimap = document.getElementById('{self.minimap_id}');
+            if (minimap && minimap._minimapControls) {{
+                minimap._minimapControls.setDebugInfo({str(enabled).lower()});
+            }}
+        """)
 
     def refresh_content(self) -> None:
         """Force refresh of content scanning."""
