@@ -68,9 +68,10 @@ class MinimapCanvas(ui.element):
         self._setup_minimap()
         self._inject_styles()
 
-        # Initialize after DOM is ready
-        _ = ui.timer(0.6, self._inject_script, once=True)
-        _ = ui.timer(1.1, self._scan_content, once=True)
+        # Inject the minimap script on the next event loop tick.
+        # The JS initializeMinimap() has its own retry loop for DOM readiness
+        # and performs the initial node scan + viewport sync itself.
+        ui.timer(0, self._inject_script, once=True)
 
         # Hook into the zoom container's callbacks
         self._hook_zoom_container_events()
@@ -433,15 +434,30 @@ class MinimapCanvas(ui.element):
                         }},
                     }};
                     
-                    // Initial draw — sync viewport from current zoom/pan state if available.
-                    console.log('[Minimap] init, _zoomPanControls=', !!mainContainer._zoomPanControls);
-                    if (mainContainer && mainContainer._zoomPanControls) {{
-                        const z = mainContainer._zoomPanControls.getZoom();
-                        const p = mainContainer._zoomPanControls.getPan();
-                        console.log('[Minimap] initial viewport z=', z, 'pan=', p.x, p.y);
-                        updateViewport(z, p.x, p.y);
+                    // Scan nodes and sync viewport immediately — no Python round-trip needed.
+                    function scanAndDraw() {{
+                        const content = mainContainer.querySelector('.zoom-pan-content');
+                        if (content) {{
+                            const bounds = {{ minX: 0, minY: 0, maxX: 8000, maxY: 8000 }};
+                            const nodes = [];
+                            content.querySelectorAll('[data-node-id]').forEach(el => {{
+                                if (el.parentElement && el.parentElement.closest('[data-node-id]')) return;
+                                const x = parseFloat(el.style.left) || 0;
+                                const y = parseFloat(el.style.top) || 0;
+                                nodes.push({{ x, y, w: el.offsetWidth, h: el.offsetHeight }});
+                            }});
+                            updateContentBounds(bounds, nodes);
+                        }}
+                        if (mainContainer._zoomPanControls) {{
+                            const z = mainContainer._zoomPanControls.getZoom();
+                            const p = mainContainer._zoomPanControls.getPan();
+                            updateViewport(z, p.x, p.y);
+                        }} else {{
+                            drawMinimap();
+                        }}
                     }}
-                    drawMinimap();
+                    // Double rAF: same timing as fitToContent so we read after layout is complete.
+                    requestAnimationFrame(() => requestAnimationFrame(() => scanAndDraw()));
                 }}
                 
                 initializeMinimap();
@@ -495,12 +511,12 @@ class MinimapCanvas(ui.element):
                 }});
 
                 const minimap = document.getElementById('{self.minimap_id}');
+                const zoomEl = document.getElementById('{self.zoom_container.container_id}');
                 if (minimap && minimap._minimapControls) {{
                     minimap._minimapControls.updateContentBounds(bounds, nodes);
-                    // Re-sync viewport after bounds update so the rect is correct on load.
-                    if (mainContainer && mainContainer._zoomPanControls) {{
-                        const z = mainContainer._zoomPanControls.getZoom();
-                        const p = mainContainer._zoomPanControls.getPan();
+                    if (zoomEl && zoomEl._zoomPanControls) {{
+                        const z = zoomEl._zoomPanControls.getZoom();
+                        const p = zoomEl._zoomPanControls.getPan();
                         minimap._minimapControls.updateViewport(z, p.x, p.y);
                     }}
                 }}
