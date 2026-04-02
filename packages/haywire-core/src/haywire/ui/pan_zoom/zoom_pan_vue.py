@@ -5,7 +5,6 @@ import time
 import logging
 
 from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
-from haywire.ui.minimap.settings import MinimapSettings
 from haywire.ui.minimap.minimap import MinimapCanvas
 
 _log = logging.getLogger(__name__)
@@ -40,7 +39,6 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             on_pan_change: Callback fired when pan position changes
         """
         self._pz_settings = EditorPanZoomSettings()
-        self._mm_settings = MinimapSettings()
 
         # Generate unique ID for this container
         self.container_id = f"zoom-pan-{uuid.uuid4().hex[:8]}"
@@ -80,7 +78,6 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
 
         # Subscribe to settings changes — fires via _on_global_change in Settings base
         self._pz_settings.subscribe(self._on_setting_changed)
-        self._mm_settings.subscribe(self._on_minimap_setting_changed)
 
     def _apply_settings_props(self) -> None:
         """Push current settings values to Vue props."""
@@ -99,23 +96,6 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         if name in prop_map:
             self._props[prop_map[name]] = value
             self.update()
-
-    def _on_minimap_setting_changed(self, name: str, value, _old) -> None:
-        """Propagate a minimap settings change to the MinimapCanvas instance."""
-        if self.minimap is None:
-            return
-        if name == "enabled":
-            self.minimap.set_enabled(value)
-        elif name == "position":
-            self.minimap.set_position(value)
-        elif name == "width":
-            self.minimap.set_width(value)
-        elif name == "opacity":
-            self.minimap.set_opacity(value)
-        elif name == "ghost_opacity":
-            self.minimap.set_ghost_opacity(value)
-        elif name == "debug_info":
-            self.minimap.set_debug_info(value)
 
     def _setup_container(self) -> None:
         """Setup the basic container structure."""
@@ -140,17 +120,8 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
         # Minimap is placed in the 'overlay' slot of ZoomPanContainer — a sibling of
         # .zoom-pan-content so it is not affected by the pan/zoom transform, but is
         # still a DOM child of the container div (required for position: absolute).
-        mm = self._mm_settings
         with self.add_slot("overlay"):
-            self.minimap = MinimapCanvas(
-                zoom_container=self,
-                width=mm.width,
-                position=mm.position,
-                visible=mm.enabled,
-                opacity=mm.opacity,
-                ghost_opacity=mm.ghost_opacity,
-                debug_info=mm.debug_info,
-            )
+            self.minimap = MinimapCanvas(zoom_container=self)
 
     def _handle_transform_changed(self, e: events.GenericEventArguments) -> None:
         """Handle zoom change events from Vue component."""

@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.ui.minimap.settings import MinimapSettings
+
 if TYPE_CHECKING:
     from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
 
@@ -27,29 +29,42 @@ class MinimapCanvas(ui.element, component="minimap_canvas.vue"):
     def __init__(
         self,
         zoom_container: ZoomPanContainer,
-        width: int = 200,
-        position: str = "top-right",
-        visible: bool = True,
-        opacity: float = 0.88,
-        ghost_opacity: float = 0.15,
-        debug_info: bool = False,
-        **kwargs,  # absorbs legacy background_color / content_color / viewport_color
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
+        self._settings      = MinimapSettings()
         self.zoom_container = zoom_container
-        self.minimap_width  = width
-        self.is_visible     = visible
+        self.minimap_width  = self._settings.width
+        self.is_visible     = self._settings.enabled
 
+        mm = self._settings
         self._props["container-id"]   = zoom_container.container_id
-        self._props["minimap-width"]  = width
-        self._props["position"]       = position
-        self._props["active-opacity"] = opacity
-        self._props["ghost-opacity"]  = ghost_opacity
-        self._props["debug-info"]     = debug_info
-        self._props["visible"]        = visible
+        self._props["minimap-width"]  = mm.width
+        self._props["position"]       = mm.position
+        self._props["active-opacity"] = mm.opacity
+        self._props["ghost-opacity"]  = mm.ghost_opacity
+        self._props["debug-info"]     = mm.debug_info
+        self._props["visible"]        = mm.enabled
 
-    # ── Public API (called by ZoomPanContainer._on_minimap_setting_changed) ────
+        self._settings.subscribe(self._on_setting_changed)
+
+    def _on_setting_changed(self, name: str, value, _old) -> None:
+        """Apply a MinimapSettings change to this canvas instance."""
+        if name == "enabled":
+            self.set_enabled(value)
+        elif name == "position":
+            self.set_position(value)
+        elif name == "width":
+            self.set_width(value)
+        elif name == "opacity":
+            self.set_opacity(value)
+        elif name == "ghost_opacity":
+            self.set_ghost_opacity(value)
+        elif name == "debug_info":
+            self.set_debug_info(value)
+
+    # ── Public API ────────────────────────────────────────────────────────────
 
     def set_enabled(self, enabled: bool) -> None:
         """Show or hide the minimap."""
