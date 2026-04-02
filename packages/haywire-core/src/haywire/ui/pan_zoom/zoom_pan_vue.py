@@ -1,16 +1,14 @@
 from nicegui import ui, events
-from typing import TYPE_CHECKING, Optional, Callable
+from typing import Optional, Callable
 import uuid
 import time
 import logging
 
-_log = logging.getLogger(__name__)
-
 from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
 from haywire.ui.minimap.settings import MinimapSettings
+from haywire.ui.minimap.minimap import MinimapCanvas
 
-if TYPE_CHECKING:
-    from haywire.ui.minimap.mini_map_vue import MinimapCanvas
+_log = logging.getLogger(__name__)
 
 
 class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
@@ -121,8 +119,6 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
 
     def _setup_container(self) -> None:
         """Setup the basic container structure."""
-        from haywire.ui.minimap.mini_map_vue import MinimapCanvas
-
         self.classes("zoom-pan-container")
         self.style("position: relative; overflow: hidden; width: 100%; height: 100%;")
         # Set the unique ID
@@ -141,18 +137,20 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
                 "min-height: 100%;"
             )
 
-        # Minimap is placed as a sibling of ZoomPanContainer in the parent context
-        # (not inside the slot which feeds into .zoom-pan-content and gets transformed).
+        # Minimap is placed in the 'overlay' slot of ZoomPanContainer — a sibling of
+        # .zoom-pan-content so it is not affected by the pan/zoom transform, but is
+        # still a DOM child of the container div (required for position: absolute).
         mm = self._mm_settings
-        self.minimap = MinimapCanvas(
-            zoom_container=self,
-            width=mm.width,
-            position=mm.position,
-            visible=mm.enabled,
-            opacity=mm.opacity,
-            ghost_opacity=mm.ghost_opacity,
-            debug_info=mm.debug_info,
-        )
+        with self.add_slot("overlay"):
+            self.minimap = MinimapCanvas(
+                zoom_container=self,
+                width=mm.width,
+                position=mm.position,
+                visible=mm.enabled,
+                opacity=mm.opacity,
+                ghost_opacity=mm.ghost_opacity,
+                debug_info=mm.debug_info,
+            )
 
     def _handle_transform_changed(self, e: events.GenericEventArguments) -> None:
         """Handle zoom change events from Vue component."""

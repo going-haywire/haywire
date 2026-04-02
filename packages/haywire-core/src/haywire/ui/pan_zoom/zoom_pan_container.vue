@@ -1,21 +1,22 @@
 <template>
-  <div 
+  <div
     :id="containerId"
     ref="container"
     class="zoom-pan-container"
-    :class="{ 
-      dragging: isDragging, 
-      [zoomClass]: true 
+    :class="{
+      dragging: isDragging,
+      [zoomClass]: true
     }"
     tabindex="0"
     @wheel.prevent="handleWheel"
   >
-    <div 
+    <div
       ref="content"
       class="zoom-pan-content"
     >
       <slot></slot>
     </div>
+    <slot name="overlay"></slot>
   </div>
 </template>
 
