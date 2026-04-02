@@ -126,6 +126,15 @@ export default {
       return document.getElementById(this.containerId);
     },
 
+    _setOpacity(value) {
+      if (this.$refs.minimap) this.$refs.minimap.style.opacity = value;
+    },
+
+    _stopDragging() {
+      this._isDragging = false;
+      this.$el.classList.remove('dragging');
+    },
+
     // ── Drawing ──────────────────────────────────────────────────────────────
 
     _draw() {
@@ -323,31 +332,20 @@ export default {
       this._lastMouseY = currentY;
     },
 
-    handleMouseUp() {
-      this._isDragging = false;
-      this.$el.classList.remove('dragging');
-    },
-
-    handleMouseLeave() {
-      this._isDragging = false;
-      this.$el.classList.remove('dragging');
-    },
+    handleMouseUp()    { this._stopDragging(); },
+    handleMouseLeave() { this._stopDragging(); },
 
     // ── Opacity / fade ────────────────────────────────────────────────────────
 
     blendIn() {
       if (this._fadeTimer) clearTimeout(this._fadeTimer);
-      if (this.$refs.minimap) {
-        this.$refs.minimap.style.opacity = this.activeOpacity;
-      }
+      this._setOpacity(this.activeOpacity);
     },
 
     scheduleBlendOut() {
       if (this._fadeTimer) clearTimeout(this._fadeTimer);
       this._fadeTimer = setTimeout(() => {
-        if (this.$refs.minimap) {
-          this.$refs.minimap.style.opacity = this.ghostOpacity;
-        }
+        this._setOpacity(this.ghostOpacity);
         this._fadeTimer = null;
       }, 1200);
     },
@@ -357,6 +355,8 @@ export default {
     minimapWidth() {
       this._recalcScale();
       this._draw();
+      this.blendIn();
+      this.scheduleBlendOut();
     },
 
     debugInfo() {
@@ -372,9 +372,7 @@ export default {
 
     ghostOpacity(newVal) {
       // Apply new resting opacity immediately unless currently blended in.
-      if (!this._fadeTimer && this.$refs.minimap) {
-        this.$refs.minimap.style.opacity = newVal;
-      }
+      if (!this._fadeTimer) this._setOpacity(newVal);
     },
   },
 };
