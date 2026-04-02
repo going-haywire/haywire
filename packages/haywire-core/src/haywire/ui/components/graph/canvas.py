@@ -72,6 +72,12 @@ class GraphCanvasVue(ui.element, component="canvas.vue"):
             else:
                 print(f"Unknown event type: {event_type}")
 
+    def set_canvas_size(self, width: int, height: int) -> None:
+        """Push new canvas dimensions to the Vue component."""
+        self._props["canvasWidth"] = width
+        self._props["canvasHeight"] = height
+        self.update()
+
     def emit_sync_event(self, event: BaseGraphEvent):
         """
         Send sync event to Vue component - THE ONLY COMMUNICATION METHOD

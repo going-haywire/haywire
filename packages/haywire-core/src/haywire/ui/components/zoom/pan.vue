@@ -31,7 +31,9 @@ export default {
     zoomSensitivity: { type: Number, default: 0.1 },
     panSensitivity: { type: Number, default: 1.0 },
     smoothZoom: { type: Boolean, default: true },
-    enableKeyboard: { type: Boolean, default: true }
+    enableKeyboard: { type: Boolean, default: true },
+    canvasWidth: { type: Number, default: 8000 },
+    canvasHeight: { type: Number, default: 8000 },
   },
   
   data() {
@@ -107,8 +109,7 @@ export default {
     _updateMinZoom() {
       const rect = this.$el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        const CANVAS_SIZE = 8000;
-        this._minZoom = Math.max(rect.width / CANVAS_SIZE, rect.height / CANVAS_SIZE);
+        this._minZoom = Math.max(rect.width / this.canvasWidth, rect.height / this.canvasHeight);
       }
     },
 
@@ -167,10 +168,9 @@ export default {
     // prevent extremely large pan values:
     _clampPanValues() {
       const containerRect = this._getContainerRect();
-      const CANVAS_SIZE = 8000;
 
-      const canvasW = CANVAS_SIZE * this._zoom;
-      const canvasH = CANVAS_SIZE * this._zoom;
+      const canvasW = this.canvasWidth  * this._zoom;
+      const canvasH = this.canvasHeight * this._zoom;
 
       // Canvas larger than viewport: clamp so neither edge escapes the viewport.
       // Canvas smaller than viewport (at min zoom, one axis may be smaller):
@@ -354,7 +354,17 @@ export default {
         this._zoom = newVal;
         this._updateTransformDirect(true);
       }
-    }
+    },
+    canvasWidth() {
+      this._updateMinZoom();
+      this._clampPanValues();
+      this._updateTransformDirect(true);
+    },
+    canvasHeight() {
+      this._updateMinZoom();
+      this._clampPanValues();
+      this._updateTransformDirect(true);
+    },
   }
 }
 </script>

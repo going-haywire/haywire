@@ -9,6 +9,7 @@ with internal managers for validation, etc.
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
+import math
 import uuid
 import logging
 
@@ -26,6 +27,11 @@ if TYPE_CHECKING:
     from ..node.node_wrapper import NodeWrapper
 
 logger = logging.getLogger(__name__)
+
+# Canvas auto-expansion constants
+_CANVAS_EDGE_MARGIN = 1000
+_CANVAS_EXPANSION_STEP = 2000
+_CANVAS_MIN_SIZE = 4000
 
 
 @dataclass
@@ -99,6 +105,12 @@ class BaseGraph:
         self.author: str = ""
         self.created_at: str | None = None
         self.modified_at: str | None = None
+
+        # Canvas dimensions — auto-expanded when nodes approach the boundary.
+        # Persisted as runtime state; call estimate_canvas_size() after loading.
+        self.canvas_width: int = _CANVAS_MIN_SIZE
+        self.canvas_height: int = _CANVAS_MIN_SIZE
+        self._canvas_size_changed: bool = False
 
         # Internal managers (private - implementation details)
         self._validation = ValidationManager(graph=self, debounce_ms=validation_delay_ms)
@@ -282,6 +294,9 @@ class BaseGraph:
 
         wrapper.set_as_registered(True)
 
+        # Check whether the canvas needs to grow to accommodate the new node.
+        self._check_canvas_size()
+
         # Trigger validation (delegates to manager)
         self._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_ADDED)
 
@@ -313,6 +328,9 @@ class BaseGraph:
         wrapper = self.node_wrappers.pop(node_id)
 
         wrapper.set_as_registered(False)
+
+        # Check whether the canvas can shrink now that the node is gone.
+        self._check_canvas_size()
 
         # Trigger validation for removal
         self._validation.mark_node_dirty(node_id, ChangeReason.NODE_REMOVED)
@@ -358,6 +376,9 @@ class BaseGraph:
 
         wrapper.move(new_x, new_y)
 
+        # Check whether the canvas needs to grow or shrink after the move.
+        self._check_canvas_size()
+
         # Trigger validation with MOVED reason
         self._validation.mark_node_dirty(node_id, ChangeReason.NODE_MOVED)
 
@@ -383,6 +404,53 @@ class BaseGraph:
             List of all node wrappers
         """
         return list(self.node_wrappers.values())
+
+    # =========================================================================
+    # CANVAS SIZE MANAGEMENT
+    # =========================================================================
+
+    def _check_canvas_size(self) -> bool:
+        """
+        Recompute canvas_width/canvas_height from current node positions.
+
+        Expands or shrinks to the nearest _CANVAS_EXPANSION_STEP boundary,
+        never going below _CANVAS_MIN_SIZE.  Sets _canvas_size_changed = True
+        when the size actually changes so the next ValidationResult carries it.
+
+        Returns:
+            True if the canvas dimensions changed.
+        """
+        if not self.node_wrappers:
+            new_w = _CANVAS_MIN_SIZE
+            new_h = _CANVAS_MIN_SIZE
+        else:
+            max_x = max(w.node.props.posX for w in self.node_wrappers.values())
+            max_y = max(w.node.props.posY for w in self.node_wrappers.values())
+            needed_w = max_x + _CANVAS_EDGE_MARGIN
+            needed_h = max_y + _CANVAS_EDGE_MARGIN
+            steps_w = math.ceil(needed_w / _CANVAS_EXPANSION_STEP)
+            steps_h = math.ceil(needed_h / _CANVAS_EXPANSION_STEP)
+            new_w = max(_CANVAS_MIN_SIZE, steps_w * _CANVAS_EXPANSION_STEP)
+            new_h = max(_CANVAS_MIN_SIZE, steps_h * _CANVAS_EXPANSION_STEP)
+
+        if new_w != self.canvas_width or new_h != self.canvas_height:
+            self.canvas_width = new_w
+            self.canvas_height = new_h
+            self._canvas_size_changed = True
+            logger.debug(f"Canvas resized to {new_w}×{new_h}")
+            return True
+        return False
+
+    def estimate_canvas_size(self) -> None:
+        """
+        Initialise canvas_width/canvas_height from current node positions.
+
+        Call this after loading a graph from disk, before attaching any UI.
+        Unlike _check_canvas_size(), this does NOT set _canvas_size_changed —
+        the initial size is applied directly when the manager wires up.
+        """
+        self._check_canvas_size()
+        self._canvas_size_changed = False
 
     def _get_port(self, node_id: str, port_id: str) -> "DataPort":
         """Convenience method to get a port from a node."""

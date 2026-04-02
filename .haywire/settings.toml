@@ -1,7 +1,7 @@
 [debug]
-log_level = "INFO"
+log_level = "DEBUG"
 log_library = ""
-log_node = "DEBUG"
+log_node = ""
 log_ui = ""
 
 [workbench]
@@ -16,7 +16,7 @@ zoom_sensitivity = 0.4
 [ui.minimap]
 debug_info = false
 enabled = true
-ghost_opacity = 0.24
+ghost_opacity = 0.41
 opacity = 1.0
 position = "bottom-right"
 width = 200

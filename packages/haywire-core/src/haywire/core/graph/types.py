@@ -5,7 +5,7 @@ Shared types for graph validation system.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict
+from typing import Dict, Optional, Tuple
 
 
 class ChangeReason(Enum):
@@ -175,6 +175,9 @@ class ValidationResult:
     edges: Dict[str, ChangeReason] = field(default_factory=dict)
     """Map of connection_uuid -> reason for change"""
 
+    canvas_size: Optional[Tuple[int, int]] = None
+    """New (width, height) of the canvas if it was resized during this batch, else None."""
+
     # Metadata
     validation_time_ms: float = 0.0
     """Time taken for validation in milliseconds"""
@@ -186,7 +189,7 @@ class ValidationResult:
 
     def has_changes(self) -> bool:
         """Check if this validation found any changes"""
-        return bool(self.nodes or self.edges or self.graph is not None)
+        return bool(self.nodes or self.edges or self.graph is not None or self.canvas_size is not None)
 
     def get_nodes_by_reason(self, reason: ChangeReason) -> list[str]:
         """Get all node IDs that changed for a specific reason"""

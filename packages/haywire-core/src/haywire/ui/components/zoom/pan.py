@@ -200,6 +200,14 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         else:
             return "Very High"
 
+    def set_canvas_size(self, width: int, height: int) -> None:
+        """Push new canvas dimensions to the Vue zoom/pan container and minimap."""
+        self._props["canvasWidth"] = width
+        self._props["canvasHeight"] = height
+        self.update()
+        if self.minimap:
+            self.minimap.set_canvas_size(width, height)
+
     def reset_performance_metrics(self) -> None:
         """Reset all performance tracking metrics."""
         try:

@@ -2,7 +2,7 @@
     <div :id="containerId" ref="container" class="graph-canvas" :class="{
         dragging: dragState.isDragging,
         'box-selecting': boxSelectionState.isActive
-    }" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
+    }" :style="canvasSizeStyle" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
         <!-- Box selection rectangle -->
         <div 
             v-if="boxSelectionState.isActive" 
@@ -11,7 +11,7 @@
         ></div>
 
         <!-- SVG layer for connections -->
-        <svg id="connection-svg" ref="svg" class="connection-svg" :style="svgTransform">
+        <svg id="connection-svg" ref="svg" class="connection-svg" :style="canvasSizeStyle">
             <defs ref="defs">
                 <!-- Dynamic gradients will be added here -->
             </defs>
@@ -33,7 +33,9 @@ export default {
     name: 'GraphCanvas',
 
     props: {
-        containerId: { type: String, required: true }
+        containerId: { type: String, required: true },
+        canvasWidth:  { type: Number, default: 8000 },
+        canvasHeight: { type: Number, default: 8000 },
     },
 
     data() {
@@ -97,12 +99,16 @@ export default {
     },
 
     computed: {
+        canvasSizeStyle() {
+            return { width: this.canvasWidth + 'px', height: this.canvasHeight + 'px' };
+        },
+
         svgTransform() {
-            return '';
+            return this.canvasSizeStyle;
         },
 
         nodeContainerTransform() {
-            return '';
+            return this.canvasSizeStyle;
         },
 
         selectionBoxStyle() {
@@ -694,8 +700,8 @@ export default {
                 if (element.type === 'node') {
                     const startPos = this.dragState.startPositions.get(element.id);
                     if (startPos) {
-                        const newX = Math.max(0, Math.min(startPos.x + canvasDeltaX, 7500));
-                        const newY = Math.max(0, Math.min(startPos.y + canvasDeltaY, 7500));
+                        const newX = Math.max(0, Math.min(startPos.x + canvasDeltaX, this.canvasWidth - 100));
+                        const newY = Math.max(0, Math.min(startPos.y + canvasDeltaY, this.canvasHeight - 100));
 
                         element.element.style.left = `${newX}px`;
                         element.element.style.top = `${newY}px`;
@@ -2044,8 +2050,6 @@ export default {
 <style scoped>
 .graph-canvas {
     position: relative;
-    width: 8000px;
-    height: 8000px;
     overflow: visible;
 }
 
@@ -2065,8 +2069,6 @@ export default {
     position: absolute;
     top: 0;
     left: 0;
-    width: 8000px;
-    height: 8000px;
     pointer-events: auto;
     z-index: 1;
 }
@@ -2075,8 +2077,6 @@ export default {
     position: absolute;
     top: 0;
     left: 0;
-    width: 8000px;
-    height: 8000px;
     pointer-events: none;
     z-index: 2;
 }

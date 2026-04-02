@@ -153,7 +153,10 @@ class GraphCanvasManager:
 
         with self.zoom_container.content_container:
             self.canvas_vue = GraphCanvasVue(
-                zoom_container=self.zoom_container, on_canvas_event=self._handle_canvas_event
+                zoom_container=self.zoom_container,
+                on_canvas_event=self._handle_canvas_event,
+                canvas_width=self.graph.canvas_width,
+                canvas_height=self.graph.canvas_height,
             )
 
             self.context_menu = PopupContextMenu(
@@ -513,6 +516,9 @@ class GraphCanvasManager:
 
         logger.info(f"🔄 Validation: {result.total_changes} changes in {result.validation_time_ms:.2f}ms")
 
+        if result.canvas_size is not None:
+            self._apply_canvas_resize(*result.canvas_size)
+
         node_has_moved = False
 
         # Process nodes by reason
@@ -591,10 +597,13 @@ class GraphCanvasManager:
         )
 
         try:
-            # Create synthetic validation result marking all elements as added
+            # Create synthetic validation result marking all elements as added.
+            # Include the current canvas size so UI is initialised to the correct
+            # dimensions from the start (important after loading a saved graph).
             synthetic_result = ValidationResult(
                 nodes={node_id: ChangeReason.NODE_ADDED for node_id in self.graph.node_wrappers.keys()},
                 edges={edge_uuid: ChangeReason.EDGE_ADDED for edge_uuid in self.graph.edge_wrappers.keys()},
+                canvas_size=(self.graph.canvas_width, self.graph.canvas_height),
                 validation_time_ms=0.0,
             )
 
@@ -606,6 +615,14 @@ class GraphCanvasManager:
         except Exception as e:
             logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
+
+    def _apply_canvas_resize(self, width: int, height: int) -> None:
+        """Push new canvas dimensions to canvas_vue and zoom_container."""
+        logger.debug(f"🖼️ Canvas resize → {width}×{height}")
+        if self.canvas_vue:
+            self.canvas_vue.set_canvas_size(width, height)
+        if self.zoom_container:
+            self.zoom_container.set_canvas_size(width, height)
 
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
         """Add a visual representation of a node to the canvas with hot reload support."""

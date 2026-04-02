@@ -370,10 +370,18 @@ class ValidationManager:
             # Build simplified result
             validation_time_ms = (time.perf_counter() - start_time) * 1000.0
 
+            # Capture a pending canvas resize that was set by BaseGraph during
+            # add/move/remove operations that happened in this validation window.
+            canvas_size = None
+            if self._graph._canvas_size_changed:
+                canvas_size = (self._graph.canvas_width, self._graph.canvas_height)
+                self._graph._canvas_size_changed = False
+
             result = ValidationResult(
                 nodes=validated_nodes,
                 edges=validated_edges,
                 graph=validated_graph,
+                canvas_size=canvas_size,
                 validation_time_ms=validation_time_ms,
             )
 

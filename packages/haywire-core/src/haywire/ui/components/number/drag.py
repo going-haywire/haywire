@@ -33,6 +33,7 @@ class NumberDrag(ui.element, component="drag.vue"):
         super().__init__()
         self._props["model-value"] = value
         self._props["data-value"] = str(value)
+        self._props["data-number_drag"] = ""
         # Only send finite min/max — JSON (orjson) serializes inf as null,
         # which JavaScript coerces to 0, breaking the clamp logic.
         if math.isfinite(min):

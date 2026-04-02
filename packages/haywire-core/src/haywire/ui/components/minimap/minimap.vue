@@ -33,13 +33,13 @@ export default {
     ghostOpacity:  { type: Number,  default: 0.15 },
     debugInfo:     { type: Boolean, default: false },
     visible:       { type: Boolean, default: true },
+    canvasSize:    { type: Number,  default: 8000 },
   },
 
   data() {
     return {
       // Constants — defined here so vbuild includes them in the compiled component.
       PADDING:      10,
-      CANVAS_SIZE:  8000,
       // Reactive height — re-derived whenever content bounds change.
       minimapHeight: this.minimapWidth,
     };
@@ -76,7 +76,7 @@ export default {
   mounted() {
     // Non-reactive canvas state — updated on every viewport event, React reactivity
     // overhead is not needed here.
-    this._contentBounds = { minX: 0, minY: 0, maxX: this.CANVAS_SIZE, maxY: this.CANVAS_SIZE };
+    this._contentBounds = { minX: 0, minY: 0, maxX: this.canvasSize, maxY: this.canvasSize };
     this._nodeRects     = [];
     this._scaleFactor   = 1.0;
     this._viewportRect  = { x: 0, y: 0, width: 50, height: 50 };
@@ -263,7 +263,7 @@ export default {
         });
       });
 
-      this._contentBounds = { minX: 0, minY: 0, maxX: this.CANVAS_SIZE, maxY: this.CANVAS_SIZE };
+      this._contentBounds = { minX: 0, minY: 0, maxX: this.canvasSize, maxY: this.canvasSize };
       this._nodeRects     = nodes;
       this._recalcScale();
 
@@ -352,6 +352,12 @@ export default {
   },
 
   watch: {
+    canvasSize(newVal) {
+      this._contentBounds = { minX: 0, minY: 0, maxX: newVal, maxY: newVal };
+      this._recalcScale();
+      this._draw();
+    },
+
     minimapWidth() {
       this._recalcScale();
       this._draw();
