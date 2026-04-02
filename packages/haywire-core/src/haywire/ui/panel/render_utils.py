@@ -13,7 +13,7 @@ from nicegui import ui
 
 from haywire.core.settings.enums import FieldMode
 from haywire.core.settings.types import get_vec_meta
-from haywire.ui.components.number_drag import NumberDrag
+from haywire.ui.components.number.drag import NumberDrag
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry

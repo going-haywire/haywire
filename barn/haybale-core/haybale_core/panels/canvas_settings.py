@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.ui.components.zoom_pan.settings import EditorPanZoomSettings
+from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema

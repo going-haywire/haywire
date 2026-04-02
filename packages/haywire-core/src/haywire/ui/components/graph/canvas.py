@@ -27,7 +27,7 @@ else:
     print(f"❌ Library not found at: {library_path}")
 
 
-class GraphCanvasVue(ui.element, component="graph_canvas.vue"):
+class GraphCanvasVue(ui.element, component="canvas.vue"):
     """Vue-based graph canvas component with ONLY unified event handling."""
 
     def __init__(

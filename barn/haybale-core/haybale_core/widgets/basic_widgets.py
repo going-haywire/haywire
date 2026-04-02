@@ -7,7 +7,7 @@ from nicegui import ui
 
 from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.simple import SimpleWidget
-from haywire.ui.components.number_drag import NumberDrag
+from haywire.ui.components.number.drag import NumberDrag
 
 from haybale_core.types.specs import BOOL, FLOAT, INT, STRING
 

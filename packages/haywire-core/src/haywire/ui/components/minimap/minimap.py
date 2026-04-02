@@ -7,7 +7,7 @@ from nicegui import ui
 from haywire.ui.components.minimap.settings import MinimapSettings
 
 if TYPE_CHECKING:
-    from haywire.ui.components.zoom_pan.zoom_pan import ZoomPanContainer
+    from haywire.ui.components.zoom.pan import ZoomPanContainer
 
 
 class MinimapCanvas(ui.element, component="minimap.vue"):

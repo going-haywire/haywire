@@ -14,7 +14,7 @@ from typing import Any, Callable, Optional
 from nicegui import ui
 
 
-class NumberDrag(ui.element, component="number_drag.vue"):
+class NumberDrag(ui.element, component="drag.vue"):
     """Blender-style number input with drag-to-change, arrow buttons, and inline editing."""
 
     def __init__(

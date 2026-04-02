@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 from pathlib import Path
-from haywire.ui.components.graph_canvas.event_generators import VueEventGenerator
+from haywire.ui.components.graph.generators import VueEventGenerator
 
 # Add the src directory to Python path
 project_root = Path(__file__).parent.parent

@@ -4,13 +4,13 @@ import uuid
 import time
 import logging
 
-from haywire.ui.components.zoom_pan.settings import EditorPanZoomSettings
+from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 from haywire.ui.components.minimap.minimap import MinimapCanvas
 
 _log = logging.getLogger(__name__)
 
 
-class ZoomPanContainer(ui.element, component="zoom_pan.vue"):
+class ZoomPanContainer(ui.element, component="pan.vue"):
     """
     A Vue-based zoom and pan container for NiceGUI.
 

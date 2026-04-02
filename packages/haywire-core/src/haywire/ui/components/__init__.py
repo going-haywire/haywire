@@ -1,3 +1,3 @@
-from haywire.ui.components.number_drag import NumberDrag
+from haywire.ui.components.number.drag import NumberDrag
 
 __all__ = ["NumberDrag"]
