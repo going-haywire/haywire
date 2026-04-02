@@ -28,10 +28,19 @@ class MinimapSettings(FrameworkSettings, namespace="ui.minimap"):
         min=100,
         max=400,
     )
+    opacity: float = field(
+        0.88,
+        label="Opacity",
+        description="Minimap transparency (0 = invisible, 1 = fully opaque)",
+        category="ui.minimap",
+        order=13,
+        min=0.1,
+        max=1.0,
+    )
     debug_info: bool = field(
         False,
         label="Show Debug Info",
         description="Overlay zoom/pan/scale values on the minimap",
         category="ui.minimap",
-        order=13,
+        order=14,
     )

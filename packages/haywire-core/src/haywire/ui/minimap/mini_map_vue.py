@@ -27,6 +27,7 @@ class MinimapCanvas(ui.element):
         content_color: str = "#4285f4",
         viewport_color: str = "#ea4335",
         visible: bool = True,
+        opacity: float = 0.88,
         debug_info: bool = False,
         **kwargs,
     ) -> None:
@@ -53,6 +54,7 @@ class MinimapCanvas(ui.element):
         self.content_color = content_color
         self.viewport_color = viewport_color
         self.is_visible = visible
+        self.opacity = opacity
         self.debug_info = debug_info
 
         # Generate unique ID for this minimap
@@ -92,11 +94,13 @@ class MinimapCanvas(ui.element):
             f"position: absolute; "
             f"width: {self.minimap_width}px; "
             f"z-index: 1001; "
-            f"border: 2px solid #ccc; "
+            f"border: 1px solid var(--hw-border); "
             f"border-radius: 6px; "
-            f"background: {self.background_color}; "
-            f"box-shadow: 0 2px 8px rgba(0,0,0,0.2); "
+            f"background: var(--hw-bg-overlay, #1e1e2e); "
+            f"opacity: {self.opacity}; "
+            f"box-shadow: 0 2px 12px rgba(0,0,0,0.4); "
             f"cursor: crosshair; "
+            f"backdrop-filter: blur(2px); "
             f"{position_styles.get(self.position, position_styles['top-right'])} "
             f"{'' if self.is_visible else 'display: none;'}"
         )
@@ -255,30 +259,41 @@ class MinimapCanvas(ui.element):
                         drawMinimap();
                     }}
                     
+                    function getThemeColor(varName, fallback) {{
+                        return getComputedStyle(document.documentElement)
+                            .getPropertyValue(varName).trim() || fallback;
+                    }}
+
                     function drawMinimap() {{
                         ctx.clearRect(0, 0, minimap_width, minimap_height);
-                        
-                        // Draw background
-                        ctx.fillStyle = '{self.background_color}';
-                        ctx.fillRect(0, 0, minimap_width, minimap_height);
-                        
+
+                        // Read theme colors each frame so they respond to theme changes.
+                        const bgColor       = getThemeColor('--hw-bg-overlay', '#1e1e2e');
+                        const canvasColor   = getThemeColor('--hw-canvas-bg', '#13131a');
+                        const borderColor   = getThemeColor('--hw-border', '#333355');
+                        const nodeColor     = getThemeColor('--hw-accent', '#7c6af7');
+                        const viewportColor = getThemeColor('--hw-accent-hover', '#a89af9');
+
+                        // Background — transparent so the container CSS bg shows through
+                        ctx.clearRect(0, 0, minimap_width, minimap_height);
+
                         // Draw content area bounds
                         const boundsX = MINIMAP_PADDING;
                         const boundsY = MINIMAP_PADDING;
                         const boundsWidth = (contentBounds.maxX - contentBounds.minX) * scaleFactor;
                         const boundsHeight = (contentBounds.maxY - contentBounds.minY) * scaleFactor;
-                        
-                        // Content area background
-                        ctx.fillStyle = '#fafafa';
+
+                        // Canvas area background
+                        ctx.fillStyle = canvasColor + 'cc';
                         ctx.fillRect(boundsX, boundsY, boundsWidth, boundsHeight);
-                        
-                        // Content area border
-                        ctx.strokeStyle = '#ddd';
+
+                        // Canvas area border
+                        ctx.strokeStyle = borderColor;
                         ctx.lineWidth = 1;
                         ctx.strokeRect(boundsX, boundsY, boundsWidth, boundsHeight);
-                        
+
                         // Draw node rectangles
-                        ctx.fillStyle = '{self.content_color}';
+                        ctx.fillStyle = nodeColor + 'cc';
                         nodeRects.forEach(n => {{
                             const nx = MINIMAP_PADDING + (n.x - contentBounds.minX) * scaleFactor;
                             const ny = MINIMAP_PADDING + (n.y - contentBounds.minY) * scaleFactor;
@@ -286,32 +301,32 @@ class MinimapCanvas(ui.element):
                             const nh = Math.max(2, n.h * scaleFactor);
                             ctx.fillRect(nx, ny, nw, nh);
                         }});
-                        
+
                         // Draw viewport rectangle
-                        ctx.strokeStyle = '{self.viewport_color}';
-                        ctx.fillStyle = '{self.viewport_color}33'; // Semi-transparent
+                        ctx.strokeStyle = viewportColor;
+                        ctx.fillStyle = viewportColor + '33';
                         ctx.lineWidth = 2;
-                        
+
                         // Clamp viewport to minimap bounds
                         const clampedX = Math.max(0, Math.min(viewportRect.x, minimap_width));
                         const clampedY = Math.max(0, Math.min(viewportRect.y, minimap_height));
                         const clampedWidth = Math.max(
-                            1, 
+                            1,
                             Math.min(viewportRect.width, minimap_width - clampedX)
                         );
                         const clampedHeight = Math.max(
-                            1, 
+                            1,
                             Math.min(viewportRect.height, minimap_height - clampedY)
                         );
-                        
+
                         ctx.fillRect(clampedX, clampedY, clampedWidth, clampedHeight);
                         ctx.strokeRect(clampedX, clampedY, clampedWidth, clampedHeight);
 
                         // Debug overlay
                         if (showDebugInfo) {{
-                            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+                            ctx.fillStyle = 'rgba(0,0,0,0.75)';
                             ctx.fillRect(0, minimap_height - 80, minimap_width, 80);
-                            ctx.fillStyle = '#fff';
+                            ctx.fillStyle = getThemeColor('--hw-text-body', '#e0e0f0');
                             ctx.font = '9px monospace';
                             const lines = [
                                 `zoom: ${{zoom.toFixed(3)}}`,
@@ -601,6 +616,14 @@ class MinimapCanvas(ui.element):
             }}
         """)
         self._apply_zoom_container_ratio(width)
+
+    def set_opacity(self, opacity: float) -> None:
+        """Set minimap opacity (0.0 – 1.0)."""
+        self.opacity = opacity
+        ui.run_javascript(f"""
+            const minimap = document.getElementById('{self.minimap_id}');
+            if (minimap) minimap.style.opacity = '{opacity}';
+        """)
 
     def set_debug_info(self, enabled: bool) -> None:
         """Toggle debug overlay on the minimap canvas."""

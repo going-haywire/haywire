@@ -112,6 +112,8 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             self.minimap.set_position(value)
         elif name == "width":
             self.minimap.set_width(value)
+        elif name == "opacity":
+            self.minimap.set_opacity(value)
         elif name == "debug_info":
             self.minimap.set_debug_info(value)
 
@@ -145,6 +147,7 @@ class ZoomPanContainer(ui.element, component="zoom_pan_container.vue"):
             width=mm.width,
             position=mm.position,
             visible=mm.enabled,
+            opacity=mm.opacity,
             debug_info=mm.debug_info,
         )
 
