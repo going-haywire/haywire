@@ -104,7 +104,8 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
 
     def set_canvas_size(self, width: int, height: int) -> None:
         """Update the canvas dimensions the minimap represents."""
-        self._props["canvasSize"] = max(width, height)
+        self._props["canvasWidth"] = width
+        self._props["canvasHeight"] = height
         self.update()
 
     def refresh_content(self) -> None:
