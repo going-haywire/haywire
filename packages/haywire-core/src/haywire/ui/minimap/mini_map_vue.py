@@ -95,6 +95,7 @@ class MinimapCanvas(ui.element):
         style = (
             f"position: absolute; "
             f"width: {self.minimap_width}px; "
+            f"height: {self.minimap_width}px; "
             f"z-index: 1001; "
             f"border: 1px solid var(--hw-border); "
             f"border-radius: 6px; "
@@ -114,10 +115,10 @@ class MinimapCanvas(ui.element):
         # Create canvas element
         with self:
             self.canvas = ui.element("canvas")
-            self.canvas.props(f'id="{self.canvas_id}" width="{self.minimap_width}"')
-            self.canvas.style("display: block; width: 100%;")
-
-        self._apply_zoom_container_ratio(self.minimap_width)
+            self.canvas.props(
+                f'id="{self.canvas_id}" width="{self.minimap_width}" height="{self.minimap_width}"'
+            )
+            self.canvas.style("display: block; width: 100%; height: 100%;")
 
     def _inject_styles(self) -> None:
         """Inject CSS styles for the minimap."""
@@ -171,8 +172,8 @@ class MinimapCanvas(ui.element):
                     let lastMouseX = 0;
                     let lastMouseY = 0;
 
-                    let minimap_width = 200;
-                    let minimap_height = 200;
+                    let minimap_width = {self.minimap_width};
+                    let minimap_height = {self.minimap_width};
                     
                     // Minimap state
                     let contentBounds = {{ minX: 0, minY: 0, maxX: 8000, maxY: 8000 }};
@@ -208,6 +209,12 @@ class MinimapCanvas(ui.element):
                         minimap.style.height = minimap_height + 'px';
                         canvas.style.height = '100%';
                         canvas.height = minimap_height;
+                        // Recalculate scale so drawMinimap uses the new dimensions.
+                        if (cw > 0 && ch > 0) {{
+                            const scaleX = minimap_content_width / cw;
+                            const scaleY = minimap_content_height / ch;
+                            scaleFactor = Math.min(scaleX, scaleY, 1.0);
+                        }}
                     }}
                     
                     function updateContentBounds(bounds, nodes) {{
@@ -538,7 +545,6 @@ class MinimapCanvas(ui.element):
         Canvas bounds are fixed at [0, 8000] to match GraphCanvasVue's physical size,
         so the viewport rectangle always reflects the true navigable space.
         """
-        self._apply_zoom_container_ratio(self.minimap_width)
         ui.run_javascript(f"""
             const container = document.getElementById('{self.zoom_container.container_id}');
             const content = container ? container.querySelector('.zoom-pan-content') : null;
@@ -605,10 +611,28 @@ class MinimapCanvas(ui.element):
         """Toggle minimap visibility."""
         self.is_visible = not self.is_visible
         if self.is_visible:
-            self.style(remove="display: none;")
-            ui.timer(0.1, self._scan_content, once=True)
+            ui.run_javascript(f"""
+                const minimap = document.getElementById('{self.minimap_id}');
+                const canvas = document.getElementById('{self.canvas_id}');
+                if (minimap && canvas && minimap._minimapControls) {{
+                    const zoomEl = document.getElementById('{self.zoom_container.container_id}');
+                    minimap.style.display = '';
+                    minimap._minimapControls.updateMinimapBounds({self.minimap_width});
+                    if (zoomEl && zoomEl._zoomPanControls) {{
+                        const z = zoomEl._zoomPanControls.getZoom();
+                        const p = zoomEl._zoomPanControls.getPan();
+                        minimap._minimapControls.updateViewport(z, p.x, p.y);
+                    }} else {{
+                        minimap._minimapControls.drawMinimap();
+                    }}
+                    {self._blend_in_js()}
+                }}
+            """)
         else:
-            self.style(add="display: none;")
+            ui.run_javascript(f"""
+                const minimap = document.getElementById('{self.minimap_id}');
+                if (minimap) minimap.style.display = 'none';
+            """)
 
     def _blend_in_js(self) -> str:
         """JS snippet that blends the minimap to active opacity then schedules fade-out."""
@@ -647,18 +671,26 @@ class MinimapCanvas(ui.element):
             self.toggle_visibility()
 
     def set_width(self, width: int) -> None:
-        """Update the minimap width and re-derive height from the container aspect ratio."""
+        """Update the minimap width, re-derive height, and redraw immediately."""
         self.minimap_width = width
         ui.run_javascript(f"""
             const minimap = document.getElementById('{self.minimap_id}');
             const canvas = document.getElementById('{self.canvas_id}');
-            if (minimap && canvas) {{
+            if (minimap && canvas && minimap._minimapControls) {{
+                const zoomEl2 = document.getElementById('{self.zoom_container.container_id}');
                 minimap.style.width = '{width}px';
                 canvas.width = {width};
+                minimap._minimapControls.updateMinimapBounds({width});
+                if (zoomEl2 && zoomEl2._zoomPanControls) {{
+                    const z = zoomEl2._zoomPanControls.getZoom();
+                    const p = zoomEl2._zoomPanControls.getPan();
+                    minimap._minimapControls.updateViewport(z, p.x, p.y);
+                }} else {{
+                    minimap._minimapControls.drawMinimap();
+                }}
                 {self._blend_in_js()}
             }}
         """)
-        self._apply_zoom_container_ratio(width)
 
     def set_opacity(self, opacity: float) -> None:
         """Set the active (blended-in) opacity and briefly show it."""

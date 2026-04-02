@@ -14,9 +14,9 @@ pan_sensitivity = 4.2
 zoom_sensitivity = 0.4
 
 [ui.minimap]
-debug_info = true
+debug_info = false
 enabled = true
-ghost_opacity = 0.67
-opacity = 1.0
+ghost_opacity = 0.17
+opacity = 0.5
 position = "bottom-right"
-width = 334
+width = 186
