@@ -19,8 +19,8 @@ from haywire.core.undo.actions.graph_actions import ClipboardData
 
 from ..ui_node import UINode
 from ..ui_edge import UIEdge
-from ..pan_zoom.zoom_pan_vue import ZoomPanContainer
-from .graph_canvas_vue import GraphCanvasVue
+from ..components.zoom_pan.zoom_pan import ZoomPanContainer
+from ..components.graph_canvas.graph_canvas import GraphCanvasVue
 from .popup_context_menu import PopupContextMenu
 from .event_definitions import (
     BaseGraphEvent,

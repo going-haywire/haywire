@@ -4,17 +4,17 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.ui.minimap.settings import MinimapSettings
+from haywire.ui.components.minimap.settings import MinimapSettings
 
 if TYPE_CHECKING:
-    from haywire.ui.pan_zoom.zoom_pan_vue import ZoomPanContainer
+    from haywire.ui.components.zoom_pan.zoom_pan import ZoomPanContainer
 
 
-class MinimapCanvas(ui.element, component="minimap_canvas.vue"):
+class MinimapCanvas(ui.element, component="minimap.vue"):
     """
     A canvas-based minimap for the ZoomPanContainer.
 
-    Renders as a custom Vue component (minimap_canvas.vue) that listens to
+    Renders as a custom Vue component (minimap.vue) that listens to
     'zoom-pan-state' DOM events from ZoomPanContainer for real-time viewport
     sync — no Python round-trip needed per frame.
 

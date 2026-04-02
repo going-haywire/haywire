@@ -12,7 +12,7 @@ from pathlib import Path
 from nicegui import ui
 from nicegui.dependencies import register_library
 
-from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
+from ...graph_canvas.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 
 # Register the auto-generated library
 script_dir = Path(__file__).parent

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 from pathlib import Path
-from haywire.ui.editor.event_generators import VueEventGenerator
+from haywire.ui.components.graph_canvas.event_generators import VueEventGenerator
 
 # Add the src directory to Python path
 project_root = Path(__file__).parent.parent
@@ -16,7 +16,7 @@ def main():
     vue_code = VueEventGenerator.generate_event_constants()
 
     # Output to the editor_v1 directory
-    output_dir = project_root / "src" / "haywire" / "ui" / "editor_v1" / "generated"
+    output_dir = project_root / "src" / "haywire" / "ui" / "components" / "graph_canvas" / "generated"
     output_dir.mkdir(exist_ok=True)
 
     output_file = output_dir / "graph_events.js"

@@ -1,4 +1,4 @@
-# haywire/ui/pan_zoom/settings.py
+# haywire/ui/components/pan_zoom/settings.py
 """Pan/zoom behaviour preference singleton."""
 
 from haywire.core.namespaces import CATEGORY_EDITOR_PAN_ZOOM, NAMESPACE_EDITOR_PAN_ZOOM

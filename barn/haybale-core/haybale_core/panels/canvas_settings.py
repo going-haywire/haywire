@@ -12,11 +12,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui.components.zoom_pan.settings import EditorPanZoomSettings
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema
-
-from haywire.ui.minimap.settings import MinimapSettings
+from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.prefs.canvas import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
 
@@ -24,7 +24,6 @@ from haybale_core.settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-
 
 @panel(
     registry_id="settings_canvas",
@@ -85,6 +84,25 @@ class EdgeUISettingsPanel(BasePanel):
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         registry = context.app.library_service.get_settings_registry()
         render_schema(EdgeUISettings, registry)
+
+@panel(
+    editor="properties",
+    scope="canvas",
+    label="Zoom & Pan",
+    icon="edit",
+    order=40,
+    default_open=False,
+)
+class EditorZoomPanSettingsPanel(BasePanel):
+    """Canvas pan/zoom behaviour settings."""
+
+    @classmethod
+    def poll(cls, context: "SessionContext") -> bool:
+        return True
+
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
+        registry = context.app.library_service.get_settings_registry()
+        render_schema(EditorPanZoomSettings, registry)
 
 
 @panel(

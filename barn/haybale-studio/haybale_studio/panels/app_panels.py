@@ -14,6 +14,11 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema
 
+from haywire.ui.components.zoom_pan.settings import EditorPanZoomSettings
+from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
+from haywire.ui.skin.settings import NodeDefaultSkinSettings
+from haywire.ui.prefs.editor import EditorSettings
+
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
@@ -34,8 +39,6 @@ class ThemeSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
-
         registry = context.app.library_service.get_settings_registry()
         render_schema(WorkbenchThemeSettings, registry)
         render_schema(NodeThemeSettings, registry)
@@ -56,8 +59,6 @@ class NodeSkinDefaultPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.skin.settings import NodeDefaultSkinSettings
-
         registry = context.app.library_service.get_settings_registry()
         render_schema(NodeDefaultSkinSettings, registry)
 
@@ -78,28 +79,6 @@ class EditorSettingsPanel(BasePanel):
         return True
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.prefs.editor import EditorSettings
-
         registry = context.app.library_service.get_settings_registry()
         render_schema(EditorSettings, registry)
 
-@panel(
-    editor="properties",
-    scope="app",
-    label="Zoom & Pan",
-    icon="edit",
-    order=40,
-    default_open=False,
-)
-class EditorZoomPanSettingsPanel(BasePanel):
-    """Canvas pan/zoom behaviour settings."""
-
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return True
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.pan_zoom.settings import EditorPanZoomSettings
-
-        registry = context.app.library_service.get_settings_registry()
-        render_schema(EditorPanZoomSettings, registry)
