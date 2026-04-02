@@ -30,11 +30,20 @@ class MinimapSettings(FrameworkSettings, namespace="ui.minimap"):
     )
     opacity: float = field(
         0.88,
-        label="Opacity",
-        description="Minimap transparency (0 = invisible, 1 = fully opaque)",
+        label="Active Opacity",
+        description="Opacity when panning/zooming or hovering",
         category="ui.minimap",
         order=13,
         min=0.1,
+        max=1.0,
+    )
+    ghost_opacity: float = field(
+        0.15,
+        label="Ghost Opacity",
+        description="Resting opacity when idle",
+        category="ui.minimap",
+        order=14,
+        min=0.0,
         max=1.0,
     )
     debug_info: bool = field(

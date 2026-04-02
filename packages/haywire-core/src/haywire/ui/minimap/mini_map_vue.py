@@ -28,6 +28,7 @@ class MinimapCanvas(ui.element):
         viewport_color: str = "#ea4335",
         visible: bool = True,
         opacity: float = 0.88,
+        ghost_opacity: float = 0.15,
         debug_info: bool = False,
         **kwargs,
     ) -> None:
@@ -55,6 +56,7 @@ class MinimapCanvas(ui.element):
         self.viewport_color = viewport_color
         self.is_visible = visible
         self.opacity = opacity
+        self.ghost_opacity = ghost_opacity
         self.debug_info = debug_info
 
         # Generate unique ID for this minimap
@@ -97,7 +99,8 @@ class MinimapCanvas(ui.element):
             f"border: 1px solid var(--hw-border); "
             f"border-radius: 6px; "
             f"background: var(--hw-bg-overlay, #1e1e2e); "
-            f"opacity: {self.opacity}; "
+            f"opacity: {self.ghost_opacity}; "
+            f"transition: opacity 0.3s ease; "
             f"box-shadow: 0 2px 12px rgba(0,0,0,0.4); "
             f"cursor: crosshair; "
             f"backdrop-filter: blur(2px); "
@@ -172,7 +175,7 @@ class MinimapCanvas(ui.element):
                     let minimap_height = 200;
                     
                     // Minimap state
-                    let contentBounds = {{ minX: -500, minY: -500, maxX: 2000, maxY: 2000 }};
+                    let contentBounds = {{ minX: 0, minY: 0, maxX: 8000, maxY: 8000 }};
                     let scaleFactor = 1.0;
                     let viewportRect = {{ x: 0, y: 0, width: 50, height: 50 }};
                     let nodeRects = [];
@@ -431,11 +434,40 @@ class MinimapCanvas(ui.element):
                     // Listen directly to the zoom-pan-state DOM event so the minimap
                     // updates on every frame without a Python round-trip.
                     // This also fires immediately after fitToContent / centerOn.
+                    // Seed opacity values — updated live via set_opacity / set_ghost_opacity.
+                    minimap._activeOpacity = {self.opacity};
+                    minimap._ghostOpacity  = {self.ghost_opacity};
+
+                    let _fadeOutTimer = null;
+
+                    function _setOpacity(value) {{
+                        minimap.style.opacity = value;
+                    }}
+
+                    function _scheduleBlendOut() {{
+                        if (_fadeOutTimer) clearTimeout(_fadeOutTimer);
+                        _fadeOutTimer = setTimeout(() => {{
+                            _setOpacity(minimap._ghostOpacity);
+                            _fadeOutTimer = null;
+                        }}, 1200);
+                    }}
+
+                    function _blendIn() {{
+                        if (_fadeOutTimer) clearTimeout(_fadeOutTimer);
+                        _setOpacity(minimap._activeOpacity);
+                    }}
+
                     document.addEventListener('zoom-pan-state', (e) => {{
                         if (e.detail.containerId === '{self.zoom_container.container_id}') {{
                             updateViewport(e.detail.zoom, e.detail.panX, e.detail.panY);
+                            _blendIn();
+                            _scheduleBlendOut();
                         }}
                     }});
+
+                    // Blend in on hover, blend out on leave.
+                    minimap.addEventListener('mouseenter', _blendIn);
+                    minimap.addEventListener('mouseleave', _scheduleBlendOut);
 
                     // Expose functions for external control
                     minimap._minimapControls = {{
@@ -578,6 +610,15 @@ class MinimapCanvas(ui.element):
         else:
             self.style(add="display: none;")
 
+    def _blend_in_js(self) -> str:
+        """JS snippet that blends the minimap to active opacity then schedules fade-out."""
+        return """
+            if (minimap && minimap._activeOpacity !== undefined) {
+                minimap.style.opacity = minimap._activeOpacity;
+                setTimeout(() => { minimap.style.opacity = minimap._ghostOpacity; }, 1200);
+            }
+        """
+
     def set_position(self, position: str) -> None:
         """Change minimap position."""
         self.position = position
@@ -596,6 +637,7 @@ class MinimapCanvas(ui.element):
                 minimap.style.bottom = 'auto';
                 minimap.style.left = 'auto';
                 minimap.style.cssText += \n'{position_styles.get(position, position_styles["top-right"])}';
+                {self._blend_in_js()}
             }}
         """)
 
@@ -613,16 +655,31 @@ class MinimapCanvas(ui.element):
             if (minimap && canvas) {{
                 minimap.style.width = '{width}px';
                 canvas.width = {width};
+                {self._blend_in_js()}
             }}
         """)
         self._apply_zoom_container_ratio(width)
 
     def set_opacity(self, opacity: float) -> None:
-        """Set minimap opacity (0.0 – 1.0)."""
+        """Set the active (blended-in) opacity and briefly show it."""
         self.opacity = opacity
         ui.run_javascript(f"""
             const minimap = document.getElementById('{self.minimap_id}');
-            if (minimap) minimap.style.opacity = '{opacity}';
+            if (minimap) {{
+                minimap._activeOpacity = {opacity};
+                minimap.style.opacity = {opacity};
+            }}
+        """)
+
+    def set_ghost_opacity(self, opacity: float) -> None:
+        """Set the resting (idle) opacity and apply it immediately."""
+        self.ghost_opacity = opacity
+        ui.run_javascript(f"""
+            const minimap = document.getElementById('{self.minimap_id}');
+            if (minimap) {{
+                minimap._ghostOpacity = {opacity};
+                minimap.style.opacity = {opacity};
+            }}
         """)
 
     def set_debug_info(self, enabled: bool) -> None:
