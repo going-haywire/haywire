@@ -56,7 +56,7 @@ class field(FieldDescriptor):
         *,
         label: str = "",
         description: str = "",
-        category: str = "general",
+        category: str = "root",
         order: int = 0,
         min: Any = None,
         max: Any = None,

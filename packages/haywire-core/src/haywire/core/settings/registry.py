@@ -175,7 +175,7 @@ class SettingsRegistry(BaseRegistry):
             if not descriptor._field_key:
                 continue
             self._store_definition(
-                descriptor._field_key, descriptor, category=descriptor._category or "general"
+                descriptor._field_key, descriptor, category=descriptor._category or "root"
             )
 
     def _notify_subscribers(self, changed: dict[str, "FieldValue"]) -> None:
@@ -206,7 +206,7 @@ class SettingsRegistry(BaseRegistry):
                 for ref in dead:
                     self._subscribers[ns].remove(ref)
 
-    def _store_definition(self, name: str, descriptor: field, category: str = "general") -> None:
+    def _store_definition(self, name: str, descriptor: field, category: str = "root") -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
         is_new = name not in self._definitions
         self._definitions[name] = descriptor
@@ -486,7 +486,7 @@ class SettingsRegistry(BaseRegistry):
             category = parsed["category"]
         else:
             parts = name.split(".")
-            category = ".".join(parts[:-1]) if len(parts) > 1 else "general"
+            category = ".".join(parts[:-1]) if len(parts) > 1 else "root"
 
         d = field(
             default=default,
@@ -657,7 +657,7 @@ class SettingsRegistry(BaseRegistry):
         type_: type | None = None,
         label: str | None = None,
         description: str = "",
-        category: str = "general",
+        category: str = "root",
         min_value: Any = None,
         max_value: Any = None,
         choices: list | None = None,

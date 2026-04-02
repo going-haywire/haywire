@@ -42,7 +42,7 @@ class FieldDescriptor:
     _description: str = ""
     """Tooltip text displayed on hover over the label in the properties panel."""
 
-    _category: str = "general"
+    _category: str = "root"
     """Panel grouping key — fields with the same category are rendered under a shared section header."""
 
     _order: int = 0

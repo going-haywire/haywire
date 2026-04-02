@@ -259,7 +259,7 @@ registry = get_settings_registry()
 
 Explicitly register a `FrameworkSettings` or `LibrarySettings` class. Also writes `cls._registry = self`.
 
-### `define(name, default, type_=None, label=None, description='', category='general', metadata=None, **kwargs) -> field`
+### `define(name, default, type_=None, label=None, description='', category='root', metadata=None, **kwargs) -> field`
 
 Programmatically define a setting. `metadata` is stored on the returned `field` descriptor as `._metadata`.
 

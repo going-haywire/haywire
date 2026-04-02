@@ -90,7 +90,8 @@ When a user submits a value that fails the field's validator, an error label app
 
 ## Category Groups
 
-Fields with a `category=` argument are grouped under collapsible `ui.expansion` headers. The category string is displayed as-is.
+Fields with a `category=` argument are grouped under collapsible `ui.expansion` headers. The category string contqaining '_' and '.' will be replaced with ' '.
+Default category is 'root', which is sorted before any other category and will be displayed first without header/collapsible. Categories are sorted alphabetically, then fields are sorted by their `order` argument within each category.
 
 ---
 

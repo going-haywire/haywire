@@ -1,7 +1,7 @@
 # haywire/ui/prefs/minimap.py
 """Minimap layout and visibility preference singleton."""
 
-from haywire.core.namespaces import CATEGORY_MINIMAP, NAMESPACE_UI_MINIMAP
+from haywire.core.namespaces import NAMESPACE_UI_MINIMAP
 from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
@@ -19,16 +19,14 @@ class MinimapSettings(FrameworkSettings, namespace = NAMESPACE_UI_MINIMAP):
         "bottom-right",
         label="Minimap Position",
         description="Corner position of minimap",
-        category=CATEGORY_MINIMAP,
-        order=11,
+        order=20,
         choices=["top-left", "top-right", "bottom-left", "bottom-right"],
     )
     width: int = field(
         200,
         label="Minimap Width",
         description="Width of minimap in pixels",
-        category=CATEGORY_MINIMAP,
-        order=12,
+        order=30,
         min=100,
         max=400,
     )
@@ -36,8 +34,8 @@ class MinimapSettings(FrameworkSettings, namespace = NAMESPACE_UI_MINIMAP):
         0.88,
         label="Active Opacity",
         description="Opacity when panning/zooming or hovering",
-        category=CATEGORY_MINIMAP,
-        order=13,
+        category="opacities",
+        order=40,
         min=0.1,
         max=1.0,
     )
@@ -45,8 +43,8 @@ class MinimapSettings(FrameworkSettings, namespace = NAMESPACE_UI_MINIMAP):
         0.15,
         label="Ghost Opacity",
         description="Resting opacity when idle",
-        category=CATEGORY_MINIMAP,
-        order=14,
+        category="opacities",
+        order=50,
         min=0.0,
         max=1.0,
     )
@@ -54,6 +52,6 @@ class MinimapSettings(FrameworkSettings, namespace = NAMESPACE_UI_MINIMAP):
         False,
         label="Show Debug Info",
         description="Overlay zoom/pan/scale values on the minimap",
-        category=CATEGORY_MINIMAP,
-        order=14,
+        category="debug",
+        order=60,
     )

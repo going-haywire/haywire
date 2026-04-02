@@ -45,7 +45,8 @@ def render_settings(obj: "Settings") -> None:
         return
 
     sorted_fields = sorted(
-        visible_fields.items(), key=lambda item: (item[1]._category, item[1]._order, item[0])
+        visible_fields.items(),
+        key=lambda item: ("" if item[1]._category.lower() == "root" else item[1]._category, item[1]._order, item[0]),
     )
     with ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE):
         for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
@@ -71,7 +72,10 @@ def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
         ui.label("No fields defined.").classes("text-xs text-gray-400 px-2 py-1")
         return
 
-    sorted_defns = sorted(defns.values(), key=lambda d: (d._category, d._order, d._field_key))
+    sorted_defns = sorted(
+        defns.values(),
+        key=lambda d: ("" if d._category.lower() == "root" else d._category, d._order, d._field_key),
+    )
     _render_definitions(sorted_defns, registry)
 
 
@@ -88,7 +92,10 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
         ui.label(f"No fields found under: {prefix}.*").classes("text-xs text-gray-400 px-2 py-1")
         return
 
-    sorted_defns = sorted(defns.values(), key=lambda d: (d._category, d._order, d._field_key))
+    sorted_defns = sorted(
+        defns.values(),
+        key=lambda d: ("" if d._category.lower() == "root" else d._category, d._order, d._field_key),
+    )
     _render_definitions(sorted_defns, registry)
 
 
@@ -119,8 +126,13 @@ def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str
     return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
 
 
-def _render_category_group(category: str) -> ui.expansion:
-    """Return a foldable expansion for a category group (use as context manager)."""
+def _render_category_group(category: str):
+    """Return a foldable expansion for a category group (use as context manager).
+
+    Fields with category ``"root"`` are rendered directly without a header.
+    """
+    if category.lower() in ("root"):
+        return ui.column().classes("w-full gap-0")
     label = category.replace("_", " ").replace(".", " / ").title()
     return (
         ui.expansion(label, value=True)
