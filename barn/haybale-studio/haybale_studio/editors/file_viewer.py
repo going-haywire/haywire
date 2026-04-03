@@ -81,10 +81,10 @@ class FileViewerEditor(BaseEditor):
                         self._show_placeholder()
 
     def _show_placeholder(self) -> None:
-        with ui.column().classes("w-full items-center justify-center gap-3").style("padding: 80px 0;"):
+        with ui.column().classes("w-full h-full items-center justify-center gap-3").style("padding: 80px 0;"):
             ui.icon("folder_open", size="40px").classes("hw-text-dim")
             ui.label("Select a file from the Files panel").classes("text-sm hw-text-muted")
-
+        
     def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
         if event.change_type != ContextChangeType.FILE_SELECTED:
             return

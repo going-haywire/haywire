@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     editors="properties",
     scopes="graph",
     label="Graph Info",
-    icon="account_tree",
+    icon="polyline",
     order=10,
 )
 class GraphInfoPanel(BasePanel):

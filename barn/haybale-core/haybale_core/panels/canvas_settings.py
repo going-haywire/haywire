@@ -49,7 +49,7 @@ class CanvasSettingsPanel(BasePanel):
     scopes="canvas",
     label="Node Skins",
     description="Node dimensions, typography and label visibility.",
-    icon="widgets",
+    icon="format_shapes",
     order=20,
     default_open=False,
 )
@@ -87,7 +87,7 @@ class EdgeUISettingsPanel(BasePanel):
     editors="properties",
     scopes="canvas",
     label="Zoom & Pan",
-    icon="edit",
+    icon="settings_overscan",
     order=40,
     default_open=False,
 )

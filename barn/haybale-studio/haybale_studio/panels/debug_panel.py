@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     label="Log Levels",
     icon="bug_report",
     order=10,
-    default_open=False,
+    default_open=True,
 )
 class DebugSettingsPanel(BasePanel):
     """Logging, execution visibility, visual debugging and data inspection."""

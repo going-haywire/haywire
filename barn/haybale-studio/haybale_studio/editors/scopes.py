@@ -54,14 +54,14 @@ PROPERTIES_SCOPES: list[ScopeDescriptor] = [
     ScopeDescriptor(
         scope_id="graph",
         label="Graph",
-        icon="account_tree",
+        icon="polyline",
         order=50,
         poll=lambda ctx: ctx.active_graph is not None,
     ),
     ScopeDescriptor(
         scope_id="node",
         label="Node",
-        icon="widgets",
+        icon="wysiwyg",
         order=60,
         poll=lambda ctx: ctx.active_node is not None,
     ),

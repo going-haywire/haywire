@@ -18,7 +18,6 @@ libraries.
 
 import logging
 
-logger = logging.getLogger(__name__)
 from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
@@ -33,6 +32,8 @@ if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
     from haywire.ui.context_events import ContextChangedEvent
     from nicegui.element import Element
+
+logger = logging.getLogger(__name__)
 
 _SCOPE_KEY = "properties_scope"
 _EXPANSION_KEY = "properties_expansion"

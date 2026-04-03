@@ -61,6 +61,8 @@ class AppShell:
         self._area_containers: dict = {}  # area slot -> NiceGUI container ref
         self._left_column = None  # stored for dynamic switching via _switch_left_area
         self._right_column = None  # stored for dynamic switching via _switch_right_area
+        self._activity_bar = None  # stored for dynamic switching via _switch_left_area
+        self._context_bar = None  # stored for dynamic switching via _switch_right_area
         self._left_divider = None  # drag handle between left and middle
         self._right_divider = None  # drag handle between middle and right
         self._bottom_container = None  # bottom split area column
@@ -68,6 +70,14 @@ class AppShell:
         self._btn_left = None  # ActivityBar toggle button for left panel
         self._btn_bottom = None  # Tab-bar toggle button for bottom panel
         self._btn_right = None  # ContextBar toggle button for right panel
+
+    @staticmethod
+    def _toolbar_button_classes(is_active: bool) -> str:
+        """Return toolbar button classes for active and inactive editor icons."""
+        base_classes = "hw-shell-toolbar-btn w-10 h-10"
+        if is_active:
+            return f"{base_classes} hw-shell-toolbar-btn-active"
+        return base_classes
 
     def _build_initial_theme_css(self) -> str:
         """Build the :root CSS block from the active WorkbenchTheme."""
@@ -133,6 +143,22 @@ class AppShell:
             " .hw-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
             " .hw-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
             " .hw-tabs .q-tab__label { font-size: 12px; }"
+            # Activity/context bar buttons
+            " .hw-shell-toolbar-btn {"
+            "   color: var(--hw-text-muted) !important;"
+            "   border-radius: 10px;"
+            "   transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;"
+            " }"
+            " .hw-shell-toolbar-btn:hover {"
+            "   background: var(--hw-bg-elevated) !important;"
+            "   color: var(--hw-text-body) !important;"
+            " }"
+            " .hw-shell-toolbar-btn .q-icon { color: inherit !important; }"
+            " .hw-shell-toolbar-btn-active {"
+            "   background: var(--hw-bg-elevated) !important;"
+            "   color: var(--hw-accent) !important;"
+            "   box-shadow: inset 0 0 0 1px var(--hw-accent);"
+            " }"
             # All editor area containers and their child text.
             # .hw-cm-isolate wrappers (CodeMirror editors) are excluded so that
             # the CodeMirror theme controls all token colours uncontested.
@@ -457,14 +483,7 @@ class AppShell:
             ).props("flat round dense color=grey").tooltip("Save current workspace").classes("text-gray-400")
 
     def _render_activity_bar(self) -> None:
-        """Render the activity bar (left icon strip) that drives the Left Area."""
-        ws = self.session.workspace_manager.active
-
-        # Collect editors suggested for 'left' area from registry
-        left_editors = {}
-        if self._editor_registry:
-            left_editors = self._editor_registry.get_by_default_area("left")
-
+        """Render the activity bar wrapper and its current contents."""
         with (
             ui.column()
             .classes("items-center justify-start gap-1 py-2")
@@ -472,42 +491,45 @@ class AppShell:
                 "width: 48px; min-width: 48px; height: 100%; "
                 "background: var(--hw-bg-sidebar); border-right: 1px solid var(--hw-border); "
                 "overflow: hidden;"
-            )
+            ) as activity_bar
         ):
-            # Left panel toggle at the top of the bar.
-            # Visible → mirrored login (fold in); hidden → plain logout (fold out).
-            if ws.left.editor_key:
-                fold_icon = "login" if ws.left.visible else "logout"
-                self._btn_left = (
-                    ui.button(icon=fold_icon, on_click=self._toggle_left_panel)
-                    .props("flat round dense size=sm color=grey")
-                    .tooltip("Toggle left panel")
-                )
-                if ws.left.visible:
-                    self._btn_left.style("transform: scaleX(-1);")
-                ui.separator().classes("w-full opacity-20")
+            self._activity_bar = activity_bar
+            self._render_activity_bar_contents()
 
-            if left_editors:
-                for reg_key, editor_cls in left_editors.items():
-                    icon = editor_cls.class_identity.icon
-                    label = editor_cls.class_identity.label
-                    is_active = ws.left_bar_active == reg_key
-                    btn_classes = "w-10 h-10" + (" text-blue-400" if is_active else " text-gray-400")
-                    ui.button(icon=icon, on_click=lambda k=reg_key: self._switch_left_area(k)).classes(
-                        btn_classes
-                    ).props("flat round").tooltip(label)
-            else:
-                # Placeholder when no editors are registered
-                ui.icon("menu").classes("text-gray-600")
-
-    def _render_context_bar(self) -> None:
-        """Render the context bar (right icon strip) that drives the Right Area."""
+    def _render_activity_bar_contents(self) -> None:
+        """Render the current activity bar contents inside the existing wrapper."""
         ws = self.session.workspace_manager.active
 
-        right_editors = {}
+        left_editors = {}
         if self._editor_registry:
-            right_editors = self._editor_registry.get_by_default_area("right")
+            left_editors = self._editor_registry.get_by_default_area("left")
 
+        # Left panel toggle at the top of the bar.
+        # Visible → mirrored login (fold in); hidden → plain logout (fold out).
+        if ws.left.editor_key:
+            fold_icon = "login" if ws.left.visible else "logout"
+            self._btn_left = (
+                ui.button(icon=fold_icon, on_click=self._toggle_left_panel)
+                .props("flat round dense size=sm color=grey")
+                .tooltip("Toggle left panel")
+            )
+            if ws.left.visible:
+                self._btn_left.style("transform: scaleX(-1);")
+            ui.separator().classes("w-full opacity-20")
+
+        if left_editors:
+            for reg_key, editor_cls in left_editors.items():
+                icon = editor_cls.class_identity.icon
+                label = editor_cls.class_identity.label
+                is_active = ws.left_bar_active == reg_key
+                ui.button(icon=icon, on_click=lambda k=reg_key: self._switch_left_area(k)).classes(
+                    self._toolbar_button_classes(is_active)
+                ).props("flat round").tooltip(label)
+        else:
+            ui.icon("menu").classes("text-gray-600")
+
+    def _render_context_bar(self) -> None:
+        """Render the context bar wrapper and its current contents."""
         with (
             ui.column()
             .classes("items-center justify-start gap-1 py-2")
@@ -515,32 +537,42 @@ class AppShell:
                 "width: 48px; min-width: 48px; height: 100%; "
                 "background: var(--hw-bg-sidebar); border-left: 1px solid var(--hw-border); "
                 "overflow: hidden;"
-            )
+            ) as context_bar
         ):
-            # Right panel toggle at the top of the bar.
-            # Visible → plain login (fold in); hidden → mirrored logout (fold out).
-            if ws.right.editor_key:
-                fold_icon = "login" if ws.right.visible else "logout"
-                self._btn_right = (
-                    ui.button(icon=fold_icon, on_click=self._toggle_right_panel)
-                    .props("flat round dense size=sm color=grey")
-                    .tooltip("Toggle right panel")
-                )
-                if not ws.right.visible:
-                    self._btn_right.style("transform: scaleX(-1);")
-                ui.separator().classes("w-full opacity-20")
+            self._context_bar = context_bar
+            self._render_context_bar_contents()
 
-            if right_editors:
-                for reg_key, editor_cls in right_editors.items():
-                    icon = editor_cls.class_identity.icon
-                    label = editor_cls.class_identity.label
-                    is_active = ws.right_bar_active == reg_key
-                    btn_classes = "w-10 h-10" + (" text-blue-400" if is_active else " text-gray-400")
-                    ui.button(icon=icon, on_click=lambda k=reg_key: self._switch_right_area(k)).classes(
-                        btn_classes
-                    ).props("flat round").tooltip(label)
-            else:
-                ui.icon("tune").classes("text-gray-600")
+    def _render_context_bar_contents(self) -> None:
+        """Render the current context bar contents inside the existing wrapper."""
+        ws = self.session.workspace_manager.active
+
+        right_editors = {}
+        if self._editor_registry:
+            right_editors = self._editor_registry.get_by_default_area("right")
+
+        # Right panel toggle at the top of the bar.
+        # Visible → plain login (fold in); hidden → mirrored logout (fold out).
+        if ws.right.editor_key:
+            fold_icon = "login" if ws.right.visible else "logout"
+            self._btn_right = (
+                ui.button(icon=fold_icon, on_click=self._toggle_right_panel)
+                .props("flat round dense size=sm color=grey")
+                .tooltip("Toggle right panel")
+            )
+            if not ws.right.visible:
+                self._btn_right.style("transform: scaleX(-1);")
+            ui.separator().classes("w-full opacity-20")
+
+        if right_editors:
+            for reg_key, editor_cls in right_editors.items():
+                icon = editor_cls.class_identity.icon
+                label = editor_cls.class_identity.label
+                is_active = ws.right_bar_active == reg_key
+                ui.button(icon=icon, on_click=lambda k=reg_key: self._switch_right_area(k)).classes(
+                    self._toolbar_button_classes(is_active)
+                ).props("flat round").tooltip(label)
+        else:
+            ui.icon("tune").classes("text-gray-600")
 
     def _render_middle_area(self) -> None:
         """Render the middle area with tabs and optional bottom split."""
@@ -712,6 +744,24 @@ class AppShell:
         if self._btn_bottom:
             self._btn_bottom.props(f"icon={'expand_less' if ws.middle.bottom_visible else 'expand_more'}")
 
+    def _refresh_activity_bar(self) -> None:
+        """Re-render the left activity bar so the active icon highlight stays in sync."""
+        if self._activity_bar is None:
+            return
+
+        self._activity_bar.clear()
+        with self._activity_bar:
+            self._render_activity_bar_contents()
+
+    def _refresh_context_bar(self) -> None:
+        """Re-render the right context bar so the active icon highlight stays in sync."""
+        if self._context_bar is None:
+            return
+
+        self._context_bar.clear()
+        with self._context_bar:
+            self._render_context_bar_contents()
+
     def _switch_left_area(self, editor_key: str) -> None:
         """Switch the editor shown in the Left Area, re-rendering the column.
 
@@ -736,6 +786,8 @@ class AppShell:
             self._left_column.clear()
             with self._left_column:
                 self._render_area("left", editor_key)
+
+        self._refresh_activity_bar()
 
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
@@ -765,6 +817,8 @@ class AppShell:
             self._right_column.clear()
             with self._right_column:
                 self._render_area("right", editor_key)
+
+        self._refresh_context_bar()
 
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)

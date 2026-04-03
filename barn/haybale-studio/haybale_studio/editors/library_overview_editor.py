@@ -139,8 +139,8 @@ class LibraryOverviewEditor(BaseEditor):
         if self._scroll:
             self._scroll.clear()
             with self._scroll:
-                with ui.column().classes("w-full items-center gap-2 py-32"):
-                    ui.icon("library_books", size="48px").classes("hw-text-dim")
+                with ui.column().classes("w-full h-full items-center justify-center gap-3"):
+                    ui.icon("widgets", size="48px").classes("hw-text-dim")
                     ui.label("Select a library to view details").classes("hw-text-muted text-sm")
 
     # ─────────────────────────────────────────────────────────────────────────
