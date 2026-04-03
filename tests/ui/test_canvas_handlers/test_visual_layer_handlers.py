@@ -195,6 +195,17 @@ def test_on_validated_applies_canvas_resize(handler, canvas_vue):
         mock_resize.assert_called_once_with(1920, 1080)
 
 
+def test_apply_canvas_resize_updates_canvas_and_zoom_container(handler, canvas_vue):
+    """Canvas resize propagates to both the canvas and its zoom viewport."""
+    zoom_container = MagicMock()
+    canvas_vue.zoom_container = zoom_container
+
+    handler._apply_canvas_resize(1920, 1080)
+
+    canvas_vue.set_canvas_size.assert_called_once_with(1920, 1080)
+    zoom_container.set_canvas_size.assert_called_once_with(1920, 1080)
+
+
 def test_on_validated_no_resize_when_canvas_size_none(handler):
     with patch.object(handler, "_apply_canvas_resize") as mock_resize:
         result = ValidationResult(

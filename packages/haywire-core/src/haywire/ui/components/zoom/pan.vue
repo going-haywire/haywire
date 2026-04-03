@@ -9,6 +9,7 @@
     }"
     tabindex="0"
     @wheel.prevent="handleWheel"
+    @contextmenu="handleContextMenu"
   >
     <div
       ref="content"
@@ -124,6 +125,26 @@ export default {
       this.$el.removeEventListener('mousedown', this._invalidateRectCache);
       document.removeEventListener('mouseup', this._invalidateRectCache);
       window.removeEventListener('resize', this._invalidateRectCache);
+    },
+
+    handleContextMenu(event) {
+      const isCanvasTarget = event.target.closest('[data-graph_canvas="true"], .graph-canvas');
+      if (isCanvasTarget) {
+        return;
+      }
+
+      const insideContent = this.$refs.content && this.$refs.content.contains(event.target);
+      if (!insideContent && event.target !== this.$el) {
+        return;
+      }
+
+      const graphCanvas = this.$el.querySelector('[data-graph_canvas="true"], .graph-canvas');
+      const controls = graphCanvas && graphCanvas._graphCanvasControls;
+      if (!controls || typeof controls.handleContextMenu !== 'function') {
+        return;
+      }
+
+      controls.handleContextMenu(event);
     },
     
     handleWheel(e) {

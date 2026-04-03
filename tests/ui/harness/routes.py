@@ -18,6 +18,8 @@ from fastapi.responses import JSONResponse
 from nicegui import app as nicegui_app
 from nicegui import ui
 
+from haywire.ui.components.graph.canvas import GraphCanvasVue
+from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.panel.render_utils import render_settings, render_schema
 from haywire.core.settings.enums import FieldMode
 
@@ -111,6 +113,39 @@ def register_routes(library_service) -> None:
                 render_schema(schema_cls, registry)
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
+
+    # -------------------------------------------------------------------------
+    # GET /graph-context-menu
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-context-menu")
+    async def graph_context_menu_page():
+        last_event = ui.label("none").props('id="last-event" data-testid="last-event"')
+        last_coords = ui.label("-").props('id="last-coords" data-testid="last-coords"')
+
+        def on_canvas_event(event) -> None:
+            event_type = getattr(event, "event_type", event.__class__.event_type)
+            canvas_x = getattr(event, "canvasX", None)
+            canvas_y = getattr(event, "canvasY", None)
+            last_event.set_text(event_type)
+            last_coords.set_text(f"{canvas_x},{canvas_y}")
+
+        with ui.element("div").style(
+            "width: 800px; height: 600px; position: relative; border: 1px solid #666;"
+        ):
+            zoom = ZoomPanContainer(initial_zoom=1.0)
+            zoom.props('data-testid="zoom-pan-test"')
+            zoom.style("width: 100%; height: 100%; display: block;")
+            zoom.set_canvas_size(400, 400)
+
+            with zoom.content_container:
+                canvas = GraphCanvasVue(
+                    on_canvas_event=on_canvas_event,
+                    zoom_container=zoom,
+                    canvas_width=400,
+                    canvas_height=400,
+                )
+                canvas.props('data-testid="graph-canvas-test"')
 
     # -------------------------------------------------------------------------
     # POST /api/set?key=<key>&value=<value>

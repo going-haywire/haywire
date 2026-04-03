@@ -142,7 +142,8 @@ export default {
 
         // Expose API to parent/Python
         this.$el._graphCanvasControls = {
-            handleSyncEvent: this.handleSyncEvent
+            handleSyncEvent: this.handleSyncEvent,
+            handleContextMenu: this.handleContextMenu
         };
     },
 

@@ -175,10 +175,13 @@ class VisualLayerHandlers:
     # -------------------------------------------------------------------------
 
     def _apply_canvas_resize(self, width: int, height: int) -> None:
-        """Push new canvas dimensions to canvas_vue."""
+        """Push new canvas dimensions to canvas_vue and its zoom viewport."""
         logger.debug(f"🖼️ Canvas resize → {width}×{height}")
         if self.canvas_vue:
             self.canvas_vue.set_canvas_size(width, height)
+            zoom_container = getattr(self.canvas_vue, "zoom_container", None)
+            if zoom_container:
+                zoom_container.set_canvas_size(width, height)
 
     # -------------------------------------------------------------------------
     # Node visual management
