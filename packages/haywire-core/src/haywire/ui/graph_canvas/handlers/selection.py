@@ -7,7 +7,7 @@ Owns: selected_nodes, selected_edges, clipboard.
 import logging
 import time
 import traceback
-from typing import Callable, Optional, Set, TYPE_CHECKING
+from typing import Optional, Set, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -18,10 +18,12 @@ from ..event_definitions import (
 )
 from ..event_handlers import handles_event
 from haywire.core.undo.actions.graph_actions import ClipboardData
+from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
     from haywire.core.graph.base import BaseGraph
+    from haywire.ui.session import Session
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +41,12 @@ class SelectionHandlers:
         graph: "BaseGraph",
         editor: "Editor",
         session_id: str,
-        on_selection_changed: Optional[Callable[[Set[str], Set[str]], None]],
+        session: Optional["Session"] = None,
     ):
         self.graph = graph
         self.editor = editor
         self.session_id = session_id
-        self._on_selection_changed = on_selection_changed
+        self._session = session
 
         self.selected_nodes: Set[str] = set()
         self.selected_edges: Set[str] = set()
@@ -52,15 +54,35 @@ class SelectionHandlers:
 
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
-        """Update local selection state and notify session."""
+        """Update local selection state and write through to SessionContext."""
         logger.debug(
             f"Selection changed: nodes={event.selectedNodes}, connections={event.selectedEdges}"
         )
         self.selected_nodes = set(event.selectedNodes)
         self.selected_edges = set(event.selectedEdges)
 
-        if self._on_selection_changed is not None:
-            self._on_selection_changed(self.selected_nodes, self.selected_edges)
+        if self._session is None:
+            return
+
+        ctx = self._session.context
+        ctx.selected_nodes = self.selected_nodes
+        ctx.selected_edges = self.selected_edges
+
+        ctx.active_node = (
+            self.graph.get_node_wrapper(next(iter(self.selected_nodes)))
+            if self.selected_nodes else None
+        )
+        ctx.active_edge = (
+            self.graph.get_edge_wrapper(next(iter(self.selected_edges)))
+            if self.selected_edges else None
+        )
+
+        self._session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.SELECTION_CHANGED,
+                source_editor="graph_editor",
+            )
+        )
 
     @handles_event(UserCopySelectedEvent)
     def process_copy_selection(self, event: UserCopySelectedEvent):

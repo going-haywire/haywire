@@ -76,6 +76,7 @@ class SessionContext:
     active_graph_path: Optional[Any] = None  # Path to the currently active .haywire file
     active_workbench_theme_key: Optional[str] = None  # set by host app after session creation
     active_node_theme_key: Optional[str] = None  # set by host app after session creation
+    context_menu_trigger: Optional[str] = None  # 'canvas' | 'node' | 'edge' | 'selection' | None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     # ------------------------------------------------------------------

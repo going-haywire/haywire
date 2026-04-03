@@ -11,7 +11,6 @@ A slim header inside the tab panel shows the open file name and a Save button.
 
 import logging
 
-logger = logging.getLogger(__name__)
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
     from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
 
+logger = logging.getLogger(__name__)
 
 @editor(
     registry_id="graph_editor",
@@ -159,8 +159,8 @@ class GraphEditor(BaseEditor):
             editor=entry.editor,
             skin_factory=app.skin_factory,
             node_factory=app.node_factory,
-            session_id=context.session_id[:8],
-            on_selection_changed=self._handle_selection_changed,
+            panel_registry=app.panel_registry,
+            session=context.session,
         )
         self._canvas_manager.sync_with_graph()
 
@@ -189,56 +189,6 @@ class GraphEditor(BaseEditor):
         return None
 
     # ------------------------------------------------------------------
-    # selection → context bridge
-    # ------------------------------------------------------------------
-
-    def _handle_selection_changed(self, selected_node_ids: set, selected_edge_ids: set) -> None:
-        """Translate canvas selection into SessionContext and fire SELECTION_CHANGED."""
-        if self._context is None:
-            return
-
-        entry = self._get_entry(self._context)
-        graph = entry.editor.graph if entry is not None else None
-
-        active_node = None
-        if selected_node_ids and graph is not None:
-            active_node = graph.get_node_wrapper(next(iter(selected_node_ids)))
-
-        active_edge = None
-        if selected_edge_ids and graph is not None:
-            active_edge = graph.get_edge_wrapper(next(iter(selected_edge_ids)))
-
-        self._context.active_node = active_node
-        self._context.active_edge = active_edge
-        self._context.selected_nodes = selected_node_ids
-        self._context.selected_edges = selected_edge_ids
-
-        session = self._context.session
-        if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.SELECTION_CHANGED,
-                    source_editor="graph_editor",
-                )
-            )
-
-    def _clear_selection_context(self) -> None:
-        """Reset selection fields and notify session (e.g. on graph switch)."""
-        if self._context is None:
-            return
-        self._context.active_node = None
-        self._context.active_edge = None
-        self._context.selected_nodes = set()
-        self._context.selected_edges = set()
-        session = self._context.session
-        if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.SELECTION_CHANGED,
-                    source_editor="graph_editor",
-                )
-            )
-
     # ------------------------------------------------------------------
     # header
     # ------------------------------------------------------------------
@@ -316,7 +266,18 @@ class GraphEditor(BaseEditor):
             return
 
         # Clear selection so PropertiesEditor resets to the graph panel
-        self._clear_selection_context()
+        context.active_node = None
+        context.active_edge = None
+        context.selected_nodes = set()
+        context.selected_edges = set()
+        session = context.session
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.SELECTION_CHANGED,
+                    source_editor="graph_editor",
+                )
+            )
 
         # Clean up existing canvas manager
         if self._canvas_manager:

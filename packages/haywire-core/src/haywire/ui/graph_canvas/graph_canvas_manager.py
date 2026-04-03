@@ -8,7 +8,6 @@ been moved into focused handler classes under handlers/.
 import logging
 import traceback
 from typing import Callable, Dict, Optional, Set
-
 from nicegui import ui
 
 from haywire.core.graph.editor import Editor
@@ -17,14 +16,13 @@ from ..components.zoom.pan import ZoomPanContainer
 from ..components.graph.canvas import GraphCanvasVue
 from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from .event_handlers import build_event_handler_map
-from .popup_context_menu import PopupContextMenu
 from .handlers.interaction import InteractionHandlers
 from .handlers.selection import SelectionHandlers
 from .handlers.visual_layer import VisualLayerHandlers
-from .handlers.context_menu import ContextMenuHandlers, PopupContextMenuProvider
+from .handlers.context_menu import ContextMenuHandlers, SessionContextMenuProvider
+from ..session import Session
 
 logger = logging.getLogger(__name__)
-
 
 class GraphCanvasManager:
     """
@@ -48,19 +46,20 @@ class GraphCanvasManager:
         editor: Editor,
         skin_factory,
         node_factory,
-        session_id: Optional[str] = None,
-        on_selection_changed: Optional[Callable] = None,
+        panel_registry,
+        session: "Session"
     ):
         self.editor = editor
         self.skin_factory = skin_factory
         self.node_factory = node_factory
-        self.session_id = session_id or "default"
+        self._panel_registry = panel_registry
+        self._session = session
+        self.session_id = session.session_id[:8]
 
         self.graph = editor.graph
 
         # Vue component references (set by _setup_canvas)
         self.canvas_vue: Optional[GraphCanvasVue] = None
-        self.context_menu: Optional[PopupContextMenu] = None
         self.zoom_container: Optional[ZoomPanContainer] = None
 
         self._setup_canvas()
@@ -76,12 +75,20 @@ class GraphCanvasManager:
             graph=self.graph,
             editor=self.editor,
             session_id=self.session_id,
-            on_selection_changed=on_selection_changed,
+            session=self._session,
         )
         self.interactions = InteractionHandlers(editor=self.editor)
+
+        context_menu_provider = SessionContextMenuProvider(
+            context=self._session.context,
+            session=self._session,
+            panel_registry=self._panel_registry,
+            on_emit_event=self._handle_canvas_event,
+        )
+
         self.context_menu_handlers = ContextMenuHandlers(
             visual_layer=self.visual_layer,
-            provider=PopupContextMenuProvider(self.context_menu),
+            provider=context_menu_provider,
         )
 
         # Build dispatch map from all handler sources
@@ -104,7 +111,7 @@ class GraphCanvasManager:
     # =========================================================================
 
     def _setup_canvas(self):
-        """Create zoom container, Vue canvas component, and context menu."""
+        """Create zoom container and Vue canvas component."""
         self.zoom_container = (
             ZoomPanContainer()
             .classes("w-full flex-grow border-2 border-gray-300")
@@ -117,11 +124,6 @@ class GraphCanvasManager:
                 on_canvas_event=self._handle_canvas_event,
                 canvas_width=self.graph.canvas_width,
                 canvas_height=self.graph.canvas_height,
-            )
-            self.context_menu = PopupContextMenu(
-                node_factory=self.node_factory,
-                on_emit_event=self._handle_canvas_event,
-                clipboard_checker=self._has_clipboard_content,
             )
 
     def _validate_handler_coverage(self):

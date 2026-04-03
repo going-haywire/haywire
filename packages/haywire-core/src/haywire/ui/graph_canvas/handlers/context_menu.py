@@ -1,19 +1,21 @@
 """
-ContextMenuHandlers and IContextMenuProvider.
+ContextMenuHandlers, IContextMenuProvider, and SessionContextMenuProvider.
 
 ContextMenuHandlers translates canvas context-menu events into provider intent
-calls.  The provider decides how to surface the menu — today that is
-PopupContextMenuProvider (wrapping PopupContextMenu); in future it will be a
-session-context-driven implementation that allows libraries to contribute panels.
+calls.  The provider decides how to surface the menu.
 
 Design:
 - IContextMenuProvider defines *intent* methods, not imperative "show" calls.
-- PopupContextMenuProvider wraps PopupContextMenu and implements the protocol.
-- ContextMenuHandlers never imports PopupContextMenu directly.
+- SessionContextMenuProvider is the panel-driven implementation: it updates
+  SessionContext, fires CONTEXT_MENU_OPENED, queries PanelRegistry for
+  registered panels (editor='context_menu', scope=trigger), and draws
+  those that pass poll() into a Popup.
+- ContextMenuHandlers accepts any IContextMenuProvider and never imports
+  concrete implementations directly.
 """
 
 import logging
-from typing import Any, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Optional, Tuple, TYPE_CHECKING
 
 from ..event_definitions import (
     ContextMenuCanvasEvent,
@@ -22,9 +24,15 @@ from ..event_definitions import (
     ContextMenuSelectedEvent,
 )
 from ..event_handlers import handles_event
+from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.panel.base import PanelLayout
+from haywire.ui.graph_canvas.popup import Popup
 
 if TYPE_CHECKING:
     from haywire.ui.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+    from haywire.ui.context import SessionContext
+    from haywire.ui.session import Session
+    from haywire.ui.panel.registry import PanelRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -80,31 +88,92 @@ class IContextMenuProvider:
 
 
 # ---------------------------------------------------------------------------
-# Adapter: PopupContextMenu → IContextMenuProvider
+# Session-context-driven provider
 # ---------------------------------------------------------------------------
 
 
-class PopupContextMenuProvider(IContextMenuProvider):
+class SessionContextMenuProvider(IContextMenuProvider):
     """
-    Adapter that wraps the existing PopupContextMenu behind IContextMenuProvider.
+    Panel-driven IContextMenuProvider implementation.
 
-    This keeps ContextMenuHandlers decoupled from the NiceGUI popup implementation.
+    On each intent call this provider:
+    1. Updates SessionContext (active_node/edge, context_menu_trigger).
+    2. Fires CONTEXT_MENU_OPENED via session.notify_context_changed.
+    3. Queries PanelRegistry for panels with editor='context_menu' and the
+       matching scope, filters by poll(), and draws matching panels into a
+       Popup produced by popup_factory.
+    4. Registers a close callback that clears context_menu_trigger and fires
+       CONTEXT_MENU_CLOSED.
     """
 
-    def __init__(self, popup_context_menu):
-        self._menu = popup_context_menu
+    def __init__(
+        self,
+        context: "SessionContext",
+        session: "Session",
+        panel_registry: "PanelRegistry",
+        on_emit_event: Optional[Callable] = None,
+    ):
+        self._context = context
+        self._session = session
+        self._panel_registry = panel_registry
+        self._on_emit_event = on_emit_event
+
+    def _open_menu(
+        self,
+        trigger: str,
+        pos: Tuple[float, float],
+    ) -> None:
+        """Common logic: set trigger, fire OPENED, build popup, draw panels, register close."""
+        self._context.context_menu_trigger = trigger
+
+        self._session.notify_context_changed(
+            ContextChangedEvent(change_type=ContextChangeType.CONTEXT_MENU_OPENED)
+        )
+
+        popup = Popup(position_x=pos[0], position_y=pos[1], backdrop_click_close=True)
+
+        def _emit_and_close(event):
+            popup.close()
+            if self._on_emit_event:
+                self._on_emit_event(event)
+
+        self._context.metadata["on_emit_event"] = _emit_and_close
+
+        def _on_close():
+            self._context.context_menu_trigger = None
+            self._context.metadata.pop("on_emit_event", None)
+            self._context.metadata.pop("edge_state", None)
+            self._context.metadata.pop("context_menu_screen_pos", None)
+            self._session.notify_context_changed(
+                ContextChangedEvent(change_type=ContextChangeType.CONTEXT_MENU_CLOSED)
+            )
+
+        popup.on_close(_on_close)
+
+        # Query panels matching editor/scope, filter by poll(), and draw into popup
+        panel_classes = self._panel_registry.get_panels("context_menu", trigger)
+        visible = [cls for cls in panel_classes if cls.poll(self._context)]
+        if visible:
+            with popup as container:
+                layout = PanelLayout(container)
+                for cls in visible:
+                    cls().draw(self._context, layout)
+            popup.open()
 
     def on_canvas_context(self, pos, canvas_pos):
-        self._menu.show_canvas_menu(pos[0], pos[1], canvas_pos[0], canvas_pos[1])
+        self._context.metadata["canvas_position"] = {"x": canvas_pos[0], "y": canvas_pos[1]}
+        self._open_menu("canvas", pos)
 
     def on_node_context(self, pos, node_id):
-        self._menu.show_node_menu(pos[0], pos[1], node_id)
+        self._open_menu("node", pos)
 
     def on_edge_context(self, pos, edge_id, edge, state):
-        self._menu.show_edge_menu(pos[0], pos[1], edge_id, edge, state)
+        self._context.metadata["edge_state"] = state
+        self._context.metadata["context_menu_screen_pos"] = pos
+        self._open_menu("edge", pos)
 
     def on_selection_context(self, pos, nodes, edges):
-        self._menu.show_selected_menu(pos[0], pos[1], nodes, edges)
+        self._open_menu("selection", pos)
 
 
 # ---------------------------------------------------------------------------

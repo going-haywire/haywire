@@ -32,7 +32,7 @@ def handler(graph):
         graph=graph,
         editor=MagicMock(),
         session_id="test-session",
-        on_selection_changed=None,
+        session=None,
     )
 
 
@@ -81,18 +81,24 @@ def test_selection_changed_replaces_previous(handler):
     assert handler.selected_edges == {"e1"}
 
 
-def test_selection_changed_calls_callback():
-    callback = MagicMock()
+def test_selection_changed_notifies_session():
+    session = MagicMock()
+    session.context = MagicMock()
+    graph = MagicMock()
+    graph.get_node_wrapper.return_value = MagicMock()
+    graph.get_edge_wrapper.return_value = MagicMock()
     handler = SelectionHandlers(
-        graph=MagicMock(),
+        graph=graph,
         editor=MagicMock(),
         session_id="s",
-        on_selection_changed=callback,
+        session=session,
     )
     handler.process_selection_change(
         SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"])
     )
-    callback.assert_called_once_with({"n1"}, {"e1"})
+    session.notify_context_changed.assert_called_once()
+    assert session.context.selected_nodes == {"n1"}
+    assert session.context.selected_edges == {"e1"}
 
 
 def test_selection_changed_no_callback_does_not_raise(handler):

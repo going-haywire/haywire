@@ -148,6 +148,7 @@ class HaywireApp:
         self.node_factory = self.library_service.get_node_factory()
         self.skin_factory = self.library_service.get_skin_factory()
         self.adapter_factory = self.library_service.get_adapter_factory()
+        self.panel_registry = self.library_service.get_panel_registry()
 
         # Interpreter
         self.interpreter = Interpreter()

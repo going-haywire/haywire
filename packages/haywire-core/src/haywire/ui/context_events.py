@@ -24,6 +24,8 @@ class ContextChangeType(Enum):
     ACTIVE_COMPONENT_CHANGED = auto()  # component (node/widget/renderer) selected in LibraryBrowser
     FILE_SELECTED = auto()  # file selected in FileBrowserEditor
     WORKBENCH_THEME_CHANGED = auto()  # active workbench theme switched
+    CONTEXT_MENU_OPENED = auto()  # context menu popup was opened
+    CONTEXT_MENU_CLOSED = auto()  # context menu popup was closed
     CUSTOM = auto()  # extensible
 
 
