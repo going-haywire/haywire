@@ -7,6 +7,7 @@ Contributed to editor='context_menu', scope='edge'.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from nicegui import ui
 
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -28,67 +29,11 @@ def _state(context: "SessionContext") -> "EdgeWrapperState | None":
 
 
 @panel(
-    registry_id="context_menu_delete_edge",
-    editors="context_menu",
-    scopes="edge",
-    label="Delete Connection",
-    icon="delete",
-    order=10,
-)
-class DeleteEdgePanel(BasePanel):
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return context.active_edge is not None
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.graph_canvas.event_definitions import UserRemoveEvent
-        edge_id = context.active_edge.edge_id
-
-        def _delete():
-            _emit(context, UserRemoveEvent(nodes=[], edges=[edge_id]))
-
-        layout.button("🗑 Delete Connection", on_click=_delete)
-
-
-@panel(
-    registry_id="context_menu_inspect_edge",
-    editors="context_menu",
-    scopes="edge",
-    label="Inspect Connection",
-    icon="info",
-    order=20,
-)
-class InspectEdgePanel(BasePanel):
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return context.active_edge is not None
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.graph_canvas.connection_info_popup import EdgeInfoPopup
-
-        edge_wrapper = context.active_edge
-        pos = context.metadata.get("context_menu_screen_pos", (100, 100))
-
-        def _inspect():
-            popup = EdgeInfoPopup()
-            popup.show(
-                x=pos[0],
-                y=pos[1],
-                edge_id=edge_wrapper.edge_id,
-                edge=edge_wrapper.edge,
-                state=edge_wrapper.get_state(),
-            )
-
-        layout.button("🔍 Inspect Connection", on_click=_inspect)
-
-
-@panel(
-    registry_id="context_menu_edge_errors",
-    editors="context_menu",
+    editors=["context_menu","properties"],
     scopes="edge",
     label="Connection Errors",
     icon="error",
-    order=0,
+    order=10,
 )
 class EdgeErrorsPanel(BasePanel):
     @classmethod
@@ -122,44 +67,13 @@ class EdgeErrorsPanel(BasePanel):
                     )
 
 
-@panel(
-    registry_id="context_menu_edge_connection_path",
-    editors="context_menu",
-    scopes="edge",
-    label="Connection Path",
-    icon="route",
-    order=15,
-)
-class EdgeConnectionPathPanel(BasePanel):
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        wrapper = context.active_edge
-        return wrapper is not None and wrapper.edge is not None
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from nicegui import ui
-
-        edge = context.active_edge.edge
-
-        with layout._container:
-            with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("Connection Path").classes("font-semibold text-sm")
-                ui.label(
-                    f"{edge.source_node_id} [{edge.outlet_port_id}]"
-                ).classes("text-xs opacity-70")
-                ui.label("↓").classes("text-xs opacity-50 ml-2")
-                ui.label(
-                    f"{edge.sink_node_id} [{edge.inlet_port_id}]"
-                ).classes("text-xs opacity-70")
-
 
 @panel(
-    registry_id="context_menu_edge_warnings",
-    editors="context_menu",
+    editors=["context_menu","properties"],
     scopes="edge",
     label="Connection Warnings",
     icon="warning",
-    order=5,
+    order=20,
 )
 class EdgeWarningsPanel(BasePanel):
     @classmethod
@@ -181,4 +95,90 @@ class EdgeWarningsPanel(BasePanel):
                     ui.label(f"• {warning}").classes(
                         "text-orange-400 text-xs whitespace-pre-wrap break-words ml-1"
                     )
+
+
+@panel(
+    editors=["context_menu"],
+    scopes="edge",
+    label="Delete Connection",
+    icon="delete",
+    order=30,
+)
+class DeleteEdgePanel(BasePanel):
+    @classmethod
+    def poll(cls, context: "SessionContext") -> bool:
+        return context.active_edge is not None
+
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
+        from haywire.ui.graph_canvas.event_definitions import UserRemoveEvent
+        edge_id = context.active_edge.edge_id
+
+        def _delete():
+            _emit(context, UserRemoveEvent(nodes=[], edges=[edge_id]))
+
+        layout.button("🗑 Delete Connection", on_click=_delete)
+
+
+
+@panel(
+    editors=["properties"],
+    scopes="edge",
+    label="Execution Statistics",
+    icon="linear_scale",
+    default_open=False,
+    order=40,
+)
+class ExecutionStatisticsEdgePanel(BasePanel):
+    @classmethod
+    def poll(cls, context: "SessionContext") -> bool:
+        return context.active_edge is not None
+
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
+        edge_wrapper = context.active_edge
+        state = edge_wrapper.get_state()
+        with ui.card().classes("w-full p-3").style(
+            "background: var(--hw-bg-surface); border: 1px solid var(--hw-border);"
+        ):
+            ui.label(f"Execution Count: {state.execution_count}").classes(
+                "text-xs hw-text-body"
+            )
+            avg_time = state.average_execution_time_us
+            if avg_time > 0:
+                ui.label(f"Average Time: {avg_time:.1f} μs").classes(
+                    "text-xs hw-text-body"
+                )
+            else:
+                ui.label("Average Time: Not measured").classes("text-xs hw-text-dim")
+            ui.label(f"Tested value: {state.example_test_value}").classes(
+                "text-xs hw-text-muted ml-2"
+            )
+            ui.label(f"Tested result: {state.example_test_result}").classes(
+                "text-xs hw-text-muted ml-2"
+            )
+
+
+@panel(
+    editors=["properties"],
+    scopes="edge",
+    label="Connection Path",
+    icon="linear_scale",
+    default_open=False,
+    order=50,
+)
+class ConnectionPathEdgePanel(BasePanel):
+    @classmethod
+    def poll(cls, context: "SessionContext") -> bool:
+        return context.active_edge is not None
+
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
+        edge_wrapper = context.active_edge
+        with ui.card().classes("w-full p-3").style(
+            "background: var(--hw-bg-surface); border: 1px solid var(--hw-border);"
+        ):
+            ui.label(f"{edge_wrapper.source_node_id}[{edge_wrapper.outlet_port_id}]").classes(
+                "text-xs hw-text-body ml-2"
+            )
+            ui.label(f"{edge_wrapper.sink_node_id}[{edge_wrapper.inlet_port_id}]").classes(
+                "text-xs hw-text-body ml-2 mt-1"
+            )
 

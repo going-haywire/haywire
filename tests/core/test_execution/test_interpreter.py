@@ -26,7 +26,7 @@ class TestInterpreter:
         Returns:
             The populated graph
         """
-        from haybale_core.nodes.begin_play import BeginPlayNode
+        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
         from haybale_testing.nodes.utils.print_node import PrintMessageNode
 
         begin_play = graph.create_node_wrapper(
@@ -51,9 +51,9 @@ class TestInterpreter:
         Returns:
             The populated graph
         """
-        from haybale_core.nodes.begin_play import BeginPlayNode
+        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
         from haybale_testing.nodes.utils.print_node import PrintMessageNode
-        from haybale_example.nodes.math_op import MathOP
+        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode as MathOP
 
         begin_play = graph.create_node_wrapper(
             BeginPlayNode.class_identity.registry_key, position=(100, 100)
@@ -128,9 +128,9 @@ class TestInterpreter:
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
         """Test callback flow: BeginPlay → EmitCallback, CustomCallback → Print"""
-        from haybale_core.nodes.begin_play import BeginPlayNode
-        from haybale_core.nodes.emit_callback import EmitCallbackNode
-        from haybale_core.nodes.custom_callback import CustomCallbackNode
+        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
+        from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode as EmitCallbackNode
+        from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode as CustomCallbackNode
         from haybale_testing.nodes.utils.print_node import PrintMessageNode
 
         graph = graph_with_library_system

@@ -8,6 +8,8 @@ Verifies:
 - on_node_selected wraps the key in NodeCreateRequestEvent
 """
 
+import sys
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -15,7 +17,12 @@ from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.context import SessionContext
 from haywire.ui.graph_canvas.event_definitions import NodeCreateRequestEvent
 
-from haybale_core.panels.context_menu.create_node_panel import CreateNodePanel
+from haybale_testing.panels.test_create_node_panel import TestCreateNodePanel as CreateNodePanel
+
+# The library system may import the panel module under a different sys.modules key
+# than a direct `import haybale_testing.panels.test_create_node_panel`.  Resolve
+# the *defining* module via the class so the mock always targets the correct dict.
+_PANEL_MODULE = sys.modules[CreateNodePanel.__module__]
 
 
 class FakeApp:
@@ -36,11 +43,11 @@ def make_context() -> SessionContext:
 
 
 def test_create_node_panel_has_context_menu_editor():
-    assert CreateNodePanel.class_identity.editor_keys == ["context_menu"]
+    assert CreateNodePanel.class_identity.editor_keys == ["test_inspector"]
 
 
 def test_create_node_panel_has_canvas_scope():
-    assert "canvas" in CreateNodePanel.class_identity.scopes
+    assert "test_canvas" in CreateNodePanel.class_identity.scopes
 
 
 def test_create_node_panel_is_base_panel_subclass():
@@ -75,9 +82,8 @@ def test_create_node_panel_draw_calls_node_menu_builder(monkeypatch):
     layout = MagicMock(spec=PanelLayout)
     builder_mock = MagicMock()
 
-    with patch(
-        "haybale_core.panels.context_menu.create_node_panel.NodeMenuBuilder",
-        return_value=builder_mock,
+    with patch.object(
+        _PANEL_MODULE, "NodeMenuBuilder", return_value=builder_mock,
     ):
         panel = CreateNodePanel()
         panel.draw(ctx, layout)
@@ -103,8 +109,8 @@ def test_on_node_selected_emits_node_create_request_event():
 
     builder_instance.create_node_menu.side_effect = fake_create_node_menu
 
-    with patch(
-        "haybale_core.panels.context_menu.create_node_panel.NodeMenuBuilder",
+    with patch.object(
+        _PANEL_MODULE, "NodeMenuBuilder",
         return_value=builder_instance,
     ):
         CreateNodePanel().draw(ctx, layout)

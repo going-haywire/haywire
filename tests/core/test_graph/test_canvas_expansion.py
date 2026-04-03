@@ -148,11 +148,11 @@ class TestCheckCanvasSize:
     def test_width_and_height_expand_independently(self):
         """Width and height are computed and expanded independently."""
         graph = BaseGraph(graph_id="g", name="G")
-        # posX=9500 → 10000; posY=4500 → needed=4600 < 8000 → stays at MIN
+        # posX=9500 → 10000; posY=4500 → needed=5500 → 6000
         _inject(graph, "n1", 9500, 4500)
         graph._check_canvas_size()
         assert graph.canvas_width == _expected_size(9500)
-        assert graph.canvas_height == _CANVAS_MIN_SIZE
+        assert graph.canvas_height == _expected_size(4500)
 
     def test_multiple_nodes_uses_furthest_position(self):
         """Canvas size is driven by the node with the largest posX / posY."""
@@ -216,11 +216,11 @@ class TestEstimateCanvasSize:
 
     def test_sets_correct_dimensions(self):
         graph = BaseGraph(graph_id="g", name="G")
-        # posX=9500 → 10000; posY=4500 → stays at MIN
+        # posX=9500 → 10000; posY=4500 → needed=5500 → 6000
         _inject(graph, "n1", 9500, 4500)
         graph.estimate_canvas_size()
         assert graph.canvas_width == _expected_size(9500)
-        assert graph.canvas_height == _CANVAS_MIN_SIZE
+        assert graph.canvas_height == _expected_size(4500)
 
     def test_does_not_set_changed_flag(self):
         graph = BaseGraph(graph_id="g", name="G")

@@ -13,6 +13,7 @@ from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.types.registry import TypeRegistry
 
+from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.widget.registry import WidgetRegistry
@@ -63,6 +64,9 @@ class Library(BaseLibrary):
 
         # Register nodes
         self.add_folder_to_registry(folder_path=str(base_path / "nodes"), registry_cls=NodeRegistry)
+
+        # Register panels
+        self.add_folder_to_registry(folder_path=str(base_path / "panels"), registry_cls=PanelRegistry)
 
     def validate(self) -> bool:
         """Validate that the test library is properly structured"""

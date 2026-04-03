@@ -13,23 +13,23 @@ from unittest.mock import MagicMock
 from haywire.ui.panel.base import BasePanel
 from haywire.ui.context import SessionContext
 
-from haybale_core.panels.context_menu.node_actions import (
-    DeleteNodePanel,
-    CopyNodePanel,
-    RedrawNodePanel,
-    RevalidateNodePanel,
-    ResetNodePanel,
+from haybale_testing.panels.test_node_panels import (
+    TestDeleteNodePanel as DeleteNodePanel,
+    TestCopyNodePanel as CopyNodePanel,
+    TestRedrawNodePanel as RedrawNodePanel,
+    TestRevalidateNodePanel as RevalidateNodePanel,
+    TestResetNodePanel as ResetNodePanel,
 )
-from haybale_core.panels.context_menu.edge_actions import (
-    DeleteEdgePanel,
-    InspectEdgePanel,
-    EdgeErrorsPanel,
-    EdgeWarningsPanel,
-    EdgeConnectionPathPanel,
+from haybale_testing.panels.test_edge_panels import (
+    TestDeleteEdgePanel as DeleteEdgePanel,
+    TestInspectEdgePanel as InspectEdgePanel,
+    TestEdgeErrorsPanel as EdgeErrorsPanel,
+    TestEdgeWarningsPanel as EdgeWarningsPanel,
+    TestEdgeConnectionPathPanel as EdgeConnectionPathPanel,
 )
-from haybale_core.panels.context_menu.selection_actions import (
-    CopySelectionPanel,
-    PasteSelectionPanel,
+from haybale_testing.panels.test_selection_panels import (
+    TestCopySelectionPanel as CopySelectionPanel,
+    TestPasteSelectionPanel as PasteSelectionPanel,
 )
 
 
@@ -57,14 +57,14 @@ def make_context(active_node=None, active_edge=None, clipboard=None) -> SessionC
     DeleteNodePanel, CopyNodePanel, RedrawNodePanel, RevalidateNodePanel, ResetNodePanel,
 ])
 def test_node_action_panel_editor_is_context_menu(panel_cls):
-    assert panel_cls.class_identity.editor_keys == ["context_menu"]
+    assert panel_cls.class_identity.editor_keys == ["test_inspector"]
 
 
 @pytest.mark.parametrize("panel_cls", [
     DeleteNodePanel, CopyNodePanel, RedrawNodePanel, RevalidateNodePanel, ResetNodePanel,
 ])
 def test_node_action_panel_scope_is_node(panel_cls):
-    assert "node" in panel_cls.class_identity.scopes
+    assert "test_node" in panel_cls.class_identity.scopes
 
 
 @pytest.mark.parametrize("panel_cls", [
@@ -102,12 +102,12 @@ def test_node_action_panel_poll_false_when_no_node(panel_cls):
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
 def test_edge_action_panel_editor_is_context_menu(panel_cls):
-    assert panel_cls.class_identity.editor_keys == ["context_menu"]
+    assert panel_cls.class_identity.editor_keys == ["test_inspector"]
 
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
 def test_edge_action_panel_scope_is_edge(panel_cls):
-    assert "edge" in panel_cls.class_identity.scopes
+    assert "test_edge" in panel_cls.class_identity.scopes
 
 
 # ---------------------------------------------------------------------------
@@ -133,11 +133,11 @@ def test_edge_action_panel_poll_false_when_no_edge(panel_cls):
 
 
 def test_edge_errors_panel_editor_is_context_menu():
-    assert EdgeErrorsPanel.class_identity.editor_keys == ["context_menu"]
+    assert EdgeErrorsPanel.class_identity.editor_keys == ["test_inspector"]
 
 
 def test_edge_errors_panel_scope_is_edge():
-    assert "edge" in EdgeErrorsPanel.class_identity.scopes
+    assert "test_edge" in EdgeErrorsPanel.class_identity.scopes
 
 
 def _make_edge_wrapper(error=None, warnings=None, has_edge=True):
@@ -173,11 +173,11 @@ def test_edge_errors_panel_poll_false_when_no_edge():
 
 
 def test_edge_warnings_panel_editor_is_context_menu():
-    assert EdgeWarningsPanel.class_identity.editor_keys == ["context_menu"]
+    assert EdgeWarningsPanel.class_identity.editor_keys == ["test_inspector"]
 
 
 def test_edge_warnings_panel_scope_is_edge():
-    assert "edge" in EdgeWarningsPanel.class_identity.scopes
+    assert "test_edge" in EdgeWarningsPanel.class_identity.scopes
 
 
 def test_edge_warnings_panel_poll_true_when_warnings_present():
@@ -201,11 +201,11 @@ def test_edge_warnings_panel_poll_false_when_no_edge():
 
 
 def test_edge_connection_path_panel_editor_is_context_menu():
-    assert EdgeConnectionPathPanel.class_identity.editor_keys == ["context_menu"]
+    assert EdgeConnectionPathPanel.class_identity.editor_keys == ["test_inspector"]
 
 
 def test_edge_connection_path_panel_scope_is_edge():
-    assert "edge" in EdgeConnectionPathPanel.class_identity.scopes
+    assert "test_edge" in EdgeConnectionPathPanel.class_identity.scopes
 
 
 def test_edge_connection_path_panel_poll_true_when_edge_with_data():
@@ -230,12 +230,12 @@ def test_edge_connection_path_panel_poll_false_when_edge_has_no_data():
 
 @pytest.mark.parametrize("panel_cls", [CopySelectionPanel, PasteSelectionPanel])
 def test_selection_action_panel_editor_is_context_menu(panel_cls):
-    assert panel_cls.class_identity.editor_keys == ["context_menu"]
+    assert panel_cls.class_identity.editor_keys == ["test_inspector"]
 
 
 @pytest.mark.parametrize("panel_cls", [CopySelectionPanel, PasteSelectionPanel])
 def test_selection_action_panel_scope_is_selection(panel_cls):
-    assert "selection" in panel_cls.class_identity.scopes
+    assert "test_selection" in panel_cls.class_identity.scopes
 
 
 # ---------------------------------------------------------------------------

@@ -730,11 +730,15 @@ name = "haybale-testing"
 version = "0.1.0"
 source = { editable = "barn/haybale-testing" }
 dependencies = [
+    { name = "haybale-core" },
     { name = "haywire-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
+requires-dist = [
+    { name = "haybale-core", editable = "barn/haybale-core" },
+    { name = "haywire-core", editable = "packages/haywire-core" },
+]
 
 [[package]]
 name = "haybale-visiongraph"
