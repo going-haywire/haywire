@@ -22,7 +22,6 @@ def _emit(context: "SessionContext", event):
 
 
 @panel(
-    registry_id="context_menu_copy_selection",
     editors="context_menu",
     scopes="selection",
     label="Copy Selection",
@@ -47,7 +46,6 @@ class CopySelectionPanel(BasePanel):
 
 
 @panel(
-    registry_id="context_menu_paste_selection",
     editors="context_menu",
     scopes="selection",
     label="Paste",

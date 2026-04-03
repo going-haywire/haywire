@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="create_node",
     editors="context_menu",
     scopes="canvas",
     label="Create Node",

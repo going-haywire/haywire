@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="settings_execution",
     editors="properties",
     scopes="execution",
     label="Execution",

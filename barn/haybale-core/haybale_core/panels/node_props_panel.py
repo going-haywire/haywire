@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="node_properties",
     editors="properties",
     scopes="node",
     label="Node Properties",

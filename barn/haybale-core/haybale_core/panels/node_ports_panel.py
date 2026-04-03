@@ -15,9 +15,8 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="node_ports",
-    editor="properties",
-    scope="node",
+    editors="properties",
+    scopes="node",
     label="Ports",
     icon="device_hub",
     default_open=False,

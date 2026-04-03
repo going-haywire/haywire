@@ -15,9 +15,8 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="graph_info",
-    editor="properties",
-    scope="graph",
+    editors="properties",
+    scopes="graph",
     label="Graph Info",
     icon="account_tree",
     order=10,

@@ -15,9 +15,8 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="node_settings",
-    editor="properties",
-    scope="node",
+    editors="properties",
+    scopes="node",
     label="Status",
     icon="check_circle",
     order=30,

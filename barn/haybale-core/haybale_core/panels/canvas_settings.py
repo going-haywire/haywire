@@ -26,9 +26,8 @@ if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 @panel(
-    registry_id="settings_canvas",
-    editor="properties",
-    scope="canvas",
+    editors="properties",
+    scopes="canvas",
     label="Canvas",
     icon="grid_on",
     order=10,
@@ -46,8 +45,8 @@ class CanvasSettingsPanel(BasePanel):
         render_schema(CanvasSettings, registry)
 
 @panel(
-    editor="properties",
-    scope="canvas",
+    editors="properties",
+    scopes="canvas",
     label="Node Skins",
     description="Node dimensions, typography and label visibility.",
     icon="widgets",
@@ -66,9 +65,8 @@ class NodeSkinSettingsPanel(BasePanel):
         render_schema(NodeSkinSettings, registry)
 
 @panel(
-    registry_id="settings_edge_ui",
-    editor="properties",
-    scope="canvas",
+    editors="properties",
+    scopes="canvas",
     label="Edges",
     icon="cable",
     order=30,
@@ -86,8 +84,8 @@ class EdgeUISettingsPanel(BasePanel):
         render_schema(EdgeUISettings, registry)
 
 @panel(
-    editor="properties",
-    scope="canvas",
+    editors="properties",
+    scopes="canvas",
     label="Zoom & Pan",
     icon="edit",
     order=40,
@@ -106,9 +104,8 @@ class EditorZoomPanSettingsPanel(BasePanel):
 
 
 @panel(
-    registry_id="settings_minimap",
-    editor="properties",
-    scope="canvas",
+    editors="properties",
+    scopes="canvas",
     label="Minimap",
     icon="map",
     order=40,

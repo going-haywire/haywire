@@ -21,8 +21,8 @@ if TYPE_CHECKING:
 
 
 @panel(
-    editor="properties",
-    scope="settings",
+    editors="properties",
+    scopes="settings",
     label="Node Settings",
     icon="tune",
     order=10,
