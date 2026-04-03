@@ -506,7 +506,7 @@ class GraphCanvasManager:
             ui.notify("Failed to delete elements", type="warning")
 
     # =============================================================================
-    # SYNC UI with GRAPH STATE (unchanged from original)
+    # SYNC UI with GRAPH STATE 
     # =============================================================================
 
     def _on_validated(self, result: ValidationResult):
@@ -615,6 +615,10 @@ class GraphCanvasManager:
         except Exception as e:
             logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
+
+    # =============================================================================
+    # GRAPH STATE
+    # =============================================================================
 
     def _apply_canvas_resize(self, width: int, height: int) -> None:
         """Push new canvas dimensions to canvas_vue and zoom_container."""
