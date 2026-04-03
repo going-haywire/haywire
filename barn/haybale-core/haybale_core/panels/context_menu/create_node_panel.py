@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 
 @panel(
     registry_id="create_node",
-    editor="context_menu",
-    scope="canvas",
+    editors="context_menu",
+    scopes="canvas",
     label="Create Node",
     icon="add",
     order=0,

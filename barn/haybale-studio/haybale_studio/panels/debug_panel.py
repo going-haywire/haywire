@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 @panel(
-    editor="properties",
-    scope="debug",
+    editors="properties",
+    scopes="debug",
     label="Log Levels",
     icon="bug_report",
     order=10,

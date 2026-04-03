@@ -16,8 +16,10 @@ class PanelIdentity:
 
     Attributes:
         registry_id:  Short unique ID, e.g. 'node_transform'.
-        editor_key:   Registry key of the editor this panel belongs to.
-        scope:        One or more scope IDs this panel appears under,
+        editor_keys:  One or more editor registry keys this panel belongs to,
+                      e.g. ['properties'] or ['properties', 'context_menu'].
+                      Always stored as a list (normalised by the decorator).
+        scopes:       One or more scope IDs this panel appears under,
                       e.g. ['node'] or ['my_lib', 'node'].
                       Always stored as a list (normalised by the decorator).
         label:        Display label shown in the panel header.
@@ -29,8 +31,8 @@ class PanelIdentity:
     """
 
     registry_id: str
-    editor_key: str
-    scope: list[str]
+    editor_keys: list[str]
+    scopes: list[str]
     label: str
     icon: Optional[str] = None
     order: int = 100

@@ -29,8 +29,8 @@ def _state(context: "SessionContext") -> "EdgeWrapperState | None":
 
 @panel(
     registry_id="context_menu_delete_edge",
-    editor="context_menu",
-    scope="edge",
+    editors="context_menu",
+    scopes="edge",
     label="Delete Connection",
     icon="delete",
     order=10,
@@ -52,8 +52,8 @@ class DeleteEdgePanel(BasePanel):
 
 @panel(
     registry_id="context_menu_inspect_edge",
-    editor="context_menu",
-    scope="edge",
+    editors="context_menu",
+    scopes="edge",
     label="Inspect Connection",
     icon="info",
     order=20,
@@ -84,8 +84,8 @@ class InspectEdgePanel(BasePanel):
 
 @panel(
     registry_id="context_menu_edge_errors",
-    editor="context_menu",
-    scope="edge",
+    editors="context_menu",
+    scopes="edge",
     label="Connection Errors",
     icon="error",
     order=0,
@@ -123,9 +123,40 @@ class EdgeErrorsPanel(BasePanel):
 
 
 @panel(
+    registry_id="context_menu_edge_connection_path",
+    editors="context_menu",
+    scopes="edge",
+    label="Connection Path",
+    icon="route",
+    order=15,
+)
+class EdgeConnectionPathPanel(BasePanel):
+    @classmethod
+    def poll(cls, context: "SessionContext") -> bool:
+        wrapper = context.active_edge
+        return wrapper is not None and wrapper.edge is not None
+
+    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
+        from nicegui import ui
+
+        edge = context.active_edge.edge
+
+        with layout._container:
+            with ui.column().classes("w-full gap-1 p-2"):
+                ui.label("Connection Path").classes("font-semibold text-sm")
+                ui.label(
+                    f"{edge.source_node_id} [{edge.outlet_port_id}]"
+                ).classes("text-xs opacity-70")
+                ui.label("↓").classes("text-xs opacity-50 ml-2")
+                ui.label(
+                    f"{edge.sink_node_id} [{edge.inlet_port_id}]"
+                ).classes("text-xs opacity-70")
+
+
+@panel(
     registry_id="context_menu_edge_warnings",
-    editor="context_menu",
-    scope="edge",
+    editors="context_menu",
+    scopes="edge",
     label="Connection Warnings",
     icon="warning",
     order=5,
@@ -151,38 +182,3 @@ class EdgeWarningsPanel(BasePanel):
                         "text-orange-400 text-xs whitespace-pre-wrap break-words ml-1"
                     )
 
-
-@panel(
-    registry_id="context_menu_edge_path",
-    editor="context_menu",
-    scope="edge",
-    label="Connection Path",
-    icon="route",
-    order=25,
-)
-class EdgeConnectionPathPanel(BasePanel):
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return (
-            context.active_edge is not None
-            and context.active_edge.edge is not None
-        )
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from nicegui import ui
-
-        edge = context.active_edge.edge
-        with layout._container:
-            with ui.column().classes("w-full gap-0 p-2"):
-                ui.label(f"From: {edge.source_node_id}").classes(
-                    "text-xs text-gray-300"
-                )
-                ui.label(f"Port: {edge.outlet_port_id}").classes(
-                    "text-xs text-gray-500 ml-3"
-                )
-                ui.label(f"To:   {edge.sink_node_id}").classes(
-                    "text-xs text-gray-300 mt-1"
-                )
-                ui.label(f"Port: {edge.inlet_port_id}").classes(
-                    "text-xs text-gray-500 ml-3"
-                )

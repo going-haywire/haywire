@@ -24,8 +24,8 @@ if TYPE_CHECKING:
 
 
 @panel(
-    editor="properties",
-    scope="app",
+    editors="properties",
+    scopes="app",
     label="Workbench",
     icon="palette",
     order=10,
@@ -44,8 +44,8 @@ class ThemeSettingsPanel(BasePanel):
         render_schema(NodeThemeSettings, registry)
 
 @panel(
-    editor="properties",
-    scope="app",
+    editors="properties",
+    scopes="app",
     label="Default Skins",
     icon="palette",
     order=20,
@@ -64,8 +64,8 @@ class NodeSkinDefaultPanel(BasePanel):
 
 
 @panel(
-    editor="properties",
-    scope="app",
+    editors="properties",
+    scopes="app",
     label="Editor",
     icon="edit",
     order=30,

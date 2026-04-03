@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 
 @panel(
     registry_id="settings_execution",
-    editor="properties",
-    scope="execution",
+    editors="properties",
+    scopes="execution",
     label="Execution",
     icon="play_circle",
     order=10,

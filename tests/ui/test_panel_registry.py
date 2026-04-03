@@ -17,8 +17,8 @@ from haywire.ui.panel.scope import ScopeDescriptor
 
 @panel(
     registry_id="test_node_panel",
-    editor="properties",
-    scope="node",
+    editors="properties",
+    scopes="node",
     label="Test Node Panel",
     icon="info",
     order=10,
@@ -30,8 +30,8 @@ class _TestNodePanel(BasePanel):
 
 @panel(
     registry_id="test_node_panel_b",
-    editor="properties",
-    scope="node",
+    editors="properties",
+    scopes="node",
     label="Test Node Panel B",
     order=20,
 )
@@ -42,8 +42,8 @@ class _TestNodePanelB(BasePanel):
 
 @panel(
     registry_id="test_graph_panel",
-    editor="properties",
-    scope="graph",
+    editors="properties",
+    scopes="graph",
     label="Test Graph Panel",
     order=10,
 )
@@ -54,8 +54,8 @@ class _TestGraphPanel(BasePanel):
 
 @panel(
     registry_id="test_other_editor_panel",
-    editor="other_editor",
-    scope="node",
+    editors="other_editor",
+    scopes="node",
     label="Other Editor Panel",
     order=10,
 )
@@ -66,8 +66,8 @@ class _TestOtherEditorPanel(BasePanel):
 
 @panel(
     registry_id="test_multi_scope_panel",
-    editor="properties",
-    scope=["node", "graph"],
+    editors="properties",
+    scopes=["node", "graph"],
     label="Multi Scope Panel",
     order=15,
 )
@@ -95,14 +95,14 @@ class TestPanelDecorator:
     def test_registry_key(self):
         assert _TestNodePanel.class_identity.registry_key.endswith(":panel:test_node_panel")
 
-    def test_editor_key(self):
-        assert _TestNodePanel.class_identity.editor_key == "properties"
+    def test_editor_keys_is_list(self):
+        assert _TestNodePanel.class_identity.editor_keys == ["properties"]
 
-    def test_scope_is_list(self):
-        assert _TestNodePanel.class_identity.scope == ["node"]
+    def test_scopes_is_list(self):
+        assert _TestNodePanel.class_identity.scopes == ["node"]
 
-    def test_scope_multi_normalised(self):
-        assert _TestMultiScopePanel.class_identity.scope == ["node", "graph"]
+    def test_scopes_multi_normalised(self):
+        assert _TestMultiScopePanel.class_identity.scopes == ["node", "graph"]
 
     def test_label(self):
         assert _TestNodePanel.class_identity.label == "Test Node Panel"
@@ -120,7 +120,7 @@ class TestPanelDecorator:
     def test_rejects_non_base_panel(self):
         with pytest.raises(TypeError):
 
-            @panel(registry_id="bad", editor="props", scope="node")
+            @panel(registry_id="bad", editors="props", scopes="node")
             class NotAPanel:
                 pass
 

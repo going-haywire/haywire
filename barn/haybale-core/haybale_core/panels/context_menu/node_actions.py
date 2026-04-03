@@ -24,8 +24,8 @@ def _emit(context: "SessionContext", event):
 
 @panel(
     registry_id="context_menu_delete_node",
-    editor="context_menu",
-    scope="node",
+    editors="context_menu",
+    scopes="node",
     label="Delete Node",
     icon="delete",
     order=10,
@@ -47,8 +47,8 @@ class DeleteNodePanel(BasePanel):
 
 @panel(
     registry_id="context_menu_copy_node",
-    editor="context_menu",
-    scope="node",
+    editors="context_menu",
+    scopes="node",
     label="Copy Node",
     icon="content_copy",
     order=20,
@@ -70,8 +70,8 @@ class CopyNodePanel(BasePanel):
 
 @panel(
     registry_id="context_menu_redraw_node",
-    editor="context_menu",
-    scope="node",
+    editors="context_menu",
+    scopes="node",
     label="Redraw Node",
     icon="refresh",
     order=30,
@@ -93,8 +93,8 @@ class RedrawNodePanel(BasePanel):
 
 @panel(
     registry_id="context_menu_revalidate_node",
-    editor="context_menu",
-    scope="node",
+    editors="context_menu",
+    scopes="node",
     label="Revalidate Node",
     icon="check_circle",
     order=40,
@@ -116,8 +116,8 @@ class RevalidateNodePanel(BasePanel):
 
 @panel(
     registry_id="context_menu_reset_node",
-    editor="context_menu",
-    scope="node",
+    editors="context_menu",
+    scopes="node",
     label="Reset Node",
     icon="restart_alt",
     order=50,

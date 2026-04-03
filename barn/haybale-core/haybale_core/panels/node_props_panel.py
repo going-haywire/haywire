@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 
 @panel(
     registry_id="node_properties",
-    editor="properties",
-    scope="node",
+    editors="properties",
+    scopes="node",
     label="Node Properties",
     icon="info",
     default_open=False,
@@ -48,8 +48,8 @@ class NodePropertiesPanel(BasePanel):
 
 @panel(
     registry_id="node_instance_settings",
-    editor="properties",
-    scope="node",
+    editors="properties",
+    scopes="node",
     label="Node",
     icon="settings",
     order=20,

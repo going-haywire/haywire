@@ -15,17 +15,21 @@ class Popup:
         if not cls._css_added:
             ui.add_css("""
                 .popup-overlay { z-index: 5000 !important; }
-                
+
                 .popup-card {
                     z-index: 5001 !important;
                     pointer-events: auto !important;
+                    background: var(--hw-bg-elevated) !important;
+                    color: var(--hw-text-body) !important;
+                    border: 1px solid var(--hw-border-strong) !important;
                 }
-                
+
                 .popup-content-area {
                     user-select: text !important;
                     -webkit-user-select: text !important;
                     cursor: auto;
                     pointer-events: auto !important;
+                    color: var(--hw-text-body);
                 }
                 .popup-content-area * { user-select: text !important; }
                 .popup-content-area button, .popup-content-area .q-btn,
@@ -41,6 +45,7 @@ class Popup:
                     user-select: none !important;
                     cursor: move !important;
                     pointer-events: auto !important;
+                    color: var(--hw-text-body);
                 }
                 .popup-title-bar.not-draggable { cursor: default !important; }
                 .popup-title-bar button { cursor: pointer !important; }
@@ -276,9 +281,14 @@ class Popup:
                 "z-index: 0; background: transparent; pointer-events: auto;"
             )
         else:
+            overlay_bg = (
+                self.backdrop_color
+                if self.backdrop_color != "rgba(0,0,0,0.5)"
+                else "var(--hw-bg-overlay, rgba(0,0,0,0.5))"
+            )
             popup_style = (
                 f"position: fixed; top: 0; left: 0; width: 100%; height: 100%; "
-                f"background: {self.backdrop_color}; z-index: 5000; display: none; "
+                f"background: {overlay_bg}; z-index: 5000; display: none; "
                 "align-items: center; justify-content: center; "
                 "backdrop-filter: blur(2px); pointer-events: auto;"
             )
@@ -323,7 +333,8 @@ class Popup:
                     with self._title_row:
                         if self.title:
                             ui.label(self.title).style(
-                                "font-size: 1.1em; font-weight: 600; pointer-events: none;"
+                                "font-size: 1.1em; font-weight: 600; "
+                                "pointer-events: none; color: var(--hw-text-body);"
                             )
                         else:
                             ui.element("div")

@@ -36,11 +36,11 @@ def make_context() -> SessionContext:
 
 
 def test_create_node_panel_has_context_menu_editor():
-    assert CreateNodePanel.class_identity.editor_key == "context_menu"
+    assert CreateNodePanel.class_identity.editor_keys == ["context_menu"]
 
 
 def test_create_node_panel_has_canvas_scope():
-    assert "canvas" in CreateNodePanel.class_identity.scope
+    assert "canvas" in CreateNodePanel.class_identity.scopes
 
 
 def test_create_node_panel_is_base_panel_subclass():

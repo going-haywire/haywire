@@ -109,8 +109,8 @@ class PanelRegistry(BaseRegistry):
             self._index_panel(cls)
         logger.debug(
             f"PanelRegistry: Registered '{registry_key}' -> "
-            f"editor='{cls.class_identity.editor_key}', "
-            f"scope={cls.class_identity.scope!r}"
+            f"editors={cls.class_identity.editor_keys!r}, "
+            f"scopes={cls.class_identity.scopes!r}"
         )
         return result
 
@@ -122,23 +122,23 @@ class PanelRegistry(BaseRegistry):
         return removed
 
     def _index_panel(self, cls: type) -> None:
-        """Add cls to the (editor_key, scope_id) index for every declared scope."""
-        editor_key = cls.class_identity.editor_key
-        for scope_id in cls.class_identity.scope:
-            idx_key = (editor_key, scope_id)
-            if idx_key not in self._index:
-                self._index[idx_key] = []
-            if cls not in self._index[idx_key]:
-                self._index[idx_key].append(cls)
-            self._index[idx_key].sort(key=lambda c: c.class_identity.order)
+        """Add cls to the (editor_key, scope_id) index for every declared editor+scope pair."""
+        for editor_key in cls.class_identity.editor_keys:
+            for scope_id in cls.class_identity.scopes:
+                idx_key = (editor_key, scope_id)
+                if idx_key not in self._index:
+                    self._index[idx_key] = []
+                if cls not in self._index[idx_key]:
+                    self._index[idx_key].append(cls)
+                self._index[idx_key].sort(key=lambda c: c.class_identity.order)
 
     def _deindex_panel(self, cls: type) -> None:
-        """Remove cls from the index for every declared scope."""
-        editor_key = cls.class_identity.editor_key
-        for scope_id in cls.class_identity.scope:
-            idx_key = (editor_key, scope_id)
-            if idx_key in self._index and cls in self._index[idx_key]:
-                self._index[idx_key].remove(cls)
+        """Remove cls from the index for every declared editor+scope pair."""
+        for editor_key in cls.class_identity.editor_keys:
+            for scope_id in cls.class_identity.scopes:
+                idx_key = (editor_key, scope_id)
+                if idx_key in self._index and cls in self._index[idx_key]:
+                    self._index[idx_key].remove(cls)
 
     def get_panels(self, editor_key: str, scope_id: str) -> List[type]:
         """
@@ -164,7 +164,7 @@ class PanelRegistry(BaseRegistry):
             Dict mapping scope_id -> sorted list of panel classes.
         """
         result: Dict[str, List[type]] = {}
-        for (ek, scope_id), panels in self._index.items():
+        for (ek, scope_id), panel_list in self._index.items():
             if ek == editor_key:
-                result[scope_id] = list(panels)
+                result[scope_id] = list(panel_list)
         return result

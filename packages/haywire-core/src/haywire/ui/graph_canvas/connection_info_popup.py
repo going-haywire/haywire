@@ -100,10 +100,14 @@ class EdgeInfoPopup:
                 # Connection Path Section (Expandable, default open)
                 with ui.expansion("Connection Path", value=False).classes("w-full"):
                     with ui.card().classes("w-full p-3 bg-gray-50"):
-                        ui.label(f"From: {edge.source_node_id}").classes("text-xs text-gray-700 ml-2")
-                        ui.label(f"Port: {edge.outlet_port_id}").classes("text-xs text-gray-500 ml-4")
-                        ui.label(f"To: {edge.sink_node_id}").classes("text-xs text-gray-700 ml-2 mt-1")
-                        ui.label(f"Port: {edge.inlet_port_id}").classes("text-xs text-gray-500 ml-4")
+                        ui.label("Connection Path").classes("font-semibold text-sm")
+                        ui.label(
+                            f"{edge.source_node_id} [{edge.outlet_port_id}]"
+                        ).classes("text-xs opacity-70")
+                        ui.label("↓").classes("text-xs opacity-50 ml-2")
+                        ui.label(
+                            f"{edge.sink_node_id} [{edge.inlet_port_id}]"
+                        ).classes("text-xs opacity-70")
 
                 # Close button
                 ui.separator().classes("my-2")

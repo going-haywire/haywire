@@ -23,8 +23,8 @@ def _emit(context: "SessionContext", event):
 
 @panel(
     registry_id="context_menu_copy_selection",
-    editor="context_menu",
-    scope="selection",
+    editors="context_menu",
+    scopes="selection",
     label="Copy Selection",
     icon="content_copy",
     order=10,
@@ -48,8 +48,8 @@ class CopySelectionPanel(BasePanel):
 
 @panel(
     registry_id="context_menu_paste_selection",
-    editor="context_menu",
-    scope="selection",
+    editors="context_menu",
+    scopes="selection",
     label="Paste",
     icon="content_paste",
     order=20,

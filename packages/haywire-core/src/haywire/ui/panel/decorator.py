@@ -20,8 +20,8 @@ def panel(
     /,
     *,
     registry_id: Optional[str] = None,
-    editor: str,
-    scope: Union[str, list[str]],
+    editors: Union[str, list[str]],
+    scopes: Union[str, list[str]],
     label: Optional[str] = None,
     icon: Optional[str] = None,
     order: int = 100,
@@ -38,9 +38,9 @@ def panel(
     Args:
         registry_id:  Unique ID for this panel, e.g. 'node_transform'.
                       Defaults to the class name if not provided.
-        editor:       Registry key of the editor this panel belongs to,
-                      e.g. 'properties'.
-        scope:        Scope ID or list of scope IDs this panel appears under,
+        editors:      Editor key or list of editor keys this panel belongs to,
+                      e.g. 'properties' or ['properties', 'context_menu'].
+        scopes:       Scope ID or list of scope IDs this panel appears under,
                       e.g. 'node' or ['my_lib', 'node'].
         label:        Human-readable display label. Defaults to class name.
         icon:         Optional Material Design icon name.
@@ -51,8 +51,8 @@ def panel(
     Usage:
         @panel(
             registry_id='node_transform',
-            editor='properties',
-            scope='node',
+            editors='properties',
+            scopes='node',
             label='Transform',
             icon='open_with',
             order=10,
@@ -72,7 +72,8 @@ def panel(
 
         _registry_id = registry_id or inner_cls.__name__
         _label = label or inner_cls.__name__
-        _scope = [scope] if isinstance(scope, str) else list(scope)
+        _editors = [editors] if isinstance(editors, str) else list(editors)
+        _scopes = [scopes] if isinstance(scopes, str) else list(scopes)
 
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id if library_identity else None
@@ -80,8 +81,8 @@ def panel(
 
         inner_cls.class_identity = PanelIdentity(
             registry_id=_registry_id,
-            editor_key=editor,
-            scope=_scope,
+            editor_keys=_editors,
+            scopes=_scopes,
             label=_label,
             icon=icon,
             order=order,

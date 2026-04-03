@@ -131,7 +131,7 @@ def test_panels_that_return_false_from_poll_are_not_drawn():
 
     drawn = []
 
-    @panel(registry_id="always_false_panel", editor="context_menu", scope="node")
+    @panel(registry_id="always_false_panel", editors="context_menu", scopes="node")
     class AlwaysFalsePanel(BasePanel):
         @classmethod
         def poll(cls, context):
@@ -154,7 +154,7 @@ def test_panels_that_return_true_from_poll_are_drawn():
 
     drawn = []
 
-    @panel(registry_id="always_true_panel", editor="context_menu", scope="node")
+    @panel(registry_id="always_true_panel", editors="context_menu", scopes="node")
     class AlwaysTruePanel(BasePanel):
         @classmethod
         def poll(cls, context):
@@ -177,7 +177,7 @@ def test_panels_for_wrong_scope_are_not_drawn():
 
     drawn = []
 
-    @panel(registry_id="edge_only_panel", editor="context_menu", scope="edge")
+    @panel(registry_id="edge_only_panel", editors="context_menu", scopes="edge")
     class EdgeOnlyPanel(BasePanel):
         @classmethod
         def poll(cls, context):
@@ -241,7 +241,7 @@ def test_on_emit_event_is_set_on_context_metadata_before_panels_draw():
 
     captured = {}
 
-    @panel(registry_id="capture_emit_panel", editor="context_menu", scope="node")
+    @panel(registry_id="capture_emit_panel", editors="context_menu", scopes="node")
     class CaptureEmitPanel(BasePanel):
         @classmethod
         def poll(cls, context):

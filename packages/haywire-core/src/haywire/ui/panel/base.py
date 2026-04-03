@@ -94,7 +94,7 @@ class BasePanel(ABC):
 
     Class attributes (set by @panel decorator via class_identity):
         - class_identity.registry_key: Unique registry key.
-        - class_identity.editor_key: Which editor type this panel belongs to.
+        - class_identity.editor_keys: Which editor types this panel belongs to (list).
         - class_identity.context: Context filter string.
         - class_identity.label: Display label shown in the panel header.
         - class_identity.icon: Optional Material icon.
