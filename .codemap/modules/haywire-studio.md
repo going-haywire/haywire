@@ -8,13 +8,9 @@
 
 ## Scope & Purpose
 
-The application package. Bootstraps the DI container, starts the NiceGUI web server,
-manages the per-session page lifecycle, and provides the top-level graph and library
-management services. Also exposes CLI subcommands (`init`, `share`).
-
-This package is intentionally thin — it wires together `haywire.core` + `haywire.ui` +
-the haybale plugin libraries, but contains no node definitions or UI panel logic itself
-(those live in `haybale-studio`).
+The CLI application package. Wires together `haywire.core` (DI, graph engine) and `haywire.ui`
+(NiceGUI shell), provides the `haywire` CLI command, and manages global config, multi-graph
+file registry, and runtime library installation. Also owns workspace defaults.
 
 ---
 
@@ -23,21 +19,16 @@ the haybale plugin libraries, but contains no node definitions or UI panel logic
 ```
 haywire_studio/
 ├── __init__.py
-├── __main__.py             # python -m haywire_studio entry
-├── app.py                  # HaywireApp — main application class (~500 lines)
-│                           # - create_haywire_injector() wiring
-│                           # - NiceGUI server setup
-│                           # - main_page() per-session setup
-│                           # - setup_shared_services()
-├── config.py               # Global + project TOML config (paths, startup, etc.)
-├── graph_manager.py        # GraphManager + GraphEntry dataclass
-│                           # - create_untitled() — '__untitled__' at startup
-│                           # - open_graph(path, factory)
-│                           # - save_graph(entry, save_as=None)
-│                           # - session_attach/detach(entry, session_id)
-├── library_manager.py      # Runtime library install + library management UI
-├── init.py                 # `haywire init` CLI subcommand (project scaffolding)
-└── share.py                # `haywire share` CLI subcommand
+├── __main__.py                 # python -m haywire_studio entry
+├── app.py                      # HaywireApp — main application class
+├── config.py                   # Global + project TOML config
+├── graph_manager.py            # GraphManager — file-centric multi-graph registry
+├── library_manager.py          # LibraryManager — runtime library install/UI
+├── init.py                     # `haywire init` CLI subcommand
+├── share.py                    # `haywire share` CLI subcommand
+└── workspace/
+    ├── __init__.py
+    └── defaults.py             # WorkspaceDefaults — default layout/editor config
 ```
 
 ---
@@ -45,30 +36,28 @@ haywire_studio/
 ## Always-load vs On-demand
 
 **Always-load**:
-- `app.py` — understand `HaywireApp`, `main_page()`, and `setup_shared_services()` before
-  touching any wiring or startup behaviour
-- `config.py` — understand config file paths and startup options
-- `graph_manager.py` — understand `GraphManager`/`GraphEntry` before touching graph lifecycle
+- `app.py` — understand HaywireApp bootstrap, DI wiring, NiceGUI startup
+- `config.py` — where/how TOML settings are loaded (global vs project)
+- `graph_manager.py` — multi-graph file system model
 
 **On-demand**:
-- `library_manager.py` — only when working on runtime library install/management UI
+- `library_manager.py` — only when working on runtime library install/UI
 - `init.py` / `share.py` — only when working on CLI subcommands
+- `workspace/defaults.py` — only when working on default workspace layouts
 
 ---
 
 ## Rules & Boundaries
 
-- **DI wiring lives here**: `app.py` calls `create_haywire_injector()` and registers
-  app-level editors via `_editor_registry._register_class()` in `setup_shared_services()`.
-- **Graph lifecycle**: `GraphManager` is the source of truth for which graphs are open
-  and which sessions are attached to them. Never create graph instances outside of it.
-- **Untitled graph**: Created as `'__untitled__'` at startup by `create_untitled(factory)`.
-  `broadcast_data_mutation(graph_path=None)` broadcasts to all sessions for the untitled graph.
-- **Session attachment**: `main_page()` attaches each new browser session to the untitled
-  entry at startup. `FileBrowserEditor` detaches from previous and attaches to opened graph.
-- **Active graph path**: Tracked in `SessionContext.active_graph_path` (None = untitled).
-- **Library paths default to `[]`** — must be explicitly provided in app or test DI config.
-- **App-level editors** are registered in `setup_shared_services()`, not via entry points.
+- **CLI entry point only** — this package should not export reusable library APIs.
+- **Config hierarchy**: global (`~/.haywire/settings.toml`) → project (`.haywire/settings.toml`).
+  Managed by `config.py`; do not bypass this for settings resolution.
+- **GraphManager is file-centric** — each open graph corresponds to a `.haywire` file; the
+  manager handles load/save/close lifecycle.
+- **workspace/defaults.py** owns the default editor/panel layout for new sessions —
+  change here when adding new default-visible editors.
+- No direct NiceGUI import in `config.py` or `graph_manager.py` — only `app.py` and `workspace/`
+  should touch NiceGUI directly.
 
 ---
 
@@ -76,18 +65,19 @@ haywire_studio/
 
 | Concern | File |
 |---------|------|
-| App bootstrap + DI wiring | `app.py` — `HaywireApp` |
-| Config paths | `config.py` |
-| Graph open/save/attach | `graph_manager.py` — `GraphManager` |
-| Library runtime install | `library_manager.py` |
+| App bootstrap & DI wiring | `app.py` |
+| TOML config resolution | `config.py` |
+| Multi-graph file registry | `graph_manager.py` |
+| Runtime library install | `library_manager.py` |
+| Default workspace layout | `workspace/defaults.py` |
 
 ---
 
 ## Depends on
 
-- [core-engine.md](core-engine.md) — DI container, graph, library APIs
-- [core-ui.md](core-ui.md) — AppShell, SessionManager, WorkspaceManager, editors/panels
+- [core-engine.md](core-engine.md) — DI container, graph engine, library registry
+- [core-ui.md](core-ui.md) — HaywireAppShell, editor/panel/workspace registries
 
 ## Depended on by
 
-Nothing — this is the top-level application entry point.
+Nothing — this is the top-level application package.

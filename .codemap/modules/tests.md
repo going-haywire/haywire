@@ -7,9 +7,18 @@
 
 ## Scope & Purpose
 
-The integration and unit test suite for the Haywire framework. Tests cover the graph engine,
-execution pipeline, node system, settings, and UI. All tests use the headless DI configuration
-from `haywire.core.di.test_config`.
+The full test suite covering core engine, settings, graph/edge mechanics, execution, UI layer,
+canvas handlers, panel rendering, and integration smoke tests. Split into `tests/core/` (headless,
+fast) and `tests/ui/` (NiceGUI, Playwright, slower).
+
+Major changes since last map:
+- `tests/ui/harness/` added — full NiceGUI test harness (routes, conftest, Playwright fixtures)
+- `tests/ui/test_canvas_handlers/` added — handler unit tests for all 4 handler subpackages
+- `tests/core/test_debug/` added — logging configurator tests
+- `tests/core/test_graph/test_canvas_expansion.py` added
+- `tests/core/test_settings/` heavily restructured: removed `test_chain.py`, `test_descriptors.py`,
+  `test_holder_cache.py`, `test_namespace_sub.py`, `test_schema.py`, `test_sub_holders.py`;
+  added `test_schema_rebasing.py`; `test_settings.py` massively expanded (+500 lines)
 
 ---
 
@@ -17,55 +26,94 @@ from `haywire.core.di.test_config`.
 
 ```
 tests/
-├── conftest.py                     # Shared fixtures, DI injector setup
-├── __init__.py
-├── test_smoke.py                   # Quick smoke tests (import, startup)
-├── test_init_scaffolding.py        # `haywire init` CLI scaffolding tests
-├── README.md                       # Test architecture notes
+├── conftest.py                         # Global pytest fixtures (DI setup)
+├── test_init_scaffolding.py            # CLI `haywire init` integration test
+├── test_smoke.py                       # Smoke test (app starts, basic graph runs)
 │
-├── core/                           # Core framework tests
+├── core/                               # Headless core tests
+│   ├── conftest.py                     # Core-level fixtures
+│   ├── test_reactive.py                # Reactive property descriptor tests
+│   ├── test_debug/
+│   │   └── test_logging_configurator.py # LoggingConfigurator tests
+│   ├── test_execution/
+│   │   └── test_interpreter.py         # VM / interpreter tests
 │   ├── test_graph/
-│   │   ├── test_edge_connections.py # 60+ edge lifecycle integration tests
-│   │   └── test_edge_connections.md # Architecture reference doc for edge tests
-│   ├── test_execution/             # VM, assembly, scheduler tests
-│   ├── test_node/                  # Node creation, port rules, worker tests
-│   ├── test_settings/              # Settings system tests
-│   └── test_libraries/             # Library discovery, registration tests
+│   │   ├── test_base.py                # Graph add/remove node/edge
+│   │   ├── test_canvas_expansion.py    # Canvas bounds/expansion tests (new)
+│   │   └── test_edges.py               # Edge lifecycle, lazy, adapter chain
+│   ├── test_libraries/
+│   │   └── test_registries.py          # Library/node/type registry tests
+│   ├── test_node/
+│   │   ├── test_base.py                # BaseNode port declarations
+│   │   ├── test_decorator.py           # @node decorator
+│   │   └── test_factory.py             # NodeFactory
+│   └── test_settings/
+│       ├── test_hot_reload.py          # Settings hot-reload
+│       ├── test_schema_rebasing.py     # Schema rebasing (new)
+│       └── test_settings.py            # Main settings system tests (large, ~600+ lines)
 │
-├── libraries/                      # Library-specific tests
-│   └── (per-library test files)
+├── ui/                                 # NiceGUI UI tests
+│   ├── harness/                        # Full NiceGUI test harness
+│   │   ├── app.py                      # Test app factory
+│   │   ├── conftest.py                 # Playwright fixtures
+│   │   ├── routes.py                   # Test routes / page definitions
+│   │   ├── test_graph_context_menu.py  # Context menu integration tests
+│   │   ├── test_interaction.py         # Canvas interaction integration tests
+│   │   ├── test_mirror.py              # Settings mirror tests
+│   │   ├── test_structural.py          # Structural/DOM tests
+│   │   ├── test_validation.py          # Validation UI tests
+│   │   └── test_widgets.py             # Widget rendering tests
+│   ├── test_canvas_handlers/           # Handler unit tests
+│   │   ├── test_context_menu_handlers.py
+│   │   ├── test_create_node_panel.py
+│   │   ├── test_event_routing.py
+│   │   ├── test_haybale_context_menu_panels.py
+│   │   ├── test_interaction_handlers.py
+│   │   ├── test_selection_handlers.py
+│   │   ├── test_session_context_menu_provider.py
+│   │   └── test_visual_layer_handlers.py
+│   ├── test_app_shell.py               # AppShell layout tests
+│   ├── test_console_bridge.py
+│   ├── test_editor_registry.py
+│   ├── test_node_theme.py
+│   ├── test_panel_registry.py
+│   ├── test_session_context.py
+│   ├── test_theme_registry.py
+│   ├── test_workbench_theme.py
+│   ├── test_workspace_defaults.py      # WorkspaceDefaults tests (new)
+│   └── test_workspace_state.py
 │
-└── ui/                             # UI system tests
-    └── (editor, panel, workspace tests)
+└── libraries/                          # Library-level tests (if any)
 ```
 
 ---
 
 ## Always-load vs On-demand
 
-**Always-load** (before writing any new tests):
-- `conftest.py` — understand fixture setup, especially how the DI injector is configured
-- `core/test_graph/test_edge_connections.py` — canonical example of integration test structure
+**Always-load**:
+- `conftest.py` — global DI fixture setup pattern
+- `core/conftest.py` — how to get a test graph/DI container
 
 **On-demand**:
-- Load only the test file for the area you're working on
+- `core/test_settings/test_settings.py` — large, load only for settings work
+- `ui/harness/` — load only when working on NiceGUI integration tests
+- `ui/test_canvas_handlers/` — load only when working on canvas handler logic
+- Individual test files for the subsystem you're currently working on
 
 ---
 
 ## Rules & Boundaries
 
-- **CRITICAL gotcha**: `create_node_wrapper()` leaves a pending `NODE_ADDED` event (priority 90)
-  in the dirty queue. Tests MUST call `force_immediate_validation()` after setup to flush the
-  queue before asserting — otherwise lower-priority marks (e.g. `NODE_HOT_RELOADED` at 80)
-  are silently dropped.
-- **DI in tests**: Use `TestHaywireModule` from `haywire.core.di.test_config`. Library paths
-  default to `[]` — explicitly provide test library paths if you need node registration.
-- **No NiceGUI**: UI tests must use headless mode; never start the NiceGUI server in tests.
-- **haybale-testing nodes** (`EdgeLinkTestNode`, `DynamicPortTestNode`) are the canonical
-  test nodes — use them for edge lifecycle and dynamic port tests.
-- **Line length**: 109 (same as production code); ruff enforced.
-- **Test naming convention**: `test_<thing>_<scenario>` — be specific about what is tested.
-- **Do NOT mock the database or graph** — integration tests should use real graph instances.
+- **Import order**: always `import haywire.core.graph.editor` before other haywire modules
+  in test files to avoid circular import errors.
+- **`force_immediate_validation()`** must be called after node setup in tests to flush the
+  dirty queue before any assertions on node/edge state.
+- **Unit tests** (`-m unit`) are fast, headless. **Integration tests** (`-m integration`) load
+  the full library system and are slow.
+- `tests/ui/harness/` requires Playwright — run with `uv run pytest tests/ui/harness/`.
+- **Coverage target**: 100% — run `uv run pytest --cov` to verify before claiming completion.
+- Do not add mocks for the database/graph engine — integration tests must use real instances
+  (see `feedback_check_docs_first.md` for the rationale).
 
 ---
 
@@ -73,18 +121,21 @@ tests/
 
 | Concern | File |
 |---------|------|
-| Test DI config | `haywire/core/di/test_config.py` (in core-engine) |
-| Edge lifecycle tests | `core/test_graph/test_edge_connections.py` |
-| Edge architecture docs | `core/test_graph/test_edge_connections.md` |
-| Test fixtures | `tests/conftest.py` |
+| DI test setup | `conftest.py` + `core/conftest.py` |
+| Settings system tests | `core/test_settings/test_settings.py` |
+| Edge lifecycle tests | `core/test_graph/test_edges.py` |
+| NiceGUI harness entry | `ui/harness/app.py` + `ui/harness/conftest.py` |
+| Canvas handler tests | `ui/test_canvas_handlers/` |
 
 ---
 
 ## Depends on
 
-- [core-engine.md](core-engine.md) — all framework APIs under test
-- [barn-other.md](barn-other.md) — haybale-testing nodes used in integration tests
+- [core-engine.md](core-engine.md) — tests import core DI, graph, node, settings APIs
+- [core-ui.md](core-ui.md) — UI tests use NiceGUI components
+- [haybale-core.md](haybale-core.md) — canvas handler tests use haybale-core panels
+- [barn-other.md](barn-other.md) — integration tests load haybale-testing fixture nodes
 
 ## Depended on by
 
-Nothing — tests are the leaf of the dependency graph.
+Nothing — tests are a leaf in the dependency graph.

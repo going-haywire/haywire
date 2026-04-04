@@ -7,96 +7,104 @@
 
 ## Scope & Purpose
 
-Additional plugin libraries beyond the core+studio pair. Each follows the same haybale
-library structure (`__init__.py` with `@library` + `register_components()`).
+Additional plugin libraries bundled in the monorepo for examples, integration testing,
+domain-specific use cases, and development scaffolding. Each is a `haywire.libraries`
+entry-point plugin.
 
 ---
 
-## Libraries
-
-### haybale-example (`barn/haybale-example/haybale_example/`)
-
-A reference/example library demonstrating how to create a haybale plugin. Contains:
-- `nodes/` — example node definitions
-- `types/` — example custom types
-- `adapters/` — example adapters
-- `skins/` — example skin
-- `widgets/` — example widget
-
-**Use for:** Learning the library plugin pattern; copy-paste starting point for new libraries.
-
----
-
-### haybale-testing (`barn/haybale-testing/haybale_testing/`)
-
-Test infrastructure nodes used in the integration test suite.
-
-Key files:
-- `nodes/testbed/edge_link_test.py` — `EdgeLinkTestNode` — main integration test node;
-  exercises the full edge link/unlink/detach lifecycle
-- `nodes/testbed/dynamic_port_test.py` — `DynamicPortTestNode` — push/pop dynamic port tests
-- `themes/` — test-specific theme overrides
-
-**Use for:** Writing or debugging edge lifecycle and dynamic port integration tests.
-Do NOT use in production graphs.
-
----
-
-### haybale-visiongraph (`barn/haybale-visiongraph/haybale_visiongraph/`)
-
-Vision/camera nodes for image processing pipelines.
-
-Structure:
-- `nodes/` — camera capture, frame processing nodes
-- `types/` — `FRAME` type and related
-- `adapters/` — frame format adapters
-- `skins/` — vision node skins
-- `widgets/` — vision-specific widgets
-- `docs/` + `help/` — library-specific documentation
-
-**Use for:** Video/camera/image processing use cases.
-
----
-
-### haybale-TEST_A (`barn/haybale-TEST_A/haybale_test_a/`)
-
-A minimal test library scaffold (similar structure to haybale-example).
-Used during development for isolated feature testing.
-
-**Use for:** Scratch/experimental library work. Not intended for production.
-
----
-
-## Shared Library Structure (all haybale libraries)
+## Folder Architecture
 
 ```
-haybale_<name>/
-├── __init__.py         # @library decorator + register_components()
-├── nodes/              # Node class definitions
-├── types/              # Custom type definitions
-├── adapters/           # Type adapters
-├── skins/              # Node skin renderers
-├── widgets/            # Port widgets
-└── themes/             # Theme contributions (optional)
+barn/
+├── haybale-example/haybale_example/    # Example library (tutorial/reference nodes)
+│   ├── __init__.py
+│   ├── nodes/                          # Example nodes (e.g. MathOp)
+│   ├── skins/                          # Example skins
+│   ├── types/                          # Example types (math.py, specs.py)
+│   └── widgets/                        # Example widgets
+│
+├── haybale-testing/haybale_testing/    # Integration test harness library
+│   ├── __init__.py
+│   ├── nodes/
+│   │   ├── testbed/                    # Testbed node implementations
+│   │   │   ├── begin_play_node.py
+│   │   │   ├── custom_callback_node.py
+│   │   │   ├── display_node.py
+│   │   │   ├── dynamic_port_test.py
+│   │   │   ├── edge_link_test.py
+│   │   │   ├── emit_callback_node.py
+│   │   │   ├── math_op_node.py
+│   │   │   ├── settings_node.py        # Settings-heavy test node
+│   │   │   └── test_performance.py
+│   │   └── utils/                      # Node test utilities
+│   ├── panels/                         # Panel tests
+│   │   ├── test_create_node_panel.py
+│   │   ├── test_edge_panels.py
+│   │   ├── test_node_panels.py
+│   │   └── test_selection_panels.py
+│   ├── settings/
+│   │   └── testing.py                  # TestingSettings
+│   ├── adapters/                       # Test adapters
+│   ├── skins/                          # Test skins
+│   ├── themes/                         # Test themes (node.py, workbench.py)
+│   ├── types/                          # Test types
+│   └── widgets/                        # Test widgets
+│
+├── haybale-visiongraph/haybale_visiongraph/  # OpenCV/webcam vision nodes
+│   ├── __init__.py
+│   ├── nodes/                          # Webcam, frame, stream nodes
+│   ├── types/                          # Frame type
+│   └── widgets/                        # Streaming viewer widget
+│
+└── haybale-TEST_A/haybale_test_a/      # Scratch/test library (not for production)
+    ├── __init__.py
+    ├── adapters/
+    └── types/
 ```
+
+---
+
+## Always-load vs On-demand
+
+**Always-load**:
+- `haybale-testing/__init__.py` — understand what test nodes/types are available for tests
+
+**On-demand**:
+- `haybale-testing/nodes/testbed/settings_node.py` — reference for settings-heavy nodes
+- `haybale-testing/nodes/testbed/edge_link_test.py` — reference for complex edge scenarios
+- `haybale-example/` — when adding example nodes or as reference for new node authors
+- `haybale-visiongraph/` — only when working on webcam/vision features
+- `haybale-TEST_A/` — scratch space, ignore unless specifically directed
 
 ---
 
 ## Rules & Boundaries
 
-- Each library is independently installable as a uv package with its own `pyproject.toml`.
-- Library discovery is via `importlib.metadata.entry_points(group='haywire.libraries')`.
-- Hot-reload works for editable installs via `file_watcher=True` on `@library`.
-- Libraries must NOT import from each other except through the core type registry.
-- `haybale-testing` nodes must never be registered in a production DI context.
+- **haybale-testing** is the integration test fixture library — its nodes/types are loaded
+  by the integration test suite. Do not use in production code paths.
+- **haybale-TEST_A** is scratch — not a stable API.
+- **haybale-visiongraph** requires opencv as an optional dependency — guard imports.
+- All libraries follow the `BaseLibrary` + `register_components()` contract.
+
+---
+
+## Source of Truth
+
+| Concern | File |
+|---------|------|
+| Test fixture nodes | `haybale-testing/nodes/testbed/` |
+| Test settings reference | `haybale-testing/settings/testing.py` |
+| Example node reference | `haybale-example/nodes/` |
+| Vision/webcam nodes | `haybale-visiongraph/nodes/` |
 
 ---
 
 ## Depends on
 
-- [core-engine.md](core-engine.md) — BaseLibrary, BaseNode, port types
-- [haybale-core.md](haybale-core.md) — primitive types referenced by most libraries
+- [core-engine.md](core-engine.md) — BaseNode, types, settings APIs
+- [core-ui.md](core-ui.md) — BasePanel, BaseSkin, widget APIs (haybale-testing panels)
 
 ## Depended on by
 
-- [tests.md](tests.md) — test suite uses haybale-testing nodes
+- [tests.md](tests.md) — integration tests load haybale-testing nodes/types

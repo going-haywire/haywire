@@ -8,10 +8,17 @@
 
 ## Scope & Purpose
 
-The official "studio" haybale library. Contributes all concrete UI — editors, panels, and
-scopes — that make up the Haywire workbench. Also provides all library settings (canvas,
-execution, debug, etc.). This is the UI counterpart to `haywire-core/ui`, which only provides
-the base framework machinery.
+The default studio UI plugin library. Contributes all of the workbench's editors, panels,
+skins, and theme definitions. Loaded at runtime as a `haywire.libraries` entry point.
+
+Major changes since last map:
+- `panels/_settings_panel_base.py` removed — functionality moved to `haywire.ui.panel.render_utils`
+- `panels/settings_app_panels.py`, `panels/settings_canvas_panels.py`, `panels/edge_info_panel.py` removed
+- New panel structure: `app_panels.py`, `debug_panel.py`, `execution_panel.py`
+- `settings/` drastically slimmed — removed `debug.py`, `editor.py`, `execution.py`,
+  `ui_canvas.py`, `ui_edge.py`, `ui_minimap.py`, `ui_node.py`, `workbench.py`
+- New `settings/theme_settings.py` added
+- `themes/` added: `node.py`, `workbench.py` (moved from `haybale-core/themes/`)
 
 ---
 
@@ -19,85 +26,68 @@ the base framework machinery.
 
 ```
 haybale_studio/
-├── __init__.py             # BaseLibrary subclass + register_components()
-│                           # Registers PROPERTIES_SCOPES before scanning panels folder
+├── __init__.py                 # BaseLibrary subclass, register_components()
 │
-├── editors/                # Concrete editor implementations
-│   ├── scopes.py           # PROPERTIES_SCOPES list: app(10), execution(20),
-│   │                       #   canvas(30), debug(40), graph(50), node(60), edge(70)
-│   ├── properties_editor.py # PropertiesEditor — left 36px scope toolbar + content area
-│   │                       #   scope state in context.metadata['properties_scope']
-│   │                       #   auto-falls-back to first available scope
-│   ├── graph_editor.py     # GraphEditor — wraps GraphCanvasManager, handles
-│   │                       #   ACTIVE_GRAPH_CHANGED by swapping canvas (_swap_canvas())
-│   ├── console_editor.py   # ConsoleEditor — log/output viewer
-│   ├── file_browser.py     # FileBrowserEditor — opens .haywire graph files
-│   ├── file_viewer.py      # FileViewerEditor — raw file content viewer
-│   ├── graph_manager_editor.py     # GraphManagerEditor — open graphs overview
-│   ├── library_browser_editor.py   # LibraryBrowserEditor — installed libraries list
-│   ├── library_component_editor.py # LibraryComponentEditor — individual component detail
-│   └── library_overview_editor.py  # LibraryOverviewEditor — library detail view
+├── editors/                    # All workbench editor contributions
+│   ├── console_editor.py       # Console output editor
+│   ├── file_browser.py         # File browser editor
+│   ├── file_viewer.py          # File viewer editor
+│   ├── graph_editor.py         # Graph canvas editor (main editor)
+│   ├── graph_manager_editor.py # Graph manager/open files editor
+│   ├── library_browser_editor.py      # Library browser
+│   ├── library_component_editor.py    # Library component detail editor
+│   ├── library_overview_editor.py     # Library overview editor
+│   ├── properties_editor.py    # Node properties editor
+│   └── scopes.py               # Editor scope definitions
 │
-├── panels/                 # Concrete panel implementations
-│   ├── _settings_panel_base.py     # SettingsPanelBase — shared settings panel scaffold
-│   ├── node_properties_panel.py    # Node position/label/color properties
-│   ├── node_ports_panel.py         # Node port listing + connection info
-│   ├── node_settings_panel.py      # Node settings (from NodeSettings schema)
-│   ├── edge_info_panel.py          # Selected edge details
-│   ├── graph_info_panel.py         # Graph-level info
-│   ├── settings_app_panels.py      # App-scope settings panels
-│   ├── settings_canvas_panels.py   # Canvas-scope settings panels
-│   ├── settings_debug_panel.py     # Debug-scope settings panel
-│   └── settings_execution_panel.py # Execution-scope settings panel
+├── panels/                     # Workbench panel contributions
+│   ├── app_panels.py           # Application-level panels (replaces settings_app_panels)
+│   ├── debug_panel.py          # Debug panel (was settings_debug_panel.py)
+│   └── execution_panel.py      # Execution panel (was settings_execution_panel.py)
 │
-├── settings/               # Library settings schema definitions
-│   ├── debug.py            # DebugSettings
-│   ├── editor.py           # EditorSettings
-│   ├── execution.py        # ExecutionSettings
-│   ├── ui_canvas.py        # CanvasUISettings
-│   ├── ui_edge.py          # EdgeUISettings
-│   ├── ui_minimap.py       # MinimapUISettings
-│   ├── ui_node.py          # NodeUISettings
-│   └── workbench.py        # WorkbenchSettings
+├── settings/                   # haybale-studio settings
+│   └── theme_settings.py       # ThemeSettings — theme selection settings
 │
-├── themes/                 # Studio theme contributions
-├── skins/                  # Studio skin contributions
-├── types/                  # Studio type contributions (currently empty)
-├── widgets/                # Studio widget contributions (currently empty)
-├── adapters/               # Studio adapter contributions (currently empty)
-└── nodes/                  # Studio node contributions (currently empty)
+├── themes/                     # Theme contributions (moved from haybale-core)
+│   ├── node.py                 # Default NodeTheme implementation
+│   └── workbench.py            # Default WorkbenchTheme implementation
+│
+├── skins/                      # Skin contributions (if any)
+│
+├── adapters/                   # Type adapter contributions
+│
+├── nodes/                      # Any studio-specific utility nodes
+│
+├── types/                      # Type contributions
+│
+└── widgets/                    # Widget contributions
 ```
 
 ---
 
 ## Always-load vs On-demand
 
-**Always-load** (for any workbench UI work):
-- `__init__.py` — how scopes and components are registered; order matters
-- `editors/scopes.py` — the 7 scope IDs and their order weights
-- `editors/properties_editor.py` — how the Properties editor renders scope tabs
-- `editors/graph_editor.py` — how graphs are displayed and swapped
+**Always-load**:
+- `__init__.py` — registration path, what gets registered and when
+- `editors/graph_editor.py` — main graph canvas editor, most important contribution
+- `themes/workbench.py` + `themes/node.py` — default theme definitions
 
 **On-demand**:
-- `panels/` — load only the specific panel you're modifying
-- `settings/` — load only when modifying specific settings categories
-- `themes/`, `skins/` — load when modifying visual appearance
+- Individual editors in `editors/` — only when modifying that editor
+- `panels/` — only when working on app/debug/execution panels
+- `settings/theme_settings.py` — only when working on theme selection UI
 
 ---
 
 ## Rules & Boundaries
 
-- **Scope registration must happen before folder scan** in `register_components()`. The
-  `__init__.py` registers `PROPERTIES_SCOPES` into `PanelRegistry` before scanning the
-  panels folder — do not reorder.
-- **Scope IDs** (from `editors/scopes.py`): `app`, `execution`, `canvas`, `debug`,
-  `graph`, `node`, `edge`. These are the valid `scope=` values for `@panel` in this library.
-- **Panel `@panel(editor=..., scope=...)`**: `editor` is the short `registry_id`
-  (e.g. `'properties'`), not the full registry key.
-- **`properties_scope` state** is stored in `context.metadata['properties_scope']`; the
-  PropertiesEditor reads this to know which scope to render.
-- **Settings are library-scoped** — use `@library_settings` on each settings class and
-  register via `register_components()`.
+- **`_settings_panel_base.py` is deleted** — use `haywire.ui.panel.render_utils` instead.
+- **Themes moved here from haybale-core** — `haybale_core/themes/` is now empty; default
+  `NodeTheme` and `WorkbenchTheme` implementations live in `haybale_studio/themes/`.
+- Settings slimmed: most per-subsystem settings (canvas, edge, node UI, minimap, workbench)
+  were removed from `settings/` here — these moved to the core settings system.
+- Follow the `@editor` / `@panel` decorator patterns from `haywire.ui`.
+- All components must be registered in `register_components()` in `__init__.py`.
 
 ---
 
@@ -105,18 +95,18 @@ haybale_studio/
 
 | Concern | File |
 |---------|------|
-| Scope definitions | `editors/scopes.py` — `PROPERTIES_SCOPES` |
-| Properties editor rendering | `editors/properties_editor.py` |
-| Graph display / swap | `editors/graph_editor.py` |
-| Settings schemas | `settings/*.py` |
+| Library registration | `__init__.py` |
+| Main graph editor | `editors/graph_editor.py` |
+| Default themes | `themes/workbench.py`, `themes/node.py` |
+| Theme settings | `settings/theme_settings.py` |
 
 ---
 
 ## Depends on
 
-- [core-engine.md](core-engine.md) — node, graph, settings APIs
-- [core-ui.md](core-ui.md) — BaseEditor, BasePanel, PanelRegistry, ScopeDescriptor
+- [core-engine.md](core-engine.md) — node/type/settings APIs
+- [core-ui.md](core-ui.md) — BaseEditor, BasePanel, theme base classes, render_utils
 
 ## Depended on by
 
-- [haywire-studio.md](haywire-studio.md) — discovers this library via entry points at startup
+- [tests.md](tests.md) — UI tests test studio editors/panels via the harness

@@ -8,8 +8,9 @@
 ## Scope & Purpose
 
 The runtime heart of Haywire. Owns the graph model, all port/edge mechanics, the type system,
-the execution pipeline (assembly → VM), the DI container, the settings system, and undo/redo.
-Nothing in this module should depend on UI or NiceGUI — it is headless and testable in isolation.
+the execution pipeline (assembly → VM), the DI container, the settings system, debug/logging
+config, and undo/redo. Nothing in this module should depend on UI or NiceGUI — it is headless
+and testable in isolation.
 
 ---
 
@@ -18,6 +19,7 @@ Nothing in this module should depend on UI or NiceGUI — it is headless and tes
 ```
 haywire/core/
 ├── __init__.py
+├── namespaces.py               # Haywire namespace constants
 ├── utils.py                    # shared helpers
 │
 ├── di/                         # Dependency injection
@@ -29,7 +31,9 @@ haywire/core/
 │   ├── base.py                 # Graph class — add/remove nodes & edges
 │   ├── editor.py               # GraphEditor — higher-level edit operations
 │   ├── types.py                # Graph-related dataclasses/enums
-│   └── validation.py           # Graph-level structural checks
+│   ├── validation.py           # Graph-level structural checks
+│   └── utils/                  # Graph utilities
+│       └── graph_to_python.py  # Serialise graph to Python code
 │
 ├── node/                       # Node class hierarchy
 │   ├── base.py                 # BaseNode — port declaration, rejig, worker
@@ -78,18 +82,25 @@ haywire/core/
 │   ├── execution_context.py    # ExecutionContext passed to worker()
 │   ├── scheduler.py            # Async execution scheduler
 │   ├── callback_manager.py     # CALLBACK port management
-│   └── event_source.py         # EVENT node source registry
+│   ├── event_source.py         # EVENT node source registry
+│   └── settings.py             # Execution settings
+│
+├── debug/                      # Debug / logging configuration (new in refactor)
+│   ├── configurator.py         # LoggingConfigurator — sets up structured logging
+│   ├── debug_settings.py       # DebugSettings — settings class for debug flags
+│   └── keys.py                 # Logging key constants
 │
 ├── validation/                 # Structural validation
 │   ├── interface.py            # IValidator protocol
 │   └── structural_validator.py # NodeWrapper dirty-queue validator
 │
-├── settings/                   # Settings system
-│   ├── schema.py               # NodeSettings / LibrarySettings base + setting() descriptor
-│   ├── descriptors.py          # field() / shadow() / watch() descriptors
-│   ├── settings.py             # Settings — live instance
+├── settings/                   # Settings system (three-class model)
+│   ├── settings.py             # Settings — live instance (was holder.py)
+│   ├── schema.py               # NodeSettings / LibrarySettings base schemas
+│   ├── descriptor.py           # setting() / shadow() / watch() descriptors (unified)
 │   ├── registry.py             # SettingsRegistry
-│   ├── chain.py                # Three-tier TOML chain resolution
+│   ├── node_settings.py        # Node-specific settings helpers
+│   ├── base.py                 # PropertyBase shared by settings and properties
 │   ├── enums.py                # SettingMode, SettingScope
 │   ├── types.py                # Color, Icon type aliases
 │   ├── value.py                # SettingValue container
@@ -111,11 +122,6 @@ haywire/core/
 │   ├── lifecycle_event.py      # Registry lifecycle events
 │   └── dependency_graph.py     # Dependency ordering for registries
 │
-├── property/                   # Node property bag
-│   ├── base.py                 # PropertyBase
-│   ├── bag.py                  # PropertyBag — stores node UI properties
-│   └── descriptor.py           # Property descriptor
-│
 └── undo/                       # Undo/redo
     ├── history_manager.py      # HistoryManager
     ├── interfaces.py           # IHistoryManager protocol
@@ -123,6 +129,7 @@ haywire/core/
     ├── no_op_history_manager.py
     ├── config.py               # Undo DI config
     └── actions/                # Concrete action implementations
+        └── graph_actions.py
 ```
 
 ---
@@ -140,7 +147,8 @@ haywire/core/
 **On-demand**:
 - `assembly/` — only when working on graph-to-execution pipeline
 - `execution/vm.py` — only when debugging execution behaviour
-- `settings/` — only when working on the settings system
+- `settings/` — only when working on the settings system (see docs/documentation/settings.md/)
+- `debug/` — only when working on logging/debug configuration
 - `undo/` — only when working on undo/redo
 - `adapter/` — only when working on cross-type conversions
 
@@ -158,6 +166,9 @@ haywire/core/
 - **Displacement is asymmetric**: inlet informs outlet on displacement; outlet does NOT inform inlet.
 - **`is_lazy` is per-edge**, not per-port. Pipes own transport; lazy = `pull_lazy()` always-latest.
 - **Adapter chain** is resolved at connection time with sample data; connection is rejected if chain fails.
+- **`property/` module removed** — `PropertyBase` now lives in `settings/base.py`.
+- **Settings three-class model**: schema class (defines fields) + Settings instance + registry entry.
+  `chain.py`, `descriptors.py`, and `holder.py` have been removed; use `descriptor.py` and `settings.py`.
 
 ---
 
@@ -172,7 +183,8 @@ haywire/core/
 | Edge lifecycle | `edge/edge.py` |
 | Assembly pipeline | `assembly/flow_assembly_manager.py` |
 | VM execution | `execution/vm.py` |
-| Settings schema | `settings/schema.py` |
+| Settings descriptors | `settings/descriptor.py` |
+| Debug/logging setup | `debug/configurator.py` |
 
 ---
 

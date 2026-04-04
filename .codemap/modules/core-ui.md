@@ -7,10 +7,18 @@
 
 ## Scope & Purpose
 
-The core UI framework layer. Provides the base classes, registries, and machinery for the
-multi-editor workspace system — but does **not** contribute any concrete editors or panels
-(those live in haybale-studio). Also owns the graph canvas (Vue/NiceGUI hybrid), widget
-system, theme/skin registries, session management, and the app shell layout.
+The NiceGUI-based UI framework layer. Owns the app shell, workspace/session model, graph canvas,
+editor/panel/widget registries, themes, skins, and all Vue/Quasar components. Depends on
+`haywire.core` but must not be depended on by core.
+
+Major structural changes since last map:
+- `app_shell.py` split into `app/shell.py` (825-line refactor)
+- `pan_zoom/` module removed; replaced by `components/zoom/` and `components/minimap/`
+- `graph_canvas/` handlers extracted into `handlers/` subpackage
+- `popup_context_menu.py` collapsed into `popup.py`
+- `elements.py` added (~670 lines of shared UI element builders)
+- `panel/render_utils.py` added for panel rendering helpers
+- `ui/prefs/` slimmed (removed debug.py, execution.py, minimap.py, node_ui.py, workbench.py)
 
 ---
 
@@ -18,134 +26,146 @@ system, theme/skin registries, session management, and the app shell layout.
 
 ```
 haywire/ui/
-├── app_shell.py            # AppShell — TopBar+ActivityBar+Left/Middle/Right/Bottom areas
-├── context.py              # SessionContext, InteractionMode
-├── context_events.py       # ContextChangedEvent, ContextChangeType enum
-├── session.py              # Session — per-browser-connection state
-├── session_manager.py      # SessionManager — tracks all sessions, broadcast_data_mutation
-├── console_bridge.py       # Console output bridge to UI
-├── protocols.py            # UI protocol interfaces
-├── utils.py                # Shared UI helpers
+├── __init__.py
+├── elements.py                 # Shared NiceGUI element builders (~670 lines)
+├── utils.py                    # UI utilities
+├── protocols.py                # UI protocol interfaces
+├── context.py                  # UIContext — per-session context container
+├── context_events.py           # UIContext event definitions
+├── console_bridge.py           # Console output bridge to UI
+├── session.py                  # Session model
+├── session_manager.py          # SessionManager — create/destroy sessions
+├── ui_edge.py                  # UIEdge — visual edge representation
+├── ui_node.py                  # UINode — visual node representation
+├── ui_nodecard.py              # UINodeCard — node card widget
 │
-├── editor/                 # Editor framework (base + registry)
-│   ├── base.py             # BaseEditor — abstract, render(context) contract
-│   ├── decorator.py        # @editor(registry_id=...) decorator
-│   ├── registry.py         # EditorTypeRegistry — get_by_key() / get_by_id()
-│   └── identity.py         # EditorIdentity
+├── app/                        # App shell (was app_shell.py)
+│   └── shell.py                # HaywireAppShell — top-level layout (825 lines)
 │
-├── panel/                  # Panel framework
-│   ├── base.py             # BasePanel — abstract, render(context) contract
-│   ├── decorator.py        # @panel(editor=..., scope=...) decorator
-│   ├── registry.py         # PanelRegistry — get_panels(editor_key, context_str)
-│   ├── scope.py            # ScopeDescriptor — scope tab metadata
-│   └── identity.py         # PanelIdentity
+├── components/                 # Reusable Vue/NiceGUI components
+│   ├── graph/                  # Graph canvas Vue component
+│   │   ├── canvas.py           # Python wrapper
+│   │   ├── canvas.vue          # Vue component
+│   │   └── generators.py       # JS event/handler generators
+│   ├── minimap/                # Minimap component (replaced pan_zoom/minimap)
+│   │   ├── minimap.py          # MinimapCanvas Python class
+│   │   ├── minimap.vue         # Vue component
+│   │   └── settings.py         # MinimapSettings
+│   ├── zoom/                   # Zoom/pan container (replaced pan_zoom/zoom_pan)
+│   │   ├── pan.py              # ZoomPanContainer Python class
+│   │   ├── pan.vue             # Vue component
+│   │   └── settings.py         # ZoomPanSettings
+│   └── number/                 # Number drag widget
+│       ├── drag.py
+│       └── drag.vue
 │
-├── workspace/              # Workspace layout persistence
-│   ├── workspace_state.py  # WorkspaceState, area state constants (_K_* keys)
-│   └── manager.py          # WorkspaceManager — JSON persistence in .haywire/workspaces.json
+├── graph_canvas/               # Graph canvas manager and interaction
+│   ├── graph_canvas_manager.py # GraphCanvasManager — orchestrates canvas
+│   ├── event_definitions.py    # Canvas event type definitions
+│   ├── event_handlers.py       # Base event handler routing
+│   ├── popup.py                # Connection info popup (merged popup_context_menu)
+│   ├── connection_info_popup.py # Edge/connection info popup
+│   ├── node_menu_builder.py    # Node context menu builder
+│   └── handlers/               # Extracted handler subpackage
+│       ├── context_menu.py     # Context menu handler
+│       ├── interaction.py      # Mouse/keyboard interaction handler
+│       ├── selection.py        # Node selection handler
+│       └── visual_layer.py     # Visual layer (rendering, node/edge draw) handler
 │
-├── graph_canvas/           # Vue-based graph canvas (node + edge rendering)
-│   ├── graph_canvas_manager.py    # GraphCanvasManager — main canvas controller
-│   ├── graph_canvas_vue.py        # Vue component bridge
-│   ├── event_definitions.py       # Canvas event type definitions
-│   ├── event_generators.py        # Converts graph changes → canvas events
-│   ├── event_handlers.py          # Handles incoming canvas events → graph mutations
-│   ├── node_menu_builder.py       # Right-click node menu construction
-│   ├── popup.py                   # Popup base
-│   ├── popup_context_menu.py      # Context menu popup
-│   └── connection_info_popup.py   # Edge/connection detail popup
+├── editor/                     # Editor registry
+│   ├── base.py                 # BaseEditor
+│   ├── decorator.py            # @editor decorator
+│   ├── identity.py             # EditorIdentity
+│   └── registry.py             # EditorRegistry
 │
-├── pan_zoom/               # Pan+zoom viewport
-│   ├── zoom_pan_vue.py     # Vue zoom-pan component
-│   ├── mini_map_vue.py     # Minimap Vue component
-│   ├── minimap.py          # Minimap controller
-│   └── zoom_pan_test.py    # Zoom-pan playground
+├── panel/                      # Panel registry
+│   ├── base.py                 # BasePanel
+│   ├── decorator.py            # @panel decorator
+│   ├── identity.py             # PanelIdentity
+│   ├── registry.py             # PanelRegistry
+│   ├── render_utils.py         # Panel rendering utilities (~500 lines)
+│   └── scope.py                # Panel scope enum
 │
-├── themes/                 # Theme system
-│   ├── workbench.py        # WorkbenchTheme — CSS token palette
-│   ├── node_theme.py       # NodeTheme — per-node-type colouring
-│   ├── registry.py         # ThemeRegistry
-│   ├── decorator.py        # @workbench_theme / @node_theme decorators
-│   ├── icons.py            # Icon constants
-│   └── data/               # TOML palette data files
+├── widget/                     # Widget registry
+│   ├── base.py                 # BaseWidget
+│   ├── binding.py              # Widget data binding
+│   ├── converters.py           # Value converters
+│   ├── decorator.py            # @widget decorator
+│   ├── factory.py              # WidgetFactory
+│   ├── factory_interface.py    # IWidgetFactory protocol
+│   ├── globals.py              # Global widget state
+│   ├── identity.py             # WidgetIdentity
+│   ├── interface.py            # IWidget protocol
+│   ├── registry.py             # WidgetRegistry
+│   └── simple.py               # SimpleWidget base
 │
-├── skin/                   # Node skin (visual shape/renderer per node)
-│   ├── base.py             # BaseSkin
-│   ├── decorator.py        # @skin decorator
-│   ├── factory.py          # SkinFactory
-│   ├── interface.py        # ISkin protocol
-│   └── registry.py         # SkinRegistry (skins)
+├── skin/                       # Node skin system
+│   ├── base.py                 # BaseSkin
+│   ├── decorator.py            # @skin decorator
+│   ├── factory.py              # SkinFactory
+│   ├── interface.py            # ISkin protocol
+│   ├── registry.py             # SkinRegistry
+│   └── settings.py             # SkinSettings
 │
-├── widget/                 # Port widget system (inline port controls)
-│   ├── base.py             # BaseWidget
-│   ├── simple.py           # Built-in simple widgets (text, number, toggle, etc.)
-│   ├── binding.py          # Widget ↔ port value binding
-│   ├── converters.py       # Value converters for widgets
-│   ├── decorator.py        # @widget decorator
-│   ├── factory.py          # WidgetFactory
-│   ├── factory_interface.py
-│   ├── globals.py          # Widget globals/config
-│   ├── identity.py         # WidgetIdentity
-│   ├── interface.py        # IWidget protocol
-│   └── registry.py         # WidgetRegistry
+├── themes/                     # Theme system
+│   ├── __init__.py
+│   ├── decorator.py            # @theme decorator
+│   ├── icons.py                # Icon constants
+│   ├── node_theme.py           # NodeTheme base
+│   ├── registry.py             # ThemeRegistry
+│   └── workbench.py            # WorkbenchTheme base
 │
-├── components/             # Reusable NiceGUI UI components
-│   └── number_drag.py      # NumberDrag — drag-to-change number input widget
+├── prefs/                      # UI preferences (settings wrappers for UI state)
+│   ├── canvas.py               # Canvas prefs
+│   ├── edge_ui.py              # Edge rendering prefs
+│   ├── editor.py               # Editor prefs
+│   └── __init__.py
 │
-├── prefs/                  # UI preference settings (use settings system)
-│   ├── canvas.py           # Canvas prefs
-│   ├── debug.py            # Debug prefs
-│   ├── edge_ui.py          # Edge rendering prefs
-│   ├── editor.py           # Editor prefs
-│   ├── execution.py        # Execution prefs
-│   ├── minimap.py          # Minimap prefs
-│   ├── node_ui.py          # Node rendering prefs
-│   └── workbench.py        # Workbench prefs
+├── errors/                     # UI error handling
+│   ├── error_info.py
+│   └── haywire_exception.py
 │
-├── errors/                 # UI error display
-│   ├── error_info.py       # ErrorInfo dataclass
-│   └── haywire_exception.py # UI exception types
-│
-├── ui_node.py              # UINode — NiceGUI node card renderer
-├── ui_edge.py              # UIEdge — NiceGUI edge renderer
-└── ui_nodecard.py          # NodeCard widget
+└── workspace/                  # Workspace state
+    ├── __init__.py
+    ├── manager.py              # WorkspaceManager
+    └── workspace_state.py      # WorkspaceState
 ```
 
 ---
 
 ## Always-load vs On-demand
 
-**Always-load** (for any UI work):
-- `context.py` — SessionContext is passed everywhere; understand its fields first
-- `context_events.py` — how context changes propagate between editors
-- `editor/base.py` + `editor/registry.py` — editor base contract and lookup
-- `panel/base.py` + `panel/registry.py` — panel base contract and lookup
-- `panel/scope.py` — scope tab system (replaces old `context=` string)
-- `app_shell.py` — overall layout and area rendering
+**Always-load** (understand these first for any UI work):
+- `app/shell.py` — top-level layout, understand how editors/panels mount
+- `context.py` — UIContext, the per-session dependency container
+- `graph_canvas/graph_canvas_manager.py` — how the canvas manages nodes/edges
+- `panel/base.py` + `panel/registry.py` — panel system contract
+- `editor/base.py` + `editor/registry.py` — editor system contract
+- `themes/workbench.py` + `themes/node_theme.py` — theme base classes
 
 **On-demand**:
-- `graph_canvas/` — only when working on the canvas or node/edge rendering
-- `workspace/` — only when working on workspace persistence
-- `themes/` + `skin/` — only when working on visual appearance
-- `widget/` — only when working on port inline controls
-- `prefs/` — only when working on UI settings
+- `graph_canvas/handlers/` — only when debugging canvas interaction behaviour
+- `components/zoom/` + `components/minimap/` — only when working on canvas pan/zoom/minimap
+- `widget/` — only when adding new port type widgets
+- `skin/` — only when adding new node skins
+- `panel/render_utils.py` — only when building or debugging complex panel layouts
+- `elements.py` — when adding shared NiceGUI element patterns
 
 ---
 
 ## Rules & Boundaries
 
-- **editor_key vs registry_key**: All area state values use the FULL registry key
-  (`__system__:editor:<id>`), NOT short IDs. Constants are in `workspace/workspace_state.py`
-  as `_K_*` module-level constants. `EditorTypeRegistry.get_by_key(full_key)` is primary lookup.
-- **Panel lookup**: `panel_registry.get_panels(editor_key, context_str)` — `editor_key` is the
-  short `registry_id`, not the full `registry_key`.
-- **NiceGUI async rule**: Return coroutines from `on_click` lambdas directly — do NOT wrap in
-  `asyncio.ensure_future()`. NiceGUI detects the returned Awaitable and wraps with slot context.
-  Background tasks creating new UI must enter the container first: `with self._my_container:`.
-- **Multi-scope panels**: `@panel(scope=['node', 'graph'])` registers under both tabs.
-- **Active theme**: session-scoped in `SessionContext.active_workbench_theme_id` — resets to
-  settings default on reconnect.
-- **No graph mutation** from within panel/editor render methods — use context events.
+- **NiceGUI slot stack rule**: never create NiceGUI elements outside the active slot context.
+  See `feedback_nicegui_async.md` for the 3 safe async patterns.
+- **`pan_zoom/` is deleted** — use `components/zoom/pan.py` (ZoomPanContainer) and
+  `components/minimap/minimap.py` (MinimapCanvas) instead.
+- **`app_shell.py` is deleted** — use `app/shell.py` (HaywireAppShell).
+- **`popup_context_menu.py` is deleted** — merged into `popup.py`.
+- **`prefs/` modules removed**: `debug.py`, `execution.py`, `minimap.py`, `node_ui.py`,
+  `workbench.py` — these settings moved to settings system in core/haybale-studio.
+- **compact-fields CSS class** available for tight panel layouts — see `feedback_nicegui_compact_panels.md`.
+- Panels use `@panel` decorator + `BasePanel`; editors use `@editor` decorator + `BaseEditor`.
+- All Vue components in `components/` should have matching `.py` wrapper and `.vue` file.
 
 ---
 
@@ -153,20 +173,25 @@ haywire/ui/
 
 | Concern | File |
 |---------|------|
-| Session state | `context.py` — `SessionContext` |
-| Context change events | `context_events.py` — `ContextChangeType` |
-| Editor registry lookup | `editor/registry.py` — `get_by_key()` |
-| Panel scope system | `panel/scope.py` — `ScopeDescriptor` |
-| Workspace area keys | `workspace/workspace_state.py` — `_K_*` constants |
-| App layout | `app_shell.py` |
+| App shell layout | `app/shell.py` |
+| Canvas orchestration | `graph_canvas/graph_canvas_manager.py` |
+| Panel registry | `panel/registry.py` |
+| Editor registry | `editor/registry.py` |
+| Theme registry | `themes/registry.py` |
+| ZoomPan component | `components/zoom/pan.py` |
+| Minimap component | `components/minimap/minimap.py` |
+| Shared UI elements | `elements.py` |
+| Panel render helpers | `panel/render_utils.py` |
 
 ---
 
 ## Depends on
 
-- [core-engine.md](core-engine.md) — imports graph, node, edge, type, settings, DI APIs
+- [core-engine.md](core-engine.md) — imports graph, node, types, settings, execution APIs
 
 ## Depended on by
 
-- [haywire-studio.md](haywire-studio.md) — wires app shell and session management
-- [haybale-studio.md](haybale-studio.md) — contributes concrete editors and panels
+- [haywire-studio.md](haywire-studio.md) — app mounts editors/panels via UI registries
+- [haybale-studio.md](haybale-studio.md) — contributes editors, panels, skins to UI registries
+- [haybale-core.md](haybale-core.md) — contributes panels and widgets
+- [tests.md](tests.md) — UI tests use harness that instantiates the app shell
