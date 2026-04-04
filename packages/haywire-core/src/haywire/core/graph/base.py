@@ -396,7 +396,7 @@ class BaseGraph:
         """
         return [wrapper for wrapper in self.node_wrappers.values() if wrapper.registry_key == registry_key]
 
-    def list_all_wrappers(self) -> List["NodeWrapper"]:
+    def list_node_wrappers(self) -> List["NodeWrapper"]:
         """
         Get all node wrappers in the graph.
 

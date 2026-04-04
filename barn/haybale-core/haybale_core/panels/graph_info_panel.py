@@ -33,8 +33,8 @@ class GraphInfoPanel(BasePanel):
         if graph is None:
             return
         try:
-            nodes = getattr(graph, "nodes", {})
-            edges = getattr(graph, "edges", {})
+            nodes = graph.list_node_wrappers()
+            edges = graph.list_edge_wrappers
             node_count = len(nodes) if hasattr(nodes, "__len__") else "?"
             edge_count = len(edges) if hasattr(edges, "__len__") else "?"
             layout.label(f"Nodes: {node_count}")
