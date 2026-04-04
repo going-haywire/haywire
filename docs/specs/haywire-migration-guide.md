@@ -1,8 +1,8 @@
 # Haywire Design System — Migration Guide
 
 Instructions for systematically migrating the Haywire codebase to the design
-system defined in `haywire-design-system.md` and the `hui` module
-(`haywire.ui.elements`).
+system defined in `docs/documentation/design/haywire-ui-design-guide.md` and
+the `hui` module (`haywire.ui.elements`).
 
 This document is written for a coding agent.  Work through it top-down.
 Each section describes a class of violations, how to detect them, and how to
@@ -27,7 +27,11 @@ bug on non-dark themes.
 
 ### 1.1  Tailwind grey text classes
 
-**Detect:** Search all `.py` files under `editors/`, `panels/`, `app_shell.py`,
+**Detect:** Search all `.py` files under
+`barn/haybale-studio/haybale_studio/editors/`,
+`barn/haybale-studio/haybale_studio/panels/`,
+`barn/haybale-core/haybale_core/`,
+`packages/haywire-core/src/haywire/ui/`,
 and any file that imports from `nicegui` for these patterns:
 
 ```
@@ -194,12 +198,65 @@ Exclude values that are already inside `var(--hw-*)` expressions.
 
 **Fix:** Replace with the appropriate `var(--hw-*)` token.  Common examples:
 
-| Hardcoded value              | Token                  |
-| ---------------------------- | ---------------------- |
-| Background hex on a panel    | `var(--hw-bg-page)`    |
-| Background hex on a bar      | `var(--hw-bg-surface)` |
-| Border colour hex            | `var(--hw-border)`     |
-| Text colour hex              | `var(--hw-text-body)`  |
+| Hardcoded value                   | Token                   |
+| --------------------------------- | ----------------------- |
+| Background hex on a panel         | `var(--hw-bg-page)`     |
+| Background hex on a bar           | `var(--hw-bg-surface)`  |
+| Border colour hex                 | `var(--hw-border)`      |
+| Text colour hex                   | `var(--hw-text-body)`   |
+| Error node bg (`#fef2f2`, etc.)   | `var(--hw-danger-bg)`   |
+| Ghost pin (`rgba(128,128,128,…)`) | `var(--hw-ghost-pin)`   |
+| Modal backdrop (`rgba(0,0,0,…)`)  | `var(--hw-bg-overlay)`  |
+
+### 1.8  Hardcoded active / selection backgrounds
+
+**Detect:** Search for:
+```
+bg-blue-900
+bg-blue-800
+hover:bg-blue-
+```
+
+These appear on active-state rows (e.g. the currently open graph in
+`graph_manager_editor.py`).
+
+**Fix:** Replace with `hui.list_item(is_active=True)` which applies
+`var(--hw-bg-active)` automatically:
+
+```python
+# Before
+row_classes = "... bg-blue-900/40 " if is_active else "... hover:bg-white/10 "
+
+# After
+hui.list_item(label, sublabel=subtitle, is_active=is_active, on_click=handler)
+```
+
+### 1.9  Hardcoded amber / warning colours
+
+**Detect:** Search for:
+```
+text-amber-400
+text-amber-500
+amber-400/
+```
+
+These appear on unsaved-state indicators and warning text.
+
+**Fix:** Replace with `var(--hw-warning)`:
+
+```python
+# Before
+ui.label("not saved").classes("text-xs text-amber-400/70")
+
+# After
+ui.label("not saved").classes("text-xs").style("color: var(--hw-warning); opacity: 0.7;")
+```
+
+Or, if a dedicated unsaved-state token is added (`--hw-warning-dim`):
+
+```python
+ui.label("not saved").classes("text-xs").style("color: var(--hw-warning-dim);")
+```
 
 ---
 
@@ -405,6 +462,64 @@ ui.input(*).classes("w-full").props("dense outlined ...")
 hui.input_field(placeholder="Search libraries…", clearable=True)
 ```
 
+### 2.14  Number and select fields
+
+**Detect:** Look for:
+
+```python
+ui.number(*).classes("w-full").props("dense outlined ...")
+ui.select(*).props("dense outlined ...")
+```
+
+**Fix:** Replace with `hui.number_field()` / `hui.select_field()`:
+
+```python
+# Before
+ui.number(label="posX", value=0).classes("w-full").props("dense outlined")
+
+# After
+hui.number_field(label="posX", value=0)
+```
+
+```python
+# Before
+ui.select(options=opts, value=v).props("dense outlined").classes("text-sm")
+
+# After
+hui.select_field(options=opts, value=v, label="Mode")
+```
+
+### 2.15  Settings category expansion headers
+
+**Detect:** Look for `ui.expansion()` used directly in settings/properties
+panels with inline header-class strings:
+
+```python
+ui.expansion(label, value=True)
+.props('dense dense-toggle header-class="text-xs font-bold hw-text-muted uppercase ..."')
+```
+
+This pattern appears in `render_utils.py` (`_render_category_group`) and
+`node_settings.py`.
+
+**Fix:** Replace with `hui.category_group()`:
+
+```python
+# Before
+ui.expansion(label, value=True).classes("w-full").props(
+    'dense dense-toggle header-class="text-xs font-bold hw-text-muted uppercase'
+    ' tracking-wide px-2 py-0 min-h-[24px]"'
+)
+
+# After
+with hui.category_group(label):
+    # field rows
+```
+
+Note: `hui.category_group` is distinct from `hui.expansion_section`. Use
+`category_group` for settings field categories; use `expansion_section` for
+collapsible property panel scopes.
+
 ---
 
 ## Phase 3 — Border and Divider Consistency
@@ -542,38 +657,111 @@ def render(self, container, context):
                 self._content = ui.column().classes("w-full p-2 gap-1")
 ```
 
+### 6.3  Migrate skin hardcoded colours to canvas tokens
+
+**Scope:** `barn/haybale-core/haybale_core/skins/` — specifically
+`error_skin.py` and `node_skin.py`.
+
+**Detect:** Search for hardcoded hex or rgba values in skin files:
+
+```bash
+grep -rn '#[0-9a-fA-F]\|rgba\?' --include="*.py" barn/haybale-core/haybale_core/skins/
+```
+
+**Fix table:**
+
+| File            | Hardcoded value           | Replace with                                                                   |
+| --------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| `error_skin.py` | `#ef4444`, `#dc2626`      | `var(--hw-danger)`                                                             |
+| `error_skin.py` | `#fef2f2`, `#fee2e2`      | `var(--hw-danger-bg)`                                                          |
+| `node_skin.py`  | `rgba(128,128,128,0.15)`  | `var(--hw-ghost-pin)`                                                          |
+| `node_skin.py`  | `rgba(128,128,128,0.3)`   | `var(--hw-ghost-pin)`                                                          |
+| `node_skin.py`  | `rgba(128,128,128,0.4)`   | `color-mix(in srgb, var(--hw-ghost-pin) 133%, transparent)` or a second token  |
+
+**Note:** Also fix non-standard transition durations in `error_skin.py`:
+`0.2s` → keep as canvas-tier (permitted); `0.3s` → keep as canvas-tier
+(permitted). `transition: all` → replace with named property.
+
+### 6.4  Migrate popup chrome to tokens
+
+**Scope:** `packages/haywire-core/src/haywire/ui/graph_canvas/popup.py` and
+`connection_info_popup.py`.
+
+**Detect:** Search for hardcoded shadow and backdrop values:
+
+```bash
+grep -rn 'rgba\|box-shadow\|bg-gray\|bg-red\|text-gray' --include="*.py" \
+  packages/haywire-core/src/haywire/ui/graph_canvas/
+```
+
+**Fix:**
+
+- `rgba(0,0,0,0.5)` backdrop → `var(--hw-bg-overlay)`
+- `box-shadow: 0 20px 40px rgba(...)` → `var(--hw-node-shadow)` or add
+  `--hw-popup-shadow` to `WorkbenchTheme`
+- `bg-gray-*`, `text-gray-*` → appropriate `--hw-*` tokens
+- `bg-red-*`, `text-red-*` → `var(--hw-danger)` / `var(--hw-danger-bg)`
+
 ---
 
 ## Verification Checklist
 
-After completing all phases, run these checks:
+After completing all phases, run these checks from the repo root:
 
 1. **Grep for Tailwind colour classes** in all editor/panel `.py` files:
    ```bash
-   grep -rn "text-gray-\|text-red-\|text-yellow-\|text-blue-\|text-purple-\|text-green-\|text-orange-" \
-     --include="*.py" editors/ panels/ app_shell.py
+   grep -rn "text-gray-\|text-red-\|text-yellow-\|text-blue-\|text-purple-\|text-green-\|text-orange-\|text-amber-" \
+     --include="*.py" \
+     barn/haybale-studio/haybale_studio/ \
+     barn/haybale-core/haybale_core/ \
+     packages/haywire-core/src/haywire/ui/
    ```
    Expected: zero hits (except inside Quasar `bg-{color}-500` for status dots).
 
 2. **Grep for hardcoded hex in styles**:
    ```bash
-   grep -rn '\.style.*#[0-9a-fA-F]' --include="*.py" editors/ panels/ app_shell.py
+   grep -rn '\.style.*#[0-9a-fA-F]' --include="*.py" \
+     barn/haybale-studio/haybale_studio/ \
+     barn/haybale-core/haybale_core/ \
+     packages/haywire-core/src/haywire/ui/
    ```
    Expected: zero hits (all replaced with `var(--hw-*)`).
 
-3. **Grep for hover:bg-white**:
+3. **Grep for hardcoded rgba/rgb in styles** (excluding theme definition files):
    ```bash
-   grep -rn 'hover:bg-white' --include="*.py" editors/ panels/
+   grep -rn 'rgba\?\s*(' --include="*.py" \
+     barn/haybale-studio/haybale_studio/editors/ \
+     barn/haybale-studio/haybale_studio/panels/ \
+     barn/haybale-core/haybale_core/ \
+     packages/haywire-core/src/haywire/ui/
+   ```
+   Expected: zero hits (theme files `barn/haybale-studio/haybale_studio/themes/` are exempt).
+
+4. **Grep for hover:bg-white and active hardcodes**:
+   ```bash
+   grep -rn 'hover:bg-white\|bg-blue-900\|hover:bg-black' --include="*.py" \
+     barn/haybale-studio/haybale_studio/ \
+     barn/haybale-core/haybale_core/
    ```
    Expected: zero hits.
 
-4. **Grep for removed statics**:
+5. **Grep for removed statics**:
    ```bash
-   grep -rn '_info_row\|_code_row\|_section\|_copy_btn' --include="*.py" editors/
+   grep -rn '_info_row\|_code_row\|_section\|_copy_btn' --include="*.py" \
+     barn/haybale-studio/haybale_studio/editors/
    ```
    Expected: zero hits (all replaced with `hui.*` calls).
 
-5. **Visual test:** Switch between the dark and light workbench themes.
+6. **Grep for color=grey on buttons**:
+   ```bash
+   grep -rn 'color=grey' --include="*.py" \
+     barn/haybale-studio/haybale_studio/ \
+     packages/haywire-core/src/haywire/ui/
+   ```
+   Expected: zero hits.
+
+7. **Visual test:** Switch between the dark and light workbench themes.
    Every piece of text, every border, every background should respond correctly.
-   No white-on-white or black-on-black text.  No hardcoded colours standing out
-   against the theme.
+   No white-on-white or black-on-black text. No hardcoded colours standing out
+   against the theme. Pay special attention to: node error skins, popup/context
+   menus, graph manager active rows, connection info popups.

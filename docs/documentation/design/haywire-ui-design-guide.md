@@ -71,14 +71,16 @@ Do not skip levels (e.g. page → elevated without a surface in between).
 
 ### 2.2 Background Tokens
 
-| Token               | Layer | Use for                                    |
-| -------------------- | ----- | ------------------------------------------ |
-| `--hw-bg-page`       | 0     | Area containers, editor backgrounds        |
-| `--hw-bg-surface`    | 1     | Topbar, info bars, panel header backgrounds|
-| `--hw-bg-sidebar`    | 0–1   | Activity bar, context bar                  |
-| `--hw-bg-elevated`   | 2     | Dropdown menus, tooltips, toolbar hover    |
-| `--hw-bg-overlay`    | 3     | Modal backdrops                            |
-| `--hw-bg-input`      | —     | Input field backgrounds (special-purpose)  |
+| Token              | Layer | Use for                                                              |
+| ------------------ | ----- | -------------------------------------------------------------------- |
+| `--hw-bg-page`     | 0     | Area containers, editor backgrounds                                  |
+| `--hw-bg-surface`  | 1     | Topbar, info bars, panel header backgrounds                          |
+| `--hw-bg-sidebar`  | 0–1   | Activity bar, context bar                                            |
+| `--hw-bg-elevated` | 2     | Dropdown menus, tooltips, toolbar hover                              |
+| `--hw-bg-overlay`  | 3     | Modal backdrops                                                      |
+| `--hw-bg-input`    | —     | Input field backgrounds (special-purpose)                            |
+| `--hw-bg-hover`    | —     | Row hover background. Theme-aware; equals `--hw-bg-surface` at rest. |
+| `--hw-bg-active`   | —     | Selected/active row. Distinct from hover; not as heavy as a surface. |
 
 ### 2.3 Text Tokens
 
@@ -130,18 +132,78 @@ and editor UI must use `var(--hw-border)` via inline style or an appropriate
 uses `var(--hw-warning)`, not `text-yellow-400`. This applies everywhere —
 inline messages, error labels, validation hints.
 
-### 2.7 Hover and Selection
+### 2.7 Canvas & Node Tokens
 
-Interactive list items and rows use a **theme-derived translucent overlay** for
-hover, not a hardcoded white-alpha value.
+These tokens are defined on `WorkbenchTheme` and used exclusively by the graph
+canvas, node skins, and edge renderers. Panel and shell code must not reference
+them.
 
-**Prescribed value:** `var(--hw-bg-elevated)` as background on hover, or if
-that is too heavy, a dedicated token `--hw-bg-hover` should be added. Until
-that token exists, use `var(--hw-bg-surface)` for hover on Layer 0 containers,
-and `var(--hw-bg-elevated)` for hover on Layer 1 containers.
+| Token                   | Use for                                                        |
+| ----------------------- | -------------------------------------------------------------- |
+| `--hw-node-bg`          | Default node card background                                   |
+| `--hw-node-border`      | Default node card border                                       |
+| `--hw-node-header-bg`   | Node header strip background                                   |
+| `--hw-node-header-text` | Node header text colour                                        |
+| `--hw-node-selected`    | Node border/glow when selected                                 |
+| `--hw-node-shadow`      | Node card drop shadow (only permitted `box-shadow` in the app) |
+| `--hw-edge-default`     | Default edge stroke colour                                     |
+| `--hw-edge-selected`    | Selected edge stroke colour                                    |
+| `--hw-canvas-bg`        | Canvas background fill                                         |
+| `--hw-canvas-grid`      | Canvas grid dot/line colour                                    |
+| `--hw-ghost-pin`        | Ghost/unconnected pin indicator colour (rgba, low opacity)     |
+| `--hw-danger-bg`        | Error node background fill (used by error skin)                |
+
+**Rule:** `--hw-node-shadow` is the only permitted use of `box-shadow` in the
+entire application. Panel and shell chrome must use elevation colours instead.
+
+**Rule:** `--hw-ghost-pin` replaces all hardcoded `rgba(128,128,128,…)` values
+used for ghost/unconnected pin indicators in node skins.
+
+**Rule:** `--hw-danger-bg` replaces all hardcoded `#fef2f2`/`#fee2e2` values
+used in the error node skin. It should resolve to a low-saturation tint of
+`--hw-danger` at the theme level.
+
+### 2.8 Component-Specific Tokens
+
+Tokens for named shell regions that need colours beyond the generic set.
+
+| Token                      | Use for                                     |
+| -------------------------- | ------------------------------------------- |
+| `--hw-topbar-bg`           | TopBar background (may differ from surface) |
+| `--hw-topbar-text`         | TopBar text and icon colour                 |
+| `--hw-sidebar-bg`          | ActivityBar / ContextBar background         |
+| `--hw-sidebar-icon`        | Sidebar icon colour at rest                 |
+| `--hw-sidebar-icon-active` | Sidebar icon colour when active             |
+| `--hw-panel-bg`            | Panel background (may equal `--hw-bg-page`) |
+| `--hw-panel-text`          | Panel text colour                           |
+| `--hw-panel-header-0-bg`   | Outer (depth-0) expansion header bg         |
+| `--hw-panel-header-1-bg`   | Inner (depth-1) expansion header bg         |
+| `--hw-statusbar-bg`        | StatusBar background                        |
+| `--hw-statusbar-text`      | StatusBar text colour                       |
+| `--hw-console-bg`          | Console editor background                   |
+| `--hw-console-text`        | Console editor text colour                  |
+
+### 2.9 Hover and Selection
+
+Interactive list items and rows use a **theme-derived token** for hover, not a
+hardcoded white-alpha value.
+
+| State             | Token            | Notes                                                      |
+| ----------------- | ---------------- | ---------------------------------------------------------- |
+| Hover             | `--hw-bg-hover`  | Equals `--hw-bg-surface` on the default dark theme.        |
+| Active / selected | `--hw-bg-active` | Clearly distinguishable from hover. Applied to active row. |
+
+**Rule:** Never use `hover:bg-white/10`, `hover:bg-black/10`, or any
+opacity-alpha class for hover states. These only work on one background tone
+and break on light themes.
+
+**Rule:** Active rows must not show the hover background in addition to the
+active background. Use `pointer-events: none` or CSS specificity to suppress
+hover styling when a row is active.
 
 **Rationale:** `hover:bg-white/10` only works on dark themes. On a light theme
-it creates a washed-out flash.
+it creates a washed-out flash. `bg-blue-900/40` (seen in graph_manager_editor)
+is likewise hardcoded and must be replaced with `--hw-bg-active`.
 
 ---
 
@@ -263,6 +325,46 @@ the shell geometry is predictable.
 | Scope toolbar button | 36×36px | inline style               |
 | Compact field input  | 26px    | `--hw-compact-field-h`     |
 
+### 4.5 Compact-Fields System
+
+Settings panels use a container-query–based responsive layout system that
+compresses label/widget rows for dense display. This is distinct from ordinary
+`gap-1` padding — it activates a CSS container context and responsive classes.
+
+**How to use:**
+
+```python
+with ui.column().classes("w-full gap-0 compact-fields").style(
+    "container-type: inline-size; container-name: settings-panel;"
+):
+    # Each row uses _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
+    with ui.row().classes("w-full items-center justify-between gap-0 px-2"):
+        ui.label("My Field").classes("text-xs truncate sf-label")
+        my_widget.classes("sf-widget")
+```
+
+**CSS classes in this system:**
+
+| Class            | Purpose                                                         |
+| ---------------- | --------------------------------------------------------------- |
+| `compact-fields` | Applied to the outer column. Activates container context.       |
+| `sf-label`       | Label cell. Responsive width — shrinks at narrow container.     |
+| `sf-widget`      | Widget cell. Takes remaining space; right-aligned.              |
+
+**CSS tokens for this system:**
+
+| Token                   | Default | Purpose                                 |
+| ----------------------- | ------- | --------------------------------------- |
+| `--hw-compact-field-h`  | 26px    | Fixed input height for compact widgets. |
+| `--hw-compact-gap`      | 1px     | Vertical gap between compact rows.      |
+| `--hw-compact-row-min-h`| 28px    | Minimum row height in compact mode.     |
+
+**Rule:** Only use `compact-fields` for settings/property panels. Regular
+editor content uses the standard gap/padding system (§4.1–4.3).
+
+**Rule:** Never apply `compact-fields` and `p-4` to the same container. Compact
+panels use `p-0` or `p-1` on their outer column.
+
 ---
 
 ## 5. Border Radius
@@ -338,31 +440,50 @@ prop with `.hw-use-props-color`, or style it with a `--hw-*` token.
 
 ## 7. Transitions & Motion
 
-### 7.1 Standard Transition
+Two tiers of transition timing exist in Haywire. They are deliberately different
+because shell UI and canvas objects have different perceptual scales.
 
-All interactive state changes use a single timing function:
+### 7.1 Shell / Panel Transitions (0.15s)
+
+All interactive state changes in the shell, panels, editors, and toolbars use:
 
 ```
 transition: <property> 0.15s ease;
 ```
 
-### 7.2 Animated Properties
+This applies to toolbar buttons, list item hover, scope buttons, input focus,
+and icon colour changes. `hui` encodes this via the `_TRANSITION_BG` constant.
 
-Only these properties may be transitioned:
+### 7.2 Canvas / Node Transitions (up to 0.3s)
 
-| Property           | Context                                      |
-| ------------------ | -------------------------------------------- |
-| `background-color` | Toolbar buttons, list item hover, dividers   |
-| `color`            | Icon and text colour on hover                |
-| `box-shadow`       | Active toolbar button ring                   |
-| `opacity`          | Disabled / available scope buttons           |
-| `border-color`     | Input focus                                  |
+Node skins and canvas-level animations may use longer durations because objects
+on the canvas are perceived at a greater visual distance and need slightly more
+time to read as intentional motion.
 
-### 7.3 Not Animated
+```
+transition: <property> 0.2s ease;   /* node state changes */
+transition: <property> 0.3s ease;   /* node enter/exit, error flash */
+```
+
+**Rule:** Durations above `0.3s` are not permitted anywhere in the codebase.
+
+**Rule:** `transition: all` is not permitted. Always name the specific property.
+
+### 7.3 Animated Properties
+
+| Property           | Tier   | Context                                    |
+| ------------------ | ------ | ------------------------------------------ |
+| `background-color` | Shell  | Toolbar buttons, list item hover           |
+| `color`            | Shell  | Icon and text colour on hover              |
+| `box-shadow`       | Shell  | Active toolbar button ring                 |
+| `opacity`          | Both   | Disabled scope buttons; node widget appear |
+| `border-color`     | Shell  | Input focus                                |
+| `background`       | Canvas | Node error state, node skin state changes  |
+
+### 7.4 Not Animated
 
 Layout changes (panel show/hide, content rebuilds, scroll) are instant. No
-`transition` on `width`, `height`, `flex`, `padding`, `margin`, `transform`,
-or `display`.
+`transition` on `width`, `height`, `flex`, `padding`, `margin`, or `display`.
 
 ---
 
@@ -433,26 +554,31 @@ hui.empty_state(
 )
 ```
 
-### 8.4 `hui.list_item(label, sublabel=None, dot_color=None, on_click=None)`
+### 8.4 `hui.list_item(label, sublabel=None, dot_color=None, is_active=False, on_click=None)`
 
 An interactive row for browsers and selection lists.
 
 **Visual rules:**
 - Padding: `px-2 py-1.5`
 - Full width, `rounded` (4px)
-- Hover: `var(--hw-bg-surface)` background (not `bg-white/10`)
+- Hover: `var(--hw-bg-hover)` background (not `bg-white/10`)
+- Active (`is_active=True`): `var(--hw-bg-active)` background; hover suppressed
 - Cursor: `pointer`
 - Gap: `gap-2`
 - Status dot (optional): `w-2 h-2 rounded-full`, Quasar named colour
-- Label: `text-sm font-medium truncate`
+- Label: `text-sm font-medium truncate`; `hw-text-body` when active, `hw-text-muted` otherwise
 - Sublabel: `text-xs hw-text-dim`
 - Parent text column: `flex-1 gap-0 min-w-0`
+
+**Rule:** Never use `bg-blue-900/40` or other hardcoded colours for active rows.
+Always pass `is_active=True` and let the token do the work.
 
 ```python
 hui.list_item(
     "Visiongraph",
     sublabel="v0.0.1",
     dot_color="green",
+    is_active=entry is active_entry,
     on_click=lambda: self._select(lib),
 )
 ```
@@ -551,8 +677,13 @@ A collapsible section for grouped content in property panels.
 
 **Visual rules:**
 - Bottom border: `1px solid var(--hw-border)`
-- Header text: `--hw-text-expansion`
+- Header label colour: `--hw-text-expansion` (special-purpose token — set per theme)
+- Header label size/weight: Quasar's default expansion header — `text-sm font-medium`
 - Persists expansion state to `context.metadata` under the given `panel_key`
+
+**Rule:** Do not use `ui.expansion()` directly in property panels. Header styling
+(font size, colour token, border) is only guaranteed correct via this wrapper.
+For settings category groups, use `hui.category_group()` instead (§8.21).
 
 ```python
 with hui.expansion_section("Node", icon="settings", context=ctx, panel_key="node"):
@@ -622,6 +753,105 @@ with hui.tabs(("Graph", "account_tree"), ("Library", "widgets")) as tabs:
     ...
 ```
 
+### 8.17 `hui.number_field(label=None, value=0, **props)`
+
+A standard number input, pre-configured for panel use.
+
+**Visual rules:** Same as `hui.input_field` — `dense outlined`, `w-full`.
+
+```python
+hui.number_field(label="posX", value=0)
+```
+
+### 8.18 `hui.select_field(options, value=None, label=None, **props)`
+
+A standard dropdown select, pre-configured for panel use.
+
+**Visual rules:**
+- Props: `dense outlined`
+- Classes: `text-sm`
+- `min-width: 160px` by default (override via `min_width=`)
+
+```python
+hui.select_field(options=["A", "B"], value="A", label="Mode")
+```
+
+### 8.19 `hui.section_divider(text=None)`
+
+A visual break between sections. If `text` is provided, renders a
+`hui.section_label`. Otherwise renders a plain `ui.separator` with top margin.
+
+```python
+hui.section_divider("ADVANCED")  # labelled divider
+hui.section_divider()            # plain separator
+```
+
+### 8.19b `hui.separator()`
+
+A plain themed horizontal rule (`ui.separator`). Use when you need a divider
+without a label and without the top margin added by `hui.section_divider()`.
+Prefer `hui.section_divider()` in most contexts; use `hui.separator()` only
+where the extra margin would break a tight layout.
+
+```python
+hui.separator()
+```
+
+### 8.20 `hui.success_label(text)` / `hui.info_label(text)`
+
+Status message labels for non-error states.
+
+**Visual rules:**
+
+- `success_label`: `text-sm` with `color: var(--hw-success)`, `p-4`
+- `info_label`: `text-sm` with `color: var(--hw-info)`, `p-4`
+
+```python
+hui.success_label("Library installed successfully.")
+hui.info_label("No changes detected.")
+```
+
+### 8.21 `hui.category_group(label)` — settings expansion header
+
+A foldable expansion used to group settings fields by category inside a
+`compact-fields` container. This is distinct from `hui.expansion_section`
+(which is for property panel scopes with state persistence).
+
+**Visual rules:**
+
+- Props: `dense dense-toggle`
+- Header class: `text-xs font-bold hw-text-muted uppercase tracking-wide px-2 py-0 min-h-[24px]`
+- Default open: `True`
+- No state persistence (categories always reset to open)
+
+```python
+with hui.category_group("Rendering"):
+    # field rows rendered here
+```
+
+**Rule:** Use `hui.category_group` inside `compact-fields` columns only.
+Use `hui.expansion_section` for collapsible panels in the properties editor.
+
+### 8.22 Popup / Dialog Chrome
+
+Floating popups (context menus, connection info, node add menus) follow these
+rules. There is no single `hui` wrapper for full popups — they vary too much
+in structure — but the chrome rules are fixed.
+
+**Visual rules:**
+
+- Background: `var(--hw-bg-elevated)`
+- Border: `1px solid var(--hw-border-strong)`
+- Border radius: `md` (8px)
+- Shadow: defined by the theme, not hardcoded. Use `--hw-node-shadow` as the
+  closest available token, or request a dedicated `--hw-popup-shadow` token if
+  the popup visually competes with nodes.
+- Backdrop (modal overlays only): `var(--hw-bg-overlay)` — never `rgba(0,0,0,0.5)`
+
+**Rule:** Never hardcode `box-shadow` values on popups. If the current token
+set does not have a suitable popup shadow, add `--hw-popup-shadow` to
+`WorkbenchTheme` rather than inlining a value.
+
 ---
 
 ## 9. Layout Anatomy
@@ -681,6 +911,35 @@ def render(self, container, context):
                 self._render_content(context)
 ```
 
+### 9.4 Node Skin Design Space
+
+Node skins (`BaseSkin` subclasses) render inside the graph canvas and operate
+outside the `.hw-panel` cascade. They have a separate, more permissive set of
+design rules.
+
+**What skins may do:**
+
+- Use any `--hw-node-*` and `--hw-canvas-*` token directly in inline styles
+- Apply `--hw-danger-bg`, `--hw-ghost-pin`, and other canvas-specific tokens
+- Use `box-shadow` via `var(--hw-node-shadow)` or an additional error-state
+  shadow — canvas objects are the only place where multiple shadows are allowed
+- Use `backdrop-filter` for frosted-glass node effects (use sparingly)
+- Apply canvas-tier transition durations (`0.2s`–`0.3s`)
+
+**What skins must not do:**
+
+- Hardcode `#hex` or `rgb()` values — all colours must be tokens
+- Use `--hw-bg-*`, `--hw-text-*`, or `--hw-border` panel tokens directly
+  (they belong to the shell layer)
+- Use `text-gray-*`, `text-red-*`, or any Tailwind colour class — use tokens
+  or Quasar `color=` props with `.hw-use-props-color`
+- Apply `hui.*` panel wrappers inside a skin — use raw `ui.*` elements
+
+**Error state skins** (e.g. `ErrorSkin`) may introduce a second visual identity
+for the node (red gradient, danger border) provided all colour values reference
+tokens (`--hw-danger`, `--hw-danger-bg`). Hardcoded hex values like `#ef4444`
+or `#fef2f2` must be replaced.
+
 ---
 
 ## 10. Naming Conventions
@@ -710,10 +969,17 @@ in code and comments:
 | `hw-text-`      | Semantic text colour utilities                   |
 | `hw-panel`      | Editor container marker (enables text cascade)   |
 | `hw-tabs`       | Middle-area tab bar styling                      |
-| `hw-cm-isolate` | CodeMirror isolation wrapper                     |
+| `hw-cm-isolate` | CodeMirror isolation wrapper (see rule below)    |
 | `compact-fields`| Dense field rendering mode                       |
 | `sf-label`      | Settings field label (responsive layout)         |
 | `sf-widget`     | Settings field widget (responsive layout)        |
+
+**Rule: `hw-cm-isolate`** must be applied to the direct wrapper `div` around
+any CodeMirror editor instance. Without it, Quasar and Haywire global CSS rules
+(particularly `--hw-text-body` colour cascade and `.hw-panel` font overrides)
+bleed into CodeMirror's internal DOM and corrupt its syntax highlighting. The
+class creates a CSS isolation boundary. Do not apply it to any element that is
+not a CodeMirror host.
 
 ---
 
@@ -747,10 +1013,23 @@ in code and comments:
 | `text-yellow-400` for warnings | Not theme-aware | `hui.warning_label()` or `color: var(--hw-warning)` |
 | `text-blue-400` on links/icons | Not theme-aware | `color: var(--hw-accent)` or `var(--hw-info)` |
 | `text-purple-500` on icons | Not theme-aware | Quasar `color=` prop with `.hw-use-props-color` |
-| `hover:bg-white/10` | Breaks on light themes | `hui.list_item()` or `var(--hw-bg-surface)` hover |
-| `bg-green-500`, `bg-purple-500` as dots | Acceptable only via Quasar `bg-{color}-500` for status dots | Keep, but document in hui |
+| `text-amber-400` for unsaved/warning state | Not theme-aware | `color: var(--hw-warning)` |
+| `hover:bg-white/10` | Breaks on light themes | `hui.list_item()` or class `hw-list-item-hover` |
+| `bg-blue-900/40` for active rows | Hardcoded, dark-only | `hui.list_item(is_active=True)` → `var(--hw-bg-active)` |
+| `bg-green-500`, `bg-purple-500` as dots | Acceptable only via Quasar `bg-{color}-500` for status dots | Use Quasar named colours; document in `hui.list_item(dot_color=)` |
 | Hardcoded `#hex` in `.style()` | Not theme-aware | Use `var(--hw-*)` token |
+| `rgba(0,0,0,0.5)` as modal backdrop | Dark-only | `var(--hw-bg-overlay)` |
+| `rgba(128,128,128,…)` for ghost pins | Not theme-aware | `var(--hw-ghost-pin)` |
+| `#ef4444`, `#fef2f2` in error skins | Not theme-aware | `var(--hw-danger)`, `var(--hw-danger-bg)` |
 | `box-shadow` on panels | Reserved for canvas nodes | Use elevation colours |
+| `box-shadow` hardcoded on popups | Not theme-aware | Use `var(--hw-node-shadow)` or add `--hw-popup-shadow` |
+| `transition: all` | Transitions unspecified properties | Name the specific property |
+| `0.2s`/`0.3s` transitions in shell/panel code | Inconsistent with shell tier | `0.15s` for shell; `0.2–0.3s` only in canvas/skin code |
+| `color=grey` on icon buttons | Overrides theme cascade | Remove; buttons inherit colour from `.hw-panel` |
+| `color=primary` on buttons | Not mapped to Haywire theme | Use `color=positive` or style via `--hw-accent` |
+| `ui.expansion()` directly in settings panels | Inconsistent header styling | Use `hui.category_group()` |
+| `ui.input()` / `ui.number()` with `dense outlined` | Duplicates hui config | Use `hui.input_field()` / `hui.number_field()` |
 | Re-implementing panel_header from scratch | Drift and inconsistency | Use `hui.panel_header()` |
 | `min-height: 28px` vs `min-height: 32px` for similar bars | Inconsistent | Use `hui.info_bar()` (standardizes to 28px) |
 | Inline `padding: 80px 0` vs `padding: 60px 0` for empty states | Inconsistent | Use `hui.empty_state()` (standardizes to 72px) |
+| `--hw-node-*` tokens used in panel/shell code | Wrong layer | Canvas tokens are for skins only; use `--hw-bg-*` in panels |
