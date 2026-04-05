@@ -242,25 +242,42 @@ export default {
 
 <style>
 .number-drag {
+  position: relative;
   display: flex;
   align-items: center;
   height: var(--hw-compact-field-h, 26px);
-  border-radius: 4px;
   background: var(--hw-bg-input, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--hw-border, rgba(255, 255, 255, 0.10));
-  overflow: hidden;
+  border: none;
+  border-bottom: 1px solid var(--hw-border, rgba(255, 255, 255, 0.10));
+  border-radius: 0;
+  overflow: visible;
   user-select: none;
   font-size: 12px;
   color: inherit;
   transition: background 0.15s, border-color 0.15s;
 }
 .number-drag--hover {
-  border-color: var(--hw-border-strong, rgba(255, 255, 255, 0.25));
+  border-bottom-color: var(--hw-border-strong, rgba(255, 255, 255, 0.25));
+}
+.number-drag::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--hw-accent, #4f8ef7);
+  transform-origin: center bottom;
+  transform: scale3d(0, 1, 1);
+  transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.number-drag--dragging::after,
+.number-drag--editing::after {
+  transform: scale3d(1, 1, 1);
 }
 .number-drag--dragging,
 .number-drag--editing {
   background: var(--hw-bg-elevated, rgba(255, 255, 255, 0.12));
-  border-color: var(--hw-accent, #4f8ef7);
 }
 
 /* ── Arrow buttons ─────────────────────────────── */

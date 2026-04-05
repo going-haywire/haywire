@@ -401,11 +401,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
 
         def _open_modal(_cv=current_value, _s=make_setter(str), _w=wrapper):
             with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
-                ta = (
-                    ui.textarea(value=_cv[0])
-                    .classes("w-full text-xs")
-                    .props('dense autogrow input-style="padding-left: 4px;"')
-                )
+                ta = ui.textarea(value=_cv[0]).classes("w-full text-xs").props("dense autogrow")
 
                 def _confirm():
                     v = ta.value

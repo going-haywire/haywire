@@ -201,10 +201,13 @@ class AppShell:
             " .hw-panel .q-field--outlined:hover .q-field__control:before"
             " { border-color: var(--hw-border-strong) !important; }"
             " .hw-panel .q-field__control { background: var(--hw-bg-input) !important; }"
-            # Default (non-outlined) field underline — border-bottom-color is not inherited
-            " .hw-panel .q-field:not(.q-field--outlined) .q-field__control:before"
+            # Standard (non-outlined) field underline — override currentColor to use border token
+            " .hw-panel .q-field--standard .q-field__control:before"
+            " { border-bottom-color: var(--hw-border) !important; }"
+            " .hw-panel .q-field--standard:hover .q-field__control:before"
             " { border-bottom-color: var(--hw-border-strong) !important; }"
-            " .hw-panel .q-field:not(.q-field--outlined) .q-field__control:after"
+            # Focus accent on the animated :after element
+            " .hw-panel .q-field--standard.q-field--highlighted .q-field__control:after"
             " { background: var(--hw-accent) !important; }"
             # Dropdown menus — portal outside their parent, so must be targeted globally
             " .q-menu { background: var(--hw-bg-elevated) !important;"
