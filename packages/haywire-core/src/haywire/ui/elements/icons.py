@@ -31,35 +31,43 @@ class AppIcon:
     """Execution behaviour scope."""
     canvas: Final[str] = "grid_on"
     """Canvas & nodes scope."""
-    debug: Final[str] = "bug_report"
-    """Debug / dev tools scope."""
+
+    # ── Graph ────────────────────────────────────────────────────────────────
+    graph_manager: Final[str] = "apps"
+    """Multi-graph file browser."""
+
+    # ── Library  ───────────────────────────────────────────────────────────
+    library: Final[str] = "extension"
+    """Library bicon."""
+
+    # ── Console / terminal ────────────────────────────────────────────────────
+    terminal: Final[str] = "terminal"
+    """Console or script output panel."""
 
     # -- Core Classes ───────────────────────────────────────────────────────────────
 
     graph: Final[str] = "polyline"
-    """Active graph info scope."""
+    """Graph main icon."""
     node: Final[str] = "account_tree"
-    """Selected node properties scope."""
-    node_settings: Final[str] = "tune"
-    """Node settings scope (only available when node has setting bags)."""
+    """Node main icon."""
     edge: Final[str] = "cable"
-    """Selected edge info scope."""
+    """Edge main icon."""
     widget: Final[str] = "widgets"
-    """Selected widget info scope."""
-    skin: Final[str] = "brush"
-    """Skins in library overview."""
+    """Widget main icon."""
+    skin: Final[str] = "preview"
+    """Skins main icon."""
     adapter: Final[str] = "electrical_services"
-    """Adapters tab in library overview."""
+    """Adapters main icon."""
     type: Final[str] = "category"
-    """Types in library overview."""
+    """Types main icon."""
     panel: Final[str] = "dashboard_customize"
-    """Panels in library overview."""
+    """Panels main icon."""
     editor: Final[str] = "space_dashboard"
-    """Editors in library overview."""
+    """Editors main icon."""
     theme: Final[str] = "palette"
-    """Theme and appearance settings."""
+    """Theme and appearance main icon."""
 
-    
+
     # ── Canvas sub-panels ────────────────────────────────────────────────────
     canvas_grid: Final[str] = "grid_4x4"
     """Grid display settings panel."""
@@ -77,14 +85,10 @@ class AppIcon:
     """Node port list panel."""
     node_status: Final[str] = "check_circle"
     """Node validation and runtime status panel."""
-
-    # ── Graph ────────────────────────────────────────────────────────────────
-    graph_manager: Final[str] = "apps"
-    """Multi-graph file browser."""
+    node_settings: Final[str] = "tune"
+    """Node settings scope (only available when node has setting bags)."""
 
     # ── Library / editor tabs ────────────────────────────────────────────────
-    library_browser: Final[str] = "extension"
-    """Library browser editor."""
     library_component: Final[str] = "description"
     """Component detail editor."""
     library_docs: Final[str] = "menu_book"
@@ -98,33 +102,29 @@ class AppIcon:
     edge_statistics: Final[str] = "linear_scale"
     """Edge execution statistics and connection path panels."""
 
+    # ── General actions and states ─────────────────────────────────────────────────
+    debug: Final[str] = "bug_report"
+    """Debug / dev tools scope."""
+
     # ── File system ───────────────────────────────────────────────────────────
     folder: Final[str] = "folder"
     """Closed folder / file browser editor."""
     folder_open: Final[str] = "folder_open"
     """Open folder / file selected state."""
 
-    # ── Console / terminal ────────────────────────────────────────────────────
-    terminal: Final[str] = "terminal"
-    """Console or script output panel."""
-
-    # ── Library lifecycle ─────────────────────────────────────────────────────
-    library_pause: Final[str] = "pause"
-    """Suspend / pause a library."""
-    library_resume: Final[str] = "play_arrow"
-    """Resume / start a library (distinct from execution scope icon)."""
-    library_install: Final[str] = "download"
-    """Install / download a library."""
-    library_find_replace: Final[str] = "find_replace"
-    """Search and replace within a library."""
-
-    # ── Lock / permission ─────────────────────────────────────────────────────
+    # ── UI chrome ────────────────────────────────────────────────────────────
+    pause: Final[str] = "pause"
+    """Pause icon."""
+    resume: Final[str] = "play_arrow"
+    """Resume icon."""
+    download: Final[str] = "download"
+    """Download icon."""
+    find_replace: Final[str] = "find_replace"
+    """Find and replace icon."""
     locked: Final[str] = "lock"
     """Locked / read-only state."""
     unlocked: Final[str] = "lock_open"
     """Unlocked / editable state."""
-
-    # ── UI chrome ────────────────────────────────────────────────────────────
     close: Final[str] = "close"
     """Dismiss / close a panel or popup."""
     dropdown: Final[str] = "arrow_drop_down"
@@ -134,18 +134,10 @@ class AppIcon:
     open_external: Final[str] = "open_in_new"
     """Open in external editor or browser."""
 
-    # ── Empty states ─────────────────────────────────────────────────────────
-    empty_no_results: Final[str] = "search_off"
-    """Empty state: no search results found."""
-    empty_binary: Final[str] = "block"
-    """Empty state: binary or unreadable file."""
-    empty_no_selection: Final[str] = "select_all"
-    """Empty state: nothing selected."""
-
     # ── Data types (haybale) ──────────────────────────────────────────────────
-    type_database: Final[str] = "database"
+    database: Final[str] = "database"
     """Database / tabular data type."""
-    type_list: Final[str] = "list"
+    list: Final[str] = "list"
     """List / sequence data type."""
 
     # ── Actions ──────────────────────────────────────────────────────────────
@@ -173,3 +165,11 @@ class AppIcon:
     """Error state."""
     warning: Final[str] = "warning"
     """Warning state."""
+
+    # ── Empty states ─────────────────────────────────────────────────────────
+    empty_no_results: Final[str] = "search_off"
+    """Empty state: no search results found."""
+    empty_binary: Final[str] = "block"
+    """Empty state: binary or unreadable file."""
+    empty_no_selection: Final[str] = "select_all"
+    """Empty state: nothing selected."""

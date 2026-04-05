@@ -140,7 +140,7 @@ class LibraryOverviewEditor(BaseEditor):
         if self._scroll:
             self._scroll.clear()
             with self._scroll:
-                hui.empty_state("Select a library to view details", icon=hui.icon.library_browser)
+                hui.empty_state("Select a library to view details", icon=hui.icon.library)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
@@ -264,7 +264,7 @@ class LibraryOverviewEditor(BaseEditor):
                             if installed_lib.enabled:
                                 _btn = ui.button(
                                     "Disable",
-                                    icon=hui.icon.library_pause,
+                                    icon=hui.icon.pause,
                                     on_click=lambda lid=installed_lib.library_id, ctx=context: (
                                         self._disable_library(lid, manager, ctx)
                                     ),
@@ -276,7 +276,7 @@ class LibraryOverviewEditor(BaseEditor):
                             else:
                                 ui.button(
                                     "Enable",
-                                    icon=hui.icon.library_resume,
+                                    icon=hui.icon.resume,
                                     on_click=lambda lid=installed_lib.library_id, ctx=context: (
                                         self._enable_library(lid, manager, ctx)
                                     ),
@@ -345,7 +345,7 @@ class LibraryOverviewEditor(BaseEditor):
                             # Not installed — simple Install button
                             ui.button(
                                 "Install",
-                                icon=hui.icon.library_install,
+                                icon=hui.icon.download,
                                 on_click=lambda e,
                                 spec=marketplace_pkg.install_spec,
                                 n=marketplace_pkg.name,
@@ -1008,7 +1008,7 @@ class LibraryOverviewEditor(BaseEditor):
                 ui.button("Skip", on_click=dialog.close).props("flat size=sm")
                 ui.button(
                     "Update files",
-                    icon=hui.icon.library_find_replace,
+                    icon=hui.icon.find_replace,
                     on_click=_patch_and_close,
                 ).props("color=positive size=sm")
 

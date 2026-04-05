@@ -17,7 +17,7 @@ T = TypeVar("T")
     label="Array",
     description="Map with key type string",
     color="#39f55f",
-    icon=hui.icon.type_list,
+    icon=hui.icon.list,
     default={"value": []},
 )
 class MapsStringType(CompoundType[T]):

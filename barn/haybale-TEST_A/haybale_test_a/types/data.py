@@ -18,7 +18,7 @@ from haywire.ui import elements as hui
     label="Test Data",
     description="Simple test data structure for cross-library testing",
     color="#FF5722",
-    icon=hui.icon.type_database,
+    icon=hui.icon.database,
     default={"value": None},
     help_url="https://haywire.io/docs/types/test-data",
 )

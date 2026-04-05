@@ -94,7 +94,7 @@ class GraphEditor(BaseEditor):
                     .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b")
                     .style("min-height: 32px; background: var(--hw-bg-surface);")
                 ):
-                    ui.icon(hui.icon.graph_manager, size="14px").classes("hw-text-dim")
+                    ui.icon(hui.icon.graph, size="14px").classes("hw-text-dim")
                     self._graph_name_label = ui.label("Untitled").classes(
                         "text-xs hw-text-muted truncate font-mono flex-1"
                     )
