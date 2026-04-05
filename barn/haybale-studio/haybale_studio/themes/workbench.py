@@ -21,6 +21,8 @@ class HaywireDarkTheme(WorkbenchTheme):
     bg_elevated = "#2a2a3e"
     bg_overlay = "rgba(0,0,0,0.5)"
     bg_input = "#16162a"
+    bg_hover = "#1e1e2e"
+    bg_active = "#2a2a4a"
 
     # Borders
     border = "#333333"
@@ -59,6 +61,8 @@ class HaywireDarkTheme(WorkbenchTheme):
     # Canvas
     canvas_bg = "#0e0e1a"
     canvas_grid = "#1a1a2e"
+    ghost_pin = "rgba(128,128,128,0.15)"
+    danger_bg = "rgba(244,67,54,0.08)"
 
     # TopBar
     topbar_bg = "#12121e"
@@ -88,6 +92,11 @@ class HaywireDarkTheme(WorkbenchTheme):
     compact_field_h = "26px"
     compact_row_min_h = "28px"
 
+    # Popups / drag
+    popup_shadow = "0 8px 32px rgba(0,0,0,0.5)"
+    drag_over = "#4f8ef7"
+    drag_ghost = "0.5"
+
 
 @theme(registry_id="haywire-light", label="Haywire Light")
 class HaywireLightTheme(WorkbenchTheme):
@@ -100,6 +109,8 @@ class HaywireLightTheme(WorkbenchTheme):
     bg_elevated = "#f0f0f6"
     bg_overlay = "rgba(0,0,0,0.3)"
     bg_input = "#f8f8fc"
+    bg_hover = "#e8e8f0"
+    bg_active = "#d0d0e8"
 
     # Borders
     border = "rgba(0,0,0,0.15)"
@@ -138,6 +149,8 @@ class HaywireLightTheme(WorkbenchTheme):
     # Canvas
     canvas_bg = "#1e1e1e"
     canvas_grid = "#2d2d2d"
+    ghost_pin = "rgba(0,0,0,0.12)"
+    danger_bg = "rgba(211,47,47,0.06)"
 
     # TopBar
     topbar_bg = "#ffffff"
@@ -166,3 +179,8 @@ class HaywireLightTheme(WorkbenchTheme):
     compact_gap = "0.25rem"
     compact_field_h = "26px"
     compact_row_min_h = "28px"
+
+    # Popups / drag
+    popup_shadow = "0 8px 32px rgba(0,0,0,0.18)"
+    drag_over = "#4f8ef7"
+    drag_ghost = "0.5"

@@ -52,6 +52,8 @@ class WorkbenchTheme:
         "bg_elevated": "--hw-bg-elevated",
         "bg_overlay": "--hw-bg-overlay",
         "bg_input": "--hw-bg-input",
+        "bg_hover": "--hw-bg-hover",
+        "bg_active": "--hw-bg-active",
         # Borders
         "border": "--hw-border",
         "border_strong": "--hw-border-strong",
@@ -83,6 +85,8 @@ class WorkbenchTheme:
         # Canvas
         "canvas_bg": "--hw-canvas-bg",
         "canvas_grid": "--hw-canvas-grid",
+        "ghost_pin": "--hw-ghost-pin",
+        "danger_bg": "--hw-danger-bg",
         # TopBar
         "topbar_bg": "--hw-topbar-bg",
         "topbar_text": "--hw-topbar-text",
@@ -101,6 +105,10 @@ class WorkbenchTheme:
         # Console
         "console_bg": "--hw-console-bg",
         "console_text": "--hw-console-text",
+        # Popups / drag
+        "popup_shadow": "--hw-popup-shadow",
+        "drag_over": "--hw-drag-over",
+        "drag_ghost": "--hw-drag-ghost",
         # Compact fields
         "compact_gap": "--hw-compact-gap",
         "compact_field_h": "--hw-compact-field-h",

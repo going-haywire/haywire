@@ -620,6 +620,55 @@ The `color=grey` overrides the theme cascade.
 entirely and style via `--hw-accent`.  Quasar's `primary` colour is not
 mapped to the Haywire theme.
 
+### 5.3  Disabled state — manual opacity or pointer-events
+
+**Detect:** Search for manual disabled styling:
+
+```css
+opacity: 0.5
+pointer-events: none
+cursor: not-allowed
+```
+
+applied to form inputs or buttons without using Quasar's `:disable` prop.
+
+**Fix:** Remove manual opacity/pointer-events. Use Quasar `:disable=True`
+on `QBtn`, `QInput`, `QSelect`, `QNumber`. For non-Quasar elements that
+must be disabled (e.g. raw divs), use both `opacity: 0.5` **and**
+`pointer-events: none` together — never one without the other.
+
+### 5.4  Focus rings — `:focus` instead of `:focus-visible`
+
+**Detect:** Search for CSS targeting `:focus` (not `:focus-visible`) in
+global stylesheets or `_ensure_css()` injections. Also look for
+`outline: 2px solid` applied on mouse click (visible even without keyboard
+navigation).
+
+**Fix:** Replace `:focus` with `:focus-visible` for all focus-ring rules.
+Quasar components handle this correctly internally; this fix targets any
+custom CSS written in `hui._ensure_css()` or component-level `<style>` blocks.
+
+### 5.5  Scrollbar styling — `webkit-scrollbar` CSS
+
+**Detect:** Search for:
+
+```css
+::-webkit-scrollbar
+```
+
+in any CSS file or `_ensure_css()` injection.
+
+**Fix:** Remove the `::-webkit-scrollbar` block. Scrollbars are styled
+via `QScrollArea`'s `thumb-style` and `bar-style` props (see §9.4 of the
+design guide). Apply them when constructing `ui.scroll_area()`:
+
+```python
+ui.scroll_area().props(
+    'thumb-style="background: var(--hw-border-strong); border-radius: 4px; width: 4px;"'
+    ' bar-style="background: transparent; width: 4px;"'
+)
+```
+
 ---
 
 ## Phase 6 — Structural Patterns
@@ -697,8 +746,8 @@ grep -rn 'rgba\|box-shadow\|bg-gray\|bg-red\|text-gray' --include="*.py" \
 **Fix:**
 
 - `rgba(0,0,0,0.5)` backdrop → `var(--hw-bg-overlay)`
-- `box-shadow: 0 20px 40px rgba(...)` → `var(--hw-node-shadow)` or add
-  `--hw-popup-shadow` to `WorkbenchTheme`
+- `box-shadow: 0 20px 40px rgba(...)` → `var(--hw-popup-shadow)` (now defined
+  on `WorkbenchTheme`; do not use `--hw-node-shadow` for popups)
 - `bg-gray-*`, `text-gray-*` → appropriate `--hw-*` tokens
 - `bg-red-*`, `text-red-*` → `var(--hw-danger)` / `var(--hw-danger-bg)`
 

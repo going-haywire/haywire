@@ -182,8 +182,25 @@ Tokens for named shell regions that need colours beyond the generic set.
 | `--hw-statusbar-text`      | StatusBar text colour                       |
 | `--hw-console-bg`          | Console editor background                   |
 | `--hw-console-text`        | Console editor text colour                  |
+| `--hw-popup-shadow`        | Drop shadow for floating popups and menus   |
 
-### 2.9 Hover and Selection
+### 2.9 Z-Index Scale
+
+Haywire uses a fixed z-index scale. Do not use arbitrary values.
+
+| Layer              | Value | Use for                                           |
+| ------------------ | ----- | ------------------------------------------------- |
+| `--hw-z-panel`     | 10    | Floating panels, resizable handles                |
+| `--hw-z-dropdown`  | 100   | Dropdown menus, autocomplete popups               |
+| `--hw-z-tooltip`   | 200   | Tooltips                                          |
+| `--hw-z-modal`     | 300   | Modal dialogs and their backdrops                 |
+| `--hw-z-notify`    | 400   | Toast notifications (above everything)            |
+
+**Rule:** Never use a bare `z-index: 9999` or arbitrary integer. If a new stacking context is needed, add a token here.
+
+**Note:** NiceGUI's `ui.scroll_area()` creates a stacking context. Any `position: absolute` child inside a scroll area is clipped to it — this is expected behaviour.
+
+### 2.10 Hover and Selection
 
 Interactive list items and rows use a **theme-derived token** for hover, not a
 hardcoded white-alpha value.
@@ -204,6 +221,36 @@ hover styling when a row is active.
 **Rationale:** `hover:bg-white/10` only works on dark themes. On a light theme
 it creates a washed-out flash. `bg-blue-900/40` (seen in graph_manager_editor)
 is likewise hardcoded and must be replaced with `--hw-bg-active`.
+
+### 2.11 Disabled State
+
+Disabled elements use reduced opacity. No other visual treatment is applied.
+
+| Element              | Style                               |
+| -------------------- | ----------------------------------- |
+| Input, select        | `opacity: 0.5; pointer-events: none`|
+| Icon action button   | `opacity: 0.4; pointer-events: none`|
+| Scope button         | `opacity: 0.3; pointer-events: none`|
+
+**Rule:** Always set both `opacity` and `pointer-events: none` together.
+Never use a grey fill or border change to indicate disabled state — opacity
+is the single, consistent signal.
+
+**Rule:** Quasar's `:disable` prop handles both correctly for `QBtn` and
+`QInput`. Prefer it over manual class application where available.
+
+### 2.12 Drag-and-Drop Tokens
+
+These tokens are used when items are dragged within or between panels.
+
+| Token              | Use for                                    |
+| ------------------ | ------------------------------------------ |
+| `--hw-drag-over`   | Drop-target highlight (border or bg tint)  |
+| `--hw-drag-ghost`  | Dragged item ghost opacity (typically 0.5) |
+
+**Rule:** Drag-over state is indicated by a `2px solid var(--hw-drag-over)`
+border, not a background fill. The border is added/removed via a CSS class
+(e.g. `hw-drop-target`) toggled in JS drag event handlers.
 
 ---
 
@@ -732,10 +779,17 @@ A standard text input, pre-configured for panel use.
 - Props: `dense outlined`
 - Classes: `w-full`
 - Background: `var(--hw-bg-input)` (automatic via global CSS)
-- Border: `var(--hw-border)` rest, `var(--hw-border-strong)` hover
+- Border: `var(--hw-border)` rest, `var(--hw-border-strong)` hover/focus
+- Focus ring: `2px solid var(--hw-accent)` via `:focus-visible` — keyboard-only,
+  not shown on mouse click (use `:focus-visible`, not `:focus`)
+- Disabled: pass Quasar `:disable="True"` — renders `opacity: 0.5` automatically
+- Validation error: pass Quasar `:rules=` and `lazy-rules="ondemand"` — error
+  text appears below the field using `var(--hw-danger)`; never use a separate
+  `hui.error_label()` to annotate a field inline
 
 ```python
 hui.input_field(placeholder="Search libraries…", clearable=True)
+hui.input_field(label="Port", rules=[lambda v: v.isdigit() or "Must be a number"])
 ```
 
 ### 8.16 `hui.tabs(*tab_defs, dense=True)`
@@ -745,8 +799,13 @@ A tab bar, pre-configured with `hw-tabs` styling.
 **Visual rules:**
 - Classes: `w-full hw-tabs`
 - Props: `dense no-caps`
-- Tab label font: 12px
-- Active indicator: `var(--hw-accent)`
+- Tab label font: 12px (`text-xs`)
+- Active indicator: `2px solid var(--hw-accent)` (bottom bar)
+- Active tab label: `--hw-text-body`
+- Inactive tab label: `--hw-text-muted`
+- Tab bar bottom border: `1px solid var(--hw-border)`
+- Tab hover: `--hw-bg-hover` background
+- Overflow: tabs scroll horizontally (`QTabs` default) — do not truncate or wrap
 
 ```python
 with hui.tabs(("Graph", "account_tree"), ("Library", "widgets")) as tabs:
@@ -832,7 +891,22 @@ with hui.category_group("Rendering"):
 **Rule:** Use `hui.category_group` inside `compact-fields` columns only.
 Use `hui.expansion_section` for collapsible panels in the properties editor.
 
-### 8.22 Popup / Dialog Chrome
+### 8.22 Loading & Async States
+
+**Spinner (content pending):** Use `ui.spinner(size="24px")` centred inside
+the panel's scroll area. Apply `hw-text-dim` colour. No custom spinner variants.
+
+**Skeleton rows:** Not a standard pattern — use the spinner instead. Keep it
+simple.
+
+**Button loading state:** Pass Quasar `:loading="True"` to any `QBtn` that
+triggers an async action. Do not disable the button manually; `:loading`
+handles both the spinner overlay and implicit `pointer-events: none`.
+
+**Rule:** Never leave a panel blank while loading. Always show either the
+spinner or `hui.empty_state()` with a loading hint as a fallback.
+
+### 8.23 Popup / Dialog Chrome
 
 Floating popups (context menus, connection info, node add menus) follow these
 rules. There is no single `hui` wrapper for full popups — they vary too much
@@ -843,14 +917,20 @@ in structure — but the chrome rules are fixed.
 - Background: `var(--hw-bg-elevated)`
 - Border: `1px solid var(--hw-border-strong)`
 - Border radius: `md` (8px)
-- Shadow: defined by the theme, not hardcoded. Use `--hw-node-shadow` as the
-  closest available token, or request a dedicated `--hw-popup-shadow` token if
-  the popup visually competes with nodes.
+- Shadow: `var(--hw-popup-shadow)` — defined on `WorkbenchTheme`, distinct from
+  `--hw-node-shadow` (nodes are canvas objects; popups are shell objects)
 - Backdrop (modal overlays only): `var(--hw-bg-overlay)` — never `rgba(0,0,0,0.5)`
 
-**Rule:** Never hardcode `box-shadow` values on popups. If the current token
-set does not have a suitable popup shadow, add `--hw-popup-shadow` to
-`WorkbenchTheme` rather than inlining a value.
+**Rule:** Never hardcode `box-shadow` values on popups. Use `--hw-popup-shadow`.
+
+**Context menu items** follow the same rules as `hui.list_item` rows:
+
+- Padding: `px-2 py-1.5`
+- Hover: `var(--hw-bg-hover)`
+- Disabled: `opacity: 0.4; pointer-events: none`
+- Keyboard shortcut suffix: `text-xs hw-text-dim ml-auto font-mono`
+- Divider between groups: `hui.separator()`
+- Leading icon (optional): 16px, `hw-text-dim`
 
 ---
 
@@ -911,7 +991,38 @@ def render(self, container, context):
                 self._render_content(context)
 ```
 
-### 9.4 Node Skin Design Space
+### 9.4 Scrollbar Style
+
+Quasar's `QScrollArea` renders a custom scrollbar. Style it via the
+`thumb-style` and `bar-style` props — do not use `::-webkit-scrollbar` CSS.
+
+```python
+ui.scroll_area().props(
+    'thumb-style="background: var(--hw-border-strong); border-radius: 4px; width: 4px;"'
+    ' bar-style="background: transparent; width: 4px;"'
+)
+```
+
+**Rule:** Scrollbars are 4px wide, use `--hw-border-strong` for the thumb, and
+transparent for the track. This applies to all `ui.scroll_area()` instances.
+
+### 9.5 Resizable Panel Handles
+
+Left/right area panels are resizable. The drag handle is a thin strip between
+the panel and the adjacent column.
+
+**Visual rules:**
+
+- Width: `4px`
+- Background at rest: transparent
+- Background on hover/drag: `var(--hw-accent)` at 50% opacity
+- Cursor: `col-resize`
+- Transition: `background 0.15s`
+
+**Rule:** The handle must not have a visible border or shadow at rest. It
+should only become visible when the user hovers over it.
+
+### 9.6 Node Skin Design Space
 
 Node skins (`BaseSkin` subclasses) render inside the graph canvas and operate
 outside the `.hw-panel` cascade. They have a separate, more permissive set of
@@ -925,6 +1036,20 @@ design rules.
   shadow — canvas objects are the only place where multiple shadows are allowed
 - Use `backdrop-filter` for frosted-glass node effects (use sparingly)
 - Apply canvas-tier transition durations (`0.2s`–`0.3s`)
+
+**Typography inside skins:**
+
+Canvas text is outside the `.hw-panel` cascade. Use these rules explicitly:
+
+| Purpose         | Classes / token                                  |
+| --------------- | ------------------------------------------------ |
+| Node title      | `text-xs font-medium`, `--hw-node-header-text`   |
+| Port label      | `text-xs`, `--hw-text-muted`                     |
+| Error / warning | `text-xs`, `--hw-danger` / `--hw-warning`        |
+| Monospace value | `text-xs font-mono`, `--hw-text-body`            |
+
+**Rule:** Do not use `text-sm` or larger inside node skins — canvas nodes
+are visually small and larger text breaks the density contract.
 
 **What skins must not do:**
 
@@ -988,8 +1113,11 @@ not a CodeMirror host.
 ### 11.1 Keyboard Navigation
 
 - All interactive elements must be focusable via Tab
-- Focus rings use `var(--hw-accent)` with `2px` outline offset
+- Focus rings: `outline: 2px solid var(--hw-accent); outline-offset: 2px`
+- Use `:focus-visible`, not `:focus` — focus rings must not appear on mouse click
 - Expansion panels are togglable via Enter/Space
+- `hui.input_field` and Quasar form components handle focus rings automatically
+  via global CSS; do not override them per-component
 
 ### 11.2 Contrast
 
