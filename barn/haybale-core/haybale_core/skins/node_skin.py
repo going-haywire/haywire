@@ -254,7 +254,7 @@ class NodeSkin(BaseSkin, ABC):
                 "width: 16px; "
                 "height: 16px; "
                 "cursor: nwse-resize; "
-                "background: linear-gradient(135deg, transparent 50%, rgba(128,128,128,0.3) 50%); "
+                "background: linear-gradient(135deg, transparent 50%, var(--hw-ghost-pin) 50%); "
                 "z-index: 1000;"
             ) as handle
         ):
@@ -311,7 +311,7 @@ class NodeSkin(BaseSkin, ABC):
             .classes("connection-pin zoom-pan-lod0")
             .style(
                 "width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; "
-                "background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); "
+                "background: var(--hw-ghost-pin); border: 1px dashed var(--hw-ghost-pin); "
                 "cursor: default; left: -16px;"
             )
             .props(
@@ -328,7 +328,7 @@ class NodeSkin(BaseSkin, ABC):
             .classes("connection-pin zoom-pan-lod0")
             .style(
                 "order: 999; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; "
-                "background: rgba(128,128,128,0.15); border: 1px dashed rgba(128,128,128,0.4); "
+                "background: var(--hw-ghost-pin); border: 1px dashed var(--hw-ghost-pin); "
                 "cursor: default; right: -16px;"
             )
             .props(
@@ -357,7 +357,7 @@ class NodeSkin(BaseSkin, ABC):
                 with ui.card().classes("p-2 max-w-md max-h-96 overflow-auto"):
                     for idx, error in enumerate(errors):
                         with ui.expansion(f"{idx + 1}. {error.operation or 'Error'}", icon="error").classes(
-                            "w-full text-red-600"
+                            "w-full hw-text-danger"
                         ):
-                            ui.label(error.message).classes("text-sm text-red-600 mb-2")
+                            ui.label(error.message).classes("text-sm hw-text-danger mb-2")
                             error_render_detail(error)

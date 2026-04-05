@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings import SettingsRegistry
@@ -225,7 +226,7 @@ class LibraryOverviewEditor(BaseEditor):
                             with ui.row().classes("items-center gap-1"):
                                 ui.label(name).classes("text-2xl font-bold")
                                 with ui.link(target=_title_url, new_tab=True).style("line-height:0"):
-                                    ui.icon("open_in_new", size="16px").classes("text-blue-400 opacity-60")
+                                    ui.icon("open_in_new", size="16px").classes("hw-text-accent opacity-60")
                         else:
                             ui.label(name).classes("text-2xl font-bold break-words")
 
@@ -308,7 +309,7 @@ class LibraryOverviewEditor(BaseEditor):
                                         ui.button(
                                             "Uninstall",
                                             icon="lock",
-                                        ).props("size=sm color=grey flat").props("disable")
+                                        ).props("size=sm flat disable")
                                 else:
                                     with ui.row().classes("gap-0 items-center"):
                                         ui.button(
@@ -358,7 +359,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 n=marketplace_pkg.name,
                                 m=manager,
                                 ctx=context: (self._install_package(spec, n, e.sender, m, ctx)),
-                            ).props("color=primary size=sm")
+                            ).props("color=positive size=sm")
 
                 # ── Metadata ───────────────────────────────────────────────────
                 if description:
@@ -368,7 +369,7 @@ class LibraryOverviewEditor(BaseEditor):
                     if _author_url.startswith("http"):
                         with ui.row().classes("items-center gap-1"):
                             ui.label("By").classes("text-xs hw-text-dim")
-                            ui.link(author, _author_url, new_tab=True).classes("text-xs text-blue-400")
+                            ui.link(author, _author_url, new_tab=True).classes("text-xs hw-text-accent")
                     else:
                         ui.label(f"By {author}").classes("text-xs hw-text-dim")
 
@@ -386,12 +387,12 @@ class LibraryOverviewEditor(BaseEditor):
                     with ui.row().classes("items-center gap-3 mt-1 flex-wrap"):
                         for _lbl, _href in _links:
                             with ui.row().classes("items-center gap-0.5"):
-                                ui.link(_lbl, _href, new_tab=True).classes("text-xs text-blue-400")
-                                ui.icon("open_in_new", size="10px").classes("text-blue-300")
+                                ui.link(_lbl, _href, new_tab=True).classes("text-xs hw-text-accent")
+                                ui.icon("open_in_new", size="10px").classes("hw-text-accent opacity-70")
                 if tags:
                     with ui.row().classes("gap-1 mt-2 flex-wrap"):
                         for tag in tags:
-                            ui.badge(tag).props("outline color=grey")
+                            hui.tag(tag)
 
                 # ── Tabs bar (only when library is installed) ──────────────────
                 if installed_lib:
@@ -540,7 +541,7 @@ class LibraryOverviewEditor(BaseEditor):
     def _component_row(self, key: str, label: str, description: str, handler):
         with (
             ui.row()
-            .classes("w-full px-3 py-2 rounded hover:bg-white/10 cursor-pointer")
+            .classes(f"w-full px-3 py-2 rounded hw-list-item-hover cursor-pointer")
             .on("click", handler)
         ):
             with ui.column().classes("gap-0 min-w-0"):
@@ -762,10 +763,10 @@ class LibraryOverviewEditor(BaseEditor):
 
         with ui.dialog() as edit_dialog, ui.card().style("width: 480px;").classes("gap-3"):
             ui.label("Edit Library").classes("text-lg font-bold")
-            ui.label(f"haybale-{old_name_part}").classes("text-sm text-gray-500 font-mono")
+            ui.label(f"haybale-{old_name_part}").classes("text-sm hw-text-muted font-mono")
             ui.separator()
 
-            ui.label("Identity").classes("text-xs font-bold text-gray-400 uppercase tracking-wider")
+            hui.section_label("Identity")
             label_input = ui.input(label="Label", value=lib.label).classes("w-full")
             version_input = ui.input(label="Version", value=lib.version or "0.1.0").classes("w-full")
             desc_input = ui.input(label="Description", value=lib.description).classes("w-full")
@@ -783,9 +784,9 @@ class LibraryOverviewEditor(BaseEditor):
 
             ui.separator()
 
-            ui.label("Package Name").classes("text-xs font-bold text-gray-400 uppercase tracking-wider")
+            hui.section_label("Package Name")
             with ui.row().classes("w-full items-center gap-2"):
-                ui.label("haybale-").classes("text-sm font-mono text-gray-500 flex-shrink-0")
+                ui.label("haybale-").classes("text-sm font-mono hw-text-muted flex-shrink-0")
                 name_input = ui.input(value=old_name_part).classes("flex-1").props("dense")
                 name_input.disable()
                 lock_btn = (
@@ -793,7 +794,7 @@ class LibraryOverviewEditor(BaseEditor):
                     .props("flat round dense size=sm color=orange")
                     .tooltip("Click to unlock — renaming breaks saved graph references")
                 )
-            preview_label = ui.label("").classes("text-xs text-gray-400 font-mono")
+            preview_label = ui.label("").classes("text-xs hw-text-dim font-mono")
 
             def _update_preview():
                 v = name_input.value.strip()
@@ -825,12 +826,12 @@ class LibraryOverviewEditor(BaseEditor):
 
             with ui.row().classes("w-full justify-end gap-2 mt-2"):
                 ui.button("Cancel", on_click=edit_dialog.close).props("flat size=sm")
-                ui.button("Save Changes", on_click=_save).props("color=primary size=sm")
+                ui.button("Save Changes", on_click=_save).props("color=positive size=sm")
 
         # ── Warning dialog ────────────────────────────────────────────────────
         with ui.dialog() as warn_dialog, ui.card().classes("max-w-md gap-3"):
             with ui.row().classes("items-center gap-2"):
-                ui.icon("warning", size="24px").classes("text-orange-500")
+                ui.icon("warning", size="24px").classes("hw-text-warning")
                 ui.label("Rename changes registry keys").classes("text-lg font-bold")
             ui.separator()
             ui.label(
@@ -841,13 +842,13 @@ class LibraryOverviewEditor(BaseEditor):
                 "will fail to load those nodes. If your nodes are using absolute "
                 "from ... import ... statements referencing this library, "
                 "those will also need to be updated."
-            ).classes("text-sm text-gray-600")
+            ).classes("text-sm hw-text-muted")
             ui.label(
                 "Only proceed if you have a backup of this project and this project's "
                 "graphs/ folder is the only place these nodes are used — or if you "
                 "really know what you're doing. Alternatively be prepared to enter a "
                 "world of pain."
-            ).classes("text-sm text-gray-500 italic")
+            ).classes("text-sm hw-text-dim italic")
 
             def _unlock_name():
                 warn_dialog.close()
@@ -982,19 +983,19 @@ class LibraryOverviewEditor(BaseEditor):
 
         with ui.dialog() as dialog, ui.card().classes("max-w-lg gap-3"):
             with ui.row().classes("items-center gap-2"):
-                ui.icon("find_replace", size="22px").classes("text-blue-500")
+                ui.icon("find_replace", size="22px").classes("hw-text-accent")
                 ui.label("Update graph files?").classes("text-lg font-bold")
             ui.separator()
             ui.label(
                 f"Found {len(matching)} graph file(s) in graphs/ that reference "
                 f'"{old_library_id}:…" registry keys. '
                 f'Replace them with "{new_library_id}:…"?'
-            ).classes("text-sm text-gray-600")
+            ).classes("text-sm hw-text-muted")
             with ui.column().classes("gap-0 max-h-28 overflow-y-auto"):
                 for f in matching[:6]:
-                    ui.label(f.name).classes("text-xs font-mono text-gray-400")
+                    ui.label(f.name).classes("text-xs font-mono hw-text-dim")
                 if len(matching) > 6:
-                    ui.label(f"… and {len(matching) - 6} more").classes("text-xs text-gray-400 italic")
+                    ui.label(f"… and {len(matching) - 6} more").classes("text-xs hw-text-dim italic")
 
             async def _patch_and_close():
                 dialog.close()
@@ -1015,7 +1016,7 @@ class LibraryOverviewEditor(BaseEditor):
                     "Update files",
                     icon="find_replace",
                     on_click=_patch_and_close,
-                ).props("color=primary size=sm")
+                ).props("color=positive size=sm")
 
         return dialog
 
@@ -1086,7 +1087,7 @@ class LibraryOverviewEditor(BaseEditor):
                 .classes("w-full")
                 .props("dense")
             )
-            status = ui.label("Fetching versions…").classes("text-xs text-gray-400")
+            status = ui.label("Fetching versions…").classes("text-xs hw-text-dim")
 
             async def load_versions():
                 versions = await manager.fetch_versions(pkg)
@@ -1109,7 +1110,7 @@ class LibraryOverviewEditor(BaseEditor):
 
             with ui.row().classes("w-full justify-end gap-2 mt-4"):
                 ui.button("Cancel", on_click=dialog.close).props("flat")
-                ui.button("Install", on_click=install_selected).props("color=primary")
+                ui.button("Install", on_click=install_selected).props("color=positive")
 
         dialog.open()
         asyncio.ensure_future(load_versions())
@@ -1231,10 +1232,10 @@ class LibraryOverviewEditor(BaseEditor):
             if content:
                 ui.markdown(content).classes("w-full")
             else:
-                ui.label("No overview available for this package.").classes("text-gray-400 text-sm italic")
+                ui.label("No overview available for this package.").classes("hw-text-muted text-sm italic")
                 if pkg.source_url:
                     ui.link(
                         "View source repository →",
                         pkg.source_url,
                         new_tab=True,
-                    ).classes("text-xs text-blue-500 mt-1")
+                    ).classes("text-xs hw-text-accent mt-1")

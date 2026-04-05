@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 @editor(
     registry_id="graph_editor",
     label="Graph Editor",
@@ -80,7 +81,7 @@ class GraphEditor(BaseEditor):
         self._project_state = context.app
         if self._project_state is None:
             with container:
-                ui.label("GraphEditor: no app in context").classes("text-red-400 p-4")
+                ui.label("GraphEditor: no app in context").classes("hw-text-danger p-4")
             logger.warning("GraphEditor.render(): project_state not found in context.metadata")
             return
 
@@ -101,7 +102,7 @@ class GraphEditor(BaseEditor):
                             icon="undo",
                             on_click=lambda: self._do_undo(context),
                         )
-                        .props("flat round dense size=xs color=grey")
+                        .props("flat round dense size=xs")
                         .tooltip("Undo")
                     )
                     self._redo_button = (
@@ -109,17 +110,17 @@ class GraphEditor(BaseEditor):
                             icon="redo",
                             on_click=lambda: self._do_redo(context),
                         )
-                        .props("flat round dense size=xs color=grey")
+                        .props("flat round dense size=xs")
                         .tooltip("Redo")
                     )
                     ui.button(
                         icon="save",
                         on_click=lambda: self._save_graph(context),
-                    ).props("flat round dense size=xs color=grey").tooltip("Save (Ctrl+S)")
+                    ).props("flat round dense size=xs").tooltip("Save (Ctrl+S)")
                     ui.button(
                         icon="drive_file_rename_outline",
                         on_click=lambda: self._save_as_graph(context),
-                    ).props("flat round dense size=xs color=grey").tooltip("Save As…")
+                    ).props("flat round dense size=xs").tooltip("Save As…")
 
                 # ---- canvas area (swapped on ACTIVE_GRAPH_CHANGED) ----
                 self._canvas_wrapper = ui.element("div").style(
@@ -409,14 +410,14 @@ class GraphEditor(BaseEditor):
                     .props("outlined dense")
                     .on("update:model-value", lambda _: self._clear_exists_warning())
                 )
-                self._save_exists_warning = ui.label("").classes("text-xs text-red-400 -mt-1")
+                self._save_exists_warning = ui.label("").classes("text-xs hw-text-danger -mt-1")
                 self._save_exists_warning.set_visibility(False)
                 with ui.row().classes("w-full justify-end gap-2 mt-1"):
                     ui.button("Cancel", on_click=dialog.close).props("flat dense")
                     ui.button(
                         "Save",
                         on_click=lambda: self._do_save_as(context, dialog),
-                    ).props("color=primary dense")
+                    ).props("color=positive dense")
         return dialog
 
     def _clear_exists_warning(self) -> None:

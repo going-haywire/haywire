@@ -480,7 +480,7 @@ class AppShell:
             ui.button(
                 icon="save",
                 on_click=lambda: (wm.save_current(), ui.notify("Workspace saved", position="top-right")),
-            ).props("flat round dense color=grey").tooltip("Save current workspace").classes("text-gray-400")
+            ).props("flat round dense").tooltip("Save current workspace")
 
     def _render_activity_bar(self) -> None:
         """Render the activity bar wrapper and its current contents."""
@@ -510,7 +510,7 @@ class AppShell:
             fold_icon = "login" if ws.left.visible else "logout"
             self._btn_left = (
                 ui.button(icon=fold_icon, on_click=self._toggle_left_panel)
-                .props("flat round dense size=sm color=grey")
+                .props("flat round dense size=sm")
                 .tooltip("Toggle left panel")
             )
             if ws.left.visible:
@@ -526,7 +526,7 @@ class AppShell:
                     self._toolbar_button_classes(is_active)
                 ).props("flat round").tooltip(label)
         else:
-            ui.icon("menu").classes("text-gray-600")
+            ui.icon("menu").classes("hw-text-dim")
 
     def _render_context_bar(self) -> None:
         """Render the context bar wrapper and its current contents."""
@@ -556,7 +556,7 @@ class AppShell:
             fold_icon = "login" if ws.right.visible else "logout"
             self._btn_right = (
                 ui.button(icon=fold_icon, on_click=self._toggle_right_panel)
-                .props("flat round dense size=sm color=grey")
+                .props("flat round dense size=sm")
                 .tooltip("Toggle right panel")
             )
             if not ws.right.visible:
@@ -572,7 +572,7 @@ class AppShell:
                     self._toolbar_button_classes(is_active)
                 ).props("flat round").tooltip(label)
         else:
-            ui.icon("tune").classes("text-gray-600")
+            ui.icon("tune").classes("hw-text-dim")
 
     def _render_middle_area(self) -> None:
         """Render the middle area with tabs and optional bottom split."""
@@ -601,7 +601,7 @@ class AppShell:
                     bottom_icon = "expand_less" if ws.middle.bottom_visible else "expand_more"
                     self._btn_bottom = (
                         ui.button(icon=bottom_icon, on_click=self._toggle_bottom_panel)
-                        .props("flat round dense size=sm color=grey")
+                        .props("flat round dense size=sm")
                         .tooltip("Toggle bottom panel")
                         .classes("flex-shrink-0 mr-1")
                     )
@@ -653,7 +653,7 @@ class AppShell:
                 " border-top: 1px solid var(--hw-border);"
             )
         ):
-            ui.label(f"Session: {self.session.session_id[:8]}...").classes("text-xs text-gray-300")
+            ui.label(f"Session: {self.session.session_id[:8]}...").classes("text-xs hw-text-muted")
 
     def _render_area(self, slot: str, editor_key: Optional[str]) -> None:
         """Render a single area slot, instantiating the editor if available.
@@ -663,7 +663,7 @@ class AppShell:
             editor_key: Registry key of the editor to render, or None.
         """
         if not editor_key:
-            ui.label("No editor").classes("text-gray-500 p-4")
+            ui.label("No editor").classes("hw-text-muted p-4")
             return
 
         editor_cls = None
@@ -674,8 +674,8 @@ class AppShell:
         if editor_cls is None:
             # Placeholder — no editor registered for this key yet
             with ui.column().classes("w-full h-full items-center justify-center"):
-                ui.icon("extension").classes("text-gray-600 text-4xl")
-                ui.label(f"Editor: {editor_key}").classes("text-gray-500")
+                ui.icon("extension").classes("hw-text-dim text-4xl")
+                ui.label(f"Editor: {editor_key}").classes("hw-text-muted")
             return
 
         # Instantiate the editor and render it
@@ -697,7 +697,7 @@ class AppShell:
             editor_instance.render(container_div, self.session.context)
         except Exception as e:
             logger.error(f"AppShell: Failed to render editor '{editor_key}' in slot '{slot}': {e}")
-            ui.label(f"Error loading editor: {editor_key}").classes("text-red-400 p-4")
+            ui.label(f"Error loading editor: {editor_key}").classes("hw-text-danger p-4")
 
     def _toggle_left_panel(self) -> None:
         """Toggle the left area panel visibility."""

@@ -233,7 +233,7 @@ class PropertiesEditor(BaseEditor):
                         panel_instance.draw(context, layout)
                     except Exception as exc:
                         logger.exception(f"PropertiesEditor: draw() error in {panel_cls.__name__}: {exc}")
-                        ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
+                        ui.label(f"Error: {exc}").classes("hw-text-danger text-xs")
 
             if not has_panels:
                 self._render_empty(self._content, "info", "No properties available")

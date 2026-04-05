@@ -54,7 +54,7 @@ class ErrorNodeSkin(NodeSkin):
         }}
         .{node_id}:hover,
         .{node_id}:focus-within {{
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            box-shadow: 0 4px 12px var(--hw-danger);
         }}
         </style>
         """)

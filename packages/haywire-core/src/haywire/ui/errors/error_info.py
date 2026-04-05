@@ -72,7 +72,7 @@ def error_render_detail(error: HaywireException) -> ui.element:
 
                 # Footer with close button
                 with ui.row().classes("justify-end w-full pt-3 border-t mt-4"):
-                    ui.button("Close", icon="close", on_click=close_popup).classes("bg-gray-600 text-white")
+                    ui.button("Close", icon="close", on_click=close_popup).props("flat")
 
         # Register cleanup callback when popup is closed via other means
         # (backdrop click, escape key, etc.)
@@ -106,13 +106,17 @@ def render_error_info(error_info: NodeErrorInfo) -> element:
     Returns:
         ui.element: The rendered error info element
     """
-    with ui.column().classes("items-left p-2 border border-red-500 bg-red-50") as error_column:
+    with (
+        ui.column()
+        .classes("items-left p-2")
+        .style("border: 1px solid var(--hw-danger); background: var(--hw-danger-bg);") as error_column
+    ):
         with ui.row():
             ui.icon("error", color="red").classes("text-lg")
-            ui.label(error_info.error).classes("text-lg text-red-600")
-        ui.label(error_info.error_message).classes("text-sm text-red-600")
+            ui.label(error_info.error).classes("text-lg hw-text-danger")
+        ui.label(error_info.error_message).classes("text-sm hw-text-danger")
         if error_info.note:
             for value in error_info.note:
-                ui.label(value).classes("text-sm text-red-600")
-        ui.label(error_info.timestamp).classes("text-sm text-red-600")
+                ui.label(value).classes("text-sm hw-text-danger")
+        ui.label(error_info.timestamp).classes("text-sm hw-text-danger")
     return error_column

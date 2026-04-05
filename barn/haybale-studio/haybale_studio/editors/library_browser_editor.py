@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
@@ -120,7 +121,7 @@ class LibraryBrowserEditor(BaseEditor):
         except Exception as e:
             logger.warning(f"LibraryBrowser: failed to list libraries: {e}")
             with self._list_container:
-                ui.label("Error loading libraries").classes("text-xs text-red-400 p-2")
+                ui.label("Error loading libraries").classes("text-xs hw-text-danger p-2")
             return
 
         q = self._search_query.lower().strip()
@@ -182,22 +183,22 @@ class LibraryBrowserEditor(BaseEditor):
 
         with self._list_container:
             if required:
-                ui.label("REQUIRED").classes("text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider")
+                hui.section_label("REQUIRED")
                 for lib in required:
                     self._library_item(lib, "purple", context)
 
             if enabled:
-                ui.label("ENABLED").classes("text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider")
+                hui.section_label("ENABLED")
                 for lib in enabled:
                     self._library_item(lib, "green", context)
 
             if disabled:
-                ui.label("DISABLED").classes("text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider")
+                hui.section_label("DISABLED")
                 for lib in disabled:
                     self._library_item(lib, "orange", context)
 
             if available:
-                ui.label("AVAILABLE").classes("text-xs font-bold hw-text-dim px-2 pt-2 pb-1 tracking-wider")
+                hui.section_label("AVAILABLE")
                 for entry in available:
                     self._library_item(entry, "gray", context)
 
@@ -212,7 +213,7 @@ class LibraryBrowserEditor(BaseEditor):
 
         with (
             ui.row()
-            .classes("w-full px-2 py-1.5 cursor-pointer hover:bg-white/10 items-center gap-2 rounded")
+            .classes("w-full px-2 py-1.5 cursor-pointer hw-list-item-hover items-center gap-2 rounded")
             .on("click", lambda entry=lib, ctx=context: self._select_library(entry, ctx))
         ):
             ui.element("div").classes(f"w-2 h-2 rounded-full bg-{dot_color}-500 flex-shrink-0")

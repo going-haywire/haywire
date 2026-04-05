@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.context_events import ContextChangeType
@@ -81,10 +82,8 @@ class FileViewerEditor(BaseEditor):
                         self._show_placeholder()
 
     def _show_placeholder(self) -> None:
-        with ui.column().classes("w-full h-full items-center justify-center gap-3").style("padding: 80px 0;"):
-            ui.icon("folder_open", size="40px").classes("hw-text-dim")
-            ui.label("Select a file from the Files panel").classes("text-sm hw-text-muted")
-        
+        hui.empty_state("Select a file from the Files panel", icon="folder_open")
+
     def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
         if event.change_type != ContextChangeType.FILE_SELECTED:
             return
@@ -108,18 +107,18 @@ class FileViewerEditor(BaseEditor):
 
     def _render_content(self, path: Path) -> None:
         if not path.exists():
-            ui.label(f"File not found: {path}").classes("text-red-400 text-sm p-4")
+            ui.label(f"File not found: {path}").classes("hw-text-danger text-sm p-4")
             return
 
         try:
             size = path.stat().st_size
         except OSError as exc:
-            ui.label(f"Cannot read file: {exc}").classes("text-red-400 text-sm p-4")
+            ui.label(f"Cannot read file: {exc}").classes("hw-text-danger text-sm p-4")
             return
 
         if size > _MAX_DISPLAY_BYTES:
             ui.label(f"File too large to display ({size // 1024:,} KB — limit 512 KB).").classes(
-                "text-yellow-400 text-sm p-4"
+                "hw-text-warning text-sm p-4"
             )
             return
 
@@ -127,12 +126,10 @@ class FileViewerEditor(BaseEditor):
         try:
             content = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            with ui.column().classes("w-full items-center gap-3").style("padding: 60px 0;"):
-                ui.icon("block", size="36px").classes("hw-text-dim")
-                ui.label("Binary file — cannot display as text").classes("text-sm hw-text-muted")
+            hui.empty_state("Binary file — cannot display as text", icon="block")
             return
         except OSError as exc:
-            ui.label(f"Error reading file: {exc}").classes("text-red-400 text-sm p-4")
+            ui.label(f"Error reading file: {exc}").classes("hw-text-danger text-sm p-4")
             return
 
         ext = path.suffix.lower()

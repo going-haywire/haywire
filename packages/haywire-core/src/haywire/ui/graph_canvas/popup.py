@@ -51,7 +51,7 @@ class Popup:
                 .popup-title-bar button { cursor: pointer !important; }
                 .popup-card.popup-dragging {
                     opacity: 0.95;
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+                    box-shadow: var(--hw-popup-shadow) !important;
                 }
             """)
             cls._css_added = True
@@ -228,7 +228,7 @@ class Popup:
         closable: bool = False,
         backdrop_click_close: bool = False,
         escape_close: bool = False,
-        backdrop_color: str = "rgba(0,0,0,0.5)",
+        backdrop_color: str = "var(--hw-bg-overlay)",
         position_x: Optional[float] = None,
         position_y: Optional[float] = None,
         draggable: bool = False,
@@ -281,14 +281,9 @@ class Popup:
                 "z-index: 0; background: transparent; pointer-events: auto;"
             )
         else:
-            overlay_bg = (
-                self.backdrop_color
-                if self.backdrop_color != "rgba(0,0,0,0.5)"
-                else "var(--hw-bg-overlay, rgba(0,0,0,0.5))"
-            )
             popup_style = (
                 f"position: fixed; top: 0; left: 0; width: 100%; height: 100%; "
-                f"background: {overlay_bg}; z-index: 5000; display: none; "
+                f"background: {self.backdrop_color}; z-index: 5000; display: none; "
                 "align-items: center; justify-content: center; "
                 "backdrop-filter: blur(2px); pointer-events: auto;"
             )

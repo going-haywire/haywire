@@ -8,11 +8,12 @@ and a Source tab (CodeMirror with optional save for editable libraries).
 """
 
 import inspect
-import json as _json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from nicegui import ui
+
+from haywire.ui import elements as hui
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
@@ -123,7 +124,7 @@ class LibraryComponentEditor(BaseEditor):
                 # ── Phase 5: Header bar ────────────────────────────────────
                 with ui.row().classes("w-full items-center justify-between mb-3"):
                     with ui.row().classes("items-center gap-2"):
-                        ui.icon(icon).classes("text-purple-500 text-xl")
+                        ui.icon(icon).classes("text-xl hw-use-props-color").props("color=purple")
                         ui.label(comp_singular.upper()).classes(
                             "text-xs hw-text-dim font-bold tracking-wider"
                         )
@@ -145,34 +146,38 @@ class LibraryComponentEditor(BaseEditor):
                             ui.badge(str(tag)).props("outline color=purple")
 
                 # ── Phase 1: Identifiers ──────────────────────────────────
-                self._section("Identifiers")
-                self._info_row("Key", registry_key)
-                self._info_row("Class", actual_name)
+                hui.section_label("Identifiers")
+                hui.info_row("Key", registry_key)
+                hui.info_row("Class", actual_name)
                 if module_path:
                     short = (module_path[:48] + "…") if len(module_path) > 50 else module_path
-                    self._info_row("Module", short, module_path)
+                    hui.info_row("Module", short, copy_value=module_path)
                 if comp_type == "nodes" and menu:
-                    self._info_row("Menu", menu)
+                    hui.info_row("Menu", menu)
 
                 # ── Phase 2: Usage snippets ───────────────────────────────
                 if comp_type == "types":
-                    self._section("Usage")
+                    hui.section_label("Usage")
                     if module_path:
-                        self._code_row(f"from {module_path} import {actual_name}", "Import")
-                    self._code_row(f"self.add({actual_name}.as_inlet('id', label='Label'))", "Inlet port")
-                    self._code_row(f"self.add({actual_name}.as_outlet('id', label='Label'))", "Outlet port")
-                    self._code_row(
+                        hui.code_block(f"from {module_path} import {actual_name}", label="Import")
+                    hui.code_block(
+                        f"self.add({actual_name}.as_inlet('id', label='Label'))", label="Inlet port"
+                    )
+                    hui.code_block(
+                        f"self.add({actual_name}.as_outlet('id', label='Label'))", label="Outlet port"
+                    )
+                    hui.code_block(
                         f"self.add({actual_name}.as_config('id', label='Label', default=...))",
-                        "Config port",
+                        label="Config port",
                     )
                 elif comp_type == "widgets":
-                    self._section("Usage")
+                    hui.section_label("Usage")
                     if module_path:
-                        self._code_row(f"from {module_path} import {actual_name}", "Import")
-                    self._code_row(f"widget={actual_name}.config(properties={{}})", "Widget config")
+                        hui.code_block(f"from {module_path} import {actual_name}", label="Import")
+                    hui.code_block(f"widget={actual_name}.config(properties={{}})", label="Widget config")
                 elif comp_type == "nodes" and module_path:
-                    self._section("Import")
-                    self._code_row(f"from {module_path} import {actual_name}")
+                    hui.section_label("Import")
+                    hui.code_block(f"from {module_path} import {actual_name}")
 
                 # ── Tabs: View (widgets only) / Docs / Source ─────────────
                 ui.separator().classes("mt-3")
@@ -250,7 +255,7 @@ class LibraryComponentEditor(BaseEditor):
                                         ui.notify(f"Save failed: {exc}", type="negative")
 
                                 ui.button("Save", icon="save", on_click=_save).props(
-                                    "color=primary size=sm"
+                                    "color=positive size=sm"
                                 ).style("flex-shrink: 0; margin-top: 8px;")
 
     @staticmethod
@@ -294,45 +299,6 @@ class LibraryComponentEditor(BaseEditor):
                     source_editor="component_detail",
                 )
             )
-
-    # ── UI helpers ────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _copy_btn(value: str):
-        return (
-            ui.button(
-                icon="content_copy",
-                on_click=lambda _v=value: ui.run_javascript(
-                    f"navigator.clipboard.writeText({_json.dumps(_v)})"
-                ),
-            )
-            .props("flat round dense size=xs color=grey")
-            .tooltip("Copy to clipboard")
-        )
-
-    @classmethod
-    def _info_row(cls, label: str, display: str, full_value: str | None = None):
-        v = full_value if full_value is not None else display
-        with ui.row().classes("w-full items-center gap-1 py-0.5"):
-            cls._copy_btn(v)
-            ui.label(label).classes("text-xs hw-text-dim w-16 flex-shrink-0")
-            ui.label(display).classes("text-xs font-mono min-w-0 truncate")
-
-    @classmethod
-    def _code_row(cls, code: str, label: str | None = None):
-        with ui.column().classes("w-full gap-0.5 py-1"):
-            if label:
-                ui.label(label).classes("text-xs hw-text-dim")
-            with ui.row().classes("w-full items-center gap-1 overflow-hidden"):
-                cls._copy_btn(code)
-                with ui.element("div").classes(
-                    "min-w-0 hw-bg-surface rounded px-2 py-1 border overflow-hidden"
-                ):
-                    ui.label(code).classes("text-xs font-mono")
-
-    @staticmethod
-    def _section(text: str):
-        ui.label(text).classes("text-xs font-bold hw-text-dim uppercase tracking-wider mt-3 mb-1")
 
     @staticmethod
     def _lookup_class(app, lib, class_name: str, comp_type: str, registry_key: str | None = None):

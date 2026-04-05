@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
@@ -81,13 +82,8 @@ class GraphManagerEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _render_header(self, context: "SessionContext") -> None:
-        with ui.row().classes("w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1"):
-            ui.icon("account_tree", size="16px").classes("hw-text-dim")
-            ui.label("GRAPHS").classes("text-xs font-bold tracking-wider hw-text-dim flex-1")
-            ui.button(
-                icon="add",
-                on_click=lambda: self._on_new(context),
-            ).props("flat round dense size=xs color=grey").tooltip("New graph")
+        with hui.panel_header("GRAPHS", icon="account_tree"):
+            hui.icon_action("add", tooltip="New graph", on_click=lambda: self._on_new(context))
 
     # ------------------------------------------------------------------
     # list
@@ -120,7 +116,7 @@ class GraphManagerEditor(BaseEditor):
         is_unsaved = entry.unsaved or entry.path is None
 
         row_classes = "w-full px-2 py-1.5 cursor-pointer items-center gap-2 rounded " + (
-            "bg-blue-900/40 " if is_active else "hover:bg-white/10 "
+            "hw-list-item-active " if is_active else "hw-list-item-hover "
         )
 
         with ui.row().classes(row_classes).on("click", lambda e, en=entry: self._on_select(en, context)):
@@ -145,11 +141,11 @@ class GraphManagerEditor(BaseEditor):
                     )
                 else:
                     # No file path — always show the unsaved hint
-                    ui.label("not saved").classes("text-xs text-amber-400/70")
+                    ui.label("not saved").classes("text-xs hw-text-warning-dim")
 
             # Active indicator chevron
             if is_active:
-                ui.icon("chevron_right", size="16px").classes("text-blue-400 flex-shrink-0")
+                ui.icon("chevron_right", size="16px").classes("hw-text-accent flex-shrink-0")
 
     # ------------------------------------------------------------------
     # actions

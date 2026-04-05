@@ -29,7 +29,7 @@ def _state(context: "SessionContext") -> "EdgeWrapperState | None":
 
 
 @panel(
-    editors=["context_menu","properties"],
+    editors=["context_menu", "properties"],
     scopes="edge",
     label="Connection Errors",
     icon="error",
@@ -53,23 +53,16 @@ class EdgeErrorsPanel(BasePanel):
 
         with layout._container:
             with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("⚠ Connection Error").classes(
-                    "text-red-500 font-semibold text-sm"
-                )
+                ui.label("⚠ Connection Error").classes("hw-text-danger font-semibold text-sm")
                 if isinstance(error, HaywireException):
-                    ui.label(f"Category: {error.category}").classes(
-                        "text-xs text-red-400 ml-1"
-                    )
+                    ui.label(f"Category: {error.category}").classes("text-xs hw-text-danger ml-1")
                     error_render_detail(error)
                 else:
-                    ui.label(str(error)).classes(
-                        "text-red-400 text-xs whitespace-pre-wrap break-words"
-                    )
-
+                    ui.label(str(error)).classes("hw-text-danger text-xs whitespace-pre-wrap break-words")
 
 
 @panel(
-    editors=["context_menu","properties"],
+    editors=["context_menu", "properties"],
     scopes="edge",
     label="Connection Warnings",
     icon="warning",
@@ -90,10 +83,10 @@ class EdgeWarningsPanel(BasePanel):
 
         with layout._container:
             with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("⚠ Warnings").classes("text-orange-500 font-semibold text-sm")
+                ui.label("⚠ Warnings").classes("hw-text-warning font-semibold text-sm")
                 for warning in state.warnings:
                     ui.label(f"• {warning}").classes(
-                        "text-orange-400 text-xs whitespace-pre-wrap break-words ml-1"
+                        "hw-text-warning text-xs whitespace-pre-wrap break-words ml-1"
                     )
 
 
@@ -111,13 +104,13 @@ class DeleteEdgePanel(BasePanel):
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haywire.ui.graph_canvas.event_definitions import UserRemoveEvent
+
         edge_id = context.active_edge.edge_id
 
         def _delete():
             _emit(context, UserRemoveEvent(nodes=[], edges=[edge_id]))
 
         layout.button("🗑 Delete Connection", on_click=_delete)
-
 
 
 @panel(
@@ -136,25 +129,19 @@ class ExecutionStatisticsEdgePanel(BasePanel):
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         edge_wrapper = context.active_edge
         state = edge_wrapper.get_state()
-        with ui.card().classes("w-full p-3").style(
-            "background: var(--hw-bg-surface); border: 1px solid var(--hw-border);"
+        with (
+            ui.card()
+            .classes("w-full p-3")
+            .style("background: var(--hw-bg-surface); border: 1px solid var(--hw-border);")
         ):
-            ui.label(f"Execution Count: {state.execution_count}").classes(
-                "text-xs hw-text-body"
-            )
+            ui.label(f"Execution Count: {state.execution_count}").classes("text-xs hw-text-body")
             avg_time = state.average_execution_time_us
             if avg_time > 0:
-                ui.label(f"Average Time: {avg_time:.1f} μs").classes(
-                    "text-xs hw-text-body"
-                )
+                ui.label(f"Average Time: {avg_time:.1f} μs").classes("text-xs hw-text-body")
             else:
                 ui.label("Average Time: Not measured").classes("text-xs hw-text-dim")
-            ui.label(f"Tested value: {state.example_test_value}").classes(
-                "text-xs hw-text-muted ml-2"
-            )
-            ui.label(f"Tested result: {state.example_test_result}").classes(
-                "text-xs hw-text-muted ml-2"
-            )
+            ui.label(f"Tested value: {state.example_test_value}").classes("text-xs hw-text-muted ml-2")
+            ui.label(f"Tested result: {state.example_test_result}").classes("text-xs hw-text-muted ml-2")
 
 
 @panel(
@@ -172,8 +159,10 @@ class ConnectionPathEdgePanel(BasePanel):
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         edge_wrapper = context.active_edge
-        with ui.card().classes("w-full p-3").style(
-            "background: var(--hw-bg-surface); border: 1px solid var(--hw-border);"
+        with (
+            ui.card()
+            .classes("w-full p-3")
+            .style("background: var(--hw-bg-surface); border: 1px solid var(--hw-border);")
         ):
             ui.label(f"{edge_wrapper.source_node_id}[{edge_wrapper.outlet_port_id}]").classes(
                 "text-xs hw-text-body ml-2"
@@ -181,4 +170,3 @@ class ConnectionPathEdgePanel(BasePanel):
             ui.label(f"{edge_wrapper.sink_node_id}[{edge_wrapper.inlet_port_id}]").classes(
                 "text-xs hw-text-body ml-2 mt-1"
             )
-

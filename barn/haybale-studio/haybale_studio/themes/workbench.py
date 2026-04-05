@@ -43,6 +43,7 @@ class HaywireDarkTheme(WorkbenchTheme):
     # Status
     danger = "#f44336"
     warning = "#ff9800"
+    warning_dim = "rgba(255,152,0,0.55)"
     success = "#4caf50"
     info = "#2196f3"
 
@@ -131,6 +132,7 @@ class HaywireLightTheme(WorkbenchTheme):
     # Status
     danger = "#d32f2f"
     warning = "#f57c00"
+    warning_dim = "rgba(245,124,0,0.55)"
     success = "#388e3c"
     info = "#1976d2"
 

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.core.settings.enums import FieldMode
 from haywire.core.settings.types import get_vec_meta
 from haywire.ui.components.number.drag import NumberDrag
@@ -41,16 +42,20 @@ def render_settings(obj: "Settings") -> None:
     # Exclude read-only fields from rendering
     visible_fields = {name: defn for name, defn in fields.items() if not defn._read_only}
     if not visible_fields:
-        ui.label("No fields defined.").classes("text-xs text-gray-400 px-2 py-1")
+        ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return
 
     sorted_fields = sorted(
         visible_fields.items(),
-        key=lambda item: ("" if item[1]._category.lower() == "root" else item[1]._category, item[1]._order, item[0]),
+        key=lambda item: (
+            "" if item[1]._category.lower() == "root" else item[1]._category,
+            item[1]._order,
+            item[0],
+        ),
     )
     with ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE):
         for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
-            with _render_category_group(category):
+            with hui.category_group(category):
                 for attr_name, defn in group:
                     _render_reactive_field_row(obj, attr_name, defn)
 
@@ -69,7 +74,7 @@ def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
         if defn._field_key and registry.has_definition(defn._field_key)
     }
     if not defns:
-        ui.label("No fields defined.").classes("text-xs text-gray-400 px-2 py-1")
+        ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return
 
     sorted_defns = sorted(
@@ -89,7 +94,7 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
     match_prefix = prefix + "."
     defns = {key: defn for key, defn in registry.all_definitions().items() if key.startswith(match_prefix)}
     if not defns:
-        ui.label(f"No fields found under: {prefix}.*").classes("text-xs text-gray-400 px-2 py-1")
+        ui.label(f"No fields found under: {prefix}.*").classes("text-xs hw-text-muted px-2 py-1")
         return
 
     sorted_defns = sorted(
@@ -103,7 +108,7 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
     """Render a pre-sorted list of field descriptors grouped by category."""
     with ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE):
         for category, group in _group_by_category(sorted_defns):
-            with _render_category_group(category):
+            with hui.category_group(category):
                 for defn in group:
                     key = defn._field_key
                     try:
@@ -124,25 +129,6 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
 def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str, list]]:
     """Group a pre-sorted list of descriptors by category, preserving order."""
     return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
-
-
-def _render_category_group(category: str):
-    """Return a foldable expansion for a category group (use as context manager).
-
-    Fields with category ``"root"`` are rendered directly without a header.
-    """
-    if category.lower() in ("root"):
-        return ui.column().classes("w-full gap-0")
-    label = category.replace("_", " ").replace(".", " / ").title()
-    return (
-        ui.expansion(label, value=True)
-        .classes("w-full")
-        .props(
-            "dense dense-toggle"
-            ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
-            ' px-2 py-0 min-h-[24px]"'
-        )
-    )
 
 
 def _render_field_row(label_text: str, description: str, defn, value, make_setter, attr_name: str = ""):
@@ -454,7 +440,7 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None,
                 if error_container is not None:
                     error_container.clear()
                     with error_container:
-                        ui.label(str(exc)).classes("text-xs text-red-400 px-2").props('data-error="true"')
+                        ui.label(str(exc)).classes("text-xs hw-text-danger px-2").props('data-error="true"')
                 return
 
             # Check validator before setting — descriptors silently reject invalid values
@@ -463,7 +449,7 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None,
                 if error_container is not None:
                     error_container.clear()
                     with error_container:
-                        ui.label(f"Invalid value: {coerced!r}").classes("text-xs text-red-400 px-2").props(
+                        ui.label(f"Invalid value: {coerced!r}").classes("text-xs hw-text-danger px-2").props(
                             'data-error="true"'
                         )
                 return

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Optional
 from haywire_studio.app import HaywireApp
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
@@ -75,14 +76,11 @@ class FileBrowserEditor(BaseEditor):
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 # Header
-                with ui.row().classes("w-full items-center px-2 py-1.5 border-b flex-shrink-0 gap-1"):
-                    ui.icon("folder_open", size="16px").classes("hw-text-dim")
-                    name = self._root_path.name if self._root_path else "No project"
-                    ui.label(name).classes("text-sm font-medium hw-text-body truncate flex-1")
-                    ui.button(
-                        icon="refresh",
-                        on_click=lambda: self._refresh(context),
-                    ).props("flat round dense size=xs color=grey").tooltip("Refresh tree")
+                name = self._root_path.name if self._root_path else "No project"
+                with hui.panel_header(name, icon="folder_open"):
+                    hui.icon_action(
+                        "refresh", tooltip="Refresh tree", on_click=lambda: self._refresh(context)
+                    )
 
                 # Scrollable tree area
                 with ui.scroll_area().classes("flex-1 w-full"):

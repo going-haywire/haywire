@@ -69,9 +69,13 @@ def _ensure_css() -> None:
         f" .{_LIST_HOVER_CLASS}:hover {{"
         "   background-color: var(--hw-bg-surface) !important;"
         " }"
+        " .hw-list-item-active {"
+        "   background-color: var(--hw-bg-active) !important;"
+        " }"
         # Error and warning text via tokens
         " .hw-text-danger { color: var(--hw-danger) !important; }"
         " .hw-text-warning { color: var(--hw-warning) !important; }"
+        " .hw-text-warning-dim { color: var(--hw-warning-dim) !important; }"
         " .hw-text-success { color: var(--hw-success) !important; }"
         " .hw-text-info { color: var(--hw-info) !important; }"
         " .hw-text-accent { color: var(--hw-accent) !important; }"
@@ -97,17 +101,11 @@ def panel_header(title: str, *, icon: str | None = None):
     Yields the ui.row container so callers can further customise if needed.
     """
     _ensure_css()
-    row = (
-        ui.row()
-        .classes("w-full items-center px-2 py-1.5 flex-shrink-0 gap-1")
-        .style(_BORDER)
-    )
+    row = ui.row().classes("w-full items-center px-2 py-1.5 flex-shrink-0 gap-1").style(_BORDER)
     with row:
         if icon:
             ui.icon(icon, size="16px").classes("hw-text-dim")
-        ui.label(title).classes(
-            "text-sm font-medium hw-text-body truncate flex-1"
-        )
+        ui.label(title).classes("text-sm font-medium hw-text-body truncate flex-1")
         yield row
 
 
@@ -139,9 +137,7 @@ def info_bar(
     with row:
         ui.label(label).classes("text-xs font-medium hw-text-body")
         if badge:
-            ui.badge(badge).props(f"color={badge_color} rounded outline").classes(
-                "text-xs"
-            )
+            ui.badge(badge).props(f"color={badge_color} rounded outline").classes("text-xs")
         if suffix:
             ui.label(suffix).classes("text-xs hw-text-dim ml-auto")
     return row
@@ -167,11 +163,7 @@ def empty_state(
         hui.empty_state("Select a file from the Files panel", icon="folder_open")
     """
     _ensure_css()
-    col = (
-        ui.column()
-        .classes("w-full h-full items-center justify-center gap-3")
-        .style("padding: 72px 0;")
-    )
+    col = ui.column().classes("w-full h-full items-center justify-center gap-3").style("padding: 72px 0;")
     with col:
         ui.icon(icon, size=icon_size).classes("hw-text-dim")
         ui.label(message).classes("text-sm hw-text-muted")
@@ -202,16 +194,13 @@ def list_item(
     """
     _ensure_css()
     row = ui.row().classes(
-        f"w-full px-2 py-1.5 cursor-pointer {_LIST_HOVER_CLASS} "
-        "items-center gap-2 rounded"
+        f"w-full px-2 py-1.5 cursor-pointer {_LIST_HOVER_CLASS} items-center gap-2 rounded"
     )
     if on_click:
         row.on("click", lambda _e=None, fn=on_click: fn())
     with row:
         if dot_color:
-            ui.element("div").classes(
-                f"w-2 h-2 rounded-full bg-{dot_color}-500 flex-shrink-0"
-            )
+            ui.element("div").classes(f"w-2 h-2 rounded-full bg-{dot_color}-500 flex-shrink-0")
         with ui.column().classes("flex-1 gap-0 min-w-0"):
             ui.label(label).classes("text-sm font-medium truncate")
             if sublabel:
@@ -232,9 +221,7 @@ def section_label(text: str) -> ui.label:
 
         hui.section_label("REQUIRED")
     """
-    return ui.label(text.upper()).classes(
-        "text-xs font-bold tracking-wider hw-text-dim px-2 pt-2 pb-1"
-    )
+    return ui.label(text.upper()).classes("text-xs font-bold tracking-wider hw-text-dim px-2 pt-2 pb-1")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -263,9 +250,7 @@ def info_row(
         if copy_value is not None or True:  # always show copy for info rows
             _copy_button(effective_copy)
         ui.label(label).classes(f"text-xs hw-text-dim {label_width} flex-shrink-0")
-        lbl = ui.label(value).classes(
-            "text-xs font-mono truncate flex-1 hw-text-body"
-        )
+        lbl = ui.label(value).classes("text-xs font-mono truncate flex-1 hw-text-body")
         # Add tooltip with full value if it's likely truncated
         if len(value) > 40:
             lbl.tooltip(effective_copy)
@@ -301,9 +286,7 @@ def code_block(
             with (
                 ui.element("div")
                 .classes("min-w-0 rounded px-2 py-1 overflow-hidden")
-                .style(
-                    f"{_BG_SURFACE} border: 1px solid var(--hw-border);"
-                )
+                .style(f"{_BG_SURFACE} border: 1px solid var(--hw-border);")
             ):
                 ui.label(code).classes("text-xs font-mono hw-text-body")
     return col
@@ -392,10 +375,7 @@ def scope_button(
         "transition: background 0.15s;"
     )
     if is_active:
-        style += (
-            "background: var(--hw-accent) !important;"
-            "color: #ffffff !important;"
-        )
+        style += "background: var(--hw-accent) !important;color: #ffffff !important;"
     if not available:
         style += "opacity: 0.3; pointer-events: none;"
 
@@ -442,11 +422,7 @@ def expansion_section(
         exp_state = context.metadata.setdefault("_hui_expansion", {})
         is_open = exp_state.get(panel_key, default_open)
 
-    exp = (
-        ui.expansion(label, icon=icon, value=is_open)
-        .classes("w-full")
-        .style(_BORDER)
-    )
+    exp = ui.expansion(label, icon=icon, value=is_open).classes("w-full").style(_BORDER)
 
     # Persist state changes
     if exp_state is not None and panel_key:
@@ -531,12 +507,16 @@ def input_field(
     if clearable:
         props += " clearable"
 
-    inp = ui.input(
-        label=label,
-        placeholder=placeholder,
-        value=value,
-        **kwargs,
-    ).classes("w-full").props(props)
+    inp = (
+        ui.input(
+            label=label,
+            placeholder=placeholder,
+            value=value,
+            **kwargs,
+        )
+        .classes("w-full")
+        .props(props)
+    )
 
     if on_change:
         inp.on("update:model-value", on_change)
@@ -557,11 +537,15 @@ def number_field(
 
         hui.number_field(label="posX", value=0)
     """
-    return ui.number(
-        label=label,
-        value=value,
-        **kwargs,
-    ).classes("w-full").props("dense outlined")
+    return (
+        ui.number(
+            label=label,
+            value=value,
+            **kwargs,
+        )
+        .classes("w-full")
+        .props("dense outlined")
+    )
 
 
 def select_field(
@@ -653,6 +637,43 @@ def section_divider(text: str | None = None):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Category Group (settings expansion)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@contextmanager
+def category_group(label: str, *, default_open: bool = True):
+    """
+    A collapsible category header for settings field groups.
+
+    Uses ``category == 'root'`` convention: if label is ``"root"`` (case-insensitive),
+    renders a plain column without a header.
+
+    Usage::
+
+        with hui.category_group("Advanced"):
+            # field rows
+    """
+    _ensure_css()
+    if label.lower() == "root":
+        with ui.column().classes("w-full gap-0") as col:
+            yield col
+        return
+
+    display = label.replace("_", " ").replace(".", " / ").title()
+    with (
+        ui.expansion(display, value=default_open)
+        .classes("w-full")
+        .props(
+            "dense dense-toggle"
+            ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
+            ' px-2 py-0 min-h-[24px]"'
+        )
+    ) as exp:
+        yield exp
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Internal helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -662,9 +683,7 @@ def _copy_button(value: str) -> ui.button:
     return (
         ui.button(
             icon="content_copy",
-            on_click=lambda _v=value: ui.run_javascript(
-                f"navigator.clipboard.writeText({_json.dumps(_v)})"
-            ),
+            on_click=lambda _v=value: ui.run_javascript(f"navigator.clipboard.writeText({_json.dumps(_v)})"),
         )
         .props("flat round dense size=xs")
         .tooltip("Copy to clipboard")

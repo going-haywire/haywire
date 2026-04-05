@@ -24,6 +24,7 @@ from ..session import Session
 
 logger = logging.getLogger(__name__)
 
+
 class GraphCanvasManager:
     """
     Facade that wires canvas event handlers and the Vue component together.
@@ -41,14 +42,7 @@ class GraphCanvasManager:
     - context_menus → ContextMenuHandlers
     """
 
-    def __init__(
-        self,
-        editor: Editor,
-        skin_factory,
-        node_factory,
-        panel_registry,
-        session: "Session"
-    ):
+    def __init__(self, editor: Editor, skin_factory, node_factory, panel_registry, session: "Session"):
         self.editor = editor
         self.skin_factory = skin_factory
         self.node_factory = node_factory
@@ -92,12 +86,14 @@ class GraphCanvasManager:
         )
 
         # Build dispatch map from all handler sources
-        self._event_handlers: Dict[str, Callable] = build_event_handler_map([
-            self.visual_layer,
-            self.selection,
-            self.interactions,
-            self.context_menu_handlers,
-        ])
+        self._event_handlers: Dict[str, Callable] = build_event_handler_map(
+            [
+                self.visual_layer,
+                self.selection,
+                self.interactions,
+                self.context_menu_handlers,
+            ]
+        )
 
         self._validate_handler_coverage()
 
@@ -114,7 +110,8 @@ class GraphCanvasManager:
         """Create zoom container and Vue canvas component."""
         self.zoom_container = (
             ZoomPanContainer()
-            .classes("w-full flex-grow border-2 border-gray-300")
+            .classes("w-full flex-grow")
+            .style("border: 2px solid var(--hw-border);")
             .style("height: 100%;")
         )
 
@@ -137,9 +134,7 @@ class GraphCanvasManager:
         if missing:
             logger.warning(f"⚠️  Missing handlers for events: {missing}")
         else:
-            logger.debug(
-                f"✅ All {len(user_events)} user events have registered handlers"
-            )
+            logger.debug(f"✅ All {len(user_events)} user events have registered handlers")
 
     # =========================================================================
     # Event routing
@@ -156,9 +151,7 @@ class GraphCanvasManager:
                 handler(event)
             except Exception as e:
                 logger.error(f"❌ Error calling handler for {event_type}: {e}")
-                ui.notify(
-                    f"Error while processing {event.description}: {e}", type="negative"
-                )
+                ui.notify(f"Error while processing {event.description}: {e}", type="negative")
                 traceback.print_exc()
         else:
             logger.warning(f"No handler found for event type: {event_type}")
@@ -202,10 +195,7 @@ class GraphCanvasManager:
         return self.selection.selected_edges
 
     def _has_clipboard_content(self) -> bool:
-        return (
-            self.selection.clipboard is not None
-            and len(self.selection.clipboard.nodes) > 0
-        )
+        return self.selection.clipboard is not None and len(self.selection.clipboard.nodes) > 0
 
     def cleanup(self):
         """Unsubscribe from graph validation and release resources."""

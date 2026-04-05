@@ -41,10 +41,10 @@ class EdgeInfoPopup:
             with ui.column().classes("w-full gap-2 p-2"):
                 # Header with connection status
                 with ui.row().classes("w-full"):
-                    ui.label(f"{edge.edge_type}").classes("text-xs text-gray-700 ml-2 mt-2")
+                    ui.label(f"{edge.edge_type}").classes("text-xs hw-text-muted ml-2 mt-2")
                     is_valid = state.is_valid()
                     status_icon = "✓" if is_valid else "✗"
-                    status_color = "text-green-600" if is_valid else "text-red-600"
+                    status_color = "hw-text-success" if is_valid else "hw-text-danger"
                     status_text = "Valid" if is_valid else "Invalid"
                     ui.label(f"{status_icon} {status_text}").classes(f"text-sm font-bold {status_color}")
 
@@ -54,66 +54,76 @@ class EdgeInfoPopup:
                 error = state.get_error()
                 if error and isinstance(error, HaywireException):
                     with ui.expansion("Error Details", value=True).classes("w-full"):
-                        with ui.card().classes("w-full p-3 bg-red-50 border border-red-200"):
-                            ui.label(f"Category: {error.category}").classes("text-xs text-red-600 ml-2")
+                        with (
+                            ui.card()
+                            .classes("w-full p-3")
+                            .style("background: var(--hw-danger-bg); border: 1px solid var(--hw-danger);")
+                        ):
+                            ui.label(f"Category: {error.category}").classes("text-xs hw-text-danger ml-2")
                             # Render the error detail with button to show full details
                             error_render_detail(error)
 
                 # Warning Section (if present, expandable, default open)
                 if state.has_warning():
                     with ui.expansion("Warning", value=True).classes("w-full"):
-                        with ui.card().classes("w-full p-3 bg-orange-50 border border-orange-200"):
+                        with (
+                            ui.card()
+                            .classes("w-full p-3")
+                            .style("background: var(--hw-bg-surface); border: 1px solid var(--hw-border);")
+                        ):
                             with ui.column():
                                 for warning in state.warnings:
-                                    ui.label(f"⚠ {warning}").classes("text-xs text-orange-600 ml-2")
+                                    ui.label(f"⚠ {warning}").classes("text-xs hw-text-warning ml-2")
 
                 # Adapter Chain Section (if available, expandable, default closed)
                 if edge.chain_adapter_keys:
                     with ui.expansion("Adapter Chain", value=False).classes("w-full"):
-                        with ui.card().classes("w-full p-3 bg-blue-50 border border-blue-200"):
+                        with (
+                            ui.card()
+                            .classes("w-full p-3")
+                            .style("background: var(--hw-bg-surface); border: 1px solid var(--hw-border);")
+                        ):
                             # Display each adapter in the chain
                             for i, adapter_key in enumerate(edge.chain_adapter_keys, 1):
-                                ui.label(f"{i}. {adapter_key}").classes("text-xs text-blue-600 ml-2")
+                                ui.label(f"{i}. {adapter_key}").classes("text-xs hw-text-accent ml-2")
 
                 if state.execution_count > 0:
                     # Execution Statistics Section (expandable, default closed)
                     with ui.expansion("Execution Statistics", value=False).classes("w-full"):
-                        with ui.card().classes("w-full p-3 bg-gray-50"):
+                        with ui.card().classes("w-full p-3").style("background: var(--hw-bg-surface);"):
                             exec_count = state.execution_count
-                            ui.label(f"Execution Count: {exec_count}").classes("text-xs text-gray-700 ml-2")
+                            ui.label(f"Execution Count: {exec_count}").classes("text-xs hw-text-muted ml-2")
 
                             avg_time = state.average_execution_time_us
                             if avg_time > 0:
                                 ui.label(f"Average Time: {avg_time:.1f} μs").classes(
-                                    "text-xs text-gray-700 ml-2"
+                                    "text-xs hw-text-muted ml-2"
                                 )
                             else:
-                                ui.label("Average Time: Not measured").classes("text-xs text-gray-500 ml-2")
+                                ui.label("Average Time: Not measured").classes("text-xs hw-text-dim ml-2")
 
                             ui.label(f"Tested value: {state.example_test_value}").classes(
-                                "text-xs text-gray-700 ml-2"
+                                "text-xs hw-text-muted ml-2"
                             )
                             ui.label(f"Tested result: {state.example_test_result}").classes(
-                                "text-xs text-gray-700 ml-2"
+                                "text-xs hw-text-muted ml-2"
                             )
 
                 # Connection Path Section (Expandable, default open)
                 with ui.expansion("Connection Path", value=False).classes("w-full"):
-                    with ui.card().classes("w-full p-3 bg-gray-50"):
+                    with ui.card().classes("w-full p-3").style("background: var(--hw-bg-surface);"):
                         ui.label("Connection Path").classes("font-semibold text-sm")
-                        ui.label(
-                            f"{edge.source_node_id} [{edge.outlet_port_id}]"
-                        ).classes("text-xs opacity-70")
+                        ui.label(f"{edge.source_node_id} [{edge.outlet_port_id}]").classes(
+                            "text-xs opacity-70"
+                        )
                         ui.label("↓").classes("text-xs opacity-50 ml-2")
-                        ui.label(
-                            f"{edge.sink_node_id} [{edge.inlet_port_id}]"
-                        ).classes("text-xs opacity-70")
+                        ui.label(f"{edge.sink_node_id} [{edge.inlet_port_id}]").classes("text-xs opacity-70")
 
                 # Close button
                 ui.separator().classes("my-2")
                 btn_close = ui.button("Close", on_click=lambda: self.close())
                 btn_close.props("flat")
-                btn_close.classes("w-full bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm py-2")
+                btn_close.classes("w-full text-sm py-2")
 
         popup.open()
         self._info_popup = popup

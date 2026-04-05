@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 
@@ -53,13 +54,5 @@ class NodeSettingsPanel(BasePanel):
             if bag_name == "props":
                 continue  # skip props bag, rendered separately in NodePropertiesPanel
             header = bag_name.replace("_", " ").title()
-            with (
-                ui.expansion(header, value=True)
-                .classes("w-full")
-                .props(
-                    "dense dense-toggle"
-                    ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
-                    ' px-2 py-0 min-h-[24px]"'
-                )
-            ):
+            with hui.category_group(header):
                 render_settings(bag)

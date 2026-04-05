@@ -70,6 +70,7 @@ class WorkbenchTheme:
         # Status
         "danger": "--hw-danger",
         "warning": "--hw-warning",
+        "warning_dim": "--hw-warning-dim",
         "success": "--hw-success",
         "info": "--hw-info",
         # Node chrome

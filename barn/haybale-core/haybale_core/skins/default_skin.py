@@ -71,7 +71,7 @@ class DefaultNodeSkin(NodeSkin):
                     if wrapper._alternate_registry_keys:
                         ui.label(
                             f"Alternate versions available: {', '.join(wrapper._alternate_registry_keys)}"
-                        ).classes("text-sm text-yellow-600 mb-2")
+                        ).classes("text-sm hw-text-warning mb-2")
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes("w-full gap-2"):

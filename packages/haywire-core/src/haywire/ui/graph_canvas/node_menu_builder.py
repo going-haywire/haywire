@@ -61,7 +61,7 @@ class NodeMenuBuilder:
                 with (
                     ui.button("➕ Add Nodes")
                     .props("flat")
-                    .classes("w-fulltext-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm")
+                    .classes("w-full hw-text-body hw-list-item-hover text-sm")
                 ):
                     with ui.menu():
                         # Add recent nodes section if provided
@@ -99,10 +99,12 @@ class NodeMenuBuilder:
 
         with self._search_results:
             if not results:
-                ui.label("No nodes found").classes("text-gray-500 text-sm p-2")
+                ui.label("No nodes found").classes("hw-text-muted text-sm p-2")
             else:
                 with ui.scroll_area():
-                    ui.label(f"Found {len(results)} node(s)").classes("text-xs font-semibold text-gray-600 mb-2")
+                    ui.label(f"Found {len(results)} node(s)").classes(
+                        "text-xs font-semibold hw-text-dim mb-2"
+                    )
 
                     for node_info in results[:10]:  # Limit to 10 results
                         self._create_search_result_item(node_info)
@@ -115,13 +117,11 @@ class NodeMenuBuilder:
             f"+ {node_info['label']}", on_click=lambda ni=node_info: self._on_node_selected(ni["key"])
         )
         btn.props("flat align=left")
-        btn.classes(
-            "w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm"
-        )
+        btn.classes(f"w-full justify-start px-3 py-2 hw-text-body hw-list-item-hover text-sm")
 
         # Add library badge
         with btn:
-            ui.badge(library_id).classes("ml-auto text-xs bg-gray-200 text-gray-600")
+            ui.badge(library_id).classes("ml-auto text-xs hw-text-dim")
 
         # Enhanced tooltip
         description = node_info.get("description", "No description available")
@@ -393,9 +393,7 @@ class NodeMenuBuilder:
 
         btn = ui.button(f"+ {node_info['label']}", on_click=lambda rk=registry_key: on_node_selected(rk))
         btn.props("flat align=left")
-        btn.classes(
-            "w-full justify-start px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-sm"
-        )
+        btn.classes(f"w-full justify-start px-3 py-2 hw-text-body hw-list-item-hover text-sm")
 
         # Add tooltip with description and tags if available
         if node_info.get("description"):

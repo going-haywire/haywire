@@ -20,7 +20,7 @@ def _create_detail_row(
 
     with ui.row().classes("items-start gap-2 w-full"):
         ui.icon(icon, color="gray").classes("text-sm mt-0.5")
-        ui.label(f"{label}:").classes("font-bold text-sm text-gray-600 min-w-20")
+        ui.label(f"{label}:").classes("font-bold text-sm hw-text-muted min-w-20")
         if multiline and "\n" in value:
             with ui.column().classes("flex-grow"):
                 lines = value.split("\n")
@@ -66,7 +66,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
         # Header
         with ui.row().classes("items-center gap-2 pb-3 border-b"):
             ui.icon(error.get_severity_icon(), color=error.get_severity_color()).classes("text-3xl")
-            ui.label(f"{error.category}").classes("text-xl font-bold text-gray-800")
+            ui.label(f"{error.category}").classes("text-xl font-bold hw-text-body")
             ui.button(
                 icon="content_copy",
                 on_click=lambda text=error.format_detailed(): ui.run_javascript(
@@ -180,7 +180,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
             if interesting_frames:
                 with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
                     with ui.column().classes("gap-2"):
-                        ui.label("🔍 Traceback").classes("font-bold text-gray-700")
+                        ui.label("🔍 Traceback").classes("font-bold hw-text-muted")
 
                         with ui.column().classes("gap-3 pl-4"):
                             for frame in interesting_frames:
@@ -196,7 +196,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                     with ui.row().classes("items-center gap-2"):
                                         ui.icon("arrow_right", color="blue").classes("text-sm")
                                         ui.label(f"{base_filename}").classes("font-bold text-sm")
-                                        ui.label(f"in {function_name}").classes("text-sm text-gray-600")
+                                        ui.label(f"in {function_name}").classes("text-sm hw-text-muted")
                                         # Add open button for each frame
                                         if os.path.exists(filename):
                                             ui.button(
@@ -211,23 +211,25 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                     if len(display_path) > 60:
                                         display_path = "..." + display_path[-57:]
                                     ui.label(f'File "{display_path}"').classes(
-                                        "text-xs text-gray-500 font-mono"
+                                        "text-xs hw-text-dim font-mono"
                                     )
 
                                     # Source line
                                     if source_line.strip():
-                                        with ui.row().classes(
-                                            "items-start gap-2 mt-1 bg-gray-100 rounded p-2"
+                                        with (
+                                            ui.row()
+                                            .classes("items-start gap-2 mt-1 rounded p-2")
+                                            .style("background: var(--hw-bg-surface);")
                                         ):
                                             ui.label(f"line {line_number}:").classes(
-                                                "text-xs text-blue-600 font-mono"
+                                                "text-xs hw-text-accent font-mono"
                                             )
                                             ui.label(source_line.strip()).classes("text-xs font-mono")
 
         # Main error info card
         with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
             with ui.column().classes("gap-2"):
-                ui.label("📦 Error Information").classes("font-bold text-gray-700")
+                ui.label("📦 Error Information").classes("font-bold hw-text-muted")
 
                 if error.message:
                     _create_detail_row("Message", error.message, "build")
@@ -248,7 +250,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
         if error.library_identity or error.module_name or error.registry_key:
             with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
                 with ui.column().classes("gap-2"):
-                    ui.label("📦 Context Information").classes("font-bold text-gray-700")
+                    ui.label("📦 Context Information").classes("font-bold hw-text-muted")
 
                     if error.library_identity:
                         _create_detail_row("Library", error.library_identity.label, "folder")
