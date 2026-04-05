@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import json as _json
 from contextlib import contextmanager
-from typing import Any, Callable, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Callable, Final, Optional, Sequence, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -43,6 +43,71 @@ _BG_PAGE = "background: var(--hw-bg-page);"
 _BG_ELEVATED = "background: var(--hw-bg-elevated);"
 
 _TRANSITION_BG = "transition: background-color 0.15s ease, color 0.15s ease;"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Semantic Icon Registry
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class AppIcons:
+    """
+    Semantic icon names for Haywire UI concepts.
+
+    Each Material icon string appears at most once — one icon, one concept.
+    Use via the module-level alias:  hui.icon.canvas, hui.icon.edge, etc.
+
+    Raw Material icon reference: https://fonts.google.com/icons?icon.set=Material%20Icons
+    """
+
+    # ── Scope tabs (Properties sidebar) ──────────────────────────────────────
+    app: Final[str] = "settings"  # application-wide settings
+    execution: Final[str] = "play_circle"  # execution behaviour
+    canvas: Final[str] = "grid_on"  # canvas & nodes scope
+    debug: Final[str] = "bug_report"  # debug / dev tools
+    graph: Final[str] = "polyline"  # active graph info
+    node: Final[str] = "wysiwyg"  # selected node properties
+    node_settings: Final[str] = "tune"  # node settings (requires bags)
+    edge: Final[str] = "cable"  # selected edge info
+
+    # ── Canvas sub-panels ────────────────────────────────────────────────────
+    canvas_grid: Final[str] = "grid_4x4"  # grid display settings
+    canvas_node_skins: Final[str] = "format_shapes"  # node dimensions / typography
+    canvas_zoom_pan: Final[str] = "settings_overscan"  # pan / zoom behaviour
+    canvas_minimap: Final[str] = "map"  # minimap visibility / position
+
+    # ── Node panel sections ──────────────────────────────────────────────────
+    node_info: Final[str] = "info"  # node identity / metadata
+    node_ports: Final[str] = "device_hub"  # port list
+    node_status: Final[str] = "check_circle"  # validation / runtime status
+
+    # ── Graph ────────────────────────────────────────────────────────────────
+    graph_manager: Final[str] = "account_tree"  # multi-graph file browser
+
+    # ── Library / editor tabs ────────────────────────────────────────────────
+    library_browser: Final[str] = "widgets"  # library browser editor
+    library_component: Final[str] = "description"  # component detail editor
+    library_docs: Final[str] = "menu_book"  # component documentation tab
+    library_source: Final[str] = "code"  # component source tab
+    library_view: Final[str] = "visibility"  # component preview tab
+
+    # ── App panels ───────────────────────────────────────────────────────────
+    theme: Final[str] = "palette"  # theme / appearance settings
+
+    # ── Actions ──────────────────────────────────────────────────────────────
+    add: Final[str] = "add"  # add / create
+    delete: Final[str] = "delete"  # remove / destroy
+    copy: Final[str] = "content_copy"  # duplicate / copy to clipboard
+    paste: Final[str] = "content_paste"  # paste
+    refresh: Final[str] = "refresh"  # reload / revalidate
+    save: Final[str] = "save"  # persist to disk
+    edit: Final[str] = "edit"  # open for editing
+    reset: Final[str] = "restart_alt"  # reset to default / restart
+
+    # ── Status (forward-looking) ─────────────────────────────────────────────
+    ok: Final[str] = "task_alt"  # generic success / pass
+    error: Final[str] = "error"  # error state
+    warning: Final[str] = "warning"  # warning state
+
 
 # Hover style for list items — CSS defined in shell.py _static_css.
 _LIST_HOVER_CLASS = "hw-list-item-hover"
@@ -825,3 +890,11 @@ def _copy_button(value: str) -> ui.button:
         .props("flat round dense size=xs")
         .tooltip("Copy to clipboard")
     )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Module-level aliases
+# ──────────────────────────────────────────────────────────────────────────────
+
+icon = AppIcons
+"""Semantic icon registry. Use as ``hui.icon.canvas``, ``hui.icon.edge``, etc."""
