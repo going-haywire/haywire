@@ -73,6 +73,7 @@ class WorkbenchTheme:
         "warning_dim": "--hw-warning-dim",
         "success": "--hw-success",
         "info": "--hw-info",
+        "positive": "--hw-positive",
         # Node chrome
         "node_bg": "--hw-node-bg",
         "node_border": "--hw-node-border",

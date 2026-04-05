@@ -813,6 +813,84 @@ def category_group(label: str, *, default_open: bool = True):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 8.23  Dialog Chrome
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@contextmanager
+def dialog_card(width: str | None = None):
+    """
+    A themed modal card for use inside ``ui.dialog()``.
+
+    Applies the correct dialog chrome: elevated background, strong border,
+    md border-radius, and popup shadow — all via ``--hw-*`` tokens so the card
+    is theme-aware.
+
+    Use as the second context manager in the NiceGUI dialog idiom::
+
+        with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
+            # content here
+
+    Args:
+        width: Optional Tailwind width class (e.g. ``"w-[480px]"``).
+               If omitted the card is sized by its content.
+
+    Visual rules (§8.23):
+    - Background: ``var(--hw-bg-elevated)``
+    - Border: ``1px solid var(--hw-border-strong)``
+    - Border-radius: 8px (``md`` tier)
+    - Shadow: ``var(--hw-popup-shadow)``
+
+    The card carries the ``hw-panel`` class, so all ``.hw-text-*`` utility
+    classes and Quasar field colour overrides defined in the shell CSS apply
+    inside it exactly as they do in regular panels.
+    """
+    classes = f"hw-panel {width}" if width else "hw-panel"
+    with (
+        ui.card()
+        .classes(classes)
+        .style(
+            "background: var(--hw-bg-elevated);"
+            " border: 1px solid var(--hw-border-strong);"
+            " border-radius: 8px;"
+            " box-shadow: var(--hw-popup-shadow);"
+        ) as card
+    ):
+        yield card
+
+
+def dialog_actions(
+    on_confirm: Callable,
+    on_cancel: Callable,
+    *,
+    confirm_label: str = "OK",
+    cancel_label: str = "Cancel",
+) -> None:
+    """
+    A standardised action row for modal dialogs.
+
+    Renders a right-aligned row with a Cancel button and a confirm button.
+    The confirm button is styled with ``var(--hw-positive)`` for theme-aware
+    positive emphasis. Both buttons are ``flat dense``.
+
+    Call this inside a ``hui.dialog_card()`` context::
+
+        with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
+            # ... content ...
+            hui.dialog_actions(on_confirm=dlg.close, on_cancel=dlg.close)
+
+    Args:
+        on_confirm: Callback for the confirm (OK) button.
+        on_cancel:  Callback for the cancel button.
+        confirm_label: Label for the confirm button (default ``"OK"``).
+        cancel_label:  Label for the cancel button (default ``"Cancel"``).
+    """
+    with ui.row().classes("w-full justify-end gap-2 mt-2"):
+        ui.button(cancel_label, on_click=on_cancel).props("flat dense")
+        ui.button(confirm_label, on_click=on_confirm).props("flat dense").style("color: var(--hw-positive);")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Internal helpers
 # ──────────────────────────────────────────────────────────────────────────────
 

@@ -120,16 +120,22 @@ and editor UI must use `var(--hw-border)` via inline style or an appropriate
 
 ### 2.6 Status Tokens
 
-| Token          | Semantic                                 |
-| -------------- | ---------------------------------------- |
-| `--hw-danger`  | Error, destructive, failure.             |
-| `--hw-warning` | Caution, attention.                      |
-| `--hw-success` | Confirmation, positive.                  |
-| `--hw-info`    | Informational, neutral attention.        |
+| Token            | Semantic                                              |
+| ---------------- | ----------------------------------------------------- |
+| `--hw-danger`    | Error, destructive, failure.                          |
+| `--hw-warning`   | Caution, attention.                                   |
+| `--hw-success`   | Confirmation, success state (indicators, labels).     |
+| `--hw-info`      | Informational, neutral attention.                     |
+| `--hw-positive`  | Affirming action emphasis — confirm buttons, OK CTAs. |
 
 **Rule:** Error text uses `var(--hw-danger)`, not `text-red-400`. Warning text
 uses `var(--hw-warning)`, not `text-yellow-400`. This applies everywhere —
 inline messages, error labels, validation hints.
+
+**Rule:** `--hw-positive` is for interactive affordances (button text/icons)
+that signal a confirming action. It is distinct from `--hw-success`, which is
+for status indicators and result labels. Do not use Quasar `color=positive` —
+it bypasses the theme. Style with `.style("color: var(--hw-positive)")` instead.
 
 ### 2.7 Canvas & Node Tokens
 
@@ -931,6 +937,30 @@ in structure — but the chrome rules are fixed.
 - Divider between groups: `hui.separator()`
 - Leading icon (optional): 16px, `hw-text-dim`
 
+### 8.24 `hui.dialog_card(width=None)` and `hui.dialog_actions(...)`
+
+Two helpers that enforce §8.23 chrome rules on modal dialogs.
+
+**`hui.dialog_card(width)`** — a context manager replacing `ui.card()` in the
+NiceGUI dialog idiom. Applies elevated background, strong border, 8px radius,
+and popup shadow via `--hw-*` tokens.
+
+```python
+with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
+    ui.textarea(...).classes("w-full text-xs hw-text-body").props("dense autogrow")
+    hui.dialog_actions(on_confirm=_confirm, on_cancel=dlg.close)
+```
+
+**`hui.dialog_actions(on_confirm, on_cancel, *, confirm_label="OK", cancel_label="Cancel")`** —
+a right-aligned action row. Cancel is flat/unstyled; the confirm button uses
+`color: var(--hw-positive)` for affirming emphasis.
+
+**Rule:** Never use raw `ui.card()` inside `ui.dialog()`. Always use
+`hui.dialog_card()`.
+
+**Rule:** Confirm button colour comes from `var(--hw-positive)` via
+`.style()`, not from Quasar `color=positive` (which is not theme-mapped).
+
 ---
 
 ## 9. Layout Anatomy
@@ -1153,7 +1183,9 @@ not a CodeMirror host.
 | `transition: all` | Transitions unspecified properties | Name the specific property |
 | `0.2s`/`0.3s` transitions in shell/panel code | Inconsistent with shell tier | `0.15s` for shell; `0.2–0.3s` only in canvas/skin code |
 | `color=grey` on icon buttons | Overrides theme cascade | Remove; buttons inherit colour from `.hw-panel` |
-| `color=primary` on buttons | Not mapped to Haywire theme | Use `color=positive` or style via `--hw-accent` |
+| `color=positive` on buttons | Not theme-mapped — uses Quasar hardcoded green | Use `.style("color: var(--hw-positive)")` |
+| `color=primary` on buttons | Not mapped to Haywire theme | Style via `--hw-accent` |
+| `ui.card()` inside `ui.dialog()` | Missing themed chrome (bg, border, shadow) | Use `hui.dialog_card()` |
 | `ui.expansion()` directly in settings panels | Inconsistent header styling | Use `hui.category_group()` |
 | `ui.input()` / `ui.number()` with `dense outlined` | Duplicates hui config | Use `hui.input_field()` / `hui.number_field()` |
 | Re-implementing panel_header from scratch | Drift and inconsistency | Use `hui.panel_header()` |

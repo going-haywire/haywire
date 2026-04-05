@@ -400,8 +400,12 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
         ).classes("flex-1 text-xs").props("dense debounce=500")
 
         def _open_modal(_cv=current_value, _s=make_setter(str), _w=wrapper):
-            with ui.dialog() as dlg, ui.card().classes("w-[480px]"):
-                ta = ui.textarea(value=_cv[0]).classes("w-full text-xs").props("dense autogrow")
+            with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
+                ta = (
+                    ui.textarea(value=_cv[0])
+                    .classes("w-full text-xs")
+                    .props('dense autogrow input-style="padding-left: 4px;"')
+                )
 
                 def _confirm():
                     v = ta.value
@@ -414,9 +418,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
                     _w.props(f'data-value="{v.encode("unicode_escape").decode()}"')
                     dlg.close()
 
-                with ui.row().classes("w-full justify-end gap-2 mt-2"):
-                    ui.button("Cancel", on_click=dlg.close).props("flat dense")
-                    ui.button("OK", on_click=_confirm).props("flat dense")
+                hui.dialog_actions(on_confirm=_confirm, on_cancel=dlg.close)
             dlg.open()
 
         ui.button(icon=hui.icon.expand_full, on_click=_open_modal).props("flat dense size=xs").tooltip(

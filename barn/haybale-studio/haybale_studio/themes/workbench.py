@@ -46,6 +46,7 @@ class HaywireDarkTheme(WorkbenchTheme):
     warning_dim = "rgba(255,152,0,0.55)"
     success = "#4caf50"
     info = "#2196f3"
+    positive = "#4caf50"
 
     # Node chrome
     node_bg = "#1e1e2e"
@@ -135,6 +136,7 @@ class HaywireLightTheme(WorkbenchTheme):
     warning_dim = "rgba(245,124,0,0.55)"
     success = "#388e3c"
     info = "#1976d2"
+    positive = "#388e3c"
 
     # Node chrome
     node_bg = "rgba(255,255,255,0.3)"
