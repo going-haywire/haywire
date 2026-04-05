@@ -82,7 +82,7 @@ class FileViewerEditor(BaseEditor):
                         self._show_placeholder()
 
     def _show_placeholder(self) -> None:
-        hui.empty_state("Select a file from the Files panel", icon="folder_open")
+        hui.empty_state("Select a file from the Files panel", icon=hui.icon.folder_open)
 
     def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
         if event.change_type != ContextChangeType.FILE_SELECTED:
@@ -126,7 +126,7 @@ class FileViewerEditor(BaseEditor):
         try:
             content = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            hui.empty_state("Binary file — cannot display as text", icon="block")
+            hui.empty_state("Binary file — cannot display as text", icon=hui.icon.empty_binary)
             return
         except OSError as exc:
             ui.label(f"Error reading file: {exc}").classes("hw-text-danger text-sm p-4")

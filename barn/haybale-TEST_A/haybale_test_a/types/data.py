@@ -10,6 +10,7 @@ from typing import Any
 
 from haywire.core.types.decorator import type
 from haywire.core.types.base import BaseType
+from haywire.ui.elements import AppIcons
 
 
 @type(
@@ -17,7 +18,7 @@ from haywire.core.types.base import BaseType
     label="Test Data",
     description="Simple test data structure for cross-library testing",
     color="#FF5722",
-    icon="database",
+    icon=AppIcons.type_database,
     default={"value": None},
     help_url="https://haywire.io/docs/types/test-data",
 )

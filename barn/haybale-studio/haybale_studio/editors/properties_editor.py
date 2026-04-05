@@ -176,7 +176,7 @@ class PropertiesEditor(BaseEditor):
         active_scope_id = context.metadata.get(_SCOPE_KEY)
         if active_scope_id is None:
             with self._content:
-                hui.empty_state("Nothing to show", icon="select_all")
+                hui.empty_state("Nothing to show", icon=hui.icon.empty_no_selection)
             return
 
         if self._panel_registry is None:

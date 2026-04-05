@@ -73,9 +73,7 @@ def error_render_detail(error: HaywireException) -> ui.element:
 
                 # Footer with close button
                 with ui.row().classes("justify-end w-full pt-3 border-t mt-4"):
-                    ui.button("Close", icon="close", on_click=close_popup).props(
-                        "flat"
-                    )  # "close" not in AppIcons
+                    ui.button("Close", icon=hui.icon.close, on_click=close_popup).props("flat")
 
         # Register cleanup callback when popup is closed via other means
         # (backdrop click, escape key, etc.)

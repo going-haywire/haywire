@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 
@@ -37,7 +38,7 @@ class _LogHandler(logging.Handler):
 @editor(
     registry_id="console",
     label="Console",
-    icon="terminal",
+    icon=hui.icon.terminal,
     default_area="bottom",
     description="Application log output. Captures Python logging messages.",
 )

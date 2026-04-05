@@ -336,7 +336,7 @@ class Popup:
                             ui.element("div")
 
                         if self.closable:
-                            ui.button(icon="close", on_click=self.close).props("flat round size=sm")
+                            ui.button(icon=hui.icon.close, on_click=self.close).props("flat round size=sm")
 
                     if self.title:
                         ui.separator()

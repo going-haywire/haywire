@@ -202,7 +202,7 @@ class LibraryBrowserEditor(BaseEditor):
                     self._library_item(entry, "gray", context)
 
             if not required and not enabled and not disabled and not available:
-                hui.empty_state("No libraries found", icon="search_off")
+                hui.empty_state("No libraries found", icon=hui.icon.empty_no_results)
 
     def _library_item(self, lib, dot_color: str, context: "SessionContext"):
         label = getattr(lib, "label", None) or getattr(lib, "name", "?")

@@ -264,7 +264,7 @@ class LibraryOverviewEditor(BaseEditor):
                             if installed_lib.enabled:
                                 _btn = ui.button(
                                     "Disable",
-                                    icon="pause",
+                                    icon=hui.icon.library_pause,
                                     on_click=lambda lid=installed_lib.library_id, ctx=context: (
                                         self._disable_library(lid, manager, ctx)
                                     ),
@@ -276,7 +276,7 @@ class LibraryOverviewEditor(BaseEditor):
                             else:
                                 ui.button(
                                     "Enable",
-                                    icon="play_arrow",
+                                    icon=hui.icon.library_resume,
                                     on_click=lambda lid=installed_lib.library_id, ctx=context: (
                                         self._enable_library(lid, manager, ctx)
                                     ),
@@ -300,7 +300,7 @@ class LibraryOverviewEditor(BaseEditor):
                                     ):
                                         ui.button(
                                             "Uninstall",
-                                            icon="lock",
+                                            icon=hui.icon.locked,
                                         ).props("size=sm flat disable")
                                 else:
                                     with ui.row().classes("gap-0 items-center"):
@@ -311,7 +311,7 @@ class LibraryOverviewEditor(BaseEditor):
                                             m=manager,
                                             ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
                                         ).props("size=sm color=negative flat")
-                                        with ui.button(icon="arrow_drop_down").props(
+                                        with ui.button(icon=hui.icon.dropdown).props(
                                             "size=sm color=negative flat"
                                         ):
                                             with ui.menu():
@@ -345,7 +345,7 @@ class LibraryOverviewEditor(BaseEditor):
                             # Not installed — simple Install button
                             ui.button(
                                 "Install",
-                                icon="download",
+                                icon=hui.icon.library_install,
                                 on_click=lambda e,
                                 spec=marketplace_pkg.install_spec,
                                 n=marketplace_pkg.name,
@@ -403,13 +403,15 @@ class LibraryOverviewEditor(BaseEditor):
                         t_overview = ui.tab("Overview", icon=hui.icon.library_component)
                         t_nodes = ui.tab("Nodes", icon=hui.icon.graph_manager) if n_nodes else None
                         t_widgets = ui.tab("Widgets", icon=hui.icon.library_browser) if n_widgets else None
-                        t_types = ui.tab("Types", icon="category") if n_types else None
-                        t_adapters = ui.tab("Adapters", icon="swap_horiz") if n_adapters else None
-                        t_skins = ui.tab("Skins", icon="brush") if n_skins else None
+                        t_types = ui.tab("Types", icon=hui.icon.library_types) if n_types else None
+                        t_adapters = (
+                            ui.tab("Adapters", icon=hui.icon.library_adapters) if n_adapters else None
+                        )
+                        t_skins = ui.tab("Skins", icon=hui.icon.library_skins) if n_skins else None
                         t_settings = ui.tab("Settings", icon=hui.icon.node_settings) if n_settings else None
                         t_themes = ui.tab("Themes", icon=hui.icon.theme) if n_themes else None
-                        t_panels = ui.tab("Panels", icon="view_sidebar") if n_panels else None
-                        t_editors = ui.tab("Editors", icon="tab") if n_editors else None
+                        t_panels = ui.tab("Panels", icon=hui.icon.library_panels) if n_panels else None
+                        t_editors = ui.tab("Editors", icon=hui.icon.library_editors) if n_editors else None
 
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         self._scroll.clear()
@@ -694,7 +696,7 @@ class LibraryOverviewEditor(BaseEditor):
     def _create_log_in_card(container, title: str) -> "ui.log":
         """Append an expandable terminal log inside a container."""
         with container:
-            with hui.expansion_section(title, icon="terminal"):
+            with hui.expansion_section(title, icon=hui.icon.terminal):
                 log = ui.log(max_lines=50).classes("w-full h-32")
         return log
 
@@ -782,7 +784,7 @@ class LibraryOverviewEditor(BaseEditor):
                 name_input = ui.input(value=old_name_part).classes("flex-1").props("dense")
                 name_input.disable()
                 lock_btn = (
-                    ui.button(icon="lock")
+                    ui.button(icon=hui.icon.locked)
                     .props("flat round dense size=sm color=orange")
                     .tooltip("Click to unlock — renaming breaks saved graph references")
                 )
@@ -852,7 +854,7 @@ class LibraryOverviewEditor(BaseEditor):
                 ui.button("Cancel", on_click=warn_dialog.close).props("flat size=sm")
                 ui.button(
                     "Unlock Name Field",
-                    icon="lock_open",
+                    icon=hui.icon.unlocked,
                     on_click=_unlock_name,
                 ).props("color=warning size=sm")
 
@@ -1006,7 +1008,7 @@ class LibraryOverviewEditor(BaseEditor):
                 ui.button("Skip", on_click=dialog.close).props("flat size=sm")
                 ui.button(
                     "Update files",
-                    icon="find_replace",
+                    icon=hui.icon.library_find_replace,
                     on_click=_patch_and_close,
                 ).props("color=positive size=sm")
 

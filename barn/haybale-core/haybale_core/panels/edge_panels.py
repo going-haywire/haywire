@@ -118,7 +118,7 @@ class DeleteEdgePanel(BasePanel):
     editors=["properties"],
     scopes="edge",
     label="Execution Statistics",
-    icon="linear_scale",
+    icon=hui.icon.edge_statistics,
     default_open=False,
     order=40,
 )
@@ -149,7 +149,7 @@ class ExecutionStatisticsEdgePanel(BasePanel):
     editors=["properties"],
     scopes="edge",
     label="Connection Path",
-    icon="linear_scale",
+    icon=hui.icon.edge_statistics,
     default_open=False,
     order=50,
 )

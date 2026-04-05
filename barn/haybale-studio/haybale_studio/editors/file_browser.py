@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 @editor(
     registry_id="file_browser",
     label="Files",
-    icon="folder",
+    icon=hui.icon.folder,
     default_area="left",
     description="Project file tree. Click a file to open it in the middle area.",
 )
@@ -77,7 +77,7 @@ class FileBrowserEditor(BaseEditor):
             with ui.column().classes("w-full h-full gap-0"):
                 # Header
                 name = self._root_path.name if self._root_path else "No project"
-                with hui.panel_header(name, icon="folder_open"):
+                with hui.panel_header(name, icon=hui.icon.folder_open):
                     hui.icon_action(
                         "refresh", tooltip="Refresh tree", on_click=lambda: self._refresh(context)
                     )

@@ -35,7 +35,8 @@ def _create_detail_row(
                 if file_path and os.path.exists(file_path):
                     with ui.button_group():
                         ui.button(
-                            icon="open_in_new", on_click=lambda: _open_file_in_editor(file_path, line_number)
+                            icon=hui.icon.open_external,
+                            on_click=lambda: _open_file_in_editor(file_path, line_number),
                         ).props("flat dense size=sm").tooltip("Open in editor").classes("ml-2")
                         # Also add a copy path button
                         ui.button(
@@ -201,7 +202,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                         # Add open button for each frame
                                         if os.path.exists(filename):
                                             ui.button(
-                                                icon="open_in_new",
+                                                icon=hui.icon.open_external,
                                                 on_click=lambda f=filename, ln=line_number: (
                                                     _open_file_in_editor(f, ln)
                                                 ),

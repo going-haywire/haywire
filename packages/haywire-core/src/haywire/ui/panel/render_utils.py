@@ -419,7 +419,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
                     ui.button("OK", on_click=_confirm).props("flat dense")
             dlg.open()
 
-        ui.button(icon="open_in_full", on_click=_open_modal).props("flat dense size=xs").tooltip(
+        ui.button(icon=hui.icon.expand_full, on_click=_open_modal).props("flat dense size=xs").tooltip(
             "Edit in full"
         )
 
