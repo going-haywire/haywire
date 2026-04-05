@@ -1,13 +1,12 @@
 # Haywire Design System
 
-A prescriptive design reference for developers building editors, panels, and
-components in the Haywire workbench. This document defines the rules — not just
-what exists today, but what every new (and eventually every existing) piece of
-UI should follow.
+A prescriptive design reference for developers building editors, panels, and components in the Haywire workbench. This document defines the rules — not just what exists today, but what every new (and eventually every existing) piece of UI should follow.
 
 Where the `hui` module is referenced, it means `haywire.ui.elements` — the
 thin wrapper library that encodes these rules into reusable Python functions.
 Prefer `hui.*` over raw NiceGUI/Quasar calls for any pattern that appears here.
+
+this guide is a living document. If you encounter a design aspect that is not covered, report back to the user and suggest an addition. If the pattern you need doesn't exist in `hui`, add it — but follow the design rules and document the new function here in the guide.
 
 ---
 

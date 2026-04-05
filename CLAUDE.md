@@ -51,6 +51,9 @@ uv run mypy packages/haywire-core/src/       # type checking
 
 When looking up how a system works (API, parameters, behaviour), check `docs/` first before reading source code.
 
+## UI Style Guidelines
+`docs/documentation/design/haywire_ui_design_guide.md` contains guidelines for UI design and implementation. Follow these when implementing new UI features or refactoring existing ones.
+
 ## Testing
 
 - Always run the full test suite (`pytest` or equivalent) after any refactor or multi-file change and confirm all tests pass before presenting work as complete.
