@@ -58,10 +58,9 @@ class LibraryBrowserEditor(BaseEditor):
         with ui.column().classes("w-full h-full gap-0"):
             # Search bar
             with ui.column().classes("p-2 gap-1 border-b flex-shrink-0"):
-                search = (
-                    ui.input(placeholder="Search libraries…")
-                    .classes("w-full")
-                    .props("dense outlined clearable")
+                search = hui.input_field(
+                    placeholder="Search libraries…",
+                    clearable=True,
                 )
                 search.on(
                     "update:model-value",
@@ -203,24 +202,17 @@ class LibraryBrowserEditor(BaseEditor):
                     self._library_item(entry, "gray", context)
 
             if not required and not enabled and not disabled and not available:
-                with ui.column().classes("w-full items-center py-8 gap-2"):
-                    ui.icon("search_off", size="28px").classes("hw-text-dim")
-                    ui.label("No libraries found").classes("text-xs hw-text-muted italic")
+                hui.empty_state("No libraries found", icon="search_off")
 
     def _library_item(self, lib, dot_color: str, context: "SessionContext"):
         label = getattr(lib, "label", None) or getattr(lib, "name", "?")
         version = getattr(lib, "version", "")
-
-        with (
-            ui.row()
-            .classes("w-full px-2 py-1.5 cursor-pointer hw-list-item-hover items-center gap-2 rounded")
-            .on("click", lambda entry=lib, ctx=context: self._select_library(entry, ctx))
-        ):
-            ui.element("div").classes(f"w-2 h-2 rounded-full bg-{dot_color}-500 flex-shrink-0")
-            with ui.column().classes("flex-1 gap-0 min-w-0"):
-                ui.label(label).classes("text-sm font-medium truncate")
-                if version:
-                    ui.label(f"v{version}").classes("text-xs hw-text-dim")
+        hui.list_item(
+            label,
+            sublabel=f"v{version}" if version else None,
+            dot_color=dot_color,
+            on_click=lambda entry=lib, ctx=context: self._select_library(entry, ctx),
+        )
 
     def _select_library(self, lib, context: "SessionContext"):
         context.active_library = lib

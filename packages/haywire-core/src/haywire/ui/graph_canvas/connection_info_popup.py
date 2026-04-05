@@ -18,6 +18,7 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.edge.edge_wrapper import EdgeWrapperState
 
 from .popup import Popup
+from haywire.ui import elements as hui
 from haywire.ui.errors.error_info import error_render_detail
 
 
@@ -53,7 +54,7 @@ class EdgeInfoPopup:
                 # Error Section (if present, expandable, default open)
                 error = state.get_error()
                 if error and isinstance(error, HaywireException):
-                    with ui.expansion("Error Details", value=True).classes("w-full"):
+                    with hui.expansion_section("Error Details"):
                         with (
                             ui.card()
                             .classes("w-full p-3")
@@ -65,7 +66,7 @@ class EdgeInfoPopup:
 
                 # Warning Section (if present, expandable, default open)
                 if state.has_warning():
-                    with ui.expansion("Warning", value=True).classes("w-full"):
+                    with hui.expansion_section("Warning"):
                         with (
                             ui.card()
                             .classes("w-full p-3")
@@ -77,7 +78,7 @@ class EdgeInfoPopup:
 
                 # Adapter Chain Section (if available, expandable, default closed)
                 if edge.chain_adapter_keys:
-                    with ui.expansion("Adapter Chain", value=False).classes("w-full"):
+                    with hui.expansion_section("Adapter Chain", default_open=False):
                         with (
                             ui.card()
                             .classes("w-full p-3")
@@ -89,35 +90,31 @@ class EdgeInfoPopup:
 
                 if state.execution_count > 0:
                     # Execution Statistics Section (expandable, default closed)
-                    with ui.expansion("Execution Statistics", value=False).classes("w-full"):
-                        with ui.card().classes("w-full p-3").style("background: var(--hw-bg-surface);"):
-                            exec_count = state.execution_count
-                            ui.label(f"Execution Count: {exec_count}").classes("text-xs hw-text-muted ml-2")
+                    with hui.expansion_section("Execution Statistics", default_open=False):
+                        exec_count = state.execution_count
+                        ui.label(f"Execution Count: {exec_count}").classes("text-xs hw-text-muted ml-2")
 
-                            avg_time = state.average_execution_time_us
-                            if avg_time > 0:
-                                ui.label(f"Average Time: {avg_time:.1f} μs").classes(
-                                    "text-xs hw-text-muted ml-2"
-                                )
-                            else:
-                                ui.label("Average Time: Not measured").classes("text-xs hw-text-dim ml-2")
-
-                            ui.label(f"Tested value: {state.example_test_value}").classes(
+                        avg_time = state.average_execution_time_us
+                        if avg_time > 0:
+                            ui.label(f"Average Time: {avg_time:.1f} μs").classes(
                                 "text-xs hw-text-muted ml-2"
                             )
-                            ui.label(f"Tested result: {state.example_test_result}").classes(
-                                "text-xs hw-text-muted ml-2"
-                            )
+                        else:
+                            ui.label("Average Time: Not measured").classes("text-xs hw-text-dim ml-2")
 
-                # Connection Path Section (Expandable, default open)
-                with ui.expansion("Connection Path", value=False).classes("w-full"):
-                    with ui.card().classes("w-full p-3").style("background: var(--hw-bg-surface);"):
-                        ui.label("Connection Path").classes("font-semibold text-sm")
-                        ui.label(f"{edge.source_node_id} [{edge.outlet_port_id}]").classes(
-                            "text-xs opacity-70"
+                        ui.label(f"Tested value: {state.example_test_value}").classes(
+                            "text-xs hw-text-muted ml-2"
                         )
-                        ui.label("↓").classes("text-xs opacity-50 ml-2")
-                        ui.label(f"{edge.sink_node_id} [{edge.inlet_port_id}]").classes("text-xs opacity-70")
+                        ui.label(f"Tested result: {state.example_test_result}").classes(
+                            "text-xs hw-text-muted ml-2"
+                        )
+
+                # Connection Path Section (Expandable, default closed)
+                with hui.expansion_section("Connection Path", default_open=False):
+                    ui.label("Connection Path").classes("font-semibold text-sm")
+                    ui.label(f"{edge.source_node_id} [{edge.outlet_port_id}]").classes("text-xs opacity-70")
+                    ui.label("↓").classes("text-xs opacity-50 ml-2")
+                    ui.label(f"{edge.sink_node_id} [{edge.inlet_port_id}]").classes("text-xs opacity-70")
 
                 # Close button
                 ui.separator().classes("my-2")

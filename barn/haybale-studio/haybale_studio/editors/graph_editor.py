@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
@@ -97,30 +98,20 @@ class GraphEditor(BaseEditor):
                     self._graph_name_label = ui.label("Untitled").classes(
                         "text-xs hw-text-muted truncate font-mono flex-1"
                     )
-                    self._undo_button = (
-                        ui.button(
-                            icon="undo",
-                            on_click=lambda: self._do_undo(context),
-                        )
-                        .props("flat round dense size=xs")
-                        .tooltip("Undo")
+                    self._undo_button = hui.icon_action(
+                        "undo", tooltip="Undo", on_click=lambda: self._do_undo(context)
                     )
-                    self._redo_button = (
-                        ui.button(
-                            icon="redo",
-                            on_click=lambda: self._do_redo(context),
-                        )
-                        .props("flat round dense size=xs")
-                        .tooltip("Redo")
+                    self._redo_button = hui.icon_action(
+                        "redo", tooltip="Redo", on_click=lambda: self._do_redo(context)
                     )
-                    ui.button(
-                        icon="save",
-                        on_click=lambda: self._save_graph(context),
-                    ).props("flat round dense size=xs").tooltip("Save (Ctrl+S)")
-                    ui.button(
-                        icon="drive_file_rename_outline",
+                    hui.icon_action(
+                        "save", tooltip="Save (Ctrl+S)", on_click=lambda: self._save_graph(context)
+                    )
+                    hui.icon_action(
+                        "drive_file_rename_outline",
+                        tooltip="Save As…",
                         on_click=lambda: self._save_as_graph(context),
-                    ).props("flat round dense size=xs").tooltip("Save As…")
+                    )
 
                 # ---- canvas area (swapped on ACTIVE_GRAPH_CHANGED) ----
                 self._canvas_wrapper = ui.element("div").style(
@@ -147,13 +138,11 @@ class GraphEditor(BaseEditor):
 
         if entry is None:
             # No graph is active — show a welcome/empty placeholder.
-            with ui.column().classes("w-full h-full items-center justify-center gap-3"):
-                ui.icon("polyline", size="48px").classes("hw-text-dim")
-                ui.label("No graph open").classes("hw-text-muted text-sm")
-                ui.label(
-                    "Use the Graphs panel ( layers ) to create a new graph,\n"
-                    "or open a .haywire file from the File Browser."
-                ).classes("hw-text-dim text-xs text-center whitespace-pre-line")
+            hui.empty_state(
+                "No graph open",
+                icon="polyline",
+                hint="Use the Graphs panel ( layers ) to create a new graph,\nor open a .haywire file from the File Browser.",
+            )
             return
 
         self._canvas_manager = GraphCanvasManager(

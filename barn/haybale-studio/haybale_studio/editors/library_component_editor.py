@@ -81,10 +81,11 @@ class LibraryComponentEditor(BaseEditor):
         component_info = context.active_component
         with self._container:
             if not component_info:
-                with ui.column().classes("w-full h-full items-center justify-center gap-2"):
-                    ui.icon("menu_book").classes("hw-text-dim text-4xl")
-                    ui.label("Click a node or widget").classes("hw-text-muted text-sm")
-                    ui.label("to view its documentation").classes("hw-text-muted text-xs")
+                hui.empty_state(
+                    "Click a node or widget",
+                    icon="menu_book",
+                    hint="to view its documentation",
+                )
                 return
 
             lib = component_info.get("lib")
@@ -128,10 +129,7 @@ class LibraryComponentEditor(BaseEditor):
                         ui.label(comp_singular.upper()).classes(
                             "text-xs hw-text-dim font-bold tracking-wider"
                         )
-                    ui.button(
-                        icon="close",
-                        on_click=lambda ctx=context: self._close(ctx),
-                    ).props("flat round size=xs").tooltip("Close")
+                    hui.icon_action("close", tooltip="Close", on_click=lambda ctx=context: self._close(ctx))
 
                 # ── Label + description ────────────────────────────────────
                 with ui.column().classes("w-full gap-0.5 mb-2"):
@@ -143,7 +141,7 @@ class LibraryComponentEditor(BaseEditor):
                 if tags:
                     with ui.row().classes("gap-1 flex-wrap mb-2"):
                         for tag in tags:
-                            ui.badge(str(tag)).props("outline color=purple")
+                            hui.tag(str(tag), color="purple")
 
                 # ── Phase 1: Identifiers ──────────────────────────────────
                 hui.section_label("Identifiers")
@@ -181,7 +179,7 @@ class LibraryComponentEditor(BaseEditor):
 
                 # ── Tabs: View (widgets only) / Docs / Source ─────────────
                 ui.separator().classes("mt-3")
-                with ui.tabs().classes("w-full").props("dense") as tabs:
+                with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
                     t_view = ui.tab("View", icon="visibility") if comp_type == "widgets" else None
                     t_docs = ui.tab("Docs", icon="description")
                     t_source = ui.tab("Source", icon="code") if src_file and src_file.exists() else None

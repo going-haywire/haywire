@@ -140,9 +140,7 @@ class LibraryOverviewEditor(BaseEditor):
         if self._scroll:
             self._scroll.clear()
             with self._scroll:
-                with ui.column().classes("w-full h-full items-center justify-center gap-3"):
-                    ui.icon("widgets", size="48px").classes("hw-text-dim")
-                    ui.label("Select a library to view details").classes("hw-text-muted text-sm")
+                hui.empty_state("Select a library to view details", icon="widgets")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
@@ -243,18 +241,12 @@ class LibraryOverviewEditor(BaseEditor):
                                     "REGULAR": "blue",
                                     "FOLDER": "teal",
                                 }.get(installed_lib.install_type, "grey")
-                                ui.badge(
-                                    installed_lib.install_type.lower(),
-                                    color=inst_color,
-                                ).props("outline")
+                                hui.tag(installed_lib.install_type.lower(), color=inst_color)
                             if marketplace_pkg:
                                 src_color = "blue" if marketplace_pkg.source == "pypi" else "purple"
-                                ui.badge(marketplace_pkg.source, color=src_color).props("outline")
+                                hui.tag(marketplace_pkg.source, color=src_color)
                             if update_available:
-                                ui.badge(
-                                    f"v{marketplace_pkg.version} available",
-                                    color="orange",
-                                ).props("outline")
+                                hui.tag(f"v{marketplace_pkg.version} available", color="orange")
 
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):
@@ -407,7 +399,7 @@ class LibraryOverviewEditor(BaseEditor):
                     n_editors = _count(editor_registry, f"{lib_id}:editor:")
 
                     ui.separator().classes("mt-4")
-                    with ui.tabs().classes("w-full").props("dense") as tabs:
+                    with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
                         t_overview = ui.tab("Overview", icon="description")
                         t_nodes = ui.tab("Nodes", icon="account_tree") if n_nodes else None
                         t_widgets = ui.tab("Widgets", icon="widgets") if n_widgets else None
@@ -702,7 +694,7 @@ class LibraryOverviewEditor(BaseEditor):
     def _create_log_in_card(container, title: str) -> "ui.log":
         """Append an expandable terminal log inside a container."""
         with container:
-            with ui.expansion(title, icon="terminal", value=True).classes("w-full min-w-0"):
+            with hui.expansion_section(title, icon="terminal"):
                 log = ui.log(max_lines=50).classes("w-full h-32")
         return log
 

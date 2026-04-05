@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_events import ContextChangeType
@@ -36,7 +37,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _SCOPE_KEY = "properties_scope"
-_EXPANSION_KEY = "properties_expansion"
 
 
 @editor(
@@ -155,28 +155,14 @@ class PropertiesEditor(BaseEditor):
             for scope in all_scopes:
                 available = scope.poll(context)
                 is_active = scope.scope_id == active_scope_id
-
-                btn_style = (
-                    "width: 36px; height: 36px; min-height: 36px; padding: 0;"
-                    "border-radius: 0; border: none; background: transparent;"
-                    "transition: background 0.15s;"
-                )
-                if is_active:
-                    btn_style += (
-                        "background: var(--hw-accent, #7c6fff) !important;color: #ffffff !important;"
-                    )
-                if not available:
-                    btn_style += "opacity: 0.3; pointer-events: none;"
-
                 scope_id_capture = scope.scope_id
-
-                btn = ui.button(icon=scope.icon).props("flat").style(btn_style)
-                btn.tooltip(scope.label)
-                if available:
-                    btn.on(
-                        "click",
-                        lambda _, sid=scope_id_capture: self._set_active_scope(sid, context),
-                    )
+                hui.scope_button(
+                    scope.icon,
+                    is_active=is_active,
+                    available=available,
+                    tooltip=scope.label,
+                    on_click=lambda sid=scope_id_capture: self._set_active_scope(sid, context),
+                )
 
     # ------------------------------------------------------------------
     # Content rendering
@@ -189,11 +175,13 @@ class PropertiesEditor(BaseEditor):
 
         active_scope_id = context.metadata.get(_SCOPE_KEY)
         if active_scope_id is None:
-            self._render_empty(self._content, "select_all", "Nothing to show")
+            with self._content:
+                hui.empty_state("Nothing to show", icon="select_all")
             return
 
         if self._panel_registry is None:
-            self._render_empty(self._content, "info", "No panel registry")
+            with self._content:
+                hui.empty_state("No panel registry", icon="info")
             return
 
         panel_classes = self._panel_registry.get_panels("properties", active_scope_id)
@@ -212,20 +200,14 @@ class PropertiesEditor(BaseEditor):
                 default_open = getattr(panel_cls.class_identity, "default_open", True)
                 icon = getattr(panel_cls.class_identity, "icon", None)
                 panel_key = f"{active_scope_id}:{panel_cls.class_identity.registry_key}"
-                exp_state: dict = context.metadata.setdefault(_EXPANSION_KEY, {})
-                is_open = exp_state.get(panel_key, default_open)
 
-                exp = (
-                    ui.expansion(
-                        panel_cls.class_identity.label,
-                        icon=icon,
-                        value=is_open,
-                    )
-                    .classes("w-full")
-                    .style("border-bottom: 1px solid var(--hw-border);")
-                )
-                exp.on("update:modelValue", lambda e, k=panel_key: exp_state.update({k: e.args}))
-                with exp:
+                with hui.expansion_section(
+                    panel_cls.class_identity.label,
+                    icon=icon,
+                    default_open=default_open,
+                    context=context,
+                    panel_key=panel_key,
+                ):
                     panel_container = ui.column().classes("w-full gap-1")
                     layout = PanelLayout(panel_container)
                     try:
@@ -233,14 +215,7 @@ class PropertiesEditor(BaseEditor):
                         panel_instance.draw(context, layout)
                     except Exception as exc:
                         logger.exception(f"PropertiesEditor: draw() error in {panel_cls.__name__}: {exc}")
-                        ui.label(f"Error: {exc}").classes("hw-text-danger text-xs")
+                        hui.error_label(f"Error: {exc}")
 
             if not has_panels:
-                self._render_empty(self._content, "info", "No properties available")
-
-    @staticmethod
-    def _render_empty(container: "Element", icon: str, message: str) -> None:
-        with container:
-            with ui.column().classes("w-full items-center justify-center p-4").style("padding-top: 60px;"):
-                ui.icon(icon).classes("hw-text-dim text-3xl")
-                ui.label(message).classes("text-xs hw-text-dim")
+                hui.empty_state("No properties available", icon="info")
