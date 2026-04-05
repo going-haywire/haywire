@@ -46,13 +46,6 @@ PROPERTIES_SCOPES: list[ScopeDescriptor] = [
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
-        scope_id="debug",
-        label="Debug",
-        icon=hui.icon.debug,
-        order=40,
-        poll=lambda ctx: True,
-    ),
-    ScopeDescriptor(
         scope_id="graph",
         label="Graph",
         icon=hui.icon.graph,

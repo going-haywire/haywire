@@ -401,17 +401,17 @@ class LibraryOverviewEditor(BaseEditor):
                     ui.separator().classes("mt-4")
                     with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
                         t_overview = ui.tab("Overview", icon=hui.icon.library_component)
-                        t_nodes = ui.tab("Nodes", icon=hui.icon.graph_manager) if n_nodes else None
-                        t_widgets = ui.tab("Widgets", icon=hui.icon.library_browser) if n_widgets else None
-                        t_types = ui.tab("Types", icon=hui.icon.library_types) if n_types else None
+                        t_nodes = ui.tab("Nodes", icon=hui.icon.node) if n_nodes else None
+                        t_widgets = ui.tab("Widgets", icon=hui.icon.widget) if n_widgets else None
+                        t_types = ui.tab("Types", icon=hui.icon.type) if n_types else None
                         t_adapters = (
-                            ui.tab("Adapters", icon=hui.icon.library_adapters) if n_adapters else None
+                            ui.tab("Adapters", icon=hui.icon.adapter) if n_adapters else None
                         )
-                        t_skins = ui.tab("Skins", icon=hui.icon.library_skins) if n_skins else None
+                        t_skins = ui.tab("Skins", icon=hui.icon.skin) if n_skins else None
                         t_settings = ui.tab("Settings", icon=hui.icon.node_settings) if n_settings else None
                         t_themes = ui.tab("Themes", icon=hui.icon.theme) if n_themes else None
-                        t_panels = ui.tab("Panels", icon=hui.icon.library_panels) if n_panels else None
-                        t_editors = ui.tab("Editors", icon=hui.icon.library_editors) if n_editors else None
+                        t_panels = ui.tab("Panels", icon=hui.icon.panel) if n_panels else None
+                        t_editors = ui.tab("Editors", icon=hui.icon.editor) if n_editors else None
 
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         self._scroll.clear()

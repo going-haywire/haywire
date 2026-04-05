@@ -49,7 +49,7 @@ class ThemeSettingsPanel(BasePanel):
     editors="properties",
     scopes="app",
     label="Default Skins",
-    icon=hui.icon.theme,
+    icon=hui.icon.skin,
     order=20,
     default_open=False,
 )

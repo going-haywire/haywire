@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     default_open=False,
     order=10,
 )
-class NodePropertiesPanel(BasePanel):
+class NodeInfoPanel(BasePanel):
     """Displays basic identity information for the selected node."""
 
     @classmethod
@@ -47,15 +47,14 @@ class NodePropertiesPanel(BasePanel):
 
 
 @panel(
-    registry_id="node_instance_settings",
     editors="properties",
     scopes="node",
-    label="Node",
-    icon=hui.icon.app,
+    label="Node Properties",
+    icon=hui.icon.node,
     order=20,
     default_open=True,
 )
-class NodeInstanceSettingsPanel(BasePanel):
+class NodePropertiesPanel(BasePanel):
     """Displays per-instance node settings (muted, collapsed, pinned, etc.)."""
 
     @classmethod

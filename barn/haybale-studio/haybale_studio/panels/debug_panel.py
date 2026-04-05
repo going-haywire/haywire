@@ -24,11 +24,11 @@ if TYPE_CHECKING:
 
 @panel(
     editors="properties",
-    scopes="debug",
+    scopes="execution",  
     label="Log Levels",
     icon=hui.icon.debug,
-    order=10,
-    default_open=True,
+    order=20,
+    default_open=False,
 )
 class DebugSettingsPanel(BasePanel):
     """Logging, execution visibility, visual debugging and data inspection."""

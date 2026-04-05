@@ -25,23 +25,41 @@ class AppIcon:
     """
 
     # ── Scope tabs (Properties sidebar) ──────────────────────────────────────
-    app: Final[str] = "settings"
+    app: Final[str] = "home"
     """Application-wide settings scope."""
-    execution: Final[str] = "play_circle"
+    execution: Final[str] = "rocket_launch"
     """Execution behaviour scope."""
     canvas: Final[str] = "grid_on"
     """Canvas & nodes scope."""
     debug: Final[str] = "bug_report"
     """Debug / dev tools scope."""
+
+    # -- Core Classes ───────────────────────────────────────────────────────────────
+
     graph: Final[str] = "polyline"
     """Active graph info scope."""
-    node: Final[str] = "wysiwyg"
+    node: Final[str] = "account_tree"
     """Selected node properties scope."""
     node_settings: Final[str] = "tune"
     """Node settings scope (only available when node has setting bags)."""
     edge: Final[str] = "cable"
     """Selected edge info scope."""
+    widget: Final[str] = "widgets"
+    """Selected widget info scope."""
+    skin: Final[str] = "brush"
+    """Skins in library overview."""
+    adapter: Final[str] = "electrical_services"
+    """Adapters tab in library overview."""
+    type: Final[str] = "category"
+    """Types in library overview."""
+    panel: Final[str] = "dashboard_customize"
+    """Panels in library overview."""
+    editor: Final[str] = "space_dashboard"
+    """Editors in library overview."""
+    theme: Final[str] = "palette"
+    """Theme and appearance settings."""
 
+    
     # ── Canvas sub-panels ────────────────────────────────────────────────────
     canvas_grid: Final[str] = "grid_4x4"
     """Grid display settings panel."""
@@ -61,11 +79,11 @@ class AppIcon:
     """Node validation and runtime status panel."""
 
     # ── Graph ────────────────────────────────────────────────────────────────
-    graph_manager: Final[str] = "account_tree"
+    graph_manager: Final[str] = "apps"
     """Multi-graph file browser."""
 
     # ── Library / editor tabs ────────────────────────────────────────────────
-    library_browser: Final[str] = "widgets"
+    library_browser: Final[str] = "extension"
     """Library browser editor."""
     library_component: Final[str] = "description"
     """Component detail editor."""
@@ -75,22 +93,6 @@ class AppIcon:
     """Component source tab."""
     library_view: Final[str] = "visibility"
     """Component preview tab."""
-
-    # ── App panels ───────────────────────────────────────────────────────────
-    theme: Final[str] = "palette"
-    """Theme and appearance settings."""
-
-    # ── Library overview tabs ─────────────────────────────────────────────────
-    library_types: Final[str] = "category"
-    """Types tab in library overview."""
-    library_adapters: Final[str] = "swap_horiz"
-    """Adapters tab in library overview."""
-    library_skins: Final[str] = "brush"
-    """Skins tab in library overview."""
-    library_panels: Final[str] = "view_sidebar"
-    """Panels tab in library overview."""
-    library_editors: Final[str] = "tab"
-    """Editors tab in library overview."""
 
     # ── Edge panels ───────────────────────────────────────────────────────────
     edge_statistics: Final[str] = "linear_scale"

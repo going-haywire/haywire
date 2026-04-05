@@ -50,9 +50,9 @@ class CanvasSettingsPanel(BasePanel):
 @panel(
     editors="properties",
     scopes="canvas",
-    label="Node Skins",
-    description="Node dimensions, typography and label visibility.",
-    icon=hui.icon.canvas_node_skins,
+    label="Skins",
+    description="Skin Configuration:Node dimensions, typography and label visibility.",
+    icon=hui.icon.skin,
     order=20,
     default_open=False,
 )

@@ -1166,11 +1166,12 @@ Wraps the existing `GraphCanvasManager` and graph canvas Vue component. This is 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 
+from haywire.ui import elements as hui
 
 @editor(
     registry_id='graph_editor',
     label='Graph Editor',
-    icon='account_tree',
+    icon=hui.icons.graph_editor,
     default_area='middle',
     description='Visual node graph editor for wiring data processing pipelines.',
 )
