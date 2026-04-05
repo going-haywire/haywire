@@ -113,17 +113,27 @@
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
-| **Editor** | A full-area UI component occupying one workspace area (Left, Middle, Right, Bottom); one instance per area per session | Panel (Panels are sub-components of editors), view |
-| **Panel** | A context-sensitive sub-section rendered inside a panel-aware editor (e.g. Properties); appears/disappears based on `poll()` | Tab, widget (too generic) |
+| **Editor** | A full-area UI component occupying one workspace Area (Left, Middle, Right, Bottom); one instance per area per session | Panel (Panels are sub-components of editors), view |
+| **Panel** | A context-sensitive sub-section rendered inside a panel-aware editor (e.g. Properties); appears/disappears based on `poll()`; always wrapped in `.hw-panel` container | Tab, widget (too generic) |
 | **Scope** | A named tab within a panel-aware editor that groups panels (e.g. `node`, `graph`, `edge`) | Context (overloaded), category |
-| **AppShell** | The top-level layout component: TopBar + ActivityBar + Left/Middle/Right/Bottom areas + ContextBar + StatusBar | Shell, frame |
+| **Area** | One of the four named slots in the AppShell where an editor is mounted: Left, Middle, Right, Bottom | Pane, region, zone |
+| **AppShell** | The top-level layout component composed of: TopBar + ActivityBar + Left/Middle/Right/Bottom Areas + ContextBar + StatusBar | Shell, frame |
+| **TopBar** | The 48px bar along the top edge of the AppShell; contains the app name, workspace switcher, and global actions | Header, navbar |
+| **StatusBar** | The 24px bar along the bottom edge of the AppShell; shows session info and status messages | Footer, info bar (Info Bar is a Panel pattern, not the StatusBar) |
+| **ActivityBar** | The 48px narrow strip on the left edge of the AppShell; contains editor-switcher icons for the Left Area | Left sidebar, toolbar |
+| **ContextBar** | The 48px narrow strip on the right edge of the AppShell; contains editor-switcher icons for the Right Area | Right sidebar |
+| **ScopeToolbar** | The vertical strip of 36×36px square buttons inside the PropertiesEditor that switches the active Scope | Scope bar, scope selector |
 | **Session** | A per-browser-connection state object; one per connected client | Connection, client |
 | **SessionContext** | The state bag passed to every editor and panel render call; contains active graph, node, edge, and theme references | Context (acceptable shorthand), state |
 | **Workspace** | A named layout preset that records which editor occupies each area; saved to `.haywire/workspaces.json` | Layout, perspective |
-| **Skin** | A visual shape/renderer assigned per node type on the canvas; controls how the node card is drawn | Renderer (Skin is canonical in code), style |
+| **Skin** | A `BaseSkin` subclass that renders the visual shape of a node on the Graph Canvas; operates outside the `.hw-panel` cascade and uses only `--hw-node-*` and `--hw-canvas-*` tokens | Renderer (Skin is canonical in code), style |
 | **Widget** | An inline UI control rendered inside a port on the node card, bound to the port's value | Control, field input |
 | **Theme** | A named set of CSS tokens (`WorkbenchTheme`) or per-node-type colour rules (`NodeTheme`); session-scoped for workbench | Style, skin (Skin is distinct) |
 | **Graph Canvas** | The Vue/NiceGUI hybrid component where nodes and edges are visually displayed and edited | Canvas (acceptable shorthand), viewport |
+| **hui** | The `haywire.ui.elements` wrapper module; encodes design-system rules into reusable Python functions; prefer `hui.*` over raw NiceGUI/Quasar calls for any pattern it covers | haywire.ui.elements (use `hui` as the import alias) |
+| **CSS token** | A `--hw-*` CSS custom property that encodes a design-system value (colour, size, shadow); every structural colour in the app must reference a token, never a hardcoded value | CSS variable (CSS token is the project term) |
+| **Compact-fields** | A container-query–based responsive layout system for dense settings/property panels; activated by the `compact-fields` CSS class on the outer column | Dense layout, settings layout |
+| **Ghost pin** | The visual indicator (low-opacity colour via `--hw-ghost-pin`) on a port that is unconnected; rendered by node skins | Unconnected pin, empty pin |
 
 ---
 
@@ -137,7 +147,12 @@
 - A **Flow** contains one global **Control Flow** DAG and one **LocalizedDataFlow** DAG per CONTROL node.
 - A **Library** scans folders in `register_components()` to populate registries (nodes, types, adapters, widgets, skins, themes).
 - A **Haybale** package is always a **Library**; not all Libraries are distributed as haybale packages.
-- An **Editor** occupies one workspace **Area**; an **Editor** may host many **Panels** filtered by **Scope**.
+- An **Editor** occupies one **Area** in the **AppShell**; an **Editor** may host many **Panels** filtered by **Scope**.
+- The **AppShell** is composed of: **TopBar**, **ActivityBar**, **ContextBar**, **StatusBar**, and the four **Area** slots.
+- The **ActivityBar** switches editors in the Left **Area**; the **ContextBar** switches editors in the Right **Area**; the **ScopeToolbar** (inside the PropertiesEditor) switches the active **Scope**.
+- A **Panel** is always rendered inside a `.hw-panel` container and must use `hui.*` wrappers for any pattern covered by the design guide.
+- A **Skin** renders on the **Graph Canvas** and must use only `--hw-node-*` / `--hw-canvas-*` **CSS tokens**; it must not use `hui.*` panel wrappers.
+- Every structural colour reference in the app must use a **CSS token** (`--hw-*`); hardcoded hex or rgba values are a design violation.
 - A **Node** may declare one or more **NodeSettings** inner classes; each is accessible via its **accessor name** on the node instance.
 - A **NodeSettings** field may `mirrors=` a **FrameworkSettings** or **LibrarySettings** field; the value resolves through the **SettingsRegistry** via **Three-tier resolution**.
 - **FrameworkSettings** classes auto-register at registry init; **LibrarySettings** classes register via the **BaseRegistry** hot-reload path when their **Library** loads.
@@ -170,10 +185,13 @@
 
 ---
 
-## Flagged Ambiguities
+## Flagged Ambiguities (updated)
 
 - **"pin"** appears in the codebase and docs as both the colloquial name for the icon port and a general synonym for any port. Canonical terms are **Inlet** / **Outlet**; **Pin** is acceptable only for EXEC ports.
 - **"connection"** is used loosely to mean both the act of connecting (verb) and the edge itself (noun). Prefer **Edge** for the object, and **link** for the action.
 - **"context"** is overloaded: `ExecutionContext` (passed to worker), `SessionContext` (UI state), and `context=` string in older panel decorators (now replaced by **Scope**). Always qualify: ExecutionContext, SessionContext, or Scope.
 - **"flow"** appears as both the general concept (data flow, control flow) and the specific assembled object (`LocalizedDataFlow`, `Flow`). Capitalize **Flow** when referring to the assembled execution unit.
 - **"NodeBehavior" vs "NodeType"**: `NodeType` is the enum (`DATA`, `CONTROL`, `EVENT`, `OUTPUT`, `LOOPBACK`); `NodeBehavior` is the dataclass that holds `node_type: NodeType` plus other flags. The glossary term **NodeType** is canonical for the execution role. "Node type" (lowercase) is used consistently in docs and code for this concept only.
+- **"sidebar"** is overloaded: the CSS token prefix `--hw-sidebar-*` refers specifically to the **ActivityBar** and **ContextBar** (the narrow 48px icon strips). It does NOT refer to the Left or Right **Areas** (the wider editor panels). Always qualify: use **ActivityBar**, **ContextBar**, or **Area** for structural names; "sidebar" only appears as a CSS token prefix.
+- **"info bar"** appears in two distinct senses: `hui.info_bar()` is a Panel-level metadata bar pattern (§8.2 of the design guide); **StatusBar** is a shell-level bar at the bottom of the AppShell. They are different things — never use "info bar" to mean the StatusBar.
+- **"panel"** in CSS token names (`--hw-panel-*`) refers to the `.hw-panel` editor container, not the **Panel** sub-component concept. The CSS token `--hw-panel-bg` is the background of the editor container, not a per-Panel background.
