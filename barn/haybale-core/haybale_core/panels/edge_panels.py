@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -32,7 +33,7 @@ def _state(context: "SessionContext") -> "EdgeWrapperState | None":
     editors=["context_menu", "properties"],
     scopes="edge",
     label="Connection Errors",
-    icon="error",
+    icon=hui.icon.error,
     order=10,
 )
 class EdgeErrorsPanel(BasePanel):
@@ -65,7 +66,7 @@ class EdgeErrorsPanel(BasePanel):
     editors=["context_menu", "properties"],
     scopes="edge",
     label="Connection Warnings",
-    icon="warning",
+    icon=hui.icon.warning,
     order=20,
 )
 class EdgeWarningsPanel(BasePanel):
@@ -94,7 +95,7 @@ class EdgeWarningsPanel(BasePanel):
     editors=["context_menu"],
     scopes="edge",
     label="Delete Connection",
-    icon="delete",
+    icon=hui.icon.delete,
     order=30,
 )
 class DeleteEdgePanel(BasePanel):

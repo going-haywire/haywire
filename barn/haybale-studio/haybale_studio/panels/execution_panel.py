@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     editors="properties",
     scopes="execution",
     label="Execution",
-    icon="play_circle",
+    icon=hui.icon.execution,
     order=10,
     default_open=True,
 )

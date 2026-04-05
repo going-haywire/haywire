@@ -34,7 +34,7 @@ class _WidgetPreviewPort:
 @editor(
     registry_id="component_detail",
     label="Component Detail",
-    icon="description",
+    icon=hui.icon.library_component,
     default_area="right",
     description="Detailed documentation for the selected node component.",
 )
@@ -83,7 +83,7 @@ class LibraryComponentEditor(BaseEditor):
             if not component_info:
                 hui.empty_state(
                     "Click a node or widget",
-                    icon="menu_book",
+                    icon=hui.icon.library_docs,
                     hint="to view its documentation",
                 )
                 return
@@ -180,9 +180,13 @@ class LibraryComponentEditor(BaseEditor):
                 # ── Tabs: View (widgets only) / Docs / Source ─────────────
                 ui.separator().classes("mt-3")
                 with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
-                    t_view = ui.tab("View", icon="visibility") if comp_type == "widgets" else None
-                    t_docs = ui.tab("Docs", icon="description")
-                    t_source = ui.tab("Source", icon="code") if src_file and src_file.exists() else None
+                    t_view = ui.tab("View", icon=hui.icon.library_view) if comp_type == "widgets" else None
+                    t_docs = ui.tab("Docs", icon=hui.icon.library_docs)
+                    t_source = (
+                        ui.tab("Source", icon=hui.icon.library_source)
+                        if src_file and src_file.exists()
+                        else None
+                    )
 
                 default_tab = t_view if t_view else t_docs
                 # flex:1 fills remaining vertical space; panels handle their own scroll
@@ -252,7 +256,7 @@ class LibraryComponentEditor(BaseEditor):
                                     except Exception as exc:
                                         ui.notify(f"Save failed: {exc}", type="negative")
 
-                                ui.button("Save", icon="save", on_click=_save).props(
+                                ui.button("Save", icon=hui.icon.save, on_click=_save).props(
                                     "color=positive size=sm"
                                 ).style("flex-shrink: 0; margin-top: 8px;")
 

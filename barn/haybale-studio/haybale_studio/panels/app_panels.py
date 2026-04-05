@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     editors="properties",
     scopes="app",
     label="Workbench",
-    icon="palette",
+    icon=hui.icon.theme,
     order=10,
     default_open=True,
 )
@@ -43,11 +44,12 @@ class ThemeSettingsPanel(BasePanel):
         render_schema(WorkbenchThemeSettings, registry)
         render_schema(NodeThemeSettings, registry)
 
+
 @panel(
     editors="properties",
     scopes="app",
     label="Default Skins",
-    icon="palette",
+    icon=hui.icon.theme,
     order=20,
     default_open=False,
 )
@@ -67,7 +69,7 @@ class NodeSkinDefaultPanel(BasePanel):
     editors="properties",
     scopes="app",
     label="Editor",
-    icon="edit",
+    icon=hui.icon.edit,
     order=30,
     default_open=False,
 )
@@ -81,4 +83,3 @@ class EditorSettingsPanel(BasePanel):
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         registry = context.app.library_service.get_settings_registry()
         render_schema(EditorSettings, registry)
-

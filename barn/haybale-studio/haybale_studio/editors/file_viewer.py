@@ -44,7 +44,7 @@ _LANGUAGE_MAP: dict = {
 @editor(
     registry_id="file_viewer",
     label="File Viewer",
-    icon="description",
+    icon=hui.icon.library_component,
     default_area="middle",
     description="Displays the contents of a file selected in the Files browser.",
 )

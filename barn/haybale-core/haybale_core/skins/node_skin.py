@@ -8,6 +8,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.widget.factory import error_render_detail
 from haywire.ui.skin.base import BaseSkin
+from haywire.ui import elements as hui
 from haywire.ui.themes.icons import ICONS
 from haywire.ui.utils import generate_pin_uuid
 
@@ -347,7 +348,7 @@ class NodeSkin(BaseSkin, ABC):
         """
         error_count = len(errors)
 
-        with ui.button(icon="warning", color="red") as btn:
+        with ui.button(icon=hui.icon.warning, color="red") as btn:
             btn.classes("text-xl px-2 py-1")
             btn.props("dense flat")
             btn.style("position: absolute; top: -25px;")
@@ -356,8 +357,8 @@ class NodeSkin(BaseSkin, ABC):
             with ui.menu().props('anchor="bottom left" self="top left"'):
                 with ui.card().classes("p-2 max-w-md max-h-96 overflow-auto"):
                     for idx, error in enumerate(errors):
-                        with ui.expansion(f"{idx + 1}. {error.operation or 'Error'}", icon="error").classes(
-                            "w-full hw-text-danger"
-                        ):
+                        with ui.expansion(
+                            f"{idx + 1}. {error.operation or 'Error'}", icon=hui.icon.error
+                        ).classes("w-full hw-text-danger"):
                             ui.label(error.message).classes("text-sm hw-text-danger mb-2")
                             error_render_detail(error)

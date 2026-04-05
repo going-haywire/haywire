@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -25,7 +26,7 @@ def _emit(context: "SessionContext", event):
     editors="context_menu",
     scopes="selection",
     label="Copy Selection",
-    icon="content_copy",
+    icon=hui.icon.copy,
     order=10,
 )
 class CopySelectionPanel(BasePanel):
@@ -37,10 +38,13 @@ class CopySelectionPanel(BasePanel):
         from haywire.ui.graph_canvas.event_definitions import UserCopySelectedEvent
 
         def _copy():
-            _emit(context, UserCopySelectedEvent(
-                selectedNodes=list(context.selected_nodes),
-                selectedEdges=list(context.selected_edges),
-            ))
+            _emit(
+                context,
+                UserCopySelectedEvent(
+                    selectedNodes=list(context.selected_nodes),
+                    selectedEdges=list(context.selected_edges),
+                ),
+            )
 
         layout.button("📋 Copy Selection", on_click=_copy)
 
@@ -49,7 +53,7 @@ class CopySelectionPanel(BasePanel):
     editors="context_menu",
     scopes="selection",
     label="Paste",
-    icon="content_paste",
+    icon=hui.icon.paste,
     order=20,
 )
 class PasteSelectionPanel(BasePanel):

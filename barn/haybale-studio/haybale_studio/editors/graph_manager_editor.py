@@ -43,7 +43,7 @@ def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
 @editor(
     registry_id="graph_manager",
     label="Graphs",
-    icon="account_tree",
+    icon=hui.icon.graph_manager,
     default_area="left",
     description='All open graphs. Click to switch; "+" to create a new graph.',
 )
@@ -82,7 +82,7 @@ class GraphManagerEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _render_header(self, context: "SessionContext") -> None:
-        with hui.panel_header("GRAPHS", icon="account_tree"):
+        with hui.panel_header("GRAPHS", icon=hui.icon.graph_manager):
             hui.icon_action("add", tooltip="New graph", on_click=lambda: self._on_new(context))
 
     # ------------------------------------------------------------------

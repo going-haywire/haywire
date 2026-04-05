@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema, render_keys
@@ -20,11 +21,12 @@ from haywire.core.debug.debug_settings import DebugSettings
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
+
 @panel(
     editors="properties",
     scopes="debug",
     label="Log Levels",
-    icon="bug_report",
+    icon=hui.icon.debug,
     order=10,
     default_open=True,
 )

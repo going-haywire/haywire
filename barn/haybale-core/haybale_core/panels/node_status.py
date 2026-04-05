@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
     editors="properties",
     scopes="node",
     label="Status",
-    icon="check_circle",
+    icon=hui.icon.node_status,
     order=30,
     default_open=False,
 )

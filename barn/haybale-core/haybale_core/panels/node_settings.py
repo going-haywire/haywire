@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     editors="properties",
     scopes="settings",
     label="Node Settings",
-    icon="tune",
+    icon=hui.icon.node_settings,
     order=10,
     default_open=True,
 )

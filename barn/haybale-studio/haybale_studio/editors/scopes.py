@@ -20,55 +20,56 @@ tabs appear; the panels that populate them are added in a later phase once
 the settings rendering strategy is decided.
 """
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.scope import ScopeDescriptor
 
 PROPERTIES_SCOPES: list[ScopeDescriptor] = [
     ScopeDescriptor(
         scope_id="app",
         label="Application",
-        icon="settings",
+        icon=hui.icon.app,
         order=10,
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
         scope_id="execution",
         label="Execution",
-        icon="play_circle",
+        icon=hui.icon.execution,
         order=20,
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
         scope_id="canvas",
         label="Canvas & Nodes",
-        icon="grid_on",
+        icon=hui.icon.canvas,
         order=30,
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
         scope_id="debug",
         label="Debug",
-        icon="bug_report",
+        icon=hui.icon.debug,
         order=40,
         poll=lambda ctx: True,
     ),
     ScopeDescriptor(
         scope_id="graph",
         label="Graph",
-        icon="polyline",
+        icon=hui.icon.graph,
         order=50,
         poll=lambda ctx: ctx.active_graph is not None,
     ),
     ScopeDescriptor(
         scope_id="node",
         label="Node",
-        icon="wysiwyg",
+        icon=hui.icon.node,
         order=60,
         poll=lambda ctx: ctx.active_node is not None,
     ),
     ScopeDescriptor(
         scope_id="settings",
         label="Settings",
-        icon="tune",
+        icon=hui.icon.node_settings,
         order=65,
         poll=lambda ctx: (
             ctx.active_node is not None
@@ -80,7 +81,7 @@ PROPERTIES_SCOPES: list[ScopeDescriptor] = [
     ScopeDescriptor(
         scope_id="edge",
         label="Edge",
-        icon="cable",
+        icon=hui.icon.edge,
         order=70,
         poll=lambda ctx: ctx.active_edge is not None,
     ),

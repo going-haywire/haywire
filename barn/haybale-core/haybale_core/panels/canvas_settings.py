@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
@@ -25,11 +26,12 @@ from haybale_core.settings.node_skin_settings import NodeSkinSettings
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
+
 @panel(
     editors="properties",
     scopes="canvas",
     label="Canvas",
-    icon="grid_on",
+    icon=hui.icon.canvas,
     order=10,
     default_open=True,
 )
@@ -44,12 +46,13 @@ class CanvasSettingsPanel(BasePanel):
         registry = context.app.library_service.get_settings_registry()
         render_schema(CanvasSettings, registry)
 
+
 @panel(
     editors="properties",
     scopes="canvas",
     label="Node Skins",
     description="Node dimensions, typography and label visibility.",
-    icon="format_shapes",
+    icon=hui.icon.canvas_node_skins,
     order=20,
     default_open=False,
 )
@@ -64,11 +67,12 @@ class NodeSkinSettingsPanel(BasePanel):
         registry = context.app.library_service.get_settings_registry()
         render_schema(NodeSkinSettings, registry)
 
+
 @panel(
     editors="properties",
     scopes="canvas",
     label="Edges",
-    icon="cable",
+    icon=hui.icon.edge,
     order=30,
     default_open=False,
 )
@@ -83,11 +87,12 @@ class EdgeUISettingsPanel(BasePanel):
         registry = context.app.library_service.get_settings_registry()
         render_schema(EdgeUISettings, registry)
 
+
 @panel(
     editors="properties",
     scopes="canvas",
     label="Zoom & Pan",
-    icon="settings_overscan",
+    icon=hui.icon.canvas_zoom_pan,
     order=40,
     default_open=False,
 )
@@ -107,7 +112,7 @@ class EditorZoomPanSettingsPanel(BasePanel):
     editors="properties",
     scopes="canvas",
     label="Minimap",
-    icon="map",
+    icon=hui.icon.canvas_minimap,
     order=40,
     default_open=False,
 )

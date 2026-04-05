@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 @editor(
     registry_id="library_browser",
     label="Libraries",
-    icon="widgets",
+    icon=hui.icon.library_browser,
     default_area="left",
     description="Searchable list of installed and available libraries.",
 )

@@ -68,7 +68,7 @@ _CFG_EDITORS = TabConfig("editors", "editor")
 @editor(
     registry_id="library_detail",
     label="Library Detail",
-    icon="info",
+    icon=hui.icon.node_info,
     default_area="middle",
     description="Detailed information for the selected library.",
 )
@@ -140,7 +140,7 @@ class LibraryOverviewEditor(BaseEditor):
         if self._scroll:
             self._scroll.clear()
             with self._scroll:
-                hui.empty_state("Select a library to view details", icon="widgets")
+                hui.empty_state("Select a library to view details", icon=hui.icon.library_browser)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
@@ -286,7 +286,7 @@ class LibraryOverviewEditor(BaseEditor):
                             if _is_project:
                                 ui.button(
                                     "Edit",
-                                    icon="edit",
+                                    icon=hui.icon.edit,
                                     on_click=lambda ilib=installed_lib,
                                     mp=marketplace_path,
                                     m=manager,
@@ -400,14 +400,14 @@ class LibraryOverviewEditor(BaseEditor):
 
                     ui.separator().classes("mt-4")
                     with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
-                        t_overview = ui.tab("Overview", icon="description")
-                        t_nodes = ui.tab("Nodes", icon="account_tree") if n_nodes else None
-                        t_widgets = ui.tab("Widgets", icon="widgets") if n_widgets else None
+                        t_overview = ui.tab("Overview", icon=hui.icon.library_component)
+                        t_nodes = ui.tab("Nodes", icon=hui.icon.graph_manager) if n_nodes else None
+                        t_widgets = ui.tab("Widgets", icon=hui.icon.library_browser) if n_widgets else None
                         t_types = ui.tab("Types", icon="category") if n_types else None
                         t_adapters = ui.tab("Adapters", icon="swap_horiz") if n_adapters else None
                         t_skins = ui.tab("Skins", icon="brush") if n_skins else None
-                        t_settings = ui.tab("Settings", icon="tune") if n_settings else None
-                        t_themes = ui.tab("Themes", icon="palette") if n_themes else None
+                        t_settings = ui.tab("Settings", icon=hui.icon.node_settings) if n_settings else None
+                        t_themes = ui.tab("Themes", icon=hui.icon.theme) if n_themes else None
                         t_panels = ui.tab("Panels", icon="view_sidebar") if n_panels else None
                         t_editors = ui.tab("Editors", icon="tab") if n_editors else None
 

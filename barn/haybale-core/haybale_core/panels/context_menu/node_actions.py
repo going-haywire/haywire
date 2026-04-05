@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -26,7 +27,7 @@ def _emit(context: "SessionContext", event):
     editors="context_menu",
     scopes="node",
     label="Delete Node",
-    icon="delete",
+    icon=hui.icon.delete,
     order=10,
 )
 class DeleteNodePanel(BasePanel):
@@ -36,6 +37,7 @@ class DeleteNodePanel(BasePanel):
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haywire.ui.graph_canvas.event_definitions import UserRemoveEvent
+
         node_id = context.active_node.node_id
 
         def _delete():
@@ -49,7 +51,7 @@ class DeleteNodePanel(BasePanel):
     editors="context_menu",
     scopes="node",
     label="Copy Node",
-    icon="content_copy",
+    icon=hui.icon.copy,
     order=20,
 )
 class CopyNodePanel(BasePanel):
@@ -59,6 +61,7 @@ class CopyNodePanel(BasePanel):
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haywire.ui.graph_canvas.event_definitions import UserCopySelectedEvent
+
         node_id = context.active_node.node_id
 
         def _copy():
@@ -71,7 +74,7 @@ class CopyNodePanel(BasePanel):
     editors="context_menu",
     scopes="node",
     label="Redraw Node",
-    icon="refresh",
+    icon=hui.icon.refresh,
     order=30,
 )
 class RedrawNodePanel(BasePanel):
@@ -81,6 +84,7 @@ class RedrawNodePanel(BasePanel):
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haywire.ui.graph_canvas.event_definitions import ElementRedrawEvent
+
         node_id = context.active_node.node_id
 
         def _redraw():
@@ -93,7 +97,7 @@ class RedrawNodePanel(BasePanel):
     editors="context_menu",
     scopes="node",
     label="Revalidate Node",
-    icon="check_circle",
+    icon=hui.icon.node_status,
     order=40,
 )
 class RevalidateNodePanel(BasePanel):
@@ -103,6 +107,7 @@ class RevalidateNodePanel(BasePanel):
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haywire.ui.graph_canvas.event_definitions import ElementRevalidateEvent
+
         node_id = context.active_node.node_id
 
         def _revalidate():
@@ -115,7 +120,7 @@ class RevalidateNodePanel(BasePanel):
     editors="context_menu",
     scopes="node",
     label="Reset Node",
-    icon="restart_alt",
+    icon=hui.icon.reset,
     order=50,
 )
 class ResetNodePanel(BasePanel):
@@ -125,6 +130,7 @@ class ResetNodePanel(BasePanel):
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haywire.ui.graph_canvas.event_definitions import ElementResetEvent
+
         node_id = context.active_node.node_id
 
         def _reset():

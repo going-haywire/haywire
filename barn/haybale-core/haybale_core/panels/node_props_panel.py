@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_settings
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     editors="properties",
     scopes="node",
     label="Node Properties",
-    icon="info",
+    icon=hui.icon.node_info,
     default_open=False,
     order=10,
 )
@@ -50,7 +51,7 @@ class NodePropertiesPanel(BasePanel):
     editors="properties",
     scopes="node",
     label="Node",
-    icon="settings",
+    icon=hui.icon.app,
     order=20,
     default_open=True,
 )

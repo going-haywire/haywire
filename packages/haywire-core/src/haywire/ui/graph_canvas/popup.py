@@ -1,5 +1,6 @@
 from nicegui import ui
 from typing import Optional, Callable
+from haywire.ui import elements as hui
 
 
 class Popup:

@@ -161,7 +161,7 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDesc
                 if defn._description:
                     lbl.tooltip(defn._description)
                 if is_locally_overridden:
-                    ui.button(icon="restart_alt").props("flat dense size=xs").tooltip(
+                    ui.button(icon=hui.icon.reset).props("flat dense size=xs").tooltip(
                         "Reset to global default"
                     ).on("click", lambda _o=obj, _n=attr_name: (_o.reset(_n), row_content.refresh()))
 

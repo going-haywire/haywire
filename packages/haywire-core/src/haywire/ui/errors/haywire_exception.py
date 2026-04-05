@@ -2,6 +2,7 @@ import os
 from typing import Any
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui.utils import _open_file_in_editor
 
@@ -38,7 +39,7 @@ def _create_detail_row(
                         ).props("flat dense size=sm").tooltip("Open in editor").classes("ml-2")
                         # Also add a copy path button
                         ui.button(
-                            icon="content_copy",
+                            icon=hui.icon.copy,
                             on_click=lambda p=file_path: ui.run_javascript(
                                 f"navigator.clipboard.writeText({p!r})"
                             ),
@@ -68,7 +69,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
             ui.icon(error.get_severity_icon(), color=error.get_severity_color()).classes("text-3xl")
             ui.label(f"{error.category}").classes("text-xl font-bold hw-text-body")
             ui.button(
-                icon="content_copy",
+                icon=hui.icon.copy,
                 on_click=lambda text=error.format_detailed(): ui.run_javascript(
                     f"navigator.clipboard.writeText({text!r})"
                 ),

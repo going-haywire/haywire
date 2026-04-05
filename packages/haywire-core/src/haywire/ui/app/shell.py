@@ -17,6 +17,7 @@ import logging
 from typing import Optional, TYPE_CHECKING
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
 logger = logging.getLogger(__name__)
@@ -488,7 +489,7 @@ class AppShell:
             ws_select.on_value_change(_on_workspace_switch)
 
             ui.button(
-                icon="save",
+                icon=hui.icon.save,
                 on_click=lambda: (wm.save_current(), ui.notify("Workspace saved", position="top-right")),
             ).props("flat round dense").tooltip("Save current workspace")
 

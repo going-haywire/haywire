@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.graph_canvas.event_definitions import NodeCreateRequestEvent
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
     editors="context_menu",
     scopes="canvas",
     label="Create Node",
-    icon="add",
+    icon=hui.icon.add,
     order=0,
 )
 class CreateNodePanel(BasePanel):

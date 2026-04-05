@@ -1,4 +1,5 @@
 from nicegui import element, ui
+from haywire.ui import elements as hui
 
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.dataclasses import NodeErrorInfo
@@ -72,7 +73,9 @@ def error_render_detail(error: HaywireException) -> ui.element:
 
                 # Footer with close button
                 with ui.row().classes("justify-end w-full pt-3 border-t mt-4"):
-                    ui.button("Close", icon="close", on_click=close_popup).props("flat")
+                    ui.button("Close", icon="close", on_click=close_popup).props(
+                        "flat"
+                    )  # "close" not in AppIcons
 
         # Register cleanup callback when popup is closed via other means
         # (backdrop click, escape key, etc.)
@@ -88,7 +91,7 @@ def error_render_detail(error: HaywireException) -> ui.element:
         with ui.card().classes("w-full bg-red-50 border-l-4 border-red-500 shadow-sm"):
             with ui.row().classes("items-start gap-3 w-full"):
                 # Icon
-                detail_button = ui.button(icon="bug_report").classes("w-full bg-red-600 text-white")
+                detail_button = ui.button(icon=hui.icon.debug).classes("w-full bg-red-600 text-white")
 
         # Connect button to show details
         detail_button.on_click(show_details)

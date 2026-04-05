@@ -42,7 +42,7 @@ _SCOPE_KEY = "properties_scope"
 @editor(
     registry_id="properties",
     label="Properties",
-    icon="tune",
+    icon=hui.icon.node_settings,
     default_area="right",
     description="Context-sensitive property panels for the active selection.",
 )
@@ -181,7 +181,7 @@ class PropertiesEditor(BaseEditor):
 
         if self._panel_registry is None:
             with self._content:
-                hui.empty_state("No panel registry", icon="info")
+                hui.empty_state("No panel registry", icon=hui.icon.node_info)
             return
 
         panel_classes = self._panel_registry.get_panels("properties", active_scope_id)
@@ -218,4 +218,4 @@ class PropertiesEditor(BaseEditor):
                         hui.error_label(f"Error: {exc}")
 
             if not has_panels:
-                hui.empty_state("No properties available", icon="info")
+                hui.empty_state("No properties available", icon=hui.icon.node_info)

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 @editor(
     registry_id="graph_editor",
     label="Graph Editor",
-    icon="polyline",
+    icon=hui.icon.graph,
     default_area="middle",
     description="Visual node graph editor for wiring data processing pipelines.",
 )
@@ -94,7 +94,7 @@ class GraphEditor(BaseEditor):
                     .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b")
                     .style("min-height: 32px; background: var(--hw-bg-surface);")
                 ):
-                    ui.icon("polyline", size="14px").classes("hw-text-dim")
+                    ui.icon(hui.icon.graph_manager, size="14px").classes("hw-text-dim")
                     self._graph_name_label = ui.label("Untitled").classes(
                         "text-xs hw-text-muted truncate font-mono flex-1"
                     )
@@ -140,7 +140,7 @@ class GraphEditor(BaseEditor):
             # No graph is active — show a welcome/empty placeholder.
             hui.empty_state(
                 "No graph open",
-                icon="polyline",
+                icon=hui.icon.graph,
                 hint="Use the Graphs panel ( layers ) to create a new graph,\nor open a .haywire file from the File Browser.",
             )
             return
