@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, TypeVar
 
 from haywire.core.types import type, FlowType, DataField, CompoundType
-from haywire.ui.elements import AppIcons
+from haywire.ui import elements as hui
 
 T = TypeVar("T")
 
@@ -17,7 +17,7 @@ T = TypeVar("T")
     label="Array",
     description="Map with key type string",
     color="#39f55f",
-    icon=AppIcons.type_list,
+    icon=hui.icon.type_list,
     default={"value": []},
 )
 class MapsStringType(CompoundType[T]):
