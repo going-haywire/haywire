@@ -961,6 +961,29 @@ a right-aligned action row. Cancel is flat/unstyled; the confirm button uses
 **Rule:** Confirm button colour comes from `var(--hw-positive)` via
 `.style()`, not from Quasar `color=positive` (which is not theme-mapped).
 
+### 8.25 Field Focus Style (unified)
+
+All editable fields — Quasar inputs/textareas and NumberDrag — share a unified
+focus treatment enforced by shell CSS and the NumberDrag Vue component:
+
+| State | Underline                                    | Background          |
+|-------|----------------------------------------------|---------------------|
+| Rest  | `1px var(--hw-border)`                       | `--hw-bg-input`     |
+| Hover | `1px var(--hw-border-strong)`                | `--hw-bg-input`     |
+| Focus | `2px var(--hw-accent)`, center-out animation | `--hw-bg-elevated`  |
+
+The focus underline animates from the centre outwards using
+`transform: scale3d(0→1, 1, 1)` with `cubic-bezier(0.4, 0, 0.2, 1)` — the
+same easing Quasar uses on filled fields.
+
+**Rule:** Do not add `outlined` or `filled` props to standard panel input
+fields — the unified focus style is applied to the default (`standard`) Quasar
+variant via shell CSS overrides. Using `outlined` or `filled` bypasses these
+rules.
+
+**Rule:** Do not add custom `border` or `box-shadow` to NumberDrag to indicate
+focus. The `--editing` and `--dragging` CSS classes handle this consistently.
+
 ---
 
 ## 9. Layout Anatomy
