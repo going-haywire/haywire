@@ -44,42 +44,8 @@ _BG_ELEVATED = "background: var(--hw-bg-elevated);"
 
 _TRANSITION_BG = "transition: background-color 0.15s ease, color 0.15s ease;"
 
-# Hover style for list items.  Uses bg-surface to stay theme-aware.
-# Applied via a CSS class injected once, rather than Tailwind hover:bg-white/10.
+# Hover style for list items — CSS defined in shell.py _static_css.
 _LIST_HOVER_CLASS = "hw-list-item-hover"
-
-# ──────────────────────────────────────────────────────────────────────────────
-# CSS injection (called once at app startup or first import)
-# ──────────────────────────────────────────────────────────────────────────────
-
-_CSS_INJECTED = False
-
-
-def _ensure_css() -> None:
-    """Inject hui-specific CSS rules once per page session."""
-    global _CSS_INJECTED
-    if _CSS_INJECTED:
-        return
-    _CSS_INJECTED = True
-    ui.add_css(
-        # Theme-aware hover for list items
-        f" .{_LIST_HOVER_CLASS} {{"
-        "   transition: background-color 0.15s ease;"
-        " }"
-        f" .{_LIST_HOVER_CLASS}:hover {{"
-        "   background-color: var(--hw-bg-surface) !important;"
-        " }"
-        " .hw-list-item-active {"
-        "   background-color: var(--hw-bg-active) !important;"
-        " }"
-        # Error and warning text via tokens
-        " .hw-text-danger { color: var(--hw-danger) !important; }"
-        " .hw-text-warning { color: var(--hw-warning) !important; }"
-        " .hw-text-warning-dim { color: var(--hw-warning-dim) !important; }"
-        " .hw-text-success { color: var(--hw-success) !important; }"
-        " .hw-text-info { color: var(--hw-info) !important; }"
-        " .hw-text-accent { color: var(--hw-accent) !important; }"
-    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -93,14 +59,27 @@ def panel_header(title: str, *, icon: str | None = None):
     A slim bar at the top of a panel with title, optional icon, and space for
     action buttons.  Use as a context manager — place action buttons inside.
 
+    Anatomy::
+
+        ┌─[icon 16px]─[title text-sm font-medium]────────────[action buttons]─┐
+        │                         border-b                                      │
+
+    Visual rules:
+    - Padding: ``px-2 py-1.5``
+    - Background: inherited from parent (transparent)
+    - Bottom border: ``1px solid var(--hw-border)``
+    - ``flex-shrink-0`` to prevent compression
+    - Icon: 16px, ``hw-text-dim``
+    - Title: ``text-sm font-medium hw-text-body truncate flex-1``
+    - Actions: ``hui.icon_action()`` buttons floated right
+
     Usage::
 
-        with hui.panel_header("Files", icon="folder"):
-            hui.icon_action("refresh", tooltip="Refresh", on_click=refresh)
+        with hui.panel_header("Files", icon="folder") as header:
+            hui.icon_action("refresh", tooltip="Refresh", on_click=self._refresh)
 
     Yields the ui.row container so callers can further customise if needed.
     """
-    _ensure_css()
     row = ui.row().classes("w-full items-center px-2 py-1.5 flex-shrink-0 gap-1").style(_BORDER)
     with row:
         if icon:
@@ -122,13 +101,22 @@ def info_bar(
     suffix: str | None = None,
 ) -> ui.row:
     """
-    A contextual metadata bar (file name + language badge + file size).
+    A contextual metadata bar (e.g. showing the open file name + language + size).
+
+    Visual rules:
+    - Height: ``min-height: 28px``
+    - Padding: ``px-3 py-1``
+    - Background: ``var(--hw-bg-surface)``
+    - Bottom border: ``1px solid var(--hw-border)``
+    - ``flex-shrink-0``
+    - Label: ``text-xs font-medium hw-text-body``
+    - Badge (optional): Quasar badge with ``color=blue-grey rounded outline text-xs``
+    - Suffix (optional): ``text-xs hw-text-dim ml-auto``
 
     Usage::
 
         hui.info_bar("main.py", badge="python", suffix="12,480 B")
     """
-    _ensure_css()
     row = (
         ui.row()
         .classes("w-full items-center gap-2 px-3 py-1 flex-shrink-0")
@@ -158,11 +146,19 @@ def empty_state(
     """
     Centered placeholder for panels with no content.
 
+    Visual rules:
+    - Centred vertically and horizontally
+    - Vertical padding: ``60–80px`` top (pushes content into upper-centre)
+    - Icon: ``36–48px``, ``hw-text-dim``
+    - Primary message: ``text-sm hw-text-muted``
+    - Hint (optional): ``text-xs hw-text-dim``
+    - Gap between icon and text: ``gap-3``
+
     Usage::
 
         hui.empty_state("Select a file from the Files panel", icon="folder_open")
+        hui.empty_state("No results", icon="search", hint="Try a different query")
     """
-    _ensure_css()
     col = ui.column().classes("w-full h-full items-center justify-center gap-3").style("padding: 72px 0;")
     with col:
         ui.icon(icon, size=icon_size).classes("hw-text-dim")
@@ -187,12 +183,22 @@ def list_item(
     """
     An interactive row for browsers and selection lists.
 
+    Visual rules:
+    - Padding: ``px-2 py-1.5``
+    - Full width, ``rounded`` (4px)
+    - Hover: ``var(--hw-bg-hover)`` background — never ``bg-white/10``
+    - Cursor: ``pointer``
+    - Gap: ``gap-2``
+    - Status dot (optional): ``w-2 h-2 rounded-full``, Quasar named colour
+    - Label: ``text-sm font-medium truncate``
+    - Sublabel: ``text-xs hw-text-dim``
+    - Parent text column: ``flex-1 gap-0 min-w-0``
+
     Usage::
 
         hui.list_item("Visiongraph", sublabel="v0.0.1", dot_color="green",
                        on_click=lambda: select(lib))
     """
-    _ensure_css()
     row = ui.row().classes(
         f"w-full px-2 py-1.5 cursor-pointer {_LIST_HOVER_CLASS} items-center gap-2 rounded"
     )
@@ -217,6 +223,12 @@ def section_label(text: str) -> ui.label:
     """
     An uppercase tracking label that separates groups within a list or panel.
 
+    Visual rules:
+    - Text: ``text-xs font-bold tracking-wider uppercase hw-text-dim``
+    - Padding: ``px-2 pt-2 pb-1``
+    - These labels are structural markers, not content — they should be the
+      dimmest text in the panel.
+
     Usage::
 
         hui.section_label("REQUIRED")
@@ -239,11 +251,23 @@ def info_row(
     """
     A key-value metadata row with optional copy-to-clipboard button.
 
+    Visual rules:
+    - Row: ``w-full items-center gap-1 py-0.5``
+    - Copy button (if ``copy_value`` provided): ``hui.icon_action("content_copy")``
+    - Label: ``text-xs hw-text-dim``, fixed width ``w-16 flex-shrink-0``
+    - Value: ``text-xs font-mono truncate flex-1 hw-text-body``
+    - Long values (>40 chars) get a full-value tooltip automatically
+
+    Tip: for very long values, pass the short display string as ``value`` and
+    the full string as ``copy_value``::
+
+        short = (full_key[:48] + "…") if len(full_key) > 50 else full_key
+        hui.info_row("Key", short, copy_value=full_key)
+
     Usage::
 
         hui.info_row("Key", "visiongraph:node:WebcamFrame", copy_value=full_key)
     """
-    _ensure_css()
     effective_copy = copy_value if copy_value is not None else value
     row = ui.row().classes("w-full items-center gap-1 py-0.5")
     with row:
@@ -271,11 +295,18 @@ def code_block(
     """
     A read-only code snippet with optional label and copy button.
 
+    Visual rules:
+    - Outer column: ``w-full gap-0.5 py-1``
+    - Label (optional): ``text-xs hw-text-dim``
+    - Code container: ``var(--hw-bg-surface)`` background, ``rounded`` (4px),
+      ``px-2 py-1``, ``1px solid var(--hw-border)``
+    - Code text: ``text-xs font-mono hw-text-body``
+    - Copy button inline (``copyable=True`` by default)
+
     Usage::
 
         hui.code_block("from my_lib import MyNode", label="Import")
     """
-    _ensure_css()
     col = ui.column().classes("w-full gap-0.5 py-1")
     with col:
         if label:
@@ -307,6 +338,15 @@ def icon_action(
     """
     A minimal icon-only button for inline actions (refresh, close, copy).
 
+    Visual rules:
+    - Props: ``flat round dense size={size}``
+    - Colour: inherited (theme-aware); no Quasar ``color=`` prop
+    - Disabled: use ``opacity: 0.4; pointer-events: none`` — never a grey fill
+    - Tooltip applied if provided
+
+    Standard icon vocabulary: ``refresh``, ``close``, ``content_copy``,
+    ``add``, ``delete``, ``edit``, ``expand_more``, ``expand_less``.
+
     Usage::
 
         hui.icon_action("refresh", tooltip="Refresh tree", on_click=refresh)
@@ -334,9 +374,18 @@ def toolbar_button(
     """
     An icon button for the activity bar or context bar.
 
+    Visual rules:
+    - Size: ``w-10 h-10`` (40×40px)
+    - Border-radius: ``10px`` (``lg`` tier) — do not flatten to 0 or round to full
+    - Classes: ``hw-shell-toolbar-btn``, plus ``hw-shell-toolbar-btn-active`` when active
+    - Props: ``flat round``
+    - States: rest → muted icon, hover → elevated bg + body colour,
+      active → elevated bg + accent colour + inset ring
+    - Transition: ``background-color 0.15s ease, color 0.15s ease``
+
     Usage::
 
-        hui.toolbar_button("folder", is_active=True, tooltip="Files", on_click=fn)
+        hui.toolbar_button("folder", is_active=True, tooltip="Files", on_click=switch)
     """
     classes = "hw-shell-toolbar-btn w-10 h-10"
     if is_active:
@@ -365,9 +414,17 @@ def scope_button(
     """
     A square button for the properties scope toolbar.
 
+    Visual rules:
+    - Size: ``36×36px``
+    - Border-radius: ``0`` — tiles vertically; any radius creates visual gaps
+    - Active: ``var(--hw-accent)`` background, ``#ffffff`` text
+    - Unavailable (``available=False``): ``opacity: 0.3; pointer-events: none``
+    - Transition: ``background 0.15s``
+
     Usage::
 
         hui.scope_button("settings", is_active=True, tooltip="Node Properties")
+        hui.scope_button("tune", available=False, tooltip="Not available")
     """
     style = (
         "width: 36px; height: 36px; min-height: 36px; padding: 0;"
@@ -407,13 +464,21 @@ def expansion_section(
     If ``context`` and ``panel_key`` are provided, the expansion state is
     persisted in ``context.metadata`` across rebuilds.
 
+    Visual rules:
+    - Bottom border: ``1px solid var(--hw-border)``
+    - Header label colour: ``--hw-text-expansion`` (special-purpose token, set per theme)
+    - Header label size/weight: Quasar's default — ``text-sm font-medium``
+
+    Rule: Do not use ``ui.expansion()`` directly in property panels. Header
+    styling is only guaranteed correct via this wrapper. For settings category
+    groups use ``hui.category_group()`` instead.
+
     Usage::
 
         with hui.expansion_section("Node", icon="settings", context=ctx,
                                    panel_key="node:props"):
             # panel content
     """
-    _ensure_css()
 
     # Resolve persisted state
     is_open = default_open
@@ -441,26 +506,40 @@ def expansion_section(
 
 
 def error_label(text: str) -> ui.label:
-    """An error message label using ``--hw-danger``."""
-    _ensure_css()
+    """
+    An error message label using ``--hw-danger``.
+
+    Visual rules: ``text-sm p-4``, ``color: var(--hw-danger)``.
+    Never use ``text-red-400`` — it is theme-unaware.
+    """
     return ui.label(text).classes("hw-text-danger text-sm p-4")
 
 
 def warning_label(text: str) -> ui.label:
-    """A warning message label using ``--hw-warning``."""
-    _ensure_css()
+    """
+    A warning message label using ``--hw-warning``.
+
+    Visual rules: ``text-sm p-4``, ``color: var(--hw-warning)``.
+    Never use ``text-yellow-400`` — it is theme-unaware.
+    """
     return ui.label(text).classes("hw-text-warning text-sm p-4")
 
 
 def success_label(text: str) -> ui.label:
-    """A success message label using ``--hw-success``."""
-    _ensure_css()
+    """
+    A success message label using ``--hw-success``.
+
+    Visual rules: ``text-sm p-4``, ``color: var(--hw-success)``.
+    """
     return ui.label(text).classes("hw-text-success text-sm p-4")
 
 
 def info_label(text: str) -> ui.label:
-    """An informational label using ``--hw-info``."""
-    _ensure_css()
+    """
+    An informational label using ``--hw-info``.
+
+    Visual rules: ``text-sm p-4``, ``color: var(--hw-info)``.
+    """
     return ui.label(text).classes("hw-text-info text-sm p-4")
 
 
@@ -472,6 +551,11 @@ def info_label(text: str) -> ui.label:
 def tag(text: str, *, color: str = "grey") -> ui.badge:
     """
     A small metadata tag / badge.
+
+    Visual rules:
+    - Quasar badge with ``outline`` prop and ``.text-xs``
+    - Named colour via Quasar ``color=`` prop — acceptable exception to the
+      no-hardcoded rule because Quasar semantic names map to theme colours
 
     Usage::
 
@@ -498,10 +582,21 @@ def input_field(
     """
     A standard text input, pre-configured for panel use.
 
+    Visual rules:
+    - Props: ``dense outlined``
+    - Classes: ``w-full``
+    - Background: ``var(--hw-bg-input)`` (automatic via global CSS)
+    - Border: ``var(--hw-border)`` at rest, ``var(--hw-border-strong)`` on hover/focus
+    - Focus ring: ``2px solid var(--hw-accent)`` via ``:focus-visible`` (keyboard only)
+    - Disabled: pass Quasar ``:disable="True"`` — renders ``opacity: 0.5`` automatically
+    - Validation: pass Quasar ``:rules=`` and ``lazy-rules="ondemand"`` — error text
+      appears below using ``var(--hw-danger)``; do not use ``hui.error_label()`` inline
+
     Usage::
 
         hui.input_field(placeholder="Search…", clearable=True,
                         on_change=lambda e: filter(e.value))
+        hui.input_field(label="Port", rules=[lambda v: v.isdigit() or "Must be a number"])
     """
     props = "dense outlined"
     if clearable:
@@ -533,6 +628,8 @@ def number_field(
     """
     A standard number input, pre-configured for panel use.
 
+    Visual rules: same as ``hui.input_field`` — ``dense outlined``, ``w-full``.
+
     Usage::
 
         hui.number_field(label="posX", value=0)
@@ -560,9 +657,14 @@ def select_field(
     """
     A standard dropdown select, pre-configured for panel use.
 
+    Visual rules:
+    - Props: ``dense outlined``
+    - Classes: ``text-sm``
+    - ``min-width: 160px`` by default (override via ``min_width=``)
+
     Usage::
 
-        hui.select_field(options=["A", "B"], value="A", label="Choose")
+        hui.select_field(options=["A", "B"], value="A", label="Mode")
     """
     sel = (
         ui.select(options=options, value=value, label=label, **kwargs)
@@ -585,11 +687,22 @@ def tabs(
     dense: bool = True,
 ) -> tuple[ui.tabs, list[ui.tab]]:
     """
-    A tab bar, pre-configured with hw-tabs styling.
+    A tab bar, pre-configured with ``hw-tabs`` styling.
 
     Each ``tab_def`` is a tuple of ``(label, icon)`` or ``(name, label, icon)``.
 
     Returns ``(tabs_element, [tab_elements])`` so callers can build tab_panels.
+
+    Visual rules:
+    - Classes: ``w-full hw-tabs``
+    - Props: ``dense no-caps``
+    - Tab label font: ``text-xs``
+    - Active indicator: ``2px solid var(--hw-accent)`` (bottom bar)
+    - Active tab label: ``--hw-text-body``
+    - Inactive tab label: ``--hw-text-muted``
+    - Tab bar bottom border: ``1px solid var(--hw-border)``
+    - Tab hover: ``--hw-bg-hover`` background
+    - Overflow: tabs scroll horizontally (QTabs default) — do not truncate or wrap
 
     Usage::
 
@@ -600,7 +713,6 @@ def tabs(
         with ui.tab_panels(tabs_el, value=t_graph):
             ...
     """
-    _ensure_css()
     props = "dense no-caps" if dense else "no-caps"
     tabs_el = ui.tabs().classes("w-full hw-tabs").props(props)
     tab_els = []
@@ -621,14 +733,27 @@ def tabs(
 
 
 def separator() -> ui.separator:
-    """A themed horizontal separator."""
+    """
+    A plain themed horizontal rule.
+
+    Use when you need a divider without a label and without the top margin
+    added by ``hui.section_divider()``. Prefer ``hui.section_divider()`` in
+    most contexts; use this only where the extra margin would break a tight layout.
+    """
     return ui.separator()
 
 
 def section_divider(text: str | None = None):
     """
-    A visual break between sections.  If text is given, renders a section_label.
-    Otherwise renders a plain separator.
+    A visual break between sections.
+
+    If ``text`` is given, renders a ``hui.section_label`` (uppercase tracking label).
+    Otherwise renders a plain ``ui.separator`` with ``mt-3`` top margin.
+
+    Usage::
+
+        hui.section_divider("ADVANCED")  # labelled divider
+        hui.section_divider()            # plain separator
     """
     if text:
         section_label(text)
@@ -644,17 +769,29 @@ def section_divider(text: str | None = None):
 @contextmanager
 def category_group(label: str, *, default_open: bool = True):
     """
-    A collapsible category header for settings field groups.
+    A collapsible category header for settings field groups inside a
+    ``compact-fields`` container.
 
-    Uses ``category == 'root'`` convention: if label is ``"root"`` (case-insensitive),
-    renders a plain column without a header.
+    This is distinct from ``hui.expansion_section`` (which is for property
+    panel scopes with state persistence). Use this for settings field grouping
+    only — not for general panel sections.
+
+    If label is ``"root"`` (case-insensitive), renders a plain column without a
+    header (the root category convention).
+
+    Visual rules:
+    - Props: ``dense dense-toggle``
+    - Header class: ``text-xs font-bold hw-text-muted uppercase tracking-wide px-2 py-0 min-h-[24px]``
+    - Default open: ``True``
+    - No state persistence (categories always reset to open on rebuild)
 
     Usage::
 
         with hui.category_group("Advanced"):
             # field rows
+        with hui.category_group("root"):
+            # rendered without a header
     """
-    _ensure_css()
     if label.lower() == "root":
         with ui.column().classes("w-full gap-0") as col:
             yield col

@@ -262,6 +262,16 @@ class AppShell:
             "   .sf-label  { width: 9rem; flex: none; }"
             "   .sf-widget { width: auto; flex: 1; }"
             " }"
+            # ── hui list-item hover + semantic text utilities ──
+            " .hw-list-item-hover { transition: background-color 0.15s ease; }"
+            " .hw-list-item-hover:hover { background-color: var(--hw-bg-surface) !important; }"
+            " .hw-list-item-active { background-color: var(--hw-bg-active) !important; }"
+            " .hw-text-danger  { color: var(--hw-danger) !important; }"
+            " .hw-text-warning { color: var(--hw-warning) !important; }"
+            " .hw-text-warning-dim { color: var(--hw-warning-dim) !important; }"
+            " .hw-text-success { color: var(--hw-success) !important; }"
+            " .hw-text-info    { color: var(--hw-info) !important; }"
+            " .hw-text-accent  { color: var(--hw-accent) !important; }"
         )
         ui.add_css(self._build_initial_theme_css() + _static_css)
 

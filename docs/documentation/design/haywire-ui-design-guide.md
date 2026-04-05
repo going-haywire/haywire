@@ -1,4 +1,4 @@
-# Haywire Design System
+# Haywire Design Guide
 
 A prescriptive design reference for developers building editors, panels, and components in the Haywire workbench. This document defines the rules — not just what exists today, but what every new (and eventually every existing) piece of UI should follow.
 
