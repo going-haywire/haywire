@@ -8,10 +8,10 @@ log_ui = ""
 theme = "studio:theme:workbench:haywire-dark"
 
 [editor.pan_zoom]
-max_zoom = 3.4
+max_zoom = 1.8
 min_zoom = 0.05
-pan_sensitivity = 3.0
-zoom_sensitivity = 0.4
+pan_sensitivity = 5.0
+zoom_sensitivity = 0.88
 
 [ui.minimap]
 debug_info = false

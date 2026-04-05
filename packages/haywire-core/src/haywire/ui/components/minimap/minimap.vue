@@ -85,6 +85,7 @@ export default {
     this._panX          = 0;
     this._panY          = 0;
     this._isDragging    = false;
+    this._dragMoved     = false;
     this._lastMouseX    = 0;
     this._lastMouseY    = 0;
     this._fadeTimer     = null;
@@ -288,6 +289,7 @@ export default {
     },
 
     handleClick(e) {
+      if (this._dragMoved) { this._dragMoved = false; return; }
       const rect = this.$refs.canvas.getBoundingClientRect();
       const pos  = this._minimapToContent(e.clientX - rect.left, e.clientY - rect.top);
 
@@ -304,10 +306,11 @@ export default {
 
     handleMouseDown(e) {
       if (e.button !== 0) return;
-      this._isDragging = true;
-      const rect       = this.$refs.canvas.getBoundingClientRect();
-      this._lastMouseX = e.clientX - rect.left;
-      this._lastMouseY = e.clientY - rect.top;
+      this._isDragging  = true;
+      this._dragMoved   = false;
+      const rect        = this.$refs.canvas.getBoundingClientRect();
+      this._lastMouseX  = e.clientX - rect.left;
+      this._lastMouseY  = e.clientY - rect.top;
       this.$el.classList.add('dragging');
       e.preventDefault();
     },
@@ -329,6 +332,7 @@ export default {
         );
       }
 
+      this._dragMoved  = true;
       this._lastMouseX = currentX;
       this._lastMouseY = currentY;
     },
