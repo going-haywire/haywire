@@ -206,9 +206,11 @@ class AppShell:
             " { border-bottom-color: var(--hw-border) !important; }"
             " .hw-panel .q-field--standard:hover .q-field__control:before"
             " { border-bottom-color: var(--hw-border-strong) !important; }"
-            # Focus accent on the animated :after element
+            # Focus: accent underline animation + elevated background (matches NumberDrag)
             " .hw-panel .q-field--standard.q-field--highlighted .q-field__control:after"
             " { background: var(--hw-accent) !important; }"
+            " .hw-panel .q-field--standard.q-field--highlighted .q-field__control"
+            " { background: var(--hw-bg-elevated) !important; }"
             # Dropdown menus — portal outside their parent, so must be targeted globally
             " .q-menu { background: var(--hw-bg-elevated) !important;"
             " border: 1px solid var(--hw-border-strong) !important; }"
