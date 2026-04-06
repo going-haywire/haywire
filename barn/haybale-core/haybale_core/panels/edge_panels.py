@@ -51,7 +51,7 @@ class EdgeErrorsPanel(BasePanel):
         if error is None:
             return
 
-        with layout._container:
+        with layout.container:
             with ui.column().classes("w-full gap-1 p-2"):
                 if isinstance(error, HaywireException):
                     error_render_detail(error)
@@ -79,13 +79,11 @@ class EdgeWarningsPanel(BasePanel):
         if state is None:
             return
 
-        with layout._container:
+        with layout.container:
             with ui.column().classes("w-full gap-1 p-2"):
                 hui.warning_label("Warnings").classes("font-semibold")
                 for warning in state.warnings:
-                    hui.warning_label(f"• {warning}").classes(
-                        "whitespace-pre-wrap break-words ml-1"
-                    )
+                    hui.warning_label(f"• {warning}").classes("whitespace-pre-wrap break-words ml-1")
 
 
 @panel(

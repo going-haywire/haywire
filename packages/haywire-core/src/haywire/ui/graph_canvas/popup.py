@@ -108,6 +108,11 @@ class Popup(ui.element, component="popup.vue"):
     def is_open(self) -> bool:
         return self._is_open
 
+    @property
+    def content(self) -> "ui.column":
+        """The inner content column — use to place children without entering the popup as a context manager."""
+        return self._content
+
     # ------------------------------------------------------------------
     # Internal event handlers
     # ------------------------------------------------------------------

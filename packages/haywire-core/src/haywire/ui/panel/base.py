@@ -43,6 +43,11 @@ class PanelLayout:
     def __init__(self, container: Any):
         self._container = container
 
+    @property
+    def container(self) -> Any:
+        """The underlying NiceGUI container element."""
+        return self._container
+
     # ── Context manager ───────────────────────────────────────────────────────
 
     def __enter__(self):

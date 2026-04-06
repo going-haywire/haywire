@@ -28,15 +28,12 @@ if TYPE_CHECKING:
 class NodeErrorsPanel(BasePanel):
     @classmethod
     def poll(cls, context: "SessionContext") -> bool:
-        return (
-            context.active_node is not None
-            and bool(context.active_node.state.get_errors())
-        )
+        return context.active_node is not None and bool(context.active_node.state.get_errors())
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
         from haywire.ui.errors.error_info import error_render_detail
 
         errors = context.active_node.state.get_errors()
-        with layout._container:
+        with layout.container:
             for idx, error in enumerate(errors):
                 error_render_detail(error)

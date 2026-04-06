@@ -109,20 +109,14 @@ class TestEdgeErrorsPanel(BasePanel):
         if error is None:
             return
 
-        with layout._container:
+        with layout.container:
             with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("⚠ Connection Error").classes(
-                    "text-red-500 font-semibold text-sm"
-                )
+                ui.label("⚠ Connection Error").classes("text-red-500 font-semibold text-sm")
                 if isinstance(error, HaywireException):
-                    ui.label(f"Category: {error.category}").classes(
-                        "text-xs text-red-400 ml-1"
-                    )
+                    ui.label(f"Category: {error.category}").classes("text-xs text-red-400 ml-1")
                     error_render_detail(error)
                 else:
-                    ui.label(str(error)).classes(
-                        "text-red-400 text-xs whitespace-pre-wrap break-words"
-                    )
+                    ui.label(str(error)).classes("text-red-400 text-xs whitespace-pre-wrap break-words")
 
 
 @panel(
@@ -144,16 +138,12 @@ class TestEdgeConnectionPathPanel(BasePanel):
 
         edge = context.active_edge.edge
 
-        with layout._container:
+        with layout.container:
             with ui.column().classes("w-full gap-1 p-2"):
                 ui.label("Connection Path").classes("font-semibold text-sm")
-                ui.label(
-                    f"{edge.source_node_id} [{edge.outlet_port_id}]"
-                ).classes("text-xs opacity-70")
+                ui.label(f"{edge.source_node_id} [{edge.outlet_port_id}]").classes("text-xs opacity-70")
                 ui.label("↓").classes("text-xs opacity-50 ml-2")
-                ui.label(
-                    f"{edge.sink_node_id} [{edge.inlet_port_id}]"
-                ).classes("text-xs opacity-70")
+                ui.label(f"{edge.sink_node_id} [{edge.inlet_port_id}]").classes("text-xs opacity-70")
 
 
 @panel(
@@ -177,7 +167,7 @@ class TestEdgeWarningsPanel(BasePanel):
         if state is None:
             return
 
-        with layout._container:
+        with layout.container:
             with ui.column().classes("w-full gap-1 p-2"):
                 ui.label("⚠ Warnings").classes("text-orange-500 font-semibold text-sm")
                 for warning in state.warnings:

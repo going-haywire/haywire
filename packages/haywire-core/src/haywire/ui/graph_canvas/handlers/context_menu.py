@@ -50,6 +50,7 @@ SCOPE_SELECTION = "selection"
 
 EDITOR_CONTEXT_MENU = "context_menu"
 
+
 class IContextMenuProvider:
     """
     Intent-based interface for surfacing context menus.
@@ -171,10 +172,9 @@ class SessionContextMenuProvider(IContextMenuProvider):
         panel_classes = self._panel_registry.get_panels(EDITOR_CONTEXT_MENU, trigger)
         visible = [cls for cls in panel_classes if cls.poll(self._context)]
         if visible:
-            with popup as container:
-                layout = PanelLayout(container)
-                for cls in visible:
-                    cls().draw(self._context, layout)
+            layout = PanelLayout(popup.content)
+            for cls in visible:
+                cls().draw(self._context, layout)
             popup.open()
 
     def on_canvas_context(self, pos, canvas_pos):
