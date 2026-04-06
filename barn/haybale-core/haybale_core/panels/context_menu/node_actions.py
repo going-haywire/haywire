@@ -43,7 +43,7 @@ class DeleteNodePanel(BasePanel):
         def _delete():
             _emit(context, UserRemoveEvent(nodes=[node_id], edges=[]))
 
-        layout.button("🗑 Delete Node", on_click=_delete)
+        layout.button("Delete Node", icon=hui.icon.delete, on_click=_delete)
 
 
 @panel(
@@ -67,7 +67,7 @@ class CopyNodePanel(BasePanel):
         def _copy():
             _emit(context, UserCopySelectedEvent(selectedNodes=[node_id], selectedEdges=[]))
 
-        layout.button("📄 Copy Node", on_click=_copy)
+        layout.button("Copy Node", icon=hui.icon.copy, on_click=_copy)
 
 
 @panel(
@@ -90,7 +90,7 @@ class RedrawNodePanel(BasePanel):
         def _redraw():
             _emit(context, ElementRedrawEvent(nodes=[node_id], edges=[]))
 
-        layout.button("✏️ Redraw Node", on_click=_redraw)
+        layout.button("Redraw Node", icon=hui.icon.refresh, on_click=_redraw)
 
 
 @panel(
@@ -113,7 +113,7 @@ class RevalidateNodePanel(BasePanel):
         def _revalidate():
             _emit(context, ElementRevalidateEvent(nodes=[node_id], edges=[]))
 
-        layout.button("🔔 Revalidate Node", on_click=_revalidate)
+        layout.button("Revalidate Node", icon=hui.icon.node_status, on_click=_revalidate)
 
 
 @panel(
@@ -136,4 +136,4 @@ class ResetNodePanel(BasePanel):
         def _reset():
             _emit(context, ElementResetEvent(nodes=[node_id], edges=[]))
 
-        layout.button("⚒️ Reset Node", on_click=_reset)
+        layout.button("Reset Node", icon=hui.icon.reset, on_click=_reset)

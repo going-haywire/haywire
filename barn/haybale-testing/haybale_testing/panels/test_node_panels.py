@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
+from haywire.ui import elements as hui
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -43,7 +44,7 @@ class TestDeleteNodePanel(BasePanel):
         def _delete():
             _emit(context, UserRemoveEvent(nodes=[node_id], edges=[]))
 
-        layout.button("🗑 Delete Node", on_click=_delete)
+        layout.button("Delete Node", icon=hui.icon.delete, on_click=_delete)
 
 
 @panel(
@@ -51,7 +52,7 @@ class TestDeleteNodePanel(BasePanel):
     editors="test_inspector",
     scopes="test_node",
     label="Copy Node",
-    icon="content_copy",
+    icon=hui.icon.copy,
     order=20,
 )
 class TestCopyNodePanel(BasePanel):
@@ -67,7 +68,7 @@ class TestCopyNodePanel(BasePanel):
         def _copy():
             _emit(context, UserCopySelectedEvent(selectedNodes=[node_id], selectedEdges=[]))
 
-        layout.button("📄 Copy Node", on_click=_copy)
+        layout.button("Copy Node", icon=hui.icon.copy, on_click=_copy)
 
 
 @panel(
@@ -75,7 +76,7 @@ class TestCopyNodePanel(BasePanel):
     editors="test_inspector",
     scopes="test_node",
     label="Redraw Node",
-    icon="refresh",
+    icon=hui.icon.refresh,
     order=30,
 )
 class TestRedrawNodePanel(BasePanel):
@@ -91,7 +92,7 @@ class TestRedrawNodePanel(BasePanel):
         def _redraw():
             _emit(context, ElementRedrawEvent(nodes=[node_id], edges=[]))
 
-        layout.button("✏️ Redraw Node", on_click=_redraw)
+        layout.button("Redraw Node", icon=hui.icon.refresh, on_click=_redraw)
 
 
 @panel(
@@ -99,7 +100,7 @@ class TestRedrawNodePanel(BasePanel):
     editors="test_inspector",
     scopes="test_node",
     label="Revalidate Node",
-    icon="check_circle",
+    icon=hui.icon.refresh,
     order=40,
 )
 class TestRevalidateNodePanel(BasePanel):
@@ -115,7 +116,7 @@ class TestRevalidateNodePanel(BasePanel):
         def _revalidate():
             _emit(context, ElementRevalidateEvent(nodes=[node_id], edges=[]))
 
-        layout.button("🔔 Revalidate Node", on_click=_revalidate)
+        layout.button("Revalidate Node", icon=hui.icon.refresh, on_click=_revalidate)
 
 
 @panel(
@@ -123,7 +124,7 @@ class TestRevalidateNodePanel(BasePanel):
     editors="test_inspector",
     scopes="test_node",
     label="Reset Node",
-    icon="restart_alt",
+    icon=hui.icon.reset,
     order=50,
 )
 class TestResetNodePanel(BasePanel):
@@ -139,4 +140,4 @@ class TestResetNodePanel(BasePanel):
         def _reset():
             _emit(context, ElementResetEvent(nodes=[node_id], edges=[]))
 
-        layout.button("⚒️ Reset Node", on_click=_reset)
+        layout.button("Reset Node", icon=hui.icon.reset, on_click=_reset)

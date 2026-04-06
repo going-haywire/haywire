@@ -46,7 +46,7 @@ class CopySelectionPanel(BasePanel):
                 ),
             )
 
-        layout.button("📋 Copy Selection", on_click=_copy)
+        layout.button("Copy Selection", icon=hui.icon.copy, on_click=_copy)
 
 
 @panel(
@@ -71,4 +71,4 @@ class PasteSelectionPanel(BasePanel):
         def _paste():
             _emit(context, UserPasteClipboardEvent(canvasX=canvas_x, canvasY=canvas_y))
 
-        layout.button("📄 Paste", on_click=_paste)
+        layout.button("Paste", icon=hui.icon.paste, on_click=_paste)

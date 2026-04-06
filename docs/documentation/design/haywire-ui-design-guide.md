@@ -85,13 +85,13 @@ Do not skip levels (e.g. page → elevated without a surface in between).
 
 Four tiers. Every piece of text in the application must use one of these.
 
-| Token                | Tier | Use for                                       |
-| -------------------- | ---- | --------------------------------------------- |
-| `--hw-text-body`     | 1    | Primary content. Headings, labels, body copy.  |
-| `--hw-text-muted`    | 2    | Supporting text. Descriptions, tab labels.      |
-| `--hw-text-dim`      | 3    | Decorative text. Placeholders, captions, icons. |
-| `--hw-text-expansion`| —    | Expansion panel header labels (special-purpose).|
-| `--hw-text-on-accent`| —    | Text rendered on accent-coloured backgrounds.   |
+| Token                 | Tier | Use for                                          |
+| --------------------- | ---- | ------------------------------------------------ |
+| `--hw-text-body`      | 1    | Primary content. Headings, labels, body copy.    |
+| `--hw-text-muted`     | 2    | Supporting text. Descriptions, tab labels.       |
+| `--hw-text-dim`       | 3    | Decorative text. Placeholders, captions, icons.  |
+| `--hw-text-expansion` | —    | Expansion panel header labels (special-purpose). |
+| `--hw-text-on-accent` | —    | Text rendered on accent-coloured backgrounds.    |
 
 **Utility classes:** `.hw-text-body`, `.hw-text-muted`, `.hw-text-dim` are
 globally available inside `.hw-panel` containers.
@@ -101,8 +101,8 @@ theme-unaware and will break on non-dark themes.
 
 ### 2.4 Border Tokens
 
-| Token               | Use for                                         |
-| -------------------- | ----------------------------------------------- |
+| Token                | Use for                                          |
+| -------------------- | ------------------------------------------------ |
 | `--hw-border`        | Subtle structural dividers. Felt, not seen.      |
 | `--hw-border-strong` | Visible separators. Section breaks, panel edges. |
 
@@ -112,7 +112,7 @@ and editor UI must use `var(--hw-border)` via inline style or an appropriate
 
 ### 2.5 Accent & Interactive Tokens
 
-| Token               | State                              |
+| Token                | State                              |
 | -------------------- | ---------------------------------- |
 | `--hw-accent`        | Rest. Focus rings, active markers. |
 | `--hw-accent-hover`  | Hover.                             |
@@ -120,13 +120,13 @@ and editor UI must use `var(--hw-border)` via inline style or an appropriate
 
 ### 2.6 Status Tokens
 
-| Token            | Semantic                                              |
-| ---------------- | ----------------------------------------------------- |
-| `--hw-danger`    | Error, destructive, failure.                          |
-| `--hw-warning`   | Caution, attention.                                   |
-| `--hw-success`   | Confirmation, success state (indicators, labels).     |
-| `--hw-info`      | Informational, neutral attention.                     |
-| `--hw-positive`  | Affirming action emphasis — confirm buttons, OK CTAs. |
+| Token           | Semantic                                              |
+| --------------- | ----------------------------------------------------- |
+| `--hw-danger`   | Error, destructive, failure.                          |
+| `--hw-warning`  | Caution, attention.                                   |
+| `--hw-success`  | Confirmation, success state (indicators, labels).     |
+| `--hw-info`     | Informational, neutral attention.                     |
+| `--hw-positive` | Affirming action emphasis — confirm buttons, OK CTAs. |
 
 **Rule:** Error text uses `var(--hw-danger)`, not `text-red-400`. Warning text
 uses `var(--hw-warning)`, not `text-yellow-400`. This applies everywhere —
@@ -193,13 +193,13 @@ Tokens for named shell regions that need colours beyond the generic set.
 
 Haywire uses a fixed z-index scale. Do not use arbitrary values.
 
-| Layer              | Value | Use for                                           |
-| ------------------ | ----- | ------------------------------------------------- |
-| `--hw-z-panel`     | 10    | Floating panels, resizable handles                |
-| `--hw-z-dropdown`  | 100   | Dropdown menus, autocomplete popups               |
-| `--hw-z-tooltip`   | 200   | Tooltips                                          |
-| `--hw-z-modal`     | 300   | Modal dialogs and their backdrops                 |
-| `--hw-z-notify`    | 400   | Toast notifications (above everything)            |
+| Layer             | Value | Use for                                |
+| ----------------- | ----- | -------------------------------------- |
+| `--hw-z-panel`    | 10    | Floating panels, resizable handles     |
+| `--hw-z-dropdown` | 100   | Dropdown menus, autocomplete popups    |
+| `--hw-z-tooltip`  | 200   | Tooltips                               |
+| `--hw-z-modal`    | 300   | Modal dialogs and their backdrops      |
+| `--hw-z-notify`   | 400   | Toast notifications (above everything) |
 
 **Rule:** Never use a bare `z-index: 9999` or arbitrary integer. If a new stacking context is needed, add a token here.
 
@@ -231,11 +231,11 @@ is likewise hardcoded and must be replaced with `--hw-bg-active`.
 
 Disabled elements use reduced opacity. No other visual treatment is applied.
 
-| Element              | Style                               |
-| -------------------- | ----------------------------------- |
-| Input, select        | `opacity: 0.5; pointer-events: none`|
-| Icon action button   | `opacity: 0.4; pointer-events: none`|
-| Scope button         | `opacity: 0.3; pointer-events: none`|
+| Element            | Style                                |
+| ------------------ | ------------------------------------ |
+| Input, select      | `opacity: 0.5; pointer-events: none` |
+| Icon action button | `opacity: 0.4; pointer-events: none` |
+| Scope button       | `opacity: 0.3; pointer-events: none` |
 
 **Rule:** Always set both `opacity` and `pointer-events: none` together.
 Never use a grey fill or border change to indicate disabled state — opacity
@@ -248,10 +248,10 @@ is the single, consistent signal.
 
 These tokens are used when items are dragged within or between panels.
 
-| Token              | Use for                                    |
-| ------------------ | ------------------------------------------ |
-| `--hw-drag-over`   | Drop-target highlight (border or bg tint)  |
-| `--hw-drag-ghost`  | Dragged item ghost opacity (typically 0.5) |
+| Token             | Use for                                    |
+| ----------------- | ------------------------------------------ |
+| `--hw-drag-over`  | Drop-target highlight (border or bg tint)  |
+| `--hw-drag-ghost` | Dragged item ghost opacity (typically 0.5) |
 
 **Rule:** Drag-over state is indicated by a `2px solid var(--hw-drag-over)`
 border, not a background fill. The border is added/removed via a CSS class
@@ -266,12 +266,12 @@ border, not a background fill. The border is added/removed via a CSS class
 Haywire uses four deliberately chosen size tiers. The system font stack is
 inherited from Quasar (Roboto / system sans-serif).
 
-| Tier     | Tailwind class   | Line-height | Use for                               |
-| -------- | ---------------- | ----------- | ------------------------------------- |
-| Display  | `text-2xl`       | default     | Library name in detail view. Rare.    |
-| Heading  | `text-base`      | default     | Component label, panel title.         |
-| Body     | `text-sm`        | default     | Descriptions, list items, body copy.  |
-| Caption  | `text-xs`        | default     | Metadata, versions, registry keys.    |
+| Tier    | Tailwind class | Line-height | Use for                              |
+| ------- | -------------- | ----------- | ------------------------------------ |
+| Display | `text-2xl`     | default     | Library name in detail view. Rare.   |
+| Heading | `text-base`    | default     | Component label, panel title.        |
+| Body    | `text-sm`      | default     | Descriptions, list items, body copy. |
+| Caption | `text-xs`      | default     | Metadata, versions, registry keys.   |
 
 **Rule:** `text-lg` is not a design tier. It is only used for the application
 wordmark ("Haywire" in the topbar). Do not use it elsewhere.
@@ -281,19 +281,17 @@ it elsewhere.
 
 ### 3.2 Weight
 
-| Weight              | Tailwind class  | Use for                                    |
-| ------------------- | --------------- | ------------------------------------------ |
-| Regular (400)       | (default)       | Body text, descriptions                    |
-| Medium (500)        | `font-medium`   | List item names, panel header labels       |
-| Bold (700)          | `font-bold`     | Headings, section group labels, emphasis   |
+| Weight        | Tailwind class | Use for                                  |
+| ------------- | -------------- | ---------------------------------------- |
+| Regular (400) | (default)      | Body text, descriptions                  |
+| Medium (500)  | `font-medium`  | List item names, panel header labels     |
+| Bold (700)    | `font-bold`    | Headings, section group labels, emphasis |
 
 ### 3.3 Monospace
 
-Use `.font-mono` for: file paths, registry keys, code snippets, module paths,
-import statements, and any machine-readable identifier.
+Use `.font-mono` for: file paths, registry keys, code snippets, module paths, import statements, and any machine-readable identifier.
 
-Always pair `.font-mono` with `.text-xs` — monospace text at `text-sm` feels
-too large relative to proportional text at the same size.
+Always pair `.font-mono` with `.text-xs` — monospace text at `text-sm` feels too large relative to proportional text at the same size.
 
 ### 3.4 Tracking Labels
 
@@ -304,17 +302,14 @@ formula:
 .text-xs .font-bold .tracking-wider .uppercase .hw-text-dim
 ```
 
-These labels are structural markers, not content — they should be the dimmest
-text in the panel.
+These labels are structural markers, not content — they should be the dimmest text in the panel.
 
 ### 3.5 Truncation
 
 **Rule:** Any text that can overflow its container must include `.truncate`.
-The parent flex container must include `.min-w-0` to allow truncation to work
-inside flex layouts.
+The parent flex container must include `.min-w-0` to allow truncation to work inside flex layouts.
 
-For values that are programmatically too long, truncate in Python and provide
-the full value via `.tooltip()`:
+For values that are programmatically too long, truncate in Python and provide the full value via `.tooltip()`:
 
 ```python
 short = (value[:48] + "…") if len(value) > 50 else value
@@ -330,52 +325,52 @@ hui.info_row("Module", short, copy_value=full_value)
 Haywire uses a constrained subset of Tailwind's spacing scale. Using values
 outside this set requires justification.
 
-| Token  | Value | Name       | Primary use                              |
-| ------ | ----- | ---------- | ---------------------------------------- |
-| `0`    | 0px   | None       | Between tightly coupled elements         |
-| `0.5`  | 2px   | Hairline   | Between toggle buttons, icon groups      |
-| `1`    | 4px   | Tight      | Between port rows, compact field stacks  |
-| `1.5`  | 6px   | Snug       | Vertical padding on list items           |
-| `2`    | 8px   | Base       | Section padding, search bar, icon+label  |
-| `3`    | 12px  | Loose      | Between major sections, topbar padding   |
-| `4`    | 16px  | Spacious   | Content area padding (docs, detail)      |
-| `6`    | 24px  | Page       | Page-level padding (library detail)      |
+| Token | Value | Name     | Primary use                             |
+| ----- | ----- | -------- | --------------------------------------- |
+| `0`   | 0px   | None     | Between tightly coupled elements        |
+| `0.5` | 2px   | Hairline | Between toggle buttons, icon groups     |
+| `1`   | 4px   | Tight    | Between port rows, compact field stacks |
+| `1.5` | 6px   | Snug     | Vertical padding on list items          |
+| `2`   | 8px   | Base     | Section padding, search bar, icon+label |
+| `3`   | 12px  | Loose    | Between major sections, topbar padding  |
+| `4`   | 16px  | Spacious | Content area padding (docs, detail)     |
+| `6`   | 24px  | Page     | Page-level padding (library detail)     |
 
 ### 4.2 Panel Padding Rules
 
-| Panel region            | Horizontal | Vertical  |
-| ----------------------- | ---------- | --------- |
-| Panel header            | `px-2`     | `py-1.5`  |
-| Info bar                | `px-3`     | `py-1`    |
-| List item               | `px-2`     | `py-1.5`  |
-| Section group label     | `px-2`     | `pt-2 pb-1` |
-| Content area (scroll)   | `p-4`      | —         |
-| Detail page content     | `px-6 pt-6`| —         |
+| Panel region          | Horizontal  | Vertical    |
+| --------------------- | ----------- | ----------- |
+| Panel header          | `px-2`      | `py-1.5`    |
+| Info bar              | `px-3`      | `py-1`      |
+| List item             | `px-2`      | `py-1.5`    |
+| Section group label   | `px-2`      | `pt-2 pb-1` |
+| Content area (scroll) | `p-4`       | —           |
+| Detail page content   | `px-6 pt-6` | —           |
 
 ### 4.3 Gap Rules
 
-| Context                       | Gap    |
-| ----------------------------- | ------ |
-| Column of list items          | `gap-0`|
-| Compact field stack           | `gap-1`|
-| Icon + label in a row         | `gap-2`|
-| Sections within a panel       | `gap-3`|
-| Empty state icon + message    | `gap-3`|
+| Context                    | Gap     |
+| -------------------------- | ------- |
+| Column of list items       | `gap-0` |
+| Compact field stack        | `gap-1` |
+| Icon + label in a row      | `gap-2` |
+| Sections within a panel    | `gap-3` |
+| Empty state icon + message | `gap-3` |
 
 ### 4.4 Height Fixtures
 
 Certain UI elements have fixed heights. These are not negotiable — they ensure
 the shell geometry is predictable.
 
-| Element              | Height  | Set via                    |
-| -------------------- | ------- | -------------------------- |
-| TopBar               | 48px    | inline style               |
-| StatusBar            | 24px    | inline style               |
-| ActivityBar width    | 48px    | inline style               |
-| ContextBar width     | 48px    | inline style               |
-| Middle tab bar       | 36px    | `min-height` inline style  |
-| Scope toolbar button | 36×36px | inline style               |
-| Compact field input  | 26px    | `--hw-compact-field-h`     |
+| Element              | Height  | Set via                   |
+| -------------------- | ------- | ------------------------- |
+| TopBar               | 48px    | inline style              |
+| StatusBar            | 24px    | inline style              |
+| ActivityBar width    | 48px    | inline style              |
+| ContextBar width     | 48px    | inline style              |
+| Middle tab bar       | 36px    | `min-height` inline style |
+| Scope toolbar button | 36×36px | inline style              |
+| Compact field input  | 26px    | `--hw-compact-field-h`    |
 
 ### 4.5 Compact-Fields System
 
@@ -397,19 +392,19 @@ with ui.column().classes("w-full gap-0 compact-fields").style(
 
 **CSS classes in this system:**
 
-| Class            | Purpose                                                         |
-| ---------------- | --------------------------------------------------------------- |
-| `compact-fields` | Applied to the outer column. Activates container context.       |
-| `sf-label`       | Label cell. Responsive width — shrinks at narrow container.     |
-| `sf-widget`      | Widget cell. Takes remaining space; right-aligned.              |
+| Class            | Purpose                                                     |
+| ---------------- | ----------------------------------------------------------- |
+| `compact-fields` | Applied to the outer column. Activates container context.   |
+| `sf-label`       | Label cell. Responsive width — shrinks at narrow container. |
+| `sf-widget`      | Widget cell. Takes remaining space; right-aligned.          |
 
 **CSS tokens for this system:**
 
-| Token                   | Default | Purpose                                 |
-| ----------------------- | ------- | --------------------------------------- |
-| `--hw-compact-field-h`  | 26px    | Fixed input height for compact widgets. |
-| `--hw-compact-gap`      | 1px     | Vertical gap between compact rows.      |
-| `--hw-compact-row-min-h`| 28px    | Minimum row height in compact mode.     |
+| Token                    | Default | Purpose                                 |
+| ------------------------ | ------- | --------------------------------------- |
+| `--hw-compact-field-h`   | 26px    | Fixed input height for compact widgets. |
+| `--hw-compact-gap`       | 1px     | Vertical gap between compact rows.      |
+| `--hw-compact-row-min-h` | 28px    | Minimum row height in compact mode.     |
 
 **Rule:** Only use `compact-fields` for settings/property panels. Regular
 editor content uses the standard gap/padding system (§4.1–4.3).
@@ -423,13 +418,13 @@ panels use `p-0` or `p-1` on their outer column.
 
 ### 5.1 The Scale
 
-| Token    | Value | Use for                                    |
-| -------- | ----- | ------------------------------------------ |
-| `none`   | 0     | Scope toolbar buttons, tab indicators      |
-| `sm`     | 4px   | Inputs, list items, code blocks, badges    |
-| `md`     | 8px   | Cards, dialogs, expansion panels           |
-| `lg`     | 10px  | Toolbar icon buttons                       |
-| `full`   | 9999  | Status dots, circular icon buttons         |
+| Token  | Value | Use for                                 |
+| ------ | ----- | --------------------------------------- |
+| `none` | 0     | Scope toolbar buttons, tab indicators   |
+| `sm`   | 4px   | Inputs, list items, code blocks, badges |
+| `md`   | 8px   | Cards, dialogs, expansion panels        |
+| `lg`   | 10px  | Toolbar icon buttons                    |
+| `full` | 9999  | Status dots, circular icon buttons      |
 
 **Rule:** Toolbar icon buttons (activity bar, context bar) use `border-radius: 10px`
 (the `lg` tier). This is their identity — don't flatten them to `0` or round
@@ -451,23 +446,23 @@ Material Icons via Quasar. No other icon set.
 
 ### 6.2 Size Rules
 
-| Context               | Size      | Implementation            |
-| --------------------- | --------- | ------------------------- |
-| Toolbar button        | 24px      | Quasar default (no prop)  |
-| Panel header inline   | 16px      | `size="16px"`             |
-| Info bar inline       | 14px      | `size="14px"`             |
-| Empty state           | 36–48px   | `size="40px"` typical     |
-| Inline text indicator | 10–14px   | `size="10px"` / `"14px"`  |
+| Context               | Size    | Implementation           |
+| --------------------- | ------- | ------------------------ |
+| Toolbar button        | 24px    | Quasar default (no prop) |
+| Panel header inline   | 16px    | `size="16px"`            |
+| Info bar inline       | 14px    | `size="14px"`            |
+| Empty state           | 36–48px | `size="40px"` typical    |
+| Inline text indicator | 10–14px | `size="10px"` / `"14px"` |
 
 ### 6.3 Colour Rules
 
-| Context                  | Colour                                |
-| ------------------------ | ------------------------------------- |
-| Decorative / structural  | `.hw-text-dim`                        |
-| Interactive (rest)       | Inherited (`--hw-text-muted`)         |
-| Interactive (hover)      | Inherited (`--hw-text-body`)          |
-| Interactive (active)     | Inherited (`--hw-accent`)             |
-| Quasar `color=` prop     | Add `.hw-use-props-color` to opt out of the global dim override |
+| Context                 | Colour                                                          |
+| ----------------------- | --------------------------------------------------------------- |
+| Decorative / structural | `.hw-text-dim`                                                  |
+| Interactive (rest)      | Inherited (`--hw-text-muted`)                                   |
+| Interactive (hover)     | Inherited (`--hw-text-body`)                                    |
+| Interactive (active)    | Inherited (`--hw-accent`)                                       |
+| Quasar `color=` prop    | Add `.hw-use-props-color` to opt out of the global dim override |
 
 **Rule:** Never use `text-purple-500`, `text-blue-400`, or any Tailwind colour
 class on an icon. If an icon needs a semantic colour, use Quasar's `color=`
@@ -475,18 +470,7 @@ prop with `.hw-use-props-color`, or style it with a `--hw-*` token.
 
 ### 6.4 Standard Icon Vocabulary
 
-| Concept         | Icon            | Concept         | Icon              |
-| --------------- | --------------- | --------------- | ----------------- |
-| Files           | `folder`        | Libraries       | `widgets`         |
-| Graph / nodes   | `account_tree`  | Settings        | `tune`            |
-| Code / source   | `code`          | Documentation   | `description`     |
-| Refresh         | `refresh`       | Close           | `close`           |
-| Save            | `save`          | Search          | `search`          |
-| Error           | `error`         | Warning         | `warning`         |
-| Copy            | `content_copy`  | Types           | `category`        |
-| Adapters        | `swap_horiz`    | Skins           | `brush`           |
-| Themes          | `palette`       | Panels          | `view_sidebar`    |
-| Editors         | `tab`           | Expand/collapse | `expand_more/less`|
+see hui.icon for the most current mappings between use and icon name 
 
 ---
 
@@ -550,12 +534,14 @@ A slim bar at the top of a panel. Returns a `ui.row` context manager.
 Action buttons should be placed inside the `with` block.
 
 **Anatomy:**
+
 ```
 ┌─[icon 16px]─[title text-sm font-medium]────────────[action buttons]─┐
 │                         border-b                                      │
 ```
 
 **Visual rules:**
+
 - Padding: `px-2 py-1.5`
 - Background: inherited from parent (transparent)
 - Bottom border: `1px solid var(--hw-border)`
@@ -574,6 +560,7 @@ with hui.panel_header("Files", icon="folder") as header:
 A contextual metadata bar (e.g. showing the open file name + language + size).
 
 **Visual rules:**
+
 - Height: `min-height: 28px`
 - Padding: `px-3 py-1`
 - Background: `var(--hw-bg-surface)`
@@ -592,6 +579,7 @@ hui.info_bar("main.py", badge="python", suffix="12,480 B")
 Centered placeholder for panels with no content.
 
 **Visual rules:**
+
 - Centred vertically and horizontally
 - Vertical padding: `60–80px` top (pushes into upper-centre)
 - Icon: `36–48px`, `hw-text-dim`
@@ -611,6 +599,7 @@ hui.empty_state(
 An interactive row for browsers and selection lists.
 
 **Visual rules:**
+
 - Padding: `px-2 py-1.5`
 - Full width, `rounded` (4px)
 - Hover: `var(--hw-bg-hover)` background (not `bg-white/10`)
@@ -635,11 +624,24 @@ hui.list_item(
 )
 ```
 
-### 8.5 `hui.section_label(text)`
+### 8.5a `hui.label(text)`
+
+A body-tier text label.
+
+**Visual rules:**
+
+- Text: `text-sm hw-text-body`
+
+```python
+hui.label("No settings available.")
+```
+
+### 8.5b `hui.section_label(text)`
 
 An uppercase tracking label that separates groups within a list or panel.
 
 **Visual rules:**
+
 - Text: `text-xs font-bold tracking-wider uppercase hw-text-dim`
 - Padding: `px-2 pt-2 pb-1`
 
@@ -652,6 +654,7 @@ hui.section_label("REQUIRED")
 A key-value metadata row with optional copy button.
 
 **Visual rules:**
+
 - Row: `w-full items-center gap-1 py-0.5`
 - Copy button (if `copy_value` provided): `hui.icon_action("content_copy")`
 - Label: `text-xs hw-text-dim`, fixed width `w-16 flex-shrink-0`
@@ -661,11 +664,12 @@ A key-value metadata row with optional copy button.
 hui.info_row("Key", "visiongraph:node:WebcamFrameEvent", copy_value=full_key)
 ```
 
-### 8.7 `hui.code_block(code, label=None, copyable=True)`
+### 8.7 `hui.code_snippet(code, label=None, copyable=True)`
 
 A read-only code snippet with optional label and copy button.
 
 **Visual rules:**
+
 - Outer column: `w-full gap-0.5 py-1`
 - Label (optional): `text-xs hw-text-dim`
 - Code container: `var(--hw-bg-surface)` background, `rounded` (4px), `px-2 py-1`,
@@ -674,7 +678,7 @@ A read-only code snippet with optional label and copy button.
 - Copy button inline
 
 ```python
-hui.code_block(
+hui.code_snippet(
     "from haybale_visiongraph import WebcamFrameEventNode",
     label="Import",
 )
@@ -685,6 +689,7 @@ hui.code_block(
 A minimal icon-only button for inline actions.
 
 **Visual rules:**
+
 - Props: `flat round dense size={size}`
 - Colour: inherited (theme-aware), no Quasar `color=` prop
 - Tooltip applied if provided
@@ -693,11 +698,30 @@ A minimal icon-only button for inline actions.
 hui.icon_action("refresh", tooltip="Refresh tree", on_click=self._refresh)
 ```
 
+### 8.8a `hui.button(label, icon=None, tooltip=None, on_click=None, disabled=False)`
+
+A flat labelled action button for use inside panels. Distinct from `hui.icon_action`
+(icon-only) and `hui.dialog_actions` (confirm/cancel pair). Use when a visible text
+label is needed, optionally with a leading icon.
+
+**Visual rules:**
+
+- Props: `flat dense align=left`
+- Classes: `text-sm w-full`
+- Colour: inherited — never use Quasar `color=` prop
+- Disabled: `opacity: 0.5; pointer-events: none`
+
+```python
+hui.button("Delete Node", icon="delete", on_click=self._delete)
+hui.button("Refresh", icon="refresh", on_click=self._refresh)
+```
+
 ### 8.9 `hui.toolbar_button(icon, is_active=False, tooltip=None, on_click=None)`
 
 An icon button for the activity bar or context bar.
 
 **Visual rules:**
+
 - Size: `w-10 h-10` (40×40px)
 - Classes: `hw-shell-toolbar-btn`, plus `hw-shell-toolbar-btn-active` if active
 - Props: `flat round`
@@ -713,6 +737,7 @@ hui.toolbar_button("folder", is_active=True, tooltip="Files", on_click=switch)
 A square button for the properties scope toolbar.
 
 **Visual rules:**
+
 - Size: `36×36px`
 - Border-radius: `0`
 - Active: `var(--hw-accent)` background, `#ffffff` text
@@ -728,6 +753,7 @@ hui.scope_button("settings", is_active=True, tooltip="Node Properties")
 A collapsible section for grouped content in property panels.
 
 **Visual rules:**
+
 - Bottom border: `1px solid var(--hw-border)`
 - Header label colour: `--hw-text-expansion` (special-purpose token — set per theme)
 - Header label size/weight: Quasar's default expansion header — `text-sm font-medium`
@@ -747,6 +773,7 @@ with hui.expansion_section("Node", icon="settings", context=ctx, panel_key="node
 An error message label.
 
 **Visual rules:**
+
 - Text: `text-sm` with `color: var(--hw-danger)`
 - Padding: `p-4`
 - Never use `text-red-400`
@@ -760,6 +787,7 @@ hui.error_label(f"File not found: {path}")
 A warning message label.
 
 **Visual rules:**
+
 - Text: `text-sm` with `color: var(--hw-warning)`
 - Never use `text-yellow-400`
 
@@ -768,6 +796,7 @@ A warning message label.
 A small metadata tag / badge.
 
 **Visual rules:**
+
 - Quasar badge: `outline` prop, `.text-xs`
 - Named colour via Quasar `color=` prop (acceptable exception to the no-hardcoded rule)
 
@@ -781,6 +810,7 @@ hui.tag("editable", color="green")
 A standard text input, pre-configured for panel use.
 
 **Visual rules:**
+
 - Props: `dense outlined`
 - Classes: `w-full`
 - Background: `var(--hw-bg-input)` (automatic via global CSS)
@@ -802,6 +832,7 @@ hui.input_field(label="Port", rules=[lambda v: v.isdigit() or "Must be a number"
 A tab bar, pre-configured with `hw-tabs` styling.
 
 **Visual rules:**
+
 - Classes: `w-full hw-tabs`
 - Props: `dense no-caps`
 - Tab label font: 12px (`text-xs`)
@@ -832,6 +863,7 @@ hui.number_field(label="posX", value=0)
 A standard dropdown select, pre-configured for panel use.
 
 **Visual rules:**
+
 - Props: `dense outlined`
 - Classes: `text-sm`
 - `min-width: 160px` by default (override via `min_width=`)
@@ -966,11 +998,11 @@ a right-aligned action row. Cancel is flat/unstyled; the confirm button uses
 All editable fields — Quasar inputs/textareas and NumberDrag — share a unified
 focus treatment enforced by shell CSS and the NumberDrag Vue component:
 
-| State | Underline                                    | Background          |
-|-------|----------------------------------------------|---------------------|
-| Rest  | `1px var(--hw-border)`                       | `--hw-bg-input`     |
-| Hover | `1px var(--hw-border-strong)`                | `--hw-bg-input`     |
-| Focus | `2px var(--hw-accent)`, center-out animation | `--hw-bg-elevated`  |
+| State | Underline                                    | Background         |
+| ----- | -------------------------------------------- | ------------------ |
+| Rest  | `1px var(--hw-border)`                       | `--hw-bg-input`    |
+| Hover | `1px var(--hw-border-strong)`                | `--hw-bg-input`    |
+| Focus | `2px var(--hw-accent)`, center-out animation | `--hw-bg-elevated` |
 
 The focus underline animates from the centre outwards using
 `transform: scale3d(0→1, 1, 1)` with `cubic-bezier(0.4, 0, 0.2, 1)` — the
@@ -1093,12 +1125,12 @@ design rules.
 
 Canvas text is outside the `.hw-panel` cascade. Use these rules explicitly:
 
-| Purpose         | Classes / token                                  |
-| --------------- | ------------------------------------------------ |
-| Node title      | `text-xs font-medium`, `--hw-node-header-text`   |
-| Port label      | `text-xs`, `--hw-text-muted`                     |
-| Error / warning | `text-xs`, `--hw-danger` / `--hw-warning`        |
-| Monospace value | `text-xs font-mono`, `--hw-text-body`            |
+| Purpose         | Classes / token                                |
+| --------------- | ---------------------------------------------- |
+| Node title      | `text-xs font-medium`, `--hw-node-header-text` |
+| Port label      | `text-xs`, `--hw-text-muted`                   |
+| Error / warning | `text-xs`, `--hw-danger` / `--hw-warning`      |
+| Monospace value | `text-xs font-mono`, `--hw-text-body`          |
 
 **Rule:** Do not use `text-sm` or larger inside node skins — canvas nodes
 are visually small and larger text breaks the density contract.
@@ -1126,30 +1158,30 @@ or `#fef2f2` must be replaced.
 The shell has five distinct toolbar/bar concepts. Use these names consistently
 in code and comments:
 
-| Name             | Location              | Content                    |
-| ---------------- | --------------------- | -------------------------- |
-| TopBar           | Top edge              | App name, workspace switcher, global actions |
-| StatusBar        | Bottom edge           | Session info, status messages |
-| ActivityBar      | Left narrow strip     | Left-area editor switcher icons |
-| ContextBar       | Right narrow strip    | Right-area editor switcher icons |
-| ScopeToolbar     | Inside PropertiesEditor | Scope switcher icons (36px buttons) |
+| Name         | Location                | Content                                      |
+| ------------ | ----------------------- | -------------------------------------------- |
+| TopBar       | Top edge                | App name, workspace switcher, global actions |
+| StatusBar    | Bottom edge             | Session info, status messages                |
+| ActivityBar  | Left narrow strip       | Left-area editor switcher icons              |
+| ContextBar   | Right narrow strip      | Right-area editor switcher icons             |
+| ScopeToolbar | Inside PropertiesEditor | Scope switcher icons (36px buttons)          |
 
 **Rule:** "Sidebar" in CSS tokens (`--hw-bg-sidebar`) refers to the narrow bars
 (ActivityBar / ContextBar), not the left/right panel areas.
 
 ### 10.2 CSS Class Naming
 
-| Prefix          | Purpose                                          |
-| --------------- | ------------------------------------------------ |
-| `hw-`           | Haywire design system (tokens, global utilities) |
-| `hw-shell-`     | Shell-specific structural classes                |
-| `hw-text-`      | Semantic text colour utilities                   |
-| `hw-panel`      | Editor container marker (enables text cascade)   |
-| `hw-tabs`       | Middle-area tab bar styling                      |
-| `hw-cm-isolate` | CodeMirror isolation wrapper (see rule below)    |
-| `compact-fields`| Dense field rendering mode                       |
-| `sf-label`      | Settings field label (responsive layout)         |
-| `sf-widget`     | Settings field widget (responsive layout)        |
+| Prefix           | Purpose                                          |
+| ---------------- | ------------------------------------------------ |
+| `hw-`            | Haywire design system (tokens, global utilities) |
+| `hw-shell-`      | Shell-specific structural classes                |
+| `hw-text-`       | Semantic text colour utilities                   |
+| `hw-panel`       | Editor container marker (enables text cascade)   |
+| `hw-tabs`        | Middle-area tab bar styling                      |
+| `hw-cm-isolate`  | CodeMirror isolation wrapper (see rule below)    |
+| `compact-fields` | Dense field rendering mode                       |
+| `sf-label`       | Settings field label (responsive layout)         |
+| `sf-widget`      | Settings field widget (responsive layout)        |
 
 **Rule: `hw-cm-isolate`** must be applied to the direct wrapper `div` around
 any CodeMirror editor instance. Without it, Quasar and Haywire global CSS rules
@@ -1186,32 +1218,32 @@ not a CodeMirror host.
 
 ## 12. Anti-Patterns (Do Not Do)
 
-| Anti-pattern | Why it's wrong | Correct approach |
-|---|---|---|
-| `text-gray-400`, `text-gray-500`, `text-gray-600` | Not theme-aware | `.hw-text-muted` or `.hw-text-dim` |
-| `text-red-400` for errors | Not theme-aware | `hui.error_label()` or `color: var(--hw-danger)` |
-| `text-yellow-400` for warnings | Not theme-aware | `hui.warning_label()` or `color: var(--hw-warning)` |
-| `text-blue-400` on links/icons | Not theme-aware | `color: var(--hw-accent)` or `var(--hw-info)` |
-| `text-purple-500` on icons | Not theme-aware | Quasar `color=` prop with `.hw-use-props-color` |
-| `text-amber-400` for unsaved/warning state | Not theme-aware | `color: var(--hw-warning)` |
-| `hover:bg-white/10` | Breaks on light themes | `hui.list_item()` or class `hw-list-item-hover` |
-| `bg-blue-900/40` for active rows | Hardcoded, dark-only | `hui.list_item(is_active=True)` → `var(--hw-bg-active)` |
-| `bg-green-500`, `bg-purple-500` as dots | Acceptable only via Quasar `bg-{color}-500` for status dots | Use Quasar named colours; document in `hui.list_item(dot_color=)` |
-| Hardcoded `#hex` in `.style()` | Not theme-aware | Use `var(--hw-*)` token |
-| `rgba(0,0,0,0.5)` as modal backdrop | Dark-only | `var(--hw-bg-overlay)` |
-| `rgba(128,128,128,…)` for ghost pins | Not theme-aware | `var(--hw-ghost-pin)` |
-| `#ef4444`, `#fef2f2` in error skins | Not theme-aware | `var(--hw-danger)`, `var(--hw-danger-bg)` |
-| `box-shadow` on panels | Reserved for canvas nodes | Use elevation colours |
-| `box-shadow` hardcoded on popups | Not theme-aware | Use `var(--hw-node-shadow)` or add `--hw-popup-shadow` |
-| `transition: all` | Transitions unspecified properties | Name the specific property |
-| `0.2s`/`0.3s` transitions in shell/panel code | Inconsistent with shell tier | `0.15s` for shell; `0.2–0.3s` only in canvas/skin code |
-| `color=grey` on icon buttons | Overrides theme cascade | Remove; buttons inherit colour from `.hw-panel` |
-| `color=positive` on buttons | Not theme-mapped — uses Quasar hardcoded green | Use `.style("color: var(--hw-positive)")` |
-| `color=primary` on buttons | Not mapped to Haywire theme | Style via `--hw-accent` |
-| `ui.card()` inside `ui.dialog()` | Missing themed chrome (bg, border, shadow) | Use `hui.dialog_card()` |
-| `ui.expansion()` directly in settings panels | Inconsistent header styling | Use `hui.category_group()` |
-| `ui.input()` / `ui.number()` with `dense outlined` | Duplicates hui config | Use `hui.input_field()` / `hui.number_field()` |
-| Re-implementing panel_header from scratch | Drift and inconsistency | Use `hui.panel_header()` |
-| `min-height: 28px` vs `min-height: 32px` for similar bars | Inconsistent | Use `hui.info_bar()` (standardizes to 28px) |
-| Inline `padding: 80px 0` vs `padding: 60px 0` for empty states | Inconsistent | Use `hui.empty_state()` (standardizes to 72px) |
-| `--hw-node-*` tokens used in panel/shell code | Wrong layer | Canvas tokens are for skins only; use `--hw-bg-*` in panels |
+| Anti-pattern                                                   | Why it's wrong                                              | Correct approach                                                  |
+| -------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| `text-gray-400`, `text-gray-500`, `text-gray-600`              | Not theme-aware                                             | `.hw-text-muted` or `.hw-text-dim`                                |
+| `text-red-400` for errors                                      | Not theme-aware                                             | `hui.error_label()` or `color: var(--hw-danger)`                  |
+| `text-yellow-400` for warnings                                 | Not theme-aware                                             | `hui.warning_label()` or `color: var(--hw-warning)`               |
+| `text-blue-400` on links/icons                                 | Not theme-aware                                             | `color: var(--hw-accent)` or `var(--hw-info)`                     |
+| `text-purple-500` on icons                                     | Not theme-aware                                             | Quasar `color=` prop with `.hw-use-props-color`                   |
+| `text-amber-400` for unsaved/warning state                     | Not theme-aware                                             | `color: var(--hw-warning)`                                        |
+| `hover:bg-white/10`                                            | Breaks on light themes                                      | `hui.list_item()` or class `hw-list-item-hover`                   |
+| `bg-blue-900/40` for active rows                               | Hardcoded, dark-only                                        | `hui.list_item(is_active=True)` → `var(--hw-bg-active)`           |
+| `bg-green-500`, `bg-purple-500` as dots                        | Acceptable only via Quasar `bg-{color}-500` for status dots | Use Quasar named colours; document in `hui.list_item(dot_color=)` |
+| Hardcoded `#hex` in `.style()`                                 | Not theme-aware                                             | Use `var(--hw-*)` token                                           |
+| `rgba(0,0,0,0.5)` as modal backdrop                            | Dark-only                                                   | `var(--hw-bg-overlay)`                                            |
+| `rgba(128,128,128,…)` for ghost pins                           | Not theme-aware                                             | `var(--hw-ghost-pin)`                                             |
+| `#ef4444`, `#fef2f2` in error skins                            | Not theme-aware                                             | `var(--hw-danger)`, `var(--hw-danger-bg)`                         |
+| `box-shadow` on panels                                         | Reserved for canvas nodes                                   | Use elevation colours                                             |
+| `box-shadow` hardcoded on popups                               | Not theme-aware                                             | Use `var(--hw-node-shadow)` or add `--hw-popup-shadow`            |
+| `transition: all`                                              | Transitions unspecified properties                          | Name the specific property                                        |
+| `0.2s`/`0.3s` transitions in shell/panel code                  | Inconsistent with shell tier                                | `0.15s` for shell; `0.2–0.3s` only in canvas/skin code            |
+| `color=grey` on icon buttons                                   | Overrides theme cascade                                     | Remove; buttons inherit colour from `.hw-panel`                   |
+| `color=positive` on buttons                                    | Not theme-mapped — uses Quasar hardcoded green              | Use `.style("color: var(--hw-positive)")`                         |
+| `color=primary` on buttons                                     | Not mapped to Haywire theme                                 | Style via `--hw-accent`                                           |
+| `ui.card()` inside `ui.dialog()`                               | Missing themed chrome (bg, border, shadow)                  | Use `hui.dialog_card()`                                           |
+| `ui.expansion()` directly in settings panels                   | Inconsistent header styling                                 | Use `hui.category_group()`                                        |
+| `ui.input()` / `ui.number()` with `dense outlined`             | Duplicates hui config                                       | Use `hui.input_field()` / `hui.number_field()`                    |
+| Re-implementing panel_header from scratch                      | Drift and inconsistency                                     | Use `hui.panel_header()`                                          |
+| `min-height: 28px` vs `min-height: 32px` for similar bars      | Inconsistent                                                | Use `hui.info_bar()` (standardizes to 28px)                       |
+| Inline `padding: 80px 0` vs `padding: 60px 0` for empty states | Inconsistent                                                | Use `hui.empty_state()` (standardizes to 72px)                    |
+| `--hw-node-*` tokens used in panel/shell code                  | Wrong layer                                                 | Canvas tokens are for skins only; use `--hw-bg-*` in panels       |

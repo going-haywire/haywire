@@ -157,25 +157,25 @@ class LibraryComponentEditor(BaseEditor):
                 if comp_type == "types":
                     hui.section_label("Usage")
                     if module_path:
-                        hui.code_block(f"from {module_path} import {actual_name}", label="Import")
-                    hui.code_block(
+                        hui.code_snippet(f"from {module_path} import {actual_name}", label="Import")
+                    hui.code_snippet(
                         f"self.add({actual_name}.as_inlet('id', label='Label'))", label="Inlet port"
                     )
-                    hui.code_block(
+                    hui.code_snippet(
                         f"self.add({actual_name}.as_outlet('id', label='Label'))", label="Outlet port"
                     )
-                    hui.code_block(
+                    hui.code_snippet(
                         f"self.add({actual_name}.as_config('id', label='Label', default=...))",
                         label="Config port",
                     )
                 elif comp_type == "widgets":
                     hui.section_label("Usage")
                     if module_path:
-                        hui.code_block(f"from {module_path} import {actual_name}", label="Import")
-                    hui.code_block(f"widget={actual_name}.config(properties={{}})", label="Widget config")
+                        hui.code_snippet(f"from {module_path} import {actual_name}", label="Import")
+                    hui.code_snippet(f"widget={actual_name}.config(properties={{}})", label="Widget config")
                 elif comp_type == "nodes" and module_path:
                     hui.section_label("Import")
-                    hui.code_block(f"from {module_path} import {actual_name}")
+                    hui.code_snippet(f"from {module_path} import {actual_name}")
 
                 # ── Tabs: View (widgets only) / Docs / Source ─────────────
                 ui.separator().classes("mt-3")

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
+from haywire.ui import elements as hui
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -44,7 +45,7 @@ class TestCopySelectionPanel(BasePanel):
                 selectedEdges=list(context.selected_edges),
             ))
 
-        layout.button("📋 Copy Selection", on_click=_copy)
+        layout.button("Copy Selection", icon=hui.icon.copy, on_click=_copy)
 
 
 @panel(
@@ -52,7 +53,7 @@ class TestCopySelectionPanel(BasePanel):
     editors="test_inspector",
     scopes="test_selection",
     label="Paste",
-    icon="content_paste",
+    icon=hui.icon.paste,
     order=20,
 )
 class TestPasteSelectionPanel(BasePanel):
@@ -70,4 +71,4 @@ class TestPasteSelectionPanel(BasePanel):
         def _paste():
             _emit(context, UserPasteClipboardEvent(canvasX=canvas_x, canvasY=canvas_y))
 
-        layout.button("📄 Paste", on_click=_paste)
+        layout.button("Paste", icon=hui.icon.paste, on_click=_paste)

@@ -38,10 +38,5 @@ class NodeErrorsPanel(BasePanel):
 
         errors = context.active_node.state.get_errors()
         with layout._container:
-            with ui.card().classes("p-2 max-w-md max-h-96 overflow-auto"):
-                for idx, error in enumerate(errors):
-                    with ui.expansion(
-                        f"{idx + 1}. {error.operation or 'Error'}", icon=hui.icon.error
-                    ).classes("w-full hw-text-danger"):
-                        ui.label(error.message).classes("text-sm hw-text-danger mb-2")
-                        error_render_detail(error)
+            for idx, error in enumerate(errors):
+                error_render_detail(error)

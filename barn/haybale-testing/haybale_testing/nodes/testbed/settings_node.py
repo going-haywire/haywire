@@ -12,7 +12,7 @@ from haybale_testing.settings.testing import TestingSettings
     menu="testing/testbed",
     node_type=NodeType.DATA,
 )
-class SettingsNode(BaseNode)
+class SettingsNode(BaseNode):
     """Node that exercises all field() — suppress spurious delete test."""
 
     class example(NodeSettings):

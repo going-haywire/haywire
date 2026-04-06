@@ -97,8 +97,7 @@ def error_render_detail(error: HaywireException) -> ui.element:
         ):
             with ui.row().classes("items-start gap-3 w-full"):
                 detail_button = (
-                    ui.button(icon=hui.icon.debug)
-                    .props("flat dense")
+                    hui.button(error.category, icon=hui.icon.debug)
                     .style("background: var(--hw-danger); color: var(--hw-text-on-accent);")
                 )
 

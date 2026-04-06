@@ -221,6 +221,20 @@ def list_item(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
+def label(text: str) -> ui.label:
+    """
+    A body-tier text label.
+
+    Visual rules:
+    - Text: ``text-sm hw-text-body``
+
+    Usage::
+
+        hui.label("No settings available.")
+    """
+    return ui.label(text).classes("text-sm hw-text-body")
+
+
 def section_label(text: str) -> ui.label:
     """
     An uppercase tracking label that separates groups within a list or panel.
@@ -284,11 +298,11 @@ def info_row(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 8.7  Code Block
+# 8.7  Code Snippet
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def code_block(
+def code_snippet(
     code: str,
     *,
     label: str | None = None,
@@ -323,6 +337,48 @@ def code_block(
             ):
                 ui.label(code).classes("text-xs font-mono hw-text-body")
     return col
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 8.8a  Button (labelled action)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def button(
+    label: str,
+    *,
+    icon: str | None = None,
+    tooltip: str | None = None,
+    on_click: Callable | None = None,
+    disabled: bool = False,
+) -> ui.button:
+    """
+    A flat labelled action button for use inside panels.
+
+    Distinct from ``hui.icon_action`` (icon-only) and ``hui.dialog_actions``
+    (confirm/cancel pair). Use this when you need a visible text label,
+    optionally with a leading icon.
+
+    Visual rules:
+    - Props: ``flat dense``
+    - Classes: ``text-sm``
+    - Colour: inherited — never use Quasar ``color=`` prop
+    - Disabled: ``opacity: 0.5; pointer-events: none``
+    - Transition: ``color 0.15s ease``
+
+    Usage::
+
+        hui.button("Delete Node", icon="delete", on_click=self._delete)
+        hui.button("Refresh", icon="refresh", on_click=self._refresh)
+    """
+    btn = ui.button(label, icon=icon).props("flat dense align=left").classes("text-sm w-full")
+    if disabled:
+        btn.style("opacity: 0.5; pointer-events: none;")
+    if tooltip:
+        btn.tooltip(tooltip)
+    if on_click and not disabled:
+        btn.on("click", lambda fn=on_click: fn())
+    return btn
 
 
 # ──────────────────────────────────────────────────────────────────────────────

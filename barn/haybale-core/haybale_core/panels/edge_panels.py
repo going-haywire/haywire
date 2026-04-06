@@ -56,7 +56,6 @@ class EdgeErrorsPanel(BasePanel):
             with ui.column().classes("w-full gap-1 p-2"):
                 ui.label("⚠ Connection Error").classes("hw-text-danger font-semibold text-sm")
                 if isinstance(error, HaywireException):
-                    ui.label(f"Category: {error.category}").classes("text-xs hw-text-danger ml-1")
                     error_render_detail(error)
                 else:
                     ui.label(str(error)).classes("hw-text-danger text-xs whitespace-pre-wrap break-words")
@@ -111,7 +110,7 @@ class DeleteEdgePanel(BasePanel):
         def _delete():
             _emit(context, UserRemoveEvent(nodes=[], edges=[edge_id]))
 
-        layout.button("🗑 Delete Connection", on_click=_delete)
+        layout.button("Delete Connection", icon=hui.icon.delete, on_click=_delete)
 
 
 @panel(

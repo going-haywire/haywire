@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
+from haywire.ui import elements as hui
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -49,7 +50,7 @@ class TestDeleteEdgePanel(BasePanel):
         def _delete():
             _emit(context, UserRemoveEvent(nodes=[], edges=[edge_id]))
 
-        layout.button("🗑 Delete Connection", on_click=_delete)
+        layout.button("Delete Connection", icon=hui.icon.delete, on_click=_delete)
 
 
 @panel(
@@ -57,7 +58,7 @@ class TestDeleteEdgePanel(BasePanel):
     editors="test_inspector",
     scopes="test_edge",
     label="Inspect Connection",
-    icon="info",
+    icon=hui.icon.node_info,
     order=20,
 )
 class TestInspectEdgePanel(BasePanel):
@@ -81,7 +82,7 @@ class TestInspectEdgePanel(BasePanel):
                 state=edge_wrapper.get_state(),
             )
 
-        layout.button("🔍 Inspect Connection", on_click=_inspect)
+        layout.button("Inspect Connection", icon=hui.icon.node_info, on_click=_inspect)
 
 
 @panel(
@@ -89,7 +90,7 @@ class TestInspectEdgePanel(BasePanel):
     editors="test_inspector",
     scopes="test_edge",
     label="Connection Errors",
-    icon="error",
+    icon=hui.icon.error,
     order=0,
 )
 class TestEdgeErrorsPanel(BasePanel):
@@ -129,7 +130,7 @@ class TestEdgeErrorsPanel(BasePanel):
     editors="test_inspector",
     scopes="test_edge",
     label="Connection Path",
-    icon="route",
+    icon=hui.icon.adapter,
     order=15,
 )
 class TestEdgeConnectionPathPanel(BasePanel):
@@ -160,7 +161,7 @@ class TestEdgeConnectionPathPanel(BasePanel):
     editors="test_inspector",
     scopes="test_edge",
     label="Connection Warnings",
-    icon="warning",
+    icon=hui.icon.warning,
     order=5,
 )
 class TestEdgeWarningsPanel(BasePanel):
