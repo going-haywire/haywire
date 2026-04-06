@@ -896,26 +896,6 @@ class HaywireException(Exception):
         """Get title for error displays"""
         return f"{self.category}: {self.severity.value.upper()}"
 
-    def get_severity_color(self) -> str:
-        """Get color for UI styling"""
-        colors = {
-            ErrorSeverity.INFO: "blue",
-            ErrorSeverity.WARNING: "yellow",
-            ErrorSeverity.ERROR: "orange",
-            ErrorSeverity.CRITICAL: "red",
-        }
-        return colors.get(self.severity, "gray")
-
-    def get_severity_icon(self) -> str:
-        """Get icon for UI display"""
-        icons = {
-            ErrorSeverity.INFO: "info",
-            ErrorSeverity.WARNING: "warning",
-            ErrorSeverity.ERROR: "error",
-            ErrorSeverity.CRITICAL: "dangerous",
-        }
-        return icons.get(self.severity, "error")
-
     # ========================================================================
     # LOGGING / SERIALIZATION
     # ========================================================================

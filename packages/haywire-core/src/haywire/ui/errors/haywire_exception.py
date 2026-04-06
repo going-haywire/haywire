@@ -17,11 +17,11 @@ def _create_detail_row(
     line_number: int = None,
 ):
     """Helper to create a consistent detail row with optional file open button"""
-    classes = "text-sm " + ("font-mono" if monospace else "")
+    classes = "text-xs " + ("font-mono" if monospace else "")
 
     with ui.row().classes("items-start gap-2 w-full"):
-        ui.icon(icon, color="gray").classes("text-sm mt-0.5")
-        ui.label(f"{label}:").classes("font-bold text-sm hw-text-muted min-w-20")
+        ui.icon(icon).classes("text-sm mt-0.5 hw-text-dim")
+        ui.label(f"{label}:").classes("font-bold text-xs hw-text-muted min-w-20")
         if multiline and "\n" in value:
             with ui.column().classes("flex-grow"):
                 lines = value.split("\n")
@@ -66,9 +66,11 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
 
     with parent_container:
         # Header
-        with ui.row().classes("items-center gap-2 pb-3 border-b"):
-            ui.icon(error.get_severity_icon(), color=error.get_severity_color()).classes("text-3xl")
-            ui.label(f"{error.category}").classes("text-xl font-bold hw-text-body")
+        with ui.row().classes("items-center gap-2 pb-3").style("border-bottom: 1px solid var(--hw-border);"):
+            ui.icon(get_severity_icon(error)).classes("text-base").style(
+                f"color: {get_severity_color(error)};"
+            )
+            ui.label(f"{error.category}").classes("text-base font-bold hw-text-body")
             ui.button(
                 icon=hui.icon.copy,
                 on_click=lambda text=error.format_detailed(): ui.run_javascript(
@@ -80,18 +82,20 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
         if error.original_exception:
             exc_type_name = type(error.original_exception).__name__
             exc_message = str(error.original_exception)
-            with ui.card().classes("w-full bg-red-100 border-l-4 border-red-500 mb-2"):
-                with ui.row().classes("items-start gap-2 p-2"):
-                    _create_detail_row(exc_type_name, exc_message, "error")
+            with (
+                ui.column()
+                .classes("w-full p-2")
+                .style("border-left: 4px solid var(--hw-danger); background: var(--hw-danger-bg);")
+            ):
+                _create_detail_row(exc_type_name, exc_message, hui.icon.error)
 
         if error.message:
-            with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
-                with ui.row().classes("items-start gap-2 p-2"):
-                    _create_detail_row("Message", error.message, "build")
+            with ui.column().classes("w-full p-2").style("border-left: 4px solid var(--hw-border-strong);"):
+                _create_detail_row("Message", error.message, hui.icon.message)
 
         # Source code section
         if error.has_source_location():
-            with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
+            with ui.column().classes("w-full p-2").style("border-left: 4px solid var(--hw-border-strong);"):
                 with ui.column().classes("gap-2"):
                     # Source code with context
                     if error.source_context:
@@ -159,30 +163,36 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                             _create_detail_row(
                                 "File",
                                 file_display,
-                                "description",
+                                hui.icon.library_component,
                                 monospace=True,
                                 file_path=error.filename,
                                 line_number=error.line_number,
                             )
 
                             if error.line_number:
-                                _create_detail_row("Line", str(error.line_number), "tag")
+                                _create_detail_row("Line", str(error.line_number), hui.icon.line_number)
 
         # Suggestions section
         if error.has_suggestions():
-            with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
+            with ui.column().classes("w-full p-2").style("border-left: 4px solid var(--hw-border-strong);"):
                 for suggestion in error.suggestions:
                     with ui.row().classes("items-start gap-2"):
-                        _create_detail_row("Suggestion", suggestion, "lightbulb")
+                        _create_detail_row("Suggestion", suggestion, hui.icon.suggestion)
 
         # Traceback section (filter interesting frames)
         if error.traceback_frames:
             interesting_frames = [f for f in error.traceback_frames if error.is_interesting_frame(f)]
 
             if interesting_frames:
-                with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
+                with (
+                    ui.column()
+                    .classes("w-full p-2")
+                    .style("border-left: 4px solid var(--hw-border-strong);")
+                ):
                     with ui.column().classes("gap-2"):
-                        ui.label("🔍 Traceback").classes("font-bold hw-text-muted")
+                        with ui.row().classes("items-center gap-2"):
+                            ui.icon(hui.icon.traceback).classes("text-sm hw-text-muted")
+                            ui.label("Traceback").classes("font-bold hw-text-muted")
 
                         with ui.column().classes("gap-3 pl-4"):
                             for frame in interesting_frames:
@@ -193,12 +203,16 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
 
                                 base_filename = os.path.basename(filename)
 
-                                with ui.column().classes("gap-1 border-l-2 border-blue-300 pl-3 py-1"):
+                                with (
+                                    ui.column()
+                                    .classes("gap-1 pl-3 py-1")
+                                    .style("border-left: 2px solid var(--hw-accent);")
+                                ):
                                     # Location with Open button
                                     with ui.row().classes("items-center gap-2"):
-                                        ui.icon("arrow_right", color="blue").classes("text-sm")
-                                        ui.label(f"{base_filename}").classes("font-bold text-sm")
-                                        ui.label(f"in {function_name}").classes("text-sm hw-text-muted")
+                                        ui.icon(hui.icon.arrow_forward).classes("text-xs hw-text-accent")
+                                        ui.label(f"{base_filename}").classes("font-bold text-xs")
+                                        ui.label(f"in {function_name}").classes("text-xs hw-text-muted")
                                         # Add open button for each frame
                                         if os.path.exists(filename):
                                             ui.button(
@@ -220,7 +234,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                     if source_line.strip():
                                         with (
                                             ui.row()
-                                            .classes("items-start gap-2 mt-1 rounded p-2")
+                                            .classes("items-start gap-2 mt-1 rounded-sm p-2")
                                             .style("background: var(--hw-bg-surface);")
                                         ):
                                             ui.label(f"line {line_number}:").classes(
@@ -229,42 +243,79 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                             ui.label(source_line.strip()).classes("text-xs font-mono")
 
         # Main error info card
-        with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
+        with ui.column().classes("w-full p-2").style("border-left: 4px solid var(--hw-border-strong);"):
             with ui.column().classes("gap-2"):
-                ui.label("📦 Error Information").classes("font-bold hw-text-muted")
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon(hui.icon.node_info).classes("text-sm hw-text-muted")
+                    ui.label("Error Information").classes("font-bold hw-text-muted")
 
                 if error.message:
-                    _create_detail_row("Message", error.message, "build")
+                    _create_detail_row("Message", error.message, hui.icon.message)
 
                 if error.operation:
-                    _create_detail_row("Operation", error.operation, "build")
+                    _create_detail_row("Operation", error.operation, hui.icon.operation)
 
                 if error.severity:
-                    _create_detail_row("Severity", error.severity.value.upper(), error.get_severity_icon())
+                    _create_detail_row(
+                        "Severity",
+                        error.severity.value.upper(),
+                        get_severity_icon(error),
+                    )
 
                 if error.context_type:
-                    _create_detail_row("Context", error.context_type, "code")
+                    _create_detail_row("Context", error.context_type, hui.icon.context)
 
                 if error.highlighted_item:
-                    _create_detail_row("Item", error.highlighted_item, "label")
+                    _create_detail_row("Item", error.highlighted_item, hui.icon.label)
 
         # Library and context info
         if error.library_identity or error.module_name or error.registry_key:
-            with ui.card().classes("w-full border-l-4 border-black-500 mb-2"):
+            with ui.column().classes("w-full p-2").style("border-left: 4px solid var(--hw-border-strong);"):
                 with ui.column().classes("gap-2"):
-                    ui.label("📦 Context Information").classes("font-bold hw-text-muted")
+                    with ui.row().classes("items-center gap-2"):
+                        ui.icon(hui.icon.node_info).classes("text-sm hw-text-muted")
+                        ui.label("Context Information").classes("font-bold hw-text-muted")
 
                     if error.library_identity:
-                        _create_detail_row("Library", error.library_identity.label, "folder")
+                        _create_detail_row("Library", error.library_identity.label, hui.icon.library)
                         if error.library_identity.folder_path:
                             _create_detail_row(
-                                "Path", error.library_identity.folder_path, "folder_open", monospace=True
+                                "Path",
+                                error.library_identity.folder_path,
+                                hui.icon.folder_open,
+                                monospace=True,
                             )
 
                     if error.registry_key:
-                        _create_detail_row("Registry", error.registry_key, "key")
+                        _create_detail_row("Registry key", error.registry_key, hui.icon.registry_key)
 
                     if error.module_name:
-                        _create_detail_row("Module", error.module_name, "article")
+                        _create_detail_row("Module", error.module_name, hui.icon.module)
 
     return parent_container
+
+
+def get_severity_icon(error: HaywireException) -> str:
+    """Return the ``hui.icon.*`` string for *error*'s severity."""
+    from haywire.core.errors.haywire_exception import ErrorSeverity
+
+    mapping = {
+        ErrorSeverity.INFO: hui.icon.node_info,
+        ErrorSeverity.WARNING: hui.icon.warning,
+        ErrorSeverity.ERROR: hui.icon.error,
+        ErrorSeverity.CRITICAL: hui.icon.error,
+    }
+    return mapping.get(error.severity, hui.icon.error)
+
+
+def get_severity_color(error: HaywireException) -> str:
+    """Return a ``var(--hw-*)`` CSS colour value for *error*'s severity."""
+    from haywire.core.errors.haywire_exception import ErrorSeverity
+
+    mapping = {
+        ErrorSeverity.INFO: "var(--hw-info)",
+        ErrorSeverity.WARNING: "var(--hw-warning)",
+        ErrorSeverity.ERROR: "var(--hw-danger)",
+        ErrorSeverity.CRITICAL: "var(--hw-danger)",
+    }
+    return mapping.get(error.severity, "var(--hw-danger)")

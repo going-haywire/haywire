@@ -72,7 +72,11 @@ def error_render_detail(error: HaywireException) -> ui.element:
                 render_error_details(error, detail_container)
 
                 # Footer with close button
-                with ui.row().classes("justify-end w-full pt-3 border-t mt-4"):
+                with (
+                    ui.row()
+                    .classes("justify-end w-full pt-3 mt-4")
+                    .style("border-top: 1px solid var(--hw-border);")
+                ):
                     ui.button("Close", icon=hui.icon.close, on_click=close_popup).props("flat")
 
         # Register cleanup callback when popup is closed via other means
@@ -85,11 +89,18 @@ def error_render_detail(error: HaywireException) -> ui.element:
 
     # Build the compact error summary UI
     with ui.column().classes("w-full") as container:
-        # Compact error summary card
-        with ui.card().classes("w-full bg-red-50 border-l-4 border-red-500 shadow-sm"):
+        # Compact error summary
+        with (
+            ui.column()
+            .classes("w-full p-2")
+            .style("border-left: 4px solid var(--hw-danger); background: var(--hw-danger-bg);")
+        ):
             with ui.row().classes("items-start gap-3 w-full"):
-                # Icon
-                detail_button = ui.button(icon=hui.icon.debug).classes("w-full bg-red-600 text-white")
+                detail_button = (
+                    ui.button(icon=hui.icon.debug)
+                    .props("flat dense")
+                    .style("background: var(--hw-danger); color: var(--hw-text-on-accent);")
+                )
 
         # Connect button to show details
         detail_button.on_click(show_details)
@@ -113,11 +124,11 @@ def render_error_info(error_info: NodeErrorInfo) -> element:
         .style("border: 1px solid var(--hw-danger); background: var(--hw-danger-bg);") as error_column
     ):
         with ui.row():
-            ui.icon("error", color="red").classes("text-lg")
-            ui.label(error_info.error).classes("text-lg hw-text-danger")
-        ui.label(error_info.error_message).classes("text-sm hw-text-danger")
+            ui.icon(hui.icon.error).classes("text-sm").style("color: var(--hw-danger);")
+            ui.label(error_info.error).classes("text-sm hw-text-danger")
+        ui.label(error_info.error_message).classes("text-xs hw-text-danger")
         if error_info.note:
             for value in error_info.note:
-                ui.label(value).classes("text-sm hw-text-danger")
-        ui.label(error_info.timestamp).classes("text-sm hw-text-danger")
+                ui.label(value).classes("text-xs hw-text-danger")
+        ui.label(error_info.timestamp).classes("text-xs hw-text-danger")
     return error_column

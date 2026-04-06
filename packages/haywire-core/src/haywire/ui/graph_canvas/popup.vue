@@ -64,16 +64,23 @@ export default {
       isDragging:  false,
       currentX:    0,
       currentY:    0,
-      _dragStartMouseX: 0,
-      _dragStartMouseY: 0,
-      _dragStartCardX:  0,
-      _dragStartCardY:  0,
+      dragPositioned: false,
+      dragStartMouseX: 0,
+      dragStartMouseY: 0,
+      dragStartCardX:  0,
+      dragStartCardY:  0,
     };
   },
 
   computed: {
-    isPositioned() {
+    /** True when the popup was created with explicit x/y coordinates. */
+    propsPositioned() {
       return this.initialX !== null && this.initialY !== null;
+    },
+
+    /** True when the card should use fixed left/top positioning. */
+    isPositioned() {
+      return this.dragPositioned || this.propsPositioned;
     },
 
     overlayStyle() {
@@ -81,8 +88,8 @@ export default {
         // Hidden: must not capture any pointer events
         return { position: 'fixed', inset: '0', zIndex: -1, pointerEvents: 'none' };
       }
-      if (this.isPositioned) {
-        // Transparent full-screen layer — only backdrop click needs pointer events
+      if (this.propsPositioned) {
+        // Originally positioned — transparent overlay, no backdrop
         return {
           position: 'fixed',
           inset: '0',
@@ -91,14 +98,15 @@ export default {
           pointerEvents: this.backdropClickClose ? 'auto' : 'none',
         };
       }
+      // Centred / modal — keep backdrop even after drag-positioning kicks in
       return {
         position: 'fixed',
         inset: '0',
         zIndex: 5000,
         background: this.backdropColor,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        display: this.isPositioned ? 'block' : 'flex',
+        alignItems: this.isPositioned ? undefined : 'center',
+        justifyContent: this.isPositioned ? undefined : 'center',
         pointerEvents: 'auto',
       };
     },
@@ -136,15 +144,13 @@ export default {
       this._initPosition();
       this.visible = true;
     }
-    this._onMousemove = this._handleMousemove.bind(this);
-    this._onMouseup   = this._handleMouseup.bind(this);
-    document.addEventListener('mousemove', this._onMousemove, true);
-    document.addEventListener('mouseup',   this._onMouseup,   true);
+    document.addEventListener('mousemove', this.handleDragMove);
+    document.addEventListener('mouseup',   this.handleDragUp);
   },
 
   beforeUnmount() {
-    document.removeEventListener('mousemove', this._onMousemove, true);
-    document.removeEventListener('mouseup',   this._onMouseup,   true);
+    document.removeEventListener('mousemove', this.handleDragMove);
+    document.removeEventListener('mouseup',   this.handleDragUp);
   },
 
   methods: {
@@ -201,28 +207,41 @@ export default {
       if (!this.draggable) return;
       if (e.target.closest('button')) return;
 
+      // If the popup was centred (no initial position), capture its current
+      // rendered position so that cardStyle switches to fixed positioning
+      // and subsequent drag deltas actually move the card.
+      if (!this.isPositioned) {
+        const card = this.$refs.card;
+        if (card) {
+          const rect = card.getBoundingClientRect();
+          this.currentX = rect.left;
+          this.currentY = rect.top;
+          this.dragPositioned = true;
+        }
+      }
+
       this.isDragging = true;
-      this._dragStartMouseX = e.clientX;
-      this._dragStartMouseY = e.clientY;
-      this._dragStartCardX  = this.currentX;
-      this._dragStartCardY  = this.currentY;
+      this.dragStartMouseX = e.clientX;
+      this.dragStartMouseY = e.clientY;
+      this.dragStartCardX  = this.currentX;
+      this.dragStartCardY  = this.currentY;
       e.preventDefault();
       e.stopPropagation();
     },
 
-    _handleMousemove(e) {
+    handleDragMove(e) {
       if (!this.isDragging) return;
-      const dx = e.clientX - this._dragStartMouseX;
-      const dy = e.clientY - this._dragStartMouseY;
-      this.currentX = this._dragStartCardX + dx;
-      this.currentY = this._dragStartCardY + dy;
+      const dx = e.clientX - this.dragStartMouseX;
+      const dy = e.clientY - this.dragStartMouseY;
+      this.currentX = this.dragStartCardX + dx;
+      this.currentY = this.dragStartCardY + dy;
       if (this.clampToViewport) {
         this._clamp();
       }
       e.preventDefault();
     },
 
-    _handleMouseup(_e) {
+    handleDragUp(_e) {
       if (!this.isDragging) return;
       this.isDragging = false;
       this.$emit('popup-position-update', { x: this.currentX, y: this.currentY });

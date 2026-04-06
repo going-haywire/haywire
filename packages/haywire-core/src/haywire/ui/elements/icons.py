@@ -38,7 +38,11 @@ class AppIcon:
 
     # ── Library  ───────────────────────────────────────────────────────────
     library: Final[str] = "extension"
-    """Library bicon."""
+    """Library icon."""
+    registry_key: Final[str] = "key"
+    """Registry key or identifier."""
+    module: Final[str] = "webhook"
+    """Module reference."""
 
     # ── Console / terminal ────────────────────────────────────────────────────
     terminal: Final[str] = "terminal"
@@ -64,9 +68,8 @@ class AppIcon:
     """Panels main icon."""
     editor: Final[str] = "space_dashboard"
     """Editors main icon."""
-    theme: Final[str] = "palette"
+    theme: Final[str] = "style"
     """Theme and appearance main icon."""
-
 
     # ── Canvas sub-panels ────────────────────────────────────────────────────
     canvas_grid: Final[str] = "grid_4x4"
@@ -165,6 +168,26 @@ class AppIcon:
     """Error state."""
     warning: Final[str] = "warning"
     """Warning state."""
+    suggestion: Final[str] = "lightbulb"
+    """Suggestion or hint."""
+    traceback: Final[str] = "search"
+    """Traceback / stack trace inspection."""
+    arrow_forward: Final[str] = "arrow_right"
+    """Forward navigation indicator (traceback frames, breadcrumbs)."""
+    operation: Final[str] = "build"
+    """Operation or build step."""
+    message: Final[str] = "message"
+    """Generic message or log entry."""
+    severity: Final[str] = "shield"
+    """Severity level indicator."""
+    context: Final[str] = "code"
+    """Code or context type indicator."""
+    label: Final[str] = "label"
+    """Label or tag identifier."""
+    line_number: Final[str] = "tag"
+    """Line number or numeric reference."""
+    palette: Final[str] = "palette"
+    """Color indicator."""
 
     # ── Empty states ─────────────────────────────────────────────────────────
     empty_no_results: Final[str] = "search_off"
