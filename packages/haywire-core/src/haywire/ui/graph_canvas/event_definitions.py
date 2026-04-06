@@ -205,6 +205,21 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
     selectedEdges: List[str]
 
 
+@graph_event(
+    "contextMenuCustom",
+    category="user",
+    description="Custom-scope context menu triggered via data-hw-custom-menu-scope attribute",
+)
+@dataclass
+class ContextMenuCustomEvent(BaseGraphEvent):
+    screenX: float
+    screenY: float
+    canvasX: float
+    canvasY: float
+    nodeId: str
+    scope: str
+
+
 @graph_event("userPasteClipboard", category="user", description="Paste clipboard contents")
 @dataclass
 class UserPasteClipboardEvent(BaseGraphEvent):

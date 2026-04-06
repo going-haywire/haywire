@@ -1082,6 +1082,23 @@ export default {
             const clientY = event.clientY;
             const target = event.target;
 
+            // Check for custom-scope context menu button (data-hw-custom-menu-scope)
+            // These are skin-rendered elements that declare their own panel scope.
+            // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
+            const customMenuEl = target.closest('[data-hw-custom-menu-scope]');
+            if (customMenuEl) {
+                const scope = customMenuEl.getAttribute('data-hw-custom-menu-scope');
+                const nodeAncestor = customMenuEl.closest('[data-node-id]');
+                const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
+                if (scope && nodeId) {
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    this.emitCanvasEvent(EventCreators.createContextMenuCustom(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, scope
+                    ));
+                    return;
+                }
+            }
+
             // Check for node
             const nodeElement = target.closest('[data-node-id]');
             

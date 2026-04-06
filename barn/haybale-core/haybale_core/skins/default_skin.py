@@ -42,7 +42,7 @@ class DefaultNodeSkin(NodeSkin):
             # Runtime errors indicator with popup
             runtime_errors = wrapper.state.get_errors()
             if runtime_errors:
-                self._render_errors_button(runtime_errors)
+                self._render_errors_button(runtime_errors, wrapper.node_id)
 
             # Header with node label and ghost pins for hidden connected ports
             with ui.row().classes("drag-handle w-full items-center"):

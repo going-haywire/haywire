@@ -145,8 +145,13 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
 
                             code_with_numbers = "\n".join(numbered_lines)
 
-                            # Use ui.code() for syntax highlighting
-                            ui.code(code_with_numbers, language=language).classes("w-full")
+                            with ui.element("div").classes("hw-cm-isolate w-full"):
+                                ui.codemirror(
+                                    code_with_numbers,
+                                    language=language,
+                                    theme="vscodeDark",
+                                ).classes("w-full").props("readonly")
+
 
                             # File path with "Open in Editor" button
                             file_display = error.filename

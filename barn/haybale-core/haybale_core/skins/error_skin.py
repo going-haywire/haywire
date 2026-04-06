@@ -74,7 +74,7 @@ class ErrorNodeSkin(NodeSkin):
                 # Runtime errors indicator with popup
                 runtime_errors = wrapper.state.get_errors()
                 if runtime_errors:
-                    self._render_errors_button(runtime_errors)
+                    self._render_errors_button(runtime_errors, wrapper.node_id)
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes("w-full gap-2"):

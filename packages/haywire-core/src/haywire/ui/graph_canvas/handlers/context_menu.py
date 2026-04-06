@@ -22,6 +22,7 @@ from ..event_definitions import (
     ContextMenuNodeEvent,
     ContextMenuEdgeEvent,
     ContextMenuSelectedEvent,
+    ContextMenuCustomEvent,
 )
 from ..event_handlers import handles_event
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
@@ -41,6 +42,13 @@ logger = logging.getLogger(__name__)
 # Protocol
 # ---------------------------------------------------------------------------
 
+# hardcoded scope for built-in context menu types.
+SCOPE_CANVAS = "canvas"
+SCOPE_NODE = "node"
+SCOPE_EDGE = "edge"
+SCOPE_SELECTION = "selection"
+
+EDITOR_CONTEXT_MENU = "context_menu"
 
 class IContextMenuProvider:
     """
@@ -86,6 +94,15 @@ class IContextMenuProvider:
         """User right-clicked on a multi-element selection."""
         ...
 
+    def on_custom_context(
+        self,
+        pos: Tuple[float, float],
+        node_id: str,
+        scope: str,
+    ) -> None:
+        """User right-clicked a custom-scope element (data-hw-custom-menu-scope)."""
+        ...
+
 
 # ---------------------------------------------------------------------------
 # Session-context-driven provider
@@ -99,7 +116,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
     On each intent call this provider:
     1. Updates SessionContext (active_node/edge, context_menu_trigger).
     2. Fires CONTEXT_MENU_OPENED via session.notify_context_changed.
-    3. Queries PanelRegistry for panels with editor='context_menu' and the
+    3. Queries PanelRegistry for panels with editor=EDITOR_CONTEXT_MENU and the
        matching scope, filters by poll(), and draws matching panels into a
        Popup produced by popup_factory.
     4. Registers a close callback that clears context_menu_trigger and fires
@@ -151,7 +168,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         popup.on_close(_on_close)
 
         # Query panels matching editor/scope, filter by poll(), and draw into popup
-        panel_classes = self._panel_registry.get_panels("context_menu", trigger)
+        panel_classes = self._panel_registry.get_panels(EDITOR_CONTEXT_MENU, trigger)
         visible = [cls for cls in panel_classes if cls.poll(self._context)]
         if visible:
             with popup as container:
@@ -162,7 +179,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     def on_canvas_context(self, pos, canvas_pos):
         self._context.metadata["canvas_position"] = {"x": canvas_pos[0], "y": canvas_pos[1]}
-        self._open_menu("canvas", pos)
+        self._open_menu(SCOPE_CANVAS, pos)
 
     def on_node_context(self, pos, node_id):
         # Set active_node so that panel poll() checks pass even when
@@ -171,15 +188,22 @@ class SessionContextMenuProvider(IContextMenuProvider):
             wrapper = self._context.active_graph.get_node_wrapper(node_id)
             if wrapper is not None:
                 self._context.active_node = wrapper
-        self._open_menu("node", pos)
+        self._open_menu(SCOPE_NODE, pos)
 
     def on_edge_context(self, pos, edge_id, edge, state):
         self._context.metadata["edge_state"] = state
         self._context.metadata["context_menu_screen_pos"] = pos
-        self._open_menu("edge", pos)
+        self._open_menu(SCOPE_EDGE, pos)
 
     def on_selection_context(self, pos, nodes, edges):
-        self._open_menu("selection", pos)
+        self._open_menu(SCOPE_SELECTION, pos)
+
+    def on_custom_context(self, pos, node_id, scope):
+        if self._context.active_graph is not None:
+            wrapper = self._context.active_graph.get_node_wrapper(node_id)
+            if wrapper is not None:
+                self._context.active_node = wrapper
+        self._open_menu(scope, pos)
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +232,7 @@ class ContextMenuHandlers:
         ContextMenuNodeEvent,
         ContextMenuEdgeEvent,
         ContextMenuSelectedEvent,
+        ContextMenuCustomEvent,
     )
     def process_context_menu(self, event):
         """Route context-menu events to the provider as intent calls."""
@@ -245,4 +270,15 @@ class ContextMenuHandlers:
                 (event.screenX, event.screenY),
                 event.selectedNodes,
                 event.selectedEdges,
+            )
+
+        elif isinstance(event, ContextMenuCustomEvent):
+            logger.debug(
+                f"Custom context menu scope={event.scope!r} "
+                f"for node {event.nodeId} at ({event.screenX}, {event.screenY})"
+            )
+            self.provider.on_custom_context(
+                (event.screenX, event.screenY),
+                event.nodeId,
+                event.scope,
             )

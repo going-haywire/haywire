@@ -20,6 +20,7 @@ window.GraphEvents = {
     CONTEXT_MENU_NODE: 'contextMenuNode', // Node context menu triggered
     CONTEXT_MENU_EDGE: 'contextMenuEdge', // Connection context menu triggered
     CONTEXT_MENU_SELECTED: 'contextMenuSelected', // Context menu triggered on selected elements
+    CONTEXT_MENU_CUSTOM: 'contextMenuCustom', // Custom-scope context menu triggered via data-hw-custom-menu-scope attribute
     USER_PASTE_CLIPBOARD: 'userPasteClipboard', // Paste clipboard contents
   },
   
@@ -199,6 +200,16 @@ window.EventCreators = {
     };
   },
 
+  createContextMenuCustom(screenX, screenY, canvasX, canvasY, nodeId, scope, sessionId = 'default') {
+    return {
+      event_type: 'contextMenuCustom',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { screenX, screenY, canvasX, canvasY, nodeId, scope },
+      requires_broadcast: true
+    };
+  },
+
   createUserPasteClipboard(canvasX, canvasY, sessionId = 'default') {
     return {
       event_type: 'userPasteClipboard',
@@ -289,6 +300,11 @@ window.EventValidators = {
 
   validateContextMenuSelected(data) {
     const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "selectedNodes", "selectedEdges"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateContextMenuCustom(data) {
+    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "nodeId", "scope"];
     return requiredFields.every(field => field in data);
   },
 

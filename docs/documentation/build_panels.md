@@ -18,6 +18,7 @@ For background on how panels fit into the larger UI architecture, see [haywire_a
 10. [Compact Field Styling](#10-compact-field-styling)
 11. [Best Practices](#11-best-practices)
 12. [Full Example: A Custom Node Metrics Panel](#12-full-example-a-custom-node-metrics-panel)
+13. [Custom Context Menu Triggers](#13-custom-context-menu-triggers)
 
 ---
 
@@ -321,14 +322,45 @@ Registered by `haybale-studio` in its `register_components()`:
 | `node`      | `widgets`       | Node           | `context.active_node` is not None  |
 | `edge`      | `cable`         | Edge           | `context.active_edge` is not None  |
 
-The PropertiesEditor only auto-switches scope when the current scope becomes unavailable
-(e.g. the user deselects a node while on the `node` tab). Manual navigation always takes
+The PropertiesEditor only auto-switches scope when the current scope becomes unavailable (e.g. the user deselects a node while on the `node` tab). Manual navigation always takes
 priority.
+
+### Context menu scopes (editor `'context_menu'`)
+
+The canvas right-click popup uses a separate editor key — `'context_menu'` — with its own set of built-in scopes. These are **not** tabs; the scope is chosen automatically by the pipeline based on what the user right-clicked.
+
+| hardcodeed scope_id      | Triggered when                                               |
+| ------------- | ------------------------------------------------------------ |
+| `canvas`      | Right-click on empty canvas space                            |
+| `node`        | Right-click on a node                                        |
+| `edge`        | Right-click on a connection                                  |
+| `selection`   | Right-click while one ormultiple elements are selected             |
+| `<custom scope>` | Right-click a node with (custom scope) |
+
+See [Section 13](#13-custom-context-menu-triggers) for the custom scope mechanism.
+
+Panels contributing to the context menu popup work identically to properties panels, except they use `editor='context_menu'` and do not get the expansion wrapper — the `SessionContextMenuProvider` renders them directly into a floating `Popup`:
+
+```python
+@panel(
+    editors='context_menu',
+    scopes='node',
+    label='Delete Node',
+    icon='delete',
+    order=10,
+)
+class DeleteNodePanel(BasePanel):
+    @classmethod
+    def poll(cls, context) -> bool:
+        return context.active_node is not None
+
+    def draw(self, context, layout: PanelLayout) -> None:
+        ...
+```
 
 ### Registering a custom scope
 
-To add a new tab to the Properties editor, register a `ScopeDescriptor` before scanning
-the panels folder:
+To add a new tab to the Properties editor, register a `ScopeDescriptor` before scanning the panels folder:
 
 ```python
 from haywire.ui.panel.registry import PanelRegistry
@@ -355,9 +387,7 @@ class MyLibrary(BaseLibrary):
         )
 ```
 
-`ScopeDescriptor.poll` is a callable `(SessionContext) -> bool` that controls whether the
-tab is available (shown at full opacity and clickable) or unavailable (dimmed, not
-clickable). Use it to hide the tab when the library has nothing meaningful to show.
+`ScopeDescriptor.poll` is a callable `(SessionContext) -> bool` that controls whether the tab is available (shown at full opacity and clickable) or unavailable (dimmed, not clickable). Use it to hide the tab when the library has nothing meaningful to show.
 
 ### Multi-scope panels
 
@@ -742,3 +772,95 @@ class MyLibrary(BaseLibrary):
 ```
 
 Place `node_metrics_panel.py` (containing `NodeMetricsPanel`) inside the `panels/` folder and it will be discovered and registered automatically. No further wiring is required — the `PropertiesEditor` will find it via the `PanelRegistry` the next time a node is selected and the **Node** scope tab is active.
+
+---
+
+## 13. Custom Context Menu Triggers
+
+Node skins can attach a context-menu popup to **any rendered element** without writing JavaScript or subclassing any event handler. The mechanism uses a single HTML data attribute and a matching panel registration.
+
+### How it works
+
+1. **Skin stamps the attribute.** Any element inside a node card can carry
+   `data-hw-custom-menu-scope="<scope>"`. When the user right-clicks that element, `canvas.vue` intercepts the event *before* the normal node/edge/canvas routing and emits a `contextMenuCustom` event carrying the scope string and the `node_id` (resolved by walking up to the nearest `[data-node-id]` ancestor).
+
+2. **Python pipeline resolves the node.** `ContextMenuHandlers` dispatches the event to
+   `IContextMenuProvider.on_custom_context(pos, node_id, scope)`. The
+   `SessionContextMenuProvider` implementation sets `context.active_node` and then calls `_open_menu(scope, pos)` — the same path used by all other context menu triggers.
+
+3. **PanelRegistry serves the panels.** `_open_menu` calls
+   `panel_registry.get_panels('context_menu', scope)`, which returns all panels registered for that `(editor_key, scope_id)` pair. Panels that pass `poll()` are drawn into a floating `Popup`.
+
+### Stamping the attribute from a skin
+
+```python
+# Inside a NodeSkin.render() or any _render_* helper:
+btn = ui.button(icon='warning', color='red')
+btn.props(f'data-hw-custom-menu-scope="my.scope" data-node-id="{node_id}"')
+```
+
+The `data-node-id` prop on the element itself is optional — `canvas.vue` also accepts it from any ancestor in the DOM tree. Adding it directly is a safe fallback.
+
+### Writing the panel
+
+```python
+from haywire.ui.panel.base import BasePanel, PanelLayout
+from haywire.ui.panel.decorator import panel
+
+@panel(
+    editors='context_menu',
+    scopes='my.scope',
+    label='My Custom Panel',
+    icon='info',
+    order=10,
+)
+class MyCustomPanel(BasePanel):
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        return context.active_node is not None
+
+    def draw(self, context, layout: PanelLayout) -> None:
+        from nicegui import ui
+        node = context.active_node
+        with layout._container:
+            ui.label(f'Node: {node.node_id}')
+```
+
+Place the file anywhere inside your library's `panels/` folder. The folder scan picks it up automatically — no extra registration call is needed.
+
+### Built-in example: node runtime errors
+
+The default skin renders a warning badge when a node has runtime errors. It stamps:
+
+```
+data-hw-custom-menu-scope="node.errors"
+```
+
+`haybale-core` ships `NodeErrorsPanel` registered for `editor='context_menu', scope='node.errors'`. Right-clicking the badge opens a popup listing each error with its full detail, replacing the old inline `ui.menu()` that was self-contained inside the skin.
+
+### Extending an existing scope
+
+Because any number of panels can register for the same `(editor, scope)` pair, a library can contribute additional actions to an existing custom scope without modifying the skin:
+
+```python
+@panel(
+    editors='context_menu',
+    scopes='node.errors',     # same scope as the built-in error panel
+    label='Report Error',
+    icon='bug_report',
+    order=20,
+)
+class ReportErrorPanel(BasePanel):
+    @classmethod
+    def poll(cls, context) -> bool:
+        return (
+            context.active_node is not None
+            and bool(context.active_node.state.get_errors())
+        )
+
+    def draw(self, context, layout: PanelLayout) -> None:
+        layout.button('Send crash report', on_click=lambda: ...)
+```
+
+All panels matching the scope are rendered together in `order` sequence inside the same popup, just as they would be in the Properties sidebar.

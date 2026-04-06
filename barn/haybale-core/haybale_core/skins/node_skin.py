@@ -6,7 +6,6 @@ from haywire.core.errors import HaywireException
 from haywire.core.types import DataPort, CompoundType, FlowType
 from haywire.core.node.node_wrapper import NodeWrapper
 
-from haywire.ui.widget.factory import error_render_detail
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui import elements as hui
 from haywire.ui.themes.icons import ICONS
@@ -339,26 +338,24 @@ class NodeSkin(BaseSkin, ABC):
             )
         )
 
-    def _render_errors_button(self, errors: List["HaywireException"]):
+    def _render_errors_button(self, errors: List["HaywireException"], node_id: str):
         """
-        Render a button that shows runtime errors count and opens a popup with details.
+        Render a button that signals runtime errors and opens a panel-driven popup on right-click.
+
+        The button stamps data-hw-custom-menu-scope="node.errors" so canvas.vue can
+        intercept a right-click and route it through the normal context-menu pipeline
+        with scope "node.errors", causing NodeErrorsPanel to render in a Popup.
 
         Args:
             errors: List of runtime errors to display
+            node_id: Node ID used by canvas.vue to resolve the active node
         """
         error_count = len(errors)
 
-        with ui.button(icon=hui.icon.warning, color="red") as btn:
-            btn.classes("text-xl px-2 py-1")
-            btn.props("dense flat")
-            btn.style("position: absolute; top: -25px;")
+        btn = ui.button(icon=hui.icon.warning, color="red")
+        btn.classes("text-xl px-2 py-1")
+        btn.props("dense flat")
+        btn.style("position: absolute; top: -25px;")
+        btn.props(f'data-hw-custom-menu-scope="node.errors" data-node-id="{node_id}"')
+        with btn:
             ui.badge(str(error_count), color="red").props("floating")
-
-            with ui.menu().props('anchor="bottom left" self="top left"'):
-                with ui.card().classes("p-2 max-w-md max-h-96 overflow-auto"):
-                    for idx, error in enumerate(errors):
-                        with ui.expansion(
-                            f"{idx + 1}. {error.operation or 'Error'}", icon=hui.icon.error
-                        ).classes("w-full hw-text-danger"):
-                            ui.label(error.message).classes("text-sm hw-text-danger mb-2")
-                            error_render_detail(error)
