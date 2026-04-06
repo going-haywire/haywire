@@ -706,7 +706,7 @@ label is needed, optionally with a leading icon.
 
 **Visual rules:**
 
-- Props: `flat dense align=left`
+- Props: `flat dense align=left no-wrap`
 - Classes: `text-sm w-full`
 - Colour: inherited — never use Quasar `color=` prop
 - Disabled: `opacity: 0.5; pointer-events: none`

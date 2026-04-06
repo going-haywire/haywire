@@ -232,7 +232,7 @@ def label(text: str) -> ui.label:
 
         hui.label("No settings available.")
     """
-    return ui.label(text).classes("text-sm hw-text-body")
+    return ui.label(text).classes("text-sm hw-text-body truncate")
 
 
 def section_label(text: str) -> ui.label:
@@ -249,7 +249,9 @@ def section_label(text: str) -> ui.label:
 
         hui.section_label("REQUIRED")
     """
-    return ui.label(text.upper()).classes("text-xs font-bold tracking-wider hw-text-dim px-2 pt-2 pb-1")
+    return ui.label(text.upper()).classes(
+        "text-xs font-bold tracking-wider hw-text-dim px-2 pt-2 pb-1 truncate"
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -285,7 +287,7 @@ def info_row(
         hui.info_row("Key", "visiongraph:node:WebcamFrame", copy_value=full_key)
     """
     effective_copy = copy_value if copy_value is not None else value
-    row = ui.row().classes("w-full items-center gap-1 py-0.5")
+    row = ui.row().classes("w-full items-center gap-1 py-0.5 min-w-0")
     with row:
         if copy_value is not None or True:  # always show copy for info rows
             _copy_button(effective_copy)
@@ -371,7 +373,7 @@ def button(
         hui.button("Delete Node", icon="delete", on_click=self._delete)
         hui.button("Refresh", icon="refresh", on_click=self._refresh)
     """
-    btn = ui.button(label, icon=icon).props("flat dense align=left").classes("text-sm w-full")
+    btn = ui.button(label, icon=icon).props("flat dense align=left no-wrap").classes("text-sm w-full")
     if disabled:
         btn.style("opacity: 0.5; pointer-events: none;")
     if tooltip:
@@ -545,7 +547,12 @@ def expansion_section(
         exp_state = context.metadata.setdefault("_hui_expansion", {})
         is_open = exp_state.get(panel_key, default_open)
 
-    exp = ui.expansion(label, icon=icon, value=is_open).classes("w-full").style(_BORDER)
+    exp = (
+        ui.expansion(label, icon=icon, value=is_open)
+        .classes("w-full")
+        .style(_BORDER)
+        .props('header-class="truncate"')
+    )
 
     # Persist state changes
     if exp_state is not None and panel_key:
@@ -580,7 +587,7 @@ def warning_label(text: str) -> ui.label:
     Visual rules: ``text-sm p-4``, ``color: var(--hw-warning)``.
     Never use ``text-yellow-400`` — it is theme-unaware.
     """
-    return ui.label(text).classes("hw-text-warning text-sm p-4")
+    return ui.label(text).classes("hw-text-warning text-sm p-4 truncate")
 
 
 def success_label(text: str) -> ui.label:
@@ -589,7 +596,7 @@ def success_label(text: str) -> ui.label:
 
     Visual rules: ``text-sm p-4``, ``color: var(--hw-success)``.
     """
-    return ui.label(text).classes("hw-text-success text-sm p-4")
+    return ui.label(text).classes("hw-text-success text-sm p-4 truncate")
 
 
 def info_label(text: str) -> ui.label:
@@ -598,7 +605,7 @@ def info_label(text: str) -> ui.label:
 
     Visual rules: ``text-sm p-4``, ``color: var(--hw-info)``.
     """
-    return ui.label(text).classes("hw-text-info text-sm p-4")
+    return ui.label(text).classes("hw-text-info text-sm p-4 truncate")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -665,14 +672,12 @@ def input_field(
             label=label,
             placeholder=placeholder,
             value=value,
+            on_change=on_change,
             **kwargs,
         )
         .classes("w-full")
         .props(props)
     )
-
-    if on_change:
-        inp.on("update:model-value", on_change)
 
     return inp
 
@@ -862,7 +867,7 @@ def category_group(label: str, *, default_open: bool = True):
         .props(
             "dense dense-toggle"
             ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
-            ' px-2 py-0 min-h-[24px]"'
+            ' px-2 py-0 min-h-[24px] truncate"'
         )
     ) as exp:
         yield exp

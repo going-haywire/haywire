@@ -43,7 +43,6 @@ class EdgeErrorsPanel(BasePanel):
         return state is not None and state.get_error() is not None
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from nicegui import ui
         from haywire.core.errors.haywire_exception import HaywireException
         from haywire.ui.errors.error_info import error_render_detail
 
@@ -54,11 +53,10 @@ class EdgeErrorsPanel(BasePanel):
 
         with layout._container:
             with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("⚠ Connection Error").classes("hw-text-danger font-semibold text-sm")
                 if isinstance(error, HaywireException):
                     error_render_detail(error)
                 else:
-                    ui.label(str(error)).classes("hw-text-danger text-xs whitespace-pre-wrap break-words")
+                    hui.error_label(str(error)).classes("whitespace-pre-wrap break-words")
 
 
 @panel(
@@ -83,10 +81,10 @@ class EdgeWarningsPanel(BasePanel):
 
         with layout._container:
             with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("⚠ Warnings").classes("hw-text-warning font-semibold text-sm")
+                hui.warning_label("Warnings").classes("font-semibold")
                 for warning in state.warnings:
-                    ui.label(f"• {warning}").classes(
-                        "hw-text-warning text-xs whitespace-pre-wrap break-words ml-1"
+                    hui.warning_label(f"• {warning}").classes(
+                        "whitespace-pre-wrap break-words ml-1"
                     )
 
 
@@ -134,14 +132,14 @@ class ExecutionStatisticsEdgePanel(BasePanel):
             .classes("w-full p-3")
             .style("background: var(--hw-bg-surface); border: 1px solid var(--hw-border);")
         ):
-            ui.label(f"Execution Count: {state.execution_count}").classes("text-xs hw-text-body")
+            hui.label(f"Execution Count: {state.execution_count}")
             avg_time = state.average_execution_time_us
             if avg_time > 0:
-                ui.label(f"Average Time: {avg_time:.1f} μs").classes("text-xs hw-text-body")
+                hui.label(f"Average Time: {avg_time:.1f} μs")
             else:
-                ui.label("Average Time: Not measured").classes("text-xs hw-text-dim")
-            ui.label(f"Tested value: {state.example_test_value}").classes("text-xs hw-text-muted ml-2")
-            ui.label(f"Tested result: {state.example_test_result}").classes("text-xs hw-text-muted ml-2")
+                hui.label("Average Time: Not measured")
+            hui.label(f"Tested value: {state.example_test_value}")
+            hui.label(f"Tested result: {state.example_test_result}")
 
 
 @panel(
@@ -164,9 +162,5 @@ class ConnectionPathEdgePanel(BasePanel):
             .classes("w-full p-3")
             .style("background: var(--hw-bg-surface); border: 1px solid var(--hw-border);")
         ):
-            ui.label(f"{edge_wrapper.source_node_id}[{edge_wrapper.outlet_port_id}]").classes(
-                "text-xs hw-text-body ml-2"
-            )
-            ui.label(f"{edge_wrapper.sink_node_id}[{edge_wrapper.inlet_port_id}]").classes(
-                "text-xs hw-text-body ml-2 mt-1"
-            )
+            hui.label(f"{edge_wrapper.source_node_id}[{edge_wrapper.outlet_port_id}]")
+            hui.label(f"{edge_wrapper.sink_node_id}[{edge_wrapper.inlet_port_id}]")
