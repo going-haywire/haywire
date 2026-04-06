@@ -165,6 +165,12 @@ class SessionContextMenuProvider(IContextMenuProvider):
         self._open_menu("canvas", pos)
 
     def on_node_context(self, pos, node_id):
+        # Set active_node so that panel poll() checks pass even when
+        # the right-clicked node is not currently selected.
+        if self._context.active_graph is not None:
+            wrapper = self._context.active_graph.get_node_wrapper(node_id)
+            if wrapper is not None:
+                self._context.active_node = wrapper
         self._open_menu("node", pos)
 
     def on_edge_context(self, pos, edge_id, edge, state):
@@ -213,18 +219,14 @@ class ContextMenuHandlers:
             )
 
         elif isinstance(event, ContextMenuNodeEvent):
-            logger.debug(
-                f"Node context menu for {event.nodeId} at ({event.screenX}, {event.screenY})"
-            )
+            logger.debug(f"Node context menu for {event.nodeId} at ({event.screenX}, {event.screenY})")
             self.provider.on_node_context(
                 (event.screenX, event.screenY),
                 event.nodeId,
             )
 
         elif isinstance(event, ContextMenuEdgeEvent):
-            logger.debug(
-                f"Edge context menu for {event.edge_id} at ({event.screenX}, {event.screenY})"
-            )
+            logger.debug(f"Edge context menu for {event.edge_id} at ({event.screenX}, {event.screenY})")
             ui_edge = self.visual_layer.get_edge(event.edge_id)
             if ui_edge and ui_edge.wrapper:
                 self.provider.on_edge_context(

@@ -61,7 +61,7 @@ class Popup(ui.element, component="popup.vue"):
         # Use the slot directly here (not __enter__) to avoid the chicken-and-egg
         # problem where __enter__ references self._content before it is assigned.
         with self.default_slot:
-            self._content = ui.column().classes("hw-popup-content-col w-full")
+            self._content = ui.column().classes("hw-popup-content-col w-full hw-panel")
 
     # ------------------------------------------------------------------
     # Context manager — children go into the content column

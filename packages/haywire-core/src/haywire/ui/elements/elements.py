@@ -585,7 +585,7 @@ def input_field(
     A standard text input, pre-configured for panel use.
 
     Visual rules:
-    - Props: ``dense outlined``
+    - Props: ``dense`` (standard variant — no ``outlined`` or ``filled``)
     - Classes: ``w-full``
     - Background: ``var(--hw-bg-input)`` (automatic via global CSS)
     - Border: ``var(--hw-border)`` at rest, ``var(--hw-border-strong)`` on hover/focus
@@ -600,7 +600,7 @@ def input_field(
                         on_change=lambda e: filter(e.value))
         hui.input_field(label="Port", rules=[lambda v: v.isdigit() or "Must be a number"])
     """
-    props = "dense outlined"
+    props = "dense"
     if clearable:
         props += " clearable"
 
@@ -630,7 +630,7 @@ def number_field(
     """
     A standard number input, pre-configured for panel use.
 
-    Visual rules: same as ``hui.input_field`` — ``dense outlined``, ``w-full``.
+    Visual rules: same as ``hui.input_field`` — ``dense`` (standard variant), ``w-full``.
 
     Usage::
 
@@ -643,7 +643,7 @@ def number_field(
             **kwargs,
         )
         .classes("w-full")
-        .props("dense outlined")
+        .props("dense")
     )
 
 
@@ -660,7 +660,7 @@ def select_field(
     A standard dropdown select, pre-configured for panel use.
 
     Visual rules:
-    - Props: ``dense outlined``
+    - Props: ``dense`` (standard variant — no ``outlined`` or ``filled``)
     - Classes: ``text-sm``
     - ``min-width: 160px`` by default (override via ``min_width=``)
 
@@ -670,7 +670,7 @@ def select_field(
     """
     sel = (
         ui.select(options=options, value=value, label=label, **kwargs)
-        .props("dense outlined")
+        .props("dense")
         .classes("text-sm")
         .style(f"min-width: {min_width};")
     )

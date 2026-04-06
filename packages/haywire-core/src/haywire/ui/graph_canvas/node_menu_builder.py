@@ -7,6 +7,7 @@ defined in node decorators (e.g., menu='core/basic').
 from nicegui import ui
 from typing import Dict, List, Optional, Callable
 from haywire.core.node.factory import NodeFactory
+from haywire.ui import elements as hui
 
 
 class NodeMenuBuilder:
@@ -45,7 +46,7 @@ class NodeMenuBuilder:
         with ui.column().classes("w-full") as menu_container:
             # Search functionality if requested
             if show_search:
-                ui.input(
+                hui.input_field(
                     placeholder="Search nodes...",
                     on_change=lambda e: self._handle_search(e.value, menu_container),
                 ).props("autofocus").classes("w-96 mb-2")
